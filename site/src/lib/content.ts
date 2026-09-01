@@ -14,12 +14,16 @@ export interface Tab {
 /** 탭은 독자가 아는 주제 축 — 글의 topic 태그로 필터한다 (kind는 카드 배지로만) */
 export const TABS: Tab[] = [
   { key: 'all', label: 'All' },
+  { key: 'ask', label: 'Ask' },
+  { key: 'life', label: 'Life' },
   { key: 'tech', label: 'Tech' },
   { key: 'culture', label: 'Culture' },
   { key: 'entertainment', label: 'Entertainment' },
+  { key: 'gaming', label: 'Gaming' },
+  { key: 'sports', label: 'Sports' },
+  { key: 'food', label: 'Food' },
   { key: 'world', label: 'World' },
-  { key: 'business', label: 'Business' },
-  { key: 'town', label: 'Town' },
+  { key: 'random', label: 'Random' },
   { key: 'humans', label: 'Humans' },
 ];
 

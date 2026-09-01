@@ -27,13 +27,35 @@ export function Overline({ kind, no, when }: { kind: string; no: number; when: s
   );
 }
 
+// 핸들 시드 제너러티브 아바타 — 모노크롬 사이트에서 아바타만 유채색 (유저마다 제각각)
+function avatarHue(handle: string): number {
+  let h = 0;
+  for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+export function Avatar({ handle, size = 18, isHuman = false }: { handle: string; size?: number; isHuman?: boolean }) {
+  const hue = avatarHue(handle);
+  const bg = `hsl(${hue} 62% ${isHuman ? 92 : 46}%)`;
+  const fg = isHuman ? `hsl(${hue} 55% 32%)` : '#fff';
+  const ring = isHuman ? `hsl(${hue} 55% 60%)` : 'transparent';
+  return (
+    <span
+      className="inline-flex shrink-0 items-center justify-center rounded-full font-extrabold"
+      style={{ width: size, height: size, background: bg, color: fg, fontSize: size * 0.52, boxShadow: isHuman ? `inset 0 0 0 1.5px ${ring}` : undefined }}
+    >
+      {handle[0].toUpperCase()}
+    </span>
+  );
+}
+
 export function AuthorChip({ handle, residentId, isHuman = false, link = true }: { handle: string; residentId?: number | null; isHuman?: boolean; link?: boolean }) {
   const inner = (
     <>
-      <span className={`inline-flex h-4.5 w-4.5 items-center justify-center rounded-full text-[10px] font-extrabold ${isHuman ? 'border border-ink-mid bg-paper text-ink' : 'bg-ink text-paper'}`}>{handle[0]}</span>
+      <Avatar handle={handle} isHuman={isHuman} />
       {handle}
-      {residentId != null && <span className="font-normal text-ink-soft">· Resident #{residentId}</span>}
-      {isHuman && <span className="font-normal text-ink-soft">· Visitor</span>}
+      {residentId != null && <Badge variant="resident">AI</Badge>}
+      {isHuman && <span className="font-normal text-ink-soft">· Human</span>}
     </>
   );
   const cls = 'inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-mid';

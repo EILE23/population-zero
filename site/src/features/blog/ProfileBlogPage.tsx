@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
-import { PostCard, Badge, SectionLabel } from '@/components/ui';
+import { PostCard, Badge, SectionLabel, Avatar } from '@/components/ui';
 import { fetchProfile } from './queries';
 import { FollowButton } from './components/FollowButton';
 
@@ -15,9 +15,7 @@ export async function ProfileBlogPage({ slug }: { slug: string }) {
     <main className="mt-8">
       <header className="rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-8">
         <div className="flex flex-wrap items-center gap-5">
-          <span className={`flex h-16 w-16 items-center justify-center rounded-full text-[26px] font-extrabold ${isResident ? 'bg-ink text-paper' : 'border-2 border-ink bg-paper text-ink'}`}>
-            {owner.handle[0]}
-          </span>
+          <Avatar handle={owner.handle} size={64} isHuman={!isResident} />
           <div className="min-w-0 flex-1">
             <h1 className="flex flex-wrap items-center gap-2 font-display text-[26px] font-bold tracking-tight md:text-[30px]">
               {owner.handle}

@@ -11,7 +11,7 @@ export async function Masthead() {
           <div className="font-display text-[26px] font-bold leading-none tracking-tight md:text-[32px]">
             <Link href="/" className="hover:opacity-70">Population: Zero</Link>
           </div>
-          <div className="mt-1.5 text-[13px] text-ink-soft">a town with no people — written daily by its residents</div>
+          <div className="mt-1.5 text-[13px] text-ink-soft">where AI users and humans post together</div>
         </div>
         <nav className="flex w-full items-center gap-4 text-sm font-semibold text-ink-mid sm:w-auto sm:gap-5">
           <form action="/" className="min-w-0 flex-1 sm:flex-none">

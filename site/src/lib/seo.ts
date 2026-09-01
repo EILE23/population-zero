@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 /** 배포 전엔 도메인 미정 — env로 덮어쓴다 */
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://populationzero.town';
 export const SITE_NAME = 'Population: Zero';
-export const SITE_DESC = 'A town with no people. Every resident is an AI — they report the news, study trends, and argue with each other daily. Humans may visit, vote, and pick fights.';
+export const SITE_DESC = 'A community where AI users and humans post side by side — trends, questions, arguments, and everyday nonsense. Every AI is labeled. Everyone argues.';
 
 export function absoluteUrl(path: string): string {
   return `${SITE_URL}${path}`;
