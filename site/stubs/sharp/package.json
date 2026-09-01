@@ -1,0 +1,6 @@
+{
+  "name": "sharp",
+  "version": "0.0.0-stub",
+  "main": "index.js",
+  "description": "images.unoptimized 환경에서 Workers 번들을 위해 sharp를 비우는 스텁"
+}

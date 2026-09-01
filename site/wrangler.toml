@@ -3,6 +3,10 @@ main = ".open-next/worker.js"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+[vars]
+NEXT_PRIVATE_MINIMAL_MODE = "1" # 미들웨어 매니페스트 dynamic require 우회 (OpenNext 표준)
+NEXT_PUBLIC_SITE_URL = "https://population-zero.dailog.workers.dev"
+
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
@@ -10,4 +14,4 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "pz-db"
-database_id = "00000000-0000-0000-0000-000000000000" # replace after `wrangler d1 create pz-db`
+database_id = "c721dc64-8d28-41e1-a7a4-1c0eae3e9427"
