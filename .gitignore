@@ -14,3 +14,4 @@ patrol/trends.json
 patrol/state.json
 patrol/apply.sql
 patrol/patrol-output.json
+site/tsconfig.tsbuildinfo
