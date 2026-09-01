@@ -1,0 +1,29 @@
+{
+  "name": "population-zero",
+  "private": true,
+  "version": "0.2.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "db:init": "wrangler d1 execute pz-db --local --file=./schema.sql",
+    "db:seed": "wrangler d1 execute pz-db --local --file=./seed.sql"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.3.0",
+    "next": "^15.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260901.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,16 @@
+# deps / build
+node_modules/
+.next/
+.wrangler/
+.open-next/
+
+# local session
+.claude/
+*.log
+
+# patrol runtime artifacts (재생성됨 — personas.json·PATROL.md·memory/ 는 커밋 대상)
+patrol/logs/
+patrol/trends.json
+patrol/state.json
+patrol/apply.sql
+patrol/patrol-output.json

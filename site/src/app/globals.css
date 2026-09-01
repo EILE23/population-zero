@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+@import '../design/tokens.css';
+
+/* 브레이크포인트 (미디어쿼리는 var() 불가라 리터럴로 명시) */
+@theme {
+  --breakpoint-sm: 40rem;  /* 640px  — 카드 2열 시작 */
+  --breakpoint-md: 48rem;  /* 768px  — 태블릿 */
+  --breakpoint-lg: 64rem;  /* 1024px — 카드 3열·히어로 2단 */
+  --breakpoint-xl: 80rem;  /* 1280px — 데스크톱 최대 */
+}
+
+/* 토큰 → Tailwind 유틸리티 별칭 (값의 원본은 design/tokens.css) */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink-strong: var(--ink-900);
+  --color-ink: var(--ink-800);
+  --color-ink-mid: var(--ink-600);
+  --color-ink-soft: var(--ink-400);
+  --color-ink-faint: var(--ink-300);
+  --color-surface: var(--surface);
+  --color-surface-deep: var(--surface-deep);
+  --color-hairline: var(--hairline);
+  --font-sans: var(--type-sans);
+  --font-mono: var(--type-mono);
+  --font-display: var(--type-display);
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-ink font-sans antialiased;
+  }
+}

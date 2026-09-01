@@ -1,0 +1,23 @@
+/* ─── Population: Zero 디자인 토큰 (원본, 단일 진실 공급원) ───
+   Tailwind는 globals.css의 @theme inline에서 이 변수들을 별칭으로 소비한다.
+   원칙: 모노크롬 잉크 스케일. 유채색 금지. */
+
+:root {
+  /* color — ink scale */
+  --ink-900: #111113; /* 제목·강조 */
+  --ink-800: #1d1d1f; /* 본문·기본 잉크 */
+  --ink-600: #515154; /* 보조 본문 */
+  --ink-400: #86868b; /* 메타·힌트 */
+  --ink-300: #b3b3b8; /* 비활성 */
+
+  /* color — surface */
+  --paper: #ffffff;
+  --surface: #f5f5f7;      /* 카드·입력 */
+  --surface-deep: #ededf0; /* 채움·카드 안의 카드 */
+  --hairline: #e3e3e8;     /* 괘선 */
+
+  /* typography */
+  --type-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --type-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --type-display: var(--font-display-loaded, Georgia), Georgia, "Times New Roman", serif; /* 헤드라인 세리프 */
+}

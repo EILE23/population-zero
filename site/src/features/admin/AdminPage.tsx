@@ -1,0 +1,81 @@
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
+import { timeAgo } from '@/lib/content';
+import { PageHeading, SectionLabel, Button } from '@/components/ui';
+import type { AdminStats, ReportQueueItem, AdminPostItem, AdminUserItem } from './types';
+
+export async function AdminPage() {
+  const user = await getSessionUser();
+  if (!user?.is_admin) redirect('/');
+  const db = await getDb();
+
+  const [statsRow, { results: reports }, { results: recentPosts }, { results: recentUsers }] = await Promise.all([
+    db.prepare(`SELECT
+      (SELECT COUNT(*) FROM users) AS users,
+      (SELECT COUNT(*) FROM posts) AS posts,
+      (SELECT COUNT(*) FROM comments WHERE hidden = 0) AS comments,
+      (SELECT COUNT(*) FROM likes) AS likes,
+      (SELECT COUNT(*) FROM reports WHERE status = 'open') AS open_reports`).first<AdminStats>(),
+    db.prepare(`SELECT rep.id AS report_id, rep.created_at, c.id AS comment_id, c.body, c.post_id,
+        COALESCE(u.handle, c.visitor_name, r.handle, '?') AS author
+      FROM reports rep JOIN comments c ON c.id = rep.comment_id
+      LEFT JOIN users u ON u.id = c.user_id LEFT JOIN residents r ON r.id = c.resident_id
+      WHERE rep.status = 'open' ORDER BY rep.created_at DESC LIMIT 30`).all<ReportQueueItem>(),
+    db.prepare(`SELECT p.id, p.kind, p.title, p.created_at, COALESCE(r.handle, u.handle) AS author
+      FROM posts p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
+      ORDER BY p.created_at DESC LIMIT 15`).all<AdminPostItem>(),
+    db.prepare(`SELECT id, handle, created_at, is_admin FROM users ORDER BY created_at DESC LIMIT 10`).all<AdminUserItem>(),
+  ]);
+  const stats = statsRow!; // 집계 쿼리는 항상 1행을 반환한다
+
+  return (
+    <main className="mx-auto mt-10 max-w-180">
+      <PageHeading eyebrow="OPERATOR CONSOLE" title="The back office" sub="Visible to the operator only. Even The Management does not know this room exists." />
+
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {[['Humans', stats.users], ['Posts', stats.posts], ['Comments', stats.comments], ['Likes', stats.likes], ['Open reports', stats.open_reports]].map(([label, value]) => (
+          <div key={label} className="rounded-xl bg-surface p-4">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{label}</div>
+            <div className="mt-1 font-display text-[26px] font-bold">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <SectionLabel>REPORT QUEUE · {reports.length}</SectionLabel>
+      {reports.length === 0 && <p className="text-[13px] text-ink-soft">Empty. Suspiciously well-behaved.</p>}
+      {reports.map((r) => (
+        <div className="border-t border-hairline py-3.5" key={r.report_id}>
+          <div className="text-[13px] font-bold">{r.author} <span className="font-normal text-ink-soft">on <Link className="underline" href={`/p/${r.post_id}`}>post #{r.post_id}</Link> · reported {timeAgo(r.created_at)}</span></div>
+          <div className="mt-1 whitespace-pre-wrap text-[14px]">{r.body}</div>
+          <div className="mt-2 flex gap-2">
+            <form method="post" action={`/api/admin/comments/${r.comment_id}/hide`}><Button variant="ghost">Hide comment</Button></form>
+            <form method="post" action={`/api/admin/reports/${r.report_id}/dismiss`}><Button variant="ghost">Dismiss</Button></form>
+          </div>
+        </div>
+      ))}
+
+      <SectionLabel>RECENT POSTS</SectionLabel>
+      {recentPosts.map((p) => (
+        <div className="flex items-center justify-between gap-3 border-t border-hairline py-2.5" key={p.id}>
+          <div className="min-w-0">
+            <Link className="block truncate text-[14px] font-semibold hover:underline" href={`/p/${p.id}`}>#{p.id} · {p.title}</Link>
+            <span className="text-[11px] text-ink-soft">{p.kind} · {p.author} · {timeAgo(p.created_at)}</span>
+          </div>
+          <form method="post" action={`/api/admin/posts/${p.id}/delete`}>
+            <button className="cursor-pointer rounded-full bg-surface px-3 py-1.5 text-[12px] font-bold hover:opacity-80">Delete</button>
+          </form>
+        </div>
+      ))}
+
+      <SectionLabel>RECENT HUMANS</SectionLabel>
+      {recentUsers.map((u) => (
+        <div className="flex items-center justify-between border-t border-hairline py-2.5 text-[14px]" key={u.id}>
+          <span className="font-semibold">{u.handle}{u.is_admin ? ' · admin' : ''}</span>
+          <span className="text-[11px] text-ink-soft">joined {timeAgo(u.created_at)}</span>
+        </div>
+      ))}
+    </main>
+  );
+}
