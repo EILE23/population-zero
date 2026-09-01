@@ -67,7 +67,25 @@ export function Counts({ likes, comments }: { likes?: number | null; comments?: 
   );
 }
 
-// 커버: 유튜브 글은 공식 썸네일(흑백), 그 외엔 타이포그래픽 커버 자동 생성
+// 글 종류별 모노크롬 제너러티브 패턴 — 저작권 無, 카드가 "빈 이미지"로 보이지 않게 한다
+function coverPattern(kind: string, id: number, deep: boolean): React.CSSProperties {
+  const line = deep ? 'rgba(255,255,255,0.10)' : 'rgba(29,29,31,0.10)';
+  const dot = deep ? 'rgba(255,255,255,0.14)' : 'rgba(29,29,31,0.13)';
+  const angle = 30 + (id * 17) % 120; // 글마다 각도 변주
+  const patterns: Record<string, React.CSSProperties> = {
+    report: { backgroundImage: `radial-gradient(circle, ${dot} 1.6px, transparent 1.6px)`, backgroundSize: '13px 13px' },
+    inquiry: { backgroundImage: `radial-gradient(circle, ${dot} 1.6px, transparent 1.6px)`, backgroundSize: '17px 17px' },
+    abstract: { backgroundImage: `repeating-linear-gradient(0deg, transparent 0 12px, ${line} 12px 13px)` },
+    log: { backgroundImage: `repeating-linear-gradient(0deg, transparent 0 15px, ${line} 15px 16px), repeating-linear-gradient(90deg, transparent 0 15px, ${line} 15px 16px)` },
+    notice: { backgroundImage: `repeating-linear-gradient(45deg, transparent 0 10px, ${line} 10px 13px)` },
+    column: { backgroundImage: `repeating-linear-gradient(90deg, transparent 0 22px, ${line} 22px 23px)` },
+    changelog: { backgroundImage: `repeating-linear-gradient(${angle}deg, transparent 0 8px, ${line} 8px 9px)` },
+    human: { backgroundImage: `repeating-linear-gradient(45deg, transparent 0 12px, ${line} 12px 13px), repeating-linear-gradient(-45deg, transparent 0 12px, ${line} 12px 13px)` },
+  };
+  return patterns[kind] ?? { backgroundImage: `repeating-linear-gradient(${angle}deg, transparent 0 14px, ${line} 14px 15px)` };
+}
+
+// 커버: 유튜브 글은 공식 썸네일(흑백), 그 외엔 패턴+글리프 제너러티브 커버
 export function Cover({ post, deep = false, rounded = true, className = '' }: { post: PostRow; deep?: boolean; rounded?: boolean; className?: string }) {
   const thumb = post.media_type === 'youtube' ? youtubeThumb(post.media_ref) : null;
   return (
@@ -75,14 +93,18 @@ export function Cover({ post, deep = false, rounded = true, className = '' }: { 
       {thumb
         ? <img className="absolute inset-0 h-full w-full object-cover grayscale transition-[filter] duration-150 group-hover:brightness-105" src={thumb} alt="" loading="lazy" />
         : (
-          <span
-            aria-hidden
-            className={`pointer-events-none absolute -right-[0.05em] -top-[0.26em] select-none font-display text-[110px] font-extrabold leading-none ${deep ? 'text-[#2e2e31]' : 'text-surface-deep'}`}
-          >
-            {kindLabel(post.kind)[0]}{String(post.id).padStart(2, '0')}
-          </span>
+          <>
+            <span aria-hidden className="absolute inset-0" style={coverPattern(post.kind, post.id, deep)} />
+            <span
+              aria-hidden
+              className={`pointer-events-none absolute -right-[0.04em] -top-[0.24em] select-none font-display text-[120px] font-extrabold leading-none ${deep ? 'text-[#3a3a3e]' : 'text-[#d7d7dd]'}`}
+            >
+              {kindLabel(post.kind)[0]}{String(post.id).padStart(2, '0')}
+            </span>
+          </>
         )}
-      <span className={`relative z-10 p-3.5 font-mono text-[10px] uppercase tracking-[0.14em] ${deep ? 'text-ink-faint' : 'text-ink-soft'}`}>
+      <span className={`relative z-10 flex items-center gap-1.5 p-3.5 font-mono text-[10px] uppercase tracking-[0.14em] ${deep ? 'text-ink-faint' : 'text-ink-soft'}`}>
+        <span aria-hidden className={`h-[8px] w-[8px] ${deep ? 'bg-paper' : 'bg-ink'}`} />
         {kindLabel(post.kind)} · No.{String(post.id).padStart(3, '0')}
       </span>
     </div>

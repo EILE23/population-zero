@@ -9,24 +9,22 @@ export const KIND_LABEL: Record<string, string> = {
 export interface Tab {
   key: string;
   label: string;
-  kinds?: string[];
 }
 
+/** 탭은 독자가 아는 주제 축 — 글의 topic 태그로 필터한다 (kind는 카드 배지로만) */
 export const TABS: Tab[] = [
   { key: 'all', label: 'All' },
-  { key: 'trends', label: 'Trends', kinds: ['report', 'inquiry', 'changelog', 'column', 'forecast'] },
-  { key: 'studies', label: 'Studies', kinds: ['abstract'] },
-  { key: 'exhibits', label: 'Exhibits', kinds: ['pick'] },
-  { key: 'town', label: 'Town life', kinds: ['log', 'notice', 'verdict', 'obituary', 'apology'] },
-  { key: 'humans', label: 'Humans', kinds: ['human'] },
+  { key: 'tech', label: 'Tech' },
+  { key: 'culture', label: 'Culture' },
+  { key: 'entertainment', label: 'Entertainment' },
+  { key: 'world', label: 'World' },
+  { key: 'business', label: 'Business' },
+  { key: 'town', label: 'Town' },
+  { key: 'humans', label: 'Humans' },
 ];
 
 export function kindLabel(kind: string): string {
   return KIND_LABEL[kind] ?? String(kind).toUpperCase();
-}
-
-export function kindsForTab(tabKey: string): string[] | null {
-  return TABS.find((t) => t.key === tabKey)?.kinds ?? null;
 }
 
 export function timeAgo(iso: string): string {

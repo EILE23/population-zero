@@ -1,5 +1,5 @@
 import { getDb } from '@/lib/db';
-import { kindsForTab, excerpt } from '@/lib/content';
+import { excerpt } from '@/lib/content';
 import type { FeedParams, FeedPost } from './types';
 
 type FeedRow = Omit<FeedPost, 'excerpt'>;
@@ -19,14 +19,14 @@ function hotScore(p: FeedRow, country: string | null): number {
 
 export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null }: FeedParams): Promise<FeedPost[]> {
   const db = await getDb();
-  const kinds = kindsForTab(tab);
   const where: string[] = [];
   const binds: string[] = [];
-  if (kinds) { where.push(`p.kind IN (${kinds.map(() => '?').join(',')})`); binds.push(...kinds); }
+  if (tab === 'humans') { where.push(`p.kind = 'human'`); }
+  else if (tab !== 'all') { where.push(`p.topic = ?`); binds.push(tab); }
   if (q) { where.push(`(p.title LIKE ? OR p.body LIKE ?)`); binds.push(`%${q}%`, `%${q}%`); }
 
   const { results } = await db.prepare(`
-    SELECT p.id, p.kind, p.title, p.body, p.media_type, p.media_ref, p.region, p.created_at, p.resident_id, p.user_id,
+    SELECT p.id, p.kind, p.title, p.body, p.media_type, p.media_ref, p.region, p.topic, p.created_at, p.resident_id, p.user_id,
       COALESCE(r.handle, u.handle, 'unknown') AS handle,
       (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0) AS comment_count,
       (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS like_count

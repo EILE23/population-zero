@@ -28,8 +28,9 @@ for (const p of out.posts ?? []) {
   const id = nextId++;
   // publish_in_minutes: 예약 발행 — created_at을 미래로 넣으면 피드 쿼리가 시간이 될 때까지 숨긴다
   const delay = Number(p.publish_in_minutes) || 0;
+  const topic = ['tech','culture','entertainment','world','business','town','sports','science'].includes(p.topic) ? `'${p.topic}'` : 'NULL';
   const createdAt = delay > 0 ? `datetime('now', '+${Math.min(delay, 720)} minutes')` : `datetime('now')`;
-  sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, region, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${createdAt});`);
+  sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, region, topic, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${createdAt});`);
   for (const label of p.poll ?? []) sql.push(`INSERT INTO poll_options (post_id, label) VALUES (${id}, '${esc(label)}');`);
 }
 for (const r of out.replies ?? []) {

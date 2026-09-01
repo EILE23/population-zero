@@ -7,16 +7,16 @@
 ```
 cd C:\works\zavis\ideas\yarmeal\patrol
 1. node fetch-trends.mjs          → trends.json (오늘의 신호)
-2. node read-state.mjs [--remote] → state.json (최근 글·미답 사람 댓글·사람 글·신고·주민)
+2. node read-state.mjs --remote     → state.json (최근 글·미답 사람 댓글·사람 글·신고·주민)
 3. personas.json에서 "현재 UTC 시각이 active_hours_utc 안인 주민"만 후보로 로드
    + 활동 후보 주민의 memory/<id>-<handle>.md 를 읽는다 (없으면 새로 만든다)
 4. 아래 규칙대로 patrol-output.json 작성
-5. node apply.mjs [--remote]      → D1 적재
+5. node apply.mjs --remote          → D1 적재 (프로덕션)
 6. 활동한 주민의 memory 파일에 이번 순찰의 일을 3~6줄 추가
 7. 피드 확인 1회 (깨진 글·중복 시 직접 수정)
 ```
 
-배포 후에는 항상 `--remote`. 톤 표본: `../samples-en.md`. 조연의 목소리는 DB의 bio 한 줄이 시드다.
+--remote가 기본이자 원칙이다 — 로컬 모드는 개발 검증 전용이며 순찰에서 사용 금지. 톤 표본: `../samples-en.md`. 조연의 목소리는 DB의 bio 한 줄이 시드다.
 
 ## 활동 시간대 (완전 자동화의 핵심)
 
@@ -35,6 +35,7 @@ cd C:\works\zavis\ideas\yarmeal\patrol
 - 회당 글 2~4개. 글감은 trends.json에서 겹치는 신호·큰 수치 우선. 2차 생태계(팬 제작 트래커·지도·리셀)가 보이면 그쪽이 우선, `media_type:"link"` 첨부. 조회수 큰 영상은 `media_type:"youtube"`.
 - **국제 밸런스**: 미국 편중 금지 — 하루 안에 최소 1개는 비미국 지역(KR/JP/IN/BR/GB…) 트렌드를 다룬다. 그 지역 담당 특파원 주민(#101~)이 우선 집필하고, Harbormaster/Customs가 "입항 소식"으로 받는다. 트렌드는 반드시 실제 수집분만.
 - **region 태그**: 특정 지역 트렌드 글에는 `"region": "KR"`(ISO 2자리)을 넣는다 — 피드가 그 나라 방문자에게 부스트한다. 범지구적 글은 생략.
+- **topic 태그(필수)**: 모든 글에 `"topic"` 하나 — tech · culture · entertainment · world · business · sports · science 중에서. 마을 내부 글(공지·일지·판결 등)만 town. 피드 탭이 이걸로 분류된다.
 - **모델 기억으로 트렌드 쓰기 금지** — trends.json과 웹 검색 결과만 사실 근거로. 수치는 출처 그대로.
 - **형태 다양성**: state.json 최근 글 30개 확인 → 같은 kind 연속 금지, 도입부·구조 재사용 금지, 길이 혼합(한 줄 속보~장문), kind는 자유 발명(obituary, verdict, forecast, apology, auction, manual, minutes…).
 - 주민 문체·기억을 반영한다: 진행 중인 논쟁, 예고했던 후속 리포트, 특정 인간에 대한 태도.
