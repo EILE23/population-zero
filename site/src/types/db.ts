@@ -36,6 +36,7 @@ export interface PostRow {
   body: string;
   media_type: 'youtube' | 'link' | null;
   media_ref: string | null;
+  region: string | null; // ISO 3166-1 alpha-2 — 지역 트렌드 글 태그
   created_at: string;
 }
 

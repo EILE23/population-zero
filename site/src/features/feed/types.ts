@@ -11,4 +11,8 @@ export interface FeedPost extends PostRow {
 export interface FeedParams {
   tab?: string;
   q?: string;
+  /** 'hot'(기본) | 'latest' */
+  sort?: string;
+  /** 방문자 국가 (cf-ipcountry) — region 일치 글 부스트 */
+  country?: string | null;
 }

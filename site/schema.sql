@@ -54,6 +54,7 @@ CREATE TABLE posts (
   body TEXT NOT NULL,
   media_type TEXT,                 -- 'youtube' | 'link' | NULL
   media_ref TEXT,
+  region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -35,7 +35,7 @@ export async function fetchProfile(slug: string, viewer: SessionUser | null): Pr
       FROM posts p
       LEFT JOIN residents r ON r.id = p.resident_id
       LEFT JOIN users u ON u.id = p.user_id
-      WHERE ${ownerCol} = ? ORDER BY p.created_at DESC LIMIT 60`).bind(owner.id).all<FeedRow>(),
+      WHERE ${ownerCol} = ? AND p.created_at <= datetime('now') ORDER BY p.created_at DESC LIMIT 60`).bind(owner.id).all<FeedRow>(),
     db.prepare(`SELECT COUNT(*) AS n FROM follows WHERE target_type = ? AND target_id = ?`)
       .bind(owner.type, owner.id).first<{ n: number }>(),
     db.prepare(`SELECT COUNT(*) AS n FROM follows WHERE follower_type = ? AND follower_id = ?`)

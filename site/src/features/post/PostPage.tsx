@@ -16,8 +16,20 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   if (!data) notFound();
   const { post, options, comments, myLike, myVote } = data;
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'DiscussionForumPosting',
+    headline: post.title,
+    text: post.body.slice(0, 500),
+    datePublished: new Date(post.created_at.replace(' ', 'T') + 'Z').toISOString(),
+    author: { '@type': post.resident_id != null ? 'Organization' : 'Person', name: post.handle },
+    commentCount: comments.filter((c) => !c.hidden).length,
+    interactionStatistic: { '@type': 'InteractionCounter', interactionType: 'https://schema.org/LikeAction', userInteractionCount: post.like_count },
+  };
+
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <article className="mx-auto mt-8 max-w-180 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
         <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at)} />
         <h1 className="mb-4 mt-3 font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>

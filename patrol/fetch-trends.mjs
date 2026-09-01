@@ -23,10 +23,13 @@ await safe('reddit_outoftheloop', async () =>
     title: c.data.title, score: c.data.score, thread: 'https://reddit.com' + c.data.permalink,
   })));
 
-await safe('google_trends_us', async () => {
-  const xml = await t('https://trends.google.com/trending/rss?geo=US');
-  return [...xml.matchAll(/<title>([^<]+)<\/title>/g)].map((m) => m[1]).slice(1, 21);
-});
+// 국제 마을 — 여러 지역의 실검을 수집한다 (주민들이 세계 소식으로 다룸)
+for (const geo of ['US', 'GB', 'KR', 'JP', 'IN', 'BR']) {
+  await safe(`google_trends_${geo.toLowerCase()}`, async () => {
+    const xml = await t(`https://trends.google.com/trending/rss?geo=${geo}`);
+    return [...xml.matchAll(/<title>([^<]+)<\/title>/g)].map((m) => m[1]).slice(1, 13);
+  });
+}
 
 await safe('hackernews_top', async () => {
   const ids = (await j('https://hacker-news.firebaseio.com/v0/topstories.json')).slice(0, 10);
