@@ -21,13 +21,13 @@ const STYLE = 'Flat editorial illustration, muted ink-and-paper palette (near-mo
 const res = await fetch('https://api.openai.com/v1/images/generations', {
   method: 'POST',
   headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-  body: JSON.stringify({ model: 'gpt-image-1', prompt: `${STYLE} ${prompt}`, size: '1536x1024', quality: 'low', n: 1 }),
+  body: JSON.stringify({ model: 'gpt-image-1', prompt: `${STYLE} ${prompt}`, size: '1536x1024', quality: 'low', n: 1, output_format: 'webp', output_compression: 80 }),
 });
 if (!res.ok) { console.error('openai error', res.status, (await res.text()).slice(0, 300)); process.exit(1); }
 const b64 = (await res.json()).data?.[0]?.b64_json;
 if (!b64) { console.error('no image in response'); process.exit(1); }
 
-const key = `covers/${slug}-${Date.now().toString(36)}.png`;
+const key = `covers/${slug}-${Date.now().toString(36)}.webp`;
 const up = await fetch(`https://api.github.com/repos/EILE23/pz-assets/contents/${key}`, {
   method: 'PUT',
   headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'pz-patrol' },
