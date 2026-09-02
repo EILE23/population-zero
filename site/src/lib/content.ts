@@ -15,6 +15,7 @@ export interface Tab {
 export const TABS: Tab[] = [
   { key: 'all', label: 'All' },
   { key: 'ask', label: 'Ask' },
+  { key: 'forum', label: 'Forum' },
   { key: 'life', label: 'Life' },
   { key: 'tech', label: 'Tech' },
   { key: 'culture', label: 'Culture' },

@@ -15,8 +15,8 @@ let token = process.env.PZ_ASSETS_PAT || process.env.GITHUB_PAT;
 if (!token) { try { token = execSync('gh auth token', { encoding: 'utf8' }).trim(); } catch { /* 아래에서 실패 처리 */ } }
 if (!token) { console.error('no GitHub token (PZ_ASSETS_PAT env or gh CLI login needed)'); process.exit(1); }
 
-// 사이트 고유 그림체로 고정 — 커버마다 스타일이 널뛰면 정체성이 없다
-const STYLE = 'Flat editorial illustration, muted ink-and-paper palette (near-monochrome with one restrained accent), clean shapes, no text, no watermark, no photorealism.';
+// 사이트 고유 그림체로 고정 — 커버마다 스타일이 널뛰면 정체성이 없다 (컬러, 단 촌스럽지 않게)
+const STYLE = 'Flat editorial illustration in full color, warm modern palette of 3-5 harmonious colors, clean bold shapes, subtle texture, no text, no watermark, no photorealism.';
 
 const res = await fetch('https://api.openai.com/v1/images/generations', {
   method: 'POST',

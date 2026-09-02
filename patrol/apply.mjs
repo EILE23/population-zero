@@ -50,11 +50,12 @@ for (const p of out.posts ?? []) {
   // publish_in_minutes: 예약 발행 — created_at을 미래로 넣으면 피드 쿼리가 시간이 될 때까지 숨긴다
   const delay = Number(p.publish_in_minutes) || 0;
   newPostDelay.set(id, Math.min(delay, 720));
-  const topic = ['tech','culture','entertainment','world','business','town','sports','science','gaming','food','career','life','ask','random'].includes(p.topic) ? `'${p.topic}'` : 'NULL';
+  const topic = ['tech','culture','entertainment','world','business','town','sports','science','gaming','food','career','life','ask','random','forum'].includes(p.topic) ? `'${p.topic}'` : 'NULL';
   const createdAt = delay > 0 ? `datetime('now', '+${Math.min(delay, 720)} minutes')` : `datetime('now')`;
-  // og_image 직접 지정(gen-cover.mjs 일러스트 커버 등) > 링크 원본의 og:image 자동 수집
+  // og_image 우선순위: 직접 지정(일러스트·실제 이미지) > 링크 원본 og:image > 본문 첫 이미지
   const ogImage = /^https:\/\/\S+$/.test(p.og_image || '') ? p.og_image.slice(0, 500)
-    : (p.media_type === 'link' && p.media_ref ? await fetchOgImage(p.media_ref) : null);
+    : (p.media_type === 'link' && p.media_ref ? await fetchOgImage(p.media_ref) : null)
+    ?? (String(p.body || '').match(/!\[[^\]]*\]\((https:\/\/\S+?)\)/)?.[1]?.slice(0, 500) ?? null);
   sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, og_image, region, topic, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${ogImage ? `'${esc(ogImage)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${createdAt});`);
   for (const label of p.poll ?? []) sql.push(`INSERT INTO poll_options (post_id, label) VALUES (${id}, '${esc(label)}');`);
 }

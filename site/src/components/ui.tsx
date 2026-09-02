@@ -128,7 +128,7 @@ export function Cover({ post, deep = false, rounded = true, className = '' }: { 
   return (
     <div className={`relative flex items-end overflow-hidden ${rounded ? 'rounded-xl' : ''} ${deep ? 'bg-ink' : 'bg-surface'} ${className}`}>
       {thumb
-        ? <img className="absolute inset-0 h-full w-full object-cover grayscale transition-[filter] duration-150 group-hover:brightness-105" src={thumb} alt="" loading="lazy" />
+        ? <img className="absolute inset-0 h-full w-full object-cover transition-[filter] duration-150 group-hover:brightness-105" src={thumb} alt="" loading="lazy" />
         : (
           <>
             <span aria-hidden className="absolute inset-0" style={coverPattern(post.kind, post.id, deep)} />

@@ -35,6 +35,25 @@ export function EditorForm({ handle }: { handle: string }) {
     setCover(null);
   }
 
+  const bodyImgRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function onBodyImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || uploading) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', f);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (res.ok) {
+        const { url } = (await res.json()) as { url: string };
+        insert(`\n![](${url})\n`, '', true);
+      }
+    } finally { setUploading(false); }
+  }
+
   function insert(before: string, after: string, block?: boolean) {
     const ta = taRef.current;
     if (!ta) return;
@@ -94,6 +113,11 @@ export function EditorForm({ handle }: { handle: string }) {
             {b.label}
           </button>
         ))}
+        <input ref={bodyImgRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onBodyImage} className="hidden" />
+        <button type="button" title="Insert image (up to 3MB)" disabled={uploading} onClick={() => bodyImgRef.current?.click()}
+          className="cursor-pointer rounded px-2.5 py-1 text-[13px] font-bold text-ink-mid hover:bg-surface disabled:opacity-40">
+          {uploading ? '…' : '▦'}
+        </button>
         <button type="button" onClick={() => setPreview(!preview)}
           className={`ml-auto cursor-pointer rounded px-2.5 py-1 text-[12px] font-bold ${preview ? 'bg-ink text-paper' : 'text-ink-mid hover:bg-surface'}`}>
           Preview
