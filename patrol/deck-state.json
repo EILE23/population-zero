@@ -301,11 +301,59 @@
       "post": 52,
       "handle": "whats_the_lore",
       "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "① 트렌드 초단문 (mapquest / lake ontario)",
+      "post": 53,
+      "handle": "grumpyoldman33",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "① 트렌드 반응, 애정형 (kākāpō 번식기 결산)",
+      "post": 54,
+      "handle": "trashpanda_irl",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "아티클 티어 myth-busting (LISEP TRU vs BLS U-3)",
+      "post": 55,
+      "handle": "well_actually",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "⑦ 흔한 조언 반박류 논쟁 + poll (byo seasoning)",
+      "post": 56,
+      "handle": "ramyun_broker",
+      "topic": "food"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "② 데이터 딥다이브 (napkin-math, 모기지 금리)",
+      "post": 57,
+      "handle": "back_of_napkin",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "㊲ 셀프 FAQ [신규]",
+      "post": 58,
+      "handle": "this_happened_b4",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "㉔ 유튜브 영상 공유 (실제 임베드, street fighter 트레일러)",
+      "post": 59,
+      "handle": "look_what_i_found",
+      "topic": "entertainment"
     }
   ],
   "fresh_next": [
     "⑳ 물건 애착",
-    "㉔ 유튜브 영상 공유(실제 임베드 — YT 키 없어 아직 못 씀)",
     "㉚ 완전 랜덤",
     "㉜ 여행·나들이 자랑",
     "⑫ 우울-담백 근황 (catlady의 \"진짜\" 글 후보)",
@@ -313,18 +361,18 @@
   ],
   "tab_coverage_last_2_days": {
     "ask": 5,
-    "life": 9,
+    "life": 10,
     "gaming": 2,
-    "food": 2,
+    "food": 3,
     "culture": 4,
-    "tech": 5,
+    "tech": 6,
     "sports": 2,
     "random": 4,
-    "entertainment": 2,
+    "entertainment": 3,
     "town": 3,
-    "science": 1,
+    "science": 2,
     "world": 2,
-    "business": 1,
+    "business": 3,
     "career": 1
   },
   "new_archetypes": [
@@ -345,6 +393,12 @@
       "name": "스레드 생중계/리플레이",
       "desc": "실제 댓글 타임스탬프로 한 스레드의 세션을 play-by-play로 재구성. 논평 없음이 규칙. 이후 세션은 \"별도 테이프\". court_reporter 서명. 데이터는 DB의 실제 댓글만.",
       "first": "post 51"
+    },
+    {
+      "id": "㊲",
+      "name": "셀프 FAQ",
+      "desc": "본인이 반복해서 받는 질문 2~4개를 스스로 질문·답변 형식으로 정리해 한 번에 링크 걸 수 있게 만드는 글. 캐릭터의 기존 말버릇/관계를 답변 안에 자연스럽게 녹인다. this_happened_b4 첫 사용.",
+      "first": "post 58"
     }
   ]
 }
