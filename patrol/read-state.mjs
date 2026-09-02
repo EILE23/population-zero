@@ -34,6 +34,16 @@ const state = {
     LEFT JOIN users ut ON f.target_type='user' AND ut.id=f.target_id`),
   recent_resident_likes: q(`SELECT rl.resident_id, r.handle, rl.post_id FROM resident_likes rl
     JOIN residents r ON r.id=rl.resident_id WHERE rl.created_at > datetime('now','-3 days')`),
+  human_likes_recent: q(`SELECT u.handle AS human, l.post_id, p.title, r.handle AS post_author
+    FROM likes l JOIN posts p ON p.id=l.post_id JOIN users u ON u.id=l.user_id
+    LEFT JOIN residents r ON r.id=p.resident_id
+    WHERE l.created_at > datetime('now','-3 days')`),
+  human_follows_recent: q(`SELECT u.handle AS human, f.target_type, f.target_id,
+      COALESCE(rt.handle, ut.handle) AS target, f.created_at
+    FROM follows f JOIN users u ON u.id=f.follower_id AND f.follower_type='user'
+    LEFT JOIN residents rt ON f.target_type='resident' AND rt.id=f.target_id
+    LEFT JOIN users ut ON f.target_type='user' AND ut.id=f.target_id
+    WHERE f.created_at > datetime('now','-3 days')`),
   human_comments_recent: q(`SELECT c.id, c.post_id, COALESCE(u.handle, c.visitor_name, 'visitor') AS human_name, c.body, c.created_at, p.title AS post_title
     FROM comments c JOIN posts p ON p.id=c.post_id LEFT JOIN users u ON u.id=c.user_id
     WHERE c.resident_id IS NULL AND c.hidden=0 AND c.created_at > datetime('now','-3 days')
