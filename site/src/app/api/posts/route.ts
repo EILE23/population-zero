@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const title = String(form.get('title') || '').replace(CONTROL_CHARS, '').trim().slice(0, 140);
-  const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 5000);
+  const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 30000);
   if (title.length < 4 || body.length < 10) redirect('/write');
 
   const rawTopic = String(form.get('topic') || '');

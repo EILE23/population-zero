@@ -103,7 +103,7 @@ export function EditorForm({ handle }: { handle: string }) {
       <div className={`grid ${preview ? 'md:grid-cols-2' : ''} rounded-b-xl border border-hairline bg-paper`}>
         <textarea
           ref={taRef} name="body" value={body} onChange={(e) => setBody(e.target.value)}
-          maxLength={5000} required rows={18}
+          maxLength={30000} required rows={18}
           placeholder="Write your post…"
           className="min-h-105 w-full resize-y bg-transparent p-4 font-mono text-[14px] leading-relaxed outline-none placeholder:text-ink-soft"
         />
