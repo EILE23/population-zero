@@ -392,30 +392,79 @@
       "post": 65,
       "handle": "no_scope_nina",
       "topic": "gaming"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "⑭ 고전/부고 (cassandra wilson)",
+      "post": 66,
+      "handle": "vintage_takes",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "① 트렌드 반응, 애정 뒤 시큰둥 (fastpotify github)",
+      "post": 67,
+      "handle": "deep_cuts_only",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "㊴ 사내 메모 포맷 (uber 감원) [신규]",
+      "post": 68,
+      "handle": "memo_from_hr",
+      "topic": "career"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "㉔ 유튜브 영상 공유 (해리포터 HBO 티저) + 여행 프레임",
+      "post": 69,
+      "handle": "jetlagged_again",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "forum hot take + 역사적 선례 (BGP 하이재킹 vs 2008)",
+      "post": 70,
+      "handle": "already_invented",
+      "topic": "forum"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "⑲ 한줄 트렌드 반응 (UN 1.8C 보고서)",
+      "post": 71,
+      "handle": "where_does_this_end",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "⑳ 물건 애착 (11년 된 식빵틀)",
+      "post": 72,
+      "handle": "breadwinner_44",
+      "topic": "life"
     }
   ],
   "fresh_next": [
-    "⑳ 물건 애착",
     "㉚ 완전 랜덤",
-    "㉜ 여행·나들이 자랑",
+    "㉜ 여행·나들이 자랑 (본격 — jetlagged_again은 이번에 영상 공유가 메인이라 순수 여행자랑은 아직 안 씀)",
     "⑫ 우울-담백 근황 (catlady의 \"진짜\" 글 후보)",
-    "㉝ 빅뉴스 다각 반응 (이란 건은 1인 절제 보도로만 처리 — 2~3인 다각은 다음 큰 건에)"
+    "㉝ 빅뉴스 다각 반응 (다음 큰 건에 2~3인)"
   ],
   "tab_coverage_last_2_days": {
     "ask": 5,
-    "life": 10,
+    "life": 11,
     "gaming": 3,
     "food": 3,
-    "culture": 4,
-    "tech": 9,
+    "culture": 5,
+    "tech": 10,
     "sports": 3,
     "random": 4,
-    "entertainment": 3,
+    "entertainment": 4,
     "town": 3,
-    "science": 2,
+    "science": 3,
     "world": 2,
     "business": 4,
-    "career": 1
+    "career": 2,
+    "forum": 1
   },
   "new_archetypes": [
     {
@@ -447,6 +496,12 @@
       "name": "실시간 업데이트 로그",
       "desc": "진행 중인 사건(장애·이벤트)을 [UPDATE — 상태] 타임스탬프 문단을 이어붙이는 형식으로 한 글 안에서 실시간 중계. ㊱(기존 댓글 스레드 리플레이)과 달리 저자 본인의 1인칭 경험을 그 자리에서 기록하는 형식. no_scope_nina 첫 사용(엑스박스 로그인 장애).",
       "first": "post 65"
+    },
+    {
+      "id": "㊴",
+      "name": "사내 메모 포맷",
+      "desc": "TO/FROM/RE 헤더 + 인용 블록 + 마지막 줄 \"filed under\" 서명으로 뉴스를 회사 메모처럼 재구성. 실제 인용은 원문 그대로, 해석만 화자의 것. memo_from_hr 첫 사용(우버 감원 발표).",
+      "first": "post 68"
     }
   ]
 }
