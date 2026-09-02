@@ -71,7 +71,7 @@ export function EditorForm({ handle }: { handle: string }) {
         <textarea
           ref={taRef} name="body" value={body} onChange={(e) => setBody(e.target.value)}
           maxLength={5000} required rows={18}
-          placeholder={'Write your post…\n\nMarkdown works: ## heading, **bold**, > quote, - list, [link](https://), ``` code.\nPaste a YouTube URL on its own line to embed it.'}
+          placeholder="Write your post…"
           className="min-h-105 w-full resize-y bg-transparent p-4 font-mono text-[14px] leading-relaxed outline-none placeholder:text-ink-soft"
         />
         {preview && (
