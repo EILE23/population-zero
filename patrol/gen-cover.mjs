@@ -1,8 +1,8 @@
-// 일러스트 커버 생성: OpenAI gpt-image-1(low, 1536x1024)로 그림을 만들어 R2에 올리고 공개 URL을 출력.
+// 일러스트 커버 생성: OpenAI gpt-image-1(low, 1536x1024)로 그림을 만들어
+// 공개 레포 EILE23/pz-assets에 올리고 jsDelivr CDN URL을 출력한다. (R2 불필요, 비용 0)
 // 사용: node gen-cover.mjs --slug my-post-slug --prompt "flat editorial illustration of ..."
 // 원칙: 뉴스·실제 사건의 가짜 '사진' 금지 — 일기/여행/의견 글의 일러스트 커버 전용.
-// 요구: OPENAI_API_KEY 환경변수, R2 활성화 + patrol/.r2-public 파일(공개 base URL 한 줄).
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+// 요구: OPENAI_API_KEY + (PZ_ASSETS_PAT 또는 로컬 gh CLI 로그인)
 import { execSync } from 'node:child_process';
 
 const arg = (name) => { const i = process.argv.indexOf(`--${name}`); return i > -1 ? process.argv[i + 1] : null; };
@@ -11,9 +11,9 @@ const prompt = arg('prompt');
 if (!slug || !prompt) { console.error('usage: node gen-cover.mjs --slug <slug> --prompt "<prompt>"'); process.exit(1); }
 if (!process.env.OPENAI_API_KEY) { console.error('OPENAI_API_KEY not set'); process.exit(1); }
 
-const baseFile = new URL('./.r2-public', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-if (!existsSync(baseFile)) { console.error('patrol/.r2-public missing — enable R2 in the Cloudflare dashboard, then save the pub-*.r2.dev base URL there'); process.exit(1); }
-const publicBase = readFileSync(baseFile, 'utf8').trim().replace(/\/$/, '');
+let token = process.env.PZ_ASSETS_PAT || process.env.GITHUB_PAT;
+if (!token) { try { token = execSync('gh auth token', { encoding: 'utf8' }).trim(); } catch { /* 아래에서 실패 처리 */ } }
+if (!token) { console.error('no GitHub token (PZ_ASSETS_PAT env or gh CLI login needed)'); process.exit(1); }
 
 // 사이트 고유 그림체로 고정 — 커버마다 스타일이 널뛰면 정체성이 없다
 const STYLE = 'Flat editorial illustration, muted ink-and-paper palette (near-monochrome with one restrained accent), clean shapes, no text, no watermark, no photorealism.';
@@ -27,9 +27,11 @@ if (!res.ok) { console.error('openai error', res.status, (await res.text()).slic
 const b64 = (await res.json()).data?.[0]?.b64_json;
 if (!b64) { console.error('no image in response'); process.exit(1); }
 
-const tmp = new URL(`./cover-${slug}.png`, import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-writeFileSync(tmp, Buffer.from(b64, 'base64'));
 const key = `covers/${slug}-${Date.now().toString(36)}.png`;
-execSync(`npx wrangler r2 object put "pz-images/${key}" --file "${tmp}" --content-type image/png --remote`,
-  { cwd: new URL('../site/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), stdio: ['ignore', 'ignore', 'inherit'] });
-console.log(`${publicBase}/${key}`);
+const up = await fetch(`https://api.github.com/repos/EILE23/pz-assets/contents/${key}`, {
+  method: 'PUT',
+  headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'pz-patrol' },
+  body: JSON.stringify({ message: `cover: ${slug}`, content: b64 }),
+});
+if (!up.ok) { console.error('github upload error', up.status, (await up.text()).slice(0, 200)); process.exit(1); }
+console.log(`https://cdn.jsdelivr.net/gh/EILE23/pz-assets@main/${key}`);

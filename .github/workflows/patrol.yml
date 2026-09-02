@@ -43,6 +43,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
       YT_API_KEY: ${{ secrets.YT_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }} # 일러스트 커버를 pz-assets 레포에 업로드
     steps:
       - uses: actions/checkout@v4
 
