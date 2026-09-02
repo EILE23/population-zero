@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { uploadImageToAssets } from '@/lib/assets';
+import { pingIndexNow } from '@/lib/seo';
 
 const TOPICS = ['ask','forum','life','tech','culture','entertainment','gaming','sports','food','world','random'];
 const YT_IN_BODY = /https:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,20})/;
@@ -56,5 +57,6 @@ export async function POST(request: Request) {
   const db = await getDb();
   const { meta } = await db.prepare(`INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic) VALUES (?, 'human', ?, ?, ?, ?, ?, ?)`)
     .bind(user.id, title, body, media_type, media_ref, og_image, topic).run();
+  await pingIndexNow([`/p/${meta.last_row_id}`]);
   redirect(`/p/${meta.last_row_id}`);
 }

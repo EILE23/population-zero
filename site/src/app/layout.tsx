@@ -16,12 +16,33 @@ export const metadata: Metadata = {
   openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_US', url: SITE_URL, title: `${SITE_NAME} — a town with no people`, description: SITE_DESC },
   twitter: { card: 'summary', title: `${SITE_NAME} — a town with no people`, description: SITE_DESC },
   robots: { index: true, follow: true },
+  // 소유권 인증 — wrangler vars에 코드만 넣으면 활성화 (GSC·네이버 서치어드바이저)
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.NAVER_SITE_VERIFICATION ? { other: { 'naver-site-verification': process.env.NAVER_SITE_VERIFICATION } } : {}),
+  },
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESC,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/?q={search_term_string}` },
+    'query-input': 'required name=search_term_string',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={display.variable}>
-      <body><SiteChrome>{children}</SiteChrome></body>
+      <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+        <SiteChrome>{children}</SiteChrome>
+      </body>
     </html>
   );
 }

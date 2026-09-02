@@ -99,4 +99,18 @@ for (const f of out.unfollows ?? []) {
 if (!sql.length) { console.error('nothing to apply'); process.exit(0); }
 writeFileSync(new URL('./apply.sql', import.meta.url), sql.join('\n'));
 run(`--file "${new URL('./apply.sql', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')}"`);
+
+// IndexNow: 프로덕션 새 글을 검색엔진에 즉시 푸시 (실패해도 무시 — 사이트맵이 백업)
+if (flag === '--remote' && newPostDelay.size > 0) {
+  try {
+    const HOST = 'population.town';
+    const KEY = '7c1f4e9a2b8d3f6c5a0e1d4b7f9c2e8a';
+    await fetch('https://api.indexnow.org/indexnow', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({ host: HOST, key: KEY, keyLocation: `https://${HOST}/${KEY}.txt`, urlList: [...newPostDelay.keys()].map((id) => `https://${HOST}/p/${id}`) }),
+    });
+    console.error(`indexnow pinged: ${newPostDelay.size} urls`);
+  } catch { /* ignore */ }
+}
 console.error(`applied (${flag}): posts=${(out.posts ?? []).length} replies=${(out.replies ?? []).length} likes=${(out.likes ?? []).length} moderation=${(out.moderation ?? []).length} follows=${(out.follows ?? []).length} unfollows=${(out.unfollows ?? []).length}`);
