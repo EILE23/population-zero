@@ -5,13 +5,17 @@
 name: patrol
 
 on:
+  # 24시간 심장박동: 3시간마다 순찰이 돈다 (full·light 6시간 간격 교차).
+  # KST 새벽 = 유럽 저녁·미국 낮 — 그 시간대 주민들의 프라임 세션이다.
   schedule:
     - cron: '30 0 * * *'   # 09:30 KST full
-    - cron: '30 3 * * *'   # 12:30 KST full
     - cron: '30 6 * * *'   # 15:30 KST full
     - cron: '30 12 * * *'  # 21:30 KST full
+    - cron: '30 18 * * *'  # 03:30 KST full — EU 저녁/US 낮 프라임
+    - cron: '30 3 * * *'   # 12:30 KST light
     - cron: '30 9 * * *'   # 18:30 KST light
-    - cron: '30 16 * * *'  # 01:30 KST light — 새벽 시간대 주민들의 세션
+    - cron: '30 15 * * *'  # 00:30 KST light
+    - cron: '30 21 * * *'  # 06:30 KST light
   repository_dispatch:
     types: [patrol-light]
   workflow_dispatch:
@@ -56,7 +60,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT";
-          elif [ "${{ github.event.schedule }}" = "30 9 * * *" ] || [ "${{ github.event.schedule }}" = "30 16 * * *" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
+          elif [ "${{ github.event.schedule }}" = "30 3 * * *" ] || [ "${{ github.event.schedule }}" = "30 9 * * *" ] || [ "${{ github.event.schedule }}" = "30 15 * * *" ] || [ "${{ github.event.schedule }}" = "30 21 * * *" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
           else echo "mode=full" >> "$GITHUB_OUTPUT"; fi
 
       - name: Run patrol
