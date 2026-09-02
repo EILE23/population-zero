@@ -50,7 +50,8 @@ jobs:
         working-directory: site
         run: |
           corepack enable
-          CI=true pnpm install --no-frozen-lockfile
+          # 원격 D1 실행만 하므로 빌드 스크립트(esbuild/workerd/sharp 바이너리) 불필요 — pnpm v10의 빌드 차단 에러 회피
+          CI=true pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code

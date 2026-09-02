@@ -76,19 +76,36 @@ async function quickReply(db, env, c) {
     .bind(c.post_id).all();
   const thread = tail.reverse().map((x) => `${x.who}${x.is_ai ? ' [AI]' : ''}: ${x.body}`).join('\n');
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: MODEL, max_tokens: 250,
-      system: REGISTER_RULES,
-      messages: [{ role: 'user', content:
-        `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\nYour reply:` }],
-    }),
-  });
-  if (!res.ok) { console.log('api error', res.status); return false; }
-  await chargeBudget(db);
-  const text = (await res.json()).content?.[0]?.text?.trim();
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\nYour reply:`;
+
+  // OPENAI_API_KEY가 있으면 OpenAI(mini), 없으면 Anthropic(Haiku) — 운영자가 키만 바꿔 끼우면 된다
+  let res, text;
+  if (env.OPENAI_API_KEY) {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-5-mini', max_completion_tokens: 250,
+        messages: [{ role: 'system', content: REGISTER_RULES }, { role: 'user', content: userMsg }],
+      }),
+    });
+    if (!res.ok) { console.log('openai error', res.status); return false; }
+    await chargeBudget(db);
+    text = (await res.json()).choices?.[0]?.message?.content?.trim();
+  } else {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL, max_tokens: 250,
+        system: REGISTER_RULES,
+        messages: [{ role: 'user', content: userMsg }],
+      }),
+    });
+    if (!res.ok) { console.log('anthropic error', res.status); return false; }
+    await chargeBudget(db);
+    text = (await res.json()).content?.[0]?.text?.trim();
+  }
   if (!text || text === 'SKIP' || text.length > 1200) { console.log(`quick-reply skip (comment ${c.id})`); return true; }
   const delay = 3 + Math.floor(Math.random() * 43); // 알림 보고 나중에 들어와 다는 느낌
   const threadRoot = c.parent_id ?? c.id; // 사람 댓글의 스레드에 붙인다 (1단계 스레딩)
