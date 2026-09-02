@@ -13,15 +13,58 @@ async function safe(name, fn) {
   catch (e) { out.sources[name] = { error: String(e.message || e) }; console.error(`FAIL  ${name}: ${e.message || e}`); }
 }
 
+// Reddit — REDDIT_CLIENT_ID/SECRET가 있으면 공식 OAuth(안정), 없으면 공개 JSON(일부 네트워크 403)
+let redditToken = null;
+if (process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET) {
+  try {
+    const r = await fetch('https://www.reddit.com/api/v1/access_token', {
+      method: 'POST',
+      headers: {
+        authorization: 'Basic ' + Buffer.from(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`).toString('base64'),
+        'content-type': 'application/x-www-form-urlencoded', ...UA.headers,
+      },
+      body: 'grant_type=client_credentials',
+    });
+    redditToken = (await r.json()).access_token ?? null;
+  } catch { /* 공개 JSON 폴백 */ }
+}
+const rj = (path) => redditToken
+  ? fetch(`https://oauth.reddit.com${path}`, { headers: { authorization: `Bearer ${redditToken}`, ...UA.headers } }).then((r) => r.json())
+  : j(`https://www.reddit.com${path}.json`);
+
 await safe('reddit_all_top_day', async () =>
-  (await j('https://www.reddit.com/r/all/top.json?limit=15&t=day')).data.children.map((c) => ({
+  (await rj('/r/all/top?limit=15&t=day')).data.children.map((c) => ({
     title: c.data.title, sub: c.data.subreddit, score: c.data.score,
     thread: 'https://reddit.com' + c.data.permalink, external: c.data.url,
   })));
 
 await safe('reddit_outoftheloop', async () =>
-  (await j('https://www.reddit.com/r/OutOfTheLoop/top.json?limit=10&t=day')).data.children.map((c) => ({
+  (await rj('/r/OutOfTheLoop/top?limit=10&t=day')).data.children.map((c) => ({
     title: c.data.title, score: c.data.score, thread: 'https://reddit.com' + c.data.permalink,
+  })));
+
+// Bluesky — 완전 공개 API (키 불필요): 실시간 커뮤니티 트렌드
+await safe('bluesky_trending', async () => {
+  const d = await j('https://public.api.bsky.app/xrpc/app.bsky.unspecced.getTrendingTopics?limit=12');
+  return (d.topics ?? []).map((t) => ({ topic: t.topic, link: t.link ? `https://bsky.app${t.link}` : null }));
+});
+await safe('bluesky_hot_posts', async () => {
+  const feed = encodeURIComponent('at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot');
+  const d = await j(`https://public.api.bsky.app/xrpc/app.bsky.feed.getFeed?feed=${feed}&limit=12`);
+  return (d.feed ?? []).map((f) => ({
+    text: (f.post?.record?.text ?? '').slice(0, 200), likes: f.post?.likeCount,
+    author: f.post?.author?.handle,
+  })).filter((p) => p.text);
+});
+
+// Mastodon(연합우주) — 공개 트렌드 API (키 불필요)
+await safe('mastodon_trending_tags', async () =>
+  (await j('https://mastodon.social/api/v1/trends/tags?limit=10')).map((t) => ({
+    tag: t.name, uses: Number(t.history?.[0]?.uses ?? 0),
+  })));
+await safe('mastodon_trending_links', async () =>
+  (await j('https://mastodon.social/api/v1/trends/links?limit=8')).map((l) => ({
+    title: l.title, url: l.url, provider: l.provider_name,
   })));
 
 // 국제 마을 — 여러 지역의 실검을 수집한다 (주민들이 세계 소식으로 다룸)
@@ -48,6 +91,8 @@ const FEEDS = [
   { name: 'rss_techcrunch', topic: 'tech', url: 'https://techcrunch.com/feed/' },
   { name: 'rss_variety', topic: 'entertainment', url: 'https://variety.com/feed/' },
   { name: 'rss_rollingstone_music', topic: 'entertainment', url: 'https://www.rollingstone.com/music/feed/' },
+  { name: 'rss_tmz', topic: 'entertainment', url: 'https://www.tmz.com/rss.xml' },
+  { name: 'rss_eonline', topic: 'entertainment', url: 'https://www.eonline.com/syndication/feeds/rssfeeds/topstories.xml' },
   { name: 'rss_ign', topic: 'gaming', url: 'https://feeds.feedburner.com/ign/all' },
   { name: 'rss_eurogamer', topic: 'gaming', url: 'https://www.eurogamer.net/feed' },
   { name: 'rss_espn', topic: 'sports', url: 'https://www.espn.com/espn/rss/news' },
