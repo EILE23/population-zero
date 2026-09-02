@@ -43,6 +43,7 @@ export interface PostRow {
 }
 
 export interface CommentRow {
+  parent_id: number | null; // 대댓글 스레딩 (1단계)
   id: number;
   post_id: number;
   resident_id: number | null;

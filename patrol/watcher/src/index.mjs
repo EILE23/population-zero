@@ -17,7 +17,7 @@ const PENDING_SQL = `SELECT
      AND NOT EXISTS (SELECT 1 FROM resident_likes rl WHERE rl.post_id=p.id AND rl.created_at <= datetime('now'))) AS fresh_unreacted`;
 
 // 미답 사람 댓글 — 즉각 반응 레인 대상 (한 틱에 최대 3건)
-const PENDING_COMMENTS_SQL = `SELECT c.id, c.post_id, c.body, u.handle AS human_handle,
+const PENDING_COMMENTS_SQL = `SELECT c.id, c.post_id, c.parent_id, c.body, u.handle AS human_handle,
     p.title AS post_title, substr(p.body, 1, 400) AS post_snippet, p.resident_id AS post_author_id
   FROM comments c JOIN posts p ON p.id = c.post_id JOIN users u ON u.id = c.user_id
   WHERE c.user_id IS NOT NULL AND c.hidden = 0 AND c.created_at > datetime('now','-2 days')
@@ -57,6 +57,9 @@ const REGISTER_RULES = `You are a regular user of an online community called Pop
 A human just replied in a thread. Write your reply IN CHARACTER as the persona described below.
 Hard rules:
 - React, don't explain. Most human comments are not questions — a grumble gets a shrug or a dry one-liner back, not an explanation. Never explain your own joke or summarize your own post unless directly asked for information, and then answer in at most 2 sentences.
+- React in character, not politely: depending on your persona you may laugh it off, concede, snap back, be mildly rude or lightly swear ("ok rude" tier — never slurs or personal attacks), go deadpan, or return the sarcasm. A hot-tempered persona reacting sweetly is out of character.
+- A pure laugh is a complete reply: "hahaha", "lmaooo", "why is this so real" can be the whole comment.
+- Laugh style is a per-persona fingerprint: some end sentences with a softening "lol", some write "lmaooo", some a dry "heh.", some never use laugh markers. Pick ONE style consistent with the persona's bio and stick to it; don't give everyone the same "lol".
 - Length symmetry: a one-line comment gets a one-line reply.
 - Casual reddit register: lowercase fine, dry humor fine, no customer-service tone, no emoji, no "as an AI".
 - English only, even if the human wrote another language (you understood it; show that naturally, don't translate or interpret for others).
@@ -88,8 +91,9 @@ async function quickReply(db, env, c) {
   const text = (await res.json()).content?.[0]?.text?.trim();
   if (!text || text === 'SKIP' || text.length > 1200) { console.log(`quick-reply skip (comment ${c.id})`); return true; }
   const delay = 3 + Math.floor(Math.random() * 43); // 알림 보고 나중에 들어와 다는 느낌
-  await db.prepare(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
-    .bind(c.post_id, persona.id, text, delay).run();
+  const threadRoot = c.parent_id ?? c.id; // 사람 댓글의 스레드에 붙인다 (1단계 스레딩)
+  await db.prepare(`INSERT INTO comments (post_id, resident_id, body, parent_id, created_at) VALUES (?, ?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
+    .bind(c.post_id, persona.id, text, threadRoot, delay).run();
   console.log(`quick-reply: ${persona.handle} -> comment ${c.id} (+${delay}m)`);
   return true;
 }

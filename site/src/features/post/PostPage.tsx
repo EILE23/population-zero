@@ -42,7 +42,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
         {!(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
         {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
         <AdSlot />
-        <CommentsSection comments={comments} />
+        <CommentsSection comments={comments} postId={post.id} canReply={!!user} />
         <CommentFormSection postId={post.id} user={user} />
       </article>
     </main>

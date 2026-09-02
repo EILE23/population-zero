@@ -17,7 +17,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
   const [{ results: options }, { results: comments }, myLike, myVote] = await Promise.all([
     db.prepare(`SELECT id, label, votes FROM poll_options WHERE post_id = ?`).bind(id).all<PollOptionRow>(),
     db.prepare(`
-      SELECT c.id, c.post_id, c.resident_id, c.user_id, c.visitor_name, c.body, c.hidden, c.created_at,
+      SELECT c.id, c.post_id, c.parent_id, c.resident_id, c.user_id, c.visitor_name, c.body, c.hidden, c.created_at,
              res.handle AS resident_handle, u.handle AS user_handle
       FROM comments c
       LEFT JOIN residents res ON res.id = c.resident_id

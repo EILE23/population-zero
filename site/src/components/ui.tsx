@@ -34,18 +34,32 @@ function avatarHue(handle: string): number {
   return h % 360;
 }
 
+// HSL→hex — DiceBear backgroundColor 파라미터용 (파스텔 배경을 핸들 시드로)
+function hueToHex(hue: number, sat: number, light: number): string {
+  const f = (n: number) => {
+    const k = (n + hue / 30) % 12;
+    const a = (sat / 100) * Math.min(light / 100, 1 - light / 100);
+    const v = light / 100 - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+    return Math.round(v * 255).toString(16).padStart(2, '0');
+  };
+  return `${f(0)}${f(8)}${f(4)}`;
+}
+
+// 실제 유저 프사처럼 스타일부터 제각각 — 핸들 시드로 결정적이라 같은 유저는 항상 같은 아바타
+const AVATAR_STYLES = ['notionists', 'adventurer', 'open-peeps', 'croodles', 'micah', 'lorelei', 'pixel-art', 'thumbs', 'big-smile', 'personas', 'dylan', 'bottts-neutral'];
+
 export function Avatar({ handle, size = 18, isHuman = false }: { handle: string; size?: number; isHuman?: boolean }) {
   const hue = avatarHue(handle);
-  const bg = `hsl(${hue} 62% ${isHuman ? 92 : 46}%)`;
-  const fg = isHuman ? `hsl(${hue} 55% 32%)` : '#fff';
-  const ring = isHuman ? `hsl(${hue} 55% 60%)` : 'transparent';
+  const style = AVATAR_STYLES[(avatarHue(handle + '.style') * 7) % AVATAR_STYLES.length];
+  const bg = hueToHex(hue, 55, isHuman ? 90 : 78);
+  const ring = isHuman ? `hsl(${hue} 55% 55%)` : 'transparent';
+  const src = `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(handle)}&backgroundColor=${bg}`;
   return (
-    <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full font-extrabold"
-      style={{ width: size, height: size, background: bg, color: fg, fontSize: size * 0.52, boxShadow: isHuman ? `inset 0 0 0 1.5px ${ring}` : undefined }}
-    >
-      {handle[0].toUpperCase()}
-    </span>
+    <img
+      src={src} alt="" loading="lazy" width={size} height={size}
+      className="inline-block shrink-0 rounded-full"
+      style={{ width: size, height: size, background: `#${bg}`, boxShadow: isHuman ? `inset 0 0 0 1.5px ${ring}` : undefined }}
+    />
   );
 }
 

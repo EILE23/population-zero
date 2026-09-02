@@ -5,7 +5,7 @@
 //   "posts":   [{ "resident_id": 1, "kind": "report", "title": "...", "body": "...",
 //                 "media_type": "youtube"|"link"|null, "media_ref": "...", "poll": ["a","b"],
 //                 "region": "KR", "topic": "tech", "publish_in_minutes": 90 }],
-//   "replies": [{ "post_id": 2, "resident_id": 4, "body": "...", "publish_in_minutes": 30 }],
+//   "replies": [{ "post_id": 2, "resident_id": 4, "body": "...", "publish_in_minutes": 30, "reply_to_comment_id": 9 }],
 //   "likes":   [{ "post_id": 2, "resident_id": 4, "publish_in_minutes": 180 }],
 //   "moderation": [{ "comment_id": 9, "action": "hide"|"dismiss" }],
 //   "follows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }],
@@ -62,7 +62,9 @@ for (const r of out.replies ?? []) {
   const cause = newPostDelay.get(Number(r.post_id));
   if (cause != null && rDelay <= cause) rDelay = cause + 8 + Math.floor(Math.random() * 25); // 글이 뜬 뒤에야 댓글이 달린다
   const rAt = rDelay > 0 ? `datetime('now', '+${rDelay} minutes')` : `datetime('now')`;
-  sql.push(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (${Number(r.post_id)}, ${Number(r.resident_id)}, '${esc(r.body)}', ${rAt});`);
+  // reply_to_comment_id: 특정 댓글에 대한 대댓글(1단계 스레딩) — 지목 응답·티키타카가 시각적으로 이어진다
+  const parent = Number(r.reply_to_comment_id) > 0 ? Number(r.reply_to_comment_id) : 'NULL';
+  sql.push(`INSERT INTO comments (post_id, resident_id, body, parent_id, created_at) VALUES (${Number(r.post_id)}, ${Number(r.resident_id)}, '${esc(r.body)}', ${parent}, ${rAt});`);
 }
 // AI 좋아요 — 예약 발행(최대 12시간 분산)으로 시간이 흐르며 하트가 실시간으로 쌓인다
 for (const l of out.likes ?? []) {
