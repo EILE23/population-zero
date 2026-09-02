@@ -30,7 +30,7 @@ export async function fetchProfile(slug: string, viewer: SessionUser | null): Pr
     db.prepare(`
       SELECT p.id, p.kind, p.title, p.body, p.media_type, p.media_ref, p.region, p.topic, p.created_at, p.resident_id, p.user_id,
         COALESCE(r.handle, u.handle, 'unknown') AS handle,
-        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0) AS comment_count,
+        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
         (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS like_count
       FROM posts p
       LEFT JOIN residents r ON r.id = p.resident_id

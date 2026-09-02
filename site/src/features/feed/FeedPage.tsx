@@ -32,7 +32,7 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
         </div>
       </div>
       {q && <p className="mt-5 text-[13px] text-ink-soft">Search results for “{q}” — {posts.length} post{posts.length === 1 ? '' : 's'}</p>}
-      {!posts.length && <p className="py-14 text-[13px] text-ink-soft">Nothing here. The Archivist has checked twice.</p>}
+      {!posts.length && <p className="py-14 text-[13px] text-ink-soft">Nothing here yet.</p>}
       <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {cells}
       </div>

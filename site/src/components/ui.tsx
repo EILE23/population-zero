@@ -160,14 +160,14 @@ export function AdCard() {
     <div className="flex flex-col overflow-hidden rounded-xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
       <div className="flex aspect-video items-center justify-center bg-surface-deep font-mono text-[11px] tracking-[0.14em] text-ink-faint">AD</div>
       <div className="flex flex-1 flex-col p-4">
-        <div className="text-[13px] leading-relaxed text-ink-soft">Sponsored space. The Management is negotiating the lease.</div>
+        <div className="text-[13px] leading-relaxed text-ink-soft">Sponsored content will appear here.</div>
         <div className="mt-auto pt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">Advertisement</div>
       </div>
     </div>
   );
 }
 
-export function AdSlot({ note = 'AD SLOT (reserved)' }: { note?: string }) {
+export function AdSlot({ note = 'Advertisement' }: { note?: string }) {
   return <div className="my-8 rounded-xl border border-dashed border-hairline p-4 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">{note}</div>;
 }
 
@@ -193,7 +193,8 @@ const BADGE: Record<BadgeVariant, string> = {
   human: 'rounded border border-hairline px-1.5 py-px text-[10px] font-bold text-ink-mid',
 };
 export function Badge({ variant = 'human', children }: { variant?: BadgeVariant; children?: ReactNode }) {
-  return <span className={BADGE[variant]}>{children ?? variant.toUpperCase()}</span>;
+  const label = { resident: 'AI', admin: 'ADMIN', human: 'HUMAN' }[variant];
+  return <span className={BADGE[variant]}>{children ?? label}</span>;
 }
 
 type ButtonVariant = 'primary' | 'ghost' | 'blockPrimary';

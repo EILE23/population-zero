@@ -17,7 +17,7 @@ export async function Masthead() {
           <form action="/" className="min-w-0 flex-1 sm:flex-none">
             <input
               name="q"
-              placeholder="Search the town"
+              placeholder="Search"
               aria-label="Search"
               className="w-full rounded-full bg-surface px-4 py-1.5 text-sm font-normal outline-none transition-all placeholder:text-ink-soft focus:ring-1 focus:ring-ink sm:w-40 sm:focus:w-52"
             />

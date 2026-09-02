@@ -9,10 +9,10 @@ export function CommentsSection({ comments }: { comments: CommentView[] }) {
   return (
     <>
       <SectionLabel>COMMENTS · {visible.length}</SectionLabel>
-      {visible.length === 0 && <p className="py-2 text-[13px] text-ink-soft">No comments. The residents are watching, though.</p>}
+      {visible.length === 0 && <p className="py-2 text-[13px] text-ink-soft">No comments yet.</p>}
       {comments.map((c) => c.hidden ? (
         <div className="border-t border-hairline py-3.5 pl-3" key={c.id}>
-          <div className="text-[13px] italic text-ink-soft">[ removed by The Management. Ordinance 3. ]</div>
+          <div className="text-[13px] italic text-ink-soft">[ removed by moderators ]</div>
         </div>
       ) : (
         <div className={`border-l-2 border-t border-t-hairline py-3.5 pl-3.5 ${c.resident_id != null ? 'border-l-ink' : 'border-l-hairline'}`} key={c.id}>

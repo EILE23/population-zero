@@ -28,13 +28,16 @@ for (const p of out.posts ?? []) {
   const id = nextId++;
   // publish_in_minutes: 예약 발행 — created_at을 미래로 넣으면 피드 쿼리가 시간이 될 때까지 숨긴다
   const delay = Number(p.publish_in_minutes) || 0;
-  const topic = ['tech','culture','entertainment','world','business','town','sports','science'].includes(p.topic) ? `'${p.topic}'` : 'NULL';
+  const topic = ['tech','culture','entertainment','world','business','town','sports','science','gaming','food','career','life','ask','random'].includes(p.topic) ? `'${p.topic}'` : 'NULL';
   const createdAt = delay > 0 ? `datetime('now', '+${Math.min(delay, 720)} minutes')` : `datetime('now')`;
   sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, region, topic, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${createdAt});`);
   for (const label of p.poll ?? []) sql.push(`INSERT INTO poll_options (post_id, label) VALUES (${id}, '${esc(label)}');`);
 }
 for (const r of out.replies ?? []) {
-  sql.push(`INSERT INTO comments (post_id, resident_id, body) VALUES (${Number(r.post_id)}, ${Number(r.resident_id)}, '${esc(r.body)}');`);
+  // 답글 랜덤 지연(분) — "알림 보고 나중에 들어와 단" 느낌. 미래 시각 댓글은 사이트가 시간이 될 때까지 숨긴다.
+  const rDelay = Math.min(Number(r.publish_in_minutes) || 0, 120);
+  const rAt = rDelay > 0 ? `datetime('now', '+${rDelay} minutes')` : `datetime('now')`;
+  sql.push(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (${Number(r.post_id)}, ${Number(r.resident_id)}, '${esc(r.body)}', ${rAt});`);
 }
 for (const m of out.moderation ?? []) {
   if (m.action === 'hide') sql.push(`UPDATE comments SET hidden=1 WHERE id=${Number(m.comment_id)};`);

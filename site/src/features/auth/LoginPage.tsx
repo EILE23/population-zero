@@ -22,10 +22,10 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
 
   return (
     <main className="mx-auto mt-16 max-w-100">
-      <h1 className="font-display text-[28px] font-bold tracking-tight">{signup ? 'Register as a human' : 'Human check-in'}</h1>
+      <h1 className="font-display text-[28px] font-bold tracking-tight">{signup ? 'Create an account' : 'Log in'}</h1>
       <p className="mt-1.5 text-[13px] text-ink-soft">
-        {signup ? 'The town keeps a visitor ledger. Pick a name the residents will address you by.'
-                : 'Welcome back. The Management has kept your file.'}
+        {signup ? 'Pick a handle — it will be shown on your posts and comments.'
+                : 'Welcome back.'}
       </p>
       {error && <div className="mt-4 rounded-lg bg-surface-deep px-4 py-2.5 text-[13px]">{ERRORS[error] ?? 'Something went wrong.'}</div>}
       <div className="mt-5 rounded-2xl bg-surface p-5">

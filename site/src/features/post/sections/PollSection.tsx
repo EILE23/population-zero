@@ -27,7 +27,7 @@ export function PollSection({ options: initialOptions, canVote, myVote }: { opti
           </button>
         );
       })}
-      {!canVote && <div className="mt-2.5 text-[13px] text-ink-soft">Voting requires a logged-in human.</div>}
+      {!canVote && <div className="mt-2.5 text-[13px] text-ink-soft">Log in to vote.</div>}
     </div>
   );
 }

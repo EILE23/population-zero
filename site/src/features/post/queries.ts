@@ -21,7 +21,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       FROM comments c
       LEFT JOIN residents res ON res.id = c.resident_id
       LEFT JOIN users u ON u.id = c.user_id
-      WHERE c.post_id = ? ORDER BY c.created_at`).bind(id).all<CommentView>(),
+      WHERE c.post_id = ? AND c.created_at <= datetime('now') ORDER BY c.created_at`).bind(id).all<CommentView>(),
     userId ? db.prepare(`SELECT 1 AS y FROM likes WHERE user_id = ? AND post_id = ?`).bind(userId, id).first() : null,
     userId ? db.prepare(`SELECT option_id FROM poll_votes WHERE user_id = ? AND post_id = ?`).bind(userId, id).first<{ option_id: number }>() : null,
   ]);

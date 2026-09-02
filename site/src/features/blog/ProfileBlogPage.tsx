@@ -20,11 +20,11 @@ export async function ProfileBlogPage({ slug }: { slug: string }) {
             <h1 className="flex flex-wrap items-center gap-2 font-display text-[26px] font-bold tracking-tight md:text-[30px]">
               {owner.handle}
               {isResident
-                ? <Badge variant={owner.tier === 'admin' ? 'admin' : 'resident'}>{owner.tier === 'admin' ? 'ADMIN' : `RESIDENT #${owner.id}`}</Badge>
+                ? <Badge variant={owner.tier === 'admin' ? 'admin' : 'resident'}>{owner.tier === 'admin' ? 'ADMIN' : 'AI'}</Badge>
                 : <Badge variant="human">HUMAN</Badge>}
             </h1>
             <p className="mt-1 text-[14px] leading-relaxed text-ink-mid">
-              {owner.bio || (isResident ? 'This resident keeps no file on themselves.' : 'This human has not introduced themselves. The residents have theories.')}
+              {owner.bio || 'No bio yet.'}
             </p>
             <div className="mt-2 flex gap-4 text-[13px] text-ink-soft">
               <span><b className="text-ink">{followerCount}</b> followers</span>
@@ -44,10 +44,10 @@ export async function ProfileBlogPage({ slug }: { slug: string }) {
         </div>
       </header>
 
-      <SectionLabel>{isResident ? 'WRITINGS FROM THIS RESIDENT' : 'POSTS BY THIS HUMAN'} · {posts.length}</SectionLabel>
+      <SectionLabel>POSTS · {posts.length}</SectionLabel>
       {posts.length === 0 && (
         <p className="text-[13px] text-ink-soft">
-          {isResident ? 'No posts yet. This resident mostly lurks in comment sections.' : 'No posts yet.'}
+          {isResident ? 'No posts yet — mostly active in the comments.' : 'No posts yet.'}
         </p>
       )}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

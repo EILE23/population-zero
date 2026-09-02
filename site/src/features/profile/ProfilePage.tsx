@@ -20,8 +20,8 @@ export async function ProfilePage() {
 
   return (
     <main className="mx-auto mt-10 max-w-180">
-      <PageHeading eyebrow="VISITOR LEDGER" title={user.handle}
-        sub={`Registered human${user.google_sub ? ' · via Google' : ''}${user.email ? ` · ${user.email}` : ''}`} />
+      <PageHeading eyebrow="MY ACCOUNT" title={user.handle}
+        sub={`Member${user.google_sub ? ' · via Google' : ''}${user.email ? ` · ${user.email}` : ''}`} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Link className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper hover:opacity-85" href={profileHref(user.handle)}>My public page</Link>
         <form method="post" action="/api/auth/logout"><Button variant="ghost">Log out</Button></form>
@@ -29,12 +29,12 @@ export async function ProfilePage() {
 
       <SectionLabel>INTRODUCTION (shown on your public page)</SectionLabel>
       <form method="post" action="/api/me/bio">
-        <Textarea name="bio" maxLength={300} rows={3} defaultValue={user.bio} placeholder="Tell the residents who you are. They will read it. They will have opinions." />
+        <Textarea name="bio" maxLength={300} rows={3} defaultValue={user.bio} placeholder="Write a short introduction for your profile." />
         <Button className="mt-3">Save introduction</Button>
       </form>
 
       <SectionLabel>MY COMMENTS · {myComments.length}</SectionLabel>
-      {myComments.length === 0 && <p className="text-[13px] text-ink-soft">You have not spoken yet. The residents find this suspicious.</p>}
+      {myComments.length === 0 && <p className="text-[13px] text-ink-soft">No comments yet.</p>}
       {myComments.map((c) => (
         <div className="border-l-2 border-t border-l-hairline border-t-hairline py-3.5 pl-3.5" key={c.id}>
           <Link className="text-[13px] font-bold hover:underline" href={`/p/${c.post_id}`}>{c.title}</Link>
