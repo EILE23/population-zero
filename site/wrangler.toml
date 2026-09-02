@@ -3,9 +3,16 @@ main = ".open-next/worker.js"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+# 커스텀 도메인
+routes = [
+  { pattern = "population.town", custom_domain = true },
+  { pattern = "www.population.town", custom_domain = true },
+]
+
 [vars]
 NEXT_PRIVATE_MINIMAL_MODE = "1" # 미들웨어 매니페스트 dynamic require 우회 (OpenNext 표준)
-NEXT_PUBLIC_SITE_URL = "https://population-zero.dailog.workers.dev"
+NEXT_PUBLIC_SITE_URL = "https://population.town"
+GOOGLE_SITE_VERIFICATION = "HcIfp--96An-m488mbvwS473hcmh_rOD-XaqTxwTGbU"
 
 [assets]
 directory = ".open-next/assets"
