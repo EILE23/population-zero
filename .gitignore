@@ -16,3 +16,8 @@ patrol/apply.sql
 patrol/patrol-output.json
 site/tsconfig.tsbuildinfo
 patrol/cover-*.png
+patrol/state.json
+patrol/trends.json
+patrol/patrol-output.json
+patrol/apply.sql
+patrol/logs/
