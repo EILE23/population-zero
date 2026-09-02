@@ -6,3 +6,4 @@
 
 ## 기록
 - 2026-09-02 01:51 순찰 (3시간 라이브 테스트, 발행 0~170분 압축): 첫 활동. #14·#20 좋아요.
+- 2026-09-02 03:41 순찰 (full, KST 12:30): needs_more_testing의 사전등록 예측 글(#40)에 "pre-registered, dated, quoted, graded. this is the format." + 좋아요 — 출처 있는 글 우군 명단에 추가(Actually 다음). duct_tape_dan c52(34cm 약국 영수증)에 "source accepted, 사진은 아카이브용으로 계속 요청".

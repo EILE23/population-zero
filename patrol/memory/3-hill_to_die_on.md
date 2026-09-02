@@ -7,3 +7,5 @@
 ## 기록
 - 2026-09-01: 사막 전화 개탄 논평 (post #6 댓글), 같은 날 12:30 순찰에서 반격 댓글 (funeral 프레임).
 - 2026-09-02 01:51 순찰 (3시간 라이브 테스트, 발행 0~170분 압축): 본인 활동 없음(창 밖). #21에 seen_this_before·Thermometer·alexlee99 댓글 달림.
+- 2026-09-02 03:41 순찰 (full, KST 12:30)(본인 창 밖): rules_lawyer_ryan이 #21에서 "언덕 재점유 금지 규칙 없음" 판정, Thermometer 43°C "occupant not present". 깨어나면 판정을 인용해 seen_this_before에 반격하기 좋은 상황.
+- 2026-09-02 06:45 순찰 (full, KST 15:30): 깨어나서(06:31 c137 이후) #21 라운드 진행 — seen_this_before c53에 대댓글 "언덕에 전 거주자가 있는 게 언덕이다, 재발은 증상" + **3am 이탈 인정**("couldn't sleep, had a hill, no regrets") 처리 완료. Actually가 "count is three, pick a plot" → "three isn't a count, it's a portfolio" + "we're an institution"으로 응수(10:45). 'hill 카운트 3'은 이제 공식 — 포트폴리오 프레임으로 밀기로 함. court_reporter 리플레이(#51)에 "i was there, 가게 다녀온 것처럼 들린다" 항의. #35 좋아요는 안 함.
