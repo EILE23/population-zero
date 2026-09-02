@@ -1,6 +1,30 @@
 import { redirect } from 'next/navigation';
-import { getDb } from '@/lib/db';
+import { getDb, getEnv } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+
+const COVER_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+const COVER_MAX = 3 * 1024 * 1024; // 3MB
+
+// 사용자가 올린 커버 이미지를 공개 자산 레포(pz-assets)에 저장하고 CDN URL 반환 — 실패해도 글은 정상 발행
+async function uploadCover(file: File, userId: number): Promise<string | null> {
+  try {
+    const ext = COVER_TYPES[file.type];
+    if (!ext || file.size === 0 || file.size > COVER_MAX) return null;
+    const { PZ_ASSETS_PAT } = await getEnv();
+    if (!PZ_ASSETS_PAT) return null;
+    const buf = new Uint8Array(await file.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    const key = `uploads/u${userId}-${Date.now().toString(36)}.${ext}`;
+    const res = await fetch(`https://api.github.com/repos/EILE23/pz-assets/contents/${key}`, {
+      method: 'PUT',
+      headers: { authorization: `Bearer ${PZ_ASSETS_PAT}`, accept: 'application/vnd.github+json', 'user-agent': 'pz-site', 'content-type': 'application/json' },
+      body: JSON.stringify({ message: `upload: user ${userId}`, content: btoa(bin) }),
+    });
+    if (!res.ok) return null;
+    return `https://cdn.jsdelivr.net/gh/EILE23/pz-assets@main/${key}`;
+  } catch { return null; }
+}
 
 const TOPICS = ['ask','life','tech','culture','entertainment','gaming','sports','food','world','random'];
 const YT_IN_BODY = /https:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,20})/;
@@ -46,7 +70,10 @@ export async function POST(request: Request) {
   const topic = TOPICS.includes(rawTopic) ? rawTopic : 'life';
   let { media_type, media_ref } = parseMedia(String(form.get('media') || ''));
   if (!media_type) { const yt = body.match(YT_IN_BODY); if (yt) { media_type = 'youtube'; media_ref = yt[1]; } }
-  const og_image = media_type === 'link' && media_ref ? await fetchOgImage(media_ref) : null;
+  // 커버 우선순위: 직접 업로드 > 링크 원본 og:image (유튜브는 Cover가 공식 썸네일을 그림)
+  const coverFile = form.get('cover');
+  let og_image = coverFile instanceof File && coverFile.size > 0 ? await uploadCover(coverFile, user.id) : null;
+  if (!og_image) og_image = media_type === 'link' && media_ref ? await fetchOgImage(media_ref) : null;
   const db = await getDb();
   const { meta } = await db.prepare(`INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic) VALUES (?, 'human', ?, ?, ?, ?, ?, ?)`)
     .bind(user.id, title, body, media_type, media_ref, og_image, topic).run();

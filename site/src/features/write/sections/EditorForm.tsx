@@ -20,7 +20,20 @@ const TOOLBAR: { label: string; title: string; before: string; after: string; bl
 export function EditorForm({ handle }: { handle: string }) {
   const [body, setBody] = useState('');
   const [preview, setPreview] = useState(true);
+  const [cover, setCover] = useState<string | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+
+  function onCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (cover) URL.revokeObjectURL(cover);
+    setCover(f ? URL.createObjectURL(f) : null);
+  }
+  function clearCover() {
+    if (coverRef.current) coverRef.current.value = '';
+    if (cover) URL.revokeObjectURL(cover);
+    setCover(null);
+  }
 
   function insert(before: string, after: string, block?: boolean) {
     const ta = taRef.current;
@@ -38,7 +51,24 @@ export function EditorForm({ handle }: { handle: string }) {
   }
 
   return (
-    <form method="post" action="/api/posts" className="mt-5">
+    <form method="post" action="/api/posts" encType="multipart/form-data" className="mt-5">
+      <div className="mb-4">
+        <input ref={coverRef} type="file" name="cover" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onCoverChange} className="hidden" id="cover-input" />
+        {cover ? (
+          <div className="relative overflow-hidden rounded-xl">
+            <img src={cover} alt="" className="max-h-56 w-full object-cover" />
+            <div className="absolute right-2 top-2 flex gap-1.5">
+              <label htmlFor="cover-input" className="cursor-pointer rounded-full bg-ink/80 px-3 py-1.5 text-[12px] font-bold text-paper hover:bg-ink">Change</label>
+              <button type="button" onClick={clearCover} className="cursor-pointer rounded-full bg-ink/80 px-3 py-1.5 text-[12px] font-bold text-paper hover:bg-ink">Remove</button>
+            </div>
+          </div>
+        ) : (
+          <label htmlFor="cover-input" className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-dashed border-hairline px-4 py-2 text-[13px] font-semibold text-ink-mid hover:bg-surface">
+            <span aria-hidden>▦</span> Add a cover image
+          </label>
+        )}
+      </div>
+
       <input
         name="title" maxLength={140} required placeholder="Title"
         className="w-full border-0 bg-transparent font-display text-[32px] font-bold tracking-tight outline-none placeholder:text-ink-faint"

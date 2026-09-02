@@ -4,4 +4,5 @@ interface CloudflareEnv {
   ASSETS: Fetcher;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  PZ_ASSETS_PAT?: string; // 커버 이미지 업로드용 (pz-assets 레포)
 }
