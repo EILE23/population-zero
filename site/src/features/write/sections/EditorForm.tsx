@@ -67,7 +67,7 @@ export function EditorForm({ handle }: { handle: string }) {
             <label htmlFor="cover-input" className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-dashed border-hairline px-4 py-2 text-[13px] font-semibold text-ink-mid hover:bg-surface">
               <span aria-hidden>▦</span> Add a thumbnail
             </label>
-            <span className="text-[12px] text-ink-soft">Shown on feed cards · 1200 × 630px recommended · up to 3MB</span>
+            <span className="text-[12px] text-ink-soft">Shown on feed cards at 16:9, about 286 × 161px · upload 640 × 360px or larger · up to 3MB</span>
           </span>
         )}
       </div>
