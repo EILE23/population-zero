@@ -1,5 +1,6 @@
 // 순찰 1단계: 무료 공식 소스에서 오늘의 트렌드 신호를 수집해 trends.json으로 저장.
-// 크롤링 없음 — 전부 공개 JSON/RSS/API. 실패한 소스는 건너뛰고 기록만 남긴다.
+// 1차 소스는 전부 공개 JSON/RSS/API. 실패한 소스는 건너뛰고 기록만 남긴다.
+// (부족한 소재는 순찰 세션이 직접 페이지를 열어 읽는다 — robots 존중, 인용 수준 발췌만.)
 import { writeFileSync } from 'node:fs';
 
 const UA = { headers: { 'user-agent': 'population-zero-patrol/0.1 (daily trend digest for an AI-resident town)' } };
@@ -24,12 +25,56 @@ await safe('reddit_outoftheloop', async () =>
   })));
 
 // 국제 마을 — 여러 지역의 실검을 수집한다 (주민들이 세계 소식으로 다룸)
-for (const geo of ['US', 'GB', 'KR', 'JP', 'IN', 'BR']) {
+for (const geo of ['US', 'GB', 'KR', 'JP', 'IN', 'BR', 'DE', 'FR', 'MX', 'AU', 'ID', 'NG']) {
   await safe(`google_trends_${geo.toLowerCase()}`, async () => {
     const xml = await t(`https://trends.google.com/trending/rss?geo=${geo}`);
     return [...xml.matchAll(/<title>([^<]+)<\/title>/g)].map((m) => m[1]).slice(1, 13);
   });
 }
+
+// 주제·지역별 공식 RSS 팩 — 언론사·기관이 배포용으로 제공하는 피드만 (스크래핑 아님)
+const rssItems = (xml, n = 8) =>
+  [...xml.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>[\s\S]*?<\/item>/g)]
+    .slice(0, n).map((m) => ({ title: m[1].trim(), link: m[2].trim() }));
+const FEEDS = [
+  { name: 'rss_bbc_world', topic: 'world', url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
+  { name: 'rss_aljazeera', topic: 'world', url: 'https://www.aljazeera.com/xml/rss/all.xml' },
+  { name: 'rss_dw_english', topic: 'world', region: 'DE', url: 'https://rss.dw.com/rdf/rss-en-all' },
+  { name: 'rss_france24_en', topic: 'world', region: 'FR', url: 'https://www.france24.com/en/rss' },
+  { name: 'rss_japantimes', topic: 'world', region: 'JP', url: 'https://www.japantimes.co.jp/feed/' },
+  { name: 'rss_timesofindia', topic: 'world', region: 'IN', url: 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms' },
+  { name: 'rss_theverge', topic: 'tech', url: 'https://www.theverge.com/rss/index.xml' },
+  { name: 'rss_arstechnica', topic: 'tech', url: 'https://feeds.arstechnica.com/arstechnica/index' },
+  { name: 'rss_techcrunch', topic: 'tech', url: 'https://techcrunch.com/feed/' },
+  { name: 'rss_variety', topic: 'entertainment', url: 'https://variety.com/feed/' },
+  { name: 'rss_rollingstone_music', topic: 'entertainment', url: 'https://www.rollingstone.com/music/feed/' },
+  { name: 'rss_ign', topic: 'gaming', url: 'https://feeds.feedburner.com/ign/all' },
+  { name: 'rss_eurogamer', topic: 'gaming', url: 'https://www.eurogamer.net/feed' },
+  { name: 'rss_espn', topic: 'sports', url: 'https://www.espn.com/espn/rss/news' },
+  { name: 'rss_bbc_sport', topic: 'sports', url: 'https://feeds.bbci.co.uk/sport/rss.xml' },
+  { name: 'rss_nasa', topic: 'science', url: 'https://www.nasa.gov/feed/' },
+  { name: 'rss_nature', topic: 'science', url: 'https://www.nature.com/nature.rss' },
+  { name: 'rss_arxiv_ai', topic: 'science', url: 'https://rss.arxiv.org/rss/cs.AI' },
+  { name: 'rss_bonappetit', topic: 'food', url: 'https://www.bonappetit.com/feed/rss' },
+  { name: 'rss_cnbc_top', topic: 'business', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html' },
+  { name: 'rss_producthunt', topic: 'tech', url: 'https://www.producthunt.com/feed' },
+];
+for (const f of FEEDS) {
+  await safe(f.name, async () => ({ topic: f.topic, ...(f.region ? { region: f.region } : {}), items: rssItems(await t(f.url)) }));
+}
+
+// GitHub 공식 검색 API — 최근 일주일 사이 만들어져 별을 쓸어담은 저장소 (2차 생태계·프로젝트 자랑 소재)
+await safe('github_new_hot_repos', async () => {
+  const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const d = await j(`https://api.github.com/search/repositories?q=created:%3E${since}&sort=stars&order=desc&per_page=10`);
+  return d.items.map((r) => ({ name: r.full_name, stars: r.stargazers_count, desc: (r.description || '').slice(0, 140), url: r.html_url, lang: r.language }));
+});
+
+// 애플 공식 차트 RSS — 음악 실시간 차트 (entertainment 소재)
+await safe('apple_music_top_us', async () => {
+  const d = await j('https://rss.marketingtools.apple.com/api/v2/us/music/most-played/10/songs.json');
+  return d.feed.results.map((s) => ({ name: s.name, artist: s.artistName }));
+});
 
 await safe('hackernews_top', async () => {
   const ids = (await j('https://hacker-news.firebaseio.com/v0/topstories.json')).slice(0, 10);
@@ -37,14 +82,17 @@ await safe('hackernews_top', async () => {
     j(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then((i) => ({ title: i.title, score: i.score, url: i.url }))));
 });
 
-await safe('wikipedia_top_yesterday', async () => {
-  const d = new Date(Date.now() - 864e5);
-  const p = `${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`;
-  const data = await j(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${p}`);
-  return data.items[0].articles
-    .filter((a) => !/^(Main_Page|Special:|Wikipedia:|Portal:)/.test(a.article))
-    .slice(0, 15).map((a) => ({ article: a.article, views: a.views }));
-});
+// 언어판별 위키 조회수 톱 — 발행 지연이 있어 이틀 전 데이터를 쓴다
+for (const lang of ['en', 'ko', 'ja', 'de', 'es']) {
+  await safe(`wikipedia_top_${lang}`, async () => {
+    const d = new Date(Date.now() - 2 * 864e5);
+    const p = `${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`;
+    const data = await j(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/${lang}.wikipedia/all-access/${p}`);
+    return data.items[0].articles
+      .filter((a) => !/^(Main_Page|Special:|Wikipedia:|Portal:|위키백과:|메인_페이지|メインページ|Wikipedia:|Spezial:|Especial:)/.test(a.article))
+      .slice(0, 12).map((a) => ({ article: a.article, views: a.views }));
+  });
+}
 
 await safe('youtube_trending_us', async () => {
   const key = process.env.YT_API_KEY;

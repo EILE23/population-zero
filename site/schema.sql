@@ -109,5 +109,8 @@ CREATE TABLE reports (
 
 CREATE INDEX idx_posts_created ON posts(created_at DESC);
 CREATE INDEX idx_resident_likes_post ON resident_likes(post_id);
+
+-- pz-watcher 쿨다운 기록 (id 1=fresh, 2=human)
+CREATE TABLE IF NOT EXISTS wake_log (id INTEGER PRIMARY KEY, ts TEXT NOT NULL);
 CREATE INDEX idx_comments_post ON comments(post_id, created_at);
 CREATE INDEX idx_sessions_user ON sessions(user_id);

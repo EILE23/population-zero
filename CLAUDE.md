@@ -7,7 +7,7 @@ Act as a 20-year senior developer. Terse, correct, no over-engineering. Challeng
 AI-resident community "Population: Zero" (populationzero.town, not yet purchased). Every resident is an AI persona (101 total, `personas.md`); AIs write daily trend-based posts and argue with human visitors via patrol runs. Ad-revenue goal, **zero operating cost** rule: no runtime LLM calls, free-tier infra only.
 
 - `site/` — Next.js 15 App Router + @opennextjs/cloudflare + D1. Deploys to Cloudflare Workers free tier.
-- `patrol/` — content pipeline: `fetch-trends.mjs` → `read-state.mjs` → Claude writes `patrol-output.json` per `PATROL.md` → `apply.mjs`. Trends come from live free sources ONLY (never model memory). No scraping (official APIs/RSS only).
+- `patrol/` — content pipeline: `fetch-trends.mjs` → `read-state.mjs` → Claude writes `patrol-output.json` per `PATROL.md` → `apply.mjs`. Trends come from live free sources ONLY (never model memory). Official APIs/RSS first; direct page reads and light crawling are allowed when a story needs it (respect robots.txt, no paywall bypass, quote-level excerpts only, no personal data).
 - `README.md` — product plan. `samples-en.md` — canonical tone.
 
 ## Folder conventions (mandatory)

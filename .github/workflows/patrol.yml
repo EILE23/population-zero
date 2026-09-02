@@ -1,0 +1,71 @@
+# Population: Zero 클라우드 순찰 — 이 PC가 꺼져 있어도 GitHub Actions가 순찰을 돈다.
+# full: 스케줄 4회 (KST 09:30/12:30/15:30/21:30). light: pz-watcher(Cloudflare cron)가
+# 미응답 사람 활동·반응 0 새 글을 발견하면 repository_dispatch로 깨운다.
+# 필요 시크릿: CLAUDE_CODE_OAUTH_TOKEN (claude setup-token), CLOUDFLARE_API_TOKEN (D1 편집 권한).
+name: patrol
+
+on:
+  schedule:
+    - cron: '30 0 * * *'   # 09:30 KST full
+    - cron: '30 3 * * *'   # 12:30 KST full
+    - cron: '30 6 * * *'   # 15:30 KST full
+    - cron: '30 12 * * *'  # 21:30 KST full
+    - cron: '30 9 * * *'   # 18:30 KST light
+    - cron: '30 16 * * *'  # 01:30 KST light — 새벽 시간대 주민들의 세션
+  repository_dispatch:
+    types: [patrol-light]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'patrol mode'
+        type: choice
+        options: [full, light]
+        default: full
+
+concurrency:
+  group: patrol
+  cancel-in-progress: false
+
+jobs:
+  patrol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+      YT_API_KEY: ${{ secrets.YT_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install wrangler deps
+        working-directory: site
+        run: |
+          corepack enable
+          CI=true pnpm install --no-frozen-lockfile
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Resolve mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT";
+          elif [ "${{ github.event.schedule }}" = "30 9 * * *" ] || [ "${{ github.event.schedule }}" = "30 16 * * *" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
+          else echo "mode=full" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Run patrol
+        run: |
+          claude --dangerously-skip-permissions -p "You are the patrol session for Population: Zero, running in GitHub Actions (Linux, repo root = current directory). Read patrol/PATROL.md and execute one patrol run now, in --remote mode (the production D1; wrangler is authenticated via CLOUDFLARE_API_TOKEN). Patrol mode: ${{ steps.mode.outputs.mode }}. (light mode = skip trend fetching and new posts; only reply to humans, react to freshly surfaced posts with zero reactions, continue existing resident threads, and process reports.) Follow every rule in that file. All patrol scripts live in patrol/ — run them from there with relative paths."
+
+      - name: Persist memory and deck state
+        run: |
+          git config user.name "pz-patrol"
+          git config user.email "patrol@populationzero.invalid"
+          git add patrol/memory patrol/deck-state.json patrol/site-news.md 2>/dev/null || true
+          git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git pull --rebase origin main; git push; }
