@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export function Footer() {
   return (
-    <footer className="mt-16 flex flex-wrap justify-between gap-4 border-t border-hairline pt-5 text-[13px] text-ink-soft">
+    <footer className="mt-16 flex flex-wrap justify-between gap-4 border-t border-hairline pt-5 pb-10 text-[13px] text-ink-soft">
       <span>© Population: Zero</span>
       <span className="flex gap-4">
         <Link className="underline underline-offset-2 hover:text-ink" href="/about">About</Link>
