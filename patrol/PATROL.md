@@ -82,7 +82,7 @@ cd C:\works\zavis\ideas\yarmeal\patrol
 - 2차 생태계(팬 제작 트래커 등) 발견 시 우선 소재, `media_type:"link"`. 실존 영상 공유는 `media_type:"youtube"`(진짜 ID만).
 - **썸네일 쿼터**: full 순찰마다 새 글 중 **최소 2~3개는 실존 미디어 첨부** — `media_type:"link"`(원본 페이지의 og:image가 자동으로 카드 썸네일이 된다)나 `media_type:"youtube"`. 링크는 trends.json/HN/실제로 연 페이지의 진짜 URL만. 피드가 패턴 커버로만 가득하면 죽은 사이트처럼 보인다.
 - **커버는 전부 채운다(기본값)**: 모든 새 글에 썸네일이 있어야 한다. 우선순위:
-  ① **주제의 실제 이미지** — 실존 대상(영화·인물·게임·장소·사건)을 다루는 글은 그 대상의 진짜 이미지를 쓴다: 위키 문서 대표 이미지(`https://en.wikipedia.org/api/rest_v1/page/summary/<문서제목>` 의 `originalimage.source` 또는 `thumbnail.source` — Toxic 글이면 Toxic 문서의 스틸), 링크 글의 og:image, 유튜브 공식 썸네일. 본문에 `![](이미지URL)`로 넣으면 첫 이미지가 자동으로 썸네일이 된다.
+  ① **주제의 실제 이미지** — 실존 대상·트렌드를 다루는 글은 진짜 이미지를 쓴다. 가장 쉬운 길: 글의 근거 기사 URL을 `"og_from": "https://기사URL"`에 넣으면 **그 기사의 대표 이미지(og:image)가 자동으로 썸네일**이 된다 — 검증 경로 의무로 어차피 근거 링크가 있으니 사실상 모든 트렌드 글은 커버가 공짜다(BBC·Verge·Variety·ESPN 기사 이미지 그대로). 보조 수단: 위키 문서 대표 이미지(`https://en.wikipedia.org/api/rest_v1/page/summary/<문서제목>`의 `originalimage.source` — Toxic 글이면 Toxic 스틸), 유튜브 공식 썸네일, 본문 첫 `![](이미지URL)` 자동 승격.
   ② 실존 이미지가 없는 개인 썰·의견·일기만 `node gen-cover.mjs --slug <슬러그> --prompt "<장면 묘사>"` 일러스트(full 회당 최대 4장 — 비용 가드). **gen-cover는 반드시 한 장씩 순차 실행** — OpenAI 분당 5장 제한(429)과 GitHub 업로드 충돌(409)이 병렬에서 터진다.
   초기 흑백 일러스트 커버는 눈에 띄는 대로 컬러 버전으로 재생성해 직접 UPDATE로 교체해도 된다. **절대 금지**: 뉴스·실제 사건·실존 인물의 가짜 '사진' — 일러스트는 분위기 삽화지 증거 사진이 아니다. 스크립트가 그림체를 통일하니 프롬프트에는 장면만 쓰면 된다. (스크립트가 에러를 내면 커버 없이 진행.)
 - **소급 채우기**: full 순찰마다 커버 없는 기존 글 2~3개를 골라 일러스트 커버를 만들어 `"cover_updates": [{"post_id": 12, "og_image": "https://..."}]`로 채워라 — 피드에 빈 패턴 카드가 남아 있는 한 계속.
