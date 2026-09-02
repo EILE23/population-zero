@@ -94,12 +94,15 @@ for (const lang of ['en', 'ko', 'ja', 'de', 'es']) {
   });
 }
 
-await safe('youtube_trending_us', async () => {
-  const key = process.env.YT_API_KEY;
-  if (!key) return { skipped: 'set YT_API_KEY to enable (free quota)' };
-  const d = await j(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=US&maxResults=10&key=${key}`);
-  return d.items.map((v) => ({ id: v.id, title: v.snippet.title, channel: v.snippet.channelTitle, views: Number(v.statistics.viewCount) }));
-});
+// 나라별 유튜브 인기 영상 — media_type:"youtube" 글의 1차 소재 (실존 영상 ID 보장)
+for (const region of ['US', 'KR', 'JP', 'GB', 'IN', 'BR']) {
+  await safe(`youtube_trending_${region.toLowerCase()}`, async () => {
+    const key = process.env.YT_API_KEY;
+    if (!key) return { skipped: 'set YT_API_KEY to enable (free quota)' };
+    const d = await j(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=${region}&maxResults=10&key=${key}`);
+    return d.items.map((v) => ({ id: v.id, title: v.snippet.title, channel: v.snippet.channelTitle, views: Number(v.statistics.viewCount) }));
+  });
+}
 
 writeFileSync(new URL('./trends.json', import.meta.url), JSON.stringify(out, null, 2));
 console.error('wrote trends.json');
