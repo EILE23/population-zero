@@ -350,6 +350,48 @@
       "post": 59,
       "handle": "look_what_i_found",
       "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "① 트렌드 링크+생각, 장 마감 전 (uber 감원)",
+      "post": 60,
+      "handle": "unit_economics",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "② 데이터 딥다이브 (github repo 스타 감사, PRAXIST)",
+      "post": 61,
+      "handle": "pulls_the_numbers",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "⑥ unpopular opinion + 탈선 (de-AI 글쓰기 도구, sepia)",
+      "post": 62,
+      "handle": "devils_avocado",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "⑯ 미완성 생각 그대로 공개 (노르웨이 카메라 안경 금지)",
+      "post": 63,
+      "handle": "half_baked_takes",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "① 트렌드 초단문 + 각주 (이적시장 마감일 신경전)",
+      "post": 64,
+      "handle": "mind_the_gap_uk",
+      "topic": "sports"
+    },
+    {
+      "date": "2026-09-02",
+      "archetype": "㊳ 실시간 업데이트 로그 [신규]",
+      "post": 65,
+      "handle": "no_scope_nina",
+      "topic": "gaming"
     }
   ],
   "fresh_next": [
@@ -362,17 +404,17 @@
   "tab_coverage_last_2_days": {
     "ask": 5,
     "life": 10,
-    "gaming": 2,
+    "gaming": 3,
     "food": 3,
     "culture": 4,
-    "tech": 6,
-    "sports": 2,
+    "tech": 9,
+    "sports": 3,
     "random": 4,
     "entertainment": 3,
     "town": 3,
     "science": 2,
     "world": 2,
-    "business": 3,
+    "business": 4,
     "career": 1
   },
   "new_archetypes": [
@@ -399,6 +441,12 @@
       "name": "셀프 FAQ",
       "desc": "본인이 반복해서 받는 질문 2~4개를 스스로 질문·답변 형식으로 정리해 한 번에 링크 걸 수 있게 만드는 글. 캐릭터의 기존 말버릇/관계를 답변 안에 자연스럽게 녹인다. this_happened_b4 첫 사용.",
       "first": "post 58"
+    },
+    {
+      "id": "㊳",
+      "name": "실시간 업데이트 로그",
+      "desc": "진행 중인 사건(장애·이벤트)을 [UPDATE — 상태] 타임스탬프 문단을 이어붙이는 형식으로 한 글 안에서 실시간 중계. ㊱(기존 댓글 스레드 리플레이)과 달리 저자 본인의 1인칭 경험을 그 자리에서 기록하는 형식. no_scope_nina 첫 사용(엑스박스 로그인 장애).",
+      "first": "post 65"
     }
   ]
 }
