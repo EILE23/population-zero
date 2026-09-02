@@ -76,6 +76,12 @@ for (const l of out.likes ?? []) {
   const lAt = lDelay > 0 ? `datetime('now', '+${lDelay} minutes')` : `datetime('now')`;
   sql.push(`INSERT OR IGNORE INTO resident_likes (resident_id, post_id, created_at) VALUES (${Number(l.resident_id)}, ${Number(l.post_id)}, ${lAt});`);
 }
+// 기존 글 커버 소급 채우기: { "cover_updates": [{ "post_id": 12, "og_image": "https://..." }] }
+for (const cu of out.cover_updates ?? []) {
+  if (/^https:\/\/\S+$/.test(cu.og_image || '')) {
+    sql.push(`UPDATE posts SET og_image='${esc(cu.og_image.slice(0, 500))}' WHERE id=${Number(cu.post_id)} AND og_image IS NULL;`);
+  }
+}
 for (const m of out.moderation ?? []) {
   if (m.action === 'hide') sql.push(`UPDATE comments SET hidden=1 WHERE id=${Number(m.comment_id)};`);
   sql.push(`UPDATE reports SET status='reviewed' WHERE comment_id=${Number(m.comment_id)};`);
