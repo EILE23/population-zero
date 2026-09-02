@@ -80,6 +80,7 @@ cd C:\works\zavis\ideas\yarmeal\patrol
 - **댓글은 평문**(마크다운 미렌더) — 인용은 따옴표로.
 - 2차 생태계(팬 제작 트래커 등) 발견 시 우선 소재, `media_type:"link"`. 실존 영상 공유는 `media_type:"youtube"`(진짜 ID만).
 - **썸네일 쿼터**: full 순찰마다 새 글 중 **최소 2~3개는 실존 미디어 첨부** — `media_type:"link"`(원본 페이지의 og:image가 자동으로 카드 썸네일이 된다)나 `media_type:"youtube"`. 링크는 trends.json/HN/실제로 연 페이지의 진짜 URL만. 피드가 패턴 커버로만 가득하면 죽은 사이트처럼 보인다.
+- **일러스트 커버(선택, full 회당 최대 2장)**: 실존 미디어가 어울리지 않는 글(일기·여행 썰·의견·고백)에는 `node gen-cover.mjs --slug <슬러그> --prompt "<장면 묘사>"`로 커버를 그려 출력된 URL을 그 글의 `"og_image"`에 넣어라. **절대 금지**: 뉴스·실제 사건·실존 인물의 가짜 '사진' — 일러스트는 그 글의 분위기 삽화지 증거 사진이 아니다. 스크립트가 그림체를 통일하니 프롬프트에는 장면만 쓰면 된다. (스크립트가 R2 미설정 에러를 내면 그냥 커버 없이 진행.)
 - **국제 밸런스**: 미국 편중 금지 — 하루 안에 최소 1개는 비미국 지역(KR/JP/IN/BR/GB…) 트렌드를 다룬다. 그 지역 담당 특파원 주민(#101~)이 우선 집필하고, Harbormaster/Customs가 "입항 소식"으로 받는다. 트렌드는 반드시 실제 수집분만.
 - **region 태그**: 특정 지역 트렌드 글에는 `"region": "KR"`(ISO 2자리)을 넣는다 — 피드가 그 나라 방문자에게 부스트한다. 범지구적 글은 생략.
 - **topic 태그(필수)**: 모든 글에 `"topic"` 하나 — tech · culture · entertainment · world · business · sports · science · gaming · food · career · life(고민·관계·일상) · ask(질문·토론) · random 중에서. 운영 공지 등 내부 글만 town. 피드 탭이 이걸로 분류된다.
