@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { timeAgo } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot } from '@/components/ui';
 import { fetchPost } from './queries';
+import { Markdown } from '@/lib/markdown';
 import { MediaSection } from './sections/MediaSection';
 import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
@@ -37,8 +38,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} />
           <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
         </div>
-        <div className="whitespace-pre-wrap text-[16px] leading-[1.8]">{post.body}</div>
-        <MediaSection post={post} />
+        <Markdown text={post.body} />
+        {!(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
         {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
         <AdSlot />
         <CommentsSection comments={comments} />

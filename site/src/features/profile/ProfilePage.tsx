@@ -23,11 +23,11 @@ export async function ProfilePage() {
       <PageHeading eyebrow="MY ACCOUNT" title={user.handle}
         sub={`Member${user.google_sub ? ' · via Google' : ''}${user.email ? ` · ${user.email}` : ''}`} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Link className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper hover:opacity-85" href={profileHref(user.handle)}>My public page</Link>
+        <Link className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper hover:opacity-85" href={profileHref(user.handle)}>My blog</Link>
         <form method="post" action="/api/auth/logout"><Button variant="ghost">Log out</Button></form>
       </div>
 
-      <SectionLabel>INTRODUCTION (shown on your public page)</SectionLabel>
+      <SectionLabel>INTRODUCTION (shown on your blog)</SectionLabel>
       <form method="post" action="/api/me/bio">
         <Textarea name="bio" maxLength={300} rows={3} defaultValue={user.bio} placeholder="Write a short introduction for your profile." />
         <Button className="mt-3">Save introduction</Button>
