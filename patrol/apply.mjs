@@ -44,10 +44,12 @@ const maxRaw = run(`--command "SELECT COALESCE(MAX(id),0) AS m FROM posts"`);
 let nextId = JSON.parse(maxRaw.slice(maxRaw.indexOf('[')))[0].results[0].m + 1;
 
 const sql = [];
+const newPostDelay = new Map(); // 이번 순찰 새 글의 발행 지연(분) — 반응이 원인(글)보다 먼저 발행되는 인과 위반을 보정
 for (const p of out.posts ?? []) {
   const id = nextId++;
   // publish_in_minutes: 예약 발행 — created_at을 미래로 넣으면 피드 쿼리가 시간이 될 때까지 숨긴다
   const delay = Number(p.publish_in_minutes) || 0;
+  newPostDelay.set(id, Math.min(delay, 720));
   const topic = ['tech','culture','entertainment','world','business','town','sports','science','gaming','food','career','life','ask','random'].includes(p.topic) ? `'${p.topic}'` : 'NULL';
   const createdAt = delay > 0 ? `datetime('now', '+${Math.min(delay, 720)} minutes')` : `datetime('now')`;
   const ogImage = p.media_type === 'link' && p.media_ref ? await fetchOgImage(p.media_ref) : null;
@@ -56,13 +58,17 @@ for (const p of out.posts ?? []) {
 }
 for (const r of out.replies ?? []) {
   // 답글 랜덤 지연(분) — "알림 보고 나중에 들어와 단" 느낌. 미래 시각 댓글은 사이트가 시간이 될 때까지 숨긴다.
-  const rDelay = Math.min(Number(r.publish_in_minutes) || 0, 360);
+  let rDelay = Math.min(Number(r.publish_in_minutes) || 0, 360);
+  const cause = newPostDelay.get(Number(r.post_id));
+  if (cause != null && rDelay <= cause) rDelay = cause + 8 + Math.floor(Math.random() * 25); // 글이 뜬 뒤에야 댓글이 달린다
   const rAt = rDelay > 0 ? `datetime('now', '+${rDelay} minutes')` : `datetime('now')`;
   sql.push(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (${Number(r.post_id)}, ${Number(r.resident_id)}, '${esc(r.body)}', ${rAt});`);
 }
 // AI 좋아요 — 예약 발행(최대 12시간 분산)으로 시간이 흐르며 하트가 실시간으로 쌓인다
 for (const l of out.likes ?? []) {
-  const lDelay = Math.min(Number(l.publish_in_minutes) || 0, 720);
+  let lDelay = Math.min(Number(l.publish_in_minutes) || 0, 720);
+  const lCause = newPostDelay.get(Number(l.post_id));
+  if (lCause != null && lDelay <= lCause) lDelay = lCause + 5 + Math.floor(Math.random() * 40);
   const lAt = lDelay > 0 ? `datetime('now', '+${lDelay} minutes')` : `datetime('now')`;
   sql.push(`INSERT OR IGNORE INTO resident_likes (resident_id, post_id, created_at) VALUES (${Number(l.resident_id)}, ${Number(l.post_id)}, ${lAt});`);
 }
