@@ -4,27 +4,71 @@ import { getSessionUser } from '@/lib/auth';
 import { timeAgo } from '@/lib/content';
 import Link from 'next/link';
 import { profileHref } from '@/lib/content';
-import { SectionLabel, PageHeading, Button, Textarea } from '@/components/ui';
+import { Avatar, SectionLabel, Button, Textarea, Counts } from '@/components/ui';
+
+type MyPost = { id: number; title: string; created_at: string; comment_count: number; like_count: number };
+type MyComment = { id: number; body: string; created_at: string; post_id: number; title: string };
+type MyLike = { post_id: number; created_at: string; title: string };
+
+function Stat({ n, label }: { n: number; label: string }) {
+  return (
+    <div className="min-w-16 rounded-xl bg-paper px-4 py-3 text-center shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+      <div className="font-display text-[22px] font-bold tabular-nums">{n}</div>
+      <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft">{label}</div>
+    </div>
+  );
+}
 
 export async function ProfilePage() {
   const user = await getSessionUser();
   if (!user) redirect('/login');
   const db = await getDb();
 
-  const [{ results: myComments }, { results: myLikes }] = await Promise.all([
+  const [{ results: myPosts }, { results: myComments }, { results: myLikes }, stats, joined] = await Promise.all([
+    db.prepare(`SELECT p.id, p.title, p.created_at,
+                  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
+                  (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
+                    + (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id = p.id AND rl.created_at <= datetime('now')) AS like_count
+                FROM posts p WHERE p.user_id = ? ORDER BY p.created_at DESC LIMIT 15`).bind(user.id).all<MyPost>(),
     db.prepare(`SELECT c.id, c.body, c.created_at, c.post_id, p.title FROM comments c JOIN posts p ON p.id = c.post_id
-                WHERE c.user_id = ? AND c.hidden = 0 ORDER BY c.created_at DESC LIMIT 20`).bind(user.id).all<{ id: number; body: string; created_at: string; post_id: number; title: string }>(),
+                WHERE c.user_id = ? AND c.hidden = 0 ORDER BY c.created_at DESC LIMIT 15`).bind(user.id).all<MyComment>(),
     db.prepare(`SELECT l.post_id, l.created_at, p.title FROM likes l JOIN posts p ON p.id = l.post_id
-                WHERE l.user_id = ? ORDER BY l.created_at DESC LIMIT 20`).bind(user.id).all<{ post_id: number; created_at: string; title: string }>(),
+                WHERE l.user_id = ? ORDER BY l.created_at DESC LIMIT 15`).bind(user.id).all<MyLike>(),
+    db.prepare(`SELECT
+        (SELECT COUNT(*) FROM posts WHERE user_id = ?1) AS posts,
+        (SELECT COUNT(*) FROM comments WHERE user_id = ?1 AND hidden = 0) AS comments,
+        (SELECT COUNT(*) FROM likes l JOIN posts p ON p.id = l.post_id WHERE p.user_id = ?1)
+          + (SELECT COUNT(*) FROM resident_likes rl JOIN posts p ON p.id = rl.post_id WHERE p.user_id = ?1 AND rl.created_at <= datetime('now')) AS likes_received,
+        (SELECT COUNT(*) FROM follows WHERE target_type = 'user' AND target_id = ?1) AS followers,
+        (SELECT COUNT(*) FROM follows WHERE follower_type = 'user' AND follower_id = ?1) AS following`)
+      .bind(user.id).first<{ posts: number; comments: number; likes_received: number; followers: number; following: number }>(),
+    db.prepare(`SELECT created_at FROM users WHERE id = ?`).bind(user.id).first<{ created_at: string }>(),
   ]);
 
   return (
     <main className="mx-auto mt-10 max-w-180">
-      <PageHeading eyebrow="MY ACCOUNT" title={user.handle}
-        sub={`Member${user.google_sub ? ' · via Google' : ''}${user.email ? ` · ${user.email}` : ''}`} />
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Link className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper hover:opacity-85" href={profileHref(user.handle)}>My blog</Link>
-        <form method="post" action="/api/auth/logout"><Button variant="ghost">Log out</Button></form>
+      <div className="flex flex-wrap items-center gap-5">
+        <Avatar handle={user.handle} size={72} isHuman />
+        <div className="min-w-0">
+          <h1 className="font-display text-[30px] font-bold tracking-tight">{user.handle}</h1>
+          <p className="mt-0.5 text-[13px] text-ink-soft">
+            Member{user.google_sub ? ' · via Google' : ''}{user.email ? ` · ${user.email}` : ''}
+            {joined ? ` · joined ${timeAgo(joined.created_at)}` : ''}
+          </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+            <Link className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper hover:opacity-85" href={profileHref(user.handle)}>My blog</Link>
+            <Link className="rounded-full border border-hairline px-4 py-2 text-sm font-bold text-ink-mid hover:bg-surface" href="/write">Write a post</Link>
+            <form method="post" action="/api/auth/logout"><Button variant="ghost">Log out</Button></form>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-2.5">
+        <Stat n={stats?.posts ?? 0} label="posts" />
+        <Stat n={stats?.comments ?? 0} label="comments" />
+        <Stat n={stats?.likes_received ?? 0} label="likes received" />
+        <Stat n={stats?.followers ?? 0} label="followers" />
+        <Stat n={stats?.following ?? 0} label="following" />
       </div>
 
       <SectionLabel>INTRODUCTION (shown on your blog)</SectionLabel>
@@ -33,7 +77,19 @@ export async function ProfilePage() {
         <Button className="mt-3">Save introduction</Button>
       </form>
 
-      <SectionLabel>MY COMMENTS · {myComments.length}</SectionLabel>
+      <SectionLabel>MY POSTS · {stats?.posts ?? 0}</SectionLabel>
+      {myPosts.length === 0 && <p className="text-[13px] text-ink-soft">No posts yet — your first post is one click away.</p>}
+      {myPosts.map((p) => (
+        <div className="flex items-center justify-between gap-4 border-t border-hairline py-3" key={p.id}>
+          <div className="min-w-0">
+            <Link className="block truncate text-[14px] font-semibold hover:underline" href={`/p/${p.id}`}>{p.title}</Link>
+            <span className="text-[11px] text-ink-soft">{timeAgo(p.created_at)}</span>
+          </div>
+          <Counts likes={p.like_count} comments={p.comment_count} />
+        </div>
+      ))}
+
+      <SectionLabel>MY COMMENTS · {stats?.comments ?? 0}</SectionLabel>
       {myComments.length === 0 && <p className="text-[13px] text-ink-soft">No comments yet.</p>}
       {myComments.map((c) => (
         <div className="border-l-2 border-t border-l-hairline border-t-hairline py-3.5 pl-3.5" key={c.id}>
@@ -44,6 +100,7 @@ export async function ProfilePage() {
       ))}
 
       <SectionLabel>LIKED · {myLikes.length}</SectionLabel>
+      {myLikes.length === 0 && <p className="text-[13px] text-ink-soft">Posts you like will appear here.</p>}
       {myLikes.map((l) => (
         <div className="border-t border-hairline py-3" key={l.post_id}>
           <Link className="text-[14px] font-semibold hover:underline" href={`/p/${l.post_id}`}>♥ {l.title}</Link>

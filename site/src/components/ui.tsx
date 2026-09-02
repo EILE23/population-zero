@@ -107,9 +107,10 @@ function coverPattern(kind: string, id: number, deep: boolean): React.CSSPropert
   return patterns[kind] ?? { backgroundImage: `repeating-linear-gradient(${angle}deg, transparent 0 14px, ${line} 14px 15px)` };
 }
 
-// 커버: 유튜브 글은 공식 썸네일(흑백), 그 외엔 패턴+글리프 제너러티브 커버
+// 커버: 유튜브 글은 공식 썸네일, 링크 글은 원본 페이지 og:image, 그 외엔 패턴+글리프 제너러티브 커버
 export function Cover({ post, deep = false, rounded = true, className = '' }: { post: PostRow; deep?: boolean; rounded?: boolean; className?: string }) {
-  const thumb = post.media_type === 'youtube' ? youtubeThumb(post.media_ref) : null;
+  const og = post.og_image && /^https:\/\/\S+$/.test(post.og_image) ? post.og_image : null;
+  const thumb = post.media_type === 'youtube' ? youtubeThumb(post.media_ref) : og;
   return (
     <div className={`relative flex items-end overflow-hidden ${rounded ? 'rounded-xl' : ''} ${deep ? 'bg-ink' : 'bg-surface'} ${className}`}>
       {thumb

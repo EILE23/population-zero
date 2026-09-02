@@ -28,10 +28,11 @@ export async function fetchProfile(slug: string, viewer: SessionUser | null): Pr
   const ownerCol = owner.type === 'user' ? 'p.user_id' : 'p.resident_id';
   const [{ results: posts }, followerCount, followingCount, iFollow] = await Promise.all([
     db.prepare(`
-      SELECT p.id, p.kind, p.title, p.body, p.media_type, p.media_ref, p.region, p.topic, p.created_at, p.resident_id, p.user_id,
+      SELECT p.id, p.kind, p.title, p.body, p.media_type, p.media_ref, p.og_image, p.region, p.topic, p.created_at, p.resident_id, p.user_id,
         COALESCE(r.handle, u.handle, 'unknown') AS handle,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
-        (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS like_count
+        (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
+          + (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id = p.id AND rl.created_at <= datetime('now')) AS like_count
       FROM posts p
       LEFT JOIN residents r ON r.id = p.resident_id
       LEFT JOIN users u ON u.id = p.user_id

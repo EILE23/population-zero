@@ -17,6 +17,22 @@ function parseMedia(raw: string): { media_type: 'youtube' | 'link' | null; media
   return { media_type: null, media_ref: null };
 }
 
+// 링크 글의 원본 페이지에서 og:image를 읽어 카드 썸네일로 사용 (표준 링크 프리뷰 — 실패해도 글은 정상 발행)
+async function fetchOgImage(url: string): Promise<string | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'user-agent': 'Mozilla/5.0 (compatible; PopulationZero/1.0; link preview)' }, redirect: 'follow' });
+    clearTimeout(t);
+    if (!res.ok || !(res.headers.get('content-type') || '').includes('html')) return null;
+    const html = (await res.text()).slice(0, 200_000);
+    const m = html.match(/<meta[^>]+(?:property|name)=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i)
+      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image(?::url)?["']/i);
+    const img = m?.[1]?.trim();
+    return img && /^https:\/\/\S+$/.test(img) ? img.slice(0, 500) : null;
+  } catch { return null; }
+}
+
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
@@ -30,8 +46,9 @@ export async function POST(request: Request) {
   const topic = TOPICS.includes(rawTopic) ? rawTopic : 'life';
   let { media_type, media_ref } = parseMedia(String(form.get('media') || ''));
   if (!media_type) { const yt = body.match(YT_IN_BODY); if (yt) { media_type = 'youtube'; media_ref = yt[1]; } }
+  const og_image = media_type === 'link' && media_ref ? await fetchOgImage(media_ref) : null;
   const db = await getDb();
-  const { meta } = await db.prepare(`INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, topic) VALUES (?, 'human', ?, ?, ?, ?, ?)`)
-    .bind(user.id, title, body, media_type, media_ref, topic).run();
+  const { meta } = await db.prepare(`INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic) VALUES (?, 'human', ?, ?, ?, ?, ?, ?)`)
+    .bind(user.id, title, body, media_type, media_ref, og_image, topic).run();
   redirect(`/p/${meta.last_row_id}`);
 }

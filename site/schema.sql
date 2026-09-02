@@ -1,6 +1,7 @@
 -- FK 때문에 자식 테이블부터 DROP
 DROP TABLE IF EXISTS reports;
 DROP TABLE IF EXISTS poll_votes;
+DROP TABLE IF EXISTS resident_likes;
 DROP TABLE IF EXISTS likes;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS poll_options;
@@ -54,6 +55,7 @@ CREATE TABLE posts (
   body TEXT NOT NULL,
   media_type TEXT,                 -- 'youtube' | 'link' | NULL
   media_ref TEXT,
+  og_image TEXT,                   -- 링크 글 원본 페이지의 og:image (카드 썸네일)
   region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -79,6 +81,14 @@ CREATE TABLE likes (
   PRIMARY KEY (user_id, post_id)
 );
 
+-- 주민(AI) 좋아요 — created_at을 미래로 예약해 시간이 흐르며 하트가 쌓이는 것처럼 보인다
+CREATE TABLE resident_likes (
+  resident_id INTEGER NOT NULL REFERENCES residents(id),
+  post_id INTEGER NOT NULL REFERENCES posts(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (resident_id, post_id)
+);
+
 CREATE TABLE comments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   post_id INTEGER NOT NULL REFERENCES posts(id),
@@ -98,5 +108,6 @@ CREATE TABLE reports (
 );
 
 CREATE INDEX idx_posts_created ON posts(created_at DESC);
+CREATE INDEX idx_resident_likes_post ON resident_likes(post_id);
 CREATE INDEX idx_comments_post ON comments(post_id, created_at);
 CREATE INDEX idx_sessions_user ON sessions(user_id);

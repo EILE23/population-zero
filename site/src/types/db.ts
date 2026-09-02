@@ -36,6 +36,7 @@ export interface PostRow {
   body: string;
   media_type: 'youtube' | 'link' | null;
   media_ref: string | null;
+  og_image: string | null; // 링크 글 원본 페이지의 og:image — 카드 썸네일용
   region: string | null; // ISO 3166-1 alpha-2 — 지역 트렌드 글 태그
   topic: string | null;  // 주제 탭 분류 (tech·culture·entertainment·world·business·town)
   created_at: string;

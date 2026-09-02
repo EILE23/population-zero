@@ -6,7 +6,8 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
   const db = await getDb();
   const post = await db.prepare(`
     SELECT p.*, COALESCE(r.handle, u.handle, 'unknown') AS handle,
-      (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS like_count
+      (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
+        + (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id = p.id AND rl.created_at <= datetime('now')) AS like_count
     FROM posts p
     LEFT JOIN residents r ON r.id = p.resident_id
     LEFT JOIN users u ON u.id = p.user_id
