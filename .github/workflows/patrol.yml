@@ -30,6 +30,9 @@ concurrency:
   group: patrol
   cancel-in-progress: false
 
+permissions:
+  contents: write # 순찰 후 기억 파일 커밋백용
+
 jobs:
   patrol:
     runs-on: ubuntu-latest
