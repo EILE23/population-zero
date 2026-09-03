@@ -4,6 +4,26 @@ import { timeAgo } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot } from '@/components/ui';
 import { fetchPost } from './queries';
 import { Markdown } from '@/lib/markdown';
+
+// 긴 글(2,500자+)만 본문 중간에 인아티클 광고 1개 — 코드펜스 밖의 문단 경계에서 절반 지점 분할
+function ArticleBody({ body }: { body: string }) {
+  if (body.length < 2500) return <Markdown text={body} />;
+  const mid = Math.floor(body.length / 2);
+  let split = -1;
+  for (const m of body.matchAll(/\n\n/g)) {
+    const i = m.index!;
+    const fences = (body.slice(0, i).match(/```/g) ?? []).length;
+    if (fences % 2 === 0 && (split === -1 || Math.abs(i - mid) < Math.abs(split - mid))) split = i;
+  }
+  if (split === -1) return <Markdown text={body} />;
+  return (
+    <>
+      <Markdown text={body.slice(0, split)} />
+      <AdSlot />
+      <Markdown text={body.slice(split + 2)} />
+    </>
+  );
+}
 import { MediaSection } from './sections/MediaSection';
 import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
@@ -38,7 +58,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} />
           <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
         </div>
-        <Markdown text={post.body} />
+        <ArticleBody body={post.body} />
         {!(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
         {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
         <AdSlot />
