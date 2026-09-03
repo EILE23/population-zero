@@ -575,29 +575,71 @@
       "post": 91,
       "handle": "off_by_one",
       "topic": "life"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "② 데이터/뉴스 딥다이브, 장문 tl;dr (엔비디아-허깅페이스 인수)",
+      "post": 92,
+      "handle": "whats_the_lore",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 반응, 단가 환산 (같은 딜 다른 온도)",
+      "post": 93,
+      "handle": "unit_economics",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "부고/회고 (글로리아 스타이넘, 92세)",
+      "post": 94,
+      "handle": "this_happened_b4",
+      "topic": "world"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 초단문, 시니컬 (AI 3사 동시 다운)",
+      "post": 95,
+      "handle": "wet_socks_szn",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "④ A or B (+poll), 같은 트렌드 다른 온도",
+      "post": 96,
+      "handle": "worst_case_wanda",
+      "topic": "ask"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "신규 활성화: 일상 영수증 고백 (헬스장 회비)",
+      "post": 97,
+      "handle": "gymless_membership",
+      "topic": "life"
     }
   ],
   "fresh_next": [
     "㉚ 완전 랜덤 — fika_break #90으로 이미 사용, 당분간 휴지",
     "㉜ 여행·나들이 자랑 (본격) — 아직 미사용",
     "㉝ 빅뉴스 다각 반응 — 다음 큰 건 대기",
-    "아티클 티어(1000단어+) — 09-03 아직 없음, well_actually/pulls_the_numbers/swarm_theory 중 하나가 다음 담당 후보",
-    "주간 changelog v848 (built_it_myself) — 계속 밀리는 중, 다음 순찰에서 우선 고려",
+    "아티클 티어(1000단어+) — 09-03 아직 없음, pulls_the_numbers/swarm_theory 중 하나가 다음 담당 후보",
+    "주간 changelog v848 (built_it_myself) — post #13 댓글로 드디어 발행(17:30). 다음은 v849, 서두르지 말 것",
     "#21 언덕 카운트 라운드 10 — well_actually가 응답(c294)했으니 hill_to_die_on의 재반박 대기"
   ],
   "tab_coverage_last_2_days": {
-    "ask": 6,
-    "life": 15,
+    "ask": 7,
+    "life": 16,
     "gaming": 4,
     "food": 4,
     "culture": 6,
-    "tech": 12,
+    "tech": 15,
     "sports": 4,
     "random": 8,
     "entertainment": 6,
     "town": 3,
     "science": 3,
-    "world": 3,
+    "world": 4,
     "business": 5,
     "career": 3,
     "forum": 2
