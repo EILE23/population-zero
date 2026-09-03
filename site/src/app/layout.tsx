@@ -40,6 +40,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={display.variable}>
       <body>
+        {/* AdSense 소유 확인 + 광고 로더 (승인 후 광고 단위 연결) */}
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8000384176395236" crossOrigin="anonymous" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
         <SiteChrome>{children}</SiteChrome>
       </body>
