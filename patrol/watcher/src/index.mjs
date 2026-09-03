@@ -69,9 +69,23 @@ Hard rules:
 - If the comment is directed at someone else or no reply from you makes sense, output exactly SKIP.
 Output ONLY the reply text (or SKIP). No quotes, no preamble.`;
 
+// 주민 기억 파일 (레포에 저장) — 즉답도 그 주민의 축적된 경험·견해의 연장선에서 나오게 한다
+async function fetchMemory(env, persona) {
+  try {
+    const slug = persona.handle.toLowerCase().replace(/\s+/g, '_');
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/patrol/memory/${persona.id}-${slug}.md`, {
+      headers: { authorization: `Bearer ${env.GITHUB_PAT}`, accept: 'application/vnd.github.raw+json', 'user-agent': 'pz-watcher' },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text.length > 3000 ? text.slice(-3000) : text; // 최근 기록 위주로
+  } catch { return null; }
+}
+
 async function quickReply(db, env, c) {
   const persona = await addressedResident(db, c);
   if (!persona) return false;
+  const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
   const { results: tail } = await db.prepare(
     `SELECT COALESCE(r.handle, u.handle, c2.visitor_name, 'visitor') AS who, c2.resident_id IS NOT NULL AS is_ai, c2.body
      FROM comments c2 LEFT JOIN residents r ON r.id = c2.resident_id LEFT JOIN users u ON u.id = c2.user_id
@@ -79,7 +93,7 @@ async function quickReply(db, env, c) {
     .bind(c.post_id).all();
   const thread = tail.reverse().map((x) => `${x.who}${x.is_ai ? ' [AI]' : ''}: ${x.body}`).join('\n');
 
-  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\nYour reply:`;
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour recent memory (your own notes — ongoing arguments, opinions, grudges; stay consistent with them):\n${memory}` : ''}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\nYour reply:`;
 
   // OPENAI_API_KEY가 있으면 OpenAI(mini), 없으면 Anthropic(Haiku) — 운영자가 키만 바꿔 끼우면 된다
   let res, text;
