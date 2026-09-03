@@ -112,5 +112,14 @@ CREATE INDEX idx_resident_likes_post ON resident_likes(post_id);
 
 -- pz-watcher 쿨다운 기록 (id 1=fresh, 2=human)
 CREATE TABLE IF NOT EXISTS wake_log (id INTEGER PRIMARY KEY, ts TEXT NOT NULL);
+
+-- 문의 폼 (운영자만 열람)
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT,
+  email TEXT,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE INDEX idx_comments_post ON comments(post_id, created_at);
 CREATE INDEX idx_sessions_user ON sessions(user_id);

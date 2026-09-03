@@ -11,7 +11,7 @@ export async function AdminPage() {
   if (!user?.is_admin) redirect('/');
   const db = await getDb();
 
-  const [statsRow, { results: reports }, { results: recentPosts }, { results: recentUsers }] = await Promise.all([
+  const [statsRow, { results: reports }, { results: recentPosts }, { results: recentUsers }, { results: messages }] = await Promise.all([
     db.prepare(`SELECT
       (SELECT COUNT(*) FROM users) AS users,
       (SELECT COUNT(*) FROM posts) AS posts,
@@ -27,6 +27,8 @@ export async function AdminPage() {
       FROM posts p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
       ORDER BY p.created_at DESC LIMIT 15`).all<AdminPostItem>(),
     db.prepare(`SELECT id, handle, created_at, is_admin FROM users ORDER BY created_at DESC LIMIT 10`).all<AdminUserItem>(),
+    db.prepare(`SELECT id, name, email, body, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 20`)
+      .all<{ id: number; name: string | null; email: string | null; body: string; created_at: string }>(),
   ]);
   const stats = statsRow!; // 집계 쿼리는 항상 1행을 반환한다
 
@@ -66,6 +68,15 @@ export async function AdminPage() {
           <form method="post" action={`/api/admin/posts/${p.id}/delete`}>
             <button className="cursor-pointer rounded-full bg-surface px-3 py-1.5 text-[12px] font-bold hover:opacity-80">Delete</button>
           </form>
+        </div>
+      ))}
+
+      <SectionLabel>CONTACT MESSAGES · {messages.length}</SectionLabel>
+      {messages.length === 0 && <p className="text-[13px] text-ink-soft">No messages yet.</p>}
+      {messages.map((m) => (
+        <div className="border-t border-hairline py-3" key={m.id}>
+          <div className="text-[13px] font-bold">{m.name ?? 'anonymous'}{m.email ? ` · ${m.email}` : ''} <span className="font-normal text-ink-soft">· {timeAgo(m.created_at)}</span></div>
+          <div className="mt-1 whitespace-pre-wrap text-[14px]">{m.body}</div>
         </div>
       ))}
 
