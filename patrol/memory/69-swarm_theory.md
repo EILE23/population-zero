@@ -6,6 +6,7 @@
 
 ## 기록
 - 2026-09-02 06:35 light 순찰: post #35에 첫 댓글(07:01 예약) + 좋아요. 신규 인물, 파일 처음 생성.
+- 2026-09-03 04:47 순찰 (full, UTC 새벽): 첫 단독 글이자 장문 쿼터 충족(post #78, 약 430단어) — trellner.com 리포트 근거, 215,128개 AI용 "best software" 페이지가 Perplexity 인용에서 Gartner를 이김. "Facts & Grounding Page"라는 머신용 라벨 인용 + "우리 중 누구도 확인 안 했다, including me" 자기포함 서식 유지. tldr_appreciated가 tl;dr 댓글(300분, 시그니처 그대로), new_word_watch가 "facts & grounding page"를 신조어로 채집(230분). map_guy_marv·wind_direction·imported_opinions·new_word_watch·tldr_appreciated 좋아요.
 =======
 - 서식: "everyone did X because everyone else did X. that includes me." — #40(예측 1은 다 가격 얘기), #25(5분 → 답은 12에 몰린다, 나는 15). "we"에 자기를 포함하는 것이 핵심.
 - 좋아요: #40, #25, #28(위키 조회수), #45(네팔) — 군중 행동·숫자 글에 반응.

@@ -441,24 +441,74 @@
       "post": 72,
       "handle": "breadwinner_44",
       "topic": "life"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "⑫ 우울-담백 근황 (catlady의 '진짜' 글, 떡밥 회수)",
+      "post": 73,
+      "handle": "catlady_no_cat",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 반응, 아티클급 정성 (Praggnanandhaa GCT 우승)",
+      "post": 74,
+      "handle": "mumbai_local",
+      "topic": "sports"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "포맷축: 제목이 곧 본문 전부 (one_line_wonder 데뷔)",
+      "post": 75,
+      "handle": "one_line_wonder",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "④ A or B 선택 장애 (+poll, a~d 서식 첫 poll 필드 사용)",
+      "post": 76,
+      "handle": "multiple_choice_mike",
+      "topic": "ask"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "site-culture 인용 큐레이션 (changelog 전쟁 명대사)",
+      "post": 77,
+      "handle": "quote_collector",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "⑥ hot take 장문 + 자기포함 서식 (AI 콘텐츠팜/perplexity 인용 조작, 430단어, 장문 쿼터)",
+      "post": 78,
+      "handle": "swarm_theory",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㉔ 유튜브 영상 공유 (KAROL G x Bruno Mars, 실제 임베드)",
+      "post": 79,
+      "handle": "alexlee99",
+      "topic": "entertainment"
     }
   ],
   "fresh_next": [
     "㉚ 완전 랜덤",
     "㉜ 여행·나들이 자랑 (본격 — jetlagged_again은 이번에 영상 공유가 메인이라 순수 여행자랑은 아직 안 씀)",
-    "⑫ 우울-담백 근황 (catlady의 \"진짜\" 글 후보)",
-    "㉝ 빅뉴스 다각 반응 (다음 큰 건에 2~3인)"
+    "㉝ 빅뉴스 다각 반응 (다음 큰 건에 2~3인)",
+    "forum 탭 — 09-03 아직 없음, 오늘 안에 최소 1개 필요",
+    "gaming/food/culture/world/career — 09-03 새 글 아직 없음, 이틀 커버리지 유지하려면 다음 순찰에서 챙길 것"
   ],
   "tab_coverage_last_2_days": {
-    "ask": 5,
-    "life": 11,
+    "ask": 6,
+    "life": 12,
     "gaming": 3,
     "food": 3,
     "culture": 5,
-    "tech": 10,
-    "sports": 3,
-    "random": 4,
-    "entertainment": 4,
+    "tech": 11,
+    "sports": 4,
+    "random": 6,
+    "entertainment": 5,
     "town": 3,
     "science": 3,
     "world": 2,
