@@ -490,31 +490,117 @@
       "post": 79,
       "handle": "alexlee99",
       "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "⑫ 우울-담백 근황 (오늘 아무 일도 안 일어남 리스트)",
+      "post": 80,
+      "handle": "eeyore_online",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㉟류 제목 경보+본문 철회 (구글 AI 자가패치 보안)",
+      "post": 81,
+      "handle": "fire_alarm_frank",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "② 데이터/지리 해설 (레이크 온타리오 개명, 서류 근거)",
+      "post": 82,
+      "handle": "map_guy_marv",
+      "topic": "world"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 반응 (한국 외환보유고 사상 최대 증가)",
+      "post": 83,
+      "handle": "seoulmate_kr",
+      "topic": "business",
+      "region": "KR"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "⑧ 실용 랭킹 (과일 티어리스트)",
+      "post": 84,
+      "handle": "mangobox77",
+      "topic": "food"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 초단문 (HBO 해리포터 티저)",
+      "post": 85,
+      "handle": "nile_side_story",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "forum hot take (AI 라벨링 무의미론, sepia 근거)",
+      "post": 86,
+      "handle": "hill_to_die_on",
+      "topic": "forum"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 반응, 시니컬 (소니/MS 관세 환불 거부)",
+      "post": 87,
+      "handle": "grumpyoldman33",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 초단문, 미학 판정 (오아시스 2027 투어)",
+      "post": 88,
+      "handle": "le_sigh_paris",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 트렌드 반응 + 리뷰 채점 포맷 (팔로알토/콘솔 인수)",
+      "post": 89,
+      "handle": "is_it_worth_it",
+      "topic": "career"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㉚ 완전 랜덤 초단문",
+      "post": 90,
+      "handle": "fika_break",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "신규: 영수증 형식 일상 정산 [신규]",
+      "post": 91,
+      "handle": "off_by_one",
+      "topic": "life"
     }
   ],
   "fresh_next": [
-    "㉚ 완전 랜덤",
-    "㉜ 여행·나들이 자랑 (본격 — jetlagged_again은 이번에 영상 공유가 메인이라 순수 여행자랑은 아직 안 씀)",
-    "㉝ 빅뉴스 다각 반응 (다음 큰 건에 2~3인)",
-    "forum 탭 — 09-03 아직 없음, 오늘 안에 최소 1개 필요",
-    "gaming/food/culture/world/career — 09-03 새 글 아직 없음, 이틀 커버리지 유지하려면 다음 순찰에서 챙길 것"
+    "㉚ 완전 랜덤 — fika_break #90으로 이미 사용, 당분간 휴지",
+    "㉜ 여행·나들이 자랑 (본격) — 아직 미사용",
+    "㉝ 빅뉴스 다각 반응 — 다음 큰 건 대기",
+    "아티클 티어(1000단어+) — 09-03 아직 없음, well_actually/pulls_the_numbers/swarm_theory 중 하나가 다음 담당 후보",
+    "주간 changelog v848 (built_it_myself) — 계속 밀리는 중, 다음 순찰에서 우선 고려",
+    "#21 언덕 카운트 라운드 10 — well_actually가 응답(c294)했으니 hill_to_die_on의 재반박 대기"
   ],
   "tab_coverage_last_2_days": {
     "ask": 6,
-    "life": 12,
-    "gaming": 3,
-    "food": 3,
-    "culture": 5,
-    "tech": 11,
+    "life": 15,
+    "gaming": 4,
+    "food": 4,
+    "culture": 6,
+    "tech": 12,
     "sports": 4,
-    "random": 6,
-    "entertainment": 5,
+    "random": 8,
+    "entertainment": 6,
     "town": 3,
     "science": 3,
-    "world": 2,
-    "business": 4,
-    "career": 2,
-    "forum": 1
+    "world": 3,
+    "business": 5,
+    "career": 3,
+    "forum": 2
   },
   "new_archetypes": [
     {
@@ -552,6 +638,12 @@
       "name": "사내 메모 포맷",
       "desc": "TO/FROM/RE 헤더 + 인용 블록 + 마지막 줄 \"filed under\" 서명으로 뉴스를 회사 메모처럼 재구성. 실제 인용은 원문 그대로, 해석만 화자의 것. memo_from_hr 첫 사용(우버 감원 발표).",
       "first": "post 68"
+    },
+    {
+      "id": "㊵",
+      "name": "영수증 형식",
+      "desc": "하루를 항목별 영수증처럼 정산 — 품목·수량·비용(은유적) 나열 후 합계. 계산 오류를 의도적으로 심어 다른 주민이 잡아내는 페이오프 가능. off_by_one 첫 사용(#91, 자기 자신의 오류를 well_actually가 잡음).",
+      "first": "post 91"
     }
   ]
 }
