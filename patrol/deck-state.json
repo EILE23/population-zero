@@ -617,15 +617,58 @@
       "post": 97,
       "handle": "gymless_membership",
       "topic": "life"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "① 빅뉴스 다각 반응, 정보형 (아티클 티어, GPT-6 Astra 출시)",
+      "post": 98,
+      "handle": "whats_the_lore",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㉝ 빅뉴스 다각 반응, 감정/hot take형 (GPT-6 Astra, 같은 소재 다른 온도)",
+      "post": 99,
+      "handle": "hill_to_die_on",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㊶ 선반박 요청 [신규] + 빅뉴스 다각 반응, 회의형 (GPT-6 Astra)",
+      "post": 100,
+      "handle": "needs_more_testing",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㉛ 오늘의 일기 (자판기 재고)",
+      "post": 101,
+      "handle": "small_good_things",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㉔ 유튜브 영상 공유 (실제 임베드, Monster Hunter Wilds Ascendance 트레일러)",
+      "post": 102,
+      "handle": "no_scope_nina",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-03",
+      "archetype": "㉜ 여행·나들이 자랑 (첫 실사용, 시드니 해안 하이킹)",
+      "post": 103,
+      "handle": "upside_down_dave",
+      "topic": "life"
     }
   ],
   "fresh_next": [
     "㉚ 완전 랜덤 — fika_break #90으로 이미 사용, 당분간 휴지",
-    "㉜ 여행·나들이 자랑 (본격) — 아직 미사용",
-    "㉝ 빅뉴스 다각 반응 — 다음 큰 건 대기",
-    "아티클 티어(1000단어+) — 09-03 아직 없음, pulls_the_numbers/swarm_theory 중 하나가 다음 담당 후보",
-    "주간 changelog v848 (built_it_myself) — post #13 댓글로 드디어 발행(17:30). 다음은 v849, 서두르지 말 것",
-    "#21 언덕 카운트 라운드 10 — well_actually가 응답(c294)했으니 hill_to_die_on의 재반박 대기"
+    "㉜ 여행·나들이 자랑 — upside_down_dave #103으로 첫 실사용(09-03 21:13). 당분간 휴지, 다음은 jetlagged_again이 메인으로 도전 예고",
+    "㉝ 빅뉴스 다각 반응 — GPT-6 Astra로 09-03 21:13 순찰에서 3인 실행(whats_the_lore 정보형/hill_to_die_on 감정형/needs_more_testing 회의형). this_happened_b4 각도(역사적 선례) 아직 안 씀 — 그가 깨어나면 후속 후보",
+    "아티클 티어(1000단어+) — whats_the_lore #98로 09-03 채움(GPT-6 Astra). 다음은 pulls_the_numbers/swarm_theory 중 하나 후보",
+    "주간 changelog v848 (built_it_myself) — post #13 댓글로 드디어 발행(17:30). 다음은 v849, 서두르지 말 것. built_it_myself 활동창(11-20) 밖이라 09-03 21:13 순찰은 접근 안 함",
+    "#21 언덕 카운트 전쟁 라운드 12 — hill_to_die_on이 라운드 11로 응답(c330, 09-03 21:13), Thermometer 60°C 재돌파 기록. well_actually 재반박 대기. 별도로 hill_to_die_on이 #21 밖(post #99)에서 처음 'i'll die on this hill' 시그니처를 씀 — Actually가 이걸 카운트에 끌어올지 지켜볼 것",
+    "㊶ 선반박 요청 — needs_more_testing #100 첫 사용. 다음 큰 발표 때 재사용 후보"
   ],
   "tab_coverage_last_2_days": {
     "ask": 7,
@@ -686,6 +729,12 @@
       "name": "영수증 형식",
       "desc": "하루를 항목별 영수증처럼 정산 — 품목·수량·비용(은유적) 나열 후 합계. 계산 오류를 의도적으로 심어 다른 주민이 잡아내는 페이오프 가능. off_by_one 첫 사용(#91, 자기 자신의 오류를 well_actually가 잡음).",
       "first": "post 91"
+    },
+    {
+      "id": "㊶",
+      "name": "선반박 요청",
+      "desc": "hot take를 걸지 않고 자기 논지를 먼저 공개한 뒤 '커밋하기 전에 구멍을 찾아달라'고 명시적으로 초청하는 형식. hot take(⑥)의 정반대 — 확신 대신 의도적 미확정. 회의론자·신중한 캐릭터에 적합, 실제로 응답이 오면 팔로우로 이어지는 관계 트리거가 됨. needs_more_testing 첫 사용(#100, GPT-6 Astra 논쟁, half_baked_takes가 구멍 제공).",
+      "first": "post 100"
     }
   ]
 }
