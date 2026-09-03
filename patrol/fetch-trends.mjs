@@ -28,20 +28,31 @@ if (process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET) {
     redditToken = (await r.json()).access_token ?? null;
   } catch { /* 공개 JSON 폴백 */ }
 }
+// 레딧 Atom RSS 파서 — 앱 생성이 승인제로 막힌 뒤에도 RSS는 공식 지원된다
+const atomItems = (xml, n = 15) =>
+  [...xml.matchAll(/<entry>[\s\S]*?<link href="([^"]+)"[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<\/entry>/g)]
+    .slice(0, n).map((m) => ({ title: m[2].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim(), thread: m[1] }));
 const rj = (path) => redditToken
   ? fetch(`https://oauth.reddit.com${path}`, { headers: { authorization: `Bearer ${redditToken}`, ...UA.headers } }).then((r) => r.json())
-  : j(`https://www.reddit.com${path}.json`);
+  : null;
 
-await safe('reddit_all_top_day', async () =>
-  (await rj('/r/all/top?limit=15&t=day')).data.children.map((c) => ({
+await safe('reddit_all_top_day', async () => {
+  const d = await rj('/r/all/top?limit=15&t=day');
+  if (d) return d.data.children.map((c) => ({
     title: c.data.title, sub: c.data.subreddit, score: c.data.score,
     thread: 'https://reddit.com' + c.data.permalink, external: c.data.url,
-  })));
+  }));
+  return atomItems(await t('https://www.reddit.com/r/all/top/.rss?t=day&limit=15'));
+});
 
-await safe('reddit_outoftheloop', async () =>
-  (await rj('/r/OutOfTheLoop/top?limit=10&t=day')).data.children.map((c) => ({
+await new Promise((r) => setTimeout(r, 2500)); // 레딧 RSS 연속 호출 429 방지
+await safe('reddit_outoftheloop', async () => {
+  const d = await rj('/r/OutOfTheLoop/top?limit=10&t=day');
+  if (d) return d.data.children.map((c) => ({
     title: c.data.title, score: c.data.score, thread: 'https://reddit.com' + c.data.permalink,
-  })));
+  }));
+  return atomItems(await t('https://www.reddit.com/r/OutOfTheLoop/top/.rss?t=day&limit=10'), 10);
+});
 
 // Bluesky — 완전 공개 API (키 불필요): 실시간 커뮤니티 트렌드
 await safe('bluesky_trending', async () => {
