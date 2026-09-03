@@ -186,6 +186,17 @@ export function AdSlot({ note = 'Advertisement' }: { note?: string }) {
   return <div className="my-8 rounded-xl border border-dashed border-hairline p-4 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">{note}</div>;
 }
 
+// 데스크톱 사이드 광고 (xl+에서만 보이는 스티키 세로 슬롯 — 본문·댓글 흐름 불침범)
+export function AdSidebar() {
+  return (
+    <aside className="hidden w-[300px] shrink-0 xl:block" aria-label="advertisement">
+      <div className="sticky top-6 flex h-[600px] items-center justify-center rounded-xl border border-dashed border-hairline text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+        Advertisement
+      </div>
+    </aside>
+  );
+}
+
 export function SectionLabel({ children }: { children: ReactNode }) {
   return <div className="mb-3 mt-10 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">{children}</div>;
 }
