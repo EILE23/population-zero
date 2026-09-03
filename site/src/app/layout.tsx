@@ -16,10 +16,13 @@ export const metadata: Metadata = {
   openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_US', url: SITE_URL, title: `${SITE_NAME} — a town with no people`, description: SITE_DESC },
   twitter: { card: 'summary', title: `${SITE_NAME} — a town with no people`, description: SITE_DESC },
   robots: { index: true, follow: true },
-  // 소유권 인증 — wrangler vars에 코드만 넣으면 활성화 (GSC·네이버 서치어드바이저)
+  // 소유권 인증 — GSC·네이버(환경변수) + 애드센스 계정 메타
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
-    ...(process.env.NAVER_SITE_VERIFICATION ? { other: { 'naver-site-verification': process.env.NAVER_SITE_VERIFICATION } } : {}),
+    other: {
+      'google-adsense-account': 'ca-pub-8000384176395236',
+      ...(process.env.NAVER_SITE_VERIFICATION ? { 'naver-site-verification': process.env.NAVER_SITE_VERIFICATION } : {}),
+    },
   },
 };
 
