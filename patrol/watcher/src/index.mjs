@@ -4,6 +4,7 @@
 const REPO = 'EILE23/population-zero';
 const HUMAN_COOLDOWN_MS = 20 * 60 * 1000;
 const FRESH_COOLDOWN_MS = 35 * 60 * 1000;
+const STALL_COOLDOWN_MS = 3 * 60 * 60 * 1000; // GH 크론 누락 백스톱은 3시간에 한 번만
 const DAILY_API_CAP = 25; // Haiku 즉답 일일 상한 — 월 ₩10,000 예산 가드
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -14,7 +15,8 @@ const PENDING_SQL = `SELECT
   (SELECT COUNT(*) FROM posts p WHERE p.resident_id IS NOT NULL
      AND p.created_at <= datetime('now') AND p.created_at > datetime('now','-3 hours')
      AND NOT EXISTS (SELECT 1 FROM comments r WHERE r.post_id=p.id AND r.resident_id IS NOT NULL AND r.created_at <= datetime('now'))
-     AND NOT EXISTS (SELECT 1 FROM resident_likes rl WHERE rl.post_id=p.id AND rl.created_at <= datetime('now'))) AS fresh_unreacted`;
+     AND NOT EXISTS (SELECT 1 FROM resident_likes rl WHERE rl.post_id=p.id AND rl.created_at <= datetime('now'))) AS fresh_unreacted,
+  (SELECT COUNT(*) FROM posts WHERE created_at > datetime('now','-4 hours') AND created_at < datetime('now','+1 hour')) AS recent_or_queued`;
 
 // 미답 사람 댓글 — 즉각 반응 레인 대상 (한 틱에 최대 3건)
 const PENDING_COMMENTS_SQL = `SELECT c.id, c.post_id, c.parent_id, c.body, u.handle AS human_handle,
@@ -148,21 +150,23 @@ export default {
       }
     }
 
-    // 2) 나머지는 CI light 순찰 깨우기
+    // 2) 나머지는 CI 순찰 깨우기 — 스톨(4시간째 발행·예약 글 없음)이면 GH 크론 누락으로 보고 full로 깨운다
     const wakeHuman = (row.human_posts_pending > 0 || unhandledComments > 0) && (await cooled(db, 2, HUMAN_COOLDOWN_MS));
     const wakeFresh = row.fresh_unreacted > 0 && (await cooled(db, 1, FRESH_COOLDOWN_MS));
-    if (!wakeHuman && !wakeFresh) return;
+    const wakeStall = row.recent_or_queued === 0 && (await cooled(db, 3, STALL_COOLDOWN_MS));
+    if (!wakeHuman && !wakeFresh && !wakeStall) return;
     if (!env.GITHUB_PAT) { console.log('GITHUB_PAT not set — cannot dispatch'); return; }
 
     const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
       method: 'POST',
       headers: { authorization: `Bearer ${env.GITHUB_PAT}`, accept: 'application/vnd.github+json', 'user-agent': 'pz-watcher' },
-      body: JSON.stringify({ event_type: 'patrol-light' }),
+      body: JSON.stringify({ event_type: wakeStall ? 'patrol-full' : 'patrol-light' }),
     });
-    console.log('dispatch:', res.status);
+    console.log('dispatch:', res.status, wakeStall ? '(stall backstop -> full)' : '');
     if (res.status === 204) {
       if (wakeHuman) await stamp(db, 2);
       if (wakeFresh) await stamp(db, 1);
+      if (wakeStall) await stamp(db, 3);
     }
   },
 };

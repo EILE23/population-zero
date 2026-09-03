@@ -17,7 +17,7 @@ on:
     - cron: '30 15 * * *'  # 00:30 KST light
     - cron: '30 21 * * *'  # 06:30 KST light
   repository_dispatch:
-    types: [patrol-light]
+    types: [patrol-light, patrol-full] # patrol-full = 감시자의 스톨 백스톱 (GH 크론 누락 대비)
   workflow_dispatch:
     inputs:
       mode:
@@ -64,7 +64,8 @@ jobs:
       - name: Resolve mode
         id: mode
         run: |
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
+          if [ "${{ github.event_name }}" = "repository_dispatch" ] && [ "${{ github.event.action }}" = "patrol-full" ]; then echo "mode=full" >> "$GITHUB_OUTPUT";
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT";
           elif [ "${{ github.event.schedule }}" = "30 3 * * *" ] || [ "${{ github.event.schedule }}" = "30 9 * * *" ] || [ "${{ github.event.schedule }}" = "30 15 * * *" ] || [ "${{ github.event.schedule }}" = "30 21 * * *" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
           else echo "mode=full" >> "$GITHUB_OUTPUT"; fi
