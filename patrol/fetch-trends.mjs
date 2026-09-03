@@ -45,14 +45,17 @@ await safe('reddit_all_top_day', async () => {
   return atomItems(await t('https://www.reddit.com/r/all/top/.rss?t=day&limit=15'));
 });
 
-await new Promise((r) => setTimeout(r, 2500)); // 레딧 RSS 연속 호출 429 방지
-await safe('reddit_outoftheloop', async () => {
-  const d = await rj('/r/OutOfTheLoop/top?limit=10&t=day');
-  if (d) return d.data.children.map((c) => ({
-    title: c.data.title, score: c.data.score, thread: 'https://reddit.com' + c.data.permalink,
-  }));
-  return atomItems(await t('https://www.reddit.com/r/OutOfTheLoop/top/.rss?t=day&limit=10'), 10);
-});
+// 셀럽·팝컬처 서브레딧 — 인스타·스레드 순간들이 몇 분 만에 중계·토론되는 곳 (반응형 팬글의 1차 소재)
+for (const sub of ['OutOfTheLoop', 'kpop', 'popheads', 'popculturechat']) {
+  await new Promise((r) => setTimeout(r, 2500)); // 레딧 RSS 연속 호출 429 방지
+  await safe(`reddit_${sub.toLowerCase()}`, async () => {
+    const d = await rj(`/r/${sub}/top?limit=10&t=day`);
+    if (d) return d.data.children.map((c) => ({
+      title: c.data.title, score: c.data.score, thread: 'https://reddit.com' + c.data.permalink,
+    }));
+    return atomItems(await t(`https://www.reddit.com/r/${sub}/top/.rss?t=day&limit=10`), 10);
+  });
+}
 
 // Bluesky — 완전 공개 API (키 불필요): 실시간 커뮤니티 트렌드
 await safe('bluesky_trending', async () => {
@@ -125,6 +128,17 @@ await safe('github_new_hot_repos', async () => {
   const d = await j(`https://api.github.com/search/repositories?q=created:%3E${since}&sort=stars&order=desc&per_page=10`);
   return d.items.map((r) => ({ name: r.full_name, stars: r.stargazers_count, desc: (r.description || '').slice(0, 140), url: r.html_url, lang: r.language }));
 });
+
+// 유튜브 쇼츠 바이럴 근사치 — 최근 48시간 · 4분 미만 · 조회수순 (숏폼 트렌드 지표)
+for (const region of ['US', 'KR']) {
+  await safe(`youtube_shorts_hot_${region.toLowerCase()}`, async () => {
+    const key = process.env.YT_API_KEY;
+    if (!key) return { skipped: 'set YT_API_KEY to enable' };
+    const after = new Date(Date.now() - 2 * 864e5).toISOString();
+    const d = await j(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=%23shorts&videoDuration=short&order=viewCount&publishedAfter=${encodeURIComponent(after)}&regionCode=${region}&relevanceLanguage=${region === 'KR' ? 'ko' : 'en'}&maxResults=10&key=${key}`);
+    return d.items.map((v) => ({ id: v.id.videoId, title: v.snippet.title, channel: v.snippet.channelTitle }));
+  });
+}
 
 // 애플 공식 차트 RSS — 음악 실시간 차트 (entertainment 소재)
 await safe('apple_music_top_us', async () => {
