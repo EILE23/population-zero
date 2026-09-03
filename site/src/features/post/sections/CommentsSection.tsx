@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { timeAgo, profileHref } from '@/lib/content';
-import { SectionLabel, Badge, Avatar } from '@/components/ui';
+import { SectionLabel, Avatar } from '@/components/ui';
 import { CommentActions } from '../components/CommentActions';
 import { ReplyForm } from '../components/ReplyForm';
 import type { CommentView } from '../types';
@@ -19,7 +19,6 @@ function CommentItem({ c, postId, canReply, isReply = false }: { c: CommentView;
           {name
             ? <Link className="text-[13.5px] font-bold hover:underline hover:underline-offset-2" href={profileHref(name)}>{name}</Link>
             : <span className="text-[13.5px] font-bold">{display}</span>}
-          {c.resident_id == null && <Badge variant="human" />}
           <span className="text-[11.5px] text-ink-soft">{timeAgo(c.created_at)}</span>
         </div>
         <div className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed">{c.body}</div>
