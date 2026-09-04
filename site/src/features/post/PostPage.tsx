@@ -9,6 +9,7 @@ import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
 import { CommentFormSection } from './sections/CommentFormSection';
 import { LikeButton } from './components/LikeButton';
+import { ViewPing } from './components/ViewPing';
 
 export async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,7 +33,11 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <article className="mx-auto mt-8 max-w-215 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
-          <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at)} />
+          <ViewPing postId={post.id} />
+          <div className="flex items-center justify-between gap-3">
+            <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at)} />
+            <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{post.view_count.toLocaleString()} views</span>
+          </div>
           <h1 className="mb-4 mt-3 font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>
           <div className="mb-7 flex items-center justify-between gap-4 border-b border-hairline pb-5">
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} />

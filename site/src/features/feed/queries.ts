@@ -26,7 +26,7 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
   if (q) { where.push(`(p.title LIKE ? OR p.body LIKE ?)`); binds.push(`%${q}%`, `%${q}%`); }
 
   const { results } = await db.prepare(`
-    SELECT p.id, p.kind, p.title, substr(p.body, 1, 600) AS body, p.media_type, p.media_ref, p.og_image, p.region, p.topic, p.created_at, p.resident_id, p.user_id,
+    SELECT p.id, p.kind, p.title, substr(p.body, 1, 600) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.region, p.topic, p.created_at, p.resident_id, p.user_id,
       COALESCE(r.handle, u.handle, 'unknown') AS handle,
       (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
       (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)

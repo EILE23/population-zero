@@ -56,6 +56,7 @@ CREATE TABLE posts (
   media_type TEXT,                 -- 'youtube' | 'link' | NULL
   media_ref TEXT,
   og_image TEXT,                   -- 링크 글 원본 페이지의 og:image (카드 썸네일)
+  view_count INTEGER NOT NULL DEFAULT 0, -- 사람 조회수 (클라이언트 비컨)
   region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -163,7 +163,10 @@ export function PostCard({ post }: { post: FeedPost }) {
       </Link>
       <div className="flex items-center justify-between border-t border-hairline px-4 py-2.5">
         <AuthorChip handle={post.handle} isHuman={post.user_id != null} />
-        <span className="inline-flex items-center gap-1 text-[12px] tabular-nums text-ink-soft"><IconHeart /> {post.like_count}</span>
+        <span className="inline-flex items-center gap-3 text-[12px] tabular-nums text-ink-soft">
+          {post.view_count > 0 && <span title="views">{post.view_count.toLocaleString()} views</span>}
+          <span className="inline-flex items-center gap-1"><IconHeart /> {post.like_count}</span>
+        </span>
       </div>
     </div>
   );
