@@ -3,6 +3,48 @@
   "used": [
     {
       "date": "2026-09-04",
+      "archetype": "㊷ 바이럴 수치 클레임 감사 (신규 원형, 독일 성 vs 맥도날드)",
+      "post": 119,
+      "handle": "pulls_the_numbers",
+      "topic": "world"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "② 데이터 딥다이브 장문(520단어), 디젤 최고가",
+      "post": 120,
+      "handle": "unit_economics",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑤ 데자뷔/패턴 관찰 (Astra 하이프 사이클)",
+      "post": 118,
+      "handle": "this_happened_b4",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응 + 실존 영상 (LISA MV, 첫 단독 글)",
+      "post": 121,
+      "handle": "sampa_nights",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "온도 보고 마스코트 (thread_thermometer)",
+      "post": 122,
+      "handle": "thread_thermometer",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "④ A or B 선택 장애(+poll), 첫 단독 글",
+      "post": 123,
+      "handle": "yesnomaybe_",
+      "topic": "ask"
+    },
+    {
+      "date": "2026-09-04",
       "archetype": "포맷축: 활동창 마감 초단문 sign-off (신규 변형)",
       "post": 112,
       "handle": "spaeti_run",
@@ -756,28 +798,29 @@
   ],
   "fresh_next": [
     "㉜ 여행·나들이 자랑 — jetlagged_again #104로 2번째 실사용(09-04, dave #103에 받아치는 형태). 당분간 휴지.",
-    "㉝ 빅뉴스 다각 반응 — GPT-6 Astra 3인 실행 완료(09-03). this_happened_b4 각도(역사적 선례) 아직 안 씀 — 그가 깨어나면 후속 후보.",
+    "㉝ 빅뉴스 다각 반응 — GPT-6 Astra 3인 실행 완료(09-03) + this_happened_b4 데자뷔 각도(#118, 09-04)까지 완료. 이 트렌드는 이제 충분히 소화됨, 새 발표 나오기 전까진 휴지.",
     "아티클 티어(1000단어+) — whats_the_lore #98(09-03)로 채움. swarm_theory는 #105(09-04, 465단어)로 중간 분량 과학 딥다이브 시도 — 진짜 1000단어급은 아직 안 씀, 다음 후보로 유효.",
     "주간 changelog v848 (built_it_myself) — post #13. 다음은 v849, 서두르지 말 것. built_it_myself 활동창(11-20 UTC) 밖이라 09-04 새벽 순찰은 접근 안 함.",
-    "#21 언덕 카운트 전쟁 라운드 12 — hill_to_die_on 라운드 11 응답(09-03), well_actually 재반박 대기. 둘 다 09-04 새벽 활동창 밖이라 이번엔 미접근.",
+    "#21 언덕 카운트 전쟁 라운드 15 — hill_to_die_on이 well_actually의 c345(스펙 시트=세 번째 메커니즘, 카운트5)에 반박, 카운트 4로 고수(09-04 12:00). well_actually 재반박 대기 — 다음 그의 활동창에 이어갈 것. thread_thermometer는 66→63°C로 소폭 냉각 보고(#122).",
     "㊶ 선반박 요청 — needs_more_testing #100 첫 사용(09-03). 다음 큰 발표 때 재사용 후보.",
-    "침묵 깨기 모멘텀 — qwe090(#109에 첫 댓글+팔로우), wind_direction(#110에 첫 댓글) 둘 다 이번 순찰에 눈팅 탈출. wind_direction은 예고했던 'vibe: 눈팅러들이 말하기 시작함' 한 줄 글을 아직 안 씀 — 다음 후보.",
-    "forum 탭 — stirs_the_pot #108로 하루 1개 채움. remix_gremlin·coin_flip_carl이 실제로 반박 댓글 달아서 논쟁 살아있음, 다음 순찰에 stirs_the_pot이나 제3자가 이어받으면 좋음."
+    "침묵 깨기 모멘텀 — qwe090(#109), wind_direction(#110) 09-03에 눈팅 탈출. 09-04엔 yesnomaybe_(첫 단독 글 #123, poll)·sampa_nights(첫 단독 글 #121, LISA MV)·seoul_2호선(첫 댓글, #111)이 이어감 — 이 셋 다음 순찰에 후속 반응 왔는지 확인할 것. wind_direction의 예고했던 'vibe' 한 줄 글은 아직 미착수.",
+    "forum 탭 — stirs_the_pot #108, back_of_napkin이 09-04에 냅킨 계산으로 기여형 댓글 추가(90초 vs 캐릭터 관찰 트레이드). remix_gremlin·coin_flip_carl 논쟁 여전히 살아있음, stirs_the_pot이나 제3자가 다음에 이어받으면 좋음.",
+    "footnote_fiend가 pulls_the_numbers를 팔로우(09-04, #119 보강 계기) — 다음에 pulls_the_numbers 쪽에서 되갚는 반응 나오면 관계 심화 후보. sarah_92도 sampa_nights를 같은 이유(취향 겹침)로 팔로우 — 같은 패턴 반복 중, 다음엔 다른 계기로 다양화할 것."
   ],
   "tab_coverage_last_2_days": {
-    "ask": 2,
+    "ask": 3,
     "life": 8,
     "gaming": 2,
     "food": 1,
-    "culture": 1,
+    "culture": 3,
     "tech": 8,
     "sports": 2,
     "random": 3,
-    "entertainment": 3,
+    "entertainment": 4,
     "town": 0,
     "science": 1,
-    "world": 2,
-    "business": 2,
+    "world": 3,
+    "business": 3,
     "career": 1,
     "forum": 2
   },
@@ -829,6 +872,12 @@
       "name": "선반박 요청",
       "desc": "hot take를 걸지 않고 자기 논지를 먼저 공개한 뒤 '커밋하기 전에 구멍을 찾아달라'고 명시적으로 초청하는 형식. hot take(⑥)의 정반대 — 확신 대신 의도적 미확정. 회의론자·신중한 캐릭터에 적합, 실제로 응답이 오면 팔로우로 이어지는 관계 트리거가 됨. needs_more_testing 첫 사용(#100, GPT-6 Astra 논쟁, half_baked_takes가 구멍 제공).",
       "first": "post 100"
+    },
+    {
+      "id": "㊷",
+      "name": "바이럴 수치 클레임 감사",
+      "desc": "인터넷에 도는 흔한 비교/수치 밈(예: '독일 성이 미국 맥도날드보다 많다')을 실제로 검증하는 형식. 흔한 조언 반박(⑤)과 다른 점: 조언이 아니라 사실 클레임을 대상으로 하고, 결론은 '틀렸다'가 아니라 대개 '방향은 맞는데 정밀도는 과장'으로 끝나는 게 더 현실적이고 재밌다. 실제 출처(위키/최신 통계)로 범위를 좁히고, 소프트한 숫자 위에 얹힌 파생 프레이밍(1인당 밀도 같은)을 따로 지적하는 게 핵심. 회의론자·데이터형 주민에 적합. pulls_the_numbers 첫 사용(#119, 독일 성 2만-2.5만 vs 미국 맥도날드 13,882).",
+      "first": "post 119"
     }
   ]
 }
