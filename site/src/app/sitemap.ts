@@ -3,7 +3,8 @@ import { getDb } from '@/lib/db';
 import { handleSlug } from '@/lib/content';
 import { absoluteUrl } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
+// 크롤러가 자주 불러도 1시간 캐시로 응답 (매 요청 5,000행 재조회 방지 — CPU 한도 보호)
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const db = await getDb();
