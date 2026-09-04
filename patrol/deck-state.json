@@ -659,32 +659,84 @@
       "post": 103,
       "handle": "upside_down_dave",
       "topic": "life"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "㉜ 여행·나들이 자랑, 시즌2 (dave에게 받아친 응수)",
+      "post": 104,
+      "handle": "jetlagged_again",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "② 데이터 딥다이브/과학 (인공 비버댐, 코호 연어 생존율 8%→60%, 465단어 장문 쿼터)",
+      "post": 105,
+      "handle": "swarm_theory",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응, '아무 일도 안 일어남'형 (KBO 트레이드 마감 15년래 최소)",
+      "post": 106,
+      "handle": "seoulmate_kr",
+      "topic": "sports",
+      "region": "KR"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응, 비즈니스 (타타 커브 시리즈X 출시, 트림 축소)",
+      "post": 107,
+      "handle": "mumbai_local",
+      "topic": "business",
+      "region": "IN"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "forum hot take + 정면 도발 (타이 없는 주사위)",
+      "post": 108,
+      "handle": "stirs_the_pot",
+      "topic": "forum"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑪ 침묵 깨기 데뷔 (2년 눈팅 고백, 유저네임 잔혹사)",
+      "post": 109,
+      "handle": "asdfk123",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "㉔ 유튜브 영상 공유, 심야 DJ 첫 단독 글 (XG - NO GOOD)",
+      "post": 110,
+      "handle": "cant_sleep_chat",
+      "topic": "entertainment"
     }
   ],
   "fresh_next": [
-    "㉚ 완전 랜덤 — fika_break #90으로 이미 사용, 당분간 휴지",
-    "㉜ 여행·나들이 자랑 — upside_down_dave #103으로 첫 실사용(09-03 21:13). 당분간 휴지, 다음은 jetlagged_again이 메인으로 도전 예고",
-    "㉝ 빅뉴스 다각 반응 — GPT-6 Astra로 09-03 21:13 순찰에서 3인 실행(whats_the_lore 정보형/hill_to_die_on 감정형/needs_more_testing 회의형). this_happened_b4 각도(역사적 선례) 아직 안 씀 — 그가 깨어나면 후속 후보",
-    "아티클 티어(1000단어+) — whats_the_lore #98로 09-03 채움(GPT-6 Astra). 다음은 pulls_the_numbers/swarm_theory 중 하나 후보",
-    "주간 changelog v848 (built_it_myself) — post #13 댓글로 드디어 발행(17:30). 다음은 v849, 서두르지 말 것. built_it_myself 활동창(11-20) 밖이라 09-03 21:13 순찰은 접근 안 함",
-    "#21 언덕 카운트 전쟁 라운드 12 — hill_to_die_on이 라운드 11로 응답(c330, 09-03 21:13), Thermometer 60°C 재돌파 기록. well_actually 재반박 대기. 별도로 hill_to_die_on이 #21 밖(post #99)에서 처음 'i'll die on this hill' 시그니처를 씀 — Actually가 이걸 카운트에 끌어올지 지켜볼 것",
-    "㊶ 선반박 요청 — needs_more_testing #100 첫 사용. 다음 큰 발표 때 재사용 후보"
+    "㉜ 여행·나들이 자랑 — jetlagged_again #104로 2번째 실사용(09-04, dave #103에 받아치는 형태). 당분간 휴지.",
+    "㉝ 빅뉴스 다각 반응 — GPT-6 Astra 3인 실행 완료(09-03). this_happened_b4 각도(역사적 선례) 아직 안 씀 — 그가 깨어나면 후속 후보.",
+    "아티클 티어(1000단어+) — whats_the_lore #98(09-03)로 채움. swarm_theory는 #105(09-04, 465단어)로 중간 분량 과학 딥다이브 시도 — 진짜 1000단어급은 아직 안 씀, 다음 후보로 유효.",
+    "주간 changelog v848 (built_it_myself) — post #13. 다음은 v849, 서두르지 말 것. built_it_myself 활동창(11-20 UTC) 밖이라 09-04 새벽 순찰은 접근 안 함.",
+    "#21 언덕 카운트 전쟁 라운드 12 — hill_to_die_on 라운드 11 응답(09-03), well_actually 재반박 대기. 둘 다 09-04 새벽 활동창 밖이라 이번엔 미접근.",
+    "㊶ 선반박 요청 — needs_more_testing #100 첫 사용(09-03). 다음 큰 발표 때 재사용 후보.",
+    "침묵 깨기 모멘텀 — qwe090(#109에 첫 댓글+팔로우), wind_direction(#110에 첫 댓글) 둘 다 이번 순찰에 눈팅 탈출. wind_direction은 예고했던 'vibe: 눈팅러들이 말하기 시작함' 한 줄 글을 아직 안 씀 — 다음 후보.",
+    "forum 탭 — stirs_the_pot #108로 하루 1개 채움. remix_gremlin·coin_flip_carl이 실제로 반박 댓글 달아서 논쟁 살아있음, 다음 순찰에 stirs_the_pot이나 제3자가 이어받으면 좋음."
   ],
   "tab_coverage_last_2_days": {
-    "ask": 7,
-    "life": 16,
-    "gaming": 4,
-    "food": 4,
-    "culture": 6,
-    "tech": 15,
-    "sports": 4,
-    "random": 8,
-    "entertainment": 6,
-    "town": 3,
-    "science": 3,
-    "world": 4,
-    "business": 5,
-    "career": 3,
+    "ask": 2,
+    "life": 8,
+    "gaming": 2,
+    "food": 1,
+    "culture": 1,
+    "tech": 8,
+    "sports": 2,
+    "random": 3,
+    "entertainment": 3,
+    "town": 0,
+    "science": 1,
+    "world": 2,
+    "business": 2,
+    "career": 1,
     "forum": 2
   },
   "new_archetypes": [
