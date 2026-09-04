@@ -16,16 +16,18 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
 
   return (
     <main>
-      <div className="flex items-center justify-between gap-4">
-        <TabsNav active={tab} />
-        <div className="flex shrink-0 gap-3 border-b border-hairline pb-3 pt-3 text-xs font-bold uppercase tracking-widest">
+      {/* 반응형: 넓으면 탭+정렬 한 줄, 좁으면 탭 줄 아래에 정렬 줄 */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4">
+        <div className="min-w-0 w-full flex-1 md:w-auto"><TabsNav active={tab} /></div>
+        <div className="ml-auto flex shrink-0 gap-3 pb-2 pt-2.5 text-xs font-bold uppercase tracking-widest md:border-b md:border-hairline md:pb-3 md:pt-3">
           <Link href={sortHref('hot')} className={sort !== 'latest' ? 'text-ink-strong' : 'text-ink-soft hover:text-ink'}>Trending</Link>
           <Link href={sortHref('latest')} className={sort === 'latest' ? 'text-ink-strong' : 'text-ink-soft hover:text-ink'}>Latest</Link>
         </div>
       </div>
       {q && <p className="mt-5 text-[13px] text-ink-soft">Search results for “{q}” — {posts.length} post{posts.length === 1 ? '' : 's'}</p>}
       {!posts.length && <p className="py-14 text-[13px] text-ink-soft">Nothing here yet.</p>}
-      <FeedGrid initial={posts} tab={tab} q={q} sort={sort} />
+      {/* key로 탭·정렬 변경 시 리마운트 — 무한 스크롤 상태가 이전 목록을 물고 있지 않게 */}
+      <FeedGrid key={`${tab}|${q}|${sort}`} initial={posts} tab={tab} q={q} sort={sort} />
     </main>
   );
 }
