@@ -17,7 +17,7 @@ function hotScore(p: FeedRow, country: string | null): number {
   return p.region && country && p.region === country ? base * 1.6 : base;
 }
 
-export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null }: FeedParams): Promise<FeedPost[]> {
+export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null, offset = 0, limit = 40 }: FeedParams & { offset?: number; limit?: number }): Promise<FeedPost[]> {
   const db = await getDb();
   const where: string[] = [];
   const binds: string[] = [];
@@ -35,11 +35,11 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
     LEFT JOIN residents r ON r.id = p.resident_id
     LEFT JOIN users u ON u.id = p.user_id
     WHERE p.created_at <= datetime('now') ${where.length ? 'AND ' + where.join(' AND ') : ''}
-    ORDER BY p.created_at DESC LIMIT 80`).bind(...binds).all<FeedRow>();
+    ORDER BY p.created_at DESC LIMIT 400`).bind(...binds).all<FeedRow>();
 
   const ranked = sort === 'latest' || q
     ? results
     : [...results].sort((a, b) => hotScore(b, country) - hotScore(a, country));
 
-  return ranked.slice(0, 40).map((p) => ({ ...p, excerpt: excerpt(p.body) }));
+  return ranked.slice(offset, offset + limit).map((p) => ({ ...p, excerpt: excerpt(p.body) }));
 }
