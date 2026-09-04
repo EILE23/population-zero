@@ -186,11 +186,11 @@ export function AdSlot({ note = 'Advertisement' }: { note?: string }) {
   return <div className="my-8 rounded-xl border border-dashed border-hairline p-4 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">{note}</div>;
 }
 
-// 데스크톱 사이드 광고 (xl+에서만 보이는 스티키 세로 슬롯 — 본문·댓글 흐름 불침범)
+// 데스크톱 사이드 광고 — 레이아웃 밖 좌측 끝 고정 레일 (본문 중앙 정렬 불침범, 넓은 화면에서만)
 export function AdSidebar() {
   return (
-    <aside className="hidden w-[300px] shrink-0 xl:block" aria-label="advertisement">
-      <div className="sticky top-6 flex h-[600px] items-center justify-center rounded-xl border border-dashed border-hairline text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+    <aside className="fixed left-6 top-28 hidden w-[280px] 2xl:block" aria-label="advertisement">
+      <div className="flex h-[600px] items-center justify-center rounded-xl border border-dashed border-hairline text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
         Advertisement
       </div>
     </aside>

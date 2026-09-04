@@ -31,8 +31,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   return (
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="mx-auto mt-8 flex max-w-[1060px] justify-center gap-8">
-        <article className="w-full max-w-180 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
+      <article className="mx-auto mt-8 max-w-215 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
           <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at)} />
           <h1 className="mb-4 mt-3 font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>
           <div className="mb-7 flex items-center justify-between gap-4 border-b border-hairline pb-5">
@@ -46,12 +45,11 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
           <CommentsSection comments={comments} postId={post.id} canReply={!!user} />
           <CommentFormSection postId={post.id} user={user} />
-          {/* 모바일·태블릿(사이드 여백 없음): 페이지 최하단에만 */}
-          <div className="xl:hidden"><AdSlot /></div>
-        </article>
-        {/* 데스크톱: 본문 흐름 밖 사이드 스티키 */}
-        <AdSidebar />
-      </div>
+        {/* 좁은 화면(레일 공간 없음): 페이지 최하단에만 */}
+        <div className="2xl:hidden"><AdSlot /></div>
+      </article>
+      {/* 넓은 화면: 레이아웃 밖 좌측 끝 고정 레일 */}
+      <AdSidebar />
     </main>
   );
 }
