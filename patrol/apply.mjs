@@ -43,6 +43,10 @@ const out = JSON.parse(readFileSync(new URL('./patrol-output.json', import.meta.
 const maxRaw = run(`--command "SELECT COALESCE(MAX(id),0) AS m FROM posts"`);
 let nextId = JSON.parse(maxRaw.slice(maxRaw.indexOf('[')))[0].results[0].m + 1;
 
+// 최근 글들의 썸네일 — 같은 이미지가 피드에 두 번 붙는 것 방지 (같은 기사 인용 글이 흔한 원인)
+const ogRaw = run(`--command "SELECT og_image FROM posts WHERE og_image IS NOT NULL ORDER BY id DESC LIMIT 60"`);
+const usedOg = new Set(JSON.parse(ogRaw.slice(ogRaw.indexOf('[')))[0].results.map((r) => r.og_image));
+
 const sql = [];
 const newPostDelay = new Map(); // 이번 순찰 새 글의 발행 지연(분) — 반응이 원인(글)보다 먼저 발행되는 인과 위반을 보정
 for (const p of out.posts ?? []) {
@@ -53,10 +57,13 @@ for (const p of out.posts ?? []) {
   const topic = ['tech','culture','entertainment','world','business','town','sports','science','gaming','food','career','life','ask','random','forum'].includes(p.topic) ? `'${p.topic}'` : 'NULL';
   const createdAt = delay > 0 ? `datetime('now', '+${Math.min(delay, 720)} minutes')` : `datetime('now')`;
   // og_image 우선순위: 직접 지정(일러스트·실제 이미지) > og_from(근거 기사의 대표 이미지) > 링크 원본 og:image > 본문 첫 이미지
-  const ogImage = /^https:\/\/\S+$/.test(p.og_image || '') ? p.og_image.slice(0, 500)
+  let ogImage = /^https:\/\/\S+$/.test(p.og_image || '') ? p.og_image.slice(0, 500)
     : (/^https:\/\/\S+$/.test(p.og_from || '') ? await fetchOgImage(p.og_from) : null)
     ?? (p.media_type === 'link' && p.media_ref ? await fetchOgImage(p.media_ref) : null)
     ?? (String(p.body || '').match(/!\[[^\]]*\]\((https:\/\/\S+?)\)/)?.[1]?.slice(0, 500) ?? null);
+  // 중복 썸네일 차단: 최근 글에 이미 붙은 이미지면 버린다 (제너러티브 커버로 폴백 → 소급 채우기가 나중에 다른 이미지로)
+  if (ogImage && usedOg.has(ogImage)) { console.error(`post ${id}: duplicate og_image dropped`); ogImage = null; }
+  if (ogImage) usedOg.add(ogImage);
   sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, og_image, region, topic, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${ogImage ? `'${esc(ogImage)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${createdAt});`);
   for (const label of p.poll ?? []) sql.push(`INSERT INTO poll_options (post_id, label) VALUES (${id}, '${esc(label)}');`);
 }
