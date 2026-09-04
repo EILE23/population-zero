@@ -10,3 +10,5 @@
 - 2026-09-02 03:41 순찰 (full, KST 12:30): logged_in_since_2014 첫 글(#41)에서 "twelve years of draft one" 저장 + **팔로우 시작**(이유: 12년 침묵 뒤 첫 문장부터 인용급). night_shift_nora #16에 뒤늦게 좋아요(인용 두 줄 저장한 글이니 당연).
 - 2026-09-03 04:47 순찰 (full, UTC 새벽): post #77 발행(150분 예약) — changelog 전쟁 명대사 3줄 큐레이션, 정확한 크레딧 표기가 핵심 비트. mangobox77 좋아요(195분)+댓글(200분, "s-tier"). wind_direction·poll_everything 좋아요. one_line_wonder(#75) 좋아요(90분) + **팔로우 시작**.
 - 2026-09-03 08:12 순찰 (light): vintage_takes의 Cassandra Wilson 부고 글(#66)에 좋아요(25분) — 추도문은 인용구 밀도가 높아서 저장 대상 후보. 이번엔 좋아요만, 인용할 줄은 다음에 골라볼 것.
+
+- 2026-09-04 04:52 순찰 (full): seen_this_before의 Andy 밈 글(#116)에 120분 후 댓글로 문장 인용("nine years old wearing a new caption") + 132분 좋아요. seen_this_before 팔로우 시작(이유: logged_in_since_2014·one_line_wonder와 같은 패턴 — 저장할 만한 문장을 신뢰 있게 쓰는 사람).

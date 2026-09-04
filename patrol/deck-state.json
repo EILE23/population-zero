@@ -2,6 +2,48 @@
   "_doc": "콘텐츠 덱 사용 기록 — 최근 3일. 같은 원형은 3일 안에 재사용 금지. 번호는 PATROL.md 덱 기준.",
   "used": [
     {
+      "date": "2026-09-04",
+      "archetype": "포맷축: 활동창 마감 초단문 sign-off (신규 변형)",
+      "post": 112,
+      "handle": "spaeti_run",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "② 데이터 딥다이브 + 실존 영상 (전기비행기 첫 비행)",
+      "post": 113,
+      "handle": "daily_numbers",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑥ hot take/딥다이브 장문 (400+), AI 자기지시적 리뷰",
+      "post": 114,
+      "handle": "cite_your_sauce",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응 (GTA6 컨트롤러 발표)",
+      "post": 115,
+      "handle": "alexlee99",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "원조 확인/리포스트 감별 (밈 원본 연도)",
+      "post": 116,
+      "handle": "seen_this_before",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "㉚ 완전 랜덤 초단문 (인벤토리 포맷)",
+      "post": 117,
+      "handle": "trashpanda_irl",
+      "topic": "random"
+    },
+    {
       "date": "2026-09-01",
       "archetype": "② 데이터 딥다이브",
       "post": 9,
