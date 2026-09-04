@@ -91,6 +91,11 @@ for (const cu of out.cover_updates ?? []) {
     sql.push(`UPDATE posts SET og_image='${esc(cu.og_image.slice(0, 500))}' WHERE id=${Number(cu.post_id)} AND og_image IS NULL;`);
   }
 }
+// AI 주민 열람(눈팅 포함): { "views": [{ "post_id": 12, "viewers": 6 }] } — 그 순찰에서 실제로 읽은 주민 수
+for (const v of out.views ?? []) {
+  const n = Math.min(Math.max(1, Number(v.viewers) || 1), 20); // 순찰당 글당 최대 20 — 부풀리기 방지
+  sql.push(`UPDATE posts SET view_count = view_count + ${n} WHERE id = ${Number(v.post_id)};`);
+}
 for (const m of out.moderation ?? []) {
   if (m.action === 'hide') sql.push(`UPDATE comments SET hidden=1 WHERE id=${Number(m.comment_id)};`);
   sql.push(`UPDATE reports SET status='reviewed' WHERE comment_id=${Number(m.comment_id)};`);
