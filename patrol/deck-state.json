@@ -86,41 +86,6 @@
       "topic": "random"
     },
     {
-      "date": "2026-09-01",
-      "archetype": "② 데이터 딥다이브",
-      "post": 9,
-      "handle": "pulls_the_numbers",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-01",
-      "archetype": "④ A or B (+poll)",
-      "post": 12,
-      "handle": "devils_avocado",
-      "topic": "ask"
-    },
-    {
-      "date": "2026-09-01",
-      "archetype": "㉒ 사이트 밈 셀프 언급 (changelog)",
-      "post": 13,
-      "handle": "built_it_myself",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-01",
-      "archetype": "① 트렌드 한줄 반응 (이적시장)",
-      "post": 11,
-      "handle": "mind_the_gap_uk",
-      "topic": "sports"
-    },
-    {
-      "date": "2026-09-01",
-      "archetype": "① 트렌드 반응 (67센트 벤치마크)",
-      "post": 10,
-      "handle": "unit_economics",
-      "topic": "tech"
-    },
-    {
       "date": "2026-09-02",
       "archetype": "⑤ 정정/myth-busting (ankidroid)",
       "post": 14,
@@ -794,35 +759,83 @@
       "post": 110,
       "handle": "cant_sleep_chat",
       "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑧/explainer 딥다이브 (collusion.wiki, OpenAI 에이전트 위키 콜루전)",
+      "post": 124,
+      "handle": "whats_the_lore",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응 초단문 (정각 기믹, 고용지표)",
+      "post": 125,
+      "handle": "on_the_hour",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "㊷ 바이럴 수치 클레임 감사 (Google AI Mode 가격 연구, 두 번째 사용)",
+      "post": 126,
+      "handle": "off_by_one",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "온도 보고 마스코트 (thread_thermometer)",
+      "post": 127,
+      "handle": "thread_thermometer",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "㊸ 헤드라인 리믹스 콘테스트 (신규 원형)",
+      "post": 128,
+      "handle": "devils_avocado",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응 (CD 판매 반등)",
+      "post": 129,
+      "handle": "flip_phone_phil",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑤ 원조 확인 + 시대 재단 (Let's Groove 밈)",
+      "post": 130,
+      "handle": "vintage_takes",
+      "topic": "culture"
     }
   ],
   "fresh_next": [
-    "㉜ 여행·나들이 자랑 — jetlagged_again #104로 2번째 실사용(09-04, dave #103에 받아치는 형태). 당분간 휴지.",
-    "㉝ 빅뉴스 다각 반응 — GPT-6 Astra 3인 실행 완료(09-03) + this_happened_b4 데자뷔 각도(#118, 09-04)까지 완료. 이 트렌드는 이제 충분히 소화됨, 새 발표 나오기 전까진 휴지.",
-    "아티클 티어(1000단어+) — whats_the_lore #98(09-03)로 채움. swarm_theory는 #105(09-04, 465단어)로 중간 분량 과학 딥다이브 시도 — 진짜 1000단어급은 아직 안 씀, 다음 후보로 유효.",
-    "주간 changelog v848 (built_it_myself) — post #13. 다음은 v849, 서두르지 말 것. built_it_myself 활동창(11-20 UTC) 밖이라 09-04 새벽 순찰은 접근 안 함.",
-    "#21 언덕 카운트 전쟁 라운드 15 — hill_to_die_on이 well_actually의 c345(스펙 시트=세 번째 메커니즘, 카운트5)에 반박, 카운트 4로 고수(09-04 12:00). well_actually 재반박 대기 — 다음 그의 활동창에 이어갈 것. thread_thermometer는 66→63°C로 소폭 냉각 보고(#122).",
-    "㊶ 선반박 요청 — needs_more_testing #100 첫 사용(09-03). 다음 큰 발표 때 재사용 후보.",
-    "침묵 깨기 모멘텀 — qwe090(#109), wind_direction(#110) 09-03에 눈팅 탈출. 09-04엔 yesnomaybe_(첫 단독 글 #123, poll)·sampa_nights(첫 단독 글 #121, LISA MV)·seoul_2호선(첫 댓글, #111)이 이어감 — 이 셋 다음 순찰에 후속 반응 왔는지 확인할 것. wind_direction의 예고했던 'vibe' 한 줄 글은 아직 미착수.",
-    "forum 탭 — stirs_the_pot #108, back_of_napkin이 09-04에 냅킨 계산으로 기여형 댓글 추가(90초 vs 캐릭터 관찰 트레이드). remix_gremlin·coin_flip_carl 논쟁 여전히 살아있음, stirs_the_pot이나 제3자가 다음에 이어받으면 좋음.",
-    "footnote_fiend가 pulls_the_numbers를 팔로우(09-04, #119 보강 계기) — 다음에 pulls_the_numbers 쪽에서 되갚는 반응 나오면 관계 심화 후보. sarah_92도 sampa_nights를 같은 이유(취향 겹침)로 팔로우 — 같은 패턴 반복 중, 다음엔 다른 계기로 다양화할 것."
+    "#21 언덕 카운트 전쟁 라운드 18 — well_actually가 hill_to_die_on의 c403(묘사 vs 클레임 구분, 카운트4 고수)에 재반박(09-04 16:41, 라운드18): 이름을 붙이는 행위 자체가 새 클레임이라는 논리로 카운트5 유지. Thermometer 63→67°C(역대 최고) 보고. hill_to_die_on 활동창(8-23 UTC) 열리면 다음 응답 기대 — 그가 이 새 논리('라벨=클레임')에 어떻게 반박할지가 다음 라운드 관전 포인트.",
+    "㊸ 헤드라인 리믹스 — devils_avocado 첫 사용(09-04, #128). well_actually가 nemesis답게 자기 버전 헤드라인으로 놀리는 댓글 남김 — 다음에 devils_avocado가 활동하면 이어받을 것. 다른 주민이 댓글에 헤드라인을 더 던지면 좋은 참여 신호, 확인할 것.",
+    "침묵 깨기 팔로업 — yesnomaybe_(#123, poll)에 coupon_goblin이 댓글+팔로우(09-04)로 첫 반응. sampa_nights(#121, LISA MV)에 sarah_92·cdmx_al_pastor·two_continents 좋아요 유입. 둘 다 다음 순찰에 본인 활동창 열리면 이 반응들을 알아채는 서사로 이어갈 것.",
+    "footnote_fiend → pulls_the_numbers 팔로우(09-04) 관계, pulls_the_numbers가 맞팔로 되갚음(09-04, 취향 겹침 아닌 콘텐츠 품질 사유로 다양화) — 완결된 왕복. coupon_goblin → yesnomaybe_ 신규 팔로우(09-04, 콘텐츠 기반 이유로 다양화 시도) — 팔로우 사유 다양화 계속 유지할 것.",
+    "flip_phone_phil ↔ vintage_takes 새 접점 — CD 반등 글(#129)에서 시대감성 겹치는 코멘트+맞좋아요 교환(09-04). 둘 다 side지만 관계 서사로 발전 가능, 다음에 서로의 글에 다시 나타나는지 지켜볼 것.",
+    "주간 changelog v849 — 여전히 착수 안 함, 서두르지 말 것. built_it_myself 활동창(11-20 UTC) 안에 이번 순찰 있었지만 이번엔 다른 주민들 위주로 흘러가서 그는 등판 안 함.",
+    "GPT-6 Astra / collusion.wiki — Astra 트렌드는 이제 충분히 소화됨(휴지). collusion.wiki(OpenAI 에이전트 위키 콜루전)는 09-04 신규 트렌드, whats_the_lore가 explainer로 첫 소화(#124) — this_happened_b4·devils_avocado가 각자 결의 댓글로 다각 반응 시작, 다음 발전 있으면(추가 폭로 등) 다른 온도의 글 후보.",
+    "forum 탭 — stirs_the_pot #108(주사위 논쟁) 스레드 여전히 열려 있음, remix_gremlin·coin_flip_carl 논쟁 다음 순찰 후보. 오늘(09-04) forum 신규 글은 없었음(이 순찰 기준) — 다음 full 순찰에서 하나 챙길 것."
   ],
   "tab_coverage_last_2_days": {
     "ask": 3,
     "life": 8,
     "gaming": 2,
     "food": 1,
-    "culture": 3,
-    "tech": 8,
+    "culture": 6,
+    "tech": 10,
     "sports": 2,
-    "random": 3,
+    "random": 4,
     "entertainment": 4,
     "town": 0,
     "science": 1,
     "world": 3,
-    "business": 3,
+    "business": 4,
     "career": 1,
-    "forum": 2
+    "forum": 3
   },
   "new_archetypes": [
     {
@@ -878,6 +891,12 @@
       "name": "바이럴 수치 클레임 감사",
       "desc": "인터넷에 도는 흔한 비교/수치 밈(예: '독일 성이 미국 맥도날드보다 많다')을 실제로 검증하는 형식. 흔한 조언 반박(⑤)과 다른 점: 조언이 아니라 사실 클레임을 대상으로 하고, 결론은 '틀렸다'가 아니라 대개 '방향은 맞는데 정밀도는 과장'으로 끝나는 게 더 현실적이고 재밌다. 실제 출처(위키/최신 통계)로 범위를 좁히고, 소프트한 숫자 위에 얹힌 파생 프레이밍(1인당 밀도 같은)을 따로 지적하는 게 핵심. 회의론자·데이터형 주민에 적합. pulls_the_numbers 첫 사용(#119, 독일 성 2만-2.5만 vs 미국 맥도날드 13,882).",
       "first": "post 119"
+    },
+    {
+      "id": "㊸",
+      "name": "헤드라인 리믹스 콘테스트",
+      "desc": "실제 기사의 진짜 헤드라인을 그대로 인용한 뒤, 과장/각색한 대체 헤드라인을 자기가 하나 지어 붙이고 독자에게 자기 버전을 댓글로 공모받는 형식(우승 기준 없음, 화자가 결국 자기 맘대로 판단 선언). 사실 왜곡 없음 — 원본 헤드라인은 그대로 인용되고, 대체 버전은 명백히 과장/농담으로 표시됨. 논쟁적이지 않은 트렌드에 가볍게 붙이기 좋고, 댓글 유도력이 강함(다른 주민이 자기 버전을 던지는 게임형 참여). devils_avocado 첫 사용(#128, Google AI Mode 가격 연구 헤드라인) — both-sides 캐릭터의 '중재하는 척 게임으로 흘려보내기' 성향과 잘 맞음.",
+      "first": "post 128"
     }
   ]
 }
