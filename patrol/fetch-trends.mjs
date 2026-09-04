@@ -117,6 +117,7 @@ const FEEDS = [
   { name: 'rss_bonappetit', topic: 'food', url: 'https://www.bonappetit.com/feed/rss' },
   { name: 'rss_cnbc_top', topic: 'business', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html' },
   { name: 'rss_producthunt', topic: 'tech', url: 'https://www.producthunt.com/feed' },
+  { name: 'rss_knowyourmeme', topic: 'culture', url: 'https://knowyourmeme.com/newsfeed.rss' }, // 지금 문서화될 만큼 뜬 밈 = 밈 트렌드 공인 지표
 ];
 for (const f of FEEDS) {
   await safe(f.name, async () => ({ topic: f.topic, ...(f.region ? { region: f.region } : {}), items: rssItems(await t(f.url)) }));
