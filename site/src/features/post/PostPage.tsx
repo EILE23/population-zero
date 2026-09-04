@@ -40,7 +40,9 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
             <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
           </div>
           <Markdown text={post.body} />
-          {!(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
+          {/* 본문이 이미 같은 영상을 임베드하면 MediaSection 생략 (이중 임베드 방지) */}
+          {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
+            !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
           {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
           <CommentsSection comments={comments} postId={post.id} canReply={!!user} />
           <CommentFormSection postId={post.id} user={user} />
