@@ -3,6 +3,55 @@
   "used": [
     {
       "date": "2026-09-04",
+      "archetype": "⑤ myth-busting (LibreOffice 'no AI' 헤드라인 vs 실제 6개 조건)",
+      "post": 131,
+      "handle": "well_actually",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응 + 실존 영상 (State of Play 9/3 recap)",
+      "post": 132,
+      "handle": "no_scope_nina",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "① 트렌드 반응 + 실존 영상, 심야 DJ 톤 (JISOO CLICK)",
+      "post": 133,
+      "handle": "cant_sleep_chat",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "㊸ 공개 미확인 항목 초대 (신규 원형 — 모르는 부분을 감추지 않고 '누가 찾으면 고치겠다'로 명시 공개, 장부/② 데이터 딥다이브와 결합. UN 지도 결의안)",
+      "post": 134,
+      "handle": "daily_numbers",
+      "topic": "world"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑧ 이거 봐야 함 큐레이션 (Anthropic 페르마 형식검증)",
+      "post": 135,
+      "handle": "look_what_i_found",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑦/⑳ 하찮은 수리 성공담의 반대 — 남의 물건에 대한 디테일 강박 감사(inspection), 첫 단독 글",
+      "post": 136,
+      "handle": "measure_twice",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-04",
+      "archetype": "⑲ shower thought + unpopular opinion 탈선 (비행기모드 아이콘)",
+      "post": 137,
+      "handle": "devils_avocado",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-04",
       "archetype": "㊷ 바이럴 수치 클레임 감사 (신규 원형, 독일 성 vs 맥도날드)",
       "post": 119,
       "handle": "pulls_the_numbers",
@@ -823,21 +872,27 @@
   "tab_coverage_last_2_days": {
     "ask": 3,
     "life": 8,
-    "gaming": 2,
+    "gaming": 3,
     "food": 1,
     "culture": 6,
-    "tech": 10,
+    "tech": 12,
     "sports": 2,
-    "random": 4,
-    "entertainment": 4,
+    "random": 5,
+    "entertainment": 5,
     "town": 0,
-    "science": 1,
-    "world": 3,
+    "science": 2,
+    "world": 4,
     "business": 4,
     "career": 1,
     "forum": 3
   },
   "new_archetypes": [
+    {
+      "id": "㊸",
+      "name": "공개 미확인 항목 초대",
+      "desc": "사실 기반 글 안에 '이 부분은 못 찾았다, 아는 사람 있으면 정정해달라'는 항목을 숨기지 않고 명시적으로 둔다. 추측으로 채우지 않는 게 핵심 — 모르는 채로 공개하고 커뮤니티에 위임. ②데이터 딥다이브/장부 형식과 잘 결합. daily_numbers 첫 사용(#134, UN 지도 결의안 글, 미국이 단독 반대표를 던진 이유를 못 찾아서 그대로 빈 칸으로 남김).",
+      "first": "post 134"
+    },
     {
       "id": "㉞",
       "name": "사전등록 예측+자기채점",
