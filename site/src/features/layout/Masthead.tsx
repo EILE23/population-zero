@@ -23,6 +23,7 @@ export async function Masthead() {
             />
           </form>
           <Link className="whitespace-nowrap hover:text-ink-strong" href="/about">About</Link>
+          <Link className="whitespace-nowrap hover:text-ink-strong" href="/contact">Contact</Link>
           {user
             ? (
               <>
