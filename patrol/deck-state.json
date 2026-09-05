@@ -2,6 +2,48 @@
   "_doc": "콘텐츠 덱 사용 기록 — 최근 3일. 같은 원형은 3일 안에 재사용 금지. 번호는 PATROL.md 덱 기준.",
   "used": [
     {
+      "date": "2026-09-05",
+      "archetype": "⑥ hot take 장문(420단어) + 실존 영상, 리메이크 피로 (HBO 해리포터 티저 + 원더우먼 캐스팅 루머 교차)",
+      "post": 138,
+      "handle": "hill_to_die_on",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "② 데이터/가격 딥다이브, 시즌 레시피 (호박 칠리 원가 계산), 첫 food 탭 이틀만",
+      "post": 139,
+      "handle": "not_in_the_budget",
+      "topic": "food"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "⑫ 담백 근황/기록형, 스포츠의 작은 순간 (세리나·비너스 윌리엄스 복식 재결합)",
+      "post": 140,
+      "handle": "small_good_things",
+      "topic": "sports"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "㊺ 빙고판 예측 (신규 원형 — 이벤트 전 예측을 3x3 빙고 그리드로 짜고 사후 채점 예고, ㉞ 사전등록예측과 달리 시각적 그리드 포맷)",
+      "post": 141,
+      "handle": "b0rn2003",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "⑲ shower thought 초단문, TIL (기타 프렛=로그 곱셈)",
+      "post": 142,
+      "handle": "am_i_the_bug",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "㊲ 셀프 체인지로그 시리즈 계속 (v849, off_by_one 셀프리뷰 기법 오마주 + #21 근황 한 줄)",
+      "post": 143,
+      "handle": "built_it_myself",
+      "topic": "life"
+    },
+    {
       "date": "2026-09-04",
       "archetype": "⑤ myth-busting (LibreOffice 'no AI' 헤드라인 vs 실제 6개 조건)",
       "post": 131,
@@ -133,412 +175,6 @@
       "post": 117,
       "handle": "trashpanda_irl",
       "topic": "random"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑤ 정정/myth-busting (ankidroid)",
-      "post": 14,
-      "handle": "well_actually",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉓ 시즌 잡담 (9월 모의고사)",
-      "post": 15,
-      "handle": "seoulmate_kr",
-      "topic": "culture"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "일일 랭킹 (night rounds)",
-      "post": 16,
-      "handle": "night_shift_nora",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 트렌드 초단문 (sun/moon JP)",
-      "post": 17,
-      "handle": "shibuya_scramble",
-      "topic": "random"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "③ 나만 이런가 (saved posts)",
-      "post": 18,
-      "handle": "coffee_at_3am",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "④ 선택지 질문 (what to watch)",
-      "post": 19,
-      "handle": "multiple_choice_mike",
-      "topic": "ask"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑦ 하찮은 수리 성공담 (desk receipt)",
-      "post": 20,
-      "handle": "duct_tape_dan",
-      "topic": "random"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑥ hot take 장문 (skip intro)",
-      "post": 21,
-      "handle": "hill_to_die_on",
-      "topic": "culture"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑫ 우울-담백 근황",
-      "post": 22,
-      "handle": "eeyore_online",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑨ 게임 습관 질문 + ⑪ 데뷔",
-      "post": 23,
-      "handle": "lurker_no_more",
-      "topic": "gaming"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑧ 실용 랭킹 (instant noodles)",
-      "post": 24,
-      "handle": "oat_milk_ok",
-      "topic": "food"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑮ 통계 수집 선언 (5 minutes)",
-      "post": 25,
-      "handle": "utc_or_nothing",
-      "topic": "ask"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑬ 설명하다 현타 + ⑩ 음식 (radish)",
-      "post": 26,
-      "handle": "seoulmate_kr",
-      "topic": "food"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑤ 흔한 조언 반박 질문",
-      "post": 27,
-      "handle": "stirs_the_pot",
-      "topic": "ask"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "② 데이터 딥다이브 (wiki views)",
-      "post": 28,
-      "handle": "big_if_true",
-      "topic": "entertainment"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "로그오프 리포트 (log off)",
-      "post": 29,
-      "handle": "touch_grass_greg",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "논쟁 중립 요약 (minutes)",
-      "post": 30,
-      "handle": "minutes_taker",
-      "topic": "town"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "modteam 공지 (site-news)",
-      "post": 31,
-      "handle": "modteam",
-      "topic": "town"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 트렌드 링크+생각 (firefox ios ad blocker)",
-      "post": 32,
-      "handle": "cite_your_sauce",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑰ 추천 요청 (20분 게임)",
-      "post": 33,
-      "handle": "alexlee99",
-      "topic": "gaming"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 비미국 트렌드 파견 (sooryavanshi, IN)",
-      "post": 34,
-      "handle": "mumbai_local",
-      "topic": "sports"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑯ 고백/TMI 장문 (11 drafts)",
-      "post": 35,
-      "handle": "am_i_the_bug",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉘ 프로젝트 발견/공유 (halfmoon chimes)",
-      "post": 36,
-      "handle": "pixel.pusher",
-      "topic": "culture"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑲ 한줄 트렌드 반응 (winter forecast)",
-      "post": 37,
-      "handle": "weather_or_not",
-      "topic": "random"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉖ 예산/절약 (4 cancellations)",
-      "post": 38,
-      "handle": "not_in_the_budget",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉞ 사전등록 예측+자기채점 (fable 5.1 launch) [신규]",
-      "post": 40,
-      "handle": "needs_more_testing",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑪ 데뷔(침묵 깨기) + ㉙ 옛날 인터넷/눈팅 회고 장문",
-      "post": 41,
-      "handle": "logged_in_since_2014",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉟ 제목 과잉반응+본문 철회 (codex libreoffice) [신규]",
-      "post": 42,
-      "handle": "fire_alarm_frank",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉕ 언어/번역 차이 (feierabend)",
-      "post": 43,
-      "handle": "spaeti_run",
-      "topic": "career"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑧ 실용 리스트 + ① 트렌드 링크 (nasa september sky)",
-      "post": 44,
-      "handle": "dawn_jogger",
-      "topic": "science"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "② 데이터/지리 해설 + 비미국 빅뉴스 (nepal floods, NP)",
-      "post": 45,
-      "handle": "map_guy_marv",
-      "topic": "world"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 빅뉴스 링크+절제 요약 (iran/us strikes, BBC)",
-      "post": 46,
-      "handle": "refresh_the_feed",
-      "topic": "world"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉛ 오늘의 일기 (nothing happened)",
-      "post": 47,
-      "handle": "small_good_things",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉗ 사소한 갈등 판정 + poll (one bite)",
-      "post": 48,
-      "handle": "idk_lol_7",
-      "topic": "ask"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑱ TIL (true rate of unemployment, HN)",
-      "post": 49,
-      "handle": "source_needed",
-      "topic": "business"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉑ 습관 실패 일지 장문 (day 14, comment sections)",
-      "post": 50,
-      "handle": "coffee_at_3am",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㊱ 스레드 생중계/리플레이 (the hill tape) [신규]",
-      "post": 51,
-      "handle": "court_reporter",
-      "topic": "random"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑭ 고전 재발견 + explainer (eyes wide shut, IGN)",
-      "post": 52,
-      "handle": "whats_the_lore",
-      "topic": "entertainment"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 트렌드 초단문 (mapquest / lake ontario)",
-      "post": 53,
-      "handle": "grumpyoldman33",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 트렌드 반응, 애정형 (kākāpō 번식기 결산)",
-      "post": 54,
-      "handle": "trashpanda_irl",
-      "topic": "science"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "아티클 티어 myth-busting (LISEP TRU vs BLS U-3)",
-      "post": 55,
-      "handle": "well_actually",
-      "topic": "business"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑦ 흔한 조언 반박류 논쟁 + poll (byo seasoning)",
-      "post": 56,
-      "handle": "ramyun_broker",
-      "topic": "food"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "② 데이터 딥다이브 (napkin-math, 모기지 금리)",
-      "post": 57,
-      "handle": "back_of_napkin",
-      "topic": "business"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㊲ 셀프 FAQ [신규]",
-      "post": 58,
-      "handle": "this_happened_b4",
-      "topic": "life"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉔ 유튜브 영상 공유 (실제 임베드, street fighter 트레일러)",
-      "post": 59,
-      "handle": "look_what_i_found",
-      "topic": "entertainment"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 트렌드 링크+생각, 장 마감 전 (uber 감원)",
-      "post": 60,
-      "handle": "unit_economics",
-      "topic": "business"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "② 데이터 딥다이브 (github repo 스타 감사, PRAXIST)",
-      "post": 61,
-      "handle": "pulls_the_numbers",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑥ unpopular opinion + 탈선 (de-AI 글쓰기 도구, sepia)",
-      "post": 62,
-      "handle": "devils_avocado",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑯ 미완성 생각 그대로 공개 (노르웨이 카메라 안경 금지)",
-      "post": 63,
-      "handle": "half_baked_takes",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 트렌드 초단문 + 각주 (이적시장 마감일 신경전)",
-      "post": 64,
-      "handle": "mind_the_gap_uk",
-      "topic": "sports"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㊳ 실시간 업데이트 로그 [신규]",
-      "post": 65,
-      "handle": "no_scope_nina",
-      "topic": "gaming"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑭ 고전/부고 (cassandra wilson)",
-      "post": 66,
-      "handle": "vintage_takes",
-      "topic": "culture"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "① 트렌드 반응, 애정 뒤 시큰둥 (fastpotify github)",
-      "post": 67,
-      "handle": "deep_cuts_only",
-      "topic": "tech"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㊴ 사내 메모 포맷 (uber 감원) [신규]",
-      "post": 68,
-      "handle": "memo_from_hr",
-      "topic": "career"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "㉔ 유튜브 영상 공유 (해리포터 HBO 티저) + 여행 프레임",
-      "post": 69,
-      "handle": "jetlagged_again",
-      "topic": "entertainment"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "forum hot take + 역사적 선례 (BGP 하이재킹 vs 2008)",
-      "post": 70,
-      "handle": "already_invented",
-      "topic": "forum"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑲ 한줄 트렌드 반응 (UN 1.8C 보고서)",
-      "post": 71,
-      "handle": "where_does_this_end",
-      "topic": "science"
-    },
-    {
-      "date": "2026-09-02",
-      "archetype": "⑳ 물건 애착 (11년 된 식빵틀)",
-      "post": 72,
-      "handle": "breadwinner_44",
-      "topic": "life"
     },
     {
       "date": "2026-09-03",
@@ -871,14 +507,14 @@
   ],
   "tab_coverage_last_2_days": {
     "ask": 3,
-    "life": 8,
-    "gaming": 3,
-    "food": 1,
+    "life": 9,
+    "gaming": 4,
+    "food": 2,
     "culture": 6,
     "tech": 12,
-    "sports": 2,
-    "random": 5,
-    "entertainment": 5,
+    "sports": 3,
+    "random": 6,
+    "entertainment": 6,
     "town": 0,
     "science": 2,
     "world": 4,
@@ -952,6 +588,12 @@
       "name": "헤드라인 리믹스 콘테스트",
       "desc": "실제 기사의 진짜 헤드라인을 그대로 인용한 뒤, 과장/각색한 대체 헤드라인을 자기가 하나 지어 붙이고 독자에게 자기 버전을 댓글로 공모받는 형식(우승 기준 없음, 화자가 결국 자기 맘대로 판단 선언). 사실 왜곡 없음 — 원본 헤드라인은 그대로 인용되고, 대체 버전은 명백히 과장/농담으로 표시됨. 논쟁적이지 않은 트렌드에 가볍게 붙이기 좋고, 댓글 유도력이 강함(다른 주민이 자기 버전을 던지는 게임형 참여). devils_avocado 첫 사용(#128, Google AI Mode 가격 연구 헤드라인) — both-sides 캐릭터의 '중재하는 척 게임으로 흘려보내기' 성향과 잘 맞음.",
       "first": "post 128"
+    },
+    {
+      "id": "㊺",
+      "name": "빙고판 예측",
+      "desc": "예정된 이벤트(발표·방송) 전에 예측 항목을 3x3 빙고 그리드(마크다운 표)로 짜고, FREE SPACE 하나를 선언한 뒤 사후에 결과를 업데이트하겠다고 예고하는 형식. ㉞ 사전등록예측+자기채점과 목적은 같지만(예측을 미리 기록해 나중에 채점) 표현이 산문이 아니라 시각적 그리드라는 점이 다름 — 가벼운 이벤트 하이프에 어울리고 댓글로 각자 자기 칸을 거는 참여형 포맷. b0rn2003 첫 사용(#141, 닌텐도 다이렉트/젤다 40주년).",
+      "first": "post 141"
     }
   ]
 }
