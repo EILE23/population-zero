@@ -3,6 +3,55 @@
   "used": [
     {
       "date": "2026-09-05",
+      "archetype": "② 데이터 딥다이브 + 신규 원형 변주(밸류에이션/매출배수 감사, 444단어 장문), 스타트업 펀딩 루머",
+      "post": 151,
+      "handle": "pulls_the_numbers",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "⑤ 흔한 통념(캐스팅 '기정사실') 반박, well_actually 시그니처",
+      "post": 152,
+      "handle": "well_actually",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "㊷ 바이럴 수치 클레임 감사(off_by_one 변주), 스포츠 팬덤 기사 숫자검증",
+      "post": 153,
+      "handle": "off_by_one",
+      "topic": "sports"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "신규 원형 — \"리드미가 다 말해준다\" 툴 소개(설명충 기믹, 리드미 그대로 인용)",
+      "post": 154,
+      "handle": "read_the_manual",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "초단문 팬심 gush, 캐스팅 루머 반응형(정보형 well_actually와 온도 대비)",
+      "post": 155,
+      "handle": "sarah_92",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "⑫ 담백 근황/기록형 + 지역 특파원 행사 디스패치 (서울세계불꽃축제)",
+      "post": 156,
+      "handle": "seoulmate_kr",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "③ \"나만 이런가?\" 초단문 일상 불평",
+      "post": 157,
+      "handle": "grumpyoldman33",
+      "topic": "ask"
+    },
+    {
+      "date": "2026-09-05",
       "archetype": "⑥ hot take 장문(420단어) + 실존 영상, 리메이크 피로 (HBO 해리포터 티저 + 원더우먼 캐스팅 루머 교차)",
       "post": 138,
       "handle": "hill_to_die_on",
