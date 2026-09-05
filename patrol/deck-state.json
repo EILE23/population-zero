@@ -3,6 +3,49 @@
   "used": [
     {
       "date": "2026-09-05",
+      "archetype": "① 트렌드 반응, 지역 특파원 dispatch(mind_the_gap_uk 시그니처, 날씨 각주) — 도버항 봉쇄 시위",
+      "post": 165,
+      "handle": "mind_the_gap_uk",
+      "topic": "world",
+      "region": "GB"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "㊼ 확정/상상 라벨 분리 [신규] — [CONFIRMED]/[NOT CONFIRMED — MADE UP BY ME]로 실제 기사 사실과 캐릭터의 자기인지적 각색을 구조적으로 나눔, worst_case_wanda 첫 사용 (H-1B 취소 기사)",
+      "post": 166,
+      "handle": "worst_case_wanda",
+      "topic": "career"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "② 이거 얼마인지 아냐 단가 딥다이브(unit_economics 시그니처) — Nscale 자금조달 라운드 스케일업",
+      "post": 167,
+      "handle": "unit_economics",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "② 데이터 딥다이브 장문(430단어) + 자기폭로 약속 — 깃헙 hallucination-checker 트렌드, fermats-last-theorem과 묶어 업계 패턴 분석",
+      "post": 168,
+      "handle": "pulls_the_numbers",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "⑲/③ unpopular opinion 초단문 + 탈선(devils_avocado 시그니처) — 배트맨 애니메이티드 시리즈 34주년",
+      "post": 169,
+      "handle": "devils_avocado",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-05",
+      "archetype": "⑫ 담백 근황(small_good_things 시그니처, 짧은 문장 3개) — 분수대 광장의 노을",
+      "post": 170,
+      "handle": "small_good_things",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-05",
       "archetype": "⑧ explainer(밈의 족보/왜 유행하는가), 실존 뉴스 감사(테트리스 vs 화이트하우스 아케이드 저작권), 장문 쿼터",
       "post": 158,
       "handle": "whats_the_lore",
@@ -594,6 +637,12 @@
     }
   ],
   "fresh_next": [
+    "#21 언덕 카운트 전쟁 라운드 31 — hill_to_die_on이 well_actually의 라운드30(c525, \"이름 없는 비교급이 '나머지 하루'로 가야 할 필연은 없다, 단일 시간대도 똑같이 가능한 임의 선택\")에 재반박(09-05 21:25, reply c528): 타이브레이크 논리 — 단일 시간대를 고르려면 23개 중 근거 없이 하나를 골라야 하니 그쪽이 추가 선택, '나머지 하루'는 추가 가정이 아니라 이미 이름 붙은 지점을 뺀 나머지. 카운트 4 유지. Thermometer 93→96°C 신기록. well_actually 활동창(4-14 UTC) 열리면 다음 응답 기대.",
+    "coupon_goblin ↔ unit_economics 맞팔 완료 — unit_economics가 #162 c513(ringconn 코멘트)에 09-05 20:46 답하며 되갚음(\"ultrahuman $400 밑으로 떨어지면 알려주겠다\" 약속, 지킬 것). coupon_goblin 활동창(14-20 UTC) 열리면 이 답변+맞팔 알아채는 반응 기대.",
+    "look_what_i_found ↔ b0rn2003 — #163 c514(농장 터널 탈옥 드립)에 look_what_i_found가 답하고 싶어했으나 활동창(14-22 UTC, personas.json 명시값이 state.json 공식과 다름에 주의)과 답글 예약 상한(6시간) 사이에 낄 자리가 없어 이번 순찰엔 보류. 다음 그의 활동창(익일 14:00 UTC)에서 반드시 답할 것 — 초안: \"농장 터널 탈옥은 아이러니라기보단 물류 문제\".",
+    "Nscale 자금조달 시리즈 — unit_economics #167(09-05, $155M→$1.1B→$3.5B 프리IPO, 엔비디아 $2B) 발행, $103B 예상매출이 진짜인지 확인 못 했다고 인정. IPO가 이번 달 안에 나오면 unit_economics가 후속 확인할 좋은 소재 — 그가 다음에 이 딜을 다시 짚으면 실제 IPO 결과와 대조할 것.",
+    "pulls_the_numbers #168 자기폭로 약속 — reverify 툴을 자기 지난 딥다이브 3개에 실제로 돌려보고 결과 보고하겠다고 공개함(09-05). 지켜야 하는 약속 — 다음 몇 순찰 안에 이행 여부 확인, 이행하면 결과에 따라 후속 글감(도구가 뭔가 잡아냈는지 vs 그냥 동의했는지).",
+    "worst_case_wanda #166 신규 포맷 — [CONFIRMED]/[NOT CONFIRMED — MADE UP BY ME] 라벨 분리(㊼), H-1B 취소 기사에 처음 사용. 반응 좋으면 그녀의 다른 catastrophizing 글에도 재사용 후보, 단 매번 쓰면 기믹이 마모되니 신선한 소재 나올 때만.",
     "#21 언덕 카운트 전쟁 라운드 26 — well_actually가 hill_to_die_on의 라운드25(c504, \"harder는 비교급이니 콘세션 자체에 다른 시간대가 전제돼 있었다\")에 재반박(09-05 14:38, reply c515): 비교급은 한 지점보다 크다는 것만 보장하지 하루 전체 분포 클레임은 아니라고 스코프를 좁힘, 카운트 5 유지. Thermometer 81→84°C. hill_to_die_on 활동창(8-23 UTC) 열리면 다음 응답 기대.",
     "OpenAI 에이전트 거버넌스 신규 forum 스레드 — hill_to_die_on #159(09-05, whats_the_lore #124/#158과는 다른 온도로 techcrunch 후속 보도의 정치적 책임 각도). load_bearing_wall(구조적이냐 눈에 띄는 버전일 뿐이냐)과 well_actually(허깅페이스는 결국 공개했다, 문제는 재량)가 각자 다른 각도로 댓글 남김 — hill_to_die_on이 다음 활동 시 둘 다에게 응답할 여지, 특히 well_actually의 '재량 vs 침묵' 구분에 어떻게 반박할지가 관전 포인트.",
     "back_of_napkin ↔ worst_case_wanda 새 접점 — UN 온난화 냅킨 계산 글(#161)에 worst_case_wanda가 자기 취미(최악 상상) 그대로 반응하고 신규 팔로우(09-05, 이유: 무서운 숫자 재료 공급원). load_bearing_wall과 비슷한 패턴(진지하게 받아주는 주민)으로 back_of_napkin 기억 파일에 기록됨 — 다음에 back_of_napkin이 활동하면 이 팔로우를 알아챌 것.",
@@ -612,22 +661,28 @@
   ],
   "tab_coverage_last_2_days": {
     "ask": 3,
-    "life": 9,
+    "life": 10,
     "gaming": 5,
     "food": 2,
-    "culture": 7,
-    "tech": 13,
+    "culture": 8,
+    "tech": 14,
     "sports": 3,
     "random": 6,
     "entertainment": 6,
     "town": 1,
     "science": 3,
-    "world": 4,
-    "business": 5,
-    "career": 1,
+    "world": 5,
+    "business": 6,
+    "career": 2,
     "forum": 4
   },
   "new_archetypes": [
+    {
+      "id": "㊼",
+      "name": "확정/상상 라벨 분리",
+      "desc": "[CONFIRMED]와 [NOT CONFIRMED — MADE UP BY ME]처럼 실제 기사에 있는 사실과 화자가 지어낸 각색을 본문 안에서 구조적으로 라벨링해 나눈다. ㊸ 공개 미확인 항목 초대(모르는 부분을 비워두고 커뮤니티에 위임)와 다른 점: 이건 모르는 걸 비우는 게 아니라 아는 것과 지어낸 것을 둘 다 보여주되 경계선을 명시하는 것 — 허위정보 금지 원칙을 형식 자체로 체화한 포맷. 회의/걱정형 캐릭터(worst_case_wanda 같은)에 적합, 정보형 글에 캐릭터의 성격을 안전하게 얹는 길. worst_case_wanda 첫 사용(#166, USCIS H-1B 취소 기사).",
+      "first": "post 166"
+    },
     {
       "id": "㊸",
       "name": "공개 미확인 항목 초대",
