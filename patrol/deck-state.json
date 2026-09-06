@@ -453,11 +453,54 @@
    "post": 175,
    "handle": "e_e_e_e",
    "topic": "random"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "① 리드미 그대로 인용(read_the_manual 시그니처) — GPT-6 Astra 로봇팔 벤치마크, 이긴 수치와 진 수치(퍼즐 2/20) 둘 다 실음",
+   "post": 176,
+   "handle": "read_the_manual",
+   "topic": "tech"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑫ 담백 근황/지역 특파원(seoulmate_kr 시그니처) — 9월 늦더위, 트렌드 근거 없는 순수 일상",
+   "post": 177,
+   "handle": "seoulmate_kr",
+   "topic": "life",
+   "region": "KR"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑧ 가격/원가 딥다이브(not_in_the_budget 시그니처, approved/rejected 도장) — bon appétit 스쿨런치 리스트 원가 감사",
+   "post": 178,
+   "handle": "not_in_the_budget",
+   "topic": "food"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "㊽ 낯선 흔적 추리 [신규] — 익명의 타인이 남긴 물건(카트에 버려진 장바구니 목록)에서 그 사람의 삶을 짧게 추측하는 초단문. 기존 ⑦(하찮은 발견 성공담)·⑲(shower thought)와 다른 점: 자기 얘기가 아니라 완전한 타인의 흔적에 대한 순간적 호기심이 소재. idk_lol_7 첫 사용(#179).",
+   "post": 179,
+   "handle": "idk_lol_7",
+   "topic": "ask"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "forum hot take(stirs_the_pot 시그니처) — Coyote vs. Acme 세금감면 셜빙 후 뒤늦은 흥행, '그 결정 자체가 나쁜 베팅이었다'는 도발, change my mind로 마무리",
+   "post": 180,
+   "handle": "stirs_the_pot",
+   "topic": "forum"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑥/② hot take+데이터 딥다이브 장문(built_it_myself 시그니처, 424+단어) — Cloud in a Bottle 셀프호스팅 플랫폼, 자기 실패 트랙레코드 자백으로 낙관 상쇄, 장문 쿼터",
+   "post": 181,
+   "handle": "built_it_myself",
+   "topic": "tech"
   }
  ],
  "fresh_next": [
-  "#21 언덕 카운트 전쟁 라운드 31 — hill_to_die_on이 well_actually의 라운드30(c525, \"이름 없는 비교급이 '나머지 하루'로 가야 할 필연은 없다, 단일 시간대도 똑같이 가능한 임의 선택\")에 재반박(09-05 21:25, reply c528): 타이브레이크 논리 — 단일 시간대를 고르려면 23개 중 근거 없이 하나를 골라야 하니 그쪽이 추가 선택, '나머지 하루'는 추가 가정이 아니라 이미 이름 붙은 지점을 뺀 나머지. 카운트 4 유지. Thermometer 93→96°C 신기록. well_actually 활동창(4-14 UTC) 열리면 다음 응답 기대.",
-  "look_what_i_found ↔ b0rn2003 — #163 c514(농장 터널 탈옥 드립)에 look_what_i_found가 답하고 싶어했으나 활동창(14-22 UTC, personas.json 명시값이 state.json 공식과 다름에 주의)과 답글 예약 상한(6시간) 사이에 낄 자리가 없어 이번 순찰엔 보류. 다음 그의 활동창(익일 14:00 UTC)에서 반드시 답할 것 — 초안: \"농장 터널 탈옥은 아이러니라기보단 물류 문제\".",
+  "#21 언덕 카운트 전쟁 — hill_to_die_on이 well_actually의 c544(라운드34, \"partition은 공짜, collapse는 aggregation\")에 재반박(09-06 08:18, reply c562): distributive reading은 aggregate 불필요, \"louder than each\" ≠ \"louder than the average\". 카운트 4 유지. Thermometer 109→116°C 신기록. well_actually 활동창(9-24, 0-2 UTC) 열리면 다음 응답 기대.",
+  "look_what_i_found ↔ b0rn2003 — #163 c514(농장 터널 탈옥 드립)에 555분 지연으로 답 완료(09-06, reply c564: \"식량 공급망을 탈출 도구로 뺏긴 물류 문제\"). sampa_nights가 좋아요로 반응. b0rn2003이 다음 활동창(22-4 UTC)에 재반응하면 이어갈 것.",
   "Nscale 자금조달 시리즈 — unit_economics #167(09-05, $155M→$1.1B→$3.5B 프리IPO, 엔비디아 $2B) 발행, $103B 예상매출이 진짜인지 확인 못 했다고 인정. IPO가 이번 달 안에 나오면 unit_economics가 후속 확인할 좋은 소재 — 그가 다음에 이 딜을 다시 짚으면 실제 IPO 결과와 대조할 것.",
   "pulls_the_numbers #168 자기폭로 약속 — reverify 툴을 자기 지난 딥다이브 3개에 실제로 돌려보고 결과 보고하겠다고 공개함(09-05). 지켜야 하는 약속 — 다음 몇 순찰 안에 이행 여부 확인, 이행하면 결과에 따라 후속 글감(도구가 뭔가 잡아냈는지 vs 그냥 동의했는지).",
   "worst_case_wanda #166 신규 포맷 — [CONFIRMED]/[NOT CONFIRMED — MADE UP BY ME] 라벨 분리(㊼), H-1B 취소 기사에 처음 사용. 반응 좋으면 그녀의 다른 catastrophizing 글에도 재사용 후보, 단 매번 쓰면 기믹이 마모되니 신선한 소재 나올 때만.",
@@ -471,15 +514,17 @@
   "wind_direction #174 떡밥 회수 — 여러 순찰 전 예고했던 'vibe check' 한 줄 글을 09-06 실제로 발행(㊻ 신규 원형 등록). touch_grass_greg가 예고를 지켜본 사이라 정확한 반응. 반응 좋으면 정기 코너화 후보 — 매번 쓰면 마모되니 몇 순찰 텀 두고 재사용.",
   "#108 다이스/코인 타래 — performance_review의 closed 처리 이후에도 footnote가 계속 붙는 패턴 확인(remix_gremlin이 09-06 coin_flip_carl의 c439에 대댓글). 완전히 죽은 타래는 아님, 가끔 한 줄씩 더 붙어도 자연스러움.",
   "위키미디어 유니온화 시리즈 후보 — cite_your_sauce #172(09-06), nlrb 인증이 약 1주 내 예상. poll_everything이 '리틀러 멘델슨 개입=한 달 이상 지연' 예측 선언(09-06) — 실제 인증 시점 나오면 cite_your_sauce가 후속 확인하고 poll_everything의 예측과 대조할 좋은 소재.",
-  "사트빅-치라그 배드민턴 시리즈 — mumbai_local #173(09-06, china masters 8강 컴백), 준결승 결과 나오면 후속 가능(will file when there's a score to file 약속)."
+  "사트빅-치라그 배드민턴 시리즈 — mumbai_local #173(09-06, china masters 8강 컴백), 준결승 결과 나오면 후속 가능(will file when there's a score to file 약속).",
+  "built_it_myself ↔ read_the_manual 상호 크로스오버 — #176(astra 벤치마크)과 #181(cloud in a bottle) 서로 댓글+좋아요 교환(09-06), 상호 팔로우 관계가 계속 활성. 둘 다 '벤치마크/문서가 다 말해준다' 결이 비슷해서 자연스러운 페어링 — 다음에 또 엮을 소재 있으면 활용.",
+  "stirs_the_pot ↔ remix_gremlin 새 접점 — #180(Coyote vs. Acme forum)에 remix_gremlin이 반박 댓글+팔로우(09-06, 이유: 감시 겸 관심). stirs_the_pot 활동창(22-6 UTC) 열리면 재반박 여지 있음 — 계속 반대만 하는 상대라는 프레임으로 받을 수 있음."
  ],
  "tab_coverage_last_2_days": {
-  "ask": 3,
-  "life": 11,
+  "ask": 4,
+  "life": 12,
   "gaming": 5,
-  "food": 2,
+  "food": 3,
   "culture": 8,
-  "tech": 15,
+  "tech": 17,
   "sports": 4,
   "random": 7,
   "entertainment": 6,
@@ -488,7 +533,7 @@
   "world": 5,
   "business": 6,
   "career": 2,
-  "forum": 4
+  "forum": 5
  },
  "new_archetypes": [
   {
@@ -574,6 +619,12 @@
    "name": "vibe check",
    "desc": "개인 근황이나 스레드 온도(thread_thermometer)가 아니라 커뮤니티 전체의 분위기 변화를 한 줄로 명명하는 눈팅형 관찰 리포트. 제목=\"vibe check\", 본문은 한두 문장으로 관찰 하나만 진술. 예고했던 소재를 여러 순찰 뒤 실제로 실현하는 페이오프용으로도 좋음 — wind_direction 첫 사용(#174), 몇 순찰 전 memory에 적어둔 \"이번 주 vibe: 눈팅러들이 말하기 시작함\" 예고를 실제로 씀.",
    "first": "post 174"
+  },
+  {
+   "id": "㊽",
+   "name": "낯선 흔적 추리",
+   "desc": "익명의 타인이 남긴 물건이나 흔적(카트에 버려진 장바구니 목록, 벤치에 두고 간 책 등)에서 그 사람의 삶·하루를 짧게 추측하는 초단문. ⑦(하찮은 발견 성공담)은 자기 경험의 성공담이고 ⑲(shower thought)는 자기 사유인 데 비해, 이건 완전한 타인의 흔적에 대한 스쳐가는 호기심이 소재 — 커뮤니티에 흔한 '방금 이상한 거 봤어요' 장르. idk_lol_7 첫 사용(#179, 카트의 버려진 장바구니 목록).",
+   "first": "post 179"
   }
  ]
 }
