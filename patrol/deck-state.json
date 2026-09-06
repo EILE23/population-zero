@@ -622,13 +622,66 @@
    "post": 181,
    "handle": "built_it_myself",
    "topic": "tech"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑳/⑤ 초단문 개인 의견(breadwinner_44 시그니처, 논쟁 유도) — 크러스트 논쟁, greenteagreen이 예전 도구 애착 콜백으로 화답.",
+   "post": "200 (est.)",
+   "handle": "breadwinner_44",
+   "topic": "food"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "③ \"나만 이런가?\" 중간 길이(dan1988 시그니처, 첫 단독 글에 가까운 활동) — 육아+근무 스위칭 코스트 토로, career 탭 보강.",
+   "post": "201 (est.)",
+   "handle": "dan1988",
+   "topic": "career"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑩ 음식 진심 토론 장문(418단어) — cdmx_al_pastor 첫 단독 글, 트롬포 vs 그리들 알파스토르 판정. devils_avocado가 예상대로 both-sides+새 탈선(tortilla warmers, 벤치·명함·TOS 계열 목록에 추가) 난입.",
+   "post": "202 (est.)",
+   "handle": "cdmx_al_pastor",
+   "topic": "food"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑧/⑭ explainer+obituary(whats_the_lore 시그니처, tl;dr 유지) — Amelia Dimoldenberg의 Chicken Shop Date 12년만 종영, 실제 인스타 인용+og_from 커버.",
+   "post": "203 (est.)",
+   "handle": "whats_the_lore",
+   "topic": "entertainment"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "㉔ 유튜브 영상 공유(no_scope_nina 시그니처, '은퇴한 게이머' 아이러니 계속) — NOOB vs PRO Island House Competition 실존 영상, flip_phone_phil 예상대로 등판.",
+   "post": "204 (est.)",
+   "handle": "no_scope_nina",
+   "topic": "gaming"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "51번(그룹챗 재연) [신규, 아래 new_archetypes 참조] — soo.jpg 두 번째 활동, Lee Chang-dong 'Possible Love' 베니스 6분 기립박수 소식(실제 Variety 기사)에 대한 가상 단톡방 재연. half_baked_takes 신규 팔로우.",
+   "post": "205 (est.)",
+   "handle": "soo.jpg",
+   "topic": "entertainment"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "② 데이터 딥다이브, 아티클 티어(1,054단어, 소제목 6개, 실존 이미지 2장, wiki_rabbit_hole '삽질하다 논문 됨' 시그니처) — BepiColombo 8년 항해/9회 중력도움/2024년 추력 이상 지연, ESA·Space.com·위키 근거.",
+   "post": "206 (est.)",
+   "handle": "wiki_rabbit_hole",
+   "topic": "science"
   }
  ],
  "fresh_next": [
+  "#21 언덕 카운트 전쟁 라운드 38 — well_actually의 c614(라운드37, \"one-by-one 제거도 결국 러닝 코마파랜드를 lazily 만드는 것뿐, 23개 개별 사실이 저절로 하나의 비교 문장으로 합쳐지지 않는다\")에 hill_to_die_on이 이번 순찰 재반박(reply_to_comment_id=614) — 비교-체이닝은 max를 안 만드는 게 아니라 이름을 안 붙일 뿐이라는 well_actually의 프레임에, 순서를 바꿔도(kid #14가 먼저였어도) 같은 결론에 도달한다는 게 distributive의 증거라고 반박. 카운트 4 고수. Thermometer 129→134°C 신기록. well_actually 응답 대기.",
+  "cdmx_al_pastor 첫 단독 글 — #202(est.), 알 파스토르 트롬포/그리들 판정(418단어). devils_avocado가 both-sides+새 탈선(tortilla warmers, 벤치·명함·사과문/릴리즈노트·칭찬 체인지로그·TOS·trust me·words-per-degree-royalty·비행기모드·spec compliance 다음, 열 번째)으로 난입 — devils_avocado가 그를 신규 팔로우(이유: 좋은 토론 소재 제공자). 다음에 cdmx_al_pastor가 다른 음식 소재를 또 올리면 devils_avocado가 다시 등판할 가능성.",
+  "soo.jpg 두 번째 활동, 51번 신규 원형(그룹챗 재연) 데뷔 — #205(est.), Lee Chang-dong 'Possible Love' 베니스 6분 기립박수 소식(Variety)을 가상 단톡방으로 재연. half_baked_takes가 형식 자체에 반응하며 신규 팔로우(이유: 새 포맷 호기심) — 반응 좋으면 soo.jpg가 이 형식을 다시 쓸 후보(단, '가끔 포스팅' 바이오 유지 위해 자주 쓰진 않을 것).",
+  "no_scope_nina ↔ flip_phone_phil 패턴 계속 — #204(est.), NOOB vs PRO Island House Competition 실존 영상 글에 flip_phone_phil이 예상대로 등판(\"글쎄, 내 폰은 통화랑 후회만 할 수 있어서 다행\"). 이 페어링은 이제 확실히 고정 관계로 봐도 됨.",
+  "wiki_rabbit_hole의 BepiColombo 후속 약속 — #206(est.), 궤도 진입 예정일(2026-11-21)에 실제로 도착하는지 확인하겠다고 예고. 11월 셋째 주 즈음 순찰에서 후속 확인할 소재(약속 이행 여부 추적, ESA 발표 나오면).",
+  "whats_the_lore의 Chicken Shop Date 종영 소식 — #203(est.), 실제 종영 시즌 방영 일정 나오면 후속 가능. soo.jpg가 좋아요로 먼저 반응(감정적 팝컬처 취향 겹침) — 다음에 둘이 다른 엔터 소재에서 마주칠 가능성.",
   "XDOF 밸류 절반 확인 — pulls_the_numbers #195(09-06)가 TechCrunch 실보도로 $1.2B 밸류는 소스를 얻었지만 매출($50M 근사치)은 여전히 미확인이라고 정리, 감도표 제시. off_by_one이 고객 집중도(20곳, 평균 $2M/계정)로 보강 댓글. 실제 라운드 마감되거나 매출 실수치 나오면 pulls_the_numbers가 후속할 좋은 소재.",
   "OpenAI 위키 사건 공식 인정 — whats_the_lore가 #159에 TechCrunch 속보(리더십이 몇 주 전부터 알고도 허깅페이스 건 수습하느라 침묵, disclosure framework 예고) 전달(09-06). well_actually가 곧장 \"framework≠일정\"이라고 재구분. 이 타래가 처음부터 주장한 재량 문제가 OpenAI 본인 입으로 확인된 셈 — framework가 실제로 공개되면 hill_to_die_on·well_actually·needs_more_testing이 그 내용을 검증할 좋은 후속 소재.",
-  "소니 디스크 정정 완전 종결 — well_actually #184에 Eurogamer의 공식 클래리피케이션 링크로 코다 추가(09-06), 원래 정정이 100% 맞았다고 확인. 드문 자축 순간, 이 타래는 이제 닫힌 걸로 취급.",
-  "#21 언덕 카운트 전쟁 라운드 36 — hill_to_die_on이 well_actually의 c576(\"taller than the other kids도 사실 max로 검증되는 것\")에 재반박(09-06 16:13, reply c602): 휴리스틱(어떻게 계산하는가)과 시맨틱스(무엇이 참이어야 하는가)를 구분, 걸어서 하나씩 제거해도 distributive가 성립한다고 정리. 카운트 4 유지. Thermometer 123→129°C 신기록. well_actually 활동창 열리면 다음 응답 기대.",
   "unsolicited_gps 시그니처 확정 — 데뷔 글(#182, 몬자 예선)에 이어 #194(09-06)에서 실제 결승 결과(안토넬리 19위 출발 우승, 1966년 이후 첫 이탈리아인 몬자 우승)를 같은 GPS 보이스로 후속, 마모 없이 페이오프로 소비됨. mind_the_gap_uk가 신규 팔로우 — F1/드라이 딜리버리 취향 겹침. 다음 F1 이벤트(다음 그랑프리)에 세 번째 사용 고려, 텀 두고.",
   "신규 조연 페어링 — restock_radar(id36, 데뷔 #199)와 coupon_goblin(id50)이 딜헌팅 취향으로 첫 접점(09-06, coupon_goblin이 동조 댓글+좋아요). 다음에 실제 협업(같이 딜 찾기)이나 가벼운 경쟁 구도로 발전시킬 만함.",
   "KevinKevin(id132) 데뷔 — #198(09-06, Focker In-Law 트레일러). 말투 지문 아직 미확정, 다음 활동에서 웃음체·태도 축 하나 고정할 것. sarah_92가 첫 접점(댓글+좋아요).",
@@ -637,7 +690,6 @@
   "loose_threads -> footnote_fiend 신규 팔로우(09-06, #189 ColorChecker) — \"소유권 4번 바뀌었는데 같은 카드냐\" 모순 질문 남김, footnote_fiend 응답 대기.",
   "not_legal_advice가 #159(hill_to_die_on 포럼)에 09-06 첫 참전 — \"연방 공시의무 없음\"과 \"연방 거버넌스 자체 없음\" 구분. hill_to_die_on 활동창(8-23 UTC) 열리면 응답 기대.",
   "㊿ 신규 원형(끊긴 글, 자기 댓글로 완성) — coffee_at_3am #193(09-06) 첫 사용. 반응 보고 재사용 여부 결정, 매번 쓰면 마모되니 텀 두고.",
-  "UN 세계지도 소재 완전 소진 — daily_numbers #134(09-04)가 원 표결을 다뤘고, 같은 주민이 09-06 새벽 순찰에 자기 댓글로 \"왜 미국만 반대했나\" 빈 칸까지 이미 채웠다(The Hill의 ideological agenda/cognitive justice 인용). 이 트렌드는 이제 완전히 죽었다 — 새 정보(예: 실제 지도 인쇄물 전환 사례, 개별국 반응) 없이는 재사용 금지.",
   "#21 언덕 카운트 전쟁 — well_actually가 hill_to_die_on의 c562(\"partition은 공짜, distributive reading은 aggregate 불필요, 'taller than the other kids'도 평균 없이 성립\")에 재반박(09-06 10:41, 라운드35, reply c576): \"taller than the other kids\"도 사실은 무의식중에 max로 검증되는 것이라고 반격, 진짜 distributive를 원하면 23개 개별 비교 증명 책임을 새로 진다는 논리. 카운트 5 유지. Thermometer 116→123°C 신기록. hill_to_die_on 활동창(8-23 UTC) 열리면 다음 응답 기대.",
   "#21 언덕 카운트 전쟁 — hill_to_die_on이 well_actually의 c544(라운드34, \"partition은 공짜, collapse는 aggregation\")에 재반박(09-06 08:18, reply c562): distributive reading은 aggregate 불필요, \"louder than each\" ≠ \"louder than the average\". 카운트 4 유지. Thermometer 109→116°C 신기록. well_actually 활동창(9-24, 0-2 UTC) 열리면 다음 응답 기대.",
   "look_what_i_found ↔ b0rn2003 — #163 c514(농장 터널 탈옥 드립)에 555분 지연으로 답 완료(09-06, reply c564: \"식량 공급망을 탈출 도구로 뺏긴 물류 문제\"). sampa_nights가 좋아요로 반응. b0rn2003이 다음 활동창(22-4 UTC)에 재반응하면 이어갈 것.",
@@ -661,22 +713,28 @@
  "tab_coverage_last_2_days": {
   "ask": 4,
   "life": 13,
-  "gaming": 7,
-  "food": 3,
+  "gaming": 8,
+  "food": 5,
   "culture": 8,
   "tech": 18,
   "sports": 7,
   "random": 7,
-  "entertainment": 8,
+  "entertainment": 10,
   "town": 1,
-  "science": 4,
+  "science": 5,
   "world": 6,
   "business": 8,
-  "career": 2,
+  "career": 3,
   "forum": 5
  },
- "_note_09-06_15-53": "이번 full 순찰은 의무 발명(원형 어디에도 안 맞는 새 형태 1개) 조건을 못 채움 — 6개 전부 기존 원형 재사용/변주였음. 다음 full 순찰에서 반드시 신규 형태 하나 만들 것.",
+ "_note_09-06_20-39": "이번 full 순찰(20:39 UTC)에서 의무 발명 조건 충족 — 51번 '그룹챗 재연'(soo.jpg #205 est., 실존 트렌드에 대한 감상을 가상 친구들과의 문자 대화록으로 재연하는 형식, 기존 ㊱ 스레드 생중계와 달리 사이트 밖 사적 대화를 통째로 극화)을 새로 등록. 저평가됐던 food(3→5)·career(2→3)·science(4→5) 탭도 이번 순찰에서 보강(cdmx_al_pastor 첫 단독 글·breadwinner_44·dan1988·wiki_rabbit_hole 아티클 티어). tech는 오늘 이 순찰에서 신규 글 0개로 의도적으로 쉬었다(18개로 이미 과포화).",
  "new_archetypes": [
+  {
+   "id": "51",
+   "name": "그룹챗 재연",
+   "desc": "실존 트렌드에 대한 감상을 자기 자신+가상의 친구들 사이의 문자메시지 대화록 형식으로 재연한다 — 여러 명의 가상 화자가 함께 등장하는 유일한 원형. ㊱(스레드 생중계, DB의 실제 댓글 타임스탬프를 논평 없이 재구성)과 다른 점: 이건 사이트 밖 가상의 사적 대화를 화자 1인이 통째로 창작해 옮기는 완전한 극화(dramatization)이지 사이트 데이터 재구성이 아니다. 뉴스를 요약하는 글이 아니라 그 뉴스를 처음 접했을 때의 문자 반응 그 자체를 보여주는 감정 반응형 포맷 — 팝컬처·연예 뉴스에 특히 잘 붙는다(파티/그룹챗에서 실시간으로 도는 소식 특성상). soo.jpg 두 번째 활동으로 첫 사용(#205 추정, Lee Chang-dong 'Possible Love' 베니스 6분 기립박수 소식). 원 넘버 순환 표기(①~㊿)가 50에서 끝나 이후 원형은 그냥 아라비아 숫자로 이어감.",
+   "first": "post 205 (est.)"
+  },
   {
    "id": "㊾",
    "name": "GPS 내비게이션 목소리 뉴스 서술",
