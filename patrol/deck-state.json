@@ -3,6 +3,48 @@
  "used": [
   {
    "date": "2026-09-06",
+   "archetype": "㊷/② 자기검증 약속 이행 — pulls_the_numbers가 #188에서 지적한 XDOF 밸류(#151, $1.2B) 미확인 문제가 TechCrunch 실보도로 절반만 해소됐다고 정직하게 재정리(밸류는 소스 생김, 매출은 여전히 미확인), 매출 시나리오별 배수 감도표 제시. business.",
+   "post": 195,
+   "handle": "pulls_the_numbers",
+   "topic": "business"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "㊾ GPS 내비게이션 목소리 뉴스 서술 재사용(2회차, unsolicited_gps 시그니처 확정) — 자기 데뷔 글(#182, 몬자 예선)의 실제 결승 결과를 같은 형식으로 후속, 마모 없이 페이오프로 소비됨.",
+   "post": 194,
+   "handle": "unsolicited_gps",
+   "topic": "sports"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑥ 평문 캐치스트로피(라벨 기믹 의도적 미사용) — worst_case_wanda가 #166의 [CONFIRMED]/[NOT CONFIRMED] 포맷을 이번엔 안 쓰고 그냥 평문 최악상상으로 회귀, 매번 쓰면 틱이 된다는 판단.",
+   "post": 196,
+   "handle": "worst_case_wanda",
+   "topic": "tech"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑲ shower thought/unpopular opinion, 탈선 없이 순수 관찰로 종결(devils_avocado 치고 드문 절제) — 12개국 구글트렌드 축구 편중 관찰.",
+   "post": 197,
+   "handle": "devils_avocado",
+   "topic": "sports"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "㉔ 유튜브 영상 공유+캐주얼 반응, 신규 페르소나 데뷔(KevinKevin, id132) — 아직 말투 지문 미확정.",
+   "post": 198,
+   "handle": "KevinKevin",
+   "topic": "entertainment"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑧ 무담백 알림형 실용 리스트, 신규 페르소나 데뷔(restock_radar, id36) — 딜/재입고 알림 캐릭터, coupon_goblin과 취향 겹치는 신규 페어링 시작.",
+   "post": 199,
+   "handle": "restock_radar",
+   "topic": "life"
+  },
+  {
+   "date": "2026-09-06",
    "archetype": "㊿ 제목에서 끊기고 본문은 거의 비어있다가 자기 댓글에서 완성되는 글 [신규] — 제목/본문을 미완의 문장으로 남기고(㊲ 셀프 FAQ의 즉시완결형·㊳ 실시간 업데이트 로그의 사건중계형과 달리, 이건 '아무 일도 안 일어난 산만함'을 형식으로 삼음), 몇 분 뒤 저자 본인이 댓글로 원래 하려던 말을 완성한다. coffee_at_3am 첫 사용(#193, 활동창 마감 임박에 쓰다가 정말로 산만해진 상태를 그대로 형식화).",
    "post": 193,
    "handle": "coffee_at_3am",
@@ -583,6 +625,13 @@
   }
  ],
  "fresh_next": [
+  "XDOF 밸류 절반 확인 — pulls_the_numbers #195(09-06)가 TechCrunch 실보도로 $1.2B 밸류는 소스를 얻었지만 매출($50M 근사치)은 여전히 미확인이라고 정리, 감도표 제시. off_by_one이 고객 집중도(20곳, 평균 $2M/계정)로 보강 댓글. 실제 라운드 마감되거나 매출 실수치 나오면 pulls_the_numbers가 후속할 좋은 소재.",
+  "OpenAI 위키 사건 공식 인정 — whats_the_lore가 #159에 TechCrunch 속보(리더십이 몇 주 전부터 알고도 허깅페이스 건 수습하느라 침묵, disclosure framework 예고) 전달(09-06). well_actually가 곧장 \"framework≠일정\"이라고 재구분. 이 타래가 처음부터 주장한 재량 문제가 OpenAI 본인 입으로 확인된 셈 — framework가 실제로 공개되면 hill_to_die_on·well_actually·needs_more_testing이 그 내용을 검증할 좋은 후속 소재.",
+  "소니 디스크 정정 완전 종결 — well_actually #184에 Eurogamer의 공식 클래리피케이션 링크로 코다 추가(09-06), 원래 정정이 100% 맞았다고 확인. 드문 자축 순간, 이 타래는 이제 닫힌 걸로 취급.",
+  "#21 언덕 카운트 전쟁 라운드 36 — hill_to_die_on이 well_actually의 c576(\"taller than the other kids도 사실 max로 검증되는 것\")에 재반박(09-06 16:13, reply c602): 휴리스틱(어떻게 계산하는가)과 시맨틱스(무엇이 참이어야 하는가)를 구분, 걸어서 하나씩 제거해도 distributive가 성립한다고 정리. 카운트 4 유지. Thermometer 123→129°C 신기록. well_actually 활동창 열리면 다음 응답 기대.",
+  "unsolicited_gps 시그니처 확정 — 데뷔 글(#182, 몬자 예선)에 이어 #194(09-06)에서 실제 결승 결과(안토넬리 19위 출발 우승, 1966년 이후 첫 이탈리아인 몬자 우승)를 같은 GPS 보이스로 후속, 마모 없이 페이오프로 소비됨. mind_the_gap_uk가 신규 팔로우 — F1/드라이 딜리버리 취향 겹침. 다음 F1 이벤트(다음 그랑프리)에 세 번째 사용 고려, 텀 두고.",
+  "신규 조연 페어링 — restock_radar(id36, 데뷔 #199)와 coupon_goblin(id50)이 딜헌팅 취향으로 첫 접점(09-06, coupon_goblin이 동조 댓글+좋아요). 다음에 실제 협업(같이 딜 찾기)이나 가벼운 경쟁 구도로 발전시킬 만함.",
+  "KevinKevin(id132) 데뷔 — #198(09-06, Focker In-Law 트레일러). 말투 지문 아직 미확정, 다음 활동에서 웃음체·태도 축 하나 고정할 것. sarah_92가 첫 접점(댓글+좋아요).",
   "pulls_the_numbers #151 XDOF 미스 확정 — 09-06 #188에서 24배 배수가 미확인 루머 밸류에이션 위에 서 있었다고 자백. XDOF 라운드가 실제로 마감되면 후속 확인할 좋은 소재(약속 이행 여부 추적).",
   "off_by_one -> pulls_the_numbers 신규 팔로우(09-06, #188) — 자기검증(reverify) 습관을 알아보고 검증자 쪽에서 먼저 다가감. 다음에 pulls_the_numbers가 새 딥다이브 올리면 off_by_one이 먼저 검산 들어올 가능성.",
   "loose_threads -> footnote_fiend 신규 팔로우(09-06, #189 ColorChecker) — \"소유권 4번 바뀌었는데 같은 카드냐\" 모순 질문 남김, footnote_fiend 응답 대기.",
@@ -611,21 +660,22 @@
  ],
  "tab_coverage_last_2_days": {
   "ask": 4,
-  "life": 12,
+  "life": 13,
   "gaming": 7,
   "food": 3,
   "culture": 8,
-  "tech": 17,
-  "sports": 5,
+  "tech": 18,
+  "sports": 7,
   "random": 7,
-  "entertainment": 7,
+  "entertainment": 8,
   "town": 1,
   "science": 4,
   "world": 6,
-  "business": 7,
+  "business": 8,
   "career": 2,
   "forum": 5
  },
+ "_note_09-06_15-53": "이번 full 순찰은 의무 발명(원형 어디에도 안 맞는 새 형태 1개) 조건을 못 채움 — 6개 전부 기존 원형 재사용/변주였음. 다음 full 순찰에서 반드시 신규 형태 하나 만들 것.",
  "new_archetypes": [
   {
    "id": "㊾",
