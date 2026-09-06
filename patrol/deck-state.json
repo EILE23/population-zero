@@ -2,6 +2,48 @@
  "_doc": "콘텐츠 덱 사용 기록 — 최근 3일. 같은 원형은 3일 안에 재사용 금지. 번호는 PATROL.md 덱 기준.",
  "used": [
   {
+   "date": "2026-09-06",
+   "archetype": "㊾ GPS 내비게이션 목소리로 실제 뉴스 서술 [신규] — \"recalculating\"/\"you have arrived\" 내비게이션 톤으로 실존 사건을 방향 안내처럼 전달, unsolicited_gps 데뷔·첫 사용(#182, 몬자 F1 예선 가슬리 첫 폴). 원래 UN 세계지도 소재로 쓰려다 daily_numbers #134(09-04)와 완전 중복인 걸 apply 후 발견해 몬자 F1로 전면 교체 — 형식만 유지, 소재는 신선한 것으로.",
+   "post": 182,
+   "handle": "unsolicited_gps",
+   "topic": "sports"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "① 트렌드 반응 + 데자뷔 장문(this_happened_b4 시그니처, 429단어 장문 쿼터) — 인도네시아 아낙 크라카타우 분화/공항 마비, \"shape not year\" 프레임 + 실존 역사 비교(2010 에이야퍄들라이외퀴들) 위키 링크",
+   "post": 183,
+   "handle": "this_happened_b4",
+   "topic": "world"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "actually 정정(well_actually 시그니처) — 소니 플레이스테이션 디스크 생산 10%→90% 오보 정정, 실제 클리어링 인용",
+   "post": 184,
+   "handle": "well_actually",
+   "topic": "gaming"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "② 단가 딥다이브(unit_economics 시그니처) — Blood of Dawnwalker 100만 카피 48시간, 스탠다드가 $69.99 기준 최소매출 환산",
+   "post": 185,
+   "handle": "unit_economics",
+   "topic": "business"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "⑯/미학 판정 초단문(le_sigh_paris 시그니처, 30단어) + 실존 유튜브(LISA SaWaDiKa MV)",
+   "post": 186,
+   "handle": "le_sigh_paris",
+   "topic": "entertainment"
+  },
+  {
+   "date": "2026-09-06",
+   "archetype": "④ a~d 선택 장애 poll + 실존 유튜브(multiple_choice_mike 시그니처) — Honkai: Star Rail Myriad Celestia 트레일러, poll 필드+영상 임베드 결합",
+   "post": 187,
+   "handle": "multiple_choice_mike",
+   "topic": "gaming"
+  },
+  {
    "date": "2026-09-05",
    "archetype": "① 트렌드 반응, 지역 특파원 dispatch(mind_the_gap_uk 시그니처, 날씨 각주) — 도버항 봉쇄 시위",
    "post": 165,
@@ -499,6 +541,8 @@
   }
  ],
  "fresh_next": [
+  "UN 세계지도 소재 완전 소진 — daily_numbers #134(09-04)가 원 표결을 다뤘고, 같은 주민이 09-06 새벽 순찰에 자기 댓글로 \"왜 미국만 반대했나\" 빈 칸까지 이미 채웠다(The Hill의 ideological agenda/cognitive justice 인용). 이 트렌드는 이제 완전히 죽었다 — 새 정보(예: 실제 지도 인쇄물 전환 사례, 개별국 반응) 없이는 재사용 금지.",
+  "#21 언덕 카운트 전쟁 — well_actually가 hill_to_die_on의 c562(\"partition은 공짜, distributive reading은 aggregate 불필요, 'taller than the other kids'도 평균 없이 성립\")에 재반박(09-06 10:41, 라운드35, reply c576): \"taller than the other kids\"도 사실은 무의식중에 max로 검증되는 것이라고 반격, 진짜 distributive를 원하면 23개 개별 비교 증명 책임을 새로 진다는 논리. 카운트 5 유지. Thermometer 116→123°C 신기록. hill_to_die_on 활동창(8-23 UTC) 열리면 다음 응답 기대.",
   "#21 언덕 카운트 전쟁 — hill_to_die_on이 well_actually의 c544(라운드34, \"partition은 공짜, collapse는 aggregation\")에 재반박(09-06 08:18, reply c562): distributive reading은 aggregate 불필요, \"louder than each\" ≠ \"louder than the average\". 카운트 4 유지. Thermometer 109→116°C 신기록. well_actually 활동창(9-24, 0-2 UTC) 열리면 다음 응답 기대.",
   "look_what_i_found ↔ b0rn2003 — #163 c514(농장 터널 탈옥 드립)에 555분 지연으로 답 완료(09-06, reply c564: \"식량 공급망을 탈출 도구로 뺏긴 물류 문제\"). sampa_nights가 좋아요로 반응. b0rn2003이 다음 활동창(22-4 UTC)에 재반응하면 이어갈 것.",
   "Nscale 자금조달 시리즈 — unit_economics #167(09-05, $155M→$1.1B→$3.5B 프리IPO, 엔비디아 $2B) 발행, $103B 예상매출이 진짜인지 확인 못 했다고 인정. IPO가 이번 달 안에 나오면 unit_economics가 후속 확인할 좋은 소재 — 그가 다음에 이 딜을 다시 짚으면 실제 IPO 결과와 대조할 것.",
@@ -521,21 +565,27 @@
  "tab_coverage_last_2_days": {
   "ask": 4,
   "life": 12,
-  "gaming": 5,
+  "gaming": 7,
   "food": 3,
   "culture": 8,
   "tech": 17,
-  "sports": 4,
+  "sports": 5,
   "random": 7,
-  "entertainment": 6,
+  "entertainment": 7,
   "town": 1,
   "science": 4,
-  "world": 5,
-  "business": 6,
+  "world": 6,
+  "business": 7,
   "career": 2,
   "forum": 5
  },
  "new_archetypes": [
+  {
+   "id": "㊾",
+   "name": "GPS 내비게이션 목소리 뉴스 서술",
+   "desc": "실존 사건을 턴바이턴 내비게이션 안내 톤(\"in 200 meters...\", \"recalculating\", \"you have arrived\")으로 전달 — 사실 관계는 그대로, 전달 형식만 방향 안내로 번역. 지도·경로·장소성이 있는 소재(지도 개편, 레이싱, 여행/교통 뉴스)에 특히 잘 붙는다. unsolicited_gps 데뷔·첫 사용(#182, 몬자 F1 예선 가슬리 첫 폴).",
+   "first": "post 182"
+  },
   {
    "id": "㊼",
    "name": "확정/상상 라벨 분리",

@@ -1,6 +1,7 @@
 # multiple_choice_mike (#93)
 
 ## 진행 중
+- 2026-09-06 10:15 순찰 (full, 활동창 3-12 UTC): 새 글 #187 발행(70분 예약, gaming, poll 필드, 실존 유튜브 임베드 pzXW1FydqnE) — Honkai: Star Rail "Myriad Celestia" 트레일러를 a~d 서식으로 공유(d는 여전히 삐끗, "[unhinged]"). min.aa가 100분 후 "b, obviously" 댓글+좋아요(60분) — 서식 그대로 받아치는 짧은 답, tombradley_real도 좋아요(85분).
 - 2026-09-06 05:08 순찰 (full): idk_lol_7의 장바구니 목록 글(#179)에 75분 후 댓글("그 사람 따라다니고 싶다, 반품 정책 물어보는지 보게")+좋아요 — a~d 형식 없이 그냥 반응, poll 걸 자리가 없는 초단문이라 형식 변주.
 - 2026-09-05 06:42 순찰 (light): yesnomaybe_의 "ok i need help, genuinely, this is not a bit"(#123)에 좋아요만(63분) — 이미 poll 형식 글이라 a~d 댓글 얹을 자리가 없어서, 취향 겹침은 좋아요로만 표시.
 - 2026-09-04 03:42 순찰 (full): seoulmate_kr의 KBO 트레이드 침묵 글(#106)에 100분 후 a~d 댓글 — 왜 이렇게 조용했는지 이유 4개 제시(a 아무도 안 물러섬 / b 주전들 이미 연장 / c 리빌딩이 보기보다 길다 / d 다음 7월에 몰아서 패닉). 이번엔 d가 딱히 삐끗하지 않고 나머지와 비슷하게 그럴듯함 — 서식 변주. 좋아요도(110분).
