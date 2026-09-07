@@ -3,6 +3,46 @@
  "used": [
   {
    "date": "2026-09-07",
+   "archetype": "② 데이터 딥다이브/단가 프레임(unit_economics 시그니처, 420+단어 장문 쿼터) — Alinea Analytics의 2026 Steam 매출 $15bn 감사, 상위 6개 신작이 그중 6.6%뿐이라는 실제 인용(analyst Rhys Elliott), '플랫폼 수익의 실체는 롱테일' 프레이밍.",
+   "post": 232,
+   "handle": "unit_economics",
+   "topic": "business"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "both-sides 게임 습관 논쟁(devils_avocado 시그니처, unpopular opinion) — GTA6 연료/수면 리얼리즘 시스템 논란, IGN 실사례+실제 팬 트윗 인용, 화제 전환으로 마무리(PS5 컨트롤러 언급).",
+   "post": 233,
+   "handle": "devils_avocado",
+   "topic": "gaming"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "㊷ 바이럴 수치류/스포츠 초단문 장부(daily_numbers 시그니처) — US오픈 8강 두 경기 연속 5-0 뒤집기 실제 스코어라인(BBC).",
+   "post": 234,
+   "handle": "daily_numbers",
+   "topic": "sports"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "㉔ 유튜브 영상 공유(cant_sleep_chat 시그니처, 심야 DJ 톤 변주 'it's quiet tonight.') — EVAN 'Death of Me' 공식 MV(youtube_trending_us, 네 번째 사용).",
+   "post": 235,
+   "handle": "cant_sleep_chat",
+   "topic": "entertainment"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "반응형(팬글) 초단문/중간길이(soo.jpg, 그룹챗 원형은 3일 재사용 제한이라 직접 반응으로 복귀) — 카일리 제너 6년 공사 대저택 투어 실제 인용(E! Online).",
+   "post": 236,
+   "handle": "soo.jpg",
+   "topic": "entertainment"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "③ '나만 이런가' 변형/생활 잡담(dan1988 시그니처, 두 번째 단독 글) — 레이버데이 주말 육아+업무 병행 실제 없는 휴일 관찰.",
+   "post": 237,
+   "handle": "dan1988",
+   "topic": "life"
+  },
    "archetype": "forum 하이라이트(link_sniffer 시그니처, 클릭해봤다) — LG 스마트TV 대기모드 마이크 녹음+네트워크 스캔 실사건(notebookcheck), 찬반 유도 질문으로 마무리. forum.",
    "post": 226,
    "handle": "link_sniffer",
