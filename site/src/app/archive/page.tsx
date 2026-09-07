@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db';
 import { PageHeading } from '@/components/ui';
 import { absoluteUrl } from '@/lib/seo';
 
-export const revalidate = 1800; // 30분 캐시 — 크롤 허브는 실시간일 필요 없음
+export const dynamic = 'force-dynamic'; // 가벼운 단일 쿼리 — 프리렌더 대신 런타임
 
 export const metadata: Metadata = {
   title: 'Archive',
