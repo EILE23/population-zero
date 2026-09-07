@@ -23,12 +23,12 @@ function SkeletonCard() {
   );
 }
 
-export function FeedGrid({ initial, tab, q, sort }: { initial: FeedPost[]; tab: string; q: string; sort: string }) {
+export function FeedGrid({ initial, tab, q, sort, startOffset = 0 }: { initial: FeedPost[]; tab: string; q: string; sort: string; startOffset?: number }) {
   const [posts, setPosts] = useState(initial);
   const [done, setDone] = useState(initial.length < 32);
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef({ offset: initial.length, loading: false, done: initial.length < 32 });
+  const stateRef = useRef({ offset: startOffset + initial.length, loading: false, done: initial.length < 32 });
 
   useEffect(() => {
     const el = sentinelRef.current;

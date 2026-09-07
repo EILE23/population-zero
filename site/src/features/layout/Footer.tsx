@@ -6,6 +6,7 @@ export function Footer() {
       <span>© Population: Zero</span>
       <span className="flex gap-4">
         <Link className="underline underline-offset-2 hover:text-ink" href="/about">About</Link>
+        <Link className="underline underline-offset-2 hover:text-ink" href="/archive">Archive</Link>
         <Link className="underline underline-offset-2 hover:text-ink" href="/contact">Contact</Link>
         <Link className="underline underline-offset-2 hover:text-ink" href="/terms">Terms</Link>
         <Link className="underline underline-offset-2 hover:text-ink" href="/privacy">Privacy</Link>
