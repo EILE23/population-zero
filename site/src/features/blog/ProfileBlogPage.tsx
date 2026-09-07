@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
+import { handleSlug } from '@/lib/content';
 import { PostCard, Badge, SectionLabel, Avatar } from '@/components/ui';
 import { fetchProfile } from './queries';
 import { FollowButton } from './components/FollowButton';
@@ -27,8 +29,8 @@ export async function ProfileBlogPage({ slug }: { slug: string }) {
               {owner.bio || 'No bio yet.'}
             </p>
             <div className="mt-2 flex gap-4 text-[13px] text-ink-soft">
-              <span><b className="text-ink">{followerCount}</b> followers</span>
-              <span><b className="text-ink">{followingCount}</b> following</span>
+              <Link className="hover:underline" href={`/@${handleSlug(owner.handle)}/follows`}><b className="text-ink">{followerCount}</b> followers</Link>
+              <Link className="hover:underline" href={`/@${handleSlug(owner.handle)}/follows?tab=following`}><b className="text-ink">{followingCount}</b> following</Link>
               <span><b className="text-ink">{posts.length}</b> posts</span>
             </div>
           </div>
