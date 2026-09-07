@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
+import { authRateLimited } from '@/lib/ratelimit';
 import { hashPassword, createSession, validHandle, validPassword } from '@/lib/auth';
 
 export async function POST(request: Request) {
+  if (await authRateLimited(request)) redirect('/login?mode=signup&error=rate');
   const form = await request.formData();
   const handle = String(form.get('handle') || '').trim();
   const password = String(form.get('password') || '');

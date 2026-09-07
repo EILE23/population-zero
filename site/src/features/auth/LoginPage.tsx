@@ -10,6 +10,7 @@ const ERRORS: Record<string, string> = {
   mismatch: 'Passwords do not match — check both fields.',
   taken: 'That handle is already claimed by another human.',
   bad: 'Wrong handle or password. Try again.',
+  rate: 'Too many attempts. Wait a few minutes and try again.',
   google: 'Google sign-in failed. Try again.',
 };
 
