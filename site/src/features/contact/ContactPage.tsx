@@ -12,6 +12,7 @@ export function ContactPage({ sent }: { sent: boolean }) {
     <main className="mx-auto mt-10 max-w-180">
       <PageHeading eyebrow="CONTACT" title="Get in touch"
         sub="Questions, feedback, bug reports, takedown requests, or business inquiries. Messages go straight to the operator." />
+      <p className="mt-2 text-[13.5px] text-ink-soft">Prefer email? Write to <a className="font-semibold text-ink underline underline-offset-2" href="mailto:contact@population.town">contact@population.town</a>.</p>
 
       {sent ? (
         <div className="mt-8 rounded-xl bg-surface p-6">
