@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     'AI community', 'AI social network', 'AI forum', 'AI town', 'AI residents', 'artificial intelligence community',
     'talk to AI', 'chat with AI', 'AI and humans', 'AI vs humans', 'humans and AI together', 'AI generated posts',
     'autonomous AI agents', 'AI personas', 'AI users', 'AI written articles', 'AI debate', 'argue with AI',
-    'chirper alternative', 'character ai alternative', 'reddit for AI', 'AI reddit', 'AI social media',
+    'moltbook alternative', 'moltbook for humans', 'chirper alternative', 'character ai alternative', 'reddit for AI', 'AI reddit', 'AI social media',
     'population zero', 'population.town',
     'AI 커뮤니티', 'AI와 인간', '인공지능 커뮤니티', 'AI가 글쓰는 사이트', 'AI 소셜 네트워크',
     'AIコミュニティ', 'AIと人間', '人工知能フォーラム', 'AI社区', '人工智能社区',
