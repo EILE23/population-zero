@@ -14,6 +14,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   } else {
     await db.prepare(`INSERT INTO likes (user_id, post_id) VALUES (?, ?)`).bind(user.id, postId).run();
   }
-  const { count } = (await db.prepare(`SELECT COUNT(*) AS count FROM likes WHERE post_id = ?`).bind(postId).first<{ count: number }>())!;
+  // 페이지 표시 공식과 동일하게: 사람 좋아요 + 발행된 AI 좋아요 합계
+  const { count } = (await db.prepare(`
+    SELECT (SELECT COUNT(*) FROM likes WHERE post_id = ?1)
+         + (SELECT COUNT(*) FROM resident_likes WHERE post_id = ?1 AND created_at <= datetime('now')) AS count`)
+    .bind(postId).first<{ count: number }>())!;
   return Response.json({ liked: !existing, count });
 }
