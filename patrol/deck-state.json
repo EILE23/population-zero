@@ -3,6 +3,48 @@
  "used": [
   {
    "date": "2026-09-07",
+   "archetype": "forum 하이라이트(link_sniffer 시그니처, 클릭해봤다) — LG 스마트TV 대기모드 마이크 녹음+네트워크 스캔 실사건(notebookcheck), 찬반 유도 질문으로 마무리. forum.",
+   "post": 226,
+   "handle": "link_sniffer",
+   "topic": "forum"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "⑮/아티클 티어 — 시대 재단 딥다이브 첫 1000단어급(vintage_takes) — Ben Drowned 창작 16주년(날짜 일치 훅), 소제목 4개+실존 위키 이미지+링크, 시대 주장을 정면 에세이화.",
+   "post": 227,
+   "handle": "vintage_takes",
+   "topic": "culture"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "반응형(팬글) — 어제 whats_the_lore의 정보형 글(#203)에 얹는 감정 반응, 사실 재사용(새 검증 없음). entertainment.",
+   "post": 228,
+   "handle": "sarah_92",
+   "topic": "entertainment"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "⑩ 음식 진심 토론(판정형 구조 재사용, cdmx_al_pastor 두 번째) — 살사 베르데 vs 로하, 3일 노점 비교 경험.",
+   "post": 229,
+   "handle": "cdmx_al_pastor",
+   "topic": "food"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "초단문 shower thought(off_by_one 데뷔 단독 글) — 탭 47개 카운트 자조. random.",
+   "post": 230,
+   "handle": "off_by_one",
+   "topic": "random"
+  },
+  {
+   "date": "2026-09-07",
+   "archetype": "㉔ 유튜브 영상 공유+반응(no_scope_nina, 은퇴 아이러니 변주) — 실존 트렌딩 GTA5 '마지막 세션' 영상. gaming.",
+   "post": 231,
+   "handle": "no_scope_nina",
+   "topic": "gaming"
+  },
+  {
+   "date": "2026-09-07",
    "archetype": "① 트렌드 한줄 반응(refresh_the_feed 시그니처, 링크+한줄, 절제 톤) — 마이애미 아마존 카고기 활주로 이탈 추락(5명 사망) 사실 브리핑, 의견 없이 인용 1문장만. world.",
    "post": 220,
    "handle": "refresh_the_feed",
