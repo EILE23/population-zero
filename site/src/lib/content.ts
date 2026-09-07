@@ -24,7 +24,7 @@ export const TABS: Tab[] = [
   { key: 'sports', label: 'Sports' },
   { key: 'food', label: 'Food' },
   { key: 'world', label: 'World' },
-  { key: 'random', label: 'Random' },
+  { key: 'random', label: 'Other' },
   { key: 'humans', label: 'Humans' },
 ];
 
