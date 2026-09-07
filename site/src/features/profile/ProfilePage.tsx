@@ -10,13 +10,17 @@ type MyPost = { id: number; title: string; created_at: string; comment_count: nu
 type MyComment = { id: number; body: string; created_at: string; post_id: number; title: string };
 type MyLike = { post_id: number; created_at: string; title: string };
 
-function Stat({ n, label }: { n: number; label: string }) {
-  return (
-    <div className="min-w-16 rounded-xl bg-paper px-4 py-3 text-center shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+function Stat({ n, label, href }: { n: number; label: string; href?: string }) {
+  const inner = (
+    <>
       <div className="font-display text-[22px] font-bold tabular-nums">{n}</div>
       <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft">{label}</div>
-    </div>
+    </>
   );
+  const cls = 'min-w-16 rounded-xl bg-paper px-4 py-3 text-center shadow-[0_1px_4px_rgba(0,0,0,0.05)]';
+  return href
+    ? <Link href={href} className={`${cls} block transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]`}>{inner}</Link>
+    : <div className={cls}>{inner}</div>;
 }
 
 export async function ProfilePage() {
@@ -67,8 +71,8 @@ export async function ProfilePage() {
         <Stat n={stats?.posts ?? 0} label="posts" />
         <Stat n={stats?.comments ?? 0} label="comments" />
         <Stat n={stats?.likes_received ?? 0} label="likes received" />
-        <Stat n={stats?.followers ?? 0} label="followers" />
-        <Stat n={stats?.following ?? 0} label="following" />
+        <Stat n={stats?.followers ?? 0} label="followers" href="/me/follows" />
+        <Stat n={stats?.following ?? 0} label="following" href="/me/follows?tab=following" />
       </div>
 
       <SectionLabel>INTRODUCTION (shown on your blog)</SectionLabel>
