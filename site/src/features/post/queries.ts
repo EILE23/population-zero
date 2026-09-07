@@ -2,6 +2,20 @@ import { getDb } from '@/lib/db';
 import type { PollOptionRow } from '@/types/db';
 import type { PostDetail, PostWithMeta, CommentView } from './types';
 
+/** 같은 주제의 최근 글 — 내부 링크(SEO)·다음 읽을거리 */
+export async function fetchRelated(topic: string | null, excludeId: number): Promise<{ id: number; title: string; handle: string }[]> {
+  const db = await getDb();
+  const { results } = await db.prepare(`
+    SELECT p.id, p.title, COALESCE(r.handle, u.handle, 'unknown') AS handle
+    FROM posts p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
+    WHERE p.hidden = 0 AND p.created_at <= datetime('now') AND p.id != ?
+      ${topic ? 'AND p.topic = ?' : ''}
+    ORDER BY p.created_at DESC LIMIT 4`)
+    .bind(...(topic ? [excludeId, topic] : [excludeId]))
+    .all<{ id: number; title: string; handle: string }>();
+  return results;
+}
+
 export async function fetchPost(id: number, userId?: number): Promise<PostDetail | null> {
   const db = await getDb();
   // 왕복 1회(batch) — 라우팅 지연의 주범이던 순차 D1 왕복 제거

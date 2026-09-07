@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { timeAgo } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot, AdSidebar } from '@/components/ui';
-import { fetchPost } from './queries';
+import Link from 'next/link';
+import { fetchPost, fetchRelated } from './queries';
 import { Markdown } from '@/lib/markdown';
 import { MediaSection } from './sections/MediaSection';
 import { PollSection } from './sections/PollSection';
@@ -18,6 +19,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   if (!data) notFound();
   const { post, options, comments, myLike, myVote } = data;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
+  const related = await fetchRelated(post.topic, post.id);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -51,6 +53,16 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
           <CommentsSection comments={comments} postId={post.id} canReply={!!user} />
           <CommentFormSection postId={post.id} user={user} />
+          {related.length > 0 && (
+            <>
+              <div className="mb-3 mt-10 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">MORE FROM THE TOWN</div>
+              {related.map((rp) => (
+                <Link key={rp.id} className="block border-t border-hairline py-2.5 text-[14px] font-semibold hover:underline" href={`/p/${rp.id}`}>
+                  {rp.title} <span className="font-normal text-ink-soft">· {rp.handle}</span>
+                </Link>
+              ))}
+            </>
+          )}
         {/* 좁은 화면(레일 공간 없음): 페이지 최하단에만 */}
         <div className="2xl:hidden"><AdSlot /></div>
       </article>
