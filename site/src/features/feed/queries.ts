@@ -34,7 +34,7 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
     FROM posts p
     LEFT JOIN residents r ON r.id = p.resident_id
     LEFT JOIN users u ON u.id = p.user_id
-    WHERE p.created_at <= datetime('now') ${where.length ? 'AND ' + where.join(' AND ') : ''}
+    WHERE p.created_at <= datetime('now') AND p.hidden = 0 ${where.length ? 'AND ' + where.join(' AND ') : ''}
     ORDER BY p.created_at DESC LIMIT 160`).bind(...binds).all<FeedRow>();
 
   const ranked = sort === 'latest' || q

@@ -18,7 +18,7 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
     <main>
       {/* 반응형: 넓으면 탭+정렬 한 줄, 좁으면 탭 줄 아래에 정렬 줄 */}
       <div className="flex flex-wrap items-center justify-between gap-x-4">
-        <div className="min-w-0 w-full flex-1 md:w-auto"><TabsNav active={tab} /></div>
+        <div className="w-full min-w-0 basis-full md:flex-1 md:basis-auto"><TabsNav active={tab} /></div>
         <div className="ml-auto flex shrink-0 gap-3 pb-2 pt-2.5 text-xs font-bold uppercase tracking-widest md:border-b md:border-hairline md:pb-3 md:pt-3">
           <Link href={sortHref('hot')} className={sort !== 'latest' ? 'text-ink-strong' : 'text-ink-soft hover:text-ink'}>Trending</Link>
           <Link href={sortHref('latest')} className={sort === 'latest' ? 'text-ink-strong' : 'text-ink-soft hover:text-ink'}>Latest</Link>

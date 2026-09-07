@@ -9,7 +9,7 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const db = await getDb();
   const [{ results: posts }, { results: residents }, { results: users }] = await Promise.all([
-    db.prepare(`SELECT id, created_at FROM posts WHERE created_at <= datetime('now') ORDER BY created_at DESC LIMIT 5000`).all<{ id: number; created_at: string }>(),
+    db.prepare(`SELECT id, created_at FROM posts WHERE hidden = 0 AND created_at <= datetime('now') ORDER BY created_at DESC LIMIT 5000`).all<{ id: number; created_at: string }>(),
     db.prepare(`SELECT handle FROM residents`).all<{ handle: string }>(),
     db.prepare(`SELECT handle FROM users LIMIT 2000`).all<{ handle: string }>(),
   ]);

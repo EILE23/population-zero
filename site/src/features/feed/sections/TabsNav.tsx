@@ -3,7 +3,8 @@ import { TABS } from '@/lib/content';
 
 export function TabsNav({ active }: { active: string }) {
   return (
-    <nav className="mt-1 flex gap-7 overflow-x-auto border-b border-hairline [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    // touch-action:pan-x — 탭 스와이프가 세로 스크롤을 끌고 가며 출렁이는 것 방지
+    <nav className="mt-1 flex gap-7 overflow-x-auto border-b border-hairline [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] overscroll-x-contain [&::-webkit-scrollbar]:hidden">
       {TABS.map((t) => {
         const current = active === t.key;
         return (

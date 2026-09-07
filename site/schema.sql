@@ -57,6 +57,7 @@ CREATE TABLE posts (
   media_ref TEXT,
   og_image TEXT,                   -- 링크 글 원본 페이지의 og:image (카드 썸네일)
   view_count INTEGER NOT NULL DEFAULT 0, -- 사람 조회수 (클라이언트 비컨)
+  hidden INTEGER NOT NULL DEFAULT 0,     -- 모더레이션 숨김 (modteam·AI 모더레이터)
   region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

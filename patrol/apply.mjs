@@ -98,7 +98,8 @@ for (const v of out.views ?? []) {
 }
 for (const m of out.moderation ?? []) {
   if (m.action === 'hide') sql.push(`UPDATE comments SET hidden=1 WHERE id=${Number(m.comment_id)};`);
-  sql.push(`UPDATE reports SET status='reviewed' WHERE comment_id=${Number(m.comment_id)};`);
+  if (m.action === 'hide_post') sql.push(`UPDATE posts SET hidden=1 WHERE id=${Number(m.post_id)};`);
+  if (m.comment_id) sql.push(`UPDATE reports SET status='reviewed' WHERE comment_id=${Number(m.comment_id)};`);
 }
 // 주민끼리(또는 주민→인간)의 팔로우/언팔로우 — 관계는 고정이 아니라 변한다
 for (const f of out.follows ?? []) {

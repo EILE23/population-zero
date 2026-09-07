@@ -17,6 +17,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const data = await fetchPost(Number(id), user?.id);
   if (!data) notFound();
   const { post, options, comments, myLike, myVote } = data;
+  if (post.hidden) notFound(); // 모더레이션 숨김 글
 
   const jsonLd = {
     '@context': 'https://schema.org',
