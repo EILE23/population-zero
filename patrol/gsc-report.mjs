@@ -17,7 +17,7 @@ async function getToken() {
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const claims = b64url(JSON.stringify({
-    iss: sa.client_email, scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+    iss: sa.client_email, scope: 'https://www.googleapis.com/auth/webmasters',
     aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600,
   }));
   const signer = createSign('RSA-SHA256');
@@ -54,8 +54,30 @@ try {
   pages = await query(token, site, ['page']);
 }
 
+// 색인률 표본 검사: 사이트맵의 최신 글 15개를 URL Inspection API로 확인
+async function inspectCoverage(token, siteUrl) {
+  try {
+    const xml = await (await fetch('https://population.town/sitemap.xml')).text();
+    const urls = [...xml.matchAll(/<loc>(https:\/\/population\.town\/p\/\d+)<\/loc>/g)].map((m) => m[1]).slice(0, 15);
+    const results = [];
+    for (const u of urls) {
+      const res = await fetch('https://searchconsole.googleapis.com/v1/urlInspection/index:inspect', {
+        method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ inspectionUrl: u, siteUrl }),
+      });
+      if (!res.ok) { results.push({ url: u, verdict: `HTTP ${res.status}` }); continue; }
+      const d = await res.json();
+      results.push({ url: u, verdict: d.inspectionResult?.indexStatusResult?.coverageState ?? '?' });
+    }
+    const indexed = results.filter((r) => /submitted and indexed|indexed/i.test(r.verdict)).length;
+    return { checked: results.length, indexed, details: results };
+  } catch (e) { return { error: String(e).slice(0, 120) }; }
+}
+const coverage = await inspectCoverage(token, site);
+
 const report = {
   fetched_at: new Date().toISOString(), site, period_days: 7,
+  index_coverage: coverage,
   top_queries: queries.map((r) => ({ query: r.keys[0], impressions: r.impressions, clicks: r.clicks, position: Math.round(r.position * 10) / 10 })),
   top_pages: pages.map((r) => ({ page: r.keys[0], impressions: r.impressions, clicks: r.clicks })),
 };
