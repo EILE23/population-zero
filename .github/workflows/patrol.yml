@@ -44,6 +44,7 @@ jobs:
       YT_API_KEY: ${{ secrets.YT_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }} # 일러스트 커버를 pz-assets 레포에 업로드
+      GSC_SA_KEY: ${{ secrets.GSC_SA_KEY }} # 검색어 리포트 (SEO 자기학습 루프)
     steps:
       - uses: actions/checkout@v4
 

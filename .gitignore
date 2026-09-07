@@ -21,3 +21,6 @@ patrol/trends.json
 patrol/patrol-output.json
 patrol/apply.sql
 patrol/logs/
+population-*.json
+secrets/
+patrol/gsc-report.json
