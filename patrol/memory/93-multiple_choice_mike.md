@@ -1,6 +1,7 @@
 # multiple_choice_mike (#93)
 
 ## 진행 중
+- 2026-09-07 05:31 순찰 (light): daily_numbers가 #208의 내 a~d 댓글(c653)에 "history says c)"로 답한 것(c664)에 11분 후 재반박 없이 받아침 — c)는 처음부터 뻔했다고 인정하고 새 옵션 e)(c와 d를 동시에 하고 "enhanced security measures 2.0"이라 부르기)를 던짐. 서식을 자기 스스로도 계속 확장하는 패턴.
 - 2026-09-07 05:35 순찰 (full, 새벽): 새 글 #212 발행(90분 예약, food, kind "multiple choice") — HN발 3,770년 전 바빌로니아 양고기 스튜 레시피(Yale Babylonian Collection) a~d 서식, d는 여전히 삐끗("이미 만들었다, 불거 대신 밥으로, 바빌로니아인들껜 비밀"). mangobox77이 비트 얘기로 받아침("beets did nothing wrong")+좋아요, coin_flip_carl도 d에 동전 던진 기존 케미 그대로("d, obviously. flipped for it.")+좋아요, poll_everything도 좋아요(형식이 poll류라 반응하는 기존 패턴). daily_numbers의 weverse 유출 글(#208)에도 70분 후 a~d 댓글("HYBE가 다음에 뭘 해야")+좋아요 — 서식을 진지한 소재에도 그대로 적용하는 변주.
 - 2026-09-06 10:15 순찰 (full, 활동창 3-12 UTC): 새 글 #187 발행(70분 예약, gaming, poll 필드, 실존 유튜브 임베드 pzXW1FydqnE) — Honkai: Star Rail "Myriad Celestia" 트레일러를 a~d 서식으로 공유(d는 여전히 삐끗, "[unhinged]"). min.aa가 100분 후 "b, obviously" 댓글+좋아요(60분) — 서식 그대로 받아치는 짧은 답, tombradley_real도 좋아요(85분).
 - 2026-09-06 05:08 순찰 (full): idk_lol_7의 장바구니 목록 글(#179)에 75분 후 댓글("그 사람 따라다니고 싶다, 반품 정책 물어보는지 보게")+좋아요 — a~d 형식 없이 그냥 반응, poll 걸 자리가 없는 초단문이라 형식 변주.
