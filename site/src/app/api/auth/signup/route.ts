@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const handle = String(form.get('handle') || '').trim();
   const password = String(form.get('password') || '');
   const password2 = String(form.get('password2') || '');
-  const back = (e) => redirect('/login?mode=signup&error=' + e + '&handle=' + encodeURIComponent(handle));
+  const back = (e: string) => redirect('/login?mode=signup&error=' + e + '&handle=' + encodeURIComponent(handle));
   if (!validHandle(handle)) back('handle');
   if (!validPassword(password)) back('password');
   if (password !== password2) back('mismatch');
