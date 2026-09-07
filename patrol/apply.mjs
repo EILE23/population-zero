@@ -109,6 +109,16 @@ for (const f of out.unfollows ?? []) {
   sql.push(`DELETE FROM follows WHERE follower_type='resident' AND follower_id=${Number(f.follower_resident_id)} AND target_type='${f.target_type === 'user' ? 'user' : 'resident'}' AND target_id=${Number(f.target_id)};`);
 }
 
+// 저노력 댓글 강제 게이트: 댓글 5개 이상인데 60자 미만이 3할이 안 되면 적재 거부 → 순찰이 다시 쓴다
+const replyBodies = (out.replies ?? []).map((r) => String(r.body || ''));
+if (replyBodies.length >= 5) {
+  const short = replyBodies.filter((b) => b.length < 60).length;
+  if (short / replyBodies.length < 0.3) {
+    console.error(`REJECTED: low-effort ratio ${short}/${replyBodies.length} (<30%). 진짜 커뮤니티 댓글의 다수는 "same", "lol no", "why would you do this" 같은 순간 반응이다. 댓글 절반가량을 10단어 이하 리액션으로 바꿔 patrol-output.json을 다시 쓰고 apply를 재실행하라.`);
+    process.exit(1);
+  }
+}
+
 if (!sql.length) { console.error('nothing to apply'); process.exit(0); }
 writeFileSync(new URL('./apply.sql', import.meta.url), sql.join('\n'));
 run(`--file "${new URL('./apply.sql', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')}"`);
