@@ -1,12 +1,33 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getDb } from '@/lib/db';
+import { getDb, getEnv } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { timeAgo } from '@/lib/content';
 import { PageHeading, SectionLabel, Button } from '@/components/ui';
 import type { AdminStats, ReportQueueItem, AdminPostItem, AdminUserItem } from './types';
 
 type ContactMessage = { id: number; name: string | null; email: string | null; body: string; created_at: string };
+type EdgeTraffic = { requests: number; errors: number } | null;
+
+// 최근 24시간 엣지 요청(봇 포함) — Workers GraphQL Analytics. 실패해도 페이지는 뜬다.
+async function fetchEdgeTraffic(): Promise<EdgeTraffic> {
+  try {
+    const { CF_ANALYTICS_TOKEN } = await getEnv();
+    if (!CF_ANALYTICS_TOKEN) return null;
+    const now = new Date().toISOString().slice(0, 16) + ':00Z';
+    const ago = new Date(Date.now() - 864e5).toISOString().slice(0, 16) + ':00Z';
+    const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${CF_ANALYTICS_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ query: `{ viewer { accounts(filter:{accountTag:"57bb730630ace30ef33217fb43d029cf"}) { workersInvocationsAdaptive(filter:{scriptName:"population-zero", datetime_geq:"${ago}", datetime_leq:"${now}"}, limit:10) { sum { requests errors } } } } }` }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const rows = (await res.json() as { data?: { viewer?: { accounts?: { workersInvocationsAdaptive?: { sum: { requests: number; errors: number } }[] }[] } } })
+      ?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive ?? [];
+    return rows.reduce((a, r) => ({ requests: a.requests + r.sum.requests, errors: a.errors + r.sum.errors }), { requests: 0, errors: 0 });
+  } catch { return null; }
+}
 type ActivityToday = { posts_today: number; comments_today: number; likes_today: number; scheduled: number };
 
 function Stat({ label, value, warn = false }: { label: string; value: number; warn?: boolean }) {
@@ -47,6 +68,11 @@ export async function AdminPage() {
     db.prepare(`SELECT id, handle, created_at, is_admin FROM users ORDER BY created_at DESC LIMIT 12`).all<AdminUserItem>(),
     db.prepare(`SELECT id, name, email, body, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 20`).all<ContactMessage>(),
   ]);
+  const [edge, humanToday, humanYesterday] = await Promise.all([
+    fetchEdgeTraffic(),
+    db.prepare(`SELECT human_views FROM stats_daily WHERE day = date('now')`).first<{ human_views: number }>(),
+    db.prepare(`SELECT human_views FROM stats_daily WHERE day = date('now','-1 day')`).first<{ human_views: number }>(),
+  ]);
   const stats = statsRow!; // 집계 쿼리는 항상 1행을 반환한다
   const activity = activityRow!;
 
@@ -70,6 +96,15 @@ export async function AdminPage() {
         <Stat label="New likes" value={activity.likes_today} />
         <Stat label="Scheduled (future)" value={activity.scheduled} />
       </div>
+
+      <SectionLabel>TRAFFIC · LAST 24H</SectionLabel>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Edge requests (bots incl.)" value={edge?.requests ?? -1} />
+        <Stat label="Edge errors" value={edge?.errors ?? -1} warn />
+        <Stat label="Human pageviews (today, JS)" value={humanToday?.human_views ?? 0} />
+        <Stat label="Human pageviews (yesterday)" value={humanYesterday?.human_views ?? 0} />
+      </div>
+      <p className="mt-2 text-[12px] text-ink-soft">Edge requests count everything hitting the worker (crawlers, bots, assets misses). Human pageviews are counted by the in-page JS beacon, which almost no bot executes — the gap between the two is bot traffic.</p>
 
       <div className="mt-2 grid gap-x-10 lg:grid-cols-2">
         <section>

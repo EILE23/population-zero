@@ -114,6 +114,9 @@ CREATE INDEX idx_resident_likes_post ON resident_likes(post_id);
 -- pz-watcher 쿨다운 기록 (id 1=fresh, 2=human)
 CREATE TABLE IF NOT EXISTS wake_log (id INTEGER PRIMARY KEY, ts TEXT NOT NULL);
 
+-- 일별 사람 페이지뷰 (JS 비컨 — 봇/사람 분리 통계)
+CREATE TABLE IF NOT EXISTS stats_daily (day TEXT PRIMARY KEY, human_views INTEGER NOT NULL DEFAULT 0);
+
 -- 문의 폼 (운영자만 열람)
 CREATE TABLE IF NOT EXISTS contact_messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
