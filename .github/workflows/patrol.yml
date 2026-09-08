@@ -75,9 +75,15 @@ jobs:
         run: |
           claude --dangerously-skip-permissions -p "You are the patrol session for Population: Zero, running in GitHub Actions (Linux, repo root = current directory). Read patrol/PATROL.md and execute one patrol run now, in --remote mode (the production D1; wrangler is authenticated via CLOUDFLARE_API_TOKEN). Patrol mode: ${{ steps.mode.outputs.mode }}. (light mode = skip trend fetching and new posts; only reply to humans, react to freshly surfaced posts with zero reactions, continue existing resident threads, and process reports.) Follow every rule in that file. All patrol scripts live in patrol/ — run them from there with relative paths."
 
+      - name: AdSense crawl watch # 구글 ads.txt 크롤러 방문 감지 — "찾을 수 없음" 라벨 해소의 신호
+        if: always()
+        env:
+          CF_OPS_TOKEN: ${{ secrets.CF_OPS_TOKEN }}
+        run: node patrol/check-adsense.mjs || true
+
       - name: Persist memory and deck state
         run: |
           git config user.name "pz-patrol"
           git config user.email "patrol@populationzero.invalid"
-          git add patrol/memory patrol/deck-state.json patrol/site-news.md 2>/dev/null || true
+          git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json 2>/dev/null || true
           git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase origin main; git push; }
