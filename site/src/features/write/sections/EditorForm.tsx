@@ -17,22 +17,29 @@ const TOOLBAR: { label: string; title: string; before: string; after: string; bl
   { label: '▶', title: 'YouTube — paste the URL on its own line', before: '\nhttps://www.youtube.com/watch?v=', after: '\n' },
 ];
 
-export function EditorForm({ handle }: { handle: string }) {
-  const [body, setBody] = useState('');
+/** 수정 모드에서 기존 글 값을 프리필한다 — 글쓰기와 완전히 같은 화면 */
+export interface EditablePost { id: number; title: string; body: string; topic: string | null; og_image: string | null }
+
+export function EditorForm({ handle, post }: { handle: string; post?: EditablePost }) {
+  const editing = post != null;
+  const [body, setBody] = useState(post?.body ?? '');
   const [preview, setPreview] = useState(true);
-  const [cover, setCover] = useState<string | null>(null);
+  const [cover, setCover] = useState<string | null>(post?.og_image ?? null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
 
   function onCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    if (cover) URL.revokeObjectURL(cover);
+    if (cover?.startsWith('blob:')) URL.revokeObjectURL(cover);
     setCover(f ? URL.createObjectURL(f) : null);
+    setCoverRemoved(false);
   }
   function clearCover() {
     if (coverRef.current) coverRef.current.value = '';
-    if (cover) URL.revokeObjectURL(cover);
+    if (cover?.startsWith('blob:')) URL.revokeObjectURL(cover);
     setCover(null);
+    setCoverRemoved(true);
   }
 
   const bodyImgRef = useRef<HTMLInputElement>(null);
@@ -70,7 +77,8 @@ export function EditorForm({ handle }: { handle: string }) {
   }
 
   return (
-    <form method="post" action="/api/posts" encType="multipart/form-data" className="mt-5">
+    <form method="post" action={editing ? `/api/p/${post.id}/edit` : '/api/posts'} encType="multipart/form-data" className="mt-5">
+      {editing && coverRemoved && <input type="hidden" name="remove_cover" value="1" />}
       <div className="mb-4">
         <input ref={coverRef} type="file" name="cover" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onCoverChange} className="hidden" id="cover-input" />
         {cover ? (
@@ -92,7 +100,7 @@ export function EditorForm({ handle }: { handle: string }) {
       </div>
 
       <input
-        name="title" maxLength={140} required placeholder="Title"
+        name="title" maxLength={140} required placeholder="Title" defaultValue={post?.title}
         className="w-full border-0 bg-transparent font-display text-[32px] font-bold tracking-tight outline-none placeholder:text-ink-faint"
       />
       <div className="mt-1 mb-4 h-1 w-14 bg-ink" aria-hidden />
@@ -100,7 +108,7 @@ export function EditorForm({ handle }: { handle: string }) {
       <div className="mb-4 flex flex-wrap gap-1.5">
         {TOPIC_OPTIONS.map((t, i) => (
           <label key={t.key} className="cursor-pointer">
-            <input type="radio" name="topic" value={t.key} defaultChecked={i === 0} className="peer sr-only" />
+            <input type="radio" name="topic" value={t.key} defaultChecked={post?.topic ? post.topic === t.key : i === 0} className="peer sr-only" />
             <span className="inline-block rounded-full bg-surface px-3.5 py-1.5 text-[13px] font-semibold text-ink-mid transition-colors peer-checked:bg-ink peer-checked:text-paper">{t.label}</span>
           </label>
         ))}
@@ -141,8 +149,15 @@ export function EditorForm({ handle }: { handle: string }) {
       </div>
 
       <div className="sticky bottom-0 mt-4 flex items-center justify-between rounded-xl bg-paper px-4 py-3 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
-        <span className="text-[13px] text-ink-soft">Posting as <b className="text-ink">{handle}</b> · public immediately</span>
-        <button className="cursor-pointer rounded-full bg-ink px-6 py-2.5 text-sm font-bold text-paper hover:opacity-85">Publish</button>
+        <span className="text-[13px] text-ink-soft">
+          {editing
+            ? <>Editing as <b className="text-ink">{handle}</b> · publish date stays, an (edited) mark is shown</>
+            : <>Posting as <b className="text-ink">{handle}</b> · public immediately</>}
+        </span>
+        <div className="flex items-center gap-2.5">
+          {editing && <a href={`/p/${post.id}`} className="rounded-full border border-hairline px-4 py-2 text-sm font-bold text-ink-mid hover:bg-surface">Cancel</a>}
+          <button className="cursor-pointer rounded-full bg-ink px-6 py-2.5 text-sm font-bold text-paper hover:opacity-85">{editing ? 'Save changes' : 'Publish'}</button>
+        </div>
       </div>
     </form>
   );
