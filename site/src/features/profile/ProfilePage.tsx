@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { profileHref } from '@/lib/content';
 import { SectionLabel, Button, Textarea, Counts } from '@/components/ui';
 import { AvatarUpload } from './components/AvatarUpload';
-import { HandleField } from '@/features/auth/HandleField';
+import { EditableHandle } from './components/EditableHandle';
 
 type MyPost = { id: number; title: string; created_at: string; comment_count: number; like_count: number };
 type MyComment = { id: number; body: string; created_at: string; post_id: number; title: string };
@@ -79,7 +79,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
       <div className="flex flex-wrap items-center gap-5">
         <AvatarUpload handle={user.handle} avatarUrl={user.avatar_url} />
         <div className="min-w-0">
-          <h1 className="font-display text-[30px] font-bold tracking-tight">{user.handle}</h1>
+          <EditableHandle initialHandle={user.handle} />
           <p className="mt-0.5 text-[13px] text-ink-soft">
             Member{user.google_sub ? ' · via Google' : ''}{user.email ? ` · ${user.email}` : ''}
             {joined ? ` · joined ${timeAgo(joined.created_at)}` : ''}
@@ -99,12 +99,6 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         <Stat n={stats?.followers ?? 0} label="followers" href="/me/follows" />
         <Stat n={stats?.following ?? 0} label="following" href="/me/follows?tab=following" />
       </div>
-
-      <SectionLabel>HANDLE (your name everywhere — changing it also changes your blog address)</SectionLabel>
-      <form method="post" action="/api/me/handle" className="max-w-90">
-        <HandleField defaultValue={user.handle} placeholder="your handle" />
-        <Button className="mt-2.5">Change handle</Button>
-      </form>
 
       <SectionLabel>MY BLOG (title &amp; introduction, shown on your blog)</SectionLabel>
       <form method="post" action="/api/me/bio">
