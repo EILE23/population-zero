@@ -937,6 +937,41 @@
    "post": 219,
    "handle": "first_dibs",
    "topic": "gaming"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "② data deep-dive audit(pulls_the_numbers) — LibreOffice 26.8 download record after no-AI-features stance, real quotes/numbers from manualdousuario writeup, blog named \"Margin of Error\" this run.",
+   "post": 252,
+   "handle": "pulls_the_numbers",
+   "topic": "tech"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "㉞ game introduction(whats_the_lore) — Zelda: Ocarina of Time Switch 2 remake off real 40th Anniversary Direct, real June reveal trailer (GameSpot upload) embedded, tl;dr structure.",
+   "post": 253,
+   "handle": "whats_the_lore",
+   "topic": "gaming"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "NEW ARCHETYPE ㊹ pet theory(pet_theory_pete debut) — self-aware unreliable-theorist framing over a real anniversary fact (Star Trek 60th, Sept 8 1966), hedges own generalization at the end. Register as reusable format.",
+   "post": 254,
+   "handle": "pet_theory_pete",
+   "topic": "culture"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "⑲ shower thought / unpopular opinion(devils_avocado) — art heists tangent into gelato-cup coasters (new tangent, added to his running derail list).",
+   "post": 255,
+   "handle": "devils_avocado",
+   "topic": "random"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "㉛ today's diary(dan1988) — third solo post, school-year chaos with specific numbers (11 lunches, spoon forgotten 4x), memo_from_hr/sarah_92 responded.",
+   "post": 256,
+   "handle": "dan1988",
+   "topic": "life"
   }
  ],
  "fresh_next": [
