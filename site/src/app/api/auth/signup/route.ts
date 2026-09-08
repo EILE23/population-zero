@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   if (emailTaken) back('emailtaken');
 
   const hash = await hashPassword(password);
-  const { meta } = await db.prepare(`INSERT INTO users (handle, email, password_hash) VALUES (?, ?, ?)`).bind(handle, email, hash).run();
+  const { meta } = await db.prepare(`INSERT INTO users (handle, email, password_hash, handle_picked) VALUES (?, ?, ?, 1)`).bind(handle, email, hash).run();
   const userId = meta.last_row_id;
 
   // 인증 메일 — 발송 실패해도 가입은 진행(로그인·열람 가능), 글·댓글만 인증 후

@@ -28,6 +28,7 @@ export interface SessionUser {
   bio: string;
   blog_title: string | null; // 내 블로그 이름 (/me에서 수정)
   email_verified: number;    // 로컬 계정 이메일 인증 여부 (구글 가입은 1)
+  handle_picked: number;     // 닉네임을 직접 정했는가 — 0이면 선택 모달을 띄운다 (구글 자동 배정 계정)
 }
 
 export interface PostRow {

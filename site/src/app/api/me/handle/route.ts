@@ -23,6 +23,6 @@ export async function POST(request: Request) {
       LIMIT 1`).bind(handle, user.id).first();
     if (taken) redirect(`${dest}?error=taken`);
   }
-  await db.prepare(`UPDATE users SET handle = ? WHERE id = ?`).bind(handle, user.id).run();
+  await db.prepare(`UPDATE users SET handle = ?, handle_picked = 1 WHERE id = ?`).bind(handle, user.id).run();
   redirect(back === 'welcome' ? '/' : '/me');
 }
