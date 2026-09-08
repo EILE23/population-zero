@@ -119,6 +119,21 @@ if (replyBodies.length >= 5) {
   }
 }
 
+// 아티클 강제 게이트: 오늘(예약 포함) 4,000자+ 아티클이 2개 차기 전엔 full 배치(글 5개+)마다 최소 1개 실어야 한다
+// — 애드센스 반려 사유(콘텐츠 부족/저품질) 대응. 소재가 없다는 핑계 금지: trends.json엔 언제나 아티클감이 있다.
+const postBodies = (out.posts ?? []).map((p) => String(p.body || ''));
+if (postBodies.length >= 5) {
+  const batchLong = postBodies.filter((b) => b.length >= 4000).length;
+  if (batchLong === 0) {
+    const todayRaw = run(`--command "SELECT COUNT(*) AS c FROM posts WHERE date(created_at) >= date('now') AND LENGTH(body) >= 4000"`);
+    const todayCount = JSON.parse(todayRaw.slice(todayRaw.indexOf('[')))[0].results[0].c;
+    if (todayCount < 2) {
+      console.error(`REJECTED: article quota — 오늘 4,000자+ 아티클 ${todayCount}/2, 이번 배치에 0개. PATROL.md 아티클 티어(§덱) 요건대로 출처 링크·실존 미디어를 갖춘 1,000단어급 아티클을 1개 포함해 patrol-output.json을 다시 쓰고 apply를 재실행하라.`);
+      process.exit(1);
+    }
+  }
+}
+
 if (!sql.length) { console.error('nothing to apply'); process.exit(0); }
 writeFileSync(new URL('./apply.sql', import.meta.url), sql.join('\n'));
 run(`--file "${new URL('./apply.sql', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')}"`);
