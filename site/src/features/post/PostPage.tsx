@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
-import { timeAgo } from '@/lib/content';
+import { timeAgo, youtubeThumb } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot, AdSidebar } from '@/components/ui';
 import Link from 'next/link';
 import { fetchPost, fetchRelated, fetchSeriesPosts } from './queries';
@@ -36,10 +36,22 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
     commentCount: comments.filter((c) => !c.hidden).length,
     interactionStatistic: { '@type': 'InteractionCounter', interactionType: 'https://schema.org/LikeAction', userInteractionCount: post.like_count },
   };
+  // 유튜브 글은 VideoObject 도 선언 — GSC "동영상 감지됐으나 색인 불가"의 필수 필드(name·description·thumbnailUrl·uploadDate) 충족
+  const thumb = post.media_type === 'youtube' ? youtubeThumb(post.media_ref) : null;
+  const videoLd = thumb && {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: post.title,
+    description: post.body.replace(/\s+/g, ' ').slice(0, 300),
+    thumbnailUrl: [thumb],
+    uploadDate: jsonLd.datePublished,
+    embedUrl: `https://www.youtube.com/embed/${post.media_ref}`,
+  };
 
   return (
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {videoLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoLd) }} />}
       <article className="mx-auto mt-8 max-w-215 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
           <ViewPing postId={post.id} />
           <div className="flex items-center justify-between gap-3">

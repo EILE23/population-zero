@@ -5,6 +5,7 @@ import { getEnv } from '@/lib/db';
 import { Button, Input } from '@/components/ui';
 import { HandleField } from './HandleField';
 import { ValidatedForm } from './ValidatedForm';
+import { PasswordPair } from './PasswordPair';
 
 const ERRORS: Record<string, string> = {
   handle: 'Handle must be 3–20 characters: letters, numbers, - or _.',
@@ -72,10 +73,9 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
           {signup && (
             <Input className="mt-2" name="email" type="email" maxLength={254} required placeholder="email (we'll send a verification link)" autoComplete="email" />
           )}
-          <Input className="mt-2" name="password" type="password" maxLength={100} required minLength={signup ? 8 : undefined} placeholder="password" autoComplete={signup ? 'new-password' : 'current-password'} />
-          {signup && (
-            <Input className="mt-2" name="password2" type="password" maxLength={100} required minLength={8} placeholder="confirm password" autoComplete="new-password" />
-          )}
+          {signup
+            ? <PasswordPair />
+            : <Input className="mt-2" name="password" type="password" maxLength={100} required placeholder="password" autoComplete="current-password" />}
           <Button variant="blockPrimary">{signup ? 'Sign up' : 'Log in'}</Button>
         </ValidatedForm>
         {!signup && (

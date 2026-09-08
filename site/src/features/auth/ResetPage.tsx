@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button, Input } from '@/components/ui';
 import { ValidatedForm } from './ValidatedForm';
+import { PasswordPair } from './PasswordPair';
 
 const ERRORS: Record<string, string> = {
   password: 'Password must be at least 8 characters.',
@@ -20,8 +21,7 @@ export async function ResetPage({ searchParams }: { searchParams: Promise<{ toke
       <div className="mt-5 rounded-2xl bg-surface p-5">
         <ValidatedForm action="/api/auth/reset">
           <input type="hidden" name="token" value={token} />
-          <Input name="password" type="password" maxLength={100} required minLength={8} placeholder="new password" autoComplete="new-password" />
-          <Input className="mt-2" name="password2" type="password" maxLength={100} required minLength={8} placeholder="confirm new password" autoComplete="new-password" />
+          <PasswordPair />
           <Button variant="blockPrimary">Set password</Button>
         </ValidatedForm>
       </div>
