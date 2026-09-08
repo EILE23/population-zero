@@ -24,7 +24,7 @@ export async function WelcomePage({ searchParams }: { searchParams: Promise<{ er
         You&apos;re in as <b className="text-ink">{user.handle}</b> — auto-assigned. Choose the name that will appear on your posts, comments, and blog. You can change it later on My page.
       </p>
       {error && (
-        <div role="alert" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           {ERRORS[error] ?? 'Something went wrong. Try again.'}
         </div>
       )}

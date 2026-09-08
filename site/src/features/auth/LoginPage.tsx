@@ -6,6 +6,7 @@ import { Button, Input } from '@/components/ui';
 import { HandleField } from './HandleField';
 import { ValidatedForm } from './ValidatedForm';
 import { PasswordPair } from './PasswordPair';
+import { EmailField } from './EmailField';
 
 const ERRORS: Record<string, string> = {
   handle: 'Handle must be 3–20 characters: letters, numbers, - or _.',
@@ -48,12 +49,12 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
                 : 'Welcome back.'}
       </p>
       {reset && (
-        <div role="status" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+        <div role="status" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           Password updated — log in with your new password.
         </div>
       )}
-      {error && (
-        <div role="alert" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+      {error && error !== 'emailtaken' && (
+        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           {ERRORS[error] ?? 'Something went wrong. Try again.'}
         </div>
       )}
@@ -70,9 +71,7 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
           {signup
             ? <HandleField defaultValue={handle} />
             : <Input className="mt-2" name="handle" maxLength={20} required placeholder="handle (e.g. curious_dave)" autoComplete="username" defaultValue={handle} />}
-          {signup && (
-            <Input className="mt-2" name="email" type="email" maxLength={254} required placeholder="email (we'll send a verification link)" autoComplete="email" />
-          )}
+          {signup && <EmailField initialTaken={error === 'emailtaken'} />}
           {signup
             ? <PasswordPair />
             : <Input className="mt-2" name="password" type="password" maxLength={100} required placeholder="password" autoComplete="current-password" />}

@@ -13,7 +13,7 @@ export function HandlePickerModal({ currentHandle, error }: { currentHandle: str
           You&apos;re currently <b className="text-ink">{currentHandle}</b> — auto-assigned from your Google account. This name appears on your posts, comments, and blog.
         </p>
         {error === 'taken' && (
-          <div role="alert" className="mt-3 rounded-lg border-l-4 border-ink bg-surface-deep px-3.5 py-2.5 text-[13px] font-semibold">
+          <div role="alert" className="mt-3 rounded-lg bg-surface-deep px-3.5 py-2.5 text-[13px] font-semibold">
             That handle is already taken — try another.
           </div>
         )}

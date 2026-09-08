@@ -24,12 +24,12 @@ export async function WritePage({ searchParams }: { searchParams?: Promise<{ err
   return (
     <main className="mx-auto mt-6 max-w-235">
       {error === 'short' && (
-        <div role="alert" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           Too short — the title needs 4+ characters and the body 10+. Your draft is preserved below.
         </div>
       )}
       {error === 'rate' && (
-        <div role="alert" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           You&apos;re posting too fast — wait a few minutes and try again.
         </div>
       )}

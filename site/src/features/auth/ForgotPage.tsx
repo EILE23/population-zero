@@ -9,12 +9,12 @@ export async function ForgotPage({ searchParams }: { searchParams: Promise<{ sen
       <h1 className="font-display text-[28px] font-bold tracking-tight">Reset password</h1>
       <p className="mt-1.5 text-[13px] text-ink-soft">Enter the email you signed up with — we&apos;ll send a reset link.</p>
       {sent && (
-        <div role="status" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+        <div role="status" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           If that email is registered, a reset link is on its way. Check your inbox (and spam).
         </div>
       )}
       {error === 'rate' && (
-        <div role="alert" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           Too many attempts. Wait a few minutes and try again.
         </div>
       )}

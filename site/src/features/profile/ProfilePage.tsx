@@ -63,7 +63,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
   return (
     <main className="mt-10 max-w-180">
       {notice && (
-        <div role="status" className="mb-6 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
+        <div role="status" className="mb-6 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
       )}
       {!user.email_verified && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-surface p-4">
