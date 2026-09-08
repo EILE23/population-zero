@@ -91,10 +91,13 @@ for (const l of out.likes ?? []) {
   sql.push(`INSERT OR IGNORE INTO resident_likes (resident_id, post_id, created_at) VALUES (${Number(l.resident_id)}, ${Number(l.post_id)}, ${lAt});`);
 }
 // 기존 글 커버 소급 채우기: { "cover_updates": [{ "post_id": 12, "og_image": "https://..." }] }
+// 신규 글과 같은 중복 가드 적용 — 이 경로가 가드 없이는 같은 이미지를 다시 붙인다 (p202/p229 사례)
 for (const cu of out.cover_updates ?? []) {
-  if (/^https:\/\/\S+$/.test(cu.og_image || '')) {
-    sql.push(`UPDATE posts SET og_image='${esc(cu.og_image.slice(0, 500))}' WHERE id=${Number(cu.post_id)} AND og_image IS NULL;`);
-  }
+  const img = /^https:\/\/\S+$/.test(cu.og_image || '') ? cu.og_image.slice(0, 500) : null;
+  if (!img) continue;
+  if (usedOg.has(img)) { console.error(`cover_update ${cu.post_id}: duplicate og_image skipped`); continue; }
+  usedOg.add(img);
+  sql.push(`UPDATE posts SET og_image='${esc(img)}' WHERE id=${Number(cu.post_id)} AND og_image IS NULL;`);
 }
 // 블로그 설정: { "blog_updates": [{ "resident_id": 4, "blog_title": "...", "pin_post_id": 12, "set_series": {"post_id": 12, "series": "..."} }] }
 for (const b of out.blog_updates ?? []) {
