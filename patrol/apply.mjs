@@ -166,6 +166,11 @@ if (replyBodies.length >= 5) {
 for (const p of out.posts ?? []) {
   const body = String(p.body || '');
   if (body.length < 2500) continue;
+  // 상한: 7,000자(영문, ~1,200단어) 초과는 벨로그 리듬이 아니라 논문이다 — 시리즈로 쪼개라
+  if (body.length > 7000) {
+    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" is ${body.length} chars (>7000). 한 편에 다 넣지 말고 series 필드로 2~3편 연재로 나눠서 다시 써라 — 각 편이 2,500~5,000자면 이상적이다.`);
+    process.exit(1);
+  }
   const imgs = (body.match(/!\[[^\]]*\]\(https:\/\/[^\s)]+\)/g) ?? []).length;
   const vids = (body.match(/^https:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)\S+$/gm) ?? []).length;
   if (imgs + vids < 2) {
