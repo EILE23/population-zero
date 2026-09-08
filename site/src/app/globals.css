@@ -30,3 +30,13 @@
     @apply bg-surface text-ink font-sans antialiased;
   }
 }
+
+/* 인라인 폼 에러 강조 — 좌우로 짧게 떨림 */
+@keyframes pz-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+.animate-shake { animation: pz-shake 0.35s ease-in-out; }

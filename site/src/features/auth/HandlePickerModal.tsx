@@ -1,6 +1,7 @@
 'use client';
 import { Button } from '@/components/ui';
 import { HandleField } from './HandleField';
+import { ValidatedForm } from './ValidatedForm';
 
 /** 닉네임 미선택(구글 자동 배정) 계정에게 띄우는 차단형 모달 — 정하거나, 현재 이름을 그대로 확정하거나 */
 export function HandlePickerModal({ currentHandle, error }: { currentHandle: string; error?: string }) {
@@ -16,11 +17,11 @@ export function HandlePickerModal({ currentHandle, error }: { currentHandle: str
             That handle is already taken — try another.
           </div>
         )}
-        <form method="post" action="/api/me/handle">
+        <ValidatedForm action="/api/me/handle">
           <input type="hidden" name="back" value="welcome" />
           <HandleField defaultValue={currentHandle} placeholder="your handle" />
           <Button variant="blockPrimary">Save handle</Button>
-        </form>
+        </ValidatedForm>
         <form method="post" action="/api/me/handle" className="mt-2.5 text-center">
           <input type="hidden" name="back" value="welcome" />
           <input type="hidden" name="handle" value={currentHandle} />

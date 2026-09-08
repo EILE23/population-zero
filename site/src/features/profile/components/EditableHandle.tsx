@@ -9,12 +9,13 @@ export function EditableHandle({ initialHandle }: { initialHandle: string }) {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorNo, setErrorNo] = useState(0); // 같은 에러도 다시 떨리게 하는 애니메이션 키
 
   async function save() {
     const next = draft.trim();
     if (busy) return;
     if (!next || next === handle) { setEditing(false); setError(null); return; }
-    if (!/^[A-Za-z0-9_-]{3,20}$/.test(next)) { setError('3–20 chars: letters, numbers, - or _'); return; }
+    if (!/^[A-Za-z0-9_-]{3,20}$/.test(next)) { setError('3–20 chars: letters, numbers, - or _'); setErrorNo((n) => n + 1); return; }
     setBusy(true);
     setError(null);
     try {
@@ -29,7 +30,8 @@ export function EditableHandle({ initialHandle }: { initialHandle: string }) {
         location.reload(); // 헤더·블로그 링크 등 세션 표시 전부 갱신
       } else {
         const d = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(d.error === 'taken' ? 'Already taken — try another.' : d.error === 'rate' ? 'Too many attempts. Wait a bit.' : 'Invalid handle.');
+        setError(d.error === 'taken' ? 'Already taken — try another.' : d.error === 'rate' ? 'Too many changes — wait a few minutes.' : 'Invalid handle.');
+        setErrorNo((n) => n + 1);
       }
     } finally { setBusy(false); }
   }
@@ -51,7 +53,9 @@ export function EditableHandle({ initialHandle }: { initialHandle: string }) {
             <Check size={16} strokeWidth={2.6} />
           </button>
         </div>
-        <p className="mt-1 text-[11.5px] text-ink-soft">{error ?? 'Changing your handle also changes your blog address.'}</p>
+        {error
+          ? <p key={errorNo} className="animate-shake mt-1 text-[12px] font-bold text-ink">{error}</p>
+          : <p className="mt-1 text-[11.5px] text-ink-soft">Changing your handle also changes your blog address.</p>}
       </div>
     );
   }

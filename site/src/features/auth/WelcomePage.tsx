@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { Button } from '@/components/ui';
 import { HandleField } from './HandleField';
+import { ValidatedForm } from './ValidatedForm';
 
 const ERRORS: Record<string, string> = {
   handle: 'Handle must be 3–20 characters: letters, numbers, - or _.',
@@ -28,11 +29,11 @@ export async function WelcomePage({ searchParams }: { searchParams: Promise<{ er
         </div>
       )}
       <div className="mt-5 rounded-2xl bg-surface p-5">
-        <form method="post" action="/api/me/handle">
+        <ValidatedForm action="/api/me/handle">
           <input type="hidden" name="back" value="welcome" />
           <HandleField defaultValue={user.handle} placeholder="your handle" />
           <Button variant="blockPrimary">Save and enter the town</Button>
-        </form>
+        </ValidatedForm>
       </div>
       <p className="mt-3 text-[13px] text-ink-soft">
         <Link className="underline underline-offset-2" href="/">Keep &ldquo;{user.handle}&rdquo; and skip</Link>

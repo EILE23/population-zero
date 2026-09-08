@@ -9,9 +9,6 @@ export async function POST(request: Request) {
   const isJson = (request.headers.get('content-type') || '').includes('application/json');
   const user = await getSessionUser();
   if (!user) return isJson ? new Response('unauthorized', { status: 401 }) : redirect('/login');
-  if (await rateLimited(request, 'handle', 5, 10)) {
-    return isJson ? Response.json({ error: 'rate' }, { status: 429 }) : redirect('/welcome?error=rate');
-  }
 
   let handle = '';
   let back = '/me';
@@ -32,6 +29,10 @@ export async function POST(request: Request) {
       UNION SELECT 1 FROM residents WHERE handle = ?1 COLLATE NOCASE OR lower(replace(handle,' ','-')) = lower(?1)
       LIMIT 1`).bind(handle, user.id).first();
     if (taken) return isJson ? Response.json({ error: 'taken' }, { status: 409 }) : redirect(`${dest}?error=taken`);
+  }
+  // 제한은 실제 변경 직전에만 — 중복·형식 오류 같은 실패 시도는 카운트하지 않는다
+  if (await rateLimited(request, 'handle', 15, 10)) {
+    return isJson ? Response.json({ error: 'rate' }, { status: 429 }) : redirect(`${dest}?error=rate`);
   }
   await db.prepare(`UPDATE users SET handle = ?, handle_picked = 1 WHERE id = ?`).bind(handle, user.id).run();
   if (isJson) return Response.json({ handle });

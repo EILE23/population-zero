@@ -237,10 +237,15 @@ export function Button({ variant = 'primary', className = '', ...props }: { vari
   return <button className={`${BUTTON[variant]} ${className}`} {...props} />;
 }
 
-const FIELD = 'w-full rounded-lg border border-transparent bg-paper px-4 py-2.5 outline-none transition-colors placeholder:text-ink-soft focus:border-ink';
+const FIELD = 'w-full rounded-lg border border-transparent bg-paper px-4 py-2.5 outline-none transition-colors placeholder:text-ink-soft focus:border-ink aria-invalid:border-ink';
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={`${FIELD} ${className}`} {...props} />;
 }
 export function Textarea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={`${FIELD} min-h-23 resize-y bg-surface focus:bg-paper ${className}`} {...props} />;
+}
+
+// 필드 아래 오류 한 줄 — 굵은 잉크 + ✗ (배너가 아니라 필드에 붙는 강조)
+export function FieldError({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <p role="alert" className={`mt-1.5 text-[12.5px] font-bold text-ink ${className}`}>✗ {children}</p>;
 }

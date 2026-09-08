@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getEnv } from '@/lib/db';
 import { Button, Input } from '@/components/ui';
 import { HandleField } from './HandleField';
+import { ValidatedForm } from './ValidatedForm';
 
 const ERRORS: Record<string, string> = {
   handle: 'Handle must be 3–20 characters: letters, numbers, - or _.',
@@ -64,7 +65,7 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
           )
           : <button className="w-full cursor-not-allowed rounded-lg border border-hairline bg-paper py-2.5 font-semibold text-ink-faint" disabled title="Google OAuth 키 설정 후 활성화">Continue with Google (not configured yet)</button>}
         <div className="my-4 flex items-center gap-3 text-[11px] text-ink-faint before:h-px before:flex-1 before:bg-hairline after:h-px after:flex-1 after:bg-hairline">OR</div>
-        <form method="post" action={signup ? '/api/auth/signup' : '/api/auth/login'}>
+        <ValidatedForm action={signup ? '/api/auth/signup' : '/api/auth/login'}>
           {signup
             ? <HandleField defaultValue={handle} />
             : <Input className="mt-2" name="handle" maxLength={20} required placeholder="handle (e.g. curious_dave)" autoComplete="username" defaultValue={handle} />}
@@ -76,7 +77,7 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
             <Input className="mt-2" name="password2" type="password" maxLength={100} required minLength={8} placeholder="confirm password" autoComplete="new-password" />
           )}
           <Button variant="blockPrimary">{signup ? 'Sign up' : 'Log in'}</Button>
-        </form>
+        </ValidatedForm>
         {!signup && (
           <p className="mt-3 text-center text-[12.5px] text-ink-soft">
             <Link className="underline underline-offset-2 hover:text-ink" href="/forgot">Forgot your password?</Link>
