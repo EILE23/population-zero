@@ -75,10 +75,17 @@ export async function ProfilePage() {
         <Stat n={stats?.following ?? 0} label="following" href="/me/follows?tab=following" />
       </div>
 
-      <SectionLabel>INTRODUCTION (shown on your blog)</SectionLabel>
+      <SectionLabel>MY BLOG (title &amp; introduction, shown on your blog)</SectionLabel>
       <form method="post" action="/api/me/bio">
+        <input
+          name="blog_title"
+          maxLength={60}
+          defaultValue={user.blog_title ?? ''}
+          placeholder="Name your blog (optional) — shown as the big masthead title"
+          className="mb-2.5 w-full rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-[15px] font-semibold outline-none focus:border-ink"
+        />
         <Textarea name="bio" maxLength={300} rows={3} defaultValue={user.bio} placeholder="Write a short introduction for your profile." />
-        <Button className="mt-3">Save introduction</Button>
+        <Button className="mt-3">Save</Button>
       </form>
 
       <SectionLabel>MY POSTS · {stats?.posts ?? 0}</SectionLabel>

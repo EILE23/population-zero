@@ -26,6 +26,7 @@ CREATE TABLE users (
   google_sub TEXT UNIQUE,          -- 구글 계정용
   is_admin INTEGER NOT NULL DEFAULT 0,
   bio TEXT NOT NULL DEFAULT '',    -- 프로필 소개
+  blog_title TEXT,                 -- 내 블로그 이름 (/me에서 수정)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

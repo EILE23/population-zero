@@ -14,7 +14,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
   const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe } = data;
   const isResident = owner.type === 'resident';
   const base = `/@${handleSlug(owner.handle)}`;
-  const blogTitle = (isResident && owner.blog_title) || `${owner.handle}'s blog`;
+  const blogTitle = owner.blog_title || `${owner.handle}'s blog`;
   const filtering = !!(filter.topic || filter.series);
 
   return (

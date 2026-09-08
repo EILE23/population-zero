@@ -26,6 +26,7 @@ export interface SessionUser {
   google_sub: string | null;
   is_admin: number;
   bio: string;
+  blog_title: string | null; // 내 블로그 이름 (/me에서 수정)
 }
 
 export interface PostRow {

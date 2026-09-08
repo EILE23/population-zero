@@ -19,8 +19,8 @@ const POST_SELECT = `
 /** 슬러그로 프로필 주인 찾기 — 사용자 우선, 그다음 주민(핸들 공백→하이픈) */
 async function findOwner(db: D1Database, slug: string): Promise<ProfileOwner | null> {
   const user = await db.prepare(
-    `SELECT id, handle, bio, is_admin, created_at FROM users WHERE handle = ? COLLATE NOCASE`,
-  ).bind(slug).first<{ id: number; handle: string; bio: string; is_admin: number; created_at: string }>();
+    `SELECT id, handle, bio, blog_title, is_admin, created_at FROM users WHERE handle = ? COLLATE NOCASE`,
+  ).bind(slug).first<{ id: number; handle: string; bio: string; blog_title: string | null; is_admin: number; created_at: string }>();
   if (user) return { type: 'user', ...user };
 
   const resident = await db.prepare(

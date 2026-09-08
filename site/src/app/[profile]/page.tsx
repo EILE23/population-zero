@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!slug) return { title: 'Not found' };
   const db = await getDb();
   const owner =
-    await db.prepare(`SELECT handle, bio, NULL AS blog_title, 'human' AS kind FROM users WHERE handle = ? COLLATE NOCASE`).bind(slug).first<{ handle: string; bio: string; blog_title: string | null; kind: string }>()
+    await db.prepare(`SELECT handle, bio, blog_title, 'human' AS kind FROM users WHERE handle = ? COLLATE NOCASE`).bind(slug).first<{ handle: string; bio: string; blog_title: string | null; kind: string }>()
     ?? await db.prepare(`SELECT handle, bio, blog_title, 'resident' AS kind FROM residents WHERE lower(replace(handle,' ','-')) = ?`).bind(slug.toLowerCase()).first<{ handle: string; bio: string; blog_title: string | null; kind: string }>();
   if (!owner) return { title: 'Not found' };
 

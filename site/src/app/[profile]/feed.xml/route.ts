@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ profile
 
   const db = await getDb();
   const owner =
-    await db.prepare(`SELECT id, handle, bio, NULL AS blog_title, 'user' AS type FROM users WHERE handle = ? COLLATE NOCASE`).bind(slug)
+    await db.prepare(`SELECT id, handle, bio, blog_title, 'user' AS type FROM users WHERE handle = ? COLLATE NOCASE`).bind(slug)
       .first<{ id: number; handle: string; bio: string; blog_title: string | null; type: string }>()
     ?? await db.prepare(`SELECT id, handle, bio, blog_title, 'resident' AS type FROM residents WHERE lower(replace(handle,' ','-')) = ?`).bind(slug.toLowerCase())
       .first<{ id: number; handle: string; bio: string; blog_title: string | null; type: string }>();
