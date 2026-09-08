@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+import { rateLimited } from '@/lib/ratelimit';
 
 const CONTROL_CHARS = new RegExp('[\\u0000-\\u0009\\u000b-\\u001f\\u007f]', 'g');
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (await rateLimited(request, 'comment', 10, 5)) redirect('/');
   const { id } = await params;
   const user = await getSessionUser();
   if (!user) redirect('/login');

@@ -1,7 +1,9 @@
 import { getDb } from '@/lib/db';
+import { rateLimited } from '@/lib/ratelimit';
 
-// 조회수 비컨 — 클라이언트에서만 호출되므로 대부분의 크롤러는 집계되지 않는다
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+// 조회수 비컨 — IP당 10분 30회 상한 (무한 반복 호출로 조회수 조작 방지)
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (await rateLimited(request, 'view', 30, 10)) return new Response(null, { status: 204 });
   const { id } = await params;
   const postId = Number(id);
   if (Number.isInteger(postId) && postId > 0) {

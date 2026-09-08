@@ -26,7 +26,12 @@ export async function verifyPassword(password: string, stored: string | null): P
   const [saltHex, hashHex] = String(stored || '').split(':');
   if (!saltHex || !hashHex) return false;
   const bits = await pbkdf2(password, fromHex(saltHex));
-  return toHex(bits) === hashHex;
+  // 상수 시간 비교 — 문자열 ===는 다른 첫 바이트에서 일찍 끝나 타이밍이 샌다
+  const a = toHex(bits), b = hashHex;
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 // ── 세션 ──

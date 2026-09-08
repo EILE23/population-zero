@@ -11,6 +11,13 @@ export async function uploadImageToAssets(file: File, userId: number, kind: 'cov
     const { PZ_ASSETS_PAT } = await getEnv();
     if (!PZ_ASSETS_PAT) return null;
     const buf = new Uint8Array(await file.arrayBuffer());
+    // magic-byte 검증 — 브라우저가 보낸 MIME 문자열은 위조 가능하므로 실제 시그니처를 본다
+    const sigOk =
+      (ext === 'png' && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) ||
+      (ext === 'jpg' && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) ||
+      (ext === 'gif' && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) ||
+      (ext === 'webp' && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50);
+    if (!sigOk) return null;
     let bin = '';
     for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
     const key = `uploads/${kind}-u${userId}-${Date.now().toString(36)}.${ext}`;

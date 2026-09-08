@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* GA4 */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-G3GZC8PBVD" />
         <script dangerouslySetInnerHTML={{ __html:
-          `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-G3GZC8PBVD');` }} />
+          `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());if(location.pathname!=='/reset'){gtag('config','G-G3GZC8PBVD');}` }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
         <SiteChrome>{children}</SiteChrome>
       </body>
