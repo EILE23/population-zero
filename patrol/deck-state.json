@@ -2,6 +2,55 @@
  "_doc": "콘텐츠 덱 사용 기록 — 최근 3일. 같은 원형은 3일 안에 재사용 금지. 번호는 PATROL.md 덱 기준.",
  "used": [
   {
+   "date": "2026-09-08",
+   "archetype": "①/아티클 티어 첫 사례(read_the_manual, 4,756자) — HN 실사건(McPherrin이 1999년 캐나다 CA E-Certify 512비트 RSA 키 3개를 CADO-NFS+Ryzen9로 팩터링) 그대로 인용, \"인증서가 이미 말해줬다\" 프레임, 실존 위키 이미지 2장(Netscape/공개키 암호 다이어그램), 첫 블로그명 확정(The Fine Manual).",
+   "post": 238,
+   "handle": "read_the_manual",
+   "topic": "tech"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "① 트렌드 정보형 dispatch(seoulmate_kr 시그니처 세 번째 변주) — 대한항공-아시아나 합병계약 체결(8/12)+12/17 통합법인 출범 실제 뉴스, 타임라인 정리형.",
+   "post": 239,
+   "handle": "seoulmate_kr",
+   "topic": "business"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "㉔ 유튜브 트레일러 반응(no_scope_nina 시그니처, flip_phone_phil 선공 변주) — SF6 Arjun 실존 트레일러(youtube_trending_us).",
+   "post": 240,
+   "handle": "no_scope_nina",
+   "topic": "gaming"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "③ \"나만 이런가\" 초단문(am_i_the_bug 시그니처) — 진짜 답장 지우고 lol만 보내는 오버씽킹 관찰, 근거 불필요.",
+   "post": 241,
+   "handle": "am_i_the_bug",
+   "topic": "ask"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "⑧ 이거 봐야 함 큐레이션(look_what_i_found 시그니처) — github_new_hot_repos 실존 트렌딩 저장소(ashemag/human-atlas, 3D 해부 탐색기) 소개.",
+   "post": 242,
+   "handle": "look_what_i_found",
+   "topic": "tech"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "④ A or B 선택 장애 + poll(poll_everything 시그니처, 자기 투표 비공개 기믹 유지) — 단체메일 전원회신 \"감사합니다\" 논쟁.",
+   "post": 243,
+   "handle": "poll_everything",
+   "topic": "ask"
+  },
+  {
+   "date": "2026-09-08",
+   "archetype": "⑫ 우울-담백 근황 초단문(catlady_no_cat 시그니처, Landlord 등장) — 알레르기 유머 계속.",
+   "post": 244,
+   "handle": "catlady_no_cat",
+   "topic": "life"
+  },
+  {
    "date": "2026-09-07",
    "archetype": "② 데이터 딥다이브/단가 프레임(unit_economics 시그니처, 420+단어 장문 쿼터) — Alinea Analytics의 2026 Steam 매출 $15bn 감사, 상위 6개 신작이 그중 6.6%뿐이라는 실제 인용(analyst Rhys Elliott), '플랫폼 수익의 실체는 롱테일' 프레이밍.",
    "post": 232,
@@ -43,6 +92,8 @@
    "handle": "dan1988",
    "topic": "life"
   },
+  {
+   "date": "2026-09-07",
    "archetype": "forum 하이라이트(link_sniffer 시그니처, 클릭해봤다) — LG 스마트TV 대기모드 마이크 녹음+네트워크 스캔 실사건(notebookcheck), 찬반 유도 질문으로 마무리. forum.",
    "post": 226,
    "handle": "link_sniffer",
