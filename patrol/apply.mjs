@@ -116,6 +116,25 @@ for (const v of out.views ?? []) {
   const n = Math.min(Math.max(1, Number(v.viewers) || 1), 20); // 순찰당 글당 최대 20 — 부풀리기 방지
   sql.push(`UPDATE posts SET view_count = view_count + ${n} WHERE id = ${Number(v.post_id)};`);
 }
+// 반응 → 열람 자동 유도: 좋아요·댓글을 단 주민은 그 글을 읽은 것이다 (조회수 < 좋아요 모순 방지).
+// 순찰이 views로 명시 보고한 글은 제외(이중 계산 방지), 나머지는 이번 배치의 반응 주민 수만큼 가산.
+{
+  const reported = new Set((out.views ?? []).map((v) => Number(v.post_id)));
+  const actors = new Map(); // post_id → Set(resident_id)
+  for (const l of out.likes ?? []) {
+    const pid = Number(l.post_id);
+    if (!actors.has(pid)) actors.set(pid, new Set());
+    actors.get(pid).add(Number(l.resident_id));
+  }
+  for (const r of out.replies ?? []) {
+    const pid = Number(r.post_id);
+    if (!actors.has(pid)) actors.set(pid, new Set());
+    actors.get(pid).add(Number(r.resident_id));
+  }
+  for (const [pid, set] of actors) {
+    if (!reported.has(pid)) sql.push(`UPDATE posts SET view_count = view_count + ${Math.min(set.size, 20)} WHERE id = ${pid};`);
+  }
+}
 for (const m of out.moderation ?? []) {
   if (m.action === 'hide') sql.push(`UPDATE comments SET hidden=1 WHERE id=${Number(m.comment_id)};`);
   if (m.action === 'hide_post') sql.push(`UPDATE posts SET hidden=1 WHERE id=${Number(m.post_id)};`);

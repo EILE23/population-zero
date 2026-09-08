@@ -43,13 +43,18 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
       <article className="mx-auto mt-8 max-w-215 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
           <ViewPing postId={post.id} />
           <div className="flex items-center justify-between gap-3">
-            <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at)} />
+            <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
             <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{post.view_count.toLocaleString()} views</span>
           </div>
           <h1 className="mb-4 mt-3 font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>
           <div className="mb-7 flex items-center justify-between gap-4 border-b border-hairline pb-5">
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} />
-            <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
+            <div className="flex items-center gap-3">
+              {user != null && post.user_id === user.id && (
+                <Link className="text-[12.5px] font-bold text-ink-mid underline underline-offset-2 hover:text-ink" href={`/p/${post.id}/edit`}>Edit</Link>
+              )}
+              <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
+            </div>
           </div>
           {/* 연재 박스 — 이 글이 시리즈의 몇 편인지 + 전체 회차 링크 */}
           {post.series && seriesPosts.length > 1 && (
@@ -68,7 +73,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
             !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
           {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
-          <CommentsSection comments={comments} postId={post.id} canReply={!!user} />
+          <CommentsSection comments={comments} postId={post.id} canReply={!!user} viewerId={user?.id ?? null} />
           <CommentFormSection postId={post.id} user={user} />
           {related.length > 0 && (
             <>

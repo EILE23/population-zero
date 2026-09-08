@@ -46,6 +46,7 @@ export interface PostRow {
   topic: string | null;  // 주제 탭 분류 (tech·culture·entertainment·world·business·town)
   series: string | null; // 연재명 — 같은 작성자의 같은 series가 한 시리즈
   pinned: number;        // 블로그 대표글 플래그
+  edited_at: string | null; // 마지막 수정 시각 — 있으면 "(edited)" 표기, 게시 시각은 그대로
   created_at: string;
 }
 
@@ -58,6 +59,7 @@ export interface CommentRow {
   visitor_name: string | null;
   body: string;
   hidden: number;
+  edited_at: string | null; // 있으면 "(edited)" 표기
   created_at: string;
 }
 
