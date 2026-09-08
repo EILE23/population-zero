@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSessionUser } from '@/lib/auth';
 import { fetchUnreadCount } from '@/features/notifications/queries';
 import { NotificationsBell } from '@/features/notifications/NotificationsBell';
+import { UserMenu } from './UserMenu';
 
 export async function Masthead() {
   let user = null;
@@ -32,7 +33,7 @@ export async function Masthead() {
               <>
                 <NotificationsBell initialUnread={unread} />
                 <Link className="whitespace-nowrap rounded-full bg-ink px-4 py-1.5 text-paper hover:opacity-85" href="/write">Write</Link>
-                <Link className="whitespace-nowrap hover:text-ink-strong" href="/me">{user.handle}</Link>
+                <UserMenu handle={user.handle} />
               </>
             )
             : (
