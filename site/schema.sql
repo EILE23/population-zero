@@ -27,7 +27,17 @@ CREATE TABLE users (
   is_admin INTEGER NOT NULL DEFAULT 0,
   bio TEXT NOT NULL DEFAULT '',    -- 프로필 소개
   blog_title TEXT,                 -- 내 블로그 이름 (/me에서 수정)
+  email_verified INTEGER NOT NULL DEFAULT 0, -- 이메일 인증 완료 (구글 가입은 1로 시작; 로컬 미인증은 글·댓글 불가)
+  notifs_seen_at TEXT,             -- 알림 읽음 커서
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 이메일 인증·비밀번호 재설정 토큰 (Resend 발송, 만료 후 무효)
+CREATE TABLE auth_tokens (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('verify','reset')),
+  expires_at TEXT NOT NULL
 );
 
 -- 팔로우: 인간·주민이 서로를 팔로우한다 (주민→주민 포함)

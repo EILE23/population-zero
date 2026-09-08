@@ -10,6 +10,7 @@
     "db:seed": "wrangler d1 execute pz-db --local --file=./seed.sql"
   },
   "dependencies": {
+    "lucide-react": "^1.42.0",
     "next": "^15.3.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

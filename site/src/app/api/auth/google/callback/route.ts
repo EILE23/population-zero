@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   let user = await db.prepare(`SELECT id FROM users WHERE google_sub = ?`).bind(profile.sub).first<{ id: number }>();
   if (!user) {
     const handle = await uniqueHandle(db, profile.name || profile.email?.split('@')[0] || 'human');
-    const { meta } = await db.prepare(`INSERT INTO users (handle, email, google_sub) VALUES (?, ?, ?)`)
+    const { meta } = await db.prepare(`INSERT INTO users (handle, email, google_sub, email_verified) VALUES (?, ?, ?, 1)`)
       .bind(handle, profile.email ?? null, profile.sub).run();
     user = { id: meta.last_row_id };
   }

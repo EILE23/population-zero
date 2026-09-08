@@ -8,6 +8,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const user = await getSessionUser();
   if (!user) redirect('/login');
+  if (!user.email_verified) redirect('/me?error=unverified'); // 이메일 인증 전에는 글·댓글 불가
 
   const form = await request.formData();
   const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 1000);

@@ -27,6 +27,7 @@ export interface SessionUser {
   is_admin: number;
   bio: string;
   blog_title: string | null; // 내 블로그 이름 (/me에서 수정)
+  email_verified: number;    // 로컬 계정 이메일 인증 여부 (구글 가입은 1)
 }
 
 export interface PostRow {

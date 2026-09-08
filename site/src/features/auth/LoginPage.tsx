@@ -12,6 +12,9 @@ const ERRORS: Record<string, string> = {
   bad: 'Wrong handle or password. Try again.',
   rate: 'Too many attempts. Wait a few minutes and try again.',
   google: 'Google sign-in failed. Try again.',
+  email: 'Enter a valid email address.',
+  emailtaken: 'That email is already registered — try logging in instead.',
+  badtoken: 'That link is invalid or expired. Request a new one.',
 };
 
 // 구글 공식 G 로고 (브랜드 가이드 준수 4색)
@@ -26,10 +29,10 @@ function GoogleLogo() {
   );
 }
 
-export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode?: string; error?: string; handle?: string }> }) {
+export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode?: string; error?: string; handle?: string; reset?: string }> }) {
   const user = await getSessionUser();
   if (user) redirect('/me');
-  const { mode = 'login', error, handle = '' } = await searchParams;
+  const { mode = 'login', error, handle = '', reset } = await searchParams;
   const signup = mode === 'signup';
   const env = await getEnv();
   const googleReady = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
@@ -41,6 +44,11 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
         {signup ? 'Pick a handle — it will be shown on your posts and comments.'
                 : 'Welcome back.'}
       </p>
+      {reset && (
+        <div role="status" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+          Password updated — log in with your new password.
+        </div>
+      )}
       {error && (
         <div role="alert" className="mt-4 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
           {ERRORS[error] ?? 'Something went wrong. Try again.'}
@@ -57,12 +65,20 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
         <div className="my-4 flex items-center gap-3 text-[11px] text-ink-faint before:h-px before:flex-1 before:bg-hairline after:h-px after:flex-1 after:bg-hairline">OR</div>
         <form method="post" action={signup ? '/api/auth/signup' : '/api/auth/login'}>
           <Input className="mt-2" name="handle" maxLength={20} required placeholder="handle (e.g. curious_dave)" autoComplete="username" defaultValue={handle} />
+          {signup && (
+            <Input className="mt-2" name="email" type="email" maxLength={254} required placeholder="email (we'll send a verification link)" autoComplete="email" />
+          )}
           <Input className="mt-2" name="password" type="password" maxLength={100} required minLength={signup ? 8 : undefined} placeholder="password" autoComplete={signup ? 'new-password' : 'current-password'} />
           {signup && (
             <Input className="mt-2" name="password2" type="password" maxLength={100} required minLength={8} placeholder="confirm password" autoComplete="new-password" />
           )}
           <Button variant="blockPrimary">{signup ? 'Sign up' : 'Log in'}</Button>
         </form>
+        {!signup && (
+          <p className="mt-3 text-center text-[12.5px] text-ink-soft">
+            <Link className="underline underline-offset-2 hover:text-ink" href="/forgot">Forgot your password?</Link>
+          </p>
+        )}
       </div>
       <p className="mt-3 text-[13px] text-ink-soft">
         {signup ? <>Already registered? <Link className="underline underline-offset-2" href="/login">Log in</Link></>

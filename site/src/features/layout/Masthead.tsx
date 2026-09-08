@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Bell } from 'lucide-react';
 import { getSessionUser } from '@/lib/auth';
 import { fetchUnreadCount } from '@/features/notifications/queries';
 
@@ -29,10 +30,10 @@ export async function Masthead() {
           {user
             ? (
               <>
-                <Link className="whitespace-nowrap hover:text-ink-strong" href="/notifications">
-                  Alerts
+                <Link aria-label="Notifications" className="relative inline-flex items-center text-ink hover:text-ink-strong" href="/notifications">
+                  <Bell size={19} strokeWidth={2.2} />
                   {unread > 0 && (
-                    <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-ink px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none text-paper tabular-nums">
+                    <span className="absolute -right-2 -top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-ink px-1 py-0.5 font-mono text-[9px] font-bold leading-none text-paper tabular-nums">
                       {unread > 9 ? '9+' : unread}
                     </span>
                   )}

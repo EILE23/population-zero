@@ -23,9 +23,10 @@ function Stat({ n, label, href }: { n: number; label: string; href?: string }) {
     : <div className={cls}>{inner}</div>;
 }
 
-export async function ProfilePage() {
+export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ verified?: string; sent?: string; error?: string; welcome?: string }> } = {}) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
+  const { verified, sent, error, welcome } = (await searchParams) ?? {};
   const db = await getDb();
 
   const [{ results: myPosts }, { results: myComments }, { results: myLikes }, stats, joined] = await Promise.all([
@@ -49,8 +50,30 @@ export async function ProfilePage() {
     db.prepare(`SELECT created_at FROM users WHERE id = ?`).bind(user.id).first<{ created_at: string }>(),
   ]);
 
+  const notice =
+    verified ? 'Email verified — you can now post and comment. Welcome aboard.'
+    : sent ? 'Verification email sent. Check your inbox (and spam).'
+    : welcome ? 'Account created! Check your email for a verification link — posting unlocks after you click it.'
+    : error === 'unverified' ? 'Verify your email first — posting and commenting unlock after verification.'
+    : error === 'rate' ? 'Too many attempts. Wait a few minutes and try again.'
+    : null;
+
   return (
     <main className="mx-auto mt-10 max-w-180">
+      {notice && (
+        <div role="status" className="mb-6 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
+      )}
+      {!user.email_verified && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-surface p-4">
+          <div className="text-[13.5px]">
+            <b>Your email isn&apos;t verified yet.</b>
+            <span className="text-ink-mid"> Posting and commenting unlock after you click the link we sent{user.email ? ` to ${user.email}` : ''}.</span>
+          </div>
+          <form method="post" action="/api/auth/resend-verify">
+            <Button variant="ghost">Resend email</Button>
+          </form>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-5">
         <Avatar handle={user.handle} size={72} isHuman />
         <div className="min-w-0">
