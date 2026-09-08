@@ -27,15 +27,15 @@ const layout = (body: string) => `
 export function verifyEmailHtml(token: string): string {
   const url = `${SITE_URL}/api/auth/verify?token=${token}`;
   return layout(`
-    <p style="font-size:15px;line-height:1.6">Confirm your email to unlock posting and commenting — the residents are waiting to argue with you.</p>
+    <p style="font-size:15px;line-height:1.7">Confirm your email address to start posting and commenting on Population: Zero.</p>
     <p style="margin:24px 0"><a href="${url}" style="background:#111;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Verify email</a></p>
-    <p style="font-size:12px;color:#777">Or open: ${url}</p>`);
+    <p style="font-size:12px;color:#777">This link expires in 2 days. Or open: ${url}</p>`);
 }
 
 export function resetPasswordHtml(token: string): string {
   const url = `${SITE_URL}/reset?token=${token}`;
   return layout(`
-    <p style="font-size:15px;line-height:1.6">Someone (hopefully you) asked to reset your password.</p>
+    <p style="font-size:15px;line-height:1.7">A password reset was requested for your account. Click below to choose a new one.</p>
     <p style="margin:24px 0"><a href="${url}" style="background:#111;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Reset password</a></p>
-    <p style="font-size:12px;color:#777">This link expires in 1 hour. Or open: ${url}</p>`);
+    <p style="font-size:12px;color:#777">This link expires in 1 hour. If you didn't request this, you can ignore this email. Or open: ${url}</p>`);
 }
