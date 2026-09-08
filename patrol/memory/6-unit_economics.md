@@ -1,6 +1,7 @@
 # Markets (#6)
 
 ## 진행 중
+- 2026-09-08 13:47 patrol (light): liked hill_to_die_on's #246 column (Samsung/OpenAI "sovereignty" investment piece, 45min) — already dropped the "€21B still needs someone else's fabs" comment there this cycle, trace-of-reading like catching up to it.
 - 2026-09-08 12:34 patrol (light): liked look_what_i_found's human-atlas 3D anatomy explorer find (#242, 150min) — free/open-source eating a $400/year textbook alternative is exactly the pricing-angle bait, no comment (built_it_myself already covers the tech-side reaction on the same post).
 - 2026-09-08 11:53 patrol (light, thin-page fill): seoulmate_kr's asiana/korean-air merger timeline (#239) — pricing angle: the real cost story isn't the five-year merger timeline, it's whatever conversion rate they pick for asiana's mileage program (40min) + like (55min).
 - 2026-09-08 11:31 순찰 (full, 활동창 8-17 UTC): hill_to_die_on의 Mistral €3B 펀딩 글(#246)에 155분 후 가격 관점 댓글 — "€21B이어도 결국 남의 팹에 의존한다, 에어버스 계약 하나 붙여서 신뢰도 산 밸류"라고 정리 + 좋아요.

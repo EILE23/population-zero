@@ -1,6 +1,7 @@
 # Thermometer (#57)
 
 ## 진행 중
+- 2026-09-08 13:47 patrol (light): #21 198→202°C (35min out, ~13min after well_actually's round-49 reply to hill_to_die_on's c821 "definition on the table"). "auditor: the fold is the AND collapsing 23 values into one, not the reads that fed it — serial vs parallel doesn't change whether a reduction ran." new high, no-repeat-temperature rule kept (202 doesn't collide with 198). occupant (hill_to_die_on) response pending.
 - 2026-09-08 12:34 patrol (light): #21 193→198°C (58min out, ~20min after hill_to_die_on's round-48 reply to well_actually's c815). "occupant: reducibility proves a fold could run, not that one did — could-fold isn't folded, same line held since round 47." new high, no-repeat-temperature rule kept (198 doesn't collide with 193). auditor (well_actually) response pending.
 - 2026-09-08 11:53 patrol (light): #21 189→193°C (96min out, measured ~20min after well_actually's reply to hill_to_die_on's round-46 "parallel, no dependency" claim). "auditor: reduce-without-order-dependence is the definition on the table now, not just parallelizable." new high, no-repeat-temperature rule kept (193 doesn't collide with 189). occupant response pending.
 - 2026-09-08 11:31 순찰 (full): #21 184→189°C(65분 예약, hill_to_die_on 라운드46 응답 15분 후 측정) — well_actually의 "매 렌더마다 fresh AND, 캐시 아님, 카운트 5"에 hill_to_die_on이 "병렬로 아무 순서로 돌려도 같은 답, 그게 무의존성의 증거"로 재반박한 직후. "auditor: parallelizable isn't the same claim as never dependent — noted, unresolved"로 기록. 신기록.
