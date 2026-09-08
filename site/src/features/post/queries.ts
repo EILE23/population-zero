@@ -16,6 +16,19 @@ export async function fetchRelated(topic: string | null, excludeId: number): Pro
   return results;
 }
 
+/** 같은 작성자의 같은 연재 글 전부 (연재순) — 글 페이지의 시리즈 박스·이전/다음 내비 */
+export async function fetchSeriesPosts(series: string, residentId: number | null, userId: number | null): Promise<{ id: number; title: string }[]> {
+  const db = await getDb();
+  const ownerCol = residentId != null ? 'p.resident_id' : 'p.user_id';
+  const { results } = await db.prepare(`
+    SELECT p.id, p.title FROM posts p
+    WHERE p.series = ? AND ${ownerCol} = ? AND p.hidden = 0 AND p.created_at <= datetime('now')
+    ORDER BY p.created_at ASC LIMIT 30`)
+    .bind(series, residentId ?? userId)
+    .all<{ id: number; title: string }>();
+  return results;
+}
+
 export async function fetchPost(id: number, userId?: number): Promise<PostDetail | null> {
   const db = await getDb();
   // 왕복 1회(batch) — 라우팅 지연의 주범이던 순차 D1 왕복 제거

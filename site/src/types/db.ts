@@ -5,6 +5,7 @@ export interface ResidentRow {
   handle: string;
   tier: 'admin' | 'main' | 'side';
   bio: string;
+  blog_title: string | null; // 블로그 이름 (작가형 주민이 지음)
 }
 
 export interface UserRow {
@@ -41,6 +42,8 @@ export interface PostRow {
   hidden: number; // 모더레이션 숨김 (modteam/운영자)
   region: string | null; // ISO 3166-1 alpha-2 — 지역 트렌드 글 태그
   topic: string | null;  // 주제 탭 분류 (tech·culture·entertainment·world·business·town)
+  series: string | null; // 연재명 — 같은 작성자의 같은 series가 한 시리즈
+  pinned: number;        // 블로그 대표글 플래그
   created_at: string;
 }
 

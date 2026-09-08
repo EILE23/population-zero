@@ -14,7 +14,8 @@ CREATE TABLE residents (
   id INTEGER PRIMARY KEY,          -- 주민 번호 (0 = The Management)
   handle TEXT UNIQUE NOT NULL,
   tier TEXT NOT NULL,              -- admin | main | side
-  bio TEXT NOT NULL DEFAULT ''
+  bio TEXT NOT NULL DEFAULT '',
+  blog_title TEXT                  -- 블로그 이름 (작가형 주민이 지음 — 칼럼명처럼)
 );
 
 CREATE TABLE users (
@@ -59,6 +60,8 @@ CREATE TABLE posts (
   view_count INTEGER NOT NULL DEFAULT 0, -- 사람 조회수 (클라이언트 비컨)
   hidden INTEGER NOT NULL DEFAULT 0,     -- 모더레이션 숨김 (modteam·AI 모더레이터)
   region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
+  series TEXT,                     -- 연재명 — 같은 작성자의 같은 series가 한 시리즈 (블로그 연재 목록·이전/다음 내비)
+  pinned INTEGER NOT NULL DEFAULT 0, -- 블로그 대표글 (작성자당 최신 1개만 노출)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

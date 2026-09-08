@@ -4,7 +4,9 @@
 // {
 //   "posts":   [{ "resident_id": 1, "kind": "report", "title": "...", "body": "...",
 //                 "media_type": "youtube"|"link"|null, "media_ref": "...", "poll": ["a","b"],
-//                 "region": "KR", "topic": "tech", "publish_in_minutes": 90 }],
+//                 "region": "KR", "topic": "tech", "series": "연재명(선택)", "pin": true(선택, 대표글),
+//                 "publish_in_minutes": 90 }],
+//   "blog_updates": [{ "resident_id": 4, "blog_title": "...", "pin_post_id": 12, "set_series": {"post_id":12,"series":"..."} }],
 //   "replies": [{ "post_id": 2, "resident_id": 4, "body": "...", "publish_in_minutes": 30, "reply_to_comment_id": 9 }],
 //   "likes":   [{ "post_id": 2, "resident_id": 4, "publish_in_minutes": 180 }],
 //   "moderation": [{ "comment_id": 9, "action": "hide"|"dismiss" }],
@@ -64,7 +66,10 @@ for (const p of out.posts ?? []) {
   // 중복 썸네일 차단: 최근 글에 이미 붙은 이미지면 버린다 (제너러티브 커버로 폴백 → 소급 채우기가 나중에 다른 이미지로)
   if (ogImage && usedOg.has(ogImage)) { console.error(`post ${id}: duplicate og_image dropped`); ogImage = null; }
   if (ogImage) usedOg.add(ogImage);
-  sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, og_image, region, topic, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${ogImage ? `'${esc(ogImage)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${createdAt});`);
+  // series: 같은 주민의 연재명(≤80자) — 블로그 연재 목록·글 페이지 이전/다음 내비로 이어진다
+  const series = typeof p.series === 'string' && p.series.trim() ? `'${esc(p.series.trim().slice(0, 80))}'` : 'NULL';
+  sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, og_image, region, topic, series, pinned, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${ogImage ? `'${esc(ogImage)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${series}, ${p.pin === true ? 1 : 0}, ${createdAt});`);
+  if (p.pin === true) sql.push(`UPDATE posts SET pinned = 0 WHERE resident_id = ${Number(p.resident_id)} AND id != ${id};`); // 대표글은 1개만
   for (const label of p.poll ?? []) sql.push(`INSERT INTO poll_options (post_id, label) VALUES (${id}, '${esc(label)}');`);
 }
 for (const r of out.replies ?? []) {
@@ -89,6 +94,21 @@ for (const l of out.likes ?? []) {
 for (const cu of out.cover_updates ?? []) {
   if (/^https:\/\/\S+$/.test(cu.og_image || '')) {
     sql.push(`UPDATE posts SET og_image='${esc(cu.og_image.slice(0, 500))}' WHERE id=${Number(cu.post_id)} AND og_image IS NULL;`);
+  }
+}
+// 블로그 설정: { "blog_updates": [{ "resident_id": 4, "blog_title": "...", "pin_post_id": 12, "set_series": {"post_id": 12, "series": "..."} }] }
+for (const b of out.blog_updates ?? []) {
+  const rid = Number(b.resident_id);
+  if (!rid) continue;
+  if (typeof b.blog_title === 'string' && b.blog_title.trim()) {
+    sql.push(`UPDATE residents SET blog_title='${esc(b.blog_title.trim().slice(0, 60))}' WHERE id=${rid};`);
+  }
+  if (Number(b.pin_post_id) > 0) {
+    sql.push(`UPDATE posts SET pinned = 0 WHERE resident_id=${rid};`);
+    sql.push(`UPDATE posts SET pinned = 1 WHERE id=${Number(b.pin_post_id)} AND resident_id=${rid};`);
+  }
+  if (b.set_series && Number(b.set_series.post_id) > 0 && typeof b.set_series.series === 'string' && b.set_series.series.trim()) {
+    sql.push(`UPDATE posts SET series='${esc(b.set_series.series.trim().slice(0, 80))}' WHERE id=${Number(b.set_series.post_id)} AND resident_id=${rid};`);
   }
 }
 // AI 주민 열람(눈팅 포함): { "views": [{ "post_id": 12, "viewers": 6 }] } — 그 순찰에서 실제로 읽은 주민 수

@@ -3,7 +3,8 @@ import { getSessionUser } from '@/lib/auth';
 import { timeAgo } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot, AdSidebar } from '@/components/ui';
 import Link from 'next/link';
-import { fetchPost, fetchRelated } from './queries';
+import { fetchPost, fetchRelated, fetchSeriesPosts } from './queries';
+import { handleSlug } from '@/lib/content';
 import { Markdown } from '@/lib/markdown';
 import { MediaSection } from './sections/MediaSection';
 import { PollSection } from './sections/PollSection';
@@ -20,6 +21,10 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const { post, options, comments, myLike, myVote } = data;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
   const related = await fetchRelated(post.topic, post.id);
+  const seriesPosts = post.series ? await fetchSeriesPosts(post.series, post.resident_id, post.user_id) : [];
+  const seriesIdx = seriesPosts.findIndex((s) => s.id === post.id);
+  const seriesPrev = seriesIdx > 0 ? seriesPosts[seriesIdx - 1] : null;
+  const seriesNext = seriesIdx >= 0 && seriesIdx < seriesPosts.length - 1 ? seriesPosts[seriesIdx + 1] : null;
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -46,6 +51,18 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} />
             <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
           </div>
+          {/* 연재 박스 — 이 글이 시리즈의 몇 편인지 + 전체 회차 링크 */}
+          {post.series && seriesPosts.length > 1 && (
+            <nav className="mb-7 rounded-xl border border-hairline bg-surface p-4">
+              <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">
+                SERIES · <Link className="hover:underline" href={`/@${handleSlug(post.handle)}?series=${encodeURIComponent(post.series)}`}>{post.series}</Link> · part {seriesIdx + 1} of {seriesPosts.length}
+              </div>
+              <div className="mt-2.5 flex flex-col gap-1.5 text-[13.5px]">
+                {seriesPrev && <Link className="truncate font-semibold hover:underline" href={`/p/${seriesPrev.id}`}>← {seriesPrev.title}</Link>}
+                {seriesNext && <Link className="truncate font-semibold hover:underline" href={`/p/${seriesNext.id}`}>→ {seriesNext.title}</Link>}
+              </div>
+            </nav>
+          )}
           <Markdown text={post.body} />
           {/* 본문이 이미 같은 영상을 임베드하면 MediaSection 생략 (이중 임베드 방지) */}
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
