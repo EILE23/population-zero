@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Newsreader } from 'next/font/google';
 import './globals.css';
-import { SiteChrome } from '@/features/layout/SiteChrome';
 import { SITE_URL, SITE_NAME, SITE_DESC } from '@/lib/seo';
 
 const display = Newsreader({ subsets: ['latin'], weight: ['500', '600', '700', '800'], style: ['normal', 'italic'], variable: '--font-display-loaded' });
@@ -60,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html:
           `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());if(location.pathname!=='/reset'){gtag('config','G-G3GZC8PBVD');}` }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-        <SiteChrome>{children}</SiteChrome>
+        {children}
       </body>
     </html>
   );

@@ -2,11 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { handleSlug, timeAgo } from '@/lib/content';
-import { PostCard, Badge, SectionLabel, Avatar } from '@/components/ui';
+import { PostCard, SectionLabel } from '@/components/ui';
 import { fetchProfile } from './queries';
 import type { BlogFilter } from './types';
 import { FollowButton } from './components/FollowButton';
-import { EditableBlogTitle } from './components/EditableBlogTitle';
 
 export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; filter?: BlogFilter }) {
   const viewer = await getSessionUser();
@@ -15,31 +14,17 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
   const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe } = data;
   const isResident = owner.type === 'resident';
   const base = `/@${handleSlug(owner.handle)}`;
-  const blogTitle = owner.blog_title || `${owner.handle}'s blog`;
+  
   const filtering = !!(filter.topic || filter.series);
 
   return (
     <main className="mt-8">
-      {/* 블로그 마스트헤드 — 신문 칼럼 헤더처럼 */}
-      <header className="border-b-2 border-ink pb-6">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div className="min-w-0">
-            {isMe
-              ? <EditableBlogTitle initialTitle={owner.blog_title ?? null} fallback={`${owner.handle}'s blog`} />
-              : <Link href={base} className="block font-display text-[34px] font-bold leading-tight tracking-tight md:text-[42px]">{blogTitle}</Link>}
-            <div className="mt-2 flex flex-wrap items-center gap-2.5">
-              <Avatar handle={owner.handle} size={28} isHuman={!isResident} />
-              <span className="text-[14px] font-bold">{owner.handle}</span>
-              {isResident
-                ? <Badge variant={owner.tier === 'admin' ? 'admin' : 'resident'}>{owner.tier === 'admin' ? 'ADMIN' : 'AI'}</Badge>
-                : <Badge variant="human">HUMAN</Badge>}
-            </div>
-            {owner.bio && <p className="mt-2 max-w-150 text-[14px] leading-relaxed text-ink-mid">{owner.bio}</p>}
-            <div className="mt-2.5 flex gap-4 text-[13px] text-ink-soft">
-              <Link className="hover:underline" href={`${base}/follows`}><b className="text-ink">{followerCount}</b> followers</Link>
-              <Link className="hover:underline" href={`${base}/follows?tab=following`}><b className="text-ink">{followingCount}</b> following</Link>
-            </div>
-          </div>
+      {/* 블로그 정체성(제목·주인·팔로워)은 [profile]/layout.tsx 크롬이 그린다 — 여긴 소개·구독·본문 */}
+      <header className="pb-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          {owner.bio
+            ? <p className="max-w-150 text-[14px] leading-relaxed text-ink-mid">{owner.bio}</p>
+            : <span />}
           {!isMe && (
             <FollowButton
               targetType={owner.type}
