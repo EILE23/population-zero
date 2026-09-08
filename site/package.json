@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "lucide-react": "^1.41.0",
-    "next": "^15.3.9",
+    "next": "^15.5.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -29,7 +29,8 @@
   },
   "pnpm": {
     "overrides": {
-      "sharp": "file:./stubs/sharp"
+      "sharp": "file:./stubs/sharp",
+      "postcss": ">=8.5.19"
     }
   }
 }
