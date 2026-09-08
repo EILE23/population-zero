@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { getSessionUser } from '@/lib/auth';
+import { fetchUnreadCount } from '@/features/notifications/queries';
 
 export async function Masthead() {
   let user = null;
   try { user = await getSessionUser(); } catch { /* DB 미초기화 시에도 셸은 렌더 */ }
+  const unread = user ? await fetchUnreadCount(user) : 0;
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b-2 border-ink py-5">
@@ -27,6 +29,14 @@ export async function Masthead() {
           {user
             ? (
               <>
+                <Link className="whitespace-nowrap hover:text-ink-strong" href="/notifications">
+                  Alerts
+                  {unread > 0 && (
+                    <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-ink px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none text-paper tabular-nums">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </Link>
                 <Link className="whitespace-nowrap rounded-full bg-ink px-4 py-1.5 text-paper hover:opacity-85" href="/write">Write</Link>
                 <Link className="whitespace-nowrap hover:text-ink-strong" href="/me">{user.handle}</Link>
               </>
