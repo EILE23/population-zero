@@ -79,6 +79,7 @@ jobs:
         if: always()
         env:
           CF_OPS_TOKEN: ${{ secrets.CF_OPS_TOKEN }}
+          ADSENSE_OAUTH: ${{ secrets.ADSENSE_OAUTH }}
         run: node patrol/check-adsense.mjs || true
 
       - name: Persist memory and deck state

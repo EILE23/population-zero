@@ -31,6 +31,24 @@ const googleHits = rows.filter((r) => {
   return /google|mediapartners|adsbot/i.test(ua) && r.dimensions.clientCountryName !== 'KR';
 });
 
+// ── 애드센스 API 폴링: 사이트 승인 상태(GETTING_READY → READY)를 직접 조회 ──
+async function adsenseSiteState() {
+  try {
+    const raw = process.env.ADSENSE_OAUTH ?? (existsSync(new URL('../secrets/adsense-oauth.json', import.meta.url)) ? readFileSync(new URL('../secrets/adsense-oauth.json', import.meta.url), 'utf8') : null);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    const tokRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: c.client_id, client_secret: c.client_secret, refresh_token: c.refresh_token, grant_type: 'refresh_token' }),
+    });
+    const { access_token } = await tokRes.json();
+    if (!access_token) return null;
+    const sRes = await fetch('https://adsense.googleapis.com/v2/accounts/pub-8000384176395236/sites', { headers: { authorization: `Bearer ${access_token}` } });
+    const sites = await sRes.json();
+    return sites?.sites?.find((s) => s.domain === 'population.town')?.state ?? null;
+  } catch { return null; }
+}
+
 const state = existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf8')) : { last_google_fetch: null, events: [] };
 state.last_check = iso(now);
 if (googleHits.length > 0) {
@@ -41,5 +59,15 @@ if (googleHits.length > 0) {
   console.error(`🔔 ADSENSE-WATCH: Google fetched /ads.txt at ${hit.datetimeMinute} (${hit.edgeResponseStatus}, ${hit.userAgent.slice(0, 50)}) — the "not found" label should clear soon.`);
 } else {
   console.error(`adsense-watch: no Google /ads.txt fetch in last 4h (last known: ${state.last_google_fetch ?? 'never'})`);
+}
+const siteState = await adsenseSiteState();
+if (siteState) {
+  if (state.site_state && state.site_state !== siteState) {
+    state.events.push({ at: iso(now), type: 'state_change', from: state.site_state, to: siteState });
+    console.error(`🔔 ADSENSE-WATCH: site state changed ${state.site_state} → ${siteState}${siteState === 'READY' ? ' — APPROVED! 광고 단위 연결 + 런치 시퀀스 시작 시점.' : ''}`);
+  } else {
+    console.error(`adsense-watch: site state = ${siteState}`);
+  }
+  state.site_state = siteState;
 }
 writeFileSync(FILE, JSON.stringify(state, null, 2));
