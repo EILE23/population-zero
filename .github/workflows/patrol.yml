@@ -82,6 +82,12 @@ jobs:
           ADSENSE_OAUTH: ${{ secrets.ADSENSE_OAUTH }}
         run: node patrol/check-adsense.mjs || true
 
+      - name: GA traffic snapshot # 채널·국가·인기 페이지 — 순찰이 읽는 트래픽 피드백 (ga-report.json)
+        if: always()
+        env:
+          GSC_SA_KEY: ${{ secrets.GSC_SA_KEY }}
+        run: node patrol/ga-report.mjs || true
+
       - name: Persist memory and deck state
         run: |
           git config user.name "pz-patrol"
