@@ -1,16 +1,16 @@
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { timeAgo } from '@/lib/content';
+import { timeAgo, excerpt } from '@/lib/content';
 import Link from 'next/link';
 import { profileHref } from '@/lib/content';
-import { SectionLabel, Button, Textarea, Counts } from '@/components/ui';
+import { SectionLabel, Button, Textarea, Counts, PostCard } from '@/components/ui';
 import { AvatarUpload } from './components/AvatarUpload';
 import { EditableHandle } from './components/EditableHandle';
 
 type MyPost = { id: number; title: string; created_at: string; comment_count: number; like_count: number };
 type MyComment = { id: number; body: string; created_at: string; post_id: number; title: string };
-type MyLike = { post_id: number; created_at: string; title: string };
+type LikedCardRow = import('@/features/feed/types').FeedPost;
 
 function Stat({ n, label, href }: { n: number; label: string; href?: string }) {
   const inner = (
@@ -39,8 +39,15 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
                 FROM posts p WHERE p.user_id = ? ORDER BY p.created_at DESC LIMIT 15`).bind(user.id).all<MyPost>(),
     db.prepare(`SELECT c.id, c.body, c.created_at, c.post_id, p.title FROM comments c JOIN posts p ON p.id = c.post_id
                 WHERE c.user_id = ? AND c.hidden = 0 ORDER BY c.created_at DESC LIMIT 15`).bind(user.id).all<MyComment>(),
-    db.prepare(`SELECT l.post_id, l.created_at, p.title FROM likes l JOIN posts p ON p.id = l.post_id
-                WHERE l.user_id = ? ORDER BY l.created_at DESC LIMIT 15`).bind(user.id).all<MyLike>(),
+    // 좋아요한 글 — 데스크톱에선 피드와 같은 카드로, 모바일에선 줄 목록으로 보여준다
+    db.prepare(`SELECT p.id, p.kind, p.title, substr(p.body, 1, 300) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.region, p.topic, p.series, p.created_at, p.resident_id, p.user_id,
+                  COALESCE(r.handle, u.handle, 'unknown') AS handle, u.avatar_url AS author_avatar, l.created_at AS liked_at,
+                  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
+                  (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id = p.id)
+                    + (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id = p.id AND rl.created_at <= datetime('now')) AS like_count
+                FROM likes l JOIN posts p ON p.id = l.post_id
+                LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
+                WHERE l.user_id = ? AND p.hidden = 0 ORDER BY l.created_at DESC LIMIT 12`).bind(user.id).all<LikedCardRow & { liked_at: string }>(),
     db.prepare(`SELECT
         (SELECT COUNT(*) FROM posts WHERE user_id = ?1) AS posts,
         (SELECT COUNT(*) FROM comments WHERE user_id = ?1 AND hidden = 0) AS comments,
@@ -137,12 +144,18 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
 
       <SectionLabel>LIKED · {myLikes.length}</SectionLabel>
       {myLikes.length === 0 && <p className="text-[13px] text-ink-soft">Posts you like will appear here.</p>}
-      {myLikes.map((l) => (
-        <div className="border-t border-hairline py-3" key={l.post_id}>
-          <Link className="text-[14px] font-semibold hover:underline" href={`/p/${l.post_id}`}>♥ {l.title}</Link>
-          <span className="ml-3 text-[11px] text-ink-soft">{timeAgo(l.created_at)}</span>
-        </div>
-      ))}
+      {/* 데스크톱: 피드와 같은 카드 그리드 / 모바일: 줄 목록 */}
+      <div className="hidden gap-6 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+        {myLikes.map((l) => <PostCard key={l.id} post={{ ...l, excerpt: excerpt(l.body) }} />)}
+      </div>
+      <div className="sm:hidden">
+        {myLikes.map((l) => (
+          <div className="border-t border-hairline py-3" key={l.id}>
+            <Link className="text-[14px] font-semibold hover:underline" href={`/p/${l.id}`}>♥ {l.title}</Link>
+            <span className="ml-3 text-[11px] text-ink-soft">{timeAgo(l.liked_at)}</span>
+          </div>
+        ))}
+      </div>
     </main>
   );
 }
