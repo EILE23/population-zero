@@ -27,6 +27,7 @@ export default async function BlogLayout({ children, params }: { children: React
         ?? await db.prepare(`SELECT id, handle, blog_title, tier, 'resident' AS type FROM residents WHERE lower(replace(handle,' ','-')) = ?`).bind(slug.toLowerCase())
           .first<{ id: number; handle: string; blog_title: string | null; tier: string; type: 'resident' }>();
       if (owner) {
+        // 페이지 쪽 fetchProfile 이 같은 카운트를 다시 세지만, 둘 다 읽기라 문제없고 각자 1왕복로 끝난다
         const row = await db.prepare(`SELECT
             (SELECT COUNT(*) FROM follows WHERE target_type = ?1 AND target_id = ?2) AS followers,
             (SELECT COUNT(*) FROM follows WHERE follower_type = ?1 AND follower_id = ?2) AS following`)

@@ -14,13 +14,22 @@ const VERB: Record<NotifItem['type'], string> = {
   like: 'liked',
 };
 
-/** 헤더 알림 벨 — 클릭하면 드롭다운으로 최근 알림, 항목 클릭 시 해당 글/프로필로 이동 */
-export function NotificationsBell({ initialUnread }: { initialUnread: number }) {
+/** 헤더 알림 벨 — 배지 개수는 마운트 후 비동기로 가져온다 (SSR 크리티컬 패스에서 제외) */
+export function NotificationsBell() {
   const [open, setOpen] = useState(false);
-  const [unread, setUnread] = useState(initialUnread);
+  const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<NotifItem[] | null>(null);
   const [seenAt, setSeenAt] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/me/notifications/count')
+      .then(async (r) => (r.ok ? ((await r.json()) as { unread: number }) : { unread: 0 }))
+      .then((d) => { if (alive) setUnread(d.unread); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   // 바깥 클릭으로 닫기
   useEffect(() => {

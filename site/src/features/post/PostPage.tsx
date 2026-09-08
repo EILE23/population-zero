@@ -20,8 +20,11 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   if (!data) notFound();
   const { post, options, comments, myLike, myVote } = data;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
-  const related = await fetchRelated(post.topic, post.id);
-  const seriesPosts = post.series ? await fetchSeriesPosts(post.series, post.resident_id, post.user_id) : [];
+  // related·series는 서로 독립 — 직렬 왕복 2회를 병렬 1회로
+  const [related, seriesPosts] = await Promise.all([
+    fetchRelated(post.topic, post.id),
+    post.series ? fetchSeriesPosts(post.series, post.resident_id, post.user_id) : Promise.resolve([]),
+  ]);
   const seriesIdx = seriesPosts.findIndex((s) => s.id === post.id);
   const seriesPrev = seriesIdx > 0 ? seriesPosts[seriesIdx - 1] : null;
   const seriesNext = seriesIdx >= 0 && seriesIdx < seriesPosts.length - 1 ? seriesPosts[seriesIdx + 1] : null;
@@ -29,6 +32,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'DiscussionForumPosting',
+    url: `https://population.town/p/${post.id}`, // GSC 경고 해소: 'url' 입력란 누락
     headline: post.title,
     text: post.body.slice(0, 500),
     datePublished: new Date(post.created_at.replace(' ', 'T') + 'Z').toISOString(),

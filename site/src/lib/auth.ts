@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { getDb } from './db';
 import type { SessionUser } from '@/types/db';
@@ -55,7 +56,8 @@ export async function destroySession(): Promise<void> {
   jar.delete(COOKIE);
 }
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+// React cache() — 한 요청 안에서 레이아웃·네비·페이지가 각각 불러도 D1 조회는 1번만 (라우팅 지연의 주범이던 중복 세션 조회 제거)
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
@@ -63,7 +65,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return db.prepare(`
     SELECT u.id, u.handle, u.email, u.google_sub, u.is_admin, u.bio, u.blog_title, u.email_verified, u.handle_picked, u.avatar_url FROM sessions s JOIN users u ON u.id = s.user_id
     WHERE s.token = ? AND s.expires_at > datetime('now')`).bind(token).first<SessionUser>();
-}
+});
 
 // ── 입력 검증 ──
 export const validHandle = (h: string): boolean => /^[A-Za-z0-9_-]{3,20}$/.test(h);
