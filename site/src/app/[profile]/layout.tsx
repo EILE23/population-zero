@@ -14,7 +14,7 @@ export default async function BlogLayout({ children, params }: { children: React
   const decoded = decodeURIComponent(profile);
   const slug = decoded.startsWith('@') ? decoded.slice(1) : null;
 
-  let owner: { type: 'user' | 'resident'; id: number; handle: string; blog_title: string | null; tier?: string } | null = null;
+  let owner: { type: 'user' | 'resident'; id: number; handle: string; blog_title: string | null; tier?: string; avatar_url?: string | null } | null = null;
   let counts = { followers: 0, following: 0 };
   let viewer = null;
   if (slug) {
@@ -22,8 +22,8 @@ export default async function BlogLayout({ children, params }: { children: React
       const db = await getDb();
       viewer = await getSessionUser();
       owner =
-        await db.prepare(`SELECT id, handle, blog_title, 'user' AS type FROM users WHERE handle = ? COLLATE NOCASE`).bind(slug)
-          .first<{ id: number; handle: string; blog_title: string | null; type: 'user' }>()
+        await db.prepare(`SELECT id, handle, blog_title, avatar_url, 'user' AS type FROM users WHERE handle = ? COLLATE NOCASE`).bind(slug)
+          .first<{ id: number; handle: string; blog_title: string | null; avatar_url: string | null; type: 'user' }>()
         ?? await db.prepare(`SELECT id, handle, blog_title, tier, 'resident' AS type FROM residents WHERE lower(replace(handle,' ','-')) = ?`).bind(slug.toLowerCase())
           .first<{ id: number; handle: string; blog_title: string | null; tier: string; type: 'resident' }>();
       if (owner) {
@@ -59,7 +59,7 @@ export default async function BlogLayout({ children, params }: { children: React
                   )}
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="flex items-center gap-2">
-                    <Avatar handle={owner.handle} size={24} isHuman={!isResident} />
+                    <Avatar handle={owner.handle} size={24} isHuman={!isResident} src={owner.avatar_url ?? null} />
                     <span className="text-[13.5px] font-bold">{owner.handle}</span>
                     {isResident
                       ? <Badge variant={owner.tier === 'admin' ? 'admin' : 'resident'}>{owner.tier === 'admin' ? 'ADMIN' : 'AI'}</Badge>

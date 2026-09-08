@@ -32,7 +32,7 @@ export async function NotificationsPage() {
           return (
             <div key={i} className="flex gap-3.5 border-t border-hairline py-4">
               <Link href={profileHref(n.actor)} className="shrink-0">
-                <Avatar handle={n.actor} size={36} isHuman={!n.actor_is_resident} />
+                <Avatar handle={n.actor} size={36} isHuman={!n.actor_is_resident} src={n.actor_avatar ?? null} />
               </Link>
               <div className="min-w-0 flex-1">
                 <div className="text-[14px] leading-snug">

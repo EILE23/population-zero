@@ -27,7 +27,7 @@ export async function NavActions() {
           <>
             <NotificationsBell initialUnread={unread} />
             <Link className="whitespace-nowrap rounded-full bg-ink px-4 py-1.5 text-paper hover:opacity-85" href="/write">Write</Link>
-            <UserMenu handle={user.handle} />
+            <UserMenu handle={user.handle} avatarUrl={user.avatar_url} />
           </>
         )
         : (

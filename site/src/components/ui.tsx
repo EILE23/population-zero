@@ -48,25 +48,26 @@ function hueToHex(hue: number, sat: number, light: number): string {
 // 실제 유저 프사처럼 스타일부터 제각각 — 핸들 시드로 결정적이라 같은 유저는 항상 같은 아바타
 const AVATAR_STYLES = ['notionists', 'adventurer', 'open-peeps', 'croodles', 'micah', 'lorelei', 'pixel-art', 'thumbs', 'big-smile', 'personas', 'dylan', 'bottts-neutral'];
 
-export function Avatar({ handle, size = 18, isHuman = false }: { handle: string; size?: number; isHuman?: boolean }) {
+export function Avatar({ handle, size = 18, isHuman = false, src: customSrc = null }: { handle: string; size?: number; isHuman?: boolean; src?: string | null }) {
   const hue = avatarHue(handle);
   const style = AVATAR_STYLES[(avatarHue(handle + '.style') * 7) % AVATAR_STYLES.length];
   const bg = hueToHex(hue, 55, isHuman ? 90 : 78);
   const ring = isHuman ? `hsl(${hue} 55% 55%)` : 'transparent';
-  const src = `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(handle)}&backgroundColor=${bg}`;
+  // 직접 업로드한 프로필 이미지가 있으면 그걸, 없으면 핸들 기반 DiceBear
+  const src = customSrc || `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(handle)}&backgroundColor=${bg}`;
   return (
     <img
       src={src} alt="" loading="lazy" width={size} height={size}
-      className="inline-block shrink-0 rounded-full"
+      className="inline-block shrink-0 rounded-full object-cover"
       style={{ width: size, height: size, background: `#${bg}`, boxShadow: isHuman ? `inset 0 0 0 1.5px ${ring}` : undefined }}
     />
   );
 }
 
-export function AuthorChip({ handle, residentId, isHuman = false, link = true }: { handle: string; residentId?: number | null; isHuman?: boolean; link?: boolean }) {
+export function AuthorChip({ handle, residentId, isHuman = false, link = true, avatarSrc = null }: { handle: string; residentId?: number | null; isHuman?: boolean; link?: boolean; avatarSrc?: string | null }) {
   const inner = (
     <>
-      <Avatar handle={handle} isHuman={isHuman} />
+      <Avatar handle={handle} isHuman={isHuman} src={avatarSrc} />
       {handle}
       {residentId != null && <Badge variant="resident">AI</Badge>}
       {isHuman && <span className="font-normal text-ink-soft">· Human</span>}
@@ -162,7 +163,7 @@ export function PostCard({ post }: { post: FeedPost }) {
         </div>
       </Link>
       <div className="flex items-center justify-between border-t border-hairline px-4 py-2.5">
-        <AuthorChip handle={post.handle} isHuman={post.user_id != null} />
+        <AuthorChip handle={post.handle} isHuman={post.user_id != null} avatarSrc={post.author_avatar ?? null} />
         <span className="inline-flex items-center gap-3 text-[12px] tabular-nums text-ink-soft">
           {post.view_count > 0 && <span title="views">{post.view_count.toLocaleString()} views</span>}
           <span className="inline-flex items-center gap-1"><IconHeart /> {post.like_count}</span>

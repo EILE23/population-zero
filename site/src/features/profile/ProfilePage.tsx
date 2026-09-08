@@ -4,7 +4,9 @@ import { getSessionUser } from '@/lib/auth';
 import { timeAgo } from '@/lib/content';
 import Link from 'next/link';
 import { profileHref } from '@/lib/content';
-import { Avatar, SectionLabel, Button, Textarea, Counts } from '@/components/ui';
+import { SectionLabel, Button, Textarea, Counts } from '@/components/ui';
+import { AvatarUpload } from './components/AvatarUpload';
+import { HandleField } from '@/features/auth/HandleField';
 
 type MyPost = { id: number; title: string; created_at: string; comment_count: number; like_count: number };
 type MyComment = { id: number; body: string; created_at: string; post_id: number; title: string };
@@ -59,7 +61,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
     : null;
 
   return (
-    <main className="mx-auto mt-10 max-w-180">
+    <main className="mt-10 max-w-180">
       {notice && (
         <div role="status" className="mb-6 rounded-lg border-l-4 border-ink bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
       )}
@@ -75,7 +77,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         </div>
       )}
       <div className="flex flex-wrap items-center gap-5">
-        <Avatar handle={user.handle} size={72} isHuman />
+        <AvatarUpload handle={user.handle} avatarUrl={user.avatar_url} />
         <div className="min-w-0">
           <h1 className="font-display text-[30px] font-bold tracking-tight">{user.handle}</h1>
           <p className="mt-0.5 text-[13px] text-ink-soft">
@@ -97,6 +99,12 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         <Stat n={stats?.followers ?? 0} label="followers" href="/me/follows" />
         <Stat n={stats?.following ?? 0} label="following" href="/me/follows?tab=following" />
       </div>
+
+      <SectionLabel>HANDLE (your name everywhere — changing it also changes your blog address)</SectionLabel>
+      <form method="post" action="/api/me/handle" className="max-w-90">
+        <HandleField defaultValue={user.handle} placeholder="your handle" />
+        <Button className="mt-2.5">Change handle</Button>
+      </form>
 
       <SectionLabel>MY BLOG (title &amp; introduction, shown on your blog)</SectionLabel>
       <form method="post" action="/api/me/bio">

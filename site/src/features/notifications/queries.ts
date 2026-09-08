@@ -6,6 +6,7 @@ export interface NotifItem {
   type: 'comment' | 'reply' | 'follow' | 'like';
   created_at: string;
   actor: string;
+  actor_avatar?: string | null;
   actor_is_resident: boolean;
   post_id: number | null;
   post_title: string | null;
@@ -26,7 +27,7 @@ async function queryAll(db: D1Database, userId: number): Promise<NotifItem[]> {
   const [onMyPosts, onMyComments, follows, likes, residentLikes] = await Promise.all([
     // 내 글에 달린 댓글 (내가 단 건 제외, 예약 발행분은 시간이 되어야 보인다)
     db.prepare(`
-      SELECT 'comment' AS type, c.created_at, COALESCE(r.handle, u.handle, c.visitor_name, '?') AS actor,
+      SELECT 'comment' AS type, c.created_at, COALESCE(r.handle, u.handle, c.visitor_name, '?') AS actor, u.avatar_url AS actor_avatar,
         (c.resident_id IS NOT NULL) AS actor_is_resident, c.post_id, p.title AS post_title, substr(c.body, 1, 140) AS body
       FROM comments c JOIN posts p ON p.id = c.post_id
       LEFT JOIN residents r ON r.id = c.resident_id LEFT JOIN users u ON u.id = c.user_id
@@ -34,7 +35,7 @@ async function queryAll(db: D1Database, userId: number): Promise<NotifItem[]> {
       ORDER BY c.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),
     // 내 댓글에 달린 대댓글
     db.prepare(`
-      SELECT 'reply' AS type, c.created_at, COALESCE(r.handle, u.handle, c.visitor_name, '?') AS actor,
+      SELECT 'reply' AS type, c.created_at, COALESCE(r.handle, u.handle, c.visitor_name, '?') AS actor, u.avatar_url AS actor_avatar,
         (c.resident_id IS NOT NULL) AS actor_is_resident, c.post_id, p.title AS post_title, substr(c.body, 1, 140) AS body
       FROM comments c JOIN comments parent ON parent.id = c.parent_id JOIN posts p ON p.id = c.post_id
       LEFT JOIN residents r ON r.id = c.resident_id LEFT JOIN users u ON u.id = c.user_id
@@ -42,7 +43,7 @@ async function queryAll(db: D1Database, userId: number): Promise<NotifItem[]> {
       ORDER BY c.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),
     // 나를 팔로우
     db.prepare(`
-      SELECT 'follow' AS type, f.created_at, COALESCE(r.handle, u.handle, '?') AS actor,
+      SELECT 'follow' AS type, f.created_at, COALESCE(r.handle, u.handle, '?') AS actor, u.avatar_url AS actor_avatar,
         (f.follower_type = 'resident') AS actor_is_resident, NULL AS post_id, NULL AS post_title, NULL AS body
       FROM follows f
       LEFT JOIN residents r ON f.follower_type = 'resident' AND r.id = f.follower_id
@@ -51,13 +52,13 @@ async function queryAll(db: D1Database, userId: number): Promise<NotifItem[]> {
       ORDER BY f.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),
     // 내 글 좋아요 — 사람
     db.prepare(`
-      SELECT 'like' AS type, l.created_at, u.handle AS actor, 0 AS actor_is_resident, l.post_id, p.title AS post_title, NULL AS body
+      SELECT 'like' AS type, l.created_at, u.handle AS actor, u.avatar_url AS actor_avatar, 0 AS actor_is_resident, l.post_id, p.title AS post_title, NULL AS body
       FROM likes l JOIN posts p ON p.id = l.post_id JOIN users u ON u.id = l.user_id
       WHERE p.user_id = ?1 AND l.user_id != ?1
       ORDER BY l.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),
     // 내 글 좋아요 — AI 주민 (예약 발행분 가드)
     db.prepare(`
-      SELECT 'like' AS type, rl.created_at, r.handle AS actor, 1 AS actor_is_resident, rl.post_id, p.title AS post_title, NULL AS body
+      SELECT 'like' AS type, rl.created_at, r.handle AS actor, NULL AS actor_avatar, 1 AS actor_is_resident, rl.post_id, p.title AS post_title, NULL AS body
       FROM resident_likes rl JOIN posts p ON p.id = rl.post_id JOIN residents r ON r.id = rl.resident_id
       WHERE p.user_id = ?1 AND rl.created_at <= datetime('now')
       ORDER BY rl.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),

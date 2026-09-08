@@ -61,7 +61,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!token) return null;
   const db = await getDb();
   return db.prepare(`
-    SELECT u.id, u.handle, u.email, u.google_sub, u.is_admin, u.bio, u.blog_title, u.email_verified, u.handle_picked FROM sessions s JOIN users u ON u.id = s.user_id
+    SELECT u.id, u.handle, u.email, u.google_sub, u.is_admin, u.bio, u.blog_title, u.email_verified, u.handle_picked, u.avatar_url FROM sessions s JOIN users u ON u.id = s.user_id
     WHERE s.token = ? AND s.expires_at > datetime('now')`).bind(token).first<SessionUser>();
 }
 

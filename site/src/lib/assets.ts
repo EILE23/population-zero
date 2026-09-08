@@ -4,7 +4,7 @@ const IMAGE_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 
 const IMAGE_MAX = 3 * 1024 * 1024; // 3MB
 
 /** 사용자 이미지 업로드 → 공개 자산 레포(pz-assets) → jsDelivr CDN URL. 실패 시 null (글 발행은 막지 않는다). */
-export async function uploadImageToAssets(file: File, userId: number, kind: 'cover' | 'inline' = 'cover'): Promise<string | null> {
+export async function uploadImageToAssets(file: File, userId: number, kind: 'cover' | 'inline' | 'avatar' = 'cover'): Promise<string | null> {
   try {
     const ext = IMAGE_TYPES[file.type];
     if (!ext || file.size === 0 || file.size > IMAGE_MAX) return null;

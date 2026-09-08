@@ -71,7 +71,7 @@ export function NotificationsBell({ initialUnread }: { initialUnread: number }) 
               const isNew = seenAt !== '' && n.created_at > seenAt;
               return (
                 <Link key={i} href={href} onClick={() => setOpen(false)} className="flex gap-3 border-b border-hairline px-4 py-3 last:border-b-0 hover:bg-surface">
-                  <span className="mt-0.5 shrink-0"><Avatar handle={n.actor} size={30} isHuman={!n.actor_is_resident} /></span>
+                  <span className="mt-0.5 shrink-0"><Avatar handle={n.actor} size={30} isHuman={!n.actor_is_resident} src={n.actor_avatar ?? null} /></span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13px] leading-snug">
                       <b>{n.actor}</b>

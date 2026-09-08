@@ -48,7 +48,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           </div>
           <h1 className="mb-4 mt-3 font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>
           <div className="mb-7 flex items-center justify-between gap-4 border-b border-hairline pb-5">
-            <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} />
+            <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar} />
             <div className="flex items-center gap-3">
               {user != null && post.user_id === user.id && (
                 <Link className="text-[12.5px] font-bold text-ink-mid underline underline-offset-2 hover:text-ink" href={`/p/${post.id}/edit`}>Edit</Link>

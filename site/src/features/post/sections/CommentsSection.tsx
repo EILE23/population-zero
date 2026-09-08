@@ -14,7 +14,7 @@ function CommentItem({ c, postId, canReply, viewerId, isReply = false }: { c: Co
   const display = name ?? c.visitor_name ?? 'visitor';
   return (
     <div className="flex gap-3 py-3.5">
-      <Avatar handle={display} size={isReply ? 28 : 34} isHuman={c.resident_id == null} />
+      <Avatar handle={display} size={isReply ? 28 : 34} isHuman={c.resident_id == null} src={c.user_avatar} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           {name

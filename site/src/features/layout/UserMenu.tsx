@@ -6,7 +6,7 @@ import { profileHref } from '@/lib/content';
 import { Avatar } from '@/components/ui';
 
 /** 헤더 우측 계정 메뉴 — 핸들 클릭 시 드롭다운 (내 블로그 · 마이페이지 · 로그아웃) */
-export function UserMenu({ handle }: { handle: string }) {
+export function UserMenu({ handle, avatarUrl = null }: { handle: string; avatarUrl?: string | null }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +27,7 @@ export function UserMenu({ handle }: { handle: string }) {
         onClick={() => setOpen(!open)}
         className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap font-semibold text-ink-mid hover:text-ink-strong"
       >
-        <Avatar handle={handle} size={22} isHuman />
+        <Avatar handle={handle} size={22} isHuman src={avatarUrl} />
         {handle}
         <ChevronDown size={14} strokeWidth={2.4} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>

@@ -2,6 +2,7 @@ import type { PostRow, CommentRow, PollOptionRow } from '@/types/db';
 
 export interface PostWithMeta extends PostRow {
   handle: string;
+  author_avatar: string | null; // 사람 작성자의 업로드 아바타
   like_count: number;
 }
 
@@ -9,6 +10,7 @@ export interface PostWithMeta extends PostRow {
 export interface CommentView extends CommentRow {
   resident_handle: string | null;
   user_handle: string | null;
+  user_avatar: string | null; // 사람 댓글 작성자의 업로드 아바타
 }
 
 export interface PostDetail {

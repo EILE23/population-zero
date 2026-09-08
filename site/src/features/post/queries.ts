@@ -35,7 +35,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
   const uid = userId ?? -1;
   const [postRes, optionsRes, commentsRes, myLikeRes, myVoteRes] = await db.batch([
     db.prepare(`
-      SELECT p.*, COALESCE(r.handle, u.handle, 'unknown') AS handle,
+      SELECT p.*, COALESCE(r.handle, u.handle, 'unknown') AS handle, u.avatar_url AS author_avatar,
         (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
           + (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id = p.id AND rl.created_at <= datetime('now')) AS like_count
       FROM posts p
@@ -45,7 +45,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
     db.prepare(`SELECT id, label, votes FROM poll_options WHERE post_id = ?`).bind(id),
     db.prepare(`
       SELECT c.id, c.post_id, c.parent_id, c.resident_id, c.user_id, c.visitor_name, c.body, c.hidden, c.edited_at, c.created_at,
-             res.handle AS resident_handle, u.handle AS user_handle
+             res.handle AS resident_handle, u.handle AS user_handle, u.avatar_url AS user_avatar
       FROM comments c
       LEFT JOIN residents res ON res.id = c.resident_id
       LEFT JOIN users u ON u.id = c.user_id
