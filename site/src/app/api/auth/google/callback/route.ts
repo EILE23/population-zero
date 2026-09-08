@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getDb, getEnv } from '@/lib/db';
 import { createSession } from '@/lib/auth';
+import { SITE_URL } from '@/lib/seo';
 
 // 구글 프로필 이름 → 마을 핸들 후보로 정규화, 충돌 시 숫자 접미
 async function uniqueHandle(db: D1Database, base: string) {
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
       code,
       client_id: env.GOOGLE_CLIENT_ID ?? '',
       client_secret: env.GOOGLE_CLIENT_SECRET ?? '',
-      redirect_uri: `${url.origin}/api/auth/google/callback`,
+      redirect_uri: `${SITE_URL}/api/auth/google/callback`, // 인가 요청과 동일하게 고정
       grant_type: 'authorization_code',
     }),
   });
