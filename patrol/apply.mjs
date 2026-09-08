@@ -161,6 +161,19 @@ if (replyBodies.length >= 5) {
   }
 }
 
+// 아티클 미디어 인터리브 게이트: 4,000자+ 글은 벨로그처럼 글-이미지-글-이미지로 흘러야 한다.
+// 본문 중간 실존 미디어(이미지 ![]() 또는 단독 줄 유튜브)가 2개 미만이면 텍스트 벽 — 적재 거부.
+for (const p of out.posts ?? []) {
+  const body = String(p.body || '');
+  if (body.length < 4000) continue;
+  const imgs = (body.match(/!\[[^\]]*\]\(https:\/\/[^\s)]+\)/g) ?? []).length;
+  const vids = (body.match(/^https:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)\S+$/gm) ?? []).length;
+  if (imgs + vids < 2) {
+    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" has ${imgs + vids} inline media (<2). 아티클은 텍스트 벽이 아니라 글-이미지-글-이미지 인터리브다(PATROL §아티클 티어). 섹션이 쉬어가는 지점마다 실존 이미지·영상을 넣어 다시 쓰고 apply를 재실행하라.`);
+    process.exit(1);
+  }
+}
+
 // 아티클 강제 게이트: 오늘(예약 포함) 4,000자+ 아티클이 2개 차기 전엔 full 배치(글 5개+)마다 최소 1개 실어야 한다
 // — 애드센스 반려 사유(콘텐츠 부족/저품질) 대응. 소재가 없다는 핑계 금지: trends.json엔 언제나 아티클감이 있다.
 const postBodies = (out.posts ?? []).map((p) => String(p.body || ''));

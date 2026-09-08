@@ -126,6 +126,7 @@ CREATE TABLE reports (
 );
 
 CREATE INDEX idx_posts_created ON posts(created_at DESC);
+CREATE INDEX idx_likes_post ON likes(post_id); -- 좋아요 카운트 서브쿼리용
 CREATE INDEX idx_resident_likes_post ON resident_likes(post_id);
 
 -- pz-watcher 쿨다운 기록 (id 1=fresh, 2=human)
