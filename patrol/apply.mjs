@@ -166,15 +166,18 @@ if (replyBodies.length >= 5) {
 for (const p of out.posts ?? []) {
   const body = String(p.body || '');
   if (body.length < 2500) continue;
-  // 상한: 7,000자(영문, ~1,200단어) 초과는 벨로그 리듬이 아니라 논문이다 — 시리즈로 쪼개라
-  if (body.length > 7000) {
-    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" is ${body.length} chars (>7000). 한 편에 다 넣지 말고 series 필드로 2~3편 연재로 나눠서 다시 써라 — 각 편이 2,500~5,000자면 이상적이다.`);
+  if (p.kind === 'fiction') continue; // 소설·창작 연재는 이미지 인터리브 요구 면제 (텍스트가 곧 콘텐츠)
+  // 절대 상한 12,000자: 이 이상은 한 편의 결정판이 아니라 통제 불능 — 시리즈로 쪼개라
+  if (body.length > 12000) {
+    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" is ${body.length} chars (>12000). series 필드로 2~3편 연재로 나눠서 다시 써라 — 각 편 2,500~5,000자가 이상적이다.`);
     process.exit(1);
   }
   const imgs = (body.match(/!\[[^\]]*\]\(https:\/\/[^\s)]+\)/g) ?? []).length;
   const vids = (body.match(/^https:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)\S+$/gm) ?? []).length;
-  if (imgs + vids < 2) {
-    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" has ${imgs + vids} inline media (<2). 아티클은 텍스트 벽이 아니라 글-이미지-글-이미지 인터리브다(PATROL §아티클 티어). 섹션이 쉬어가는 지점마다 실존 이미지·영상을 넣어 다시 쓰고 apply를 재실행하라.`);
+  // 길수록 미디어 요구 상승 — 한 편 결정판(7,000자+)도 허용하되 리듬은 지켜야 한다: ~3,000자당 1개
+  const needMedia = Math.max(2, Math.floor(body.length / 3000));
+  if (imgs + vids < needMedia) {
+    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" has ${imgs + vids} inline media (<${needMedia} for ${body.length} chars). 아티클은 텍스트 벽이 아니라 글-이미지-글-이미지 인터리브다(PATROL §아티클 티어). 섹션이 쉬어가는 지점마다 실존 이미지·영상을 넣어 다시 쓰고 apply를 재실행하라.`);
     process.exit(1);
   }
 }
@@ -183,9 +186,9 @@ for (const p of out.posts ?? []) {
 // — 애드센스 반려 사유(콘텐츠 부족/저품질) 대응. 소재가 없다는 핑계 금지: trends.json엔 언제나 아티클감이 있다.
 const postBodies = (out.posts ?? []).map((p) => String(p.body || ''));
 if (postBodies.length >= 5) {
-  const batchLong = postBodies.filter((b) => b.length >= 2500).length;
+  const batchLong = (out.posts ?? []).filter((p) => String(p.body || '').length >= 2500 && p.kind !== 'fiction').length; // 소설은 정보성 아티클 쿼터에 안 센다
   if (batchLong === 0) {
-    const todayRaw = run(`--command "SELECT COUNT(*) AS c FROM posts WHERE date(created_at) >= date('now') AND LENGTH(body) >= 2500"`);
+    const todayRaw = run(`--command "SELECT COUNT(*) AS c FROM posts WHERE date(created_at) >= date('now') AND LENGTH(body) >= 2500 AND kind != 'fiction'"`);
     const todayCount = JSON.parse(todayRaw.slice(todayRaw.indexOf('[')))[0].results[0].c;
     if (todayCount < 2) {
       console.error(`REJECTED: article quota — 오늘 2,500자+ 아티클 ${todayCount}/2, 이번 배치에 0개. PATROL.md 아티클 티어 요건대로 벨로그 인기글처럼 이미지가 흐름을 끄는 400~700단어 아티클을 1개 포함해 patrol-output.json을 다시 쓰고 apply를 재실행하라.`);
