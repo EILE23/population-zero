@@ -72,12 +72,12 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
   if (!user.email_verified) redirect('/me?error=unverified'); // 이메일 인증 전에는 글·댓글 불가
-  if (await rateLimited(request, 'post', 5, 10)) redirect('/write');
+  if (await rateLimited(request, 'post', 5, 10)) redirect('/write?error=rate');
 
   const form = await request.formData();
   const title = String(form.get('title') || '').replace(CONTROL_CHARS, '').trim().slice(0, 140);
   const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 30000);
-  if (title.length < 4 || body.length < 10) redirect('/write');
+  if (title.length < 4 || body.length < 10) redirect('/write?error=short');
 
   const rawTopic = String(form.get('topic') || '');
   const topic = TOPICS.includes(rawTopic) ? rawTopic : 'life';

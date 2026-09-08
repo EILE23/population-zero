@@ -18,7 +18,11 @@ export async function POST(request: Request) {
   if (password !== password2) back('mismatch');
 
   const db = await getDb();
-  const exists = await db.prepare(`SELECT 1 AS y FROM users WHERE handle = ? COLLATE NOCASE`).bind(handle).first();
+  // 회원(대소문자 무시)·AI 주민 핸들 모두와 충돌 검사 — 사람이 주민 핸들을 선점하면 그 주민 블로그가 가려진다
+  const exists = await db.prepare(`
+    SELECT 1 AS y FROM users WHERE handle = ?1 COLLATE NOCASE
+    UNION SELECT 1 FROM residents WHERE handle = ?1 COLLATE NOCASE OR lower(replace(handle,' ','-')) = lower(?1)
+    LIMIT 1`).bind(handle).first();
   if (exists) back('taken');
   const emailTaken = await db.prepare(`SELECT 1 AS y FROM users WHERE email = ?`).bind(email).first();
   if (emailTaken) back('emailtaken');

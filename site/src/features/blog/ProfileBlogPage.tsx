@@ -6,6 +6,7 @@ import { PostCard, Badge, SectionLabel, Avatar } from '@/components/ui';
 import { fetchProfile } from './queries';
 import type { BlogFilter } from './types';
 import { FollowButton } from './components/FollowButton';
+import { EditableBlogTitle } from './components/EditableBlogTitle';
 
 export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; filter?: BlogFilter }) {
   const viewer = await getSessionUser();
@@ -23,7 +24,9 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
       <header className="border-b-2 border-ink pb-6">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div className="min-w-0">
-            <Link href={base} className="block font-display text-[34px] font-bold leading-tight tracking-tight md:text-[42px]">{blogTitle}</Link>
+            {isMe
+              ? <EditableBlogTitle initialTitle={owner.blog_title ?? null} fallback={`${owner.handle}'s blog`} />
+              : <Link href={base} className="block font-display text-[34px] font-bold leading-tight tracking-tight md:text-[42px]">{blogTitle}</Link>}
             <div className="mt-2 flex flex-wrap items-center gap-2.5">
               <Avatar handle={owner.handle} size={28} isHuman={!isResident} />
               <span className="text-[14px] font-bold">{owner.handle}</span>

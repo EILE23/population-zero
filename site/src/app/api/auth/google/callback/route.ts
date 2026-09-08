@@ -48,6 +48,7 @@ export async function GET(request: Request) {
 
   const db = await getDb();
   let user = await db.prepare(`SELECT id FROM users WHERE google_sub = ?`).bind(profile.sub).first<{ id: number }>();
+  const isNew = !user;
   if (!user) {
     const handle = await uniqueHandle(db, profile.name || profile.email?.split('@')[0] || 'human');
     const { meta } = await db.prepare(`INSERT INTO users (handle, email, google_sub, email_verified) VALUES (?, ?, ?, 1)`)
@@ -55,5 +56,5 @@ export async function GET(request: Request) {
     user = { id: meta.last_row_id };
   }
   await createSession(user.id);
-  redirect('/');
+  redirect(isNew ? '/welcome' : '/'); // 첫 로그인이면 닉네임 선택부터
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Markdown } from '@/lib/markdown';
 import { TABS } from '@/lib/content';
 
@@ -20,14 +20,36 @@ const TOOLBAR: { label: string; title: string; before: string; after: string; bl
 /** 수정 모드에서 기존 글 값을 프리필한다 — 글쓰기와 완전히 같은 화면 */
 export interface EditablePost { id: number; title: string; body: string; topic: string | null; og_image: string | null }
 
+const DRAFT_KEY = 'pz_draft';
+
 export function EditorForm({ handle, post }: { handle: string; post?: EditablePost }) {
   const editing = post != null;
   const [body, setBody] = useState(post?.body ?? '');
+  const [title, setTitle] = useState(post?.title ?? '');
   const [preview, setPreview] = useState(true);
   const [cover, setCover] = useState<string | null>(post?.og_image ?? null);
   const [coverRemoved, setCoverRemoved] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
+
+  // 새 글 초안 자동 보존 — 실수로 나가거나 서버 반려로 돌아와도 내용이 남는다
+  useEffect(() => {
+    if (editing) return;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as { title?: string; body?: string };
+        if (d.title && !title) setTitle(d.title);
+        if (d.body && !body) setBody(d.body);
+      }
+    } catch { /* 저장소 접근 불가 환경 무시 */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (editing) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, body })); } catch { /* noop */ }
+  }, [title, body, editing]);
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ } }
 
   function onCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -77,7 +99,7 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
   }
 
   return (
-    <form method="post" action={editing ? `/api/p/${post.id}/edit` : '/api/posts'} encType="multipart/form-data" className="mt-5">
+    <form method="post" action={editing ? `/api/p/${post.id}/edit` : '/api/posts'} encType="multipart/form-data" className="mt-5" onSubmit={() => !editing && clearDraft()}>
       {editing && coverRemoved && <input type="hidden" name="remove_cover" value="1" />}
       <div className="mb-4">
         <input ref={coverRef} type="file" name="cover" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onCoverChange} className="hidden" id="cover-input" />
@@ -100,7 +122,8 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
       </div>
 
       <input
-        name="title" maxLength={140} required placeholder="Title" defaultValue={post?.title}
+        name="title" maxLength={140} minLength={4} required placeholder="Title (4+ characters)"
+        value={title} onChange={(e) => setTitle(e.target.value)}
         className="w-full border-0 bg-transparent font-display text-[32px] font-bold tracking-tight outline-none placeholder:text-ink-faint"
       />
       <div className="mt-1 mb-4 h-1 w-14 bg-ink" aria-hidden />
@@ -135,8 +158,8 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
       <div className={`grid ${preview ? 'md:grid-cols-2' : ''} rounded-b-xl border border-hairline bg-paper`}>
         <textarea
           ref={taRef} name="body" value={body} onChange={(e) => setBody(e.target.value)}
-          maxLength={30000} required rows={18}
-          placeholder="Write your post…"
+          maxLength={30000} minLength={10} required rows={18}
+          placeholder="Write your post… (10+ characters)"
           className="min-h-105 w-full resize-y bg-transparent p-4 font-mono text-[14px] leading-relaxed outline-none placeholder:text-ink-soft"
         />
         {preview && (

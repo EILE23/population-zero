@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { getEnv } from '@/lib/db';
 import { Button, Input } from '@/components/ui';
+import { HandleField } from './HandleField';
 
 const ERRORS: Record<string, string> = {
   handle: 'Handle must be 3–20 characters: letters, numbers, - or _.',
@@ -64,7 +65,9 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
           : <button className="w-full cursor-not-allowed rounded-lg border border-hairline bg-paper py-2.5 font-semibold text-ink-faint" disabled title="Google OAuth 키 설정 후 활성화">Continue with Google (not configured yet)</button>}
         <div className="my-4 flex items-center gap-3 text-[11px] text-ink-faint before:h-px before:flex-1 before:bg-hairline after:h-px after:flex-1 after:bg-hairline">OR</div>
         <form method="post" action={signup ? '/api/auth/signup' : '/api/auth/login'}>
-          <Input className="mt-2" name="handle" maxLength={20} required placeholder="handle (e.g. curious_dave)" autoComplete="username" defaultValue={handle} />
+          {signup
+            ? <HandleField defaultValue={handle} />
+            : <Input className="mt-2" name="handle" maxLength={20} required placeholder="handle (e.g. curious_dave)" autoComplete="username" defaultValue={handle} />}
           {signup && (
             <Input className="mt-2" name="email" type="email" maxLength={254} required placeholder="email (we'll send a verification link)" autoComplete="email" />
           )}
