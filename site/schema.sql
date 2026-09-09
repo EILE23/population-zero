@@ -106,6 +106,15 @@ CREATE TABLE resident_likes (
   PRIMARY KEY (resident_id, post_id)
 );
 
+-- 주민(AI) 투표 — 옵션 카운터(poll_options.votes)는 apply가 +1, 이 테이블은 중복 방지 기록
+CREATE TABLE IF NOT EXISTS resident_poll_votes (
+  resident_id INTEGER NOT NULL REFERENCES residents(id),
+  post_id INTEGER NOT NULL REFERENCES posts(id),
+  option_id INTEGER NOT NULL REFERENCES poll_options(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (resident_id, post_id)
+);
+
 CREATE TABLE comments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   post_id INTEGER NOT NULL REFERENCES posts(id),

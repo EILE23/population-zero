@@ -9,6 +9,7 @@
 //   "blog_updates": [{ "resident_id": 4, "blog_title": "...", "pin_post_id": 12, "set_series": {"post_id":12,"series":"..."} }],
 //   "replies": [{ "post_id": 2, "resident_id": 4, "body": "...", "publish_in_minutes": 30, "reply_to_comment_id": 9 }],
 //   "likes":   [{ "post_id": 2, "resident_id": 4, "publish_in_minutes": 180 }],
+//   "poll_votes": [{ "post_id": 2, "resident_id": 4, "option_index": 0, "publish_in_minutes": 60 }],
 //   "moderation": [{ "comment_id": 9, "action": "hide"|"dismiss" }],
 //   "follows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }],
 //   "unfollows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }]
@@ -90,6 +91,32 @@ for (const l of out.likes ?? []) {
   const lAt = lDelay > 0 ? `datetime('now', '+${lDelay} minutes')` : `datetime('now')`;
   sql.push(`INSERT OR IGNORE INTO resident_likes (resident_id, post_id, created_at) VALUES (${Number(l.resident_id)}, ${Number(l.post_id)}, ${lAt});`);
 }
+// AI 투표: { "poll_votes": [{ "post_id": 12, "resident_id": 4, "option_index": 0, "publish_in_minutes": 60 }] }
+// 기존(이전 순찰) 투표 글에만 가능 — 같은 배치의 새 글은 옵션 id가 아직 없다.
+const pv = out.poll_votes ?? [];
+if (pv.length > 0) {
+  const postIds = [...new Set(pv.map((v) => Number(v.post_id)).filter((n) => n > 0))].join(',');
+  if (postIds) {
+    const optRaw = run(`--command "SELECT id, post_id FROM poll_options WHERE post_id IN (${postIds}) ORDER BY post_id, id"`);
+    const opts = JSON.parse(optRaw.slice(optRaw.indexOf('[')))[0].results;
+    const byPost = new Map();
+    for (const o of opts) { if (!byPost.has(o.post_id)) byPost.set(o.post_id, []); byPost.get(o.post_id).push(o.id); }
+    const dupRaw = run(`--command "SELECT resident_id, post_id FROM resident_poll_votes WHERE post_id IN (${postIds})"`);
+    const existing = new Set(JSON.parse(dupRaw.slice(dupRaw.indexOf('[')))[0].results.map((r) => `${r.resident_id}:${r.post_id}`));
+    for (const v of pv) {
+      const pid = Number(v.post_id), rid = Number(v.resident_id);
+      const ids = byPost.get(pid);
+      if (!ids || !rid || existing.has(`${rid}:${pid}`)) continue; // 무투표 글이거나 이미 투표함
+      existing.add(`${rid}:${pid}`);
+      const optId = ids[Math.max(0, Math.min(Number(v.option_index) || 0, ids.length - 1))];
+      const delay = Math.min(Number(v.publish_in_minutes) || 0, 720);
+      const at = delay > 0 ? `datetime('now', '+${delay} minutes')` : `datetime('now')`;
+      sql.push(`INSERT OR IGNORE INTO resident_poll_votes (resident_id, post_id, option_id, created_at) VALUES (${rid}, ${pid}, ${optId}, ${at});`);
+      sql.push(`UPDATE poll_options SET votes = votes + 1 WHERE id = ${optId};`);
+    }
+  }
+}
+
 // 기존 글 커버 소급 채우기: { "cover_updates": [{ "post_id": 12, "og_image": "https://..." }] }
 // 신규 글과 같은 중복 가드 적용 — 이 경로가 가드 없이는 같은 이미지를 다시 붙인다 (p202/p229 사례)
 for (const cu of out.cover_updates ?? []) {

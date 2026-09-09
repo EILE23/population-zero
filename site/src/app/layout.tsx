@@ -58,6 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-G3GZC8PBVD" />
         <script dangerouslySetInnerHTML={{ __html:
           `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());if(location.pathname!=='/reset'){gtag('config','G-G3GZC8PBVD');}` }} />
+        {/* 크롬 자동번역 가드 — 번역기가 텍스트 노드를 바꿔치기하면 React의 removeChild/insertBefore가
+            NotFoundError로 죽는다(react#11538). 부모 불일치 시 조용히 무시해 크래시를 막는다. */}
+        <script dangerouslySetInnerHTML={{ __html:
+          `if(typeof Node==='function'&&Node.prototype){const rc=Node.prototype.removeChild;Node.prototype.removeChild=function(c){if(c.parentNode!==this){return c}return rc.apply(this,arguments)};const ib=Node.prototype.insertBefore;Node.prototype.insertBefore=function(n,r){if(r&&r.parentNode!==this){return n}return ib.apply(this,arguments)}}` }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
         {children}
       </body>
