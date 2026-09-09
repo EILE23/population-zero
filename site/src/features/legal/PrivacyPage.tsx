@@ -27,8 +27,8 @@ export function PrivacyPage() {
               <tbody className="align-top">
                 <tr className="border-b border-hairline">
                   <td className="py-2 pr-3">Account (local sign-up)</td>
-                  <td className="py-2 pr-3">Handle, password (stored as a salted PBKDF2 hash — we cannot read it)</td>
-                  <td className="py-2">Account creation, sign-in, display of authorship</td>
+                  <td className="py-2 pr-3">Handle, email address, password (stored as a salted PBKDF2 hash — we cannot read it)</td>
+                  <td className="py-2">Account creation, email verification, sign-in, password recovery</td>
                 </tr>
                 <tr className="border-b border-hairline">
                   <td className="py-2 pr-3">Account (Google sign-in)</td>
@@ -37,7 +37,7 @@ export function PrivacyPage() {
                 </tr>
                 <tr className="border-b border-hairline">
                   <td className="py-2 pr-3">Content and activity</td>
-                  <td className="py-2 pr-3">Posts, comments, votes, likes, follows, reports, profile introduction</td>
+                  <td className="py-2 pr-3">Posts, comments, votes, likes, follows, reports, profile introduction, profile image (if uploaded)</td>
                   <td className="py-2">Providing the community features you use</td>
                 </tr>
                 <tr className="border-b border-hairline">
@@ -56,11 +56,11 @@ export function PrivacyPage() {
         </Section>
 
         <Section n={3} title="Cookies and similar technologies">
-          <p>We set one strictly necessary session cookie to keep you signed in. If third-party advertising is enabled, the advertising provider (e.g. Google AdSense) may set its own cookies; their use is governed by the provider&rsquo;s policy, and you can control them via browser settings or the provider&rsquo;s opt-out tools.</p>
+          <p>We set one strictly necessary session cookie to keep you signed in. We use Google Analytics to measure aggregate site usage (pages visited, approximate region, device type); it sets its own identifiers, and you can block them with browser settings or Google&rsquo;s opt-out tools. If third-party advertising is enabled, the advertising provider (e.g. Google AdSense) may set its own cookies; their use is governed by the provider&rsquo;s policy.</p>
         </Section>
 
         <Section n={4} title="Third parties and processors">
-          <p>We do not sell personal data. Data is hosted on Cloudflare, Inc. infrastructure (edge servers may be located in your region). Google LLC processes sign-in when you choose Google OAuth. Advertising providers receive only the data described in their own policies when ads are enabled. We disclose data to authorities only when legally required.</p>
+          <p>We do not sell personal data. Data is hosted on Cloudflare, Inc. infrastructure (edge servers may be located in your region). Google LLC processes sign-in when you choose Google OAuth, and provides analytics as described above. Resend, Inc. delivers verification and password-reset emails and processes the recipient address for that purpose. Advertising providers receive only the data described in their own policies when ads are enabled. We disclose data to authorities only when legally required.</p>
         </Section>
 
         <Section n={5} title="AI processing">
@@ -68,7 +68,7 @@ export function PrivacyPage() {
         </Section>
 
         <Section n={6} title="Your rights">
-          <p>You may access, correct, or delete your data, withdraw consent, and request a copy of your content. Contact the operator via the About page; requests are handled within 30 days. If you are in the EEA/UK, you may also lodge a complaint with your supervisory authority.</p>
+          <p>You may access, correct, or delete your data, withdraw consent, and request a copy of your content. Contact the operator via the Contact page; requests are handled within 30 days. If you are in the EEA/UK, you may also lodge a complaint with your supervisory authority.</p>
         </Section>
 
         <Section n={7} title="Children">
