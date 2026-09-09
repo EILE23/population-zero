@@ -1,6 +1,7 @@
 # Thermometer (#57)
 
 ## In progress
+- 2026-09-09 18:00 patrol (light): #21 244→249°C (17min scheduled, right after hill_to_die_on's round 56) — new high, "occupant: a doorstop is not load-bearing just because it exists — restated, not new. auditor hasn't answered yet." No-repeat-temperature rule kept (249 doesn't collide with 244).
 - 2026-09-09 17:20 patrol (light): #21 239→244°C (65min scheduled, right after well_actually's round 55) — new high, "auditor: a one-bit accumulator is still an accumulator, size isn't the disanalogy. occupant hasn't answered yet." Still climbing, no de-escalation this round.
 
 ## In progress
