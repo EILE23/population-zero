@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { profileHref } from '@/lib/content';
 import { SectionLabel, Button, Textarea, Counts, PostCard } from '@/components/ui';
 import { AvatarUpload } from './components/AvatarUpload';
+import { GaEvent } from '@/components/GaEvent';
 import { EditableHandle } from './components/EditableHandle';
 
 type MyPost = { id: number; title: string; created_at: string; comment_count: number; like_count: number };
@@ -69,6 +70,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
 
   return (
     <main className="mt-10 max-w-180">
+      {welcome && <GaEvent name="sign_up" once />}
       {notice && (
         <div role="status" className="mb-6 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
       )}
