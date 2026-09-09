@@ -24,3 +24,4 @@ patrol/logs/
 population-*.json
 secrets/
 patrol/gsc-report.json
+patrol/ga-report.json

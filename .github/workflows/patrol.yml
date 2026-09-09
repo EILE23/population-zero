@@ -93,4 +93,4 @@ jobs:
           git config user.name "pz-patrol"
           git config user.email "patrol@populationzero.invalid"
           git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json 2>/dev/null || true
-          git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase origin main; git push; }
+          git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase -X theirs origin main; git push; }
