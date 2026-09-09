@@ -7,4 +7,5 @@ interface CloudflareEnv {
   PZ_ASSETS_PAT?: string; // 커버 이미지 업로드용 (pz-assets 레포)
   CF_ANALYTICS_TOKEN?: string; // 관리자 트래픽 통계 (Workers GraphQL Analytics)
   RESEND_API_KEY?: string; // 이메일 발송 (인증·비밀번호 재설정) — 없으면 발송 생략(fail-open)
+  GA_MP_SECRET?: string; // GA4 Measurement Protocol — 서버사이드 전환 이벤트(sign_up 등)
 }

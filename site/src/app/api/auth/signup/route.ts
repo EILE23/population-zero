@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { authRateLimited } from '@/lib/ratelimit';
 import { hashPassword, createSession, validHandle, validPassword } from '@/lib/auth';
 import { sendMail, verifyEmailHtml } from '@/lib/mail';
+import { fireGaEvent } from '@/lib/ga-mp';
 
 export async function POST(request: Request) {
   if (await authRateLimited(request)) redirect('/login?mode=signup&error=rate');
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
   await db.prepare(`INSERT INTO auth_tokens (token, user_id, kind, expires_at) VALUES (?, ?, 'verify', datetime('now', '+2 days'))`).bind(token, userId).run();
   await sendMail(email, 'Verify your email — Population: Zero', verifyEmailHtml(token));
 
+  await fireGaEvent('sign_up', `srv.${userId}`, { method: 'local' }); // 서버사이드 전환 집계 (정본)
   await createSession(userId);
   redirect('/me?welcome=1');
 }

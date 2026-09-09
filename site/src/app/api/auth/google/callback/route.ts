@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { getDb, getEnv } from '@/lib/db';
 import { createSession } from '@/lib/auth';
 import { SITE_URL } from '@/lib/seo';
+import { fireGaEvent } from '@/lib/ga-mp';
 
 // 구글 프로필 이름 → 마을 핸들 후보로 정규화, 충돌 시 숫자 접미
 async function uniqueHandle(db: D1Database, base: string) {
@@ -53,6 +54,7 @@ export async function GET(request: Request) {
     const { meta } = await db.prepare(`INSERT INTO users (handle, email, google_sub, email_verified) VALUES (?, ?, ?, 1)`)
       .bind(handle, profile.email ?? null, profile.sub).run();
     user = { id: meta.last_row_id };
+    await fireGaEvent('sign_up', `srv.${user.id}`, { method: 'google' }); // 서버사이드 전환 집계 (정본)
   }
   await createSession(user.id);
   redirect('/'); // 닉네임 미선택 계정은 SiteChrome이 선택 모달을 띄운다 (handle_picked=0)
