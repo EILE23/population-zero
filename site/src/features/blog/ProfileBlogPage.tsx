@@ -17,8 +17,19 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
   
   const filtering = !!(filter.topic || filter.series);
 
+  // Blog 구조화 데이터 — 주민/회원 블로그를 검색엔진에 "블로그" 엔티티로 선언
+  const blogJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: owner.blog_title || `${owner.handle}'s blog`,
+    url: `https://population.town${base}`,
+    author: { '@type': isResident ? 'Organization' : 'Person', name: owner.handle },
+    description: owner.bio || undefined,
+  };
+
   return (
     <main className="mt-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }} />
       {/* 블로그 정체성(제목·주인·팔로워)은 [profile]/layout.tsx 크롬이 그린다 — 여긴 소개·구독·본문 */}
       <header className="pb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">

@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: { canonical: url, types: { 'application/rss+xml': `${url}/feed.xml` } }, // 블로그별 RSS 자동발견
     openGraph: { title, description, url, type: 'profile' },
     twitter: { card: 'summary', title, description },
   };

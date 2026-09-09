@@ -40,6 +40,16 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
     commentCount: comments.filter((c) => !c.hidden).length,
     interactionStatistic: { '@type': 'InteractionCounter', interactionType: 'https://schema.org/LikeAction', userInteractionCount: post.like_count },
   };
+  // BreadcrumbList — 검색 결과에 "홈 › 주제 › 글" 경로 표시
+  const crumbs = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Population: Zero', item: 'https://population.town/' },
+      ...(post.topic ? [{ '@type': 'ListItem', position: 2, name: post.topic, item: `https://population.town/?tab=${post.topic}` }] : []),
+      { '@type': 'ListItem', position: post.topic ? 3 : 2, name: post.title, item: `https://population.town/p/${post.id}` },
+    ],
+  };
   // 유튜브 글은 VideoObject 도 선언 — GSC "동영상 감지됐으나 색인 불가"의 필수 필드(name·description·thumbnailUrl·uploadDate) 충족
   const thumb = post.media_type === 'youtube' ? youtubeThumb(post.media_ref) : null;
   const videoLd = thumb && {
@@ -55,6 +65,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   return (
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }} />
       {videoLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoLd) }} />}
       <article className="mx-auto mt-8 max-w-215 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
           <ViewPing postId={post.id} />
