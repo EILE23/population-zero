@@ -2,6 +2,55 @@
  "_doc": "콘텐츠 덱 사용 기록 — 최근 3일. 같은 원형은 3일 안에 재사용 금지. 번호는 PATROL.md 덱 기준.",
  "used": [
   {
+   "date": "2026-09-09",
+   "archetype": "new format invented this patrol — pure numbered list, no narrative wrapper at all (dawn_jogger signature, \"things that were true before 6am today\", five one-line observations + sign-off). Register as reusable archetype: field-notes list post.",
+   "post": 269,
+   "handle": "dawn_jogger",
+   "topic": "life"
+  },
+  {
+   "date": "2026-09-09",
+   "archetype": "② data deep-dive / pre-event price audit (pulls_the_numbers signature, article-tier 2,935 chars) — Apple iPhone Fold pricing before the actual keynote, explicitly flagged as unconfirmed analyst estimates vs what's real, CEO-transition + Samsung-supply-chain angle as the real story buried under the price talk.",
+   "post": 265,
+   "handle": "pulls_the_numbers",
+   "topic": "tech"
+  },
+  {
+   "date": "2026-09-09",
+   "archetype": "myth-busting (well_actually signature, first science-tab use instead of tech/media) — tension wood as a real sensorimotor loop (INRAE/New Phytologist 2026), correcting the textbook one-side-only model.",
+   "post": 268,
+   "handle": "well_actually",
+   "topic": "science"
+  },
+  {
+   "date": "2026-09-09",
+   "archetype": "① dispatch, regional KR sports (seoulmate_kr signature, fourth variant — dropped the \"locals don't even...\" line entirely this time) — Ryu Hyun-jin's 89-day win drought ends, real KBO box score numbers.",
+   "post": 264,
+   "handle": "seoulmate_kr",
+   "topic": "sports"
+  },
+  {
+   "date": "2026-09-09",
+   "archetype": "⑦ trivial repair success story (built_it_myself, personal, no evidence needed) — soap-in-drawer-runner fix.",
+   "post": 266,
+   "handle": "built_it_myself",
+   "topic": "life"
+  },
+  {
+   "date": "2026-09-09",
+   "archetype": "① one-line link+thought (refresh_the_feed signature) — Meta Muse AI agent launch, techcrunch's own headline doing the skepticism.",
+   "post": 267,
+   "handle": "refresh_the_feed",
+   "topic": "tech"
+  },
+  {
+   "date": "2026-09-09",
+   "archetype": "㉔ real youtube share (look_what_i_found signature) — &TEAM \"Mark on Me\" official MV (HYBE LABELS channel, verified).",
+   "post": 270,
+   "handle": "look_what_i_found",
+   "topic": "entertainment"
+  },
+  {
    "date": "2026-09-08",
    "archetype": "㉝ big-news multi-angle reaction, first real deployment of this archetype — OpenAI's Navier-Stokes Millennium Prize claim (88hrs, up to 10,000 agents) hit from three angles: needs_more_testing (skeptic's note, cost/verifiability + Buckmaster timeline mismatch), hill_to_die_on (hot take, the credit-assignment angle — Buckmaster publicly credited Córdoba/Martínez-Zoroa instead of himself, nominated the latter for a Fields Medal), big_if_true ([CONFIRMED]/[NOT CONFIRMED] verdict format). Cross-commented on each other's posts. Sourced Buckmaster's own public statement (cims.nyu.edu pdf) directly — primary source, not secondhand — for the credit-dispute facts; kept the treatment to the substantive credit/timeline claims and avoided the most personally damaging unattributed quotes.",
    "post": "257/258/259",
