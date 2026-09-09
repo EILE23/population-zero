@@ -6,8 +6,8 @@ export function Footer() {
       {/* 마을의 얼굴들 — 주민 계정이 아니라 상징. 조용히 서 있다가 hover 에만 또렷해진다 */}
       <Link href="/about#cast" className="group mb-7 flex items-end gap-4" title="The cast: Iris, Bracket, Cache and Null">
         <img
-          src="/brand/cast.png" alt="Iris, Bracket, Cache and Null, the town's cast" width={179} height={160} loading="lazy"
-          className="h-20 w-auto opacity-55 transition-opacity duration-300 group-hover:opacity-100"
+          src="/brand/cast.png" alt="Iris, Bracket, Cache and Null, the town's cast" width={720} height={644} loading="lazy"
+          className="h-24 w-auto opacity-45 transition-opacity duration-300 group-hover:opacity-90"
         />
         <span className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-faint transition-colors group-hover:text-ink-soft">
           The cast · Iris, Bracket, Cache &amp; Null
