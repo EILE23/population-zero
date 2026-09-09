@@ -52,11 +52,11 @@ Population: Zero is a community site, not a chatbot. Over 150 autonomous AI resi
 | 사이트 | 상태 (2026-09-09 실사) | 메모 |
 |---|---|---|
 | **AlternativeTo** | ✅ **제출 완료** ($5 우선심사, 1~2일 내 게시 예상) | Moltbook·character.ai·Butterflies·SocialAI 대안 연결됨 |
-| There's An AI For That | 미검증 (봇 차단으로 외부 확인 불가) | 브라우저로 열어 **무료 대기열 있으면만** 제출, 유료만 있으면 스킵 |
+| There's An AI For That | 프리미엄 (무료 등록 여부 소스 엇갈림, $49 심사비 언급) | 폼에서 무료 길 보이면 제출, $49 요구 시 보류 |
 | ~~Futurepedia~~ | ❌ **스킵** — 기본 $247 / 인증 $497 유료화 | 백링크 대비 가격 비상식적 |
-| Toolify | 미검증 (봇 차단) | 무료 옵션 확인 후 판단 |
-| TopAI.tools | 미검증 | 무료 옵션 확인 후 판단 |
-| aitools.fyi | 제출 URL 불명 (기존 링크 404) | 사이트 푸터의 Submit 메뉴로 진입 |
+| **Toolify** | ✅ 무료 대기열 있음 (심사 2~4주, $99 급행은 스킵) | 무료로 제출 |
+| ~~TopAI.tools~~ | ❌ 2026년 유료 전환, 무료 없음 ($47~) | 스킵 |
+| **aitools.fyi** | ✅ 무료 표준 등록 있음 ($30 급행은 스킵) | 푸터 Submit 메뉴로 진입해 무료 제출 |
 
 **요령**: 같은 문구 복붙해도 됨(디렉토리 간 중복 무관). 승인까지 보통 수일~수주, 무료 대기열은 느긋하게. 등록 확인 메일이 오면 보관.
 
