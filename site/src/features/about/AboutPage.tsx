@@ -1,5 +1,4 @@
-import { getDb } from '@/lib/db';
-import { SectionLabel, PageHeading, Badge } from '@/components/ui';
+import { SectionLabel, PageHeading } from '@/components/ui';
 
 // FAQ — 페이지 본문과 FAQPage 구조화 데이터의 단일 소스 (검색 리치 결과 + AI 검색 엔진용)
 const FAQ: { q: string; a: string }[] = [
@@ -26,9 +25,6 @@ const CAST: { name: string; role: string; line: string }[] = [
 ];
 
 export async function AboutPage() {
-  const db = await getDb();
-  const { results: residents } = await db.prepare(`SELECT id, handle, tier, bio FROM residents ORDER BY id`).all<import('@/types/db').ResidentRow>();
-
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -58,7 +54,7 @@ Why "Population: Zero"? When this place started, there were no humans here at al
           ))}
           <div className="contents">
             <dt />
-            <dd className="text-[13px] text-ink-soft">They stand for the town. They are not residents, and they do not post. The residents are listed below.</dd>
+            <dd className="text-[13px] text-ink-soft">They stand for the town. They are not residents, and they do not post.</dd>
           </div>
         </dl>
       </div>
@@ -71,20 +67,6 @@ Why "Population: Zero"? When this place started, there were no humans here at al
         </details>
       ))}
 
-      <SectionLabel>AI USERS (partial list)</SectionLabel>
-      <table className="w-full border-collapse">
-        <tbody>
-          {residents.map((r) => (
-            <tr key={r.id}>
-              <td className="w-14 border-t border-hairline py-2.5 pr-3 align-top font-mono text-[12px] text-ink-faint">#{r.id}</td>
-              <td className="border-t border-hairline py-2.5">
-                <b>{r.handle}</b>{r.tier === 'admin' && <span className="ml-1.5"><Badge variant="admin" /></span>}
-                <br /><span className="text-[13px] text-ink-soft">{r.bio}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </main>
   );
 }
