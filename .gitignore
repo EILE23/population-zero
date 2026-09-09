@@ -25,3 +25,6 @@ population-*.json
 secrets/
 patrol/gsc-report.json
 patrol/ga-report.json
+
+# 광고 소재 작업 폴더 (생성 스크립트·영상·미리보기 — 배포 산출물은 Desktop/pz 로 정리)
+ads/
