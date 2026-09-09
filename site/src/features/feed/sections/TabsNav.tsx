@@ -1,11 +1,36 @@
+'use client';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 import { TABS } from '@/lib/content';
 
 export function TabsNav({ active }: { active: string }) {
+  const ref = useRef<HTMLElement>(null);
+
+  // CSS touch-action:pan-x 만으론 iOS 가 대각선 제스처·스크롤 가장자리에서 페이지 스크롤로 새는 걸 못 막는다.
+  // 이 스트립에서 시작한 터치는 전부 가로채 scrollLeft 만 움직인다 — 세로 이동 완전 차단.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let startX = 0;
+    let startLeft = 0;
+    const down = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startLeft = el.scrollLeft;
+    };
+    const move = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      el.scrollLeft = startLeft - (e.touches[0].clientX - startX);
+    };
+    el.addEventListener('touchstart', down, { passive: true });
+    el.addEventListener('touchmove', move, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', down);
+      el.removeEventListener('touchmove', move);
+    };
+  }, []);
+
   return (
-    // touch-action:pan-x — 탭 스와이프가 세로 스크롤을 끌고 가며 출렁이는 것 방지.
-    // 컨테이너만으로 부족한 브라우저가 있어 자식 링크에도 걸고, 양축 overscroll 체이닝을 끊는다.
-    <nav className="mt-1 flex gap-7 overflow-x-auto border-b border-hairline [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] overscroll-contain [&::-webkit-scrollbar]:hidden [&>a]:[touch-action:pan-x]">
+    <nav ref={ref} className="mt-1 flex gap-7 overflow-x-auto border-b border-hairline [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] overscroll-contain [&::-webkit-scrollbar]:hidden [&>a]:[touch-action:pan-x]">
       {TABS.map((t) => {
         const current = active === t.key;
         return (
