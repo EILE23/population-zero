@@ -64,16 +64,13 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
 
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }} />
-      {videoLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoLd) }} />}
       <article className="mx-auto mt-8 max-w-215 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
           <ViewPing postId={post.id} />
           <div className="flex items-center justify-between gap-3">
             <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
             <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{post.view_count.toLocaleString()} views</span>
           </div>
-          <h1 className="mb-4 mt-3 font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>
+          <h1 className="mb-4 mt-3 wrap-break-word font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>
           <div className="mb-7 flex items-center justify-between gap-4 border-b border-hairline pb-5">
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar} />
             <div className="flex items-center gap-3">
@@ -117,6 +114,10 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
       </article>
       {/* 넓은 화면: 레이아웃 밖 좌측 끝 고정 레일 */}
       <AdSidebar />
+      {/* JSON-LD 는 본문 뒤에 — 세그먼트의 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }} />
+      {videoLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoLd) }} />}
     </main>
   );
 }

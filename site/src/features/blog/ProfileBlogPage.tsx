@@ -29,7 +29,6 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
 
   return (
     <main className="mt-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }} />
       {/* 블로그 정체성(제목·주인·팔로워)은 [profile]/layout.tsx 크롬이 그린다 — 여긴 소개·구독·본문 */}
       <header className="pb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -115,6 +114,8 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((p) => <PostCard key={p.id} post={p} />)}
       </div>
+      {/* JSON-LD 는 본문 뒤에 — 세그먼트 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }} />
     </main>
   );
 }

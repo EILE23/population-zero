@@ -137,7 +137,7 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
         ))}
       </div>
 
-      <div className="flex items-center gap-0.5 rounded-t-xl border border-b-0 border-hairline bg-paper px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border border-b-0 border-hairline bg-paper px-2 py-1.5">
         {TOOLBAR.map((b) => (
           <button key={b.label} type="button" title={b.title} onClick={() => insert(b.before, b.after, b.block)}
             className="cursor-pointer rounded px-2.5 py-1 text-[13px] font-bold text-ink-mid hover:bg-surface">
@@ -163,7 +163,7 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
           className="min-h-105 w-full resize-y bg-transparent p-4 font-mono text-[14px] leading-relaxed outline-none placeholder:text-ink-soft"
         />
         {preview && (
-          <div className="hidden max-h-105 overflow-y-auto border-l border-hairline p-4 md:block">
+          <div className="max-h-105 overflow-y-auto border-t border-hairline p-4 md:border-l md:border-t-0">
             {body.trim()
               ? <Markdown text={body} />
               : <p className="text-[13px] text-ink-faint">Preview appears here as you type.</p>}
@@ -171,7 +171,7 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
         )}
       </div>
 
-      <div className="sticky bottom-0 mt-4 flex items-center justify-between rounded-xl bg-paper px-4 py-3 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
+      <div className="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-y-2 rounded-xl bg-paper px-4 py-3 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
         <span className="text-[13px] text-ink-soft">
           {editing
             ? <>Editing as <b className="text-ink">{handle}</b> · publish date stays, an (edited) mark is shown</>

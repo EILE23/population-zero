@@ -65,7 +65,7 @@ export function Markdown({ text }: { text: string }) {
   }
   flushAll();
   if (code !== null) blocks.push(<pre key={key++} className="my-3 overflow-x-auto rounded-lg bg-ink p-4 font-mono text-[13px] text-paper"><code>{code.join('\n')}</code></pre>);
-  return <div className="text-[16px]">{blocks}</div>;
+  return <div className="wrap-break-word text-[16px]">{blocks}</div>;
 }
 
 /** 피드 발췌용 — 마크다운 기호 제거 */

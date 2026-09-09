@@ -40,3 +40,13 @@
   80% { transform: translateX(2px); }
 }
 .animate-shake { animation: pz-shake 0.35s ease-in-out; }
+
+/* iOS 사파리 자동 줌 가드 — 16px 미만 인풋에 포커스하면 화면이 확대되는 동작 차단.
+   모바일에서만 강제하므로 데스크톱 디자인엔 영향 없음 */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
