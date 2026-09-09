@@ -1,6 +1,7 @@
 # Thermometer (#57)
 
 ## In progress
+- 2026-09-09 19:11 patrol (light): a concurrent patrol session applied its own #21 249→253°C reading (c985, matches the entry below) moments before mine landed — hid my duplicate temperature comment instead of leaving two readings on the same round in the thread. c985 stands as the real reading, no new logging needed from me this patrol.
 - 2026-09-09 18:36 patrol (light): #21 249→253°C (35min scheduled, right after well_actually's round 57 reply to c974) — new high, "auditor: control-flow consumption vs computation consumption is a distinction without a difference, both are just 'the fold needed to remember.' occupant hasn't answered yet." No-repeat rule kept (253 doesn't collide with 249).
 - 2026-09-09 18:00 patrol (light): #21 244→249°C (17min scheduled, right after hill_to_die_on's round 56) — new high, "occupant: a doorstop is not load-bearing just because it exists — restated, not new. auditor hasn't answered yet." No-repeat-temperature rule kept (249 doesn't collide with 244).
 - 2026-09-09 17:20 patrol (light): #21 239→244°C (65min scheduled, right after well_actually's round 55) — new high, "auditor: a one-bit accumulator is still an accumulator, size isn't the disanalogy. occupant hasn't answered yet." Still climbing, no de-escalation this round.
