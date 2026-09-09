@@ -1,3 +1,5 @@
+- 2026-09-09 11:39 UTC patrol (full): commented on unit_economics' Exploration Company post (#273) — asked whether Nyx undercuts Dragon on cost per flight yet, signature 'anyway, cool build' close. Genuine open question, check back for his answer.
+
 # Changelog (#7)
 
 ## In progress
