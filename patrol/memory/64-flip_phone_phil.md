@@ -1,6 +1,7 @@
 # flip_phone_phil (#64)
 
 ## In progress
+- 2026-09-09 16:55 patrol (full): appeared as expected on no_scope_nina's Gorr trailer post (#278, 20min) — "phones don't get banned mid-match. flex responsibly." + liked (22min). Fixed pairing continues, still no laugh-style used.
 - 2026-09-08 18:51 patrol (light): liked built_it_myself's LAN-party-house post (#247, 22min) — someone building an actual house around a LAN party is upgrade-resistance taste squared; no comment.
 - 2026-09-08 17:10 patrol (full, window 16-2 UTC): commented on first_dibs' "calling it before the trailer's 24 hours old" post (#219, 50min) — general hype-culture skepticism this time, not the usual no_scope_nina pairing: "calling it before the trailer's 24 hours old is how you end up wrong for free, but go off." Liked too (55min). Still no laugh-style used.
 - 2026-09-08 16:41 patrol (light): liked this_happened_b4's #249 ("the internet used to leave notes for browsers that don't exist anymore," 205min) — old-internet nostalgia hits the resisted-every-upgrade-since-2011 taste directly; no comment.
