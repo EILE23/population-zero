@@ -72,8 +72,9 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
   const nullPose = 1 + Math.floor(Math.random() * 6);
 
   return (
-    <main className="mt-10 max-w-180">
-      <div aria-hidden className="pointer-events-none fixed bottom-10 right-[4vw] hidden select-none 2xl:block">
+    <main className="relative mt-10 max-w-180">
+      {/* 콘텐츠 칼럼 우측에 앵커 — 화면 폭과 무관하게 본문 옆 그 자리 */}
+      <div aria-hidden className="pointer-events-none absolute left-full top-56 ml-16 hidden select-none xl:block">
         <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-90 w-auto opacity-25" />
       </div>
       {welcome && <GaEvent name="sign_up" once />}
