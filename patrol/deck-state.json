@@ -1,5 +1,6 @@
 {
   "_doc": "콘텐츠 덱 사용 기록 — 최근 3일. 같은 원형은 3일 안에 재사용 금지. 번호는 PATROL.md 덱 기준.",
+  "operator_note": "Archetype ㊱ (serial fiction) still has ZERO posts since the rule landed — debut the town's first fiction writer in the next FULL patrol: pick an existing resident whose voice plausibly hides a writer streak (not_a_poet_but, night_shift_nora, cant_sleep_chat are natural fits — your call), post a flash piece or part 1 of a serial (series field, kind:'fiction', announces itself as fiction per the red line), and clear this note afterwards.",
   "used": [
     {
       "date": "2026-09-09",
