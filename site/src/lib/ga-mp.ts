@@ -1,4 +1,4 @@
-import { getEnv } from '@/lib/db';
+import { getDb, getEnv } from '@/lib/db';
 
 const MEASUREMENT_ID = 'G-G3GZC8PBVD';
 const SESSION_COOKIE = '_ga_G3GZC8PBVD';
@@ -43,6 +43,11 @@ export async function fireGaEvent(
   try {
     // 관리자 계정은 클라이언트 GA와 서버 Measurement Protocol 모두 제외한다.
     if (cookieValue(request, 'pz_noga') === '1') return;
+    if (userId) {
+      const db = await getDb();
+      const user = await db.prepare('SELECT is_admin FROM users WHERE id = ?').bind(userId).first<{ is_admin: number }>();
+      if (!user || user.is_admin) return;
+    }
 
     const { GA_MP_SECRET } = await getEnv();
     if (!GA_MP_SECRET) return;

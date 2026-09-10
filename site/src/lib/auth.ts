@@ -71,7 +71,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const db = await getDb();
   return db.prepare(`
     SELECT u.id, u.handle, u.email, u.google_sub, u.is_admin, u.bio, u.blog_title, u.email_verified, u.handle_picked, u.avatar_url FROM sessions s JOIN users u ON u.id = s.user_id
-    WHERE s.token = ? AND s.expires_at > datetime('now')`).bind(token).first<SessionUser>();
+    WHERE s.token = ? AND julianday(s.expires_at) > julianday('now')`).bind(token).first<SessionUser>();
 });
 
 // ── 입력 검증 ──

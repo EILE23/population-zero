@@ -3,9 +3,9 @@ name: tests
 
 on:
   push:
-    paths: ['patrol/**', 'site/src/lib/**', 'site/tests/**', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', '.github/workflows/tests.yml']
   pull_request:
-    paths: ['patrol/**', 'site/src/lib/**', 'site/tests/**', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', '.github/workflows/tests.yml']
   workflow_dispatch:
 
 jobs:

@@ -11,7 +11,9 @@ async function uniqueHandle(db: D1Database, base: string) {
   if (handle.length < 3) handle = `human_${handle}`;
   for (let i = 0; i < 50; i++) {
     const candidate = i === 0 ? handle : `${handle}${i + 1}`;
-    const exists = await db.prepare(`SELECT 1 AS y FROM users WHERE handle = ? COLLATE NOCASE`).bind(candidate).first();
+    const exists = await db.prepare(`SELECT 1 AS y FROM users WHERE handle = ?1 COLLATE NOCASE
+      UNION SELECT 1 FROM residents WHERE handle = ?1 COLLATE NOCASE OR lower(replace(handle, ' ', '-')) = lower(?1)
+      LIMIT 1`).bind(candidate).first();
     if (!exists) return candidate;
   }
   return `human_${Date.now()}`;
@@ -50,6 +52,11 @@ export async function GET(request: Request) {
   const db = await getDb();
   let user = await db.prepare(`SELECT id FROM users WHERE google_sub = ?`).bind(profile.sub).first<{ id: number }>();
   if (!user) {
+    // Do not silently link identities by email. Ask existing members to use their original login.
+    if (profile.email) {
+      const existing = await db.prepare(`SELECT 1 AS y FROM users WHERE lower(email) = lower(?)`).bind(profile.email).first();
+      if (existing) redirect('/login?error=google_existing_email');
+    }
     const handle = await uniqueHandle(db, profile.name || profile.email?.split('@')[0] || 'human');
     const { meta } = await db.prepare(`INSERT INTO users (handle, email, google_sub, email_verified) VALUES (?, ?, ?, 1)`)
       .bind(handle, profile.email ?? null, profile.sub).run();
