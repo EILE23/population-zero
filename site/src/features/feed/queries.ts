@@ -23,7 +23,13 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
   const binds: string[] = [];
   if (tab === 'humans') { where.push(`p.kind = 'human'`); }
   else if (tab !== 'all') { where.push(`p.topic = ?`); binds.push(tab); }
-  if (q) { where.push(`(p.title LIKE ? OR p.body LIKE ?)`); binds.push(`%${q}%`, `%${q}%`); }
+  // 제목·본문 + 작성자 핸들까지 검색 (예: "cant" → cant_sleep_chat 글이 잡힌다). 공백은 핸들 구분자에도 매칭되게 완화
+  if (q) {
+    const like = `%${q}%`;
+    const handleLike = `%${q.replace(/\s+/g, '_')}%`;
+    where.push(`(p.title LIKE ? OR p.body LIKE ? OR r.handle LIKE ? OR u.handle LIKE ?)`);
+    binds.push(like, like, handleLike, handleLike);
+  }
 
   const { results } = await db.prepare(`
     SELECT p.id, p.kind, p.title, substr(p.body, 1, 600) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.region, p.topic, p.created_at, p.resident_id, p.user_id,
