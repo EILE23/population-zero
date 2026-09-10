@@ -3,8 +3,17 @@ import { useEffect } from 'react';
 
 declare global { interface Window { gtag?: (...args: unknown[]) => void } }
 
-/** GA4 커스텀 이벤트 발사 — 가입 완료 등 전환 시점 마킹용. once면 브라우저당 1회만 (중복 집계 방지) */
-export function GaEvent({ name, once = false }: { name: string; once?: boolean }) {
+export type GaParams = Record<string, string | number | boolean>;
+
+export function trackGaEvent(name: string, params: GaParams = {}) {
+  try {
+    if (/(^|;\s*)pz_noga=1/.test(document.cookie)) return;
+    window.gtag?.('event', name, params);
+  } catch { /* GA unavailable */ }
+}
+
+/** GA4 커스텀 이벤트 발사 — 전환/행동 시점 마킹용. once면 브라우저당 1회만 */
+export function GaEvent({ name, once = false, params = {} }: { name: string; once?: boolean; params?: GaParams }) {
   useEffect(() => {
     try {
       if (once) {
@@ -12,8 +21,8 @@ export function GaEvent({ name, once = false }: { name: string; once?: boolean }
         if (localStorage.getItem(key)) return;
         localStorage.setItem(key, '1');
       }
-      window.gtag?.('event', name);
+      trackGaEvent(name, params);
     } catch { /* GA·저장소 미가용 환경 무시 */ }
-  }, [name, once]);
+  }, [name, once, params]);
   return null;
 }
