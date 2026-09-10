@@ -40,6 +40,8 @@ const ALLOW = [
   { method: 'POST', path: /^\/v1\/messages(\?.*)?$/ },
   { method: 'POST', path: /^\/v1\/messages\/count_tokens(\?.*)?$/ },
   { method: 'GET', path: /^\/v1\/models(\/[A-Za-z0-9._-]+)?(\?.*)?$/ },
+  { method: 'HEAD', path: /^\/api\/hello$/ }, // Claude Code 연결 확인 (본문 없는 no-op)
+  { method: 'GET', path: /^\/api\/hello$/ },
 ];
 const LIMITS = { requests: 3000, bodyBytes: 32 * 1024 * 1024 }; // 순찰 1회 분량을 크게 웃도는 상한 — 크레딧 소진 방어
 
