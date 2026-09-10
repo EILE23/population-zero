@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { PostPage } from '@/features/post/PostPage';
 import { getDb } from '@/lib/db';
-import { excerpt, youtubeThumb } from '@/lib/content';
+import { excerpt, youtubeThumb, postHref } from '@/lib/content';
 import { absoluteUrl } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!post) return { title: 'Not found' };
 
   const description = excerpt(post.body, 160);
-  const url = absoluteUrl(`/p/${id}`);
+  const url = absoluteUrl(postHref(Number(id), post.title)); // canonical = /p/{id}/{slug}
   const thumb = (post.media_type === 'youtube' ? youtubeThumb(post.media_ref) : null) ?? post.og_image;
   return {
     title: post.title,

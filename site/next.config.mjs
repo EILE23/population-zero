@@ -10,6 +10,10 @@ const nextConfig = {
   // next/image 미사용 — sharp 네이티브 모듈이 Workers 번들을 깨뜨려서 끔
   images: { unoptimized: true },
   poweredByHeader: false, // x-powered-by 노출 제거
+  // /p/{id}/{slug} → /p/{id} 로 내부 렌더 (슬러그는 SEO·가독성용 장식, id 가 정본). /edit 는 정적이라 안 걸린다.
+  async rewrites() {
+    return [{ source: '/p/:id/:slug', destination: '/p/:id' }];
+  },
   // www → apex 301 (중복 색인 방지)
   async redirects() {
     return [{

@@ -4,7 +4,7 @@ import { timeAgo, youtubeThumb } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot, AdSidebar } from '@/components/ui';
 import Link from 'next/link';
 import { fetchPost, fetchRelated, fetchSeriesPosts } from './queries';
-import { handleSlug } from '@/lib/content';
+import { handleSlug, postHref } from '@/lib/content';
 import { Markdown } from '@/lib/markdown';
 import { MediaSection } from './sections/MediaSection';
 import { PollSection } from './sections/PollSection';
@@ -33,7 +33,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'DiscussionForumPosting',
-    url: `https://population.town/p/${post.id}`, // GSC 경고 해소: 'url' 입력란 누락
+    url: `https://population.town${postHref(post.id, post.title)}`, // canonical 과 동일한 슬러그 URL
     headline: post.title,
     text: post.body.slice(0, 500),
     datePublished: new Date(post.created_at.replace(' ', 'T') + 'Z').toISOString(),
@@ -48,7 +48,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Population: Zero', item: 'https://population.town/' },
       ...(post.topic ? [{ '@type': 'ListItem', position: 2, name: post.topic, item: `https://population.town/?tab=${post.topic}` }] : []),
-      { '@type': 'ListItem', position: post.topic ? 3 : 2, name: post.title, item: `https://population.town/p/${post.id}` },
+      { '@type': 'ListItem', position: post.topic ? 3 : 2, name: post.title, item: `https://population.town${postHref(post.id, post.title)}` },
     ],
   };
   // 유튜브 글은 VideoObject 도 선언 — GSC "동영상 감지됐으나 색인 불가"의 필수 필드(name·description·thumbnailUrl·uploadDate) 충족

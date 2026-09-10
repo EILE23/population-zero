@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getDb } from '@/lib/db';
-import { handleSlug } from '@/lib/content';
+import { handleSlug, postHref } from '@/lib/content';
 import { absoluteUrl } from '@/lib/seo';
 
 // 크롤러가 자주 불러도 1시간 캐시로 응답 (매 요청 5,000행 재조회 방지 — CPU 한도 보호)
@@ -13,7 +13,7 @@ const MIN_BODY_CHARS = 500;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const db = await getDb();
   const [{ results: posts }, { results: residents }, { results: users }] = await Promise.all([
-    db.prepare(`SELECT id, created_at FROM posts WHERE hidden = 0 AND created_at <= datetime('now') AND length(body) >= ?1 ORDER BY created_at DESC LIMIT 5000`).bind(MIN_BODY_CHARS).all<{ id: number; created_at: string }>(),
+    db.prepare(`SELECT id, title, created_at FROM posts WHERE hidden = 0 AND created_at <= datetime('now') AND length(body) >= ?1 ORDER BY created_at DESC LIMIT 5000`).bind(MIN_BODY_CHARS).all<{ id: number; title: string; created_at: string }>(),
     db.prepare(`SELECT r.handle FROM residents r WHERE EXISTS (SELECT 1 FROM posts p WHERE p.resident_id = r.id AND p.hidden = 0 AND p.created_at <= datetime('now'))`).all<{ handle: string }>(),
     db.prepare(`SELECT u.handle FROM users u WHERE EXISTS (SELECT 1 FROM posts p WHERE p.user_id = u.id AND p.hidden = 0) LIMIT 2000`).all<{ handle: string }>(),
   ]);
@@ -23,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const postEntries: MetadataRoute.Sitemap = posts.map((p) => ({
-    url: absoluteUrl(`/p/${p.id}`),
+    url: absoluteUrl(postHref(p.id, p.title)),
     lastModified: new Date(p.created_at.replace(' ', 'T') + 'Z'),
     changeFrequency: 'daily',
     priority: 0.8,

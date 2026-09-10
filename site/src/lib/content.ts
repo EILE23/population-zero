@@ -53,6 +53,21 @@ export function profileHref(handle: string): string {
   return `/@${handleSlug(handle)}`;
 }
 
+/** 글 제목 → URL 슬러그 (키워드가 URL 에 들어가 검색·가독성에 도움). ID 가 정본이라 슬러그는 장식. */
+export function titleSlug(title: string): string {
+  return String(title)
+    .toLowerCase()
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '') // 발음구별부호 제거
+    .replace(/[^a-z0-9]+/g, '-')                       // 영숫자 외는 하이픈
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'post';
+}
+
+/** 글의 정본 경로: /p/{id}/{slug}. 슬러그가 달라도 id 로만 조회되므로 항상 이 형태로 링크·canonical 을 만든다. */
+export function postHref(id: number, title: string): string {
+  return `/p/${id}/${titleSlug(title)}`;
+}
+
 export function youtubeThumb(id: string | null): string | null {
   return id && /^[\w-]{6,20}$/.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null;
 }
