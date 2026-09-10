@@ -12,7 +12,7 @@
 // Code needs, under a request budget. Account, organization, batch and file APIs are refused.
 import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -88,7 +88,15 @@ function meterStream() {
 
 const server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/__health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, counters, tokens: usage })); }
-  if (req.method === 'POST' && req.url === '/__shutdown') { res.writeHead(200); res.end('bye'); log(`shutdown ${JSON.stringify({ ...counters, tokens: usage })}`); setTimeout(() => process.exit(0), 100); return; }
+  if (req.method === 'POST' && req.url === '/__shutdown') {
+    res.writeHead(200); res.end('bye');
+    const summary = { ...counters, tokens: usage, models: [...seenModels] };
+    log(`shutdown ${JSON.stringify(summary)}`);
+    // 러너는 곧 사라진다 — CI 가 집어서 저장소의 run-log 에 남길 수 있게 기계가 읽을 형태로 떨군다
+    try { writeFileSync(path.join(path.dirname(LOG), 'anthropic-summary.json'), JSON.stringify(summary)); } catch { /* ignore */ }
+    setTimeout(() => process.exit(0), 100);
+    return;
+  }
 
   const deny = (code, msg) => {
     counters.refused++;

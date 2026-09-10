@@ -13,7 +13,7 @@
 // Endpoints:  POST /query {sql}  → {result:[{results, meta}]} (D1 REST response shape)
 //             GET  /health       → ok        POST /shutdown → exits
 import { createServer } from 'node:http';
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -212,7 +212,14 @@ const log = (line) => { const l = `${new Date().toISOString()} ${line}`; console
 const server = createServer(async (req, res) => {
   const send = (code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
   if (req.method === 'GET' && req.url === '/health') return send(200, { ok: true, counters });
-  if (req.method === 'POST' && req.url === '/shutdown') { send(200, { ok: true, counters }); log(`shutdown ${JSON.stringify(counters)}`); setTimeout(() => process.exit(0), 100); return; }
+  if (req.method === 'POST' && req.url === '/shutdown') {
+    send(200, { ok: true, counters });
+    log(`shutdown ${JSON.stringify(counters)}`);
+    // 러너는 곧 사라진다 — CI 가 집어서 저장소의 run-log 에 남길 수 있게 기계가 읽을 형태로 떨군다
+    try { writeFileSync(path.join(path.dirname(LOG), 'd1-summary.json'), JSON.stringify(counters)); } catch { /* ignore */ }
+    setTimeout(() => process.exit(0), 100);
+    return;
+  }
   if (req.method !== 'POST' || req.url !== '/query') return send(404, { error: 'not found' });
 
   let body = '';

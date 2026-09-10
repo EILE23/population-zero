@@ -139,7 +139,16 @@ jobs:
           curl -s -X POST "$PZ_D1_PROXY/shutdown" || true
           curl -s -X POST http://127.0.0.1:8788/__shutdown || true
           echo "--- d1-proxy log (refusals are the point) ---"; grep -E "REFUSED|GUARDED|UPSTREAM|shutdown" patrol/logs/d1-proxy.log || true
-          echo "--- anthropic-proxy ---"; grep -E "REFUSED|ERROR|shutdown" patrol/logs/anthropic-proxy.log || true
+          echo "--- anthropic-proxy ---"; grep -E "REFUSED|ERROR|model in use|shutdown" patrol/logs/anthropic-proxy.log || true
+
+      # 러너가 사라지기 전에 이번 순찰의 비용·거부·모델을 저장소에 남긴다 (patrol/run-log.jsonl).
+      # 임계값을 실측으로 조정하려면 기록이 남아 있어야 한다.
+      - name: Record run
+        if: always()
+        env:
+          PATROL_MODE: ${{ steps.mode.outputs.mode }}
+          PATROL_OK: ${{ job.status == 'success' }}
+        run: node patrol/record-run.mjs || true
 
       - name: AdSense crawl watch # 구글 ads.txt 크롤러 방문 감지 — "찾을 수 없음" 라벨 해소의 신호
         if: always()
@@ -164,24 +173,35 @@ jobs:
 
       # 기억은 D1 에 실제로 적재된 뒤에만 남긴다 — 세션이 memory 를 고쳐 놓고 apply 가 실패하면
       # "글을 썼다"는 기록만 남아 캐릭터 기억과 DB 현실이 갈라진다. 실패한 순찰의 기억은 버린다.
-      - name: Persist memory and deck state
-        if: success()
+      # 운영 기록(run-log)은 실패한 순찰이라도 남긴다 — 비용과 거부는 실패했을 때가 더 중요하다.
+      # 반면 기억은 D1 적재가 확인된 성공 실행의 것만 남긴다.
+      - name: Persist memory and run log
+        if: always()
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          JOB_OK: ${{ job.status == 'success' }}
         run: |
-          if [ ! -f patrol/apply-result.json ]; then
-            echo "no apply-result.json — this run applied nothing to D1; memory changes are discarded"
-            git checkout -- patrol/memory patrol/deck-state.json 2>/dev/null || true
-            exit 0
-          fi
-          node -e '
+          KEEP_MEMORY=no
+          if [ "$JOB_OK" != "true" ]; then
+            echo "patrol did not succeed — memory changes are discarded, run log is kept"
+          elif [ ! -f patrol/apply-result.json ]; then
+            echo "no apply-result.json — nothing reached D1; memory changes are discarded"
+          elif node -e '
             const r = JSON.parse(require("fs").readFileSync("patrol/apply-result.json", "utf8"));
             const age = (Date.now() - Date.parse(r.applied_at)) / 60000;
             if (!(age >= 0 && age < 60)) { console.error(`apply-result.json is from another run (${age.toFixed(0)}m old)`); process.exit(1); }
             console.error(`apply-result verified: ${(r.post_ids ?? []).length} posts, ${age.toFixed(1)}m ago`);
-          '
+          '; then
+            KEEP_MEMORY=yes
+          fi
+
           git config user.name "pz-patrol"
           git config user.email "patrol@populationzero.invalid"
           REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
-          git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json 2>/dev/null || true
+          if [ "$KEEP_MEMORY" = "yes" ]; then
+            git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json 2>/dev/null || true
+          else
+            git checkout -- patrol/memory patrol/deck-state.json 2>/dev/null || true
+          fi
+          git add patrol/run-log.jsonl 2>/dev/null || true
           git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase -X theirs "$REMOTE" main; git push "$REMOTE" HEAD:main; }
