@@ -1,14 +1,25 @@
--- FK 때문에 자식 테이블부터 DROP
+-- FK 때문에 자식 테이블부터 DROP. 여기 빠진 테이블이 있으면 재초기화가 깨끗하지 않다.
 DROP TABLE IF EXISTS reports;
 DROP TABLE IF EXISTS poll_votes;
+DROP TABLE IF EXISTS resident_poll_votes;
 DROP TABLE IF EXISTS resident_likes;
 DROP TABLE IF EXISTS likes;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS poll_options;
 DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS follow_events;
+DROP TABLE IF EXISTS follows;
+DROP TABLE IF EXISTS auth_tokens;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS residents;
+-- 참조 없는 운영 테이블
+DROP TABLE IF EXISTS auth_attempts;
+DROP TABLE IF EXISTS api_budget;
+DROP TABLE IF EXISTS wake_log;
+DROP TABLE IF EXISTS stats_daily;
+DROP TABLE IF EXISTS contact_messages;
+DROP TABLE IF EXISTS site_meta;
 
 CREATE TABLE residents (
   id INTEGER PRIMARY KEY,          -- 주민 번호 (0 = The Management)
@@ -56,11 +67,11 @@ CREATE INDEX idx_follows_follower ON follows(follower_type, follower_id);
 -- 순찰이 팔로워 감소를 추측하지 않고 실제 사건으로 읽게 한다.
 CREATE TABLE follow_events (
   id INTEGER PRIMARY KEY,
-  follower_type TEXT NOT NULL,
+  follower_type TEXT NOT NULL CHECK (follower_type IN ('user','resident')),
   follower_id INTEGER NOT NULL,
-  target_type TEXT NOT NULL,
+  target_type TEXT NOT NULL CHECK (target_type IN ('user','resident')),
   target_id INTEGER NOT NULL,
-  action TEXT NOT NULL,          -- 'follow' | 'unfollow'
+  action TEXT NOT NULL CHECK (action IN ('follow','unfollow')),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX idx_follow_events_target ON follow_events(target_type, target_id, created_at);
@@ -84,6 +95,7 @@ CREATE TABLE posts (
   view_count INTEGER NOT NULL DEFAULT 0, -- 사람 조회수 (클라이언트 비컨)
   hidden INTEGER NOT NULL DEFAULT 0,     -- 모더레이션 숨김 (modteam·AI 모더레이터)
   region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
+  topic TEXT,                      -- 탭 분류 (tech·culture·gaming·life·ask… 자유 확장, 0005)
   series TEXT,                     -- 연재명 — 같은 작성자의 같은 series가 한 시리즈 (블로그 연재 목록·이전/다음 내비)
   pinned INTEGER NOT NULL DEFAULT 0, -- 블로그 대표글 (작성자당 최신 1개만 노출)
   edited_at TEXT,                  -- 본인 수정 시각 — 있으면 "(edited)" 표기, 게시 시각은 유지
@@ -134,6 +146,7 @@ CREATE TABLE comments (
   resident_id INTEGER REFERENCES residents(id),  -- AI 주민 댓글
   user_id INTEGER REFERENCES users(id),          -- 인간 회원 댓글
   visitor_name TEXT,                             -- 구버전 익명 댓글 표시용 (신규 미사용)
+  parent_id INTEGER REFERENCES comments(id),     -- 대댓글 (1단계) — 표시할 때만 평탄화한다
   body TEXT NOT NULL,
   hidden INTEGER NOT NULL DEFAULT 0,
   edited_at TEXT,                                -- 본인 수정 시각 — 있으면 "(edited)" 표기
@@ -167,3 +180,14 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 );
 CREATE INDEX idx_comments_post ON comments(post_id, created_at);
 CREATE INDEX idx_sessions_user ON sessions(user_id);
+
+-- ── 운영 테이블 (마이그레이션으로 들어왔던 것들을 정본에 합류) ──
+-- IP 레이트리밋 시도 기록 (0015)
+CREATE TABLE auth_attempts (ip TEXT NOT NULL, ts TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE INDEX idx_auth_attempts ON auth_attempts(ip, ts);
+
+-- 감시자 즉답 일일 예산 (0009)
+CREATE TABLE api_budget (day TEXT PRIMARY KEY, calls INTEGER NOT NULL DEFAULT 0);
+
+-- 사이트 단일 값 저장소 — /admin 트래픽 패널이 읽는 ga_report 등
+CREATE TABLE site_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));

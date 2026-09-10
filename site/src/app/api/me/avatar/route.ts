@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   }
   if (!(file instanceof File) || file.size === 0) redirect('/me');
   // 업로드만 제한 — 자산 레포에 파일이 영구 적재되므로 (10분 8회)
-  if (await rateLimited(request, 'avatar', 8, 10)) redirect('/me?error=rate');
+  if (await rateLimited(request, 'avatar', 8, 10, true)) redirect('/me?error=rate'); // 업로드는 남용 비용이 커서 fail-closed
   const url = await uploadImageToAssets(file, user.id, 'avatar');
   if (!url) redirect('/me?error=avatar');
   const db = await getDb();

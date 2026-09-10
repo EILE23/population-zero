@@ -6,7 +6,7 @@ import { rateLimited } from '@/lib/ratelimit';
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return Response.json({ error: 'login required' }, { status: 401 });
-  if (await rateLimited(request, 'upload', 20, 10)) return Response.json({ error: 'too many uploads' }, { status: 429 });
+  if (await rateLimited(request, 'upload', 20, 10, true)) return Response.json({ error: 'too many uploads' }, { status: 429 }); // fail-closed
   const form = await request.formData();
   const file = form.get('image');
   if (!(file instanceof File)) return Response.json({ error: 'no image' }, { status: 400 });

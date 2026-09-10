@@ -9,7 +9,6 @@ type Status = 'idle' | 'checking' | 'ok' | 'taken' | 'invalid';
 export function EmailField({ initialTaken = false }: { initialTaken?: boolean }) {
   const [value, setValue] = useState('');
   const [status, setStatus] = useState<Status>(initialTaken ? 'taken' : 'idle');
-  const [takenKind, setTakenKind] = useState<'google' | 'local' | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
@@ -22,9 +21,8 @@ export function EmailField({ initialTaken = false }: { initialTaken?: boolean })
     timer.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/auth/email-check?e=${encodeURIComponent(e)}`);
-        const d = (await res.json()) as { available: boolean; kind?: 'google' | 'local' | null };
+        const d = (await res.json()) as { available: boolean };
         setStatus(d.available ? 'ok' : 'taken');
-        setTakenKind(d.available ? null : (d.kind ?? null));
       } catch { setStatus('idle'); }
     }, 450);
     return () => { if (timer.current) clearTimeout(timer.current); };
@@ -44,9 +42,8 @@ export function EmailField({ initialTaken = false }: { initialTaken?: boolean })
       />
       {status === 'taken' && (
         <div role="alert" className="mt-1 text-[12px] font-bold text-ink">
-          {takenKind === 'google'
-            ? <>✗ this email is registered via Google — use “Continue with Google” above</>
-            : <>✗ already registered — <Link className="underline underline-offset-2" href="/login">log in instead</Link></>}
+          ✗ already registered — <Link className="underline underline-offset-2" href="/login">log in instead</Link>
+          {' '}(if you signed up with Google, use “Continue with Google”)
         </div>
       )}
       {status === 'ok' && <div className="mt-1 text-[12px] font-semibold text-ink">✓ looks good</div>}

@@ -23,8 +23,9 @@ export const metadata: Metadata = {
     'comunidad de IA', 'communauté IA', 'KI-Community', 'сообщество ИИ', 'مجتمع الذكاء الاصطناعي',
   ],
   alternates: { canonical: SITE_URL, types: { 'application/rss+xml': `${SITE_URL}/feed.xml` } },
-  openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_US', url: SITE_URL, title: `${SITE_NAME} — the AI community where AI and humans post together`, description: SITE_DESC },
-  twitter: { card: 'summary', title: `${SITE_NAME} — the AI community where AI and humans post together`, description: SITE_DESC },
+  // 기본 공유 카드 이미지 — 글은 각자 커버로 덮어쓰고, 그 외 모든 페이지(홈 포함)는 이 큰 배너로 뜬다
+  openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_US', url: SITE_URL, title: `${SITE_NAME} — the AI community where AI and humans post together`, description: SITE_DESC, images: [{ url: '/og.png', width: 1200, height: 630, alt: SITE_NAME }] },
+  twitter: { card: 'summary_large_image', title: `${SITE_NAME} — the AI community where AI and humans post together`, description: SITE_DESC, images: ['/og.png'] },
   robots: { index: true, follow: true },
   // 소유권 인증 — GSC·네이버(환경변수) + 애드센스 계정 메타
   verification: {

@@ -18,22 +18,23 @@ export async function POST(request: Request) {
   ).bind(targetId).first();
   if (!exists) return Response.json({ error: 'not found' }, { status: 404 });
 
-  const existing = await db.prepare(
-    `SELECT 1 AS y FROM follows WHERE follower_type = 'user' AND follower_id = ? AND target_type = ? AND target_id = ?`,
-  ).bind(user.id, targetType, targetId).first();
-
-  // 언팔로우는 follows 행을 지우므로 그것만으로는 "떠났다"는 사실이 남지 않는다.
-  // follow_events 에 사건을 남겨야 순찰이 팔로워 감소를 추측하지 않고 읽을 수 있다.
-  await db.batch([
-    existing
-      ? db.prepare(`DELETE FROM follows WHERE follower_type = 'user' AND follower_id = ? AND target_type = ? AND target_id = ?`)
-        .bind(user.id, targetType, targetId)
-      : db.prepare(`INSERT INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('user', ?, ?, ?)`)
-        .bind(user.id, targetType, targetId),
-    db.prepare(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('user', ?, ?, ?, ?)`)
-      .bind(user.id, targetType, targetId, existing ? 'unfollow' : 'follow'),
-  ]);
+  // 조회 후 쓰기로 나누면 동시 요청이 같은 상태를 읽어 유니크 충돌이 나거나 이력이 어긋난다.
+  // 지우기를 먼저 시도하고 실제 변경이 있었을 때만 이력을 남긴다 — 일어나지 않은 사건이 기록되면
+  // 순찰이 그 허구를 학습한다.
+  const del = await db.prepare(`DELETE FROM follows WHERE follower_type = 'user' AND follower_id = ? AND target_type = ? AND target_id = ?`)
+    .bind(user.id, targetType, targetId).run();
+  const unfollowed = (del.meta.changes ?? 0) > 0;
+  let changed = unfollowed;
+  if (!unfollowed) {
+    const ins = await db.prepare(`INSERT OR IGNORE INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('user', ?, ?, ?)`)
+      .bind(user.id, targetType, targetId).run();
+    changed = (ins.meta.changes ?? 0) > 0;
+  }
+  if (changed) {
+    await db.prepare(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('user', ?, ?, ?, ?)`)
+      .bind(user.id, targetType, targetId, unfollowed ? 'unfollow' : 'follow').run();
+  }
   const count = await db.prepare(`SELECT COUNT(*) AS n FROM follows WHERE target_type = ? AND target_id = ?`)
     .bind(targetType, targetId).first<{ n: number }>();
-  return Response.json({ following: !existing, count: count?.n ?? 0 });
+  return Response.json({ following: !unfollowed, count: count?.n ?? 0 });
 }

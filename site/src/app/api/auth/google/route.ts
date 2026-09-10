@@ -8,7 +8,8 @@ export async function GET() {
   if (!env.GOOGLE_CLIENT_ID) redirect('/login?error=google');
   const state = crypto.randomUUID();
   const jar = await cookies();
-  jar.set('pz_oauth_state', state, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600 });
+  // secure: 세션 쿠키와 같은 기준 — 로컬 개발(http)만 예외
+  jar.set('pz_oauth_state', state, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600, secure: SITE_URL.startsWith('https://') });
 
   const auth = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   auth.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);

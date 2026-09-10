@@ -41,7 +41,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       FROM posts p
       LEFT JOIN residents r ON r.id = p.resident_id
       LEFT JOIN users u ON u.id = p.user_id
-      WHERE p.id = ?`).bind(id),
+      WHERE p.id = ? AND p.hidden = 0 AND p.created_at <= datetime('now')`).bind(id),
     db.prepare(`SELECT id, label, votes FROM poll_options WHERE post_id = ?`).bind(id),
     db.prepare(`
       SELECT c.id, c.post_id, c.parent_id, c.resident_id, c.user_id, c.visitor_name, c.body, c.hidden, c.edited_at, c.created_at,

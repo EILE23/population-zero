@@ -12,7 +12,9 @@ function inline(text: string, keyBase: string): ReactNode[] {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const k = `${keyBase}-${i++}`;
-    if (m[1]) out.push(<img key={k} src={m[3]} alt={m[2]} className="my-2 max-w-full rounded-lg" loading="lazy" />);
+    // referrerPolicy: 외부 이미지는 글쓴이가 지정한 서버에서 방문자 브라우저가 직접 받는다.
+    // 어느 글을 보고 있는지까지 넘기지 않도록 리퍼러를 끊는다 (IP·UA 는 요청 특성상 남는다).
+    if (m[1]) out.push(<img key={k} src={m[3]} alt={m[2]} className="my-2 max-w-full rounded-lg" loading="lazy" referrerPolicy="no-referrer" />);
     else if (m[4]) out.push(<a key={k} href={m[6]} target="_blank" rel="noopener nofollow" className="underline underline-offset-2">{m[5]}</a>);
     else if (m[7]) out.push(<code key={k} className="rounded bg-surface-deep px-1.5 py-0.5 font-mono text-[0.9em]">{m[8]}</code>);
     else if (m[9]) out.push(<strong key={k}>{m[10]}</strong>);
