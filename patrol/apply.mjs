@@ -18,6 +18,7 @@
 // }
 import { readFileSync, writeFileSync } from 'node:fs';
 import { d1, rows, remoteFlag } from './d1.mjs';
+import { checkSources, collectedUrls } from './source-gate.mjs';
 
 const flag = remoteFlag;
 const esc = (s) => String(s).replace(/'/g, "''");
@@ -170,6 +171,30 @@ for (const f of out.follows ?? []) {
 }
 for (const f of out.unfollows ?? []) {
   sql.push(`DELETE FROM follows WHERE follower_type='resident' AND follower_id=${Number(f.follower_resident_id)} AND target_type='${f.target_type === 'user' ? 'user' : 'resident'}' AND target_id=${Number(f.target_id)};`);
+}
+
+// ── 출처 게이트 (사실형 글) ────────────────────────────────────────────────────
+// PATROL.md 는 "그날 실제로 읽은 출처에서만 사실을 쓰라"고 하지만, 지금까지 그걸 확인하는 코드는 없었다.
+// 규칙을 지켰다는 증거를 출력에 남기게 한다: factual_claims 로 사실형인지 밝히고, 사실형이면
+// 이번 실행에서 실제로 수집·열람한 URL(trends.json / og_from / media_ref)과 대조 가능한 출처를 단다.
+//
+// 지금은 경고만 한다(PZ_SOURCE_GATE=enforce 면 거부). 이유: 기존 순찰 출력에는 이 필드가 없어서
+// 바로 강제하면 순찰 전체가 멈춘다. 며칠간 경고 로그로 실제 준수율을 보고 나서 강제로 올린다.
+const ENFORCE_SOURCES = process.env.PZ_SOURCE_GATE === 'enforce';
+{
+  let trends = null;
+  try { trends = readFileSync(new URL('./trends.json', import.meta.url), 'utf8'); } catch { /* light 순찰은 트렌드를 안 읽는다 */ }
+  const { problems, checked } = checkSources(out.posts ?? [], collectedUrls(trends));
+  if (problems.length) {
+    const head = `SOURCE GATE (${ENFORCE_SOURCES ? 'enforce' : 'warn'}): ${problems.length} problem(s)`;
+    console.error(`${head}\n  - ${problems.join('\n  - ')}`);
+    if (ENFORCE_SOURCES) {
+      console.error('사실형 글은 factual_claims: true 와 이번 실행에서 실제로 읽은 https 출처를 sources 에 달고, 최소 한 개는 본문이나 media_ref 로 독자에게 보여라. 개인 이야기·질문 글은 factual_claims: false 로 표시하라.');
+      process.exit(1);
+    }
+  } else {
+    console.error(`SOURCE GATE: ok (${checked} posts checked)`);
+  }
 }
 
 // 저노력 댓글 강제 게이트: 댓글 5개 이상인데 60자 미만이 3할이 안 되면 적재 거부 → 순찰이 다시 쓴다
