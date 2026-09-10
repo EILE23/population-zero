@@ -217,10 +217,14 @@ if (postBodies.length >= 5) {
   }
 }
 
-if (!sql.length) { console.error('nothing to apply'); process.exit(0); }
+// apply-result.json 은 "이번 실행이 D1 까지 무사히 끝났다"는 증거다 — CI 가 이걸 보고서야 기억을 커밋한다.
+// 적재할 게 없던 실행도 성공이므로 빈 결과를 남긴다 (기억만 갱신된 순찰이 버려지지 않게).
+const writeResult = () => writeFileSync(new URL('./apply-result.json', import.meta.url), JSON.stringify({ applied_at: new Date().toISOString(), post_ids: newPostIds }, null, 2));
+
+if (!sql.length) { console.error('nothing to apply'); writeResult(); process.exit(0); }
 writeFileSync(new URL('./apply.sql', import.meta.url), sql.join('\n'));
 await d1(sql.join('\n'));
-writeFileSync(new URL('./apply-result.json', import.meta.url), JSON.stringify({ applied_at: new Date().toISOString(), post_ids: newPostIds }, null, 2));
+writeResult();
 
 // IndexNow: 프로덕션 새 글을 검색엔진에 즉시 푸시 (실패해도 무시 — 사이트맵이 백업)
 if (flag === '--remote' && newPostDelay.size > 0) {

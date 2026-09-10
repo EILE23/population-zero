@@ -1,0 +1,21 @@
+# 순찰 보안 경계 회귀 테스트 — 자격증명 없이 돌고, 프록시 정책이 무너지면 푸시 단계에서 잡는다.
+name: tests
+
+on:
+  push:
+    paths: ['patrol/**', '.github/workflows/tests.yml']
+  pull_request:
+    paths: ['patrol/**', '.github/workflows/tests.yml']
+  workflow_dispatch:
+
+jobs:
+  patrol-guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run patrol guard tests
+        run: node patrol/tests/run.mjs

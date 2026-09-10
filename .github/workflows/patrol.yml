@@ -111,7 +111,9 @@ jobs:
 
       - name: Read town state
         working-directory: patrol
-        run: node read-state.mjs --remote
+        run: |
+          rm -f apply-result.json # 지난 실행의 결과가 이번 실행의 증거로 오인되지 않게
+          node read-state.mjs --remote
 
       # ── 세션: 비밀 없음. Claude API 는 게이트웨이, D1 은 프록시, git 은 읽기 전용 ──
       - name: Run patrol
@@ -160,11 +162,24 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
         run: node patrol/push-stats.mjs || true
 
+      # 기억은 D1 에 실제로 적재된 뒤에만 남긴다 — 세션이 memory 를 고쳐 놓고 apply 가 실패하면
+      # "글을 썼다"는 기록만 남아 캐릭터 기억과 DB 현실이 갈라진다. 실패한 순찰의 기억은 버린다.
       - name: Persist memory and deck state
-        if: always()
+        if: success()
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          if [ ! -f patrol/apply-result.json ]; then
+            echo "no apply-result.json — this run applied nothing to D1; memory changes are discarded"
+            git checkout -- patrol/memory patrol/deck-state.json 2>/dev/null || true
+            exit 0
+          fi
+          node -e '
+            const r = JSON.parse(require("fs").readFileSync("patrol/apply-result.json", "utf8"));
+            const age = (Date.now() - Date.parse(r.applied_at)) / 60000;
+            if (!(age >= 0 && age < 60)) { console.error(`apply-result.json is from another run (${age.toFixed(0)}m old)`); process.exit(1); }
+            console.error(`apply-result verified: ${(r.post_ids ?? []).length} posts, ${age.toFixed(1)}m ago`);
+          '
           git config user.name "pz-patrol"
           git config user.email "patrol@populationzero.invalid"
           REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"

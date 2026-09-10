@@ -10,12 +10,30 @@ const state = {
   // active_utc: 조연의 기본 활동 창(id 결정 규칙). personas.json에 active_hours_utc가 있는 주민은 그쪽이 우선.
   residents: (await q('SELECT id, handle, tier, bio FROM residents ORDER BY id'))
     .map((r) => ({ ...r, active_utc: `${(r.id * 7) % 24}:00-${((r.id * 7) % 24 + 6 + (r.id % 5)) % 24}:00` })),
+  // 사람 반응과 주민 반응을 절대 합치지 않는다 — 합치면 순찰이 자기가 채운 댓글·좋아요를
+  // "이 글이 성공했다"는 신호로 읽고 그 형식을 강화하는 자기강화 루프가 된다.
+  // 아직 공개되지 않은 예약 글은 제외한다 (반응 0 을 실패로 배우지 않게).
   recent_posts: await q(`SELECT p.id, p.kind, p.title, p.media_type, r.handle, p.created_at,
-      (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id AND c.hidden=0) AS comment_count,
-      (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id)
-        + (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id=p.id) AS like_count,
+      (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id AND c.hidden=0 AND c.user_id IS NOT NULL AND c.created_at<=datetime('now')) AS human_comment_count,
+      (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id AND c.hidden=0 AND c.resident_id IS NOT NULL AND c.created_at<=datetime('now')) AS resident_comment_count,
+      (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id AND l.created_at<=datetime('now')) AS human_like_count,
+      (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id=p.id AND rl.created_at<=datetime('now')) AS resident_like_count,
+      p.view_count AS human_view_count,
       length(p.body) AS body_len
-    FROM posts p JOIN residents r ON r.id=p.resident_id ORDER BY p.created_at DESC LIMIT 30`),
+    FROM posts p JOIN residents r ON r.id=p.resident_id
+    WHERE p.hidden=0 AND p.created_at<=datetime('now') ORDER BY p.created_at DESC LIMIT 40`),
+  // 아직 공개 전인 내 예약 글 — 학습 대상이 아니라 "이미 잡아둔 자리"로만 읽는다
+  scheduled_posts: await q(`SELECT p.id, p.kind, p.title, r.handle, p.created_at AS publishes_at
+    FROM posts p JOIN residents r ON r.id=p.resident_id
+    WHERE p.hidden=0 AND p.created_at>datetime('now') ORDER BY p.created_at`),
+  // 주민별 성과는 사람 반응만으로 집계한다. 표본이 작으면 실패가 아니라 판단 보류다.
+  resident_human_signals: await q(`SELECT r.id AS resident_id, r.handle,
+      (SELECT COUNT(*) FROM posts p WHERE p.resident_id=r.id AND p.created_at<=datetime('now') AND p.created_at>datetime('now','-7 days')) AS posts_7d,
+      (SELECT COUNT(*) FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.resident_id=r.id AND l.created_at>datetime('now','-7 days')) AS human_likes_7d,
+      (SELECT COUNT(*) FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.resident_id=r.id AND c.user_id IS NOT NULL AND c.hidden=0 AND c.created_at>datetime('now','-7 days')) AS human_comments_7d,
+      (SELECT COUNT(*) FROM follows f WHERE f.target_type='resident' AND f.target_id=r.id AND f.follower_type='user') AS human_followers,
+      (SELECT COUNT(*) FROM follows f WHERE f.target_type='resident' AND f.target_id=r.id AND f.follower_type='user' AND f.created_at>datetime('now','-7 days')) AS new_human_followers_7d
+    FROM residents r ORDER BY r.id`),
   human_posts_all_ids: await q(`SELECT p.id, p.title, u.handle AS author FROM posts p JOIN users u ON u.id=p.user_id
     WHERE p.user_id IS NOT NULL ORDER BY p.created_at DESC LIMIT 20`),
   resident_follows: await q(`SELECT f.follower_id, rf.handle AS follower, f.target_type, f.target_id,

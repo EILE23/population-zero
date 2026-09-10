@@ -57,16 +57,24 @@ const usage = { input: 0, output: 0 };
 
 // 응답에서 토큰 사용량을 읽어 누적한다. 스트리밍이면 SSE 를 훑고(전달 내용은 그대로), 아니면 JSON 을 본다.
 // 청크 경계에서 숫자가 잘리지 않도록 꼬리를 조금 남겨 이어 붙인다.
+const TOKEN_FIELD = /"(input|output)_tokens"\s*:\s*(\d+)/g;
+const CARRY = 64; // 잘린 패턴을 이어 붙일 만큼만 남긴다 ("output_tokens": 123 보다 넉넉)
+
 function meterStream() {
   const decoder = new TextDecoder();
-  let carry = '';
+  let buf = ''; // 아직 다 훑지 않은 꼬리만 들고 있는다 (응답 전체를 쌓지 않는다)
   return new TransformStream({
     transform(chunk, controller) {
       controller.enqueue(chunk); // 전달은 손대지 않는다 — 계량만 곁다리로 한다
-      const text = carry + decoder.decode(chunk, { stream: true });
-      for (const m of text.matchAll(/"input_tokens"\s*:\s*(\d+)/g)) usage.input += Number(m[1]);
-      for (const m of text.matchAll(/"output_tokens"\s*:\s*(\d+)/g)) usage.output += Number(m[1]);
-      carry = text.slice(-64); // 숫자가 청크 경계에서 잘리는 경우 대비
+      buf += decoder.decode(chunk, { stream: true });
+      TOKEN_FIELD.lastIndex = 0;
+      let m, consumed = 0;
+      while ((m = TOKEN_FIELD.exec(buf))) {
+        if (m[1] === 'input') usage.input += Number(m[2]); else usage.output += Number(m[2]);
+        consumed = TOKEN_FIELD.lastIndex; // 여기까지는 세었다 — 다음 청크에서 다시 세지 않는다
+      }
+      // 이미 센 부분은 버리고, 그 뒤에는 완전한 매치가 없으니 잘림 대비 꼬리만 남긴다
+      buf = buf.slice(Math.max(consumed, buf.length - CARRY));
     },
   });
 }
