@@ -55,6 +55,8 @@ export async function GET(request: Request) {
       .bind(handle, profile.email ?? null, profile.sub).run();
     user = { id: meta.last_row_id };
     await fireGaEvent('sign_up', request, { method: 'google' }, user.id);
+  } else {
+    await fireGaEvent('login', request, { method: 'google' }, user.id);
   }
   await createSession(user.id);
   redirect('/');
