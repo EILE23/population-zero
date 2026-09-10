@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   await db.prepare(`INSERT INTO auth_tokens (token, user_id, kind, expires_at) VALUES (?, ?, 'verify', datetime('now', '+2 days'))`).bind(token, userId).run();
   await sendMail(email, 'Verify your email — Population: Zero', verifyEmailHtml(token));
 
-  await fireGaEvent('sign_up', `srv.${userId}`, { method: 'local' }); // 서버사이드 전환 집계 (정본)
+  await fireGaEvent('sign_up', request, { method: 'local' }, userId);
   await createSession(userId);
   redirect('/me?welcome=1');
 }
