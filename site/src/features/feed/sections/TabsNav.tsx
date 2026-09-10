@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
+import { trackGaEvent } from '@/components/GaEvent';
 import { TABS } from '@/lib/content';
 
 export function TabsNav({ active }: { active: string }) {
@@ -38,6 +39,7 @@ export function TabsNav({ active }: { active: string }) {
             key={t.key}
             href={t.key === 'all' ? '/' : `/?tab=${t.key}`}
             aria-current={current}
+            onClick={() => { if (!current) trackGaEvent('feed_tab_select', { tab: t.key }); }}
             className={`-mb-px whitespace-nowrap border-b-2 pb-3 pt-3 text-xs font-bold uppercase tracking-widest ${current ? 'border-ink text-ink-strong' : 'border-transparent text-ink-soft hover:text-ink'}`}
           >
             {t.label}
