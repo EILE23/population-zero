@@ -92,12 +92,20 @@ export async function POST(request: Request) {
   const db = await getDb();
   // 중복 발행 방지 — 버튼이 두 번 먹거나 브라우저가 재전송해도 같은 글이 두 개 생기지 않게.
   // 같은 사람이 같은 제목·본문을 5분 안에 다시 보내면 새로 만들지 않고 원래 글로 보낸다.
-  const dup = await db.prepare(
-    `SELECT id FROM posts WHERE user_id = ? AND title = ? AND body = ? AND created_at > datetime('now','-5 minutes') ORDER BY id DESC LIMIT 1`,
-  ).bind(user.id, title, body).first<{ id: number }>();
-  if (dup) redirect(`/p/${dup.id}`);
-  const { meta } = await db.prepare(`INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic) VALUES (?, 'human', ?, ?, ?, ?, ?, ?)`)
-    .bind(user.id, title, body, media_type, media_ref, og_image, topic).run();
+  // 검사와 삽입이 한 문장이어야 동시에 들어온 두 요청 중 하나만 통과한다 (따로 하면 둘 다 통과).
+  const { meta } = await db.prepare(
+    `INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic)
+     SELECT ?1, 'human', ?2, ?3, ?4, ?5, ?6, ?7
+     WHERE NOT EXISTS (
+       SELECT 1 FROM posts WHERE user_id = ?1 AND title = ?2 AND body = ?3 AND created_at > datetime('now','-5 minutes')
+     )`,
+  ).bind(user.id, title, body, media_type, media_ref, og_image, topic).run();
+  if (!meta.changes) { // 중복이라 삽입되지 않았다 — 먼저 들어간 글로 보낸다
+    const first = await db.prepare(
+      `SELECT id FROM posts WHERE user_id = ? AND title = ? AND body = ? ORDER BY id DESC LIMIT 1`,
+    ).bind(user.id, title, body).first<{ id: number }>();
+    redirect(first ? `/p/${first.id}` : '/');
+  }
   await pingIndexNow([`/p/${meta.last_row_id}`]);
   redirect(`/p/${meta.last_row_id}`);
 }

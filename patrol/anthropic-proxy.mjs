@@ -43,11 +43,37 @@ const ALLOW = [
   { method: 'HEAD', path: /^\/api\/hello$/ }, // Claude Code 연결 확인 (본문 없는 no-op)
   { method: 'GET', path: /^\/api\/hello$/ },
 ];
-const LIMITS = { requests: 3000, bodyBytes: 32 * 1024 * 1024 }; // 순찰 1회 분량을 크게 웃도는 상한 — 크레딧 소진 방어
+// 엔드포인트만 막으면 '토큰 유출'은 막아도 '크레딧 소진'은 못 막는다 — 요청 내용과 누적 사용량에도 상한을 건다.
+// 값은 정상 순찰(요청 수십 회, 출력 수만 토큰)의 10배 이상 여유를 두되, 폭주는 확실히 끊는 선.
+const LIMITS = {
+  requests: 600,
+  bodyBytes: 32 * 1024 * 1024,
+  maxTokensPerRequest: 64_000,
+  inputTokens: 20_000_000,  // 프롬프트 캐시 재사용이 많아 입력은 크게 잡는다
+  outputTokens: 1_500_000,
+};
+const MODEL_ALLOWED = /^claude-(haiku|sonnet|opus|fable|mythos)-[0-9]/;
+const usage = { input: 0, output: 0 };
+
+// 응답에서 토큰 사용량을 읽어 누적한다. 스트리밍이면 SSE 를 훑고(전달 내용은 그대로), 아니면 JSON 을 본다.
+// 청크 경계에서 숫자가 잘리지 않도록 꼬리를 조금 남겨 이어 붙인다.
+function meterStream() {
+  const decoder = new TextDecoder();
+  let carry = '';
+  return new TransformStream({
+    transform(chunk, controller) {
+      controller.enqueue(chunk); // 전달은 손대지 않는다 — 계량만 곁다리로 한다
+      const text = carry + decoder.decode(chunk, { stream: true });
+      for (const m of text.matchAll(/"input_tokens"\s*:\s*(\d+)/g)) usage.input += Number(m[1]);
+      for (const m of text.matchAll(/"output_tokens"\s*:\s*(\d+)/g)) usage.output += Number(m[1]);
+      carry = text.slice(-64); // 숫자가 청크 경계에서 잘리는 경우 대비
+    },
+  });
+}
 
 const server = createServer(async (req, res) => {
-  if (req.method === 'GET' && req.url === '/__health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, counters })); }
-  if (req.method === 'POST' && req.url === '/__shutdown') { res.writeHead(200); res.end('bye'); log(`shutdown ${JSON.stringify(counters)}`); setTimeout(() => process.exit(0), 100); return; }
+  if (req.method === 'GET' && req.url === '/__health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, counters, tokens: usage })); }
+  if (req.method === 'POST' && req.url === '/__shutdown') { res.writeHead(200); res.end('bye'); log(`shutdown ${JSON.stringify({ ...counters, tokens: usage })}`); setTimeout(() => process.exit(0), 100); return; }
 
   const deny = (code, msg) => {
     counters.refused++;
@@ -57,6 +83,7 @@ const server = createServer(async (req, res) => {
   };
   if (!ALLOW.some((a) => a.method === req.method && a.path.test(req.url))) return deny(403, 'endpoint not allowed');
   if (counters.requests >= LIMITS.requests) return deny(429, 'request budget exhausted');
+  if (usage.input >= LIMITS.inputTokens || usage.output >= LIMITS.outputTokens) return deny(429, `token budget exhausted (in ${usage.input}, out ${usage.output})`);
 
   const started = Date.now();
   counters.requests++;
@@ -64,6 +91,14 @@ const server = createServer(async (req, res) => {
   let size = 0;
   for await (const c of req) { size += c.length; if (size > LIMITS.bodyBytes) return deny(413, 'body too large'); chunks.push(c); }
   const body = chunks.length ? Buffer.concat(chunks) : undefined;
+
+  // 추론 요청은 본문도 본다 — 모델과 1회 출력 상한을 강제한다 (도구 정의·프롬프트 내용에는 관여하지 않는다)
+  if (req.method === 'POST' && body && req.url.startsWith('/v1/messages')) {
+    let payload;
+    try { payload = JSON.parse(body.toString('utf8')); } catch { return deny(400, 'unparseable request body'); }
+    if (typeof payload?.model !== 'string' || !MODEL_ALLOWED.test(payload.model)) return deny(403, `model not allowed: ${String(payload?.model).slice(0, 60)}`);
+    if (Number(payload?.max_tokens) > LIMITS.maxTokensPerRequest) return deny(403, `max_tokens ${payload.max_tokens} over cap ${LIMITS.maxTokensPerRequest}`);
+  }
 
   const headers = {};
   for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k.toLowerCase()) && v != null) headers[k] = Array.isArray(v) ? v.join(', ') : v;
@@ -75,8 +110,8 @@ const server = createServer(async (req, res) => {
     const out = {};
     for (const [k, v] of up.headers) if (!['content-encoding', 'transfer-encoding', 'connection', 'content-length'].includes(k)) out[k] = v;
     res.writeHead(up.status, out);
-    if (up.body) Readable.fromWeb(up.body).pipe(res); else res.end();
-    res.on('finish', () => log(`${req.method} ${req.url.split('?')[0]} ${up.status} ${Date.now() - started}ms`));
+    if (up.body) Readable.fromWeb(up.body.pipeThrough(meterStream())).pipe(res); else res.end();
+    res.on('finish', () => log(`${req.method} ${req.url.split('?')[0]} ${up.status} ${Date.now() - started}ms (tok in ${usage.input} out ${usage.output})`));
     if (up.status >= 400) counters.errors++;
   } catch (e) {
     counters.errors++;

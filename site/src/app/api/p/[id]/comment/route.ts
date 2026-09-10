@@ -26,13 +26,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
     // 중복 제출 방지 — 모바일에서 버튼이 두 번 먹거나 브라우저가 재전송하면 같은 댓글이 두 개 달린다.
     // 같은 사람이 같은 글에 같은 내용을 1분 안에 다시 보내면 조용히 무시한다(사용자에겐 정상 완료로 보인다).
-    const dup = await db.prepare(
-      `SELECT 1 AS y FROM comments WHERE post_id = ? AND user_id = ? AND body = ? AND created_at > datetime('now','-1 minutes') LIMIT 1`,
-    ).bind(Number(id), user.id, body).first();
-    if (!dup) {
-      await db.prepare(`INSERT INTO comments (post_id, user_id, body, parent_id) VALUES (?, ?, ?, ?)`)
-        .bind(Number(id), user.id, body, parentId).run();
-    }
+    // 검사와 삽입을 한 문장으로 묶는다 — 따로 하면 동시에 들어온 두 요청이 둘 다 검사를 통과한다.
+    await db.prepare(
+      `INSERT INTO comments (post_id, user_id, body, parent_id)
+       SELECT ?1, ?2, ?3, ?4
+       WHERE NOT EXISTS (
+         SELECT 1 FROM comments WHERE post_id = ?1 AND user_id = ?2 AND body = ?3 AND created_at > datetime('now','-1 minutes')
+       )`,
+    ).bind(Number(id), user.id, body, parentId).run();
   }
   redirect(`/p/${Number(id)}`);
 }

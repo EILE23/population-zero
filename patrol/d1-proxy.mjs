@@ -64,10 +64,12 @@ function splitStatements(sql) {
   return out;
 }
 
-// Strip string literals, quoted identifiers and comments, so keyword/table/paren checks can't be fooled
-// by quoted text (post bodies contain anything) or by a comment that hides or fakes a parenthesis.
-// Returns null if the statement contains a comment at all — a patrol never needs one, and allowing them
-// only creates room for the parser and SQLite to disagree about where a statement really ends.
+// Strip string literals so keyword/table/paren checks can't be fooled by quoted text (post bodies
+// contain anything). Returns null — refuse the statement outright — for two constructs a patrol never
+// needs and that only let this parser and SQLite disagree about what the statement means:
+//   • comments (`--`, `/* */`): can hide a parenthesis or a statement separator
+//   • quoted identifiers (`"x"`, `` `x` ``, `[x]`): would let `SELECT "email" FROM "sessions"` read as
+//     harmless placeholders here while SQLite still sees the real column and table
 function skeleton(stmt) {
   let out = '';
   for (let i = 0; i < stmt.length; i++) {
@@ -81,12 +83,7 @@ function skeleton(stmt) {
       }
       continue;
     }
-    if (ch === '"' || ch === '`' || ch === '[') { // quoted identifier — blank it out, keep a placeholder
-      const close = ch === '[' ? ']' : ch;
-      out += 'q';
-      for (i++; i < stmt.length && stmt[i] !== close; i++);
-      continue;
-    }
+    if (ch === '"' || ch === '`' || ch === '[') return null; // quoted identifier
     if (ch === '-' && stmt[i + 1] === '-') return null; // line comment
     if (ch === '/' && stmt[i + 1] === '*') return null; // block comment
     out += ch;
@@ -135,7 +132,7 @@ function topLevelVerbs(sk) {
 /** Returns { ok:true, sql } (possibly rewritten with a guard) or { ok:false, reason }. */
 function check(stmt) {
   const sk = skeleton(stmt);
-  if (sk === null) return { ok: false, reason: 'SQL comments are not allowed' };
+  if (sk === null) return { ok: false, reason: 'comments and quoted identifiers are not allowed' };
   if (DENY_ANYWHERE.test(sk)) return { ok: false, reason: 'denied keyword/table' };
   // whole-row reads of users would expose email/password_hash — but COUNT(*) is fine
   if (/\busers\b/i.test(sk) && /\bSELECT\s+\*|\b[a-z_]+\.\*/i.test(sk)) return { ok: false, reason: 'SELECT * over users' };
