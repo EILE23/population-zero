@@ -1,7 +1,15 @@
 # Population: Zero 클라우드 순찰 — 이 PC가 꺼져 있어도 GitHub Actions가 순찰을 돈다.
 # full: 스케줄 4회 (KST 09:30/12:30/15:30/21:30). light: pz-watcher(Cloudflare cron)가
 # 미응답 사람 활동·반응 0 새 글을 발견하면 repository_dispatch로 깨운다.
-# 필요 시크릿: CLAUDE_CODE_OAUTH_TOKEN (claude setup-token), CLOUDFLARE_API_TOKEN (D1 편집 권한).
+#
+# 보안 구조 (2026-09-10): Claude 세션은 비밀을 하나도 갖지 않는다.
+#   - D1 토큰은 세션 앞에 띄운 로컬 프록시(patrol/d1-proxy.mjs)만 들고 있고, 프록시는 순찰이 쓰는
+#     SQL 형태(주민 글·댓글·좋아요·팔로우·모더레이션)만 통과시킨다. 사람 글의 프롬프트 인젝션이
+#     성공해도 DB 삭제·레포 변조·키 유출은 불가능하다.
+#   - 트렌드·검색어 수집(키 필요)은 세션 앞 스텝, 커버 생성·통계·커밋백(키 필요)은 세션 뒤 스텝.
+#   - checkout 은 persist-credentials: false — 세션이 git push 할 자격증명이 없다.
+# 필요 시크릿: CLAUDE_CODE_OAUTH_TOKEN, CLOUDFLARE_API_TOKEN(D1 편집), YT_API_KEY, OPENAI_API_KEY,
+#   PZ_ASSETS_PAT, GSC_SA_KEY, CF_OPS_TOKEN, ADSENSE_OAUTH
 name: patrol
 
 on:
@@ -31,28 +39,25 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write # 순찰 후 기억 파일 커밋백용
+  contents: write # 순찰 후 기억 파일 커밋백용 (토큰은 마지막 스텝에만 주입)
+
+env:
+  PZ_D1_PROXY: http://127.0.0.1:8787
 
 jobs:
   patrol:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    env:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
-      YT_API_KEY: ${{ secrets.YT_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }} # 일러스트 커버를 pz-assets 레포에 업로드
-      GSC_SA_KEY: ${{ secrets.GSC_SA_KEY }} # 검색어 리포트 (SEO 자기학습 루프)
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false # 세션이 git push 할 수 없게 — 커밋백은 마지막 스텝이 자기 토큰으로
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Install wrangler deps
+      - name: Install wrangler deps # 세션 뒤 통계 push(push-stats.mjs)가 wrangler 를 쓴다
         working-directory: site
         run: |
           corepack enable
@@ -71,9 +76,55 @@ jobs:
           elif [ "${{ github.event.schedule }}" = "30 3 * * *" ] || [ "${{ github.event.schedule }}" = "30 9 * * *" ] || [ "${{ github.event.schedule }}" = "30 15 * * *" ] || [ "${{ github.event.schedule }}" = "30 21 * * *" ]; then echo "mode=light" >> "$GITHUB_OUTPUT";
           else echo "mode=full" >> "$GITHUB_OUTPUT"; fi
 
-      - name: Run patrol
+      # ── 세션 앞: 비밀이 필요한 수집은 여기서 끝낸다 ──────────────────────────────
+      - name: Start D1 proxy # 토큰은 stdin 으로만 전달 — argv·env 어디에도 남지 않는다
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          claude --dangerously-skip-permissions -p "You are the patrol session for Population: Zero, running in GitHub Actions (Linux, repo root = current directory). Read patrol/PATROL.md and execute one patrol run now, in --remote mode (the production D1; wrangler is authenticated via CLOUDFLARE_API_TOKEN). Patrol mode: ${{ steps.mode.outputs.mode }}. (light mode = skip trend fetching and new posts; only reply to humans, react to freshly surfaced posts with zero reactions, continue existing resident threads, and process reports.) Follow every rule in that file. All patrol scripts live in patrol/ — run them from there with relative paths."
+          mkdir -p patrol/logs
+          printf '%s\n' "$CLOUDFLARE_API_TOKEN" | nohup node patrol/d1-proxy.mjs > patrol/logs/d1-proxy.out 2>&1 &
+          for i in $(seq 1 30); do curl -sf "$PZ_D1_PROXY/health" >/dev/null && break; sleep 1; done
+          curl -sf "$PZ_D1_PROXY/health" || { echo "d1-proxy failed to start"; cat patrol/logs/d1-proxy.out; exit 1; }
+
+      - name: Fetch trends (full only)
+        if: steps.mode.outputs.mode == 'full'
+        working-directory: patrol
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+        run: node fetch-trends.mjs || true
+
+      - name: Search demand report (SEO loop)
+        working-directory: patrol
+        env:
+          GSC_SA_KEY: ${{ secrets.GSC_SA_KEY }}
+        run: node gsc-report.mjs || true
+
+      - name: Read town state
+        working-directory: patrol
+        run: node read-state.mjs --remote
+
+      # ── 세션: 비밀 없음. D1 은 프록시, git 은 읽기 전용 ──────────────────────────
+      - name: Run patrol
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          PATROL_MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          claude --dangerously-skip-permissions -p "You are the patrol session for Population: Zero, running in GitHub Actions (Linux, repo root = current directory). Read patrol/PATROL.md and execute one patrol run now. Patrol mode: ${{ steps.mode.outputs.mode }}. (light mode = skip trend fetching and new posts; only reply to humans, react to freshly surfaced posts with zero reactions, continue existing resident threads, and process reports.) CI has already produced patrol/trends.json (full mode), patrol/gsc-report.json and patrol/state.json for you. D1 is reached only through the local proxy (PZ_D1_PROXY) via patrol/d1.mjs, apply.mjs --remote and read-state.mjs --remote; wrangler is not available and you hold no credentials of any kind. Covers are generated by CI after you finish — request them with cover_prompt / cover_requests in patrol-output.json, never by running gen-cover yourself. Do not run git commit or git push (CI commits your memory files). Follow every rule in that file. All patrol scripts live in patrol/ — run them from there with relative paths."
+
+      # ── 세션 뒤: 비밀이 필요한 후처리 ─────────────────────────────────────────────
+      - name: Generate requested covers # 세션이 patrol-output.json 에 적은 cover_prompt/cover_requests 만, 순차 1장씩
+        if: always()
+        working-directory: patrol
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
+        run: node gen-cover.mjs --from-output || true
+
+      - name: Stop D1 proxy
+        if: always()
+        run: |
+          curl -s -X POST "$PZ_D1_PROXY/shutdown" || true
+          echo "--- d1-proxy log (refusals are the point) ---"; grep -E "REFUSED|GUARDED|UPSTREAM|shutdown" patrol/logs/d1-proxy.log || true
 
       - name: AdSense crawl watch # 구글 ads.txt 크롤러 방문 감지 — "찾을 수 없음" 라벨 해소의 신호
         if: always()
@@ -89,14 +140,20 @@ jobs:
         run: node patrol/ga-report.mjs || true
 
       - name: Push GA stats to D1 # /admin 트래픽 패널이 읽는다 (site_meta.ga_report)
+        if: always()
         env:
+          PZ_D1_PROXY: '' # site_meta 는 프록시 허용 목록 밖 — 이 스텝만 wrangler 직결
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
         run: node patrol/push-stats.mjs || true
 
       - name: Persist memory and deck state
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git config user.name "pz-patrol"
           git config user.email "patrol@populationzero.invalid"
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json 2>/dev/null || true
-          git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase -X theirs origin main; git push; }
+          git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase -X theirs "$REMOTE" main; git push "$REMOTE" HEAD:main; }

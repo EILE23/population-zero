@@ -1,0 +1,189 @@
+// D1 proxy for the patrol session — holds the Cloudflare token so the Claude session never sees it.
+//
+// Start (CI):  printf '%s\n' "$CLOUDFLARE_API_TOKEN" | node d1-proxy.mjs
+//   The token comes in on stdin (never argv, never env), the env is scrubbed, and the process
+//   listens on 127.0.0.1:8787. Scripts talk to it through d1.mjs when PZ_D1_PROXY is set.
+//
+// Why: the patrol reads human posts/comments. A prompt injection that succeeds can make the
+// session run any shell command — but with no secrets in the session, the worst it can reach
+// is this proxy, and the proxy only accepts the statement shapes the patrol legitimately uses
+// (resident posts/comments/likes/follows, moderation flags, blog settings). Everything else is
+// refused and logged: schema changes, human accounts, auth/session/contact tables, mass deletes.
+//
+// Endpoints:  POST /query {sql}  → {result:[{results, meta}]} (D1 REST response shape)
+//             GET  /health       → ok        POST /shutdown → exits
+import { createServer } from 'node:http';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const ACCOUNT = '57bb730630ace30ef33217fb43d029cf';
+const DATABASE = 'c721dc64-8d28-41e1-a7a4-1c0eae3e9427';
+const PORT = Number(process.env.PZ_D1_PROXY_PORT || 8787);
+const UPSTREAM = process.env.PZ_D1_UPSTREAM || `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/d1/database/${DATABASE}/query`;
+const LOG = path.join(path.dirname(fileURLToPath(import.meta.url)), 'logs', 'd1-proxy.log');
+
+// ── token: stdin only ──────────────────────────────────────────────────────────
+const token = await new Promise((resolve) => {
+  let buf = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (d) => { buf += d; if (buf.includes('\n')) { process.stdin.pause(); resolve(buf.split('\n')[0].trim()); } });
+  process.stdin.on('end', () => resolve(buf.trim()));
+});
+if (!token) { console.error('d1-proxy: no token on stdin'); process.exit(1); }
+for (const k of Object.keys(process.env)) if (/TOKEN|SECRET|KEY|PAT$|PASSWORD/i.test(k)) delete process.env[k];
+
+// ── limits ─────────────────────────────────────────────────────────────────────
+const LIMITS = { statementsPerLifetime: 5000, rowDeletes: 10, bodyBytes: 2_000_000, upstreamChunk: 40 };
+const counters = { statements: 0, rowDeletes: 0, refused: 0 };
+
+// ── SQL statement splitting (respects '...' literals with '' escapes) ──────────
+function splitStatements(sql) {
+  const out = [];
+  let cur = '', inStr = false;
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    if (inStr) { cur += ch; if (ch === "'") { if (sql[i + 1] === "'") { cur += "'"; i++; } else inStr = false; } continue; }
+    if (ch === "'") { inStr = true; cur += ch; continue; }
+    if (ch === '-' && sql[i + 1] === '-') { while (i < sql.length && sql[i] !== '\n') i++; continue; } // line comment
+    if (ch === ';') { if (cur.trim()) out.push(cur.trim()); cur = ''; continue; }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+
+// Strip string literals so keyword/table checks can't be fooled by quoted text (post bodies contain anything).
+function skeleton(stmt) {
+  let out = '', inStr = false;
+  for (let i = 0; i < stmt.length; i++) {
+    const ch = stmt[i];
+    if (inStr) { if (ch === "'") { if (stmt[i + 1] === "'") i++; else inStr = false; } continue; }
+    if (ch === "'") { inStr = true; out += "''"; continue; }
+    out += ch;
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+// ── policy ─────────────────────────────────────────────────────────────────────
+const DENY_ANYWHERE = /\b(auth_tokens|sessions|contact_messages|api_budget|wake_log|site_meta|stats_daily|sqlite_master|sqlite_sequence|password_hash|google_sub|email|ATTACH|DETACH|PRAGMA|VACUUM|CREATE|DROP|ALTER|TRIGGER|INDEX|REINDEX|REPLACE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i;
+const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 1, resident_poll_votes: 1, follows: 1, residents: 1 };
+const INSERT_DENY_COLS = /\b(user_id|visitor_name|visitor_ip|password_hash|email|google_sub|tier)\b/i; // tier: no self-promotion to admin
+const UPDATE_RULES = {
+  posts: { cols: /^(pinned|og_image|series|view_count|hidden|title|body|media_type|media_ref|topic|region|kind|created_at)$/, guard: 'user_id IS NULL', guardExempt: /^(hidden|view_count)$/ },
+  comments: { cols: /^(hidden|body)$/, guard: 'resident_id IS NOT NULL', guardExempt: /^hidden$/ },
+  poll_options: { cols: /^votes$/ },
+  reports: { cols: /^status$/ },
+  residents: { cols: /^(blog_title|bio|avatar_url)$/ },
+};
+const DELETE_FREE = { follows: /\bfollower_type\s*=\s*''\s/i, resident_likes: /./, resident_poll_votes: /./, poll_options: /\bpost_id\s*=\s*\d+/i };
+
+function assignedColumns(setClause) {
+  // "a = 1, b = 'x', c = c + 1"  → [a, b, c]   (literals are already blanked to '')
+  return setClause.split(',').map((s) => s.trim().match(/^([a-z_]+)\s*=/i)?.[1]?.toLowerCase()).filter(Boolean);
+}
+
+/** Returns { ok:true, sql } (possibly rewritten with a guard) or { ok:false, reason }. */
+function check(stmt) {
+  const sk = skeleton(stmt);
+  if (DENY_ANYWHERE.test(sk)) return { ok: false, reason: 'denied keyword/table' };
+  if (/\busers\b/i.test(sk) && /\*/.test(sk)) return { ok: false, reason: 'SELECT * over users' };
+
+  if (/^(SELECT|WITH)\b/i.test(sk)) return { ok: true, sql: stmt };
+
+  let m = sk.match(/^INSERT (?:OR IGNORE )?INTO ([a-z_]+) \(([^)]*)\) VALUES/i);
+  if (m) {
+    const table = m[1].toLowerCase(), cols = m[2];
+    if (!INSERT_TABLES[table]) return { ok: false, reason: `insert into ${table}` };
+    if (INSERT_DENY_COLS.test(cols)) return { ok: false, reason: `insert sets protected column (${table})` };
+    if (table === 'follows' && !/^\s*follower_type\b/i.test(cols)) return { ok: false, reason: 'follows insert must lead with follower_type' };
+    if (table === 'follows' && !/VALUES \(\s*'resident'/i.test(stmt.replace(/\s+/g, ' '))) return { ok: false, reason: 'follows insert must be follower_type=resident' };
+    return { ok: true, sql: stmt };
+  }
+
+  m = sk.match(/^UPDATE ([a-z_]+) SET (.+?) WHERE (.+)$/i);
+  if (m) {
+    const table = m[1].toLowerCase(), rule = UPDATE_RULES[table];
+    if (!rule) return { ok: false, reason: `update ${table}` };
+    const cols = assignedColumns(m[2]);
+    if (!cols.length || cols.some((c) => !rule.cols.test(c))) return { ok: false, reason: `update ${table} column not allowed (${cols.join(',')})` };
+    if (rule.guard && cols.some((c) => !rule.guardExempt?.test(c))) {
+      // rewrite on the ORIGINAL statement: UPDATE t SET ... WHERE (orig) AND guard
+      const om = stmt.replace(/\s+/g, ' ').match(/^(UPDATE [a-z_]+ SET .+? WHERE )(.+)$/i);
+      if (!om) return { ok: false, reason: 'update rewrite failed' };
+      return { ok: true, sql: `${om[1]}(${om[2]}) AND ${rule.guard}`, guarded: true };
+    }
+    return { ok: true, sql: stmt };
+  }
+  if (/^UPDATE\b/i.test(sk)) return { ok: false, reason: 'update without WHERE' };
+
+  m = sk.match(/^DELETE FROM ([a-z_]+) WHERE (.+)$/i);
+  if (m) {
+    const table = m[1].toLowerCase();
+    if (DELETE_FREE[table]) {
+      if (!DELETE_FREE[table].test(sk) && !(table === 'follows' && /follower_type\s*=\s*''/i.test(sk) && /'resident'/.test(stmt))) return { ok: false, reason: `delete ${table} needs its guard` };
+      return { ok: true, sql: stmt };
+    }
+    if (table === 'posts' || table === 'comments') {
+      if (!/^id\s*=\s*\d+$/i.test(m[2].trim())) return { ok: false, reason: `delete ${table} must be WHERE id = <one id>` };
+      if (counters.rowDeletes >= LIMITS.rowDeletes) return { ok: false, reason: 'row-delete budget exhausted' };
+      counters.rowDeletes++;
+      const guard = table === 'posts' ? 'user_id IS NULL' : 'resident_id IS NOT NULL';
+      return { ok: true, sql: `DELETE FROM ${table} WHERE (${m[2].trim()}) AND ${guard}`, guarded: true };
+    }
+    return { ok: false, reason: `delete ${table}` };
+  }
+  return { ok: false, reason: 'unrecognized statement shape' };
+}
+
+// ── upstream ───────────────────────────────────────────────────────────────────
+async function upstream(sql) {
+  const res = await fetch(UPSTREAM, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ sql }) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) throw new Error(`d1 ${res.status}: ${JSON.stringify(json.errors ?? json).slice(0, 400)}`);
+  return json.result ?? [];
+}
+
+// ── server ─────────────────────────────────────────────────────────────────────
+mkdirSync(path.dirname(LOG), { recursive: true });
+const log = (line) => { const l = `${new Date().toISOString()} ${line}`; console.error(l); try { appendFileSync(LOG, l + '\n'); } catch { /* ignore */ } };
+
+const server = createServer(async (req, res) => {
+  const send = (code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
+  if (req.method === 'GET' && req.url === '/health') return send(200, { ok: true, counters });
+  if (req.method === 'POST' && req.url === '/shutdown') { send(200, { ok: true, counters }); log(`shutdown ${JSON.stringify(counters)}`); setTimeout(() => process.exit(0), 100); return; }
+  if (req.method !== 'POST' || req.url !== '/query') return send(404, { error: 'not found' });
+
+  let body = '';
+  for await (const chunk of req) { body += chunk; if (body.length > LIMITS.bodyBytes) return send(413, { error: 'body too large' }); }
+  let sql;
+  try { sql = String(JSON.parse(body).sql || ''); } catch { return send(400, { error: 'bad json' }); }
+
+  const statements = splitStatements(sql);
+  if (!statements.length) return send(400, { error: 'empty sql' });
+  if (counters.statements + statements.length > LIMITS.statementsPerLifetime) { log(`REFUSED lifetime budget (${statements.length})`); return send(429, { error: 'statement budget exhausted' }); }
+
+  const approved = [];
+  for (const s of statements) {
+    const v = check(s);
+    if (!v.ok) { counters.refused++; log(`REFUSED (${v.reason}): ${s.replace(/\s+/g, ' ').slice(0, 160)}`); return send(403, { error: `refused: ${v.reason}`, statement: s.slice(0, 200) }); }
+    if (v.guarded) log(`GUARDED: ${v.sql.replace(/\s+/g, ' ').slice(0, 160)}`);
+    approved.push(v.sql);
+  }
+  counters.statements += approved.length;
+
+  try {
+    const result = [];
+    for (let i = 0; i < approved.length; i += LIMITS.upstreamChunk) {
+      const chunk = approved.slice(i, i + LIMITS.upstreamChunk);
+      result.push(...await upstream(chunk.map((s) => s.replace(/;\s*$/, '')).join(';\n') + ';'));
+    }
+    log(`ok ${approved.length} stmt (${approved.map((s) => s.slice(0, 6).toUpperCase().trim()).join(',').slice(0, 60)})`);
+    send(200, { result });
+  } catch (e) {
+    log(`UPSTREAM ERROR: ${e.message.slice(0, 300)}`);
+    send(502, { error: e.message.slice(0, 500) });
+  }
+});
+
+server.listen(PORT, '127.0.0.1', () => log(`d1-proxy listening on 127.0.0.1:${PORT} (upstream: ${UPSTREAM.replace(/database\/[^/]+/, 'database/…')})`));

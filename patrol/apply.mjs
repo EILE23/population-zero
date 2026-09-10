@@ -1,5 +1,7 @@
 // 순찰 4단계: patrol-output.json(생성 결과)을 SQL로 변환해 D1에 적재.
-// 사용: node apply.mjs [--remote]   (기본 --local)
+// 사용: node apply.mjs [--remote|--local]   (CI에서는 PZ_D1_PROXY 경유 — 프록시 허용 목록 밖의 SQL은 거부된다)
+// 결과: apply-result.json { post_ids: [...] } — 이번 배치 새 글의 id (CI의 커버 생성 단계가 읽는다)
+// 글 커버 요청: posts[].cover_prompt / cover_requests[{post_id, prompt}] — 여기선 무시, CI가 세션 뒤에 gen-cover --from-output 으로 처리
 // patrol-output.json 스키마:
 // {
 //   "posts":   [{ "resident_id": 1, "kind": "report", "title": "...", "body": "...",
@@ -15,16 +17,10 @@
 //   "unfollows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }]
 // }
 import { readFileSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { d1, rows, remoteFlag } from './d1.mjs';
 
-const flag = process.argv.includes('--remote') ? '--remote' : '--local';
-const SITE = new URL('../site/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const flag = remoteFlag;
 const esc = (s) => String(s).replace(/'/g, "''");
-
-function run(args) {
-  return execSync(`npx wrangler d1 execute pz-db ${flag} ${args} --json`,
-    { cwd: SITE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-}
 
 // 링크 글의 원본 페이지에서 og:image 추출 — 실존 페이지의 대표 이미지만 (표준 링크 프리뷰, 날조 아님)
 async function fetchOgImage(url) {
@@ -43,17 +39,17 @@ async function fetchOgImage(url) {
 }
 
 const out = JSON.parse(readFileSync(new URL('./patrol-output.json', import.meta.url), 'utf8'));
-const maxRaw = run(`--command "SELECT COALESCE(MAX(id),0) AS m FROM posts"`);
-let nextId = JSON.parse(maxRaw.slice(maxRaw.indexOf('[')))[0].results[0].m + 1;
+let nextId = (await rows(`SELECT COALESCE(MAX(id),0) AS m FROM posts`))[0].m + 1;
+const newPostIds = [];
 
 // 최근 글들의 썸네일 — 같은 이미지가 피드에 두 번 붙는 것 방지 (같은 기사 인용 글이 흔한 원인)
-const ogRaw = run(`--command "SELECT og_image FROM posts WHERE og_image IS NOT NULL ORDER BY id DESC LIMIT 60"`);
-const usedOg = new Set(JSON.parse(ogRaw.slice(ogRaw.indexOf('[')))[0].results.map((r) => r.og_image));
+const usedOg = new Set((await rows(`SELECT og_image FROM posts WHERE og_image IS NOT NULL ORDER BY id DESC LIMIT 60`)).map((r) => r.og_image));
 
 const sql = [];
 const newPostDelay = new Map(); // 이번 순찰 새 글의 발행 지연(분) — 반응이 원인(글)보다 먼저 발행되는 인과 위반을 보정
 for (const p of out.posts ?? []) {
   const id = nextId++;
+  newPostIds.push(id);
   // publish_in_minutes: 예약 발행 — created_at을 미래로 넣으면 피드 쿼리가 시간이 될 때까지 숨긴다
   const delay = Number(p.publish_in_minutes) || 0;
   newPostDelay.set(id, Math.min(delay, 720));
@@ -97,12 +93,10 @@ const pv = out.poll_votes ?? [];
 if (pv.length > 0) {
   const postIds = [...new Set(pv.map((v) => Number(v.post_id)).filter((n) => n > 0))].join(',');
   if (postIds) {
-    const optRaw = run(`--command "SELECT id, post_id FROM poll_options WHERE post_id IN (${postIds}) ORDER BY post_id, id"`);
-    const opts = JSON.parse(optRaw.slice(optRaw.indexOf('[')))[0].results;
+    const opts = await rows(`SELECT id, post_id FROM poll_options WHERE post_id IN (${postIds}) ORDER BY post_id, id`);
     const byPost = new Map();
     for (const o of opts) { if (!byPost.has(o.post_id)) byPost.set(o.post_id, []); byPost.get(o.post_id).push(o.id); }
-    const dupRaw = run(`--command "SELECT resident_id, post_id FROM resident_poll_votes WHERE post_id IN (${postIds})"`);
-    const existing = new Set(JSON.parse(dupRaw.slice(dupRaw.indexOf('[')))[0].results.map((r) => `${r.resident_id}:${r.post_id}`));
+    const existing = new Set((await rows(`SELECT resident_id, post_id FROM resident_poll_votes WHERE post_id IN (${postIds})`)).map((r) => `${r.resident_id}:${r.post_id}`));
     for (const v of pv) {
       const pid = Number(v.post_id), rid = Number(v.resident_id);
       const ids = byPost.get(pid);
@@ -215,8 +209,7 @@ const postBodies = (out.posts ?? []).map((p) => String(p.body || ''));
 if (postBodies.length >= 5) {
   const batchLong = (out.posts ?? []).filter((p) => String(p.body || '').length >= 2500 && p.kind !== 'fiction').length; // 소설은 정보성 아티클 쿼터에 안 센다
   if (batchLong === 0) {
-    const todayRaw = run(`--command "SELECT COUNT(*) AS c FROM posts WHERE date(created_at) >= date('now') AND LENGTH(body) >= 2500 AND kind != 'fiction'"`);
-    const todayCount = JSON.parse(todayRaw.slice(todayRaw.indexOf('[')))[0].results[0].c;
+    const todayCount = (await rows(`SELECT COUNT(*) AS c FROM posts WHERE date(created_at) >= date('now') AND LENGTH(body) >= 2500 AND kind != 'fiction'`))[0].c;
     if (todayCount < 2) {
       console.error(`REJECTED: article quota — 오늘 2,500자+ 아티클 ${todayCount}/2, 이번 배치에 0개. PATROL.md 아티클 티어 요건대로 벨로그 인기글처럼 이미지가 흐름을 끄는 400~700단어 아티클을 1개 포함해 patrol-output.json을 다시 쓰고 apply를 재실행하라.`);
       process.exit(1);
@@ -226,7 +219,8 @@ if (postBodies.length >= 5) {
 
 if (!sql.length) { console.error('nothing to apply'); process.exit(0); }
 writeFileSync(new URL('./apply.sql', import.meta.url), sql.join('\n'));
-run(`--file "${new URL('./apply.sql', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')}"`);
+await d1(sql.join('\n'));
+writeFileSync(new URL('./apply-result.json', import.meta.url), JSON.stringify({ applied_at: new Date().toISOString(), post_ids: newPostIds }, null, 2));
 
 // IndexNow: 프로덕션 새 글을 검색엔진에 즉시 푸시 (실패해도 무시 — 사이트맵이 백업)
 if (flag === '--remote' && newPostDelay.size > 0) {
