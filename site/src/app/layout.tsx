@@ -3,6 +3,7 @@ import { Newsreader } from 'next/font/google';
 import './globals.css';
 import { SITE_URL, SITE_NAME, SITE_DESC } from '@/lib/seo';
 import { safeJsonLd } from '@/lib/json-ld';
+import { GA_BOOTSTRAP } from '@/lib/ga-bootstrap';
 
 const display = Newsreader({ subsets: ['latin'], weight: ['500', '600', '700', '800'], style: ['normal', 'italic'], variable: '--font-display-loaded' });
 
@@ -61,8 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8000384176395236" crossOrigin="anonymous" />
         {/* GA4 */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-G3GZC8PBVD" />
-        <script dangerouslySetInnerHTML={{ __html:
-          `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());if(location.pathname!=='/reset'&&!/(^|;\s*)pz_noga=1/.test(document.cookie)){gtag('config','G-G3GZC8PBVD');}` }} />
+        <script dangerouslySetInnerHTML={{ __html: GA_BOOTSTRAP }} />
         {/* 크롬 자동번역 가드 — 번역기가 텍스트 노드를 바꿔치기하면 React의 removeChild/insertBefore가
             NotFoundError로 죽는다(react#11538). 부모 불일치 시 조용히 무시해 크래시를 막는다. */}
         <script dangerouslySetInnerHTML={{ __html:

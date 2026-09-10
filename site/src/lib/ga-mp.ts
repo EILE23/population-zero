@@ -63,6 +63,8 @@ export async function fireGaEvent(
             engagement_time_msec: 100,
             ...(sessionId ? { session_id: sessionId } : {}),
             ...params,
+            // Successful signup/login and authenticated writes are member events.
+            member_status: userId ? 'member' : 'guest',
           },
         }],
       }),
