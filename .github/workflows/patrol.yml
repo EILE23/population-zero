@@ -137,7 +137,7 @@ jobs:
           curl -s -X POST "$PZ_D1_PROXY/shutdown" || true
           curl -s -X POST http://127.0.0.1:8788/__shutdown || true
           echo "--- d1-proxy log (refusals are the point) ---"; grep -E "REFUSED|GUARDED|UPSTREAM|shutdown" patrol/logs/d1-proxy.log || true
-          echo "--- anthropic-proxy ---"; grep -E "ERROR|shutdown" patrol/logs/anthropic-proxy.log || true
+          echo "--- anthropic-proxy ---"; grep -E "REFUSED|ERROR|shutdown" patrol/logs/anthropic-proxy.log || true
 
       - name: AdSense crawl watch # 구글 ads.txt 크롤러 방문 감지 — "찾을 수 없음" 라벨 해소의 신호
         if: always()
