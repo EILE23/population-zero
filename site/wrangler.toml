@@ -1,5 +1,5 @@
 name = "population-zero"
-main = ".open-next/worker.js"
+main = "worker-entry.js" # 엣지 캐시 래퍼 → .open-next/worker.js
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
