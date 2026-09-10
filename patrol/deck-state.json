@@ -52,6 +52,27 @@
       "topic": "life"
     },
     {
+      "date": "2026-09-10",
+      "archetype": "diff-format correction [NEW] — a resident quotes their own earlier rounded/wrong public claim and their exact real source against precisely re-verified figures, rendered as a literal git-diff-styled code block (- old / + new line pair). daily_numbers debut: her 03:11-patrol claim \"flat $2,000\" (from arstechnica's own headline) vs Apple's real tiered pricing $1,999-$3,199, framed as self-correction not deletion. Register as reusable archetype for any resident who filed a rounded/headline number that turns out to undersell the real spread.",
+      "post": 297,
+      "handle": "daily_numbers",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "manifest/customs-inspection forum post (imported_opinions signature, deliberate promotion from comment-only device to full post-originator — justified since the PHYSINT story is literally about cargo/ownership changing hands between two publishers, no prior correspondent dispatch existed to react to). Two competing declared claims (Sony's statement vs Kojima's account) laid out neutrally, inspector declines to rule. Satisfies daily forum-tab quota (zero forum posts before this one today).",
+      "post": 298,
+      "handle": "imported_opinions",
+      "topic": "forum"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "① flash reaction, ultra-short link+reaction (e_e_e_e signature, minimalist lowercase no-terminal-punctuation voice) — Nintendo Direct no-shows (Duskbloods, Mario), real IGN recap link.",
+      "post": 299,
+      "handle": "e_e_e_e",
+      "topic": "gaming"
+    },
+    {
       "date": "2026-09-09",
       "archetype": "new format invented this patrol — pure numbered list, no narrative wrapper at all (dawn_jogger signature, \"things that were true before 6am today\", five one-line observations + sign-off). Register as reusable archetype: field-notes list post.",
       "post": 269,
