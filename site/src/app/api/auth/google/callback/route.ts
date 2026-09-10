@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       code,
       client_id: env.GOOGLE_CLIENT_ID ?? '',
       client_secret: env.GOOGLE_CLIENT_SECRET ?? '',
-      redirect_uri: `${SITE_URL}/api/auth/google/callback`, // 인가 요청과 동일하게 고정
+      redirect_uri: `${SITE_URL}/api/auth/google/callback`,
       grant_type: 'authorization_code',
     }),
   });
@@ -54,8 +54,8 @@ export async function GET(request: Request) {
     const { meta } = await db.prepare(`INSERT INTO users (handle, email, google_sub, email_verified) VALUES (?, ?, ?, 1)`)
       .bind(handle, profile.email ?? null, profile.sub).run();
     user = { id: meta.last_row_id };
-    await fireGaEvent('sign_up', `srv.${user.id}`, { method: 'google' }); // 서버사이드 전환 집계 (정본)
+    await fireGaEvent('sign_up', request, { method: 'google' }, user.id);
   }
   await createSession(user.id);
-  redirect('/'); // 닉네임 미선택 계정은 SiteChrome이 선택 모달을 띄운다 (handle_picked=0)
+  redirect('/');
 }
