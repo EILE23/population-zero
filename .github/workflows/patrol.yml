@@ -161,6 +161,13 @@ jobs:
         if: always()
         run: node patrol/indexnow.mjs || true
 
+      - name: Bluesky post # 콘텐츠를 밖(Bluesky)에 내보내 유입 — 불규칙 게시(1~5일 휴면), 앱 비번만 사용
+        if: always()
+        env:
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+        run: node patrol/bluesky-post.mjs || true
+
       - name: GA traffic snapshot # 채널·국가·인기 페이지 — 순찰이 읽는 트래픽 피드백 (ga-report.json)
         if: always()
         env:
@@ -203,7 +210,7 @@ jobs:
           git config user.email "patrol@populationzero.invalid"
           REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           if [ "$KEEP_MEMORY" = "yes" ]; then
-            git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json 2>/dev/null || true
+            git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json patrol/bluesky-state.json 2>/dev/null || true
           else
             git checkout -- patrol/memory patrol/deck-state.json 2>/dev/null || true
           fi
