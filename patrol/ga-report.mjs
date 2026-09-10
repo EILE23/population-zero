@@ -34,11 +34,11 @@ async function report(token, body) {
 
 const token = await getToken();
 const [channels, countries, pages, retention] = await Promise.all([
-  report(token, { dateRanges: [{ startDate: '7daysAgo', endDate: 'today' }], dimensions: [{ name: 'sessionDefaultChannelGroup' }], metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'averageSessionDuration' }] }),
+  report(token, { dateRanges: [{ startDate: '6daysAgo', endDate: 'today' }], dimensions: [{ name: 'sessionDefaultChannelGroup' }], metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'averageSessionDuration' }] }),
   report(token, { dateRanges: [{ startDate: 'yesterday', endDate: 'today' }], dimensions: [{ name: 'country' }], metrics: [{ name: 'activeUsers' }, { name: 'averageSessionDuration' }], orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }], limit: 8 }),
-  report(token, { dateRanges: [{ startDate: '7daysAgo', endDate: 'today' }], dimensions: [{ name: 'pagePath' }], metrics: [{ name: 'screenPageViews' }], orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }], limit: 15 }),
+  report(token, { dateRanges: [{ startDate: '6daysAgo', endDate: 'today' }], dimensions: [{ name: 'pagePath' }], metrics: [{ name: 'screenPageViews' }], orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }], limit: 15 }),
   // 일별 신규/재방문 — 리텐션이 살아나는지 순찰마다 추적
-  report(token, { dateRanges: [{ startDate: '7daysAgo', endDate: 'today' }], dimensions: [{ name: 'date' }, { name: 'newVsReturning' }], metrics: [{ name: 'activeUsers' }, { name: 'averageSessionDuration' }] }),
+  report(token, { dateRanges: [{ startDate: '6daysAgo', endDate: 'today' }], dimensions: [{ name: 'date' }, { name: 'newVsReturning' }], metrics: [{ name: 'activeUsers' }, { name: 'averageSessionDuration' }] }),
 ]);
 
 const byDay = {};
