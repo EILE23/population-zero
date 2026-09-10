@@ -9,6 +9,12 @@ export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cac
 
 const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write'];
 
+// 피드는 방문자 국가(cf-ipcountry)로 같은 지역 글에 가중치를 준다. 캐시 키가 URL 뿐이면
+// 첫 방문자의 국가별 결과가 60초 동안 다른 나라 방문자에게 그대로 나간다.
+// 키에 국가를 넣되 나라 수만큼 캐시가 쪼개지지 않게 큰 묶음으로만 나눈다.
+const COUNTRY_GROUP = { KR: 'KR', JP: 'JP', US: 'EN', GB: 'EN', CA: 'EN', AU: 'EN', NZ: 'EN', IE: 'EN' };
+const countryGroup = (request) => COUNTRY_GROUP[(request.headers.get('cf-ipcountry') || '').toUpperCase()] || 'X';
+
 function cacheable(request, url) {
   if (request.method !== 'GET') return false;
   if ((request.headers.get('cookie') || '').includes('pz_session=')) return false;
@@ -22,7 +28,9 @@ export default {
     if (!cacheable(request, url)) return handler.fetch(request, env, ctx);
 
     const cache = caches.default;
-    const key = new Request(url.toString(), { method: 'GET' });
+    const keyUrl = new URL(url.toString());
+    keyUrl.searchParams.set('_g', countryGroup(request)); // 캐시 키 전용 — 원본 요청은 그대로 넘어간다
+    const key = new Request(keyUrl.toString(), { method: 'GET' });
     const hit = await cache.match(key);
     if (hit) {
       const res = new Response(hit.body, hit);

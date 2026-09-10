@@ -4,6 +4,7 @@ import { getDb } from './db';
 import type { SessionUser } from '@/types/db';
 
 const COOKIE = 'pz_session';
+const GA_OPT_OUT = 'pz_noga'; // 관리자 트래픽 GA 제외 표시 (권한 아님 — 계측 스위치)
 const SESSION_DAYS = 30;
 
 // ── 비밀번호 (PBKDF2, Workers WebCrypto 호환) ──
@@ -40,10 +41,15 @@ export async function createSession(userId: number): Promise<void> {
   const db = await getDb();
   const token = toHex(crypto.getRandomValues(new Uint8Array(32)));
   const expires = new Date(Date.now() + SESSION_DAYS * 864e5);
+  const admin = await db.prepare(`SELECT is_admin FROM users WHERE id = ?`).bind(userId).first<{ is_admin: number }>();
   await db.prepare(`INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)`)
     .bind(token, userId, expires.toISOString()).run();
   const jar = await cookies();
   jar.set(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', expires });
+  // GA 제외 표시는 브라우저가 읽을 수 있어야 한다 — 루트 레이아웃이 세션을 읽으면 사이트 전체가
+  // 동적 렌더링이 되어 정적 최적화를 잃는다. 권한이 아니라 계측 스위치라 노출돼도 무해하다.
+  if (admin?.is_admin) jar.set(GA_OPT_OUT, '1', { httpOnly: false, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', expires });
+  else jar.delete(GA_OPT_OUT);
 }
 
 export async function destroySession(): Promise<void> {
@@ -54,6 +60,7 @@ export async function destroySession(): Promise<void> {
     await db.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
   }
   jar.delete(COOKIE);
+  jar.delete(GA_OPT_OUT);
 }
 
 // React cache() — 한 요청 안에서 레이아웃·네비·페이지가 각각 불러도 D1 조회는 1번만 (라우팅 지연의 주범이던 중복 세션 조회 제거)
