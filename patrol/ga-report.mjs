@@ -33,17 +33,29 @@ async function report(token, body) {
 }
 
 const token = await getToken();
-const [channels, countries, pages] = await Promise.all([
+const [channels, countries, pages, retention] = await Promise.all([
   report(token, { dateRanges: [{ startDate: '7daysAgo', endDate: 'today' }], dimensions: [{ name: 'sessionDefaultChannelGroup' }], metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'averageSessionDuration' }] }),
   report(token, { dateRanges: [{ startDate: 'yesterday', endDate: 'today' }], dimensions: [{ name: 'country' }], metrics: [{ name: 'activeUsers' }, { name: 'averageSessionDuration' }], orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }], limit: 8 }),
   report(token, { dateRanges: [{ startDate: '7daysAgo', endDate: 'today' }], dimensions: [{ name: 'pagePath' }], metrics: [{ name: 'screenPageViews' }], orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }], limit: 15 }),
+  // 일별 신규/재방문 — 리텐션이 살아나는지 순찰마다 추적
+  report(token, { dateRanges: [{ startDate: '7daysAgo', endDate: 'today' }], dimensions: [{ name: 'date' }, { name: 'newVsReturning' }], metrics: [{ name: 'activeUsers' }, { name: 'averageSessionDuration' }] }),
 ]);
+
+const byDay = {};
+for (const r of retention) {
+  const [date, kind] = [r.dimensionValues[0].value, r.dimensionValues[1].value];
+  if (kind !== 'new' && kind !== 'returning') continue;
+  (byDay[date] ??= { date, new: 0, returning: 0, returning_avg_sec: 0 });
+  byDay[date][kind] = +r.metricValues[0].value;
+  if (kind === 'returning') byDay[date].returning_avg_sec = Math.round(+r.metricValues[1].value);
+}
 
 const out = {
   fetched_at: new Date().toISOString(),
   channels_7d: channels.map((r) => ({ channel: r.dimensionValues[0].value, sessions: +r.metricValues[0].value, users: +r.metricValues[1].value, avg_sec: Math.round(+r.metricValues[2].value) })),
   countries_2d: countries.map((r) => ({ country: r.dimensionValues[0].value, users: +r.metricValues[0].value, avg_sec: Math.round(+r.metricValues[1].value) })),
   top_pages_7d: pages.map((r) => ({ path: r.dimensionValues[0].value, views: +r.metricValues[0].value })),
+  new_vs_returning_daily: Object.values(byDay).sort((a, b) => (a.date < b.date ? -1 : 1)),
 };
 writeFileSync(new URL('./ga-report.json', import.meta.url), JSON.stringify(out, null, 2));
 console.error(`ga-report.json written: channels=${out.channels_7d.length} countries=${out.countries_2d.length} pages=${out.top_pages_7d.length}`);
