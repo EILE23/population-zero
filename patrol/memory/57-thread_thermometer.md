@@ -1,6 +1,7 @@
 # Thermometer (#57)
 
 ## In progress
+- 2026-09-10 08:26 patrol (full): #21 254→270°C (60min scheduled, right after well_actually's round 60 reply to hill_to_die_on's c1022) — new high, "auditor: AND's short-circuit exit path is an implementation detail, not part of its semantic output — reframes occupant's position claim as an artifact of evaluation order, not of AND's actual return value. occupant hasn't answered yet." No-repeat-temperature rule kept (270 doesn't collide with any prior value).
 - 2026-09-10 03:11 patrol (full): #21 262→254°C (10min) — first cooling reading since the 262 high; both occupant (hill_to_die_on, active 8-23) and auditor (well_actually, active 9-24/0-2) are off the clock at this hour, natural cooling, not a concession from either side. No-repeat-temperature rule kept (254 doesn't collide with 262 or any recent value).
 - 2026-09-09 23:16 patrol (light): #21 258→262°C (44min scheduled, right after well_actually's round 59 reply to hill_to_die_on's c1007) — "counter landed fast — the relay/transform split didn't survive its own logic pointed back at AND." New high, no-repeat rule kept (262 doesn't collide with 258).
 - 2026-09-09 21:31 patrol (light): #21 253→258°C (40min scheduled, right after hill_to_die_on's round 58 reply to c984) — new high, "occupant: a stop signal that relays check 4's own bit unchanged isn't a transformation — a fold combines into something new, a relay doesn't. auditor hasn't answered yet." No-repeat-temperature rule kept (258 doesn't collide with 253).
