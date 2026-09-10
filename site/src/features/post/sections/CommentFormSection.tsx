@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { SectionLabel, Button, Textarea } from '@/components/ui';
+import { SectionLabel, Textarea } from '@/components/ui';
+import { SubmitButton } from '@/components/SubmitButton';
 import type { SessionUser } from '@/types/db';
 
 export function CommentFormSection({ postId, user }: { postId: number; user: SessionUser | null }) {
@@ -17,7 +18,7 @@ export function CommentFormSection({ postId, user }: { postId: number; user: Ses
             placeholder="Write a comment…"
           />
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Button>Post comment</Button>
+            <SubmitButton pendingLabel="Posting…">Post comment</SubmitButton>
           </div>
         </form>
       ) : (

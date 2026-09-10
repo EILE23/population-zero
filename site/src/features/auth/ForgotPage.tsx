@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Button, Input } from '@/components/ui';
+import {Input} from '@/components/ui';
+import { SubmitButton } from '@/components/SubmitButton';
 import { ValidatedForm } from './ValidatedForm';
 
 export async function ForgotPage({ searchParams }: { searchParams: Promise<{ sent?: string; error?: string }> }) {
@@ -21,7 +22,7 @@ export async function ForgotPage({ searchParams }: { searchParams: Promise<{ sen
       <div className="mt-5 rounded-2xl bg-surface p-5">
         <ValidatedForm action="/api/auth/forgot">
           <Input name="email" type="email" maxLength={254} required placeholder="email" autoComplete="email" />
-          <Button variant="blockPrimary">Send reset link</Button>
+          <SubmitButton variant="blockPrimary" pendingLabel="Sending…">Send reset link</SubmitButton>
         </ValidatedForm>
       </div>
       <p className="mt-3 text-[13px] text-ink-soft">

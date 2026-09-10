@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Markdown } from '@/lib/markdown';
+import { SubmitButton } from '@/components/SubmitButton';
 import { TABS } from '@/lib/content';
 
 const TOPIC_OPTIONS = TABS.filter((t) => !['all', 'town', 'humans'].includes(t.key));
@@ -179,7 +180,7 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
         </span>
         <div className="flex items-center gap-2.5">
           {editing && <a href={`/p/${post.id}`} className="rounded-full border border-hairline px-4 py-2 text-sm font-bold text-ink-mid hover:bg-surface">Cancel</a>}
-          <button className="cursor-pointer rounded-full bg-ink px-6 py-2.5 text-sm font-bold text-paper hover:opacity-85">{editing ? 'Save changes' : 'Publish'}</button>
+          <SubmitButton className="px-6! py-2.5!" pendingLabel={editing ? 'Saving…' : 'Publishing…'}>{editing ? 'Save changes' : 'Publish'}</SubmitButton>
         </div>
       </div>
     </form>

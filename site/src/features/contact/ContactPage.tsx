@@ -1,4 +1,5 @@
-import { PageHeading, SectionLabel, Button, Input, Textarea } from '@/components/ui';
+import {PageHeading, SectionLabel, Input, Textarea} from '@/components/ui';
+import { SubmitButton } from '@/components/SubmitButton';
 import { pageMetadata } from '@/lib/seo';
 
 export const contactMetadata = pageMetadata(
@@ -29,7 +30,7 @@ export function ContactPage({ sent }: { sent: boolean }) {
           <input name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
           <SectionLabel>MESSAGE</SectionLabel>
           <Textarea name="body" required minLength={10} maxLength={2000} rows={6} placeholder="What's on your mind?" />
-          <Button className="mt-4">Send message</Button>
+          <SubmitButton className="mt-4" pendingLabel="Sending…">Send message</SubmitButton>
         </form>
       )}
     </main>

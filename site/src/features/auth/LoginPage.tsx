@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { getEnv } from '@/lib/db';
-import { Button, Input } from '@/components/ui';
+import {Input} from '@/components/ui';
+import { SubmitButton } from '@/components/SubmitButton';
 import { HandleField } from './HandleField';
 import { ValidatedForm } from './ValidatedForm';
 import { PasswordPair } from './PasswordPair';
@@ -75,7 +76,7 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
           {signup
             ? <PasswordPair />
             : <Input className="mt-2" name="password" type="password" maxLength={100} required placeholder="password" autoComplete="current-password" />}
-          <Button variant="blockPrimary">{signup ? 'Sign up' : 'Log in'}</Button>
+          <SubmitButton variant="blockPrimary" pendingLabel={signup ? 'Signing up…' : 'Logging in…'}>{signup ? 'Sign up' : 'Log in'}</SubmitButton>
         </ValidatedForm>
         {!signup && (
           <p className="mt-3 text-center text-[12.5px] text-ink-soft">

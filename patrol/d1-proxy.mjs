@@ -37,15 +37,26 @@ for (const k of Object.keys(process.env)) if (/TOKEN|SECRET|KEY|PAT$|PASSWORD/i.
 const LIMITS = { statementsPerLifetime: 5000, rowDeletes: 10, reactionDeletes: 60, bodyBytes: 2_000_000, upstreamChunk: 40 };
 const counters = { statements: 0, rowDeletes: 0, reactionDeletes: 0, refused: 0 };
 
-// ── SQL statement splitting (respects '...' literals with '' escapes) ──────────
+// ── SQL statement splitting ────────────────────────────────────────────────────
+// Only a `;` outside quotes ends a statement. Comments are not skipped here on purpose: a `;` hidden
+// inside one would split the text in a place SQLite wouldn't, so instead the fragments keep their
+// comment markers and check() refuses them. Splitting is deliberately naive and fails closed.
 function splitStatements(sql) {
   const out = [];
-  let cur = '', inStr = false;
+  let cur = '';
   for (let i = 0; i < sql.length; i++) {
     const ch = sql[i];
-    if (inStr) { cur += ch; if (ch === "'") { if (sql[i + 1] === "'") { cur += "'"; i++; } else inStr = false; } continue; }
-    if (ch === "'") { inStr = true; cur += ch; continue; }
-    if (ch === '-' && sql[i + 1] === '-') { while (i < sql.length && sql[i] !== '\n') i++; continue; } // line comment
+    if (ch === "'" || ch === '"' || ch === '`' || ch === '[') {
+      const close = ch === '[' ? ']' : ch;
+      cur += ch;
+      for (i++; i < sql.length; i++) {
+        cur += sql[i];
+        if (sql[i] !== close) continue;
+        if (close === "'" && sql[i + 1] === "'") { cur += "'"; i++; continue; } // '' escape
+        break;
+      }
+      continue;
+    }
     if (ch === ';') { if (cur.trim()) out.push(cur.trim()); cur = ''; continue; }
     cur += ch;
   }
@@ -53,13 +64,31 @@ function splitStatements(sql) {
   return out;
 }
 
-// Strip string literals so keyword/table checks can't be fooled by quoted text (post bodies contain anything).
+// Strip string literals, quoted identifiers and comments, so keyword/table/paren checks can't be fooled
+// by quoted text (post bodies contain anything) or by a comment that hides or fakes a parenthesis.
+// Returns null if the statement contains a comment at all — a patrol never needs one, and allowing them
+// only creates room for the parser and SQLite to disagree about where a statement really ends.
 function skeleton(stmt) {
-  let out = '', inStr = false;
+  let out = '';
   for (let i = 0; i < stmt.length; i++) {
     const ch = stmt[i];
-    if (inStr) { if (ch === "'") { if (stmt[i + 1] === "'") i++; else inStr = false; } continue; }
-    if (ch === "'") { inStr = true; out += "''"; continue; }
+    if (ch === "'") { // string literal, '' escapes
+      out += "''";
+      for (i++; i < stmt.length; i++) {
+        if (stmt[i] !== "'") continue;
+        if (stmt[i + 1] === "'") { i++; continue; }
+        break;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === '`' || ch === '[') { // quoted identifier — blank it out, keep a placeholder
+      const close = ch === '[' ? ']' : ch;
+      out += 'q';
+      for (i++; i < stmt.length && stmt[i] !== close; i++);
+      continue;
+    }
+    if (ch === '-' && stmt[i + 1] === '-') return null; // line comment
+    if (ch === '/' && stmt[i + 1] === '*') return null; // block comment
     out += ch;
   }
   return out.replace(/\s+/g, ' ').trim();
@@ -106,6 +135,7 @@ function topLevelVerbs(sk) {
 /** Returns { ok:true, sql } (possibly rewritten with a guard) or { ok:false, reason }. */
 function check(stmt) {
   const sk = skeleton(stmt);
+  if (sk === null) return { ok: false, reason: 'SQL comments are not allowed' };
   if (DENY_ANYWHERE.test(sk)) return { ok: false, reason: 'denied keyword/table' };
   // whole-row reads of users would expose email/password_hash — but COUNT(*) is fine
   if (/\busers\b/i.test(sk) && /\bSELECT\s+\*|\b[a-z_]+\.\*/i.test(sk)) return { ok: false, reason: 'SELECT * over users' };

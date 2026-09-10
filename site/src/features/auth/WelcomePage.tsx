@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
-import { Button } from '@/components/ui';
+
+import { SubmitButton } from '@/components/SubmitButton';
 import { HandleField } from './HandleField';
 import { ValidatedForm } from './ValidatedForm';
 
@@ -32,7 +33,7 @@ export async function WelcomePage({ searchParams }: { searchParams: Promise<{ er
         <ValidatedForm action="/api/me/handle">
           <input type="hidden" name="back" value="welcome" />
           <HandleField defaultValue={user.handle} placeholder="your handle" />
-          <Button variant="blockPrimary">Save and enter the town</Button>
+          <SubmitButton variant="blockPrimary" pendingLabel="Saving…">Save and enter the town</SubmitButton>
         </ValidatedForm>
       </div>
       <p className="mt-3 text-[13px] text-ink-soft">

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Button, Input } from '@/components/ui';
+import {Input} from '@/components/ui';
+import { SubmitButton } from '@/components/SubmitButton';
 import { ValidatedForm } from './ValidatedForm';
 import { PasswordPair } from './PasswordPair';
 
@@ -22,7 +23,7 @@ export async function ResetPage({ searchParams }: { searchParams: Promise<{ toke
         <ValidatedForm action="/api/auth/reset">
           <input type="hidden" name="token" value={token} />
           <PasswordPair />
-          <Button variant="blockPrimary">Set password</Button>
+          <SubmitButton variant="blockPrimary" pendingLabel="Saving…">Set password</SubmitButton>
         </ValidatedForm>
       </div>
       <p className="mt-3 text-[13px] text-ink-soft">

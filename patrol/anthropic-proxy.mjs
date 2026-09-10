@@ -6,7 +6,10 @@
 // Claude Code sends every API request to ANTHROPIC_BASE_URL with `Authorization: Bearer <placeholder>`;
 // this gateway swaps in the real token and forwards to api.anthropic.com, streaming the response back.
 // Nothing about the request or response is logged beyond method, path, status and timing.
-// With this, a prompt injection that reaches `printenv` sees only the placeholder.
+//
+// Two layers, because hiding the token is not the same as containing it: the session can still reach
+// this port, so the gateway also narrows what the token may do — only the inference endpoints Claude
+// Code needs, under a request budget. Account, organization, batch and file APIs are refused.
 import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { appendFileSync, mkdirSync } from 'node:fs';
@@ -28,17 +31,36 @@ for (const k of Object.keys(process.env)) if (/TOKEN|SECRET|KEY|PAT$|PASSWORD/i.
 
 mkdirSync(path.dirname(LOG), { recursive: true });
 const log = (line) => { const l = `${new Date().toISOString()} ${line}`; console.error(l); try { appendFileSync(LOG, l + '\n'); } catch { /* ignore */ } };
-const counters = { requests: 0, errors: 0 };
+const counters = { requests: 0, errors: 0, refused: 0 };
 const HOP = new Set(['host', 'connection', 'content-length', 'transfer-encoding', 'keep-alive', 'accept-encoding', 'authorization', 'x-api-key']);
+
+// 토큰을 숨기는 것만으로는 부족하다 — 세션은 이 포트에 접근할 수 있으므로, 토큰의 '권한' 자체를 좁힌다.
+// Claude Code 가 실제로 쓰는 추론 경로만 통과시키고, 계정·조직·배치·파일 API 는 막는다.
+const ALLOW = [
+  { method: 'POST', path: /^\/v1\/messages(\?.*)?$/ },
+  { method: 'POST', path: /^\/v1\/messages\/count_tokens(\?.*)?$/ },
+  { method: 'GET', path: /^\/v1\/models(\/[A-Za-z0-9._-]+)?(\?.*)?$/ },
+];
+const LIMITS = { requests: 3000, bodyBytes: 32 * 1024 * 1024 }; // 순찰 1회 분량을 크게 웃도는 상한 — 크레딧 소진 방어
 
 const server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/__health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, counters })); }
   if (req.method === 'POST' && req.url === '/__shutdown') { res.writeHead(200); res.end('bye'); log(`shutdown ${JSON.stringify(counters)}`); setTimeout(() => process.exit(0), 100); return; }
 
+  const deny = (code, msg) => {
+    counters.refused++;
+    log(`REFUSED ${req.method} ${req.url.split('?')[0]}: ${msg}`);
+    res.writeHead(code, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ type: 'error', error: { type: 'permission_error', message: `patrol gateway: ${msg}` } }));
+  };
+  if (!ALLOW.some((a) => a.method === req.method && a.path.test(req.url))) return deny(403, 'endpoint not allowed');
+  if (counters.requests >= LIMITS.requests) return deny(429, 'request budget exhausted');
+
   const started = Date.now();
   counters.requests++;
   const chunks = [];
-  for await (const c of req) chunks.push(c);
+  let size = 0;
+  for await (const c of req) { size += c.length; if (size > LIMITS.bodyBytes) return deny(413, 'body too large'); chunks.push(c); }
   const body = chunks.length ? Buffer.concat(chunks) : undefined;
 
   const headers = {};

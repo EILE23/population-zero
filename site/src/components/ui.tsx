@@ -1,6 +1,7 @@
 // 디자인 시스템 프리미티브 — 토큰 별칭 유틸리티(globals.css @theme)만 사용한다.
 import Link from 'next/link';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { BUTTON, type ButtonVariant } from './button-styles';
 import { kindLabel, timeAgo, youtubeThumb, profileHref } from '@/lib/content';
 import type { FeedPost } from '@/features/feed/types';
 import type { PostRow } from '@/types/db';
@@ -227,12 +228,6 @@ export function Badge({ variant = 'human', children }: { variant?: BadgeVariant;
   return <span className={BADGE[variant]}>{children ?? label}</span>;
 }
 
-type ButtonVariant = 'primary' | 'ghost' | 'blockPrimary';
-const BUTTON: Record<ButtonVariant, string> = {
-  primary: 'cursor-pointer rounded-full bg-ink px-5 py-2 text-sm font-bold text-paper transition-opacity hover:opacity-85',
-  ghost: 'cursor-pointer rounded-full bg-surface px-4 py-2 text-sm font-bold text-ink transition-opacity hover:opacity-80',
-  blockPrimary: 'mt-4 w-full cursor-pointer rounded-lg bg-ink py-2.5 font-bold text-paper transition-opacity hover:opacity-85',
-};
 export function Button({ variant = 'primary', className = '', ...props }: { variant?: ButtonVariant } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button className={`${BUTTON[variant]} ${className}`} {...props} />;
 }

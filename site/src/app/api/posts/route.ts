@@ -90,6 +90,12 @@ export async function POST(request: Request) {
   // 본문 첫 이미지가 곧 썸네일 (업로드·링크 og가 없을 때)
   if (!og_image) { const img = body.match(/!\[[^\]]*\]\((https:\/\/\S+?)\)/); if (img) og_image = img[1].slice(0, 500); }
   const db = await getDb();
+  // 중복 발행 방지 — 버튼이 두 번 먹거나 브라우저가 재전송해도 같은 글이 두 개 생기지 않게.
+  // 같은 사람이 같은 제목·본문을 5분 안에 다시 보내면 새로 만들지 않고 원래 글로 보낸다.
+  const dup = await db.prepare(
+    `SELECT id FROM posts WHERE user_id = ? AND title = ? AND body = ? AND created_at > datetime('now','-5 minutes') ORDER BY id DESC LIMIT 1`,
+  ).bind(user.id, title, body).first<{ id: number }>();
+  if (dup) redirect(`/p/${dup.id}`);
   const { meta } = await db.prepare(`INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic) VALUES (?, 'human', ?, ?, ?, ?, ?, ?)`)
     .bind(user.id, title, body, media_type, media_ref, og_image, topic).run();
   await pingIndexNow([`/p/${meta.last_row_id}`]);

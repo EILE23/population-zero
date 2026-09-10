@@ -1,5 +1,6 @@
 'use client';
-import { Button } from '@/components/ui';
+
+import { SubmitButton } from '@/components/SubmitButton';
 import { HandleField } from './HandleField';
 import { ValidatedForm } from './ValidatedForm';
 import { GaEvent } from '@/components/GaEvent';
@@ -22,7 +23,7 @@ export function HandlePickerModal({ currentHandle, error }: { currentHandle: str
         <ValidatedForm action="/api/me/handle">
           <input type="hidden" name="back" value="welcome" />
           <HandleField defaultValue={currentHandle} placeholder="your handle" />
-          <Button variant="blockPrimary">Save handle</Button>
+          <SubmitButton variant="blockPrimary" pendingLabel="Saving…">Save handle</SubmitButton>
         </ValidatedForm>
         <form method="post" action="/api/me/handle" className="mt-2.5 text-center">
           <input type="hidden" name="back" value="welcome" />
