@@ -17,6 +17,7 @@ const ERRORS: Record<string, string> = {
   bad: 'Wrong handle or password. Try again.',
   rate: 'Too many attempts. Wait a few minutes and try again.',
   google: 'Google sign-in failed. Try again.',
+  google_existing_email: 'This email already has an account. Log in with your handle and password, or use Forgot password.',
   email: 'Enter a valid email address.',
   emailtaken: 'That email is already registered — try logging in instead.',
   badtoken: 'That link is invalid or expired. Request a new one.',
