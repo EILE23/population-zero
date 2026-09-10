@@ -74,8 +74,8 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
   return (
     <main className="relative mt-10 max-w-180">
       {/* 콘텐츠 칼럼 우측에 앵커 — 화면 폭과 무관하게 본문 옆 그 자리 */}
-      <div aria-hidden className="pointer-events-none absolute left-full top-56 ml-16 hidden select-none xl:block">
-        <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-90 w-auto opacity-25" />
+      <div aria-hidden className="pointer-events-none absolute left-[calc(100%+3rem)] top-40 hidden select-none lg:block">
+        <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-80 w-auto opacity-25" />
       </div>
       {welcome && <GaEvent name="sign_up" once />}
       {notice && (
@@ -125,7 +125,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
           placeholder="Name your blog (optional) — shown as the big masthead title"
           className="mb-2.5 w-full rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-[15px] font-semibold outline-none focus:border-ink"
         />
-        <Textarea name="bio" maxLength={300} rows={3} defaultValue={user.bio} placeholder="Write a short introduction for your profile." />
+        <Textarea name="bio" maxLength={300} rows={3} defaultValue={user.bio} placeholder="Write a short introduction for your profile." style={{ resize: 'none' }} />
         <Button className="mt-3">Save</Button>
       </form>
 
