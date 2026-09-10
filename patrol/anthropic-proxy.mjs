@@ -45,15 +45,22 @@ const ALLOW = [
 ];
 // 엔드포인트만 막으면 '토큰 유출'은 막아도 '크레딧 소진'은 못 막는다 — 요청 내용과 누적 사용량에도 상한을 건다.
 // 값은 정상 순찰(요청 수십 회, 출력 수만 토큰)의 10배 이상 여유를 두되, 폭주는 확실히 끊는 선.
+// 실측(2026-09-10 full 순찰): 요청 63회, 입력 22K·출력 40K 토큰. 아래 값은 그 10~30배 여유다.
 const LIMITS = {
   requests: 600,
-  bodyBytes: 32 * 1024 * 1024,
+  bodyBytes: 8 * 1024 * 1024, // 요청 하나가 이보다 크면 정상 순찰이 아니다
   maxTokensPerRequest: 64_000,
   inputTokens: 20_000_000,  // 프롬프트 캐시 재사용이 많아 입력은 크게 잡는다
   outputTokens: 1_500_000,
 };
+// 모델은 Claude 계열만 — 정확한 id 목록으로 좁히면 Claude Code 가 기본 모델을 올릴 때 순찰이 통째로 멈춘다.
+// 대신 실제로 쓰인 모델을 한 번씩 로그에 남겨, 운영 기록을 보고 나중에 좁힐 수 있게 한다.
 const MODEL_ALLOWED = /^claude-(haiku|sonnet|opus|fable|mythos)-[0-9]/;
+const seenModels = new Set();
 const usage = { input: 0, output: 0 };
+// 누적 토큰은 응답을 받아야 알 수 있어서, 예산 직전의 큰 요청 하나가 한도를 크게 넘길 수 있다.
+// 보내기 전에 본문 크기로 입력량을 어림잡아(영문·JSON 기준 대략 4바이트/토큰) 미리 막는다.
+const estimateInputTokens = (bytes) => Math.ceil(bytes / 4);
 
 // 응답에서 토큰 사용량을 읽어 누적한다. 스트리밍이면 SSE 를 훑고(전달 내용은 그대로), 아니면 JSON 을 본다.
 // 청크 경계에서 숫자가 잘리지 않도록 꼬리를 조금 남겨 이어 붙인다.
@@ -106,6 +113,12 @@ const server = createServer(async (req, res) => {
     try { payload = JSON.parse(body.toString('utf8')); } catch { return deny(400, 'unparseable request body'); }
     if (typeof payload?.model !== 'string' || !MODEL_ALLOWED.test(payload.model)) return deny(403, `model not allowed: ${String(payload?.model).slice(0, 60)}`);
     if (Number(payload?.max_tokens) > LIMITS.maxTokensPerRequest) return deny(403, `max_tokens ${payload.max_tokens} over cap ${LIMITS.maxTokensPerRequest}`);
+    // 보내기 전 어림 검사 — 응답 후 계량만으로는 마지막 한 방을 못 막는다
+    const projectedIn = usage.input + estimateInputTokens(body.length);
+    if (projectedIn > LIMITS.inputTokens) return deny(429, `projected input ${projectedIn} over budget ${LIMITS.inputTokens}`);
+    const projectedOut = usage.output + Math.min(Number(payload?.max_tokens) || 0, LIMITS.maxTokensPerRequest);
+    if (projectedOut > LIMITS.outputTokens) return deny(429, `projected output ${projectedOut} over budget ${LIMITS.outputTokens}`);
+    if (!seenModels.has(payload.model)) { seenModels.add(payload.model); log(`model in use: ${payload.model}`); }
   }
 
   const headers = {};

@@ -51,6 +51,25 @@ check('response passed through intact', body.includes('event: done') && body.inc
 check('input counted once', tokens.input === 120, ` (got ${tokens.input}, want 120)`);
 check('output counted once', tokens.output === 346, ` (got ${tokens.output}, want 346)`);
 
+// 일반(비스트리밍) JSON 응답도 정확히 한 번만 세어야 한다
+const plain = createServer((req, res) => {
+  res.writeHead(200, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({ usage: { input_tokens: 7, output_tokens: 11 } }));
+});
+await new Promise((r) => plain.listen(8803, '127.0.0.1', r));
+const proxy2 = spawn('node', [fileURLToPath(new URL('../anthropic-proxy.mjs', import.meta.url))], {
+  env: { ...process.env, PZ_ANTHROPIC_UPSTREAM: 'http://127.0.0.1:8803', PZ_ANTHROPIC_PROXY_PORT: '8804' },
+  stdio: ['pipe', 'ignore', 'ignore'],
+});
+proxy2.stdin.write(`T${NL}`);
+for (let i = 0; i < 40; i++) { try { if ((await fetch('http://127.0.0.1:8804/__health')).ok) break; } catch { /* wait */ } await new Promise((r) => setTimeout(r, 150)); }
+await (await fetch('http://127.0.0.1:8804/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 64 }) })).text();
+await new Promise((r) => setTimeout(r, 300));
+const h2 = await (await fetch('http://127.0.0.1:8804/__health')).json();
+check('non-streaming JSON counted once', h2.tokens.input === 7 && h2.tokens.output === 11, ` (in ${h2.tokens.input}, out ${h2.tokens.output})`);
+await fetch('http://127.0.0.1:8804/__shutdown', { method: 'POST' }).catch(() => {});
+plain.close();
+
 await fetch(`http://127.0.0.1:${PORT_PROXY}/__shutdown`, { method: 'POST' }).catch(() => {});
 mock.close();
 console.log(fail ? `${NL}${fail} failed` : `${NL}all passed`);
