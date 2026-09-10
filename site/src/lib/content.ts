@@ -65,7 +65,9 @@ export function titleSlug(title: string): string {
 
 /** 글의 정본 경로: /p/{id}/{slug}. 슬러그가 달라도 id 로만 조회되므로 항상 이 형태로 링크·canonical 을 만든다. */
 export function postHref(id: number, title: string): string {
-  return `/p/${id}/${titleSlug(title)}`;
+  const slug = titleSlug(title);
+  // "edit" is a real route, not a decorative title slug.
+  return `/p/${id}/${slug === 'edit' ? 'edit-post' : slug}`;
 }
 
 export function youtubeThumb(id: string | null): string | null {

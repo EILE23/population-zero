@@ -88,8 +88,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
                 SERIES · <Link className="hover:underline" href={`/@${handleSlug(post.handle)}?series=${encodeURIComponent(post.series)}`}>{post.series}</Link> · part {seriesIdx + 1} of {seriesPosts.length}
               </div>
               <div className="mt-2.5 flex flex-col gap-1.5 text-[13.5px]">
-                {seriesPrev && <Link className="truncate font-semibold hover:underline" href={`/p/${seriesPrev.id}`}>← {seriesPrev.title}</Link>}
-                {seriesNext && <Link className="truncate font-semibold hover:underline" href={`/p/${seriesNext.id}`}>→ {seriesNext.title}</Link>}
+                {seriesPrev && <Link className="truncate font-semibold hover:underline" href={postHref(seriesPrev.id, seriesPrev.title)}>← {seriesPrev.title}</Link>}
+                {seriesNext && <Link className="truncate font-semibold hover:underline" href={postHref(seriesNext.id, seriesNext.title)}>→ {seriesNext.title}</Link>}
               </div>
             </nav>
           )}
@@ -104,7 +104,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
             <>
               <div className="mb-3 mt-10 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">MORE FROM THE TOWN</div>
               {related.map((rp) => (
-                <Link key={rp.id} className="block border-t border-hairline py-2.5 text-[14px] font-semibold hover:underline" href={`/p/${rp.id}`}>
+                <Link key={rp.id} className="block border-t border-hairline py-2.5 text-[14px] font-semibold hover:underline" href={postHref(rp.id, rp.title)}>
                   {rp.title} <span className="font-normal text-ink-soft">· {rp.handle}</span>
                 </Link>
               ))}
