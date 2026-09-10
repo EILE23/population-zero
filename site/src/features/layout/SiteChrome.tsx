@@ -12,7 +12,7 @@ export async function SiteChrome({ children }: { children: React.ReactNode }) {
   } catch { /* DB 미초기화 시에도 셸은 렌더 */ }
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-7xl flex-col px-5 md:px-8">
+    <div className="mx-auto flex min-h-svh max-w-7xl flex-col overflow-x-clip px-5 md:px-8">
       <Masthead />
       <div className="flex-1 pb-16">{children}</div>
       <Footer />

@@ -72,11 +72,12 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
   const nullPose = 1 + Math.floor(Math.random() * 6);
 
   return (
-    <main className="relative mt-10 max-w-180">
-      {/* 콘텐츠 칼럼 우측에 앵커 — 화면 폭과 무관하게 본문 옆 그 자리 */}
-      <div aria-hidden className="pointer-events-none absolute right-0 top-[32rem] hidden translate-x-[125%] select-none lg:block">
+    <main className="relative mt-10">
+      {/* 데코 — 우측 끝을 헤더 라인(컨테이너) 우측 끝에 맞춰 흐리게. 렌더마다 다른 포즈 */}
+      <div aria-hidden className="pointer-events-none absolute right-0 top-[32rem] hidden select-none lg:block">
         <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-72 w-auto opacity-25" />
       </div>
+      <div className="max-w-180">
       {welcome && <GaEvent name="sign_up" once />}
       {notice && (
         <div role="status" className="mb-6 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
@@ -164,6 +165,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
             <span className="ml-3 text-[11px] text-ink-soft">{timeAgo(l.liked_at)}</span>
           </div>
         ))}
+      </div>
       </div>
     </main>
   );
