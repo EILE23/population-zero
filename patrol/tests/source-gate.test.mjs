@@ -1,52 +1,64 @@
-// 출처 게이트 — 사실형 글이 이번 실행에서 읽은 출처를 달았는지 검사한다.
-// "없는 사실을 쓰지 말라"는 최우선 규칙이 코드로 확인되는 유일한 지점이므로 회귀를 막는다.
-import { checkSources, collectedUrls } from '../source-gate.mjs';
+// 출처 게이트 — 사실형 글이 이번 실행에서 실제로 읽은 출처를 달았는지 검사한다.
+// "없는 사실을 쓰지 말라"는 최우선 규칙이 코드로 확인되는 유일한 지점이라 회귀를 막는다.
+// 검사는 일부러 정확 일치다 — 같은 매체면 통과로 두면 실재하지 않는 기사 URL 을 못 잡는다.
+import { checkSources, collectedUrls, normalizeUrl } from '../source-gate.mjs';
 
 let fail = 0;
 const check = (name, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${extra}`); if (!ok) fail++; };
-const one = (post, collected = new Set()) => checkSources([post], collected).problems;
+const one = (post, collected = new Set(), opts) => checkSources([post], collected, opts).problems;
 
-const TRENDS = { items: [{ url: 'https://www.bbc.com/news/articles/abc123' }, { url: 'https://arstechnica.com/gadgets/2026/09/thing/' }] };
-const collected = collectedUrls(TRENDS);
+const BBC = 'https://www.bbc.com/news/articles/abc123';
+const ARS = 'https://arstechnica.com/gadgets/2026/09/thing/';
+const collected = collectedUrls({ items: [{ url: BBC }, { url: ARS }] });
 
 check('trends URL 수집', collected.size === 2, ` (${collected.size})`);
 
+// ── URL 정규화 ──
+check('www·끝슬래시 차이를 흡수', normalizeUrl('https://www.bbc.com/news/articles/abc123/') === normalizeUrl(BBC));
+check('추적 파라미터를 무시', normalizeUrl(`${BBC}?utm_source=x&fbclid=y`) === normalizeUrl(BBC));
+check('앵커를 무시', normalizeUrl(`${BBC}#section2`) === normalizeUrl(BBC));
+check('다른 기사는 다르게 본다', normalizeUrl('https://www.bbc.com/news/articles/zzz999') !== normalizeUrl(BBC));
+
 // ── 통과해야 하는 것 ──
-check('개인 이야기 글 (factual_claims: false)', one({ title: 'lost my keys again', kind: 'post', factual_claims: false, body: 'no links here' }).length === 0);
+check('개인 이야기 글 (factual_claims: false)', one({ title: 'lost my keys again', kind: 'post', factual_claims: false, body: 'no links' }).length === 0);
 check('소설은 검사 대상 아님', one({ title: 'chapter 3', kind: 'fiction' }).length === 0);
 check('사실형 + 수집 출처 + 본문 노출', one({
   title: 'the ruling explained', kind: 'report', factual_claims: true,
-  sources: ['https://www.bbc.com/news/articles/abc123'],
-  body: 'source: https://www.bbc.com/news/articles/abc123',
+  sources: [BBC], body: `source: ${BBC}`,
 }, collected).length === 0);
 check('sources 를 객체로 줘도 인정', one({
   title: 'x', kind: 'report', factual_claims: true,
-  sources: [{ url: 'https://arstechnica.com/gadgets/2026/09/thing/', title: 't' }],
-  media_type: 'link', media_ref: 'https://arstechnica.com/gadgets/2026/09/thing/',
+  sources: [{ url: ARS, title: 't' }], media_type: 'link', media_ref: ARS,
 }, collected).length === 0);
-check('같은 매체의 다른 기사도 인정 (호스트 일치)', one({
-  title: 'x', kind: 'report', factual_claims: true,
-  sources: ['https://www.bbc.com/news/articles/zzz999'],
-  og_from: 'https://www.bbc.com/news/articles/zzz999',
+check('og_from 으로 노출해도 인정', one({
+  title: 'x', kind: 'report', factual_claims: true, sources: [BBC], og_from: BBC,
 }, collected).length === 0);
-check('수집물이 없으면(light 순찰) 출처 대조는 건너뜀', one({
+check('추적 파라미터가 붙어도 같은 출처로 인정', one({
   title: 'x', kind: 'report', factual_claims: true,
-  sources: ['https://example.com/a'], body: 'https://example.com/a',
-}).length === 0);
+  sources: [`${BBC}?utm_source=newsletter`], body: `read: ${BBC}`,
+}, collected).length === 0);
 
 // ── 걸러야 하는 것 ──
 check('factual_claims 미표기', one({ title: 'x', kind: 'report', body: 'y' }).some((p) => p.includes('factual_claims 미표기')));
 check('사실형인데 출처 없음', one({ title: 'x', kind: 'report', factual_claims: true, body: 'trust me' }).some((p) => p.includes('sources 없음')));
 check('http 출처는 인정 안 함', one({ title: 'x', kind: 'report', factual_claims: true, sources: ['http://insecure.example/a'], body: 'a' }).some((p) => p.includes('sources 없음')));
 check('출처가 독자에게 안 보임', one({
-  title: 'x', kind: 'report', factual_claims: true,
-  sources: ['https://www.bbc.com/news/articles/abc123'], body: '링크 없는 본문',
+  title: 'x', kind: 'report', factual_claims: true, sources: [BBC], body: '링크 없는 본문',
 }, collected).some((p) => p.includes('보이지 않음')));
-check('이번 실행과 무관한 출처(지어낸 링크)', one({
+check('본문에 다른 링크만 있으면 노출로 안 쳐준다', one({
+  title: 'x', kind: 'report', factual_claims: true, sources: [BBC], body: `see ${ARS}`,
+}, collected).some((p) => p.includes('보이지 않음')));
+check('같은 매체의 다른 기사는 수집분으로 인정 안 함', one({
   title: 'x', kind: 'report', factual_claims: true,
-  sources: ['https://totally-made-up-outlet.example/story'],
-  body: 'https://totally-made-up-outlet.example/story',
-}, collected).some((p) => p.includes('무관')));
+  sources: ['https://www.bbc.com/news/articles/zzz999'], body: 'https://www.bbc.com/news/articles/zzz999',
+}, collected).some((p) => p.includes('수집분에 없음')));
+check('지어낸 매체', one({
+  title: 'x', kind: 'report', factual_claims: true,
+  sources: ['https://totally-made-up.example/story'], body: 'https://totally-made-up.example/story',
+}, collected).some((p) => p.includes('수집분에 없음')));
+check('수집 증거 자체가 없으면 사실형 글 거부', one({
+  title: 'x', kind: 'report', factual_claims: true, sources: [BBC], body: BBC,
+}, new Set(), { requireCollected: true }).some((p) => p.includes('수집 증거가 없어')));
 
 // ── 집계 ──
 const many = checkSources([

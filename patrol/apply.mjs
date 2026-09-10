@@ -165,16 +165,41 @@ for (const m of out.moderation ?? []) {
   if (m.action === 'hide_post') sql.push(`UPDATE posts SET hidden=1 WHERE id=${Number(m.post_id)};`);
   if (m.comment_id) sql.push(`UPDATE reports SET status='reviewed' WHERE comment_id=${Number(m.comment_id)};`);
 }
-// 주민끼리(또는 주민→인간)의 팔로우/언팔로우 — 관계는 고정이 아니라 변한다
-for (const f of out.follows ?? []) {
-  const t = f.target_type === 'user' ? 'user' : 'resident';
-  sql.push(`INSERT OR IGNORE INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('resident', ${Number(f.follower_resident_id)}, '${t}', ${Number(f.target_id)});`);
-  sql.push(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', ${Number(f.follower_resident_id)}, '${t}', ${Number(f.target_id)}, 'follow');`);
-}
-for (const f of out.unfollows ?? []) {
-  const t = f.target_type === 'user' ? 'user' : 'resident';
-  sql.push(`DELETE FROM follows WHERE follower_type='resident' AND follower_id=${Number(f.follower_resident_id)} AND target_type='${t}' AND target_id=${Number(f.target_id)};`);
-  sql.push(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', ${Number(f.follower_resident_id)}, '${t}', ${Number(f.target_id)}, 'unfollow');`);
+// 주민끼리(또는 주민→인간)의 팔로우/언팔로우 — 관계는 고정이 아니라 변한다.
+// 이력(follow_events)은 실제로 상태가 바뀔 때만 남긴다. 이미 팔로우 중인데 또 follow 를 적거나
+// 팔로우하지도 않은 상대를 unfollow 로 적으면, 일어나지 않은 사건이 학습 이력에 쌓인다.
+{
+  const norm = (f) => ({
+    rid: Number(f.follower_resident_id),
+    t: f.target_type === 'user' ? 'user' : 'resident',
+    tid: Number(f.target_id),
+  });
+  const adds = (out.follows ?? []).map(norm).filter((f) => f.rid > 0 && f.tid > 0);
+  const removes = (out.unfollows ?? []).map(norm).filter((f) => f.rid > 0 && f.tid > 0);
+
+  // 지금 실제로 존재하는 관계를 먼저 읽는다 (주민 팔로우는 순찰만 건드리므로 이 시점 값이 곧 진실)
+  const existing = new Set();
+  const pairs = [...adds, ...removes];
+  if (pairs.length) {
+    const rids = [...new Set(pairs.map((f) => f.rid))].join(',');
+    for (const r of await rows(`SELECT follower_id, target_type, target_id FROM follows WHERE follower_type='resident' AND follower_id IN (${rids})`)) {
+      existing.add(`${r.follower_id}:${r.target_type}:${r.target_id}`);
+    }
+  }
+  const key = (f) => `${f.rid}:${f.t}:${f.tid}`;
+
+  for (const f of adds) {
+    if (existing.has(key(f))) { console.error(`follow skipped (already following): ${f.rid} → ${f.t} ${f.tid}`); continue; }
+    existing.add(key(f));
+    sql.push(`INSERT OR IGNORE INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('resident', ${f.rid}, '${f.t}', ${f.tid});`);
+    sql.push(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', ${f.rid}, '${f.t}', ${f.tid}, 'follow');`);
+  }
+  for (const f of removes) {
+    if (!existing.has(key(f))) { console.error(`unfollow skipped (not following): ${f.rid} → ${f.t} ${f.tid}`); continue; }
+    existing.delete(key(f));
+    sql.push(`DELETE FROM follows WHERE follower_type='resident' AND follower_id=${f.rid} AND target_type='${f.t}' AND target_id=${f.tid};`);
+    sql.push(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', ${f.rid}, '${f.t}', ${f.tid}, 'unfollow');`);
+  }
 }
 
 // ── 출처 게이트 (사실형 글) ────────────────────────────────────────────────────
@@ -184,11 +209,14 @@ for (const f of out.unfollows ?? []) {
 //
 // 지금은 경고만 한다(PZ_SOURCE_GATE=enforce 면 거부). 이유: 기존 순찰 출력에는 이 필드가 없어서
 // 바로 강제하면 순찰 전체가 멈춘다. 며칠간 경고 로그로 실제 준수율을 보고 나서 강제로 올린다.
-const ENFORCE_SOURCES = process.env.PZ_SOURCE_GATE === 'enforce';
+// 기본값이 enforce 다 — 경고만 하면 문제가 있는 채로 그대로 게시된다.
+// PZ_SOURCE_GATE=warn 은 규칙을 새로 조일 때 하루이틀 관찰용으로만 쓴다.
+const ENFORCE_SOURCES = (process.env.PZ_SOURCE_GATE ?? 'enforce') !== 'warn';
 {
   let trends = null;
   try { trends = readFileSync(new URL('./trends.json', import.meta.url), 'utf8'); } catch { /* light 순찰은 트렌드를 안 읽는다 */ }
-  const { problems, checked } = checkSources(out.posts ?? [], collectedUrls(trends));
+  // light 순찰(트렌드 미수집)은 새 글을 쓰지 않는 게 원칙이라, 수집 증거 없는 사실형 글은 막는다
+  const { problems, checked } = checkSources(out.posts ?? [], collectedUrls(trends), { requireCollected: true });
   if (problems.length) {
     const head = `SOURCE GATE (${ENFORCE_SOURCES ? 'enforce' : 'warn'}): ${problems.length} problem(s)`;
     console.error(`${head}\n  - ${problems.join('\n  - ')}`);

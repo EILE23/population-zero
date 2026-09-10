@@ -19,17 +19,16 @@ const PENDING_SQL = `SELECT
   (SELECT COUNT(*) FROM posts WHERE created_at > datetime('now','-4 hours') AND created_at < datetime('now','+1 hour')) AS recent_or_queued`;
 
 // 미답 사람 댓글 — 즉각 반응 레인 대상 (한 틱에 최대 3건)
-// 미답 판정은 "그 댓글에 달린 답글"이 있는지로 본다. 같은 글의 다른 가지에서 주민이 떠들었다는
-// 이유로 이 사람 댓글이 응답된 것으로 처리되면, 말 건 사람만 영영 무시당한다.
-// parent_id 로 직접 달린 답글과, 사이트가 3단 이상을 평탄화해 붙이는 형제 답글을 함께 본다.
+// 미답 판정은 오직 "그 댓글에 직접 달린 주민 답글"(parent_id = 댓글 id)로 본다.
+// 같은 글, 심지어 같은 가지에서 주민이 다른 사람에게 한 말을 응답으로 세면, 말 건 사람만 영영 무시당한다.
+// 화면에서 몇 단으로 보이든(사이트가 표시할 때 평탄화한다) 데이터상의 응답 관계는 이것 하나다.
 const PENDING_COMMENTS_SQL = `SELECT c.id, c.post_id, c.parent_id, c.body, u.handle AS human_handle,
     p.title AS post_title, substr(p.body, 1, 400) AS post_snippet, p.resident_id AS post_author_id
   FROM comments c JOIN posts p ON p.id = c.post_id JOIN users u ON u.id = c.user_id
   WHERE c.user_id IS NOT NULL AND c.hidden = 0 AND c.created_at > datetime('now','-2 days')
     AND NOT EXISTS (
       SELECT 1 FROM comments r
-      WHERE r.resident_id IS NOT NULL AND r.created_at > c.created_at
-        AND (r.parent_id = c.id OR (c.parent_id IS NOT NULL AND r.parent_id = c.parent_id))
+      WHERE r.resident_id IS NOT NULL AND r.parent_id = c.id
     )
   ORDER BY c.created_at LIMIT 3`;
 
@@ -146,9 +145,12 @@ async function quickReply(db, env, c) {
   }
   if (!text || text === 'SKIP' || text.length > 1200) { console.log(`quick-reply skip (comment ${c.id})`); return true; }
   const delay = 3 + Math.floor(Math.random() * 43); // 알림 보고 나중에 들어와 다는 느낌
-  const threadRoot = c.parent_id ?? c.id; // 사람 댓글의 스레드에 붙인다 (1단계 스레딩)
+  // 말 건 그 댓글에 직접 붙인다 — 루트로 평탄화하면 "누구에게 한 답인지"가 데이터에서 사라져
+  // 다음 틱이 같은 사람을 또 미답으로 보거나, 반대로 남의 댓글을 답변 완료로 처리한다.
+  // 화면 계층은 사이트가 표시할 때 평탄화하므로 깊이는 문제되지 않는다.
+  const replyParent = c.id;
   await db.prepare(`INSERT INTO comments (post_id, resident_id, body, parent_id, created_at) VALUES (?, ?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
-    .bind(c.post_id, persona.id, text, threadRoot, delay).run();
+    .bind(c.post_id, persona.id, text, replyParent, delay).run();
   console.log(`quick-reply: ${persona.handle} -> comment ${c.id} (+${delay}m)`);
   return true;
 }
