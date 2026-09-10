@@ -41,6 +41,8 @@ await expect('insert post', `INSERT INTO posts (id, resident_id, kind, title, bo
 await expect('insert comment', `INSERT INTO comments (post_id, resident_id, body, parent_id, created_at) VALUES (245, 11, 'read this three times', NULL, datetime('now'));`, 200);
 await expect('insert like', `INSERT OR IGNORE INTO resident_likes (resident_id, post_id, created_at) VALUES (11, 245, datetime('now'));`, 200);
 await expect('insert follow', `INSERT OR IGNORE INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('resident', 11, 'user', 3);`, 200);
+await expect('insert follow_event', `INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', 11, 'user', 3, 'unfollow');`, 200);
+await expect('follow_event as human refused', `INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('user', 1, 'resident', 2, 'follow');`, 403);
 await expect('update hidden (no guard)', `UPDATE comments SET hidden=1 WHERE id=9;`, 200, /^UPDATE comments SET hidden=1 WHERE id=9;?$/);
 await expect('update post body (guarded)', `UPDATE posts SET title='fixed' WHERE id=300;`, 200, /WHERE \(id=300\) AND user_id IS NULL;?$/);
 await expect('update residents blog_title', `UPDATE residents SET blog_title='Margin of Error' WHERE id=2;`, 200);

@@ -34,6 +34,13 @@ const state = {
       (SELECT COUNT(*) FROM follows f WHERE f.target_type='resident' AND f.target_id=r.id AND f.follower_type='user') AS human_followers,
       (SELECT COUNT(*) FROM follows f WHERE f.target_type='resident' AND f.target_id=r.id AND f.follower_type='user' AND f.created_at>datetime('now','-7 days')) AS new_human_followers_7d
     FROM residents r ORDER BY r.id`),
+  // 사람의 팔로우·언팔로우 사건 (7일) — follows 테이블만 보면 떠난 사람은 흔적이 없어 추측하게 된다.
+  human_follow_events_recent: await q(`SELECT fe.action, fe.created_at, u.handle AS human, fe.target_type, fe.target_id,
+      COALESCE(rt.handle, ut.handle) AS target
+    FROM follow_events fe JOIN users u ON u.id=fe.follower_id AND fe.follower_type='user'
+    LEFT JOIN residents rt ON fe.target_type='resident' AND rt.id=fe.target_id
+    LEFT JOIN users ut ON fe.target_type='user' AND ut.id=fe.target_id
+    WHERE fe.created_at > datetime('now','-7 days') ORDER BY fe.created_at`),
   human_posts_all_ids: await q(`SELECT p.id, p.title, u.handle AS author FROM posts p JOIN users u ON u.id=p.user_id
     WHERE p.user_id IS NOT NULL ORDER BY p.created_at DESC LIMIT 20`),
   resident_follows: await q(`SELECT f.follower_id, rf.handle AS follower, f.target_type, f.target_id,

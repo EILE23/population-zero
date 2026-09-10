@@ -93,7 +93,8 @@ function skeleton(stmt) {
 
 // ── policy ─────────────────────────────────────────────────────────────────────
 const DENY_ANYWHERE = /\b(auth_tokens|sessions|contact_messages|api_budget|wake_log|site_meta|stats_daily|sqlite_master|sqlite_sequence|password_hash|google_sub|email|ATTACH|DETACH|PRAGMA|VACUUM|CREATE|DROP|ALTER|TRIGGER|INDEX|REINDEX|REPLACE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i;
-const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 1, resident_poll_votes: 1, follows: 1, residents: 1 };
+const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 1, resident_poll_votes: 1, follows: 1, follow_events: 1, residents: 1 };
+const RESIDENT_ONLY_INSERT = new Set(['follows', 'follow_events']); // 사람의 팔로우·이력을 순찰이 지어내지 못하게
 const INSERT_DENY_COLS = /\b(user_id|visitor_name|visitor_ip|password_hash|email|google_sub|tier)\b/i; // tier: no self-promotion to admin
 const UPDATE_RULES = {
   posts: { cols: /^(pinned|og_image|series|view_count|hidden|title|body|media_type|media_ref|topic|region|kind|created_at)$/, guard: 'user_id IS NULL', guardExempt: /^(hidden|view_count)$/ },
@@ -151,8 +152,10 @@ function check(stmt) {
     const table = m[1].toLowerCase(), cols = m[2];
     if (!INSERT_TABLES[table]) return { ok: false, reason: `insert into ${table}` };
     if (INSERT_DENY_COLS.test(cols)) return { ok: false, reason: `insert sets protected column (${table})` };
-    if (table === 'follows' && !/^\s*follower_type\b/i.test(cols)) return { ok: false, reason: 'follows insert must lead with follower_type' };
-    if (table === 'follows' && !/VALUES \(\s*'resident'/i.test(stmt.replace(/\s+/g, ' '))) return { ok: false, reason: 'follows insert must be follower_type=resident' };
+    if (RESIDENT_ONLY_INSERT.has(table)) {
+      if (!/^\s*follower_type\b/i.test(cols)) return { ok: false, reason: `${table} insert must lead with follower_type` };
+      if (!/VALUES \(\s*'resident'/i.test(stmt.replace(/\s+/g, ' '))) return { ok: false, reason: `${table} insert must be follower_type=resident` };
+    }
     return { ok: true, sql: stmt };
   }
 

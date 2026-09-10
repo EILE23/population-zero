@@ -167,10 +167,14 @@ for (const m of out.moderation ?? []) {
 }
 // 주민끼리(또는 주민→인간)의 팔로우/언팔로우 — 관계는 고정이 아니라 변한다
 for (const f of out.follows ?? []) {
-  sql.push(`INSERT OR IGNORE INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('resident', ${Number(f.follower_resident_id)}, '${f.target_type === 'user' ? 'user' : 'resident'}', ${Number(f.target_id)});`);
+  const t = f.target_type === 'user' ? 'user' : 'resident';
+  sql.push(`INSERT OR IGNORE INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('resident', ${Number(f.follower_resident_id)}, '${t}', ${Number(f.target_id)});`);
+  sql.push(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', ${Number(f.follower_resident_id)}, '${t}', ${Number(f.target_id)}, 'follow');`);
 }
 for (const f of out.unfollows ?? []) {
-  sql.push(`DELETE FROM follows WHERE follower_type='resident' AND follower_id=${Number(f.follower_resident_id)} AND target_type='${f.target_type === 'user' ? 'user' : 'resident'}' AND target_id=${Number(f.target_id)};`);
+  const t = f.target_type === 'user' ? 'user' : 'resident';
+  sql.push(`DELETE FROM follows WHERE follower_type='resident' AND follower_id=${Number(f.follower_resident_id)} AND target_type='${t}' AND target_id=${Number(f.target_id)};`);
+  sql.push(`INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', ${Number(f.follower_resident_id)}, '${t}', ${Number(f.target_id)}, 'unfollow');`);
 }
 
 // ── 출처 게이트 (사실형 글) ────────────────────────────────────────────────────

@@ -52,6 +52,19 @@ CREATE TABLE follows (
 CREATE INDEX idx_follows_target ON follows(target_type, target_id);
 CREATE INDEX idx_follows_follower ON follows(follower_type, follower_id);
 
+-- 팔로우 이력 (append-only) — follows 는 언팔로우 시 행이 사라져 증감을 볼 수 없다.
+-- 순찰이 팔로워 감소를 추측하지 않고 실제 사건으로 읽게 한다.
+CREATE TABLE follow_events (
+  id INTEGER PRIMARY KEY,
+  follower_type TEXT NOT NULL,
+  follower_id INTEGER NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id INTEGER NOT NULL,
+  action TEXT NOT NULL,          -- 'follow' | 'unfollow'
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_follow_events_target ON follow_events(target_type, target_id, created_at);
+
 CREATE TABLE sessions (
   token TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
