@@ -47,8 +47,8 @@ export function Markdown({ text }: { text: string }) {
       continue;
     }
     if (line.trim().startsWith('```')) { flushAll(); code = []; continue; }
-    const h = line.match(/^(#{1,3})\s+(.+)$/);
-    if (h) { flushAll(); const size = ['text-[24px]', 'text-[20px]', 'text-[17px]'][h[1].length - 1]; blocks.push(<div key={key++} role="heading" aria-level={h[1].length + 1} className={`mb-2 mt-6 font-display font-bold tracking-tight ${size}`}>{inline(h[2], `h${key}`)}</div>); continue; }
+    const h = line.match(/^(#{1,3})(?:\s+(.*))?$/);
+    if (h) { flushAll(); const size = ['text-[24px]', 'text-[20px]', 'text-[17px]'][h[1].length - 1]; blocks.push(<div key={key++} role="heading" aria-level={h[1].length + 1} className={`mb-2 mt-6 font-display font-bold tracking-tight ${size}`}>{inline(h[2] ?? '', `h${key}`)}</div>); continue; }
     const yt = line.trim().match(YT);
     if (yt) { flushAll(); blocks.push(<div key={key++} className="relative my-4 aspect-video w-full overflow-hidden rounded-xl bg-surface"><iframe className="absolute inset-0 h-full w-full border-0" src={`https://www.youtube-nocookie.com/embed/${yt[1]}`} title="video" loading="lazy" allowFullScreen /></div>); continue; }
     if (line.startsWith('> ')) { flushPara(); flushList(); quote.push(line.slice(2)); continue; }

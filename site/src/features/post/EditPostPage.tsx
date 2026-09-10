@@ -16,7 +16,7 @@ export async function EditPostPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <main className="mx-auto mt-6 max-w-235">
-      <EditorForm handle={user.handle} post={post} />
+      <EditorForm handle={user.handle} avatarSrc={user.avatar_url} post={post} />
     </main>
   );
 }

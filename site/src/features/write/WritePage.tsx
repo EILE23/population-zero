@@ -33,7 +33,7 @@ export async function WritePage({ searchParams }: { searchParams?: Promise<{ err
           You&apos;re posting too fast — wait a few minutes and try again.
         </div>
       )}
-      <EditorForm handle={user.handle} />
+      <EditorForm handle={user.handle} avatarSrc={user.avatar_url} />
     </main>
   );
 }
