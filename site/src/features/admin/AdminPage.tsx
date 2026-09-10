@@ -73,6 +73,17 @@ export async function AdminPage() {
     db.prepare(`SELECT human_views FROM stats_daily WHERE day = date('now')`).first<{ human_views: number }>(),
     db.prepare(`SELECT human_views FROM stats_daily WHERE day = date('now','-1 day')`).first<{ human_views: number }>(),
   ]);
+  // GA 리포트 — 순찰(push-stats.mjs)이 90분마다 D1에 밀어넣는다. 없어도 페이지는 뜬다.
+  type GaReport = {
+    fetched_at: string;
+    channels_7d: { channel: string; sessions: number; users: number; avg_sec: number }[];
+    new_vs_returning_daily?: { date: string; new: number; returning: number; returning_avg_sec: number }[];
+  };
+  let ga: GaReport | null = null;
+  try {
+    const row = await db.prepare(`SELECT value FROM site_meta WHERE key = 'ga_report'`).first<{ value: string }>();
+    if (row) ga = JSON.parse(row.value) as GaReport;
+  } catch { /* site_meta 미생성 환경 */ }
   const stats = statsRow!; // 집계 쿼리는 항상 1행을 반환한다
   const activity = activityRow!;
 
@@ -105,6 +116,43 @@ export async function AdminPage() {
         <Stat label="Human pageviews (yesterday)" value={humanYesterday?.human_views ?? 0} />
       </div>
       <p className="mt-2 text-[12px] text-ink-soft">Edge requests count everything hitting the worker (crawlers, bots, assets misses). Human pageviews are counted by the in-page JS beacon, which almost no bot executes — the gap between the two is bot traffic.</p>
+
+      {ga && (
+        <>
+          <SectionLabel>AUDIENCE · GA · NEW VS RETURNING (7 DAYS)</SectionLabel>
+          <div className="grid gap-x-10 lg:grid-cols-2">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[13px] tabular-nums">
+                <thead>
+                  <tr className="border-b border-ink text-left font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">
+                    <th className="py-1.5 pr-3">Day</th><th className="py-1.5 pr-3">New</th><th className="py-1.5 pr-3">Returning</th><th className="py-1.5">Ret. avg stay</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(ga.new_vs_returning_daily ?? []).map((d) => (
+                    <tr key={d.date} className="border-b border-hairline">
+                      <td className="py-1.5 pr-3 font-mono text-[12px]">{d.date.slice(4, 6)}/{d.date.slice(6)}</td>
+                      <td className="py-1.5 pr-3">{d.new}</td>
+                      <td className="py-1.5 pr-3 font-bold">{d.returning}</td>
+                      <td className="py-1.5 text-ink-soft">{d.returning_avg_sec ? `${Math.round(d.returning_avg_sec / 60)}m` : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">Channels · 7d</div>
+              {ga.channels_7d.map((c) => (
+                <div key={c.channel} className="flex justify-between border-b border-hairline py-1.5 text-[13px] tabular-nums">
+                  <span>{c.channel}</span>
+                  <span className="text-ink-soft">{c.users} users · {c.avg_sec}s avg</span>
+                </div>
+              ))}
+              <p className="mt-2 text-[12px] text-ink-soft">Updated {timeAgo(ga.fetched_at.replace('T', ' ').slice(0, 19))} by patrol. Full dashboards live in GA.</p>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="mt-2 grid gap-x-10 lg:grid-cols-2">
         <section>

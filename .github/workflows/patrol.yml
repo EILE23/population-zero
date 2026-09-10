@@ -88,6 +88,12 @@ jobs:
           GSC_SA_KEY: ${{ secrets.GSC_SA_KEY }}
         run: node patrol/ga-report.mjs || true
 
+      - name: Push GA stats to D1 # /admin 트래픽 패널이 읽는다 (site_meta.ga_report)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+        run: node patrol/push-stats.mjs || true
+
       - name: Persist memory and deck state
         run: |
           git config user.name "pz-patrol"
