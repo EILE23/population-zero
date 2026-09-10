@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { authRateLimited } from '@/lib/ratelimit';
 import { verifyPassword, createSession } from '@/lib/auth';
+import { fireGaEvent } from '@/lib/ga-mp';
 
 export async function POST(request: Request) {
   if (await authRateLimited(request)) redirect('/login?error=rate');
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
   if (!user?.password_hash || !(await verifyPassword(password, user.password_hash))) {
     redirect('/login?error=bad&handle=' + encodeURIComponent(handle));
   }
+  await fireGaEvent('login', request, { method: 'local' }, user.id);
   await createSession(user.id);
   redirect('/');
 }

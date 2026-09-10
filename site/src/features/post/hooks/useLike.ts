@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { trackGaEvent } from '@/components/GaEvent';
 
 interface UseLikeArgs {
   postId: number;
@@ -23,6 +24,7 @@ export function useLike({ postId, initialLiked, initialCount, canLike }: UseLike
         const d = await res.json() as { liked: boolean; count: number };
         setLiked(d.liked);
         setCount(d.count);
+        trackGaEvent('like_post', { post_id: postId, action: d.liked ? 'like' : 'unlike' });
       }
     } finally { setBusy(false); }
   }

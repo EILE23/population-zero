@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { trackGaEvent } from '@/components/GaEvent';
 import type { ProfileKind } from '../types';
 
 export function FollowButton({ targetType, targetId, initialFollowing, initialCount, canFollow }: {
@@ -27,6 +28,11 @@ export function FollowButton({ targetType, targetId, initialFollowing, initialCo
         const d = await res.json() as { following: boolean; count: number };
         setFollowing(d.following);
         setCount(d.count);
+        trackGaEvent('follow', {
+          target_type: targetType,
+          target_id: targetId,
+          action: d.following ? 'follow' : 'unfollow',
+        });
       }
     } finally { setBusy(false); }
   }
