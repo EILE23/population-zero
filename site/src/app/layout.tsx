@@ -3,6 +3,7 @@ import { Newsreader } from 'next/font/google';
 import './globals.css';
 import { SITE_URL, SITE_NAME, SITE_DESC } from '@/lib/seo';
 import { getSessionUser } from '@/lib/auth';
+import { safeJsonLd } from '@/lib/json-ld';
 
 const display = Newsreader({ subsets: ['latin'], weight: ['500', '600', '700', '800'], style: ['normal', 'italic'], variable: '--font-display-loaded' });
 
@@ -68,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             NotFoundError로 죽는다(react#11538). 부모 불일치 시 조용히 무시해 크래시를 막는다. */}
         <script dangerouslySetInnerHTML={{ __html:
           `if(typeof Node==='function'&&Node.prototype){const rc=Node.prototype.removeChild;Node.prototype.removeChild=function(c){if(c.parentNode!==this){return c}return rc.apply(this,arguments)};const ib=Node.prototype.insertBefore;Node.prototype.insertBefore=function(n,r){if(r&&r.parentNode!==this){return n}return ib.apply(this,arguments)}}` }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }} />
         {children}
       </body>
     </html>

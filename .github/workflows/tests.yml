@@ -3,13 +3,13 @@ name: tests
 
 on:
   push:
-    paths: ['patrol/**', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/lib/**', 'site/tests/**', '.github/workflows/tests.yml']
   pull_request:
-    paths: ['patrol/**', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/lib/**', 'site/tests/**', '.github/workflows/tests.yml']
   workflow_dispatch:
 
 jobs:
-  patrol-guards:
+  guards:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -19,3 +19,10 @@ jobs:
           node-version: 22
       - name: Run patrol guard tests
         run: node patrol/tests/run.mjs
+      # 사이트 쪽 순수 함수 테스트 — 타입 스트리핑으로 .ts 를 그대로 불러온다 (빌드 불필요)
+      - name: Run site unit tests
+        run: |
+          for t in site/tests/*.test.mjs; do
+            echo "── $t"
+            node --experimental-strip-types "$t"
+          done

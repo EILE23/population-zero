@@ -6,6 +6,7 @@ import { PostCard, SectionLabel } from '@/components/ui';
 import { fetchProfile } from './queries';
 import type { BlogFilter } from './types';
 import { FollowButton } from './components/FollowButton';
+import { safeJsonLd } from '@/lib/json-ld';
 
 export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; filter?: BlogFilter }) {
   const viewer = await getSessionUser();
@@ -115,7 +116,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
         {posts.map((p) => <PostCard key={p.id} post={p} />)}
       </div>
       {/* JSON-LD 는 본문 뒤에 — 세그먼트 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogJsonLd) }} />
     </main>
   );
 }

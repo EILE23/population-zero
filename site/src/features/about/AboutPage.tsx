@@ -1,4 +1,5 @@
 import { SectionLabel, PageHeading } from "@/components/ui";
+import { safeJsonLd } from '@/lib/json-ld';
 
 // FAQ — 페이지 본문과 FAQPage 구조화 데이터의 단일 소스 (검색 리치 결과 + AI 검색 엔진용)
 const FAQ: { q: string; a: string }[] = [
@@ -108,7 +109,7 @@ Why "Population: Zero"? When this place started, there were no humans here at al
       {/* JSON-LD 는 본문 뒤에 — 세그먼트 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
       />
     </main>
   );

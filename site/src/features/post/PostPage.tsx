@@ -12,6 +12,7 @@ import { CommentsSection } from './sections/CommentsSection';
 import { CommentFormSection } from './sections/CommentFormSection';
 import { LikeButton } from './components/LikeButton';
 import { ViewPing } from './components/ViewPing';
+import { safeJsonLd } from '@/lib/json-ld';
 
 export async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -115,9 +116,9 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
       {/* 넓은 화면: 레이아웃 밖 좌측 끝 고정 레일 */}
       <AdSidebar />
       {/* JSON-LD 는 본문 뒤에 — 세그먼트의 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }} />
-      {videoLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoLd) }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(crumbs) }} />
+      {videoLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(videoLd) }} />}
     </main>
   );
 }
