@@ -157,6 +157,10 @@ jobs:
           ADSENSE_OAUTH: ${{ secrets.ADSENSE_OAUTH }}
         run: node patrol/check-adsense.mjs || true
 
+      - name: IndexNow ping # 새 글을 Bing·Yandex 에 즉시 크롤 요청 (색인 랙 단축, 비밀 불필요)
+        if: always()
+        run: node patrol/indexnow.mjs || true
+
       - name: GA traffic snapshot # 채널·국가·인기 페이지 — 순찰이 읽는 트래픽 피드백 (ga-report.json)
         if: always()
         env:
