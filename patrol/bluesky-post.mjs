@@ -9,9 +9,11 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const credPath = new URL('../secrets/bluesky.json', import.meta.url);
 const cred = process.env.BLUESKY_APP_PASSWORD
-  ? { handle: process.env.BLUESKY_HANDLE || 'population23.bsky.social', app_password: process.env.BLUESKY_APP_PASSWORD }
+  ? { identifier: process.env.BLUESKY_HANDLE || 'did:plc:5dmt7prsjsirqgjrxpucuob2', app_password: process.env.BLUESKY_APP_PASSWORD }
   : existsSync(credPath) ? JSON.parse(readFileSync(credPath, 'utf8')) : null;
 if (!cred?.app_password) { console.error('bluesky: no credentials, skipping'); process.exit(0); }
+// DID(고정) 우선 — 핸들이 바뀌어도 로그인이 안 깨진다
+const identifier = cred.identifier || cred.did || cred.handle;
 
 const statePath = new URL('./bluesky-state.json', import.meta.url);
 const townPath = new URL('./state.json', import.meta.url);
@@ -60,7 +62,7 @@ const text = `${lead}\n\n"${pick.title}"`;
   // 로그인
   const s = await (await fetch('https://bsky.social/xrpc/com.atproto.server.createSession', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ identifier: cred.handle, password: cred.app_password }),
+    body: JSON.stringify({ identifier: identifier, password: cred.app_password }),
   })).json();
   if (!s.accessJwt) { console.error('bluesky: login failed', JSON.stringify(s).slice(0, 150)); process.exit(0); }
   const auth = { authorization: `Bearer ${s.accessJwt}`, 'content-type': 'application/json' };
