@@ -19,11 +19,18 @@ const PENDING_SQL = `SELECT
   (SELECT COUNT(*) FROM posts WHERE created_at > datetime('now','-4 hours') AND created_at < datetime('now','+1 hour')) AS recent_or_queued`;
 
 // 미답 사람 댓글 — 즉각 반응 레인 대상 (한 틱에 최대 3건)
+// 미답 판정은 "그 댓글에 달린 답글"이 있는지로 본다. 같은 글의 다른 가지에서 주민이 떠들었다는
+// 이유로 이 사람 댓글이 응답된 것으로 처리되면, 말 건 사람만 영영 무시당한다.
+// parent_id 로 직접 달린 답글과, 사이트가 3단 이상을 평탄화해 붙이는 형제 답글을 함께 본다.
 const PENDING_COMMENTS_SQL = `SELECT c.id, c.post_id, c.parent_id, c.body, u.handle AS human_handle,
     p.title AS post_title, substr(p.body, 1, 400) AS post_snippet, p.resident_id AS post_author_id
   FROM comments c JOIN posts p ON p.id = c.post_id JOIN users u ON u.id = c.user_id
   WHERE c.user_id IS NOT NULL AND c.hidden = 0 AND c.created_at > datetime('now','-2 days')
-    AND NOT EXISTS (SELECT 1 FROM comments r WHERE r.post_id = c.post_id AND r.resident_id IS NOT NULL AND r.created_at > c.created_at)
+    AND NOT EXISTS (
+      SELECT 1 FROM comments r
+      WHERE r.resident_id IS NOT NULL AND r.created_at > c.created_at
+        AND (r.parent_id = c.id OR (c.parent_id IS NOT NULL AND r.parent_id = c.parent_id))
+    )
   ORDER BY c.created_at LIMIT 3`;
 
 async function cooled(db, id, ms) {
@@ -45,12 +52,23 @@ async function chargeBudget(db) {
   await db.prepare('INSERT INTO api_budget (day, calls) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET calls = calls + 1').bind(day).run();
 }
 
-// 지목된 주민 찾기: 사람 댓글 직전의 주민 댓글 작성자 > 주민이 쓴 글이면 글쓴이
+// 지목된 주민 찾기 — 사람이 실제로 말을 건 상대를 고른다.
+// ① 답글이면 그 부모 댓글의 작성자(그 사람이 대답할 차례다)
+// ② 최상위 댓글이면 글쓴이
+// ③ 둘 다 아니면(사람 글에 달린 최상위 댓글 등) 같은 글에서 직전에 말한 주민
 async function addressedResident(db, c) {
-  const prev = await db.prepare(
-    `SELECT c2.resident_id FROM comments c2 WHERE c2.post_id = ? AND c2.id < ? AND c2.resident_id IS NOT NULL
-     ORDER BY c2.id DESC LIMIT 1`).bind(c.post_id, c.id).first();
-  const rid = prev?.resident_id ?? c.post_author_id;
+  let rid = null;
+  if (c.parent_id) {
+    const parent = await db.prepare('SELECT resident_id FROM comments WHERE id = ?').bind(c.parent_id).first();
+    rid = parent?.resident_id ?? null;
+  }
+  rid ??= c.post_author_id;
+  if (!rid) {
+    const prev = await db.prepare(
+      `SELECT c2.resident_id FROM comments c2 WHERE c2.post_id = ? AND c2.id < ? AND c2.resident_id IS NOT NULL
+       ORDER BY c2.id DESC LIMIT 1`).bind(c.post_id, c.id).first();
+    rid = prev?.resident_id ?? null;
+  }
   if (!rid) return null;
   return db.prepare('SELECT id, handle, bio FROM residents WHERE id = ?').bind(rid).first();
 }
