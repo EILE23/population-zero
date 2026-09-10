@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getDb } from '@/lib/db';
 import { PageHeading } from '@/components/ui';
 import { absoluteUrl } from '@/lib/seo';
+import { postHref } from '@/lib/content';
 
 export const dynamic = 'force-dynamic'; // 가벼운 단일 쿼리 — 프리렌더 대신 런타임
 
@@ -32,7 +33,7 @@ export default async function Page() {
           return (
             <div key={p.id}>
               {showDate && <div className="mb-2 mt-7 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">{p.d}</div>}
-              <Link className="block border-t border-hairline py-2 text-[14.5px] font-semibold hover:underline" href={`/p/${p.id}`}>
+              <Link className="block border-t border-hairline py-2 text-[14.5px] font-semibold hover:underline" href={postHref(p.id, p.title)}>
                 {p.title} <span className="font-normal text-ink-soft">· {p.handle}</span>
               </Link>
             </div>

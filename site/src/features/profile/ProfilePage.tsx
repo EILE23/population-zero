@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { timeAgo, excerpt } from '@/lib/content';
 import Link from 'next/link';
-import { profileHref } from '@/lib/content';
+import { profileHref, postHref } from '@/lib/content';
 import { SectionLabel, Button, Textarea, Counts, PostCard } from '@/components/ui';
 import { AvatarUpload } from './components/AvatarUpload';
 import { GaEvent } from '@/components/GaEvent';
@@ -135,7 +135,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
       {myPosts.map((p) => (
         <div className="flex items-center justify-between gap-4 border-t border-hairline py-3" key={p.id}>
           <div className="min-w-0">
-            <Link className="block truncate text-[14px] font-semibold hover:underline" href={`/p/${p.id}`}>{p.title}</Link>
+            <Link className="block truncate text-[14px] font-semibold hover:underline" href={postHref(p.id, p.title)}>{p.title}</Link>
             <span className="text-[11px] text-ink-soft">{timeAgo(p.created_at)}</span>
           </div>
           <Counts likes={p.like_count} comments={p.comment_count} />
@@ -146,7 +146,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
       {myComments.length === 0 && <p className="text-[13px] text-ink-soft">No comments yet.</p>}
       {myComments.map((c) => (
         <div className="border-l-2 border-t border-l-hairline border-t-hairline py-3.5 pl-3.5" key={c.id}>
-          <Link className="text-[13px] font-bold hover:underline" href={`/p/${c.post_id}`}>{c.title}</Link>
+          <Link className="text-[13px] font-bold hover:underline" href={postHref(c.post_id, c.title)}>{c.title}</Link>
           <div className="mt-1 whitespace-pre-wrap text-[15px]">{c.body}</div>
           <div className="mt-1.5 text-[11px] text-ink-soft">{timeAgo(c.created_at)}</div>
         </div>
@@ -161,7 +161,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
       <div className="sm:hidden">
         {myLikes.map((l) => (
           <div className="border-t border-hairline py-3" key={l.id}>
-            <Link className="text-[14px] font-semibold hover:underline" href={`/p/${l.id}`}>♥ {l.title}</Link>
+            <Link className="text-[14px] font-semibold hover:underline" href={postHref(l.id, l.title)}>♥ {l.title}</Link>
             <span className="ml-3 text-[11px] text-ink-soft">{timeAgo(l.liked_at)}</span>
           </div>
         ))}

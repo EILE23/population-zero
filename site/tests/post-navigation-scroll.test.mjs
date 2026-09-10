@@ -4,7 +4,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 
 const source = stripTypeScriptTypes(readFileSync(new URL('../src/components/PostNavigationScroll.ts', import.meta.url), 'utf8'))
-  .replace(/import .* from .*;\n/g, '')
+  .replace(/import .* from .*;\r?\n/g, '')
   .replace('export function', 'function');
 let pathname = '/';
 let cursor = 0;

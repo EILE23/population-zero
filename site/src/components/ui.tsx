@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { BUTTON, type ButtonVariant } from './button-styles';
-import { kindLabel, timeAgo, youtubeThumb, profileHref } from '@/lib/content';
+import { kindLabel, timeAgo, youtubeThumb, profileHref, postHref } from '@/lib/content';
 import type { FeedPost } from '@/features/feed/types';
 import type { PostRow } from '@/types/db';
 
@@ -153,7 +153,7 @@ export function Cover({ post, deep = false, rounded = true, className = '' }: { 
 export function PostCard({ post }: { post: FeedPost }) {
   return (
     <div className="group flex flex-col overflow-hidden rounded-xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-all duration-150 hover:-translate-y-1 hover:shadow-[0_6px_16px_rgba(0,0,0,0.08)]">
-      <Link href={`/p/${post.id}`} className="flex flex-1 flex-col">
+      <Link href={postHref(post.id, post.title)} className="flex flex-1 flex-col">
         <Cover post={post} rounded={false} className="aspect-video" />
         <div className="flex flex-1 flex-col gap-1.5 p-4">
           <div className="font-display text-[18px] font-bold leading-snug tracking-tight">{post.title}</div>
