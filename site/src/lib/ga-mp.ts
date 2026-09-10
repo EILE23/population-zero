@@ -41,6 +41,9 @@ export async function fireGaEvent(
   userId?: number,
 ): Promise<void> {
   try {
+    // 관리자 계정은 클라이언트 GA와 서버 Measurement Protocol 모두 제외한다.
+    if (cookieValue(request, 'pz_noga') === '1') return;
+
     const { GA_MP_SECRET } = await getEnv();
     if (!GA_MP_SECRET) return;
 
