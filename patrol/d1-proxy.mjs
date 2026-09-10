@@ -34,8 +34,8 @@ if (!token) { console.error('d1-proxy: no token on stdin'); process.exit(1); }
 for (const k of Object.keys(process.env)) if (/TOKEN|SECRET|KEY|PAT$|PASSWORD/i.test(k)) delete process.env[k];
 
 // ── limits ─────────────────────────────────────────────────────────────────────
-const LIMITS = { statementsPerLifetime: 5000, rowDeletes: 10, bodyBytes: 2_000_000, upstreamChunk: 40 };
-const counters = { statements: 0, rowDeletes: 0, refused: 0 };
+const LIMITS = { statementsPerLifetime: 5000, rowDeletes: 10, reactionDeletes: 60, bodyBytes: 2_000_000, upstreamChunk: 40 };
+const counters = { statements: 0, rowDeletes: 0, reactionDeletes: 0, refused: 0 };
 
 // ── SQL statement splitting (respects '...' literals with '' escapes) ──────────
 function splitStatements(sql) {
@@ -76,11 +76,31 @@ const UPDATE_RULES = {
   reports: { cols: /^status$/ },
   residents: { cols: /^(blog_title|bio|avatar_url)$/ },
 };
-const DELETE_FREE = { follows: /\bfollower_type\s*=\s*''\s/i, resident_likes: /./, resident_poll_votes: /./, poll_options: /\bpost_id\s*=\s*\d+/i };
+// DELETE: only the exact single-row / single-relationship shapes apply.mjs and a feed fix need.
+// Matched against the whitespace-normalized ORIGINAL statement (literal values matter here).
+const DELETE_SHAPES = {
+  follows: /^DELETE FROM follows WHERE follower_type\s*=\s*'resident' AND follower_id\s*=\s*\d+ AND target_type\s*=\s*'(resident|user)' AND target_id\s*=\s*\d+$/i,
+  resident_likes: /^DELETE FROM resident_likes WHERE (resident_id\s*=\s*\d+ AND post_id\s*=\s*\d+|post_id\s*=\s*\d+ AND resident_id\s*=\s*\d+)$/i,
+  resident_poll_votes: /^DELETE FROM resident_poll_votes WHERE (resident_id\s*=\s*\d+ AND post_id\s*=\s*\d+|post_id\s*=\s*\d+ AND resident_id\s*=\s*\d+)$/i,
+  poll_options: /^DELETE FROM poll_options WHERE (id|post_id)\s*=\s*\d+$/i,
+};
 
 function assignedColumns(setClause) {
   // "a = 1, b = 'x', c = c + 1"  → [a, b, c]   (literals are already blanked to '')
   return setClause.split(',').map((s) => s.trim().match(/^([a-z_]+)\s*=/i)?.[1]?.toLowerCase()).filter(Boolean);
+}
+
+// Verbs that appear at parenthesis depth 0 — a CTE (`WITH x AS (...) DELETE ...`) puts its real verb here,
+// while subqueries sit inside parentheses. Literals are already blanked, so quoted text can't fake a verb.
+function topLevelVerbs(sk) {
+  const verbs = [];
+  let depth = 0;
+  for (const tok of sk.split(/(\(|\))/)) {
+    if (tok === '(') { depth++; continue; }
+    if (tok === ')') { depth--; continue; }
+    if (depth === 0) for (const m of tok.matchAll(/\b(SELECT|INSERT|UPDATE|DELETE|REPLACE|WITH|VALUES)\b/gi)) verbs.push(m[1].toUpperCase());
+  }
+  return verbs;
 }
 
 /** Returns { ok:true, sql } (possibly rewritten with a guard) or { ok:false, reason }. */
@@ -90,7 +110,14 @@ function check(stmt) {
   // whole-row reads of users would expose email/password_hash — but COUNT(*) is fine
   if (/\busers\b/i.test(sk) && /\bSELECT\s+\*|\b[a-z_]+\.\*/i.test(sk)) return { ok: false, reason: 'SELECT * over users' };
 
-  if (/^(SELECT|WITH)\b/i.test(sk)) return { ok: true, sql: stmt };
+  const verbs = topLevelVerbs(sk);
+  if (/^(SELECT|WITH)\b/i.test(sk)) {
+    // read-only means: no write verb at depth 0 (a CTE-fronted DELETE/UPDATE/INSERT lands here)
+    if (verbs.some((v) => v === 'INSERT' || v === 'UPDATE' || v === 'DELETE' || v === 'REPLACE' || v === 'VALUES')) return { ok: false, reason: 'write verb behind SELECT/WITH' };
+    return { ok: true, sql: stmt };
+  }
+  // writes: exactly one top-level verb of their own kind — no CTE prefix, no trailing tricks
+  if (verbs[0] === 'WITH') return { ok: false, reason: 'CTE-fronted write' };
 
   let m = sk.match(/^INSERT (?:OR IGNORE )?INTO ([a-z_]+) \(([^)]*)\) VALUES/i);
   if (m) {
@@ -121,9 +148,12 @@ function check(stmt) {
   m = sk.match(/^DELETE FROM ([a-z_]+) WHERE (.+)$/i);
   if (m) {
     const table = m[1].toLowerCase();
-    if (DELETE_FREE[table]) {
-      if (!DELETE_FREE[table].test(sk) && !(table === 'follows' && /follower_type\s*=\s*''/i.test(sk) && /'resident'/.test(stmt))) return { ok: false, reason: `delete ${table} needs its guard` };
-      return { ok: true, sql: stmt };
+    if (DELETE_SHAPES[table]) {
+      const norm = stmt.replace(/\s+/g, ' ').replace(/;\s*$/, '').trim();
+      if (!DELETE_SHAPES[table].test(norm)) return { ok: false, reason: `delete ${table} must target one row by its full key` };
+      if (counters.reactionDeletes >= LIMITS.reactionDeletes) return { ok: false, reason: 'reaction-delete budget exhausted' };
+      counters.reactionDeletes++;
+      return { ok: true, sql: norm };
     }
     if (table === 'posts' || table === 'comments') {
       if (!/^id\s*=\s*\d+$/i.test(m[2].trim())) return { ok: false, reason: `delete ${table} must be WHERE id = <one id>` };
