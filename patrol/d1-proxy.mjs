@@ -87,7 +87,8 @@ function assignedColumns(setClause) {
 function check(stmt) {
   const sk = skeleton(stmt);
   if (DENY_ANYWHERE.test(sk)) return { ok: false, reason: 'denied keyword/table' };
-  if (/\busers\b/i.test(sk) && /\*/.test(sk)) return { ok: false, reason: 'SELECT * over users' };
+  // whole-row reads of users would expose email/password_hash — but COUNT(*) is fine
+  if (/\busers\b/i.test(sk) && /\bSELECT\s+\*|\b[a-z_]+\.\*/i.test(sk)) return { ok: false, reason: 'SELECT * over users' };
 
   if (/^(SELECT|WITH)\b/i.test(sk)) return { ok: true, sql: stmt };
 
