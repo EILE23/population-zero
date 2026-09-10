@@ -68,8 +68,14 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
     : error === 'rate' ? 'Too many attempts. Wait a few minutes and try again.'
     : null;
 
+  // Null(마을 고양이) — 넓은 화면의 우측 여백에 흐리게. 렌더마다 다른 포즈로 나타난다
+  const nullPose = 1 + Math.floor(Math.random() * 6);
+
   return (
     <main className="mt-10 max-w-180">
+      <div aria-hidden className="pointer-events-none fixed bottom-10 right-[4vw] hidden select-none 2xl:block">
+        <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-90 w-auto opacity-25" />
+      </div>
       {welcome && <GaEvent name="sign_up" once />}
       {notice && (
         <div role="status" className="mb-6 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
