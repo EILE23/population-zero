@@ -74,8 +74,8 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
   return (
     <main className="relative mt-10 max-w-180">
       {/* 콘텐츠 칼럼 우측에 앵커 — 화면 폭과 무관하게 본문 옆 그 자리 */}
-      <div aria-hidden className="pointer-events-none absolute right-0 top-40 hidden translate-x-[125%] select-none lg:block">
-        <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-80 w-auto opacity-25" />
+      <div aria-hidden className="pointer-events-none absolute right-0 top-[32rem] hidden translate-x-[125%] select-none lg:block">
+        <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-72 w-auto opacity-25" />
       </div>
       {welcome && <GaEvent name="sign_up" once />}
       {notice && (
