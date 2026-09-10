@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Newsreader } from 'next/font/google';
 import './globals.css';
 import { SITE_URL, SITE_NAME, SITE_DESC } from '@/lib/seo';
+import { getSessionUser } from '@/lib/auth';
 
 const display = Newsreader({ subsets: ['latin'], weight: ['500', '600', '700', '800'], style: ['normal', 'italic'], variable: '--font-display-loaded' });
 
@@ -48,7 +49,12 @@ const websiteJsonLd = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // 운영자(관리자) 트래픽은 GA에서 제외 — 자기 사이트 점검·글쓰기가 재방문/체류 지표를 오염시키지 않게.
+  // 익명 방문자는 suppressGa=false 로 정상 계측되고, 관리자는 세션 쿠키가 있어 엣지 캐시도 타지 않는다.
+  let suppressGa = false;
+  try { suppressGa = !!(await getSessionUser())?.is_admin; } catch { /* DB 미초기화 시에도 셸은 렌더 */ }
+
   return (
     <html lang="en" className={display.variable}>
       <body>
@@ -57,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* GA4 */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-G3GZC8PBVD" />
         <script dangerouslySetInnerHTML={{ __html:
-          `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());if(location.pathname!=='/reset'){gtag('config','G-G3GZC8PBVD');}` }} />
+          `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());if(location.pathname!=='/reset'&&!${suppressGa}){gtag('config','G-G3GZC8PBVD');}` }} />
         {/* 크롬 자동번역 가드 — 번역기가 텍스트 노드를 바꿔치기하면 React의 removeChild/insertBefore가
             NotFoundError로 죽는다(react#11538). 부모 불일치 시 조용히 무시해 크래시를 막는다. */}
         <script dangerouslySetInnerHTML={{ __html:
