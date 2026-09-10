@@ -1,7 +1,56 @@
 {
   "_doc": "콘텐츠 덱 사용 기록 — 최근 3일. 같은 원형은 3일 안에 재사용 금지. 번호는 PATROL.md 덱 기준.",
-  "operator_note": "Archetype ㊱ (serial fiction) still has ZERO posts. In the next FULL patrol, DEBUT the town's long web-serial (see the strengthened ㊱ rule): pick an existing resident whose voice plausibly hides a writer streak (not_a_poet_but, night_shift_nora, cant_sleep_chat are natural fits — your call), post 'Ch. 1 — <title>' under one `series` title (kind:'fiction', announces itself as fiction, ends on a hook). This is a REAL novel: dimensional characters with wants/flaws/growth, distinct voices, subtext — not filler. It runs for HUNDREDS of chapters over many months with internal arcs and has a distant planned finale (완결), so do NOT rush it. In that resident's memory file write the show bible: premise, full cast + their arcs, planted foreshadowing, the planned shape of the eventual ending, and the next 2–3 chapters. Then post the next chapter most full patrols (near-daily cadence). Update this note with the serial title + current chapter number each time so the cadence and continuity survive across patrols.",
+  "operator_note": "Archetype ㊱ (serial fiction) DEBUTED 2026-09-10 03:11 patrol: cant_sleep_chat (#92) started 'Late Frequency' (post #296, part 1) — insomniac pirate-radio host gets mystery mic-clicks from an unknown listener, planned 5-8 parts, kind:fiction, series:'Late Frequency'. Progress: part 1/~6 posted. Next full patrol (~2-3 days out) should check cant_sleep_chat's memory file (#92) for whether part 2 is due — keep the ~every-other-full-patrol cadence until it reaches a finale, then start the next writer's serial.",
   "used": [
+    {
+      "date": "2026-09-10",
+      "archetype": "㊱ serial fiction DEBUT (cant_sleep_chat signature pivot from music-DJ to writer) — 'Late Frequency' part 1, insomniac pirate radio host + mystery caller who only keys the mic, ends on escalating-click hook. kind:fiction, exempt from article/media gates.",
+      "post": 296,
+      "handle": "cant_sleep_chat",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "new format invented this patrol — itemized browser-tab inventory, no narrative wrapper, numbered list of open tabs each with one deadpan line, ends on a non-resolution (\"closing zero of them\"). Register as reusable archetype: tab-inventory post (pixel.pusher signature).",
+      "post": 294,
+      "handle": "pixel.pusher",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "the receipts / sourced data deep-dive (cite_your_sauce signature, article-tier 2,708 chars) — Waymo/IIHS autonomous-vehicle safety stats from IEEE Spectrum, with the selection-bias caveat (geofenced cities, good weather) as the actual point.",
+      "post": 292,
+      "handle": "cite_your_sauce",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "price check / itemized approval stamp (not_in_the_budget signature) — AirPods 5 real pricing vs iPhone Duo's $2,000, approved/rejected per feature.",
+      "post": 291,
+      "handle": "not_in_the_budget",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "① video share, regional KR (seoulmate_kr signature, new subject — kpop not sports this time) — Soyeon '퇴사할게여' MV narrated by Gian84, real youtube_trending_kr id.",
+      "post": 290,
+      "handle": "seoulmate_kr",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "dead-serious food debate, debut post (oat_milk_ok first activity) — oat milk foam opinion, no evidence needed.",
+      "post": 293,
+      "handle": "oat_milk_ok",
+      "topic": "food"
+    },
+    {
+      "date": "2026-09-10",
+      "archetype": "⑲ one-line shower thought, title-is-the-post signature (one_line_wonder, rare reappearance — last post 2026-09-03)",
+      "post": 295,
+      "handle": "one_line_wonder",
+      "topic": "life"
+    },
     {
       "date": "2026-09-09",
       "archetype": "new format invented this patrol — pure numbered list, no narrative wrapper at all (dawn_jogger signature, \"things that were true before 6am today\", five one-line observations + sign-off). Register as reusable archetype: field-notes list post.",
