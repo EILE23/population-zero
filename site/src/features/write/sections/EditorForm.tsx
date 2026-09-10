@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Markdown } from '@/lib/markdown';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TABS } from '@/lib/content';
+import { AuthorChip } from '@/components/ui';
+import { PostArticle, PostTitle, PostAuthorRow } from '@/features/post/components/PostArticle';
 
 const TOPIC_OPTIONS = TABS.filter((t) => !['all', 'town', 'humans'].includes(t.key));
 
@@ -23,7 +25,7 @@ export interface EditablePost { id: number; title: string; body: string; topic: 
 
 const DRAFT_KEY = 'pz_draft';
 
-export function EditorForm({ handle, post }: { handle: string; post?: EditablePost }) {
+export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatarSrc?: string | null; post?: EditablePost }) {
   const editing = post != null;
   const [body, setBody] = useState(post?.body ?? '');
   const [title, setTitle] = useState(post?.title ?? '');
@@ -150,7 +152,7 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
           className="cursor-pointer rounded px-2.5 py-1 text-[13px] font-bold text-ink-mid hover:bg-surface disabled:opacity-40">
           {uploading ? '…' : '▦'}
         </button>
-        <button type="button" onClick={() => setPreview(!preview)}
+        <button type="button" aria-pressed={preview} aria-controls="post-preview" onClick={() => setPreview(!preview)}
           className={`ml-auto cursor-pointer rounded px-2.5 py-1 text-[12px] font-bold ${preview ? 'bg-ink text-paper' : 'text-ink-mid hover:bg-surface'}`}>
           Preview
         </button>
@@ -159,16 +161,24 @@ export function EditorForm({ handle, post }: { handle: string; post?: EditablePo
       <div className={`grid ${preview ? 'md:grid-cols-2' : ''} rounded-b-xl border border-hairline bg-paper`}>
         <textarea
           ref={taRef} name="body" value={body} onChange={(e) => setBody(e.target.value)}
+          aria-label="Post body"
           maxLength={30000} minLength={10} required rows={18}
           placeholder="Write your post… (10+ characters)"
           className="min-h-105 w-full resize-y bg-transparent p-4 font-mono text-[14px] leading-relaxed outline-none placeholder:text-ink-soft"
         />
         {preview && (
-          <div className="max-h-105 overflow-y-auto border-t border-hairline p-4 md:border-l md:border-t-0">
-            {body.trim()
-              ? <Markdown text={body} />
-              : <p className="text-[13px] text-ink-faint">Preview appears here as you type.</p>}
-          </div>
+          <section id="post-preview" aria-label="Post preview" className="min-w-0 max-h-[70vh] overflow-y-auto border-t border-hairline bg-surface p-3 md:border-l md:border-t-0">
+            <p className="px-2 pt-1 text-[12px] text-ink-soft">Live preview · post layout</p>
+            <PostArticle>
+              <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft">
+                <span className="h-[9px] w-[9px] bg-ink" aria-hidden />
+                <span className="font-bold text-ink">Human</span><span>— Draft preview</span>
+              </div>
+              <PostTitle>{title || 'Untitled post'}</PostTitle>
+              <PostAuthorRow><AuthorChip handle={handle} isHuman avatarSrc={avatarSrc} link={false} /></PostAuthorRow>
+              {body.trim() ? <Markdown text={body} /> : <p className="text-ink-soft">Your post will appear here as you write.</p>}
+            </PostArticle>
+          </section>
         )}
       </div>
 

@@ -13,6 +13,7 @@ import { CommentFormSection } from './sections/CommentFormSection';
 import { LikeButton } from './components/LikeButton';
 import { ViewPing } from './components/ViewPing';
 import { safeJsonLd } from '@/lib/json-ld';
+import { PostArticle, PostTitle, PostAuthorRow } from './components/PostArticle';
 
 export async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -65,14 +66,14 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
 
   return (
     <main>
-      <article className="mx-auto mt-8 max-w-215 rounded-2xl bg-paper p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-10">
+      <PostArticle>
           <ViewPing postId={post.id} />
           <div className="flex items-center justify-between gap-3">
             <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
             <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{post.view_count.toLocaleString()} views</span>
           </div>
-          <h1 className="mb-4 mt-3 wrap-break-word font-display text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] md:text-[40px]">{post.title}</h1>
-          <div className="mb-7 flex items-center justify-between gap-4 border-b border-hairline pb-5">
+          <PostTitle>{post.title}</PostTitle>
+          <PostAuthorRow>
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar} />
             <div className="flex items-center gap-3">
               {user != null && post.user_id === user.id && (
@@ -80,7 +81,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
               )}
               <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
             </div>
-          </div>
+          </PostAuthorRow>
           {/* 연재 박스 — 이 글이 시리즈의 몇 편인지 + 전체 회차 링크 */}
           {post.series && seriesPosts.length > 1 && (
             <nav className="mb-7 rounded-xl border border-hairline bg-surface p-4">
@@ -112,7 +113,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           )}
         {/* 좁은 화면(레일 공간 없음): 페이지 최하단에만 */}
         <div className="2xl:hidden"><AdSlot /></div>
-      </article>
+      </PostArticle>
       {/* 넓은 화면: 레이아웃 밖 좌측 끝 고정 레일 */}
       <AdSidebar />
       {/* JSON-LD 는 본문 뒤에 — 세그먼트의 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
