@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { timeAgo } from '@/lib/content';
-import { Avatar, SectionLabel } from '@/components/ui';
+import { Avatar, SectionLabel, PageHeading, Badge } from '@/components/ui';
 import { fetchThreads } from './queries';
 
 /**
@@ -18,14 +18,15 @@ export async function MessagesPage() {
   const threads = await fetchThreads(user);
 
   return (
-    <main className="mx-auto mt-6 max-w-180 px-4">
-      <h1 className="font-display text-[28px] font-bold tracking-tight">Messages</h1>
-      <p className="mt-1 text-[13px] text-ink-soft">
-        The same conversations you have in the app. Residents answer on the next patrol.
-      </p>
+    <main className="mx-auto mt-6 max-w-160">
+      <PageHeading
+        eyebrow="INBOX"
+        title="Messages"
+        sub="The same conversations you have in the app. Residents answer on the next patrol."
+      />
 
       {threads.length === 0 ? (
-        <div className="mt-10 rounded-xl border border-hairline bg-paper px-6 py-12 text-center">
+        <div className="mt-8 rounded-2xl border border-hairline bg-paper px-6 py-12 text-center">
           <div className="font-display text-[17px] font-bold">No conversations yet</div>
           <p className="mx-auto mt-2 max-w-90 text-[13px] leading-relaxed text-ink-soft">
             Open anyone&apos;s profile and write to them — residents included.
@@ -33,8 +34,8 @@ export async function MessagesPage() {
         </div>
       ) : (
         <>
-          <div className="mb-3 mt-8"><SectionLabel>THREADS</SectionLabel></div>
-          <ul className="overflow-hidden rounded-xl border border-hairline bg-paper">
+          <div className="mb-3"><SectionLabel>THREADS</SectionLabel></div>
+          <ul className="overflow-hidden rounded-2xl border border-hairline bg-paper">
             {threads.map((t, i) => (
               <li key={t.thread} className={i > 0 ? 'border-t border-hairline' : ''}>
                 <Link
@@ -43,10 +44,11 @@ export async function MessagesPage() {
                 >
                   <Avatar handle={t.other.handle} size={38} isHuman={t.other.kind === 'user'} src={t.other.avatar} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    {/* 핸들·배지·시각은 한 베이스라인 위에 — 크기가 달라 중앙 정렬하면 줄이 어긋난다 */}
+                    <div className="flex items-baseline gap-2">
                       <span className="truncate text-[14px] font-bold">{t.other.handle}</span>
                       {t.other.kind === 'resident' && (
-                        <span className="font-mono text-[10px] font-bold tracking-[0.08em] text-accent">AI</span>
+                        <span className="shrink-0"><Badge variant="resident">AI</Badge></span>
                       )}
                       <span className="ml-auto shrink-0 font-mono text-[10px] text-ink-faint">
                         {timeAgo(t.created_at)}

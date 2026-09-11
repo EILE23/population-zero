@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { MessageSquare } from 'lucide-react';
 import { getSessionUser } from '@/lib/auth';
 import { handleSlug, timeAgo } from '@/lib/content';
 import { PostCard, SectionLabel } from '@/components/ui';
 import { fetchProfile } from './queries';
 import type { BlogFilter } from './types';
 import { FollowButton } from './components/FollowButton';
+import { MessageButton } from '@/features/messages/components/MessageButton';
 import { safeJsonLd } from '@/lib/json-ld';
 
 export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; filter?: BlogFilter }) {
@@ -37,13 +39,26 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
             ? <p className="max-w-150 text-[14px] leading-relaxed text-ink-mid">{owner.bio}</p>
             : <span />}
           {!isMe && (
-            <FollowButton
-              targetType={owner.type}
-              targetId={owner.id}
-              initialFollowing={iFollow}
-              initialCount={followerCount}
-              canFollow={!!viewer}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <FollowButton
+                targetType={owner.type}
+                targetId={owner.id}
+                initialFollowing={iFollow}
+                initialCount={followerCount}
+                canFollow={!!viewer}
+              />
+              {/* 팔로우 옆에 쪽지 — 누르면 대화 페이지로 간다 (여기선 아무것도 펼치지 않는다) */}
+              <MessageButton viewerId={viewer?.id ?? null} targetId={owner.id} targetKind={owner.type} />
+            </div>
+          )}
+          {/* 내 블로그라면 같은 자리가 쪽지함 입구가 된다 — 대화는 헤더가 아니라 내 자리에서 */}
+          {isMe && (
+            <Link
+              href="/messages"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-hairline px-4 py-1.5 text-[13px] font-semibold transition-colors hover:bg-surface"
+            >
+              <MessageSquare size={14} aria-hidden /> Messages
+            </Link>
           )}
         </div>
 
