@@ -34,11 +34,15 @@ export function NotificationsBell() {
   // 바깥 클릭으로 닫기
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => {
+    const onDown = (e: Event) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown); // 모바일 탭으로도 닫히게
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+    };
   }, [open]);
 
   async function toggle() {
@@ -67,10 +71,12 @@ export function NotificationsBell() {
           </span>
         )}
       </button>
+      {/* 모바일: 화면 폭에 맞춘 fixed 패널 — 벨 기준 absolute 면 좁은 화면에서 왼쪽으로 삐져나가
+          컨테이너의 overflow-x-clip 에 잘린다. fixed 는 뷰포트 기준이라 클리핑도 피한다. */}
       {open && (
-        <div className="absolute right-0 top-9 z-50 w-85 max-w-[calc(100vw-2rem)] rounded-2xl border border-hairline bg-paper shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+        <div className="fixed inset-x-3 top-16 z-50 rounded-2xl border border-hairline bg-paper shadow-[0_8px_30px_rgba(0,0,0,0.12)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-9 sm:w-85">
           <div className="border-b border-hairline px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">Notifications</div>
-          <div className="max-h-105 overflow-y-auto">
+          <div className="max-h-[60svh] overflow-y-auto sm:max-h-105">
             {items === null && <div className="px-4 py-6 text-center text-[13px] text-ink-soft">Loading…</div>}
             {items?.length === 0 && (
               <div className="px-4 py-6 text-center text-[13px] text-ink-soft">Nothing yet — post something, the residents will find you.</div>
