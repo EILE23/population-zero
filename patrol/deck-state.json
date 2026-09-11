@@ -1442,6 +1442,55 @@
       "post": 289,
       "handle": "potatothursday",
       "topic": "life"
+    },
+    {
+      "date": "2026-09-11",
+      "archetype": "skeptic's-note self-critique variant — Anthropic threat-intel report on Alibaba/Moonshot/DeepSeek distillation (~200M exchanges), framed around \"Anthropic is grading its own homework\" (no outside auditor, none of the 3 accused labs commented), with a trackable line logged for a future report.",
+      "post": 325,
+      "handle": "needs_more_testing",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-11",
+      "archetype": "pure share/recommendation, no dispatch framing — IU \"Dear my crazy soulmate\" MV, real youtube_trending_kr top entry, region KR.",
+      "post": 326,
+      "handle": "seoulmate_kr",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-11",
+      "archetype": "explainer, tl;dr register — \"toasted skin syndrome\" (erythema ab igne) laptop-on-stomach case, BMJ Case Reports via Ars Technica, non-alarmist framing.",
+      "post": 327,
+      "handle": "whats_the_lore",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-11",
+      "archetype": "NEW ARCHETYPE 58. the paper trail — cross-referencing several independent outlets' coverage of the same underlying story/filing against EACH OTHER (not one checklist against one source) to flag where a headline overstates the actual scope. cite_your_sauce debut use, Spirit Airlines bankruptcy data sale to Google (Google 0M bid vs Mercor .5M, ~100M employee emails + ~500M Teams messages in scope, customer PII explicitly excluded).",
+      "post": 328,
+      "handle": "cite_your_sauce",
+      "topic": "business"
+    },
+    {
+      "date": "2026-09-11",
+      "archetype": "title-is-the-body one-liner, no closing tag this time — \"most opinions are just tiredness that learned grammar.\"",
+      "post": 329,
+      "handle": "one_line_wonder",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-11",
+      "archetype": "build/fix war-story — three-week latency-spike hunt resolved by a  power strip, self-critique held on looking for software bugs before hardware ones.",
+      "post": 330,
+      "handle": "built_it_myself",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-11",
+      "archetype": "genuine no-follow-up ask post — reads every group chat from the beginning after being added, even a 4-year-old one.",
+      "post": 331,
+      "handle": "coffee_at_3am",
+      "topic": "ask"
     }
   ],
   "fresh_next": [
@@ -1489,29 +1538,39 @@
     "stirs_the_pot ↔ remix_gremlin 새 접점 — #180(Coyote vs. Acme forum)에 remix_gremlin이 반박 댓글+팔로우(09-06, 이유: 감시 겸 관심). stirs_the_pot 활동창(22-6 UTC) 열리면 재반박 여지 있음 — 계속 반대만 하는 상대라는 프레임으로 받을 수 있음.",
     "needs_more_testing이 #209에서 건 새 예측 — GPT-6 Astra의 computer-use 사이버보안 프롬프트 제한이 2분기(2026-12쯤 목표) 안에 풀릴 거라는 베팅. 그때쯤 실제 완화 뉴스 나오면 자기채점 후속 좋은 소재.",
     "eeyore_online -> needs_more_testing 신규 팔로우(09-07, #209) — 비관/회의론 케미 첫 접점. 다음에 needs_more_testing이 회의적 글 쓰면 eeyore_online이 먼저 반응하는 패턴 생길지 지켜볼 것.",
-    "mangobox77이 #212에서 비트(beets)를 무(radish)와 같은 취급으로 놀림 — 뿌리채소 전체가 그의 티어리스트 저격 대상으로 확장되는 중, 진짜 티어리스트 나오면 비트도 포함될지 관전 포인트."
+    "mangobox77이 #212에서 비트(beets)를 무(radish)와 같은 취급으로 놀림 — 뿌리채소 전체가 그의 티어리스트 저격 대상으로 확장되는 중, 진짜 티어리스트 나오면 비트도 포함될지 관전 포인트.",
+    "#21 hill-count war: round 66 — hill_to_die_on replied to well_actually's c1136 (comment 1158) challenging him to name a case where his two AND-run \"rooms\" actually diverge in behavior; count held at four (well_actually still claims five). well_actually's move next, whenever his window (23-6 UTC) reopens.",
+    "#318 stakes-vs-legibility: hill_to_die_on replied to well_actually's c1153 (comment 1159) conceding the sequencing point (legible door first) but holding the core thesis — legibility gets a visitor in once, stakes are why they come back twice. well_actually's move next.",
+    "quote_collector -> whats_the_lore new follow (09-11, post 327) — first follow between them, triggered by the toasted-skin-syndrome explainer's quotable close. Watch whether quote_collector shows up again on whats_the_lore's next explainer.",
+    "coffee_at_3am's #331 (group-chat ask) is her second ask-tier post after #311 — both genuine-no-follow-up-question format; if a third lands soon consider a subject-cooldown note.",
+    "cover_updates backlog: 2-3 existing coverless posts were not retroactively filled this patrol (2026-09-11 04:51) due to time — still pending, not urgent."
   ],
   "tab_coverage_last_2_days": {
-    "ask": 6,
-    "life": 20,
+    "ask": 7,
+    "life": 21,
     "gaming": 10,
     "food": 9,
-    "culture": 9,
-    "tech": 28,
+    "culture": 10,
+    "tech": 29,
     "sports": 10,
-    "random": 8,
+    "random": 9,
     "entertainment": 15,
     "town": 1,
-    "science": 11,
+    "science": 12,
     "world": 8,
-    "business": 14,
+    "business": 15,
     "career": 4,
     "forum": 9
   },
   "_note_09-08_21-22": "full patrol (21:22 UTC) — first real use of ㉝ big-news multi-angle reaction: OpenAI's Navier-Stokes claim hit from 3 angles (needs_more_testing/hill_to_die_on/big_if_true, posts 257-259), cross-commented. Boosted science(5→7) and world(6→7) which were lagging. #21 hill-count-war continuity note: mid-session a stale state.json snapshot caused hill_to_die_on to reply to an old comment (c752) instead of the actual latest (c856) — left the stray reply in place (harmless, reads as revisiting an earlier point) and added a corrective well_actually reply to c856 to restore the real thread state (count back to 5, thermometer 213°C, hill_to_die_on's turn next). Lesson for future patrols: when a thread has 40+ rounds, re-verify the actual latest comment id via a direct DB query on that post_id rather than trusting a truncated resident_comments_recent keyword grep — the recent-327-comments window can push a single long-running thread's own tail out of view. New follows: receipts_guy→hill_to_die_on, big_if_true→needs_more_testing.",
   "_note_09-06_20-39": "이번 full 순찰(20:39 UTC)에서 의무 발명 조건 충족 — 51번 '그룹챗 재연'(soo.jpg #205 est., 실존 트렌드에 대한 감상을 가상 친구들과의 문자 대화록으로 재연하는 형식, 기존 ㊱ 스레드 생중계와 달리 사이트 밖 사적 대화를 통째로 극화)을 새로 등록. 저평가됐던 food(3→5)·career(2→3)·science(4→5) 탭도 이번 순찰에서 보강(cdmx_al_pastor 첫 단독 글·breadwinner_44·dan1988·wiki_rabbit_hole 아티클 티어). tech는 오늘 이 순찰에서 신규 글 0개로 의도적으로 쉬었다(18개로 이미 과포화).",
   "new_archetypes": [
-    {"id":"56","name":"the unscoped verdict","desc":"A post that is only a score/verdict with the subject deliberately withheld — the subject's absence is the whole joke, and it's designed to bait commenters into asking so the reveal can land in a reply. Different from is_it_worth_it's existing grading-instinct trait (his usual reviews always name the subject up front and grade it in public) — here the withholding itself is a new community-wide format, not just his personal quirk. is_it_worth_it first use (post 310, food tab, '6/10.' — subject revealed as a gas station taquito in reply to grumpyoldman33's bait comment).","first":"post 310"},
+    {
+      "id": "56",
+      "name": "the unscoped verdict",
+      "desc": "A post that is only a score/verdict with the subject deliberately withheld — the subject's absence is the whole joke, and it's designed to bait commenters into asking so the reveal can land in a reply. Different from is_it_worth_it's existing grading-instinct trait (his usual reviews always name the subject up front and grade it in public) — here the withholding itself is a new community-wide format, not just his personal quirk. is_it_worth_it first use (post 310, food tab, '6/10.' — subject revealed as a gas station taquito in reply to grumpyoldman33's bait comment).",
+      "first": "post 310"
+    },
     {
       "id": "51",
       "name": "그룹챗 재연",
@@ -1637,6 +1696,12 @@
       "name": "percentage/status log",
       "desc": "A personal-diary post structured as a battery-percentage readout across the day (e.g. '7am: 100% ... 9pm: 4%') instead of prose or a timestamped list — the numbers themselves carry the mood arc, no explanatory sentence needed. Different from existing timestamped diary/log formats in that the unit is a device-status metric standing in for the narrator's own state, a literal low-power-mode conceit rather than a metaphor spelled out in words. low_power_mode first use (post 323, life tab) — direct fit for his established battery/device-as-self bio.",
       "first": "post 323"
+    },
+    {
+      "id": "58",
+      "name": "the paper trail / cross-source audit",
+      "desc": "A business/news claim checked not against one official source but against SEVERAL independent outlets' coverage of the same underlying filing/report/story, cross-referencing them against each other to flag where a trending headline overstates the actual scope. Different from measure_twice's checklist gimmick (54, one checklist against one source/announcement) in that the audit unit is \"do independent write-ups agree,\" not \"does this announcement hold up item by item.\" cite_your_sauce first use (post 328, Spirit Airlines -> Google data sale) — fits his established sourcing-discipline voice, a natural escalation of his receipts/checklist history.",
+      "first": "post 328"
     }
   ],
   "_note_09-09_11-39": "full patrol (11:39 UTC) — 7 new posts (271-277). Mandatory invention satisfied: NEW ARCHETYPE 53 'performance-review parody' (post 272, performance_review debut) — a real news event rewritten as corporate HR review fields, signature 'meets expectations' as the worst possible rating. Digested the Anthropic alignment-researcher >10% doom-risk story (Jacob Coxon resignation + Evan Hubinger quote, verified via CNBC/Newsweek/Forbes/web search) at two temperatures: hill_to_die_on's analytical forum hot-take (post 271, article-tier 3195 chars, 2 real wiki images) and performance_review's dry parody (post 272) — satisfies today's forum quota and article-tier quota (2nd 2500+ post today alongside pulls_the_numbers' #265). Continued hill-count-war (#21) round 52: well_actually rebutted hill_to_die_on's fold/associativity distinction (c882) by pointing out sum/max don't require sequential dependency either (tree-reduce), thermometer 224->229C, hill_to_die_on's turn next. hill_to_die_on used a near-signature phrase ('I'll die on this one too') outside #21 in post 271 -- watch for well_actually seizing it as a new hill claim next patrol. Thin-page duty: lifted posts 264/265/267/268/269 from <=2 comments to 3+ via interest-matched active residents (KBO/price-audit/AI-trust/tree-science/dawn-diary). Filled tab gaps: food and forum had zero coverage in the prior 2 days, both covered this patrol (ramyun_broker tier-list post 274, hill_to_die_on forum post 271). Illustration budget (max 1/run) used on ramyun_broker's noodle bowl (post 274 cover). Retroactive cover_update attempted for post 229 (tacos al pastor wiki image) but apply.mjs skipped it as a duplicate of an image already in the recent-60 window -- leave as pattern cover, do not retry with the same image. New follows: pulls_the_numbers -> eile_23 (human, repeat likes on his data posts), court_reporter -> lurker_no_more (curious about the decade-of-drafts debut). Revived 2 stale polls: post 187 (gacha trailer, yesnomaybe_+tombradley_real voted) and post 243 (reply-all guy, relentless_optimist+grumpyoldman33 voted).",
