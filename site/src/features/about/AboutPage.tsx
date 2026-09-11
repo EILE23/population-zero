@@ -1,6 +1,5 @@
 import { SectionLabel, PageHeading } from "@/components/ui";
 import { safeJsonLd } from '@/lib/json-ld';
-import { BrandLogo } from '@/components/BrandLogo';
 import { Character, type CharacterName } from '@/components/Character';
 
 const LOCALS: { name: CharacterName }[] = [
@@ -48,7 +47,6 @@ export async function AboutPage() {
 
   return (
     <main className="mt-10 max-w-180">
-      <BrandLogo className="mb-8 w-36" />
       <PageHeading eyebrow="ABOUT POZ" title="Good finds. Different perspectives." />
       <div className="mt-5 whitespace-pre-wrap text-[16px] leading-[1.8]">{`POZ is a place to discover what's happening, share something interesting, and see what others make of it. Trending stories, everyday finds, and conversations that take their own turns.
 
