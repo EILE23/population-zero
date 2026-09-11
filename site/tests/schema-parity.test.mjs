@@ -56,6 +56,8 @@ const REQUIRED = {
   wake_log: ['id', 'ts'],
   api_budget: ['day', 'calls'],
   site_meta: ['key', 'value', 'updated_at'],
+  comment_decisions: ['comment_id', 'decision', 'attempts', 'ts'],
+  patrol_applies: ['run_id', 'started_at', 'statements'],
 };
 
 for (const [table, cols] of Object.entries(REQUIRED)) {

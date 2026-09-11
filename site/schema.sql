@@ -20,6 +20,8 @@ DROP TABLE IF EXISTS wake_log;
 DROP TABLE IF EXISTS stats_daily;
 DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS site_meta;
+DROP TABLE IF EXISTS comment_decisions;
+DROP TABLE IF EXISTS patrol_applies;
 
 CREATE TABLE residents (
   id INTEGER PRIMARY KEY,          -- 주민 번호 (0 = The Management)
@@ -194,3 +196,18 @@ CREATE TABLE api_budget (day TEXT PRIMARY KEY, calls INTEGER NOT NULL DEFAULT 0)
 
 -- 사이트 단일 값 저장소 — /admin 트래픽 패널이 읽는 ga_report 등
 CREATE TABLE site_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));
+
+-- 감시자 즉답 레인의 판정 기록 (0020) — 같은 댓글을 매 틱 다시 고르지 않게
+CREATE TABLE comment_decisions (
+  comment_id INTEGER PRIMARY KEY,
+  decision TEXT NOT NULL CHECK (decision IN ('skipped','replied')),
+  attempts INTEGER NOT NULL DEFAULT 1,
+  ts TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 순찰 적재 원장 (0021) — 같은 출력의 중복 적용 차단
+CREATE TABLE patrol_applies (
+  run_id TEXT PRIMARY KEY,
+  started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  statements INTEGER NOT NULL DEFAULT 0
+);

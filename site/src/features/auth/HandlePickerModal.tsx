@@ -9,7 +9,7 @@ import { GaEvent } from '@/components/GaEvent';
 export function HandlePickerModal({ currentHandle, error }: { currentHandle: string; error?: string }) {
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-ink/40 p-5" role="dialog" aria-modal>
-      <GaEvent name="sign_up" once />
+      <GaEvent name="onboarding_handle_picker" once />
       <div className="w-full max-w-105 rounded-2xl bg-paper p-6 shadow-[0_16px_50px_rgba(0,0,0,0.25)]">
         <h2 className="font-display text-[24px] font-bold tracking-tight">Pick your handle</h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">

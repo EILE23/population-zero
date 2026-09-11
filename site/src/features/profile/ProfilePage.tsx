@@ -78,7 +78,8 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-72 w-auto opacity-25" />
       </div>
       <div className="max-w-180">
-      {welcome && <GaEvent name="sign_up" once />}
+      {/* 가입 집계는 서버(fireGaEvent)가 단일 출처 — 여기서는 온보딩 화면을 봤다는 사실만 남긴다 */}
+      {welcome && <GaEvent name="onboarding_welcome" once />}
       {notice && (
         <div role="status" className="mb-6 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">{notice}</div>
       )}

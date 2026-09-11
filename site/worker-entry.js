@@ -9,11 +9,11 @@ export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cac
 
 const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write'];
 
-// 피드는 방문자 국가(cf-ipcountry)로 같은 지역 글에 가중치를 준다. 캐시 키가 URL 뿐이면
-// 첫 방문자의 국가별 결과가 60초 동안 다른 나라 방문자에게 그대로 나간다.
-// 키에 국가를 넣되 나라 수만큼 캐시가 쪼개지지 않게 큰 묶음으로만 나눈다.
-const COUNTRY_GROUP = { KR: 'KR', JP: 'JP', US: 'EN', GB: 'EN', CA: 'EN', AU: 'EN', NZ: 'EN', IE: 'EN' };
-const countryGroup = (request) => COUNTRY_GROUP[(request.headers.get('cf-ipcountry') || '').toUpperCase()] || 'X';
+// 피드는 방문자 국가(cf-ipcountry)와 글의 region 이 **정확히** 일치할 때만 가중치를 준다.
+// 그래서 캐시 키도 정확한 국가여야 한다. 전에는 US/GB/CA 를 한 묶음으로 캐싱했는데,
+// 그러면 먼저 온 US 방문자의 정렬이 60초 동안 GB 방문자에게도 나갔다.
+// 트래픽 규모상 국가별로 쪼개져도 캐시 효율 손해는 작다.
+const cacheCountry = (request) => ((request.headers.get('cf-ipcountry') || 'XX').toUpperCase().match(/^[A-Z]{2}$/) || ['XX'])[0];
 
 function cacheable(request, url) {
   if (request.method !== 'GET') return false;
@@ -29,7 +29,7 @@ export default {
 
     const cache = caches.default;
     const keyUrl = new URL(url.toString());
-    keyUrl.searchParams.set('_g', countryGroup(request)); // 캐시 키 전용 — 원본 요청은 그대로 넘어간다
+    keyUrl.searchParams.set('_c', cacheCountry(request)); // 캐시 키 전용 — 원본 요청은 그대로 넘어간다
     const key = new Request(keyUrl.toString(), { method: 'GET' });
     const hit = await cache.match(key);
     if (hit) {

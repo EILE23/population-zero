@@ -164,7 +164,8 @@ export function PostCard({ post }: { post: FeedPost }) {
         </div>
       </Link>
       <div className="flex items-center justify-between border-t border-hairline px-4 py-2.5">
-        <AuthorChip handle={post.handle} isHuman={post.user_id != null} avatarSrc={post.author_avatar ?? null} />
+        {/* residentId 를 넘겨야 카드에도 AI 배지가 붙는다 — "AI 는 항상 표시한다"가 이 사이트의 전제다 */}
+        <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar ?? null} />
         <span className="inline-flex items-center gap-3 text-[12px] tabular-nums text-ink-soft">
           {post.view_count + post.resident_view_count > 0 && <span title="views">{(post.view_count + post.resident_view_count).toLocaleString()} views</span>}
           <span className="inline-flex items-center gap-1"><IconHeart /> {post.like_count}</span>

@@ -25,18 +25,31 @@ const esc = (s) => String(s).replace(/'/g, "''");
 
 // 링크 글의 원본 페이지에서 og:image 추출 — 실존 페이지의 대표 이미지만 (표준 링크 프리뷰, 날조 아님)
 async function fetchOgImage(url) {
+  // 마감 시한은 본문 읽기까지 이어지고, 200KB 는 실제 다운로드 상한이어야 한다.
+  // res.text() 로 받아 자르면 상대가 끝없이 보내는 본문을 전부 메모리에 담게 된다.
+  const ctrl = new AbortController();
+  const deadline = setTimeout(() => ctrl.abort(), 6000);
+  let reader;
   try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 6000);
     const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 (compatible; PopulationZero/1.0; link preview)' } });
-    clearTimeout(t);
     if (!res.ok || !(res.headers.get('content-type') || '').includes('html')) return null;
-    const html = (await res.text()).slice(0, 200_000);
+    reader = res.body?.getReader();
+    if (!reader) return null;
+    let html = '';
+    const dec = new TextDecoder();
+    while (html.length < 200_000) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += dec.decode(value, { stream: true });
+    }
     const m = html.match(/<meta[^>]+(?:property|name)=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i)
       ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image(?::url)?["']/i);
     const img = m?.[1]?.trim();
     return img && /^https:\/\/\S+$/.test(img) ? img.slice(0, 500) : null;
-  } catch { return null; }
+  } catch { return null; } finally {
+    clearTimeout(deadline);
+    reader?.cancel().catch(() => {});
+  }
 }
 
 const out = JSON.parse(readFileSync(new URL('./patrol-output.json', import.meta.url), 'utf8'));
@@ -107,7 +120,6 @@ if (pv.length > 0) {
       const delay = Math.min(Number(v.publish_in_minutes) || 0, 720);
       const at = delay > 0 ? `datetime('now', '+${delay} minutes')` : `datetime('now')`;
       sql.push(`INSERT OR IGNORE INTO resident_poll_votes (resident_id, post_id, option_id, created_at) VALUES (${rid}, ${pid}, ${optId}, ${at});`);
-      sql.push(`UPDATE poll_options SET votes = votes + 1 WHERE id = ${optId};`);
     }
   }
 }
@@ -280,6 +292,8 @@ const writeResult = () => writeFileSync(new URL('./apply-result.json', import.me
 
 if (!sql.length) { console.error('nothing to apply'); writeResult(); process.exit(0); }
 writeFileSync(new URL('./apply.sql', import.meta.url), sql.join('\n'));
+// 원장 기록이 먼저다 — 적재 도중 끊겨도 재실행이 같은 내용을 다시 넣지 못하게 한다
+await d1(`INSERT INTO patrol_applies (run_id, statements) VALUES ('${runId}', ${sql.length});`);
 await d1(sql.join('\n'));
 writeResult();
 

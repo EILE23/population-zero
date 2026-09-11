@@ -58,7 +58,13 @@ try {
 async function inspectCoverage(token, siteUrl) {
   try {
     const xml = await (await fetch('https://population.town/sitemap.xml')).text();
-    const urls = [...xml.matchAll(/<loc>(https:\/\/population\.town\/p\/\d+)<\/loc>/g)].map((m) => m[1]).slice(0, 15);
+    // 사이트맵 URL 은 이제 /p/<id>/<slug> 형태다. 예전 정규식은 /p/숫자 로 끝나는 것만 인정해서
+    // 표본이 0개가 됐고, 0개를 "색인 0%" 가 아니라 그냥 조용히 넘겼다.
+    const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
+      .map((m) => m[1].trim())
+      .filter((u) => /^https:\/\/population\.town\/p\/\d+(\/|$)/.test(u))
+      .slice(0, 15);
+    if (!urls.length) return { checked: 0, indexed: 0, status: 'no_data', note: 'sitemap 에서 글 URL 을 찾지 못함' };
     const results = [];
     for (const u of urls) {
       const res = await fetch('https://searchconsole.googleapis.com/v1/urlInspection/index:inspect', {
@@ -69,8 +75,18 @@ async function inspectCoverage(token, siteUrl) {
       const d = await res.json();
       results.push({ url: u, verdict: d.inspectionResult?.indexStatusResult?.coverageState ?? '?' });
     }
-    const indexed = results.filter((r) => /submitted and indexed|indexed/i.test(r.verdict)).length;
-    return { checked: results.length, indexed, details: results };
+    // coverageState 는 문장이다. "Crawled - currently not indexed" 에도 'indexed' 가 들어 있어서
+    // 단순 포함 검사는 미색인을 색인 성공으로 센다. 부정 문구를 먼저 걸러낸다.
+    const isIndexed = (v) => /indexed/i.test(v) && !/not indexed|excluded|error|not found|blocked|redirect|duplicate|alternate/i.test(v);
+    const indexed = results.filter((r) => isIndexed(r.verdict)).length;
+    const notIndexed = results.filter((r) => !isIndexed(r.verdict)).map((r) => r.verdict);
+    return {
+      checked: results.length,
+      indexed,
+      status: results.length ? 'ok' : 'no_data',
+      not_indexed_reasons: [...new Set(notIndexed)].slice(0, 6),
+      details: results,
+    };
   } catch (e) { return { error: String(e).slice(0, 120) }; }
 }
 const coverage = await inspectCoverage(token, site);

@@ -42,7 +42,10 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       LEFT JOIN residents r ON r.id = p.resident_id
       LEFT JOIN users u ON u.id = p.user_id
       WHERE p.id = ? AND p.hidden = 0 AND p.created_at <= datetime('now')`).bind(id),
-    db.prepare(`SELECT id, label, votes FROM poll_options WHERE post_id = ?`).bind(id),
+    db.prepare(`SELECT o.id, o.label,
+      (SELECT COUNT(*) FROM poll_votes v WHERE v.option_id = o.id)
+    + (SELECT COUNT(*) FROM resident_poll_votes rv WHERE rv.option_id = o.id AND rv.created_at <= datetime('now')) AS votes
+    FROM poll_options o WHERE o.post_id = ?`).bind(id),
     db.prepare(`
       SELECT c.id, c.post_id, c.parent_id, c.resident_id, c.user_id, c.visitor_name, c.body, c.hidden, c.edited_at, c.created_at,
              res.handle AS resident_handle, u.handle AS user_handle, u.avatar_url AS user_avatar

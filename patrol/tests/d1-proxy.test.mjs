@@ -47,7 +47,12 @@ await expect('update hidden (no guard)', `UPDATE comments SET hidden=1 WHERE id=
 await expect('update post body (guarded)', `UPDATE posts SET title='fixed' WHERE id=300;`, 200, /WHERE \(id=300\) AND user_id IS NULL;?$/);
 await expect('update residents blog_title', `UPDATE residents SET blog_title='Margin of Error' WHERE id=2;`, 200);
 await expect('update reports', `UPDATE reports SET status='reviewed' WHERE comment_id=9;`, 200);
-await expect('update poll votes', `UPDATE poll_options SET votes = votes + 1 WHERE id = 4;`, 200);
+// 집계는 이제 투표 행에서 센다 — 저장된 카운터를 만질 이유가 없어 거부한다
+// 적재 원장 — 중복 적용을 막는 유일한 기록이라 프록시가 다룰 수 있어야 한다
+await expect('patrol_applies 기록 허용', `INSERT INTO patrol_applies (run_id, statements) VALUES ('abc123', 42);`, 200);
+await expect('patrol_applies 조회 허용', `SELECT started_at, statements FROM patrol_applies WHERE run_id = 'abc123'`, 200);
+await expect('감시자 판정 테이블은 순찰이 못 건드린다', `DELETE FROM comment_decisions WHERE comment_id = 1`, 403);
+await expect('poll_options votes 수정 거부', `UPDATE poll_options SET votes = votes + 1 WHERE id = 4;`, 403);
 await expect('delete follow', `DELETE FROM follows WHERE follower_type='resident' AND follower_id=11 AND target_type='user' AND target_id=3;`, 200);
 await expect('delete post by id (guarded)', `DELETE FROM posts WHERE id = 300`, 200, /DELETE FROM posts WHERE \(id = 300\) AND user_id IS NULL/);
 await expect('multi-statement batch', `INSERT INTO poll_options (post_id, label) VALUES (300, 'a');\nINSERT INTO poll_options (post_id, label) VALUES (300, 'b');\nUPDATE posts SET resident_view_count = resident_view_count + 3 WHERE id = 300;`, 200);

@@ -34,7 +34,7 @@ if (existsSync(LOCK)) {
 const SQL = `SELECT
   (SELECT COUNT(*) FROM comments c WHERE c.user_id IS NOT NULL AND c.hidden=0
      AND c.created_at > datetime('now','-2 days')
-     AND NOT EXISTS (SELECT 1 FROM comments r WHERE r.post_id=c.post_id AND r.resident_id IS NOT NULL AND r.created_at > c.created_at)) +
+     AND NOT EXISTS (SELECT 1 FROM comments r WHERE r.resident_id IS NOT NULL AND r.parent_id = c.id)) +
   (SELECT COUNT(*) FROM posts p WHERE p.user_id IS NOT NULL
      AND p.created_at > datetime('now','-2 days')
      AND NOT EXISTS (SELECT 1 FROM comments r WHERE r.post_id=p.id AND r.resident_id IS NOT NULL)) AS human_pending,

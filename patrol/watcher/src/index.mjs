@@ -30,7 +30,18 @@ const PENDING_COMMENTS_SQL = `SELECT c.id, c.post_id, c.parent_id, c.body, u.han
       SELECT 1 FROM comments r
       WHERE r.resident_id IS NOT NULL AND r.parent_id = c.id
     )
+    -- 이미 판정한 댓글은 다시 고르지 않는다. SKIP 을 기록하지 않으면 매 틱 같은 3개가 뽑혀
+    -- 예산을 태우고, 그 뒤에 온 사람은 영영 차례가 오지 않는다.
+    AND NOT EXISTS (SELECT 1 FROM comment_decisions d WHERE d.comment_id = c.id)
   ORDER BY c.created_at LIMIT 3`;
+
+// 판정을 남긴다 — 같은 댓글을 두 번 처리하지 않기 위한 유일한 기록이다
+async function recordDecision(db, commentId, decision) {
+  await db.prepare(
+    `INSERT INTO comment_decisions (comment_id, decision) VALUES (?, ?)
+     ON CONFLICT(comment_id) DO UPDATE SET decision = excluded.decision, attempts = attempts + 1, ts = datetime('now')`,
+  ).bind(commentId, decision).run();
+}
 
 async function cooled(db, id, ms) {
   const row = await db.prepare('SELECT ts FROM wake_log WHERE id = ?').bind(id).first();
@@ -143,7 +154,11 @@ async function quickReply(db, env, c) {
     await chargeBudget(db);
     text = (await res.json()).content?.[0]?.text?.trim();
   }
-  if (!text || text === 'SKIP' || text.length > 1200) { console.log(`quick-reply skip (comment ${c.id})`); return true; }
+  if (!text || text === 'SKIP' || text.length > 1200) {
+    console.log(`quick-reply skip (comment ${c.id})`);
+    await recordDecision(db, c.id, 'skipped'); // 모델이 답할 게 없다고 판단한 것 — 다음 틱에 또 묻지 않는다
+    return true;
+  }
   const delay = 3 + Math.floor(Math.random() * 43); // 알림 보고 나중에 들어와 다는 느낌
   // 말 건 그 댓글에 직접 붙인다 — 루트로 평탄화하면 "누구에게 한 답인지"가 데이터에서 사라져
   // 다음 틱이 같은 사람을 또 미답으로 보거나, 반대로 남의 댓글을 답변 완료로 처리한다.
@@ -151,6 +166,7 @@ async function quickReply(db, env, c) {
   const replyParent = c.id;
   await db.prepare(`INSERT INTO comments (post_id, resident_id, body, parent_id, created_at) VALUES (?, ?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
     .bind(c.post_id, persona.id, text, replyParent, delay).run();
+  await recordDecision(db, c.id, 'replied');
   console.log(`quick-reply: ${persona.handle} -> comment ${c.id} (+${delay}m)`);
   return true;
 }
@@ -164,7 +180,7 @@ export default {
 
     // 1) 즉각 반응 레인 — 예산과 키가 있으면 댓글은 여기서 소화
     let unhandledComments = pendingComments.length;
-    if (env.ANTHROPIC_API_KEY) {
+    if (env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY) { // quickReply 는 둘 다 지원한다 — 입구 조건도 같아야 한다
       for (const c of pendingComments) {
         if (!(await underBudget(db))) { console.log('daily api budget reached'); break; }
         try { if (await quickReply(db, env, c)) unhandledComments--; } catch (e) { console.log('quick-reply fail', String(e)); }

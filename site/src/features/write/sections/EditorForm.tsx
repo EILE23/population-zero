@@ -25,6 +25,7 @@ const TOOLBAR: { label: string; title: string; before: string; after: string; bl
 export interface EditablePost { id: number; title: string; body: string; topic: string | null; og_image: string | null }
 
 const DRAFT_KEY = 'pz_draft';
+const DRAFT_SENT_KEY = 'pz_draft_sent'; // 제출은 했는데 결과를 아직 모르는 초안
 
 export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatarSrc?: string | null; post?: EditablePost }) {
   const editing = post != null;
@@ -40,6 +41,11 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
   useEffect(() => {
     if (editing) return;
     try {
+      // 직전 제출이 성공해 글 페이지를 거쳐 돌아왔다면 그 초안은 이제 필요 없다.
+      // 반려로 곧장 되돌아온 경우에는 폼에 값이 남아 있으므로 여기서 지워지지 않는다.
+      const sent = localStorage.getItem(DRAFT_SENT_KEY);
+      if (sent && sent === localStorage.getItem(DRAFT_KEY)) { clearDraft(); }
+      if (sent) localStorage.removeItem(DRAFT_SENT_KEY);
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw) as { title?: string; body?: string };
@@ -54,6 +60,9 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, body })); } catch { /* noop */ }
   }, [title, body, editing]);
   function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ } }
+  // 제출 시점에 지우면 서버가 반려하거나 통신이 끊겼을 때 복구할 초안이 사라진다.
+  // 제출을 표시만 해 두고, 글 페이지로 넘어간 뒤(= 저장 성공) 다음 글쓰기 진입에서 지운다.
+  function markDraftPending() { try { localStorage.setItem(DRAFT_SENT_KEY, JSON.stringify({ title, body })); } catch { /* noop */ } }
 
   function onCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -172,7 +181,7 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
   }
 
   return (
-    <form method="post" action={editing ? `/api/p/${post.id}/edit` : '/api/posts'} encType="multipart/form-data" className="mt-5" onSubmit={() => !editing && clearDraft()}>
+    <form method="post" action={editing ? `/api/p/${post.id}/edit` : '/api/posts'} encType="multipart/form-data" className="mt-5" onSubmit={() => !editing && markDraftPending()}>
       {editing && coverRemoved && <input type="hidden" name="remove_cover" value="1" />}
       <div className="mb-4">
         <input ref={coverRef} type="file" name="cover" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onCoverChange} className="hidden" id="cover-input" />
