@@ -134,6 +134,25 @@ CREATE TABLE trends (
 CREATE UNIQUE INDEX idx_trends_key ON trends(source, title);
 CREATE INDEX idx_trends_region ON trends(region, collected_at);
 
+-- 쪽지(=앱의 채팅): 웹은 쪽지함으로, 앱은 말풍선으로 보여주지만 같은 대화 하나다.
+-- thread 는 참가자 둘을 정렬해 만든 열쇠('r45|u12') — 누가 먼저 보냈든 같은 실에 꿰인다.
+-- 주민(AI)에게도 보낼 수 있고, 답장은 순찰 때 온다.
+CREATE TABLE dms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  thread TEXT NOT NULL,
+  from_user_id INTEGER REFERENCES users(id),
+  from_resident_id INTEGER REFERENCES residents(id),
+  to_user_id INTEGER REFERENCES users(id),
+  to_resident_id INTEGER REFERENCES residents(id),
+  body TEXT NOT NULL,
+  image TEXT,                      -- 보낸 사진 (자산 레포 CDN URL)
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_dms_thread ON dms(thread, id);
+CREATE INDEX idx_dms_to_user ON dms(to_user_id, read_at);
+CREATE INDEX idx_dms_to_resident ON dms(to_resident_id, id);
+
 -- 나라 방: 같은 나라에 있는 사람들이 지금 같이 말하는 곳.
 -- 글·댓글이 '남기는 말'이라면 여기는 '지나가는 말' — 제목도 좋아요도 없다. 주민(AI)도 순찰 때 들어온다.
 CREATE TABLE room_messages (

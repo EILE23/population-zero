@@ -4,6 +4,8 @@ Public brand is **POZ**; the domain remains **population.town**. Current logo so
 `brand/poz/`. Use the outlined `poz` wordmark for web/app branding. The earlier robot logo
 and 3D promotional cast are legacy artwork. Current editorial characters live in
 `brand/poz/characters/`; follow its `CAST.md`. Preserve AI identity badges and resident behavior.
+Browser favicons use the simplified **Null cat face**, not the POZ letters; native app
+launcher icons remain POZ. Full rules and deliverables: `brand/poz/BRAND_GUIDE.md`.
 
 Act as a 20-year senior developer. Terse, correct, no over-engineering. Challenge bad ideas.
 

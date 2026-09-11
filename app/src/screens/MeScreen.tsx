@@ -46,11 +46,12 @@ function Toggle({ label, hint, value, onChange }: {
 }
 
 /** 내 자리 — 내 글·댓글·팔로잉과 알림 설정이 전부 여기 있다 */
-export function MeScreen({ me, reloadKey, onSignOut, onOpenPost }: {
+export function MeScreen({ me, reloadKey, onSignOut, onOpenPost, onOpenMessages }: {
   me: Me;
   reloadKey: number;
   onSignOut: () => void;
   onOpenPost: (postId: number) => void;
+  onOpenMessages: () => void;
 }) {
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [space, setSpace] = useState<Space>('posts');
@@ -199,13 +200,22 @@ export function MeScreen({ me, reloadKey, onSignOut, onOpenPost }: {
           )
         )}
 
-        <Text style={s.sectionLabel}>ACTIVITY</Text>
-        <Pressable onPress={() => setActivityOpen(true)} style={({ pressed }) => [s.row, pressed && s.rowPressed]}>
-          <Feather name="bell" size={16} color={theme.color.inkMid} />
-          <Text style={s.rowLabel}>What people did to me</Text>
-          <View style={s.rowSpacer} />
-          <Feather name="chevron-right" size={16} color={theme.color.inkFaint} />
-        </Pressable>
+        <Text style={s.sectionLabel}>TALKING</Text>
+        <View style={s.card}>
+          <Pressable onPress={onOpenMessages} style={({ pressed }) => [s.cardRow, pressed && s.rowPressed]}>
+            <Feather name="message-square" size={16} color={theme.color.inkMid} />
+            <Text style={s.rowLabel}>Messages</Text>
+            <View style={s.rowSpacer} />
+            <Feather name="chevron-right" size={16} color={theme.color.inkFaint} />
+          </Pressable>
+          <View style={s.divider} />
+          <Pressable onPress={() => setActivityOpen(true)} style={({ pressed }) => [s.cardRow, pressed && s.rowPressed]}>
+            <Feather name="bell" size={16} color={theme.color.inkMid} />
+            <Text style={s.rowLabel}>What people did to me</Text>
+            <View style={s.rowSpacer} />
+            <Feather name="chevron-right" size={16} color={theme.color.inkFaint} />
+          </Pressable>
+        </View>
 
         <Text style={s.sectionLabel}>NOTIFICATIONS</Text>
         <View style={s.card}>
@@ -311,6 +321,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: theme.space(3),
     backgroundColor: theme.color.paper, borderRadius: theme.radius.lg,
     borderWidth: 1, borderColor: theme.color.hairline,
+    paddingHorizontal: theme.space(4), paddingVertical: theme.space(4),
+  },
+  cardRow: {
+    flexDirection: 'row', alignItems: 'center', gap: theme.space(3),
     paddingHorizontal: theme.space(4), paddingVertical: theme.space(4),
   },
   rowPressed: { backgroundColor: theme.color.surfaceDeep },

@@ -417,3 +417,69 @@ export async function fetchUnreadCount(): Promise<number> {
     return 0;
   }
 }
+
+// ── 쪽지 / 채팅 ────────────────────────────────────────────────────────────────
+// 웹은 쪽지함, 앱은 채팅으로 보여주지만 **같은 대화 하나**다.
+// 상대가 사람이면 살아 있는 대화(live), 주민이면 답장은 다음 순찰에 온다.
+
+export type DmThread = {
+  thread: string;
+  preview: string;
+  created_at: string;
+  unread: number;
+  other: { kind: 'user' | 'resident'; id: number; handle: string; avatar: string | null };
+};
+
+export type DmMessage = {
+  id: number;
+  body: string;
+  image: string | null;
+  created_at: string;
+  mine: boolean;
+  read: boolean;
+};
+
+/** 내 대화 목록 — 마지막 한 줄과 안 읽은 개수 */
+export async function fetchThreads(): Promise<DmThread[]> {
+  const { threads } = await request<{ threads: DmThread[] }>('/api/dm');
+  return threads;
+}
+
+/**
+ * 대화 한 줄기. `after` 뒤의 것만 가져오므로 화면을 열어 둔 동안 짧게 되물어도 값이 싸다.
+ * 전송 방식(폴링 ↔ 웹소켓)이 바뀌어도 화면은 이 함수만 보므로 여기만 갈아끼우면 된다.
+ */
+export async function fetchThread(thread: string, after = 0): Promise<{
+  thread: string;
+  other: DmThread['other'] | null;
+  live: boolean;
+  messages: DmMessage[];
+}> {
+  return request(`/api/dm/${encodeURIComponent(thread)}?after=${after}`);
+}
+
+/** 보내기 — 사진이 있으면 multipart, 글만이면 JSON */
+export async function sendDm(to: string, body: string, photoUri?: string | null): Promise<{ thread: string }> {
+  if (photoUri) {
+    const form = new FormData();
+    form.append('to', to);
+    form.append('body', body);
+    form.append('image', filePart(photoUri));
+    const token = await getToken();
+    const res = await fetch(`${API_BASE}/api/dm`, {
+      method: 'POST',
+      headers: { accept: 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    });
+    if (!res.ok) {
+      const { error } = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new ApiError(res.status, error ?? 'send_failed');
+    }
+    return (await res.json()) as { thread: string };
+  }
+  return request<{ thread: string }>('/api/dm', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ to, body }),
+  });
+}

@@ -3,14 +3,13 @@ import { AccessibilityInfo, Animated, AppState, Easing, Image, StyleSheet, type 
 
 export type CharacterName = 'iris' | 'bracket' | 'cache' | 'null';
 export type CharacterPose = 'base' | 'alternate';
-// 두 번째 포즈(iris-welcome, cache-receipt …) 그림은 아직 없다.
-// require 는 번들 시점에 해석되므로 없는 파일을 적어 두면 앱 전체가 빌드되지 않는다 —
-// 그림이 들어오기 전까지 alternate 는 base 를 가리킨다. 그림이 생기면 이 줄만 바꾸면 된다.
+// 기본·추가 포즈 PNG 8종이 assets/characters에 포함되어 있다.
+// Metro가 모든 오프라인 리소스를 찾을 수 있도록 require 경로를 명시한다.
 const sources: Record<CharacterName, Record<CharacterPose, ImageSourcePropType>> = {
-  iris: { base: require('../../assets/characters/iris.png'), alternate: require('../../assets/characters/iris.png') },
-  bracket: { base: require('../../assets/characters/bracket.png'), alternate: require('../../assets/characters/bracket.png') },
-  cache: { base: require('../../assets/characters/cache.png'), alternate: require('../../assets/characters/cache.png') },
-  null: { base: require('../../assets/characters/null.png'), alternate: require('../../assets/characters/null.png') },
+  iris: { base: require('../../assets/characters/iris.png'), alternate: require('../../assets/characters/iris-welcome.png') },
+  bracket: { base: require('../../assets/characters/bracket.png'), alternate: require('../../assets/characters/bracket-thinking.png') },
+  cache: { base: require('../../assets/characters/cache.png'), alternate: require('../../assets/characters/cache-receipt.png') },
+  null: { base: require('../../assets/characters/null.png'), alternate: require('../../assets/characters/null-sleeping.png') },
 };
 
 /** A short, UI-thread cutout gesture. Reduced motion and backgrounding stop it. */

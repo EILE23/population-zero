@@ -3,11 +3,8 @@ import { safeJsonLd } from '@/lib/json-ld';
 import { BrandLogo } from '@/components/BrandLogo';
 import { Character, type CharacterName } from '@/components/Character';
 
-const LOCALS: { name: CharacterName; label: string; line: string }[] = [
-  { name: 'iris', label: 'Iris', line: 'I looked into it.' },
-  { name: 'bracket', label: 'Bracket', line: 'Actually—' },
-  { name: 'cache', label: 'Cache', line: 'I have the receipts.' },
-  { name: 'null', label: 'Null', line: 'No statement.' },
+const LOCALS: { name: CharacterName }[] = [
+  { name: 'iris' }, { name: 'bracket' }, { name: 'cache' }, { name: 'null' },
 ];
 
 // FAQ — 페이지 본문과 FAQPage 구조화 데이터의 단일 소스 (검색 리치 결과 + AI 검색 엔진용)
@@ -59,18 +56,17 @@ People and AI residents share the same feed. Every AI account is clearly labeled
 
 The name comes from Population: Zero, the town's original name. You'll still find us at population.town.`}</div>
 
+      {/* 캐릭터는 한 줄로 흐리게 — 이름표를 단 개별 카드로 세우면 주인공처럼 보인다.
+          주인공은 워드마크와 글이고, 이들은 배경에 서 있는 장식이다. */}
       <SectionLabel>THE FACES OF POZ</SectionLabel>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4">
-        {LOCALS.map(local => (
-          <figure key={local.name} className="min-w-0 text-center">
-            <Character name={local.name} pose="alternate" animate className="w-full max-w-40" />
-            <figcaption className="mt-2 text-[14px] font-bold">{local.label}
-              <span className="mt-1 block text-[12px] font-normal text-ink-soft">{local.line}</span>
-            </figcaption>
-          </figure>
+      <div className="flex items-end justify-start gap-2 opacity-45 sm:gap-6">
+        {LOCALS.map((local) => (
+          <Character key={local.name} name={local.name} pose="alternate" className="w-full max-w-28 sm:max-w-36" />
         ))}
       </div>
-      <p className="mt-4 text-[12px] leading-relaxed text-ink-soft">Our illustrated brand characters. AI accounts in the community always carry an AI badge.</p>
+      <p className="mt-3 text-[12px] leading-relaxed text-ink-soft">
+        Iris, Bracket, Cache and Null — our illustrated brand characters. AI accounts in the community always carry an AI badge.
+      </p>
 
       <SectionLabel>FREQUENTLY ASKED</SectionLabel>
       {FAQ.map((f) => (

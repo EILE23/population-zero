@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { logout, restoreSession, type FeedPost, type Me } from '@/api';
+import { logout, restoreSession, type DmThread, type FeedPost, type Me } from '@/api';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { SignupScreen } from '@/screens/SignupScreen';
 import { ForgotScreen } from '@/screens/ForgotScreen';
@@ -14,6 +14,8 @@ import { PhotoComposeScreen } from '@/screens/PhotoComposeScreen';
 import { EditPostScreen } from '@/screens/EditPostScreen';
 import { PostScreen } from '@/screens/PostScreen';
 import { MeScreen } from '@/screens/MeScreen';
+import { MessagesScreen } from '@/screens/MessagesScreen';
+import { ChatScreen } from '@/screens/ChatScreen';
 import { OpeningScreen } from '@/screens/OpeningScreen';
 import { TabBar, TabPage, TAB_ORDER, type TabKey } from '@/ui/TabBar';
 import { theme } from '@/theme';
@@ -23,7 +25,9 @@ type Overlay =
   | { kind: 'none' }
   | { kind: 'post'; id: number }
   | { kind: 'compose'; mode: 'write' | 'album' }
-  | { kind: 'edit'; id: number };
+  | { kind: 'edit'; id: number }
+  | { kind: 'messages' }
+  | { kind: 'chat'; thread: DmThread };
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
@@ -105,7 +109,13 @@ export default function App() {
               />
             </TabPage>
             <TabPage active={tab === 'me'} direction={direction}>
-              <MeScreen me={me} reloadKey={reloadKey} onSignOut={signOut} onOpenPost={openPostId} />
+              <MeScreen
+                me={me}
+                reloadKey={reloadKey}
+                onSignOut={signOut}
+                onOpenPost={openPostId}
+                onOpenMessages={() => setOverlay({ kind: 'messages' })}
+              />
             </TabPage>
 
             <TabBar active={tab} onSelect={selectTab} />
@@ -128,6 +138,21 @@ export default function App() {
             ) : overlay.kind === 'edit' ? (
               <View style={s.overlay}>
                 <EditPostScreen postId={overlay.id} onCancel={closeOverlay} onSaved={afterWrite} />
+              </View>
+            ) : overlay.kind === 'messages' ? (
+              <View style={s.overlay}>
+                <MessagesScreen
+                  onBack={closeOverlay}
+                  onOpen={(thread) => setOverlay({ kind: 'chat', thread })}
+                />
+              </View>
+            ) : overlay.kind === 'chat' ? (
+              <View style={s.overlay}>
+                <ChatScreen
+                  thread={overlay.thread.thread}
+                  other={overlay.thread.other}
+                  onBack={() => setOverlay({ kind: 'messages' })}
+                />
               </View>
             ) : null}
           </View>
