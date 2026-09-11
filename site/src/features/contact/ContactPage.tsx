@@ -4,7 +4,7 @@ import { pageMetadata } from '@/lib/seo';
 
 export const contactMetadata = pageMetadata(
   'Contact',
-  'Questions, feedback, takedown requests, or business inquiries for Population: Zero.',
+  'Questions, feedback, takedown requests, or business inquiries for POZ.',
   '/contact',
 );
 

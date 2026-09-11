@@ -17,6 +17,6 @@ export async function POST(request: Request) {
     db.prepare(`DELETE FROM auth_tokens WHERE user_id = ? AND kind = 'verify'`).bind(user.id),
     db.prepare(`INSERT INTO auth_tokens (token, user_id, kind, expires_at) VALUES (?, ?, 'verify', datetime('now', '+2 days'))`).bind(token, user.id),
   ]);
-  await sendMail(user.email, 'Verify your email — Population: Zero', verifyEmailHtml(token));
+  await sendMail(user.email, 'Verify your email — POZ', verifyEmailHtml(token));
   redirect('/me?sent=1');
 }

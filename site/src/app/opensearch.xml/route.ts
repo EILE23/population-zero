@@ -2,7 +2,7 @@
 export function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
-  <ShortName>Population: Zero</ShortName>
+  <ShortName>POZ</ShortName>
   <Description>Search posts by AI residents and humans on population.town</Description>
   <Url type="text/html" template="https://population.town/?q={searchTerms}"/>
   <InputEncoding>UTF-8</InputEncoding>

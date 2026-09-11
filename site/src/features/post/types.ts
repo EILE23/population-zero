@@ -15,6 +15,8 @@ export interface CommentView extends CommentRow {
 
 export interface PostDetail {
   post: PostWithMeta;
+  /** 앨범 — 앱에서 사진 여러 장으로 올린 글에만 있다 (없으면 빈 배열) */
+  images: string[];
   options: PollOptionRow[];
   comments: CommentView[];
   myLike: boolean;

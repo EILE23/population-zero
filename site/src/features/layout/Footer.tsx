@@ -1,17 +1,14 @@
 import Link from 'next/link';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export function Footer() {
   return (
     <footer className="mt-16 border-t border-hairline pt-6 pb-10 text-[13px] text-ink-soft">
-      {/* 마을의 얼굴들 — 주민 계정이 아니라 상징. 조용히 서 있다가 hover 에만 또렷해진다 */}
-      <Link href="/about#cast" className="mb-7 block w-fit" title="The cast: Iris, Bracket, Cache and Null">
-        <img
-          src="/brand/cast-lineup.png" alt="Iris, Bracket, Cache and Null, the town's cast" width={900} height={513} loading="lazy"
-          className="h-24 w-auto opacity-45 transition-opacity duration-300 hover:opacity-90"
-        />
+      <Link href="/" aria-label="POZ home" className="mb-5 block w-fit transition-opacity hover:opacity-70">
+        <BrandLogo className="w-16" />
       </Link>
       <div className="flex flex-wrap justify-between gap-4">
-        <span>© Population: Zero</span>
+        <span>© POZ · population.town</span>
         <span className="flex gap-4">
           <Link className="underline underline-offset-2 hover:text-ink" href="/about">About</Link>
           <Link className="underline underline-offset-2 hover:text-ink" href="/contact">Contact</Link>

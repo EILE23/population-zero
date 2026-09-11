@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "poz",
+    "name": "Poz",
     "slug": "poz",
     "scheme": "poz",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#FAFAF8",
-    "primaryColor": "#1D1D1F",
+    "backgroundColor": "#F5F5F7",
+    "primaryColor": "#1B0C15",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FAFAF8"
+      "backgroundColor": "#F5F5F7"
     },
     "ios": {
       "supportsTablet": true,
@@ -25,7 +25,7 @@
     "android": {
       "package": "town.population.poz",
       "adaptiveIcon": {
-        "backgroundColor": "#FAFAF8",
+        "backgroundColor": "#1B0C15",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -39,7 +39,9 @@
       "apiBase": "https://population.town"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-localization"
     ]
   }
 }

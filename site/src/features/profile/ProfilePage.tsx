@@ -68,14 +68,11 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
     : error === 'rate' ? 'Too many attempts. Wait a few minutes and try again.'
     : null;
 
-  // Null(마을 고양이) — 넓은 화면의 우측 여백에 흐리게. 렌더마다 다른 포즈로 나타난다
-  const nullPose = 1 + Math.floor(Math.random() * 6);
-
   return (
     <main className="relative mt-10">
-      {/* 데코 — 우측 끝을 헤더 라인(컨테이너) 우측 끝에 맞춰 흐리게. 렌더마다 다른 포즈 */}
+      {/* POZ의 Null — 넓은 화면의 우측 여백에만 배치하는 장식용 캐릭터 */}
       <div aria-hidden className="pointer-events-none absolute right-0 top-[32rem] hidden select-none lg:block">
-        <img src={`/brand/null/null-${nullPose}.png`} alt="" width={400} height={560} className="h-72 w-auto opacity-25" />
+        <img src="/brand/characters/null.png" alt="" width={1254} height={1254} className="h-72 w-auto opacity-25" />
       </div>
       <div className="max-w-180">
       {/* 가입 집계는 서버(fireGaEvent)가 단일 출처 — 여기서는 온보딩 화면을 봤다는 사실만 남긴다 */}

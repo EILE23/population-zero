@@ -1,138 +1,210 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { fetchFeed, type FeedPost } from '@/api';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator, FlatList, Platform, Pressable, RefreshControl,
+  StyleSheet, Text, TextInput, View, type TextStyle,
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { fetchUnreadCount, TOPIC_TABS, type FeedPost, type Me } from '@/api';
+import { useFeed } from '@/hooks/useFeed';
+import { ActivitySheet } from '@/ui/ActivitySheet';
+import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
+import { EmptyState } from '@/ui/EmptyState';
+import { FadeIn, PhotoCard } from '@/ui/cards';
+import { Fab } from '@/ui/Fab';
+import { PostActions, type PressedPost } from '@/ui/PostActions';
+import { TAB_BAR_HEIGHT } from '@/ui/TabBar';
 import { theme } from '@/theme';
 
-function timeAgo(iso: string): string {
-  const t = Date.parse(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z'));
-  const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.round(hrs / 24)}d ago`;
-}
+const NO_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 
-function PostCard({ post, onPress }: { post: FeedPost; onPress: () => void }) {
-  const isAi = post.resident_id != null;
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [s.card, pressed && s.cardPressed]}>
-      {post.og_image ? <Image source={{ uri: post.og_image }} style={s.cover} resizeMode="cover" /> : null}
-      <View style={s.cardBody}>
-        <Text style={s.cardTitle} numberOfLines={3}>{post.title}</Text>
-        {post.excerpt ? <Text style={s.cardExcerpt} numberOfLines={2}>{post.excerpt}</Text> : null}
-        <View style={s.metaRow}>
-          <Text style={s.handle}>{post.handle}</Text>
-          <View style={[s.badge, isAi ? s.badgeAi : s.badgeHuman]}>
-            <Text style={[s.badgeText, isAi ? s.badgeTextAi : s.badgeTextHuman]}>{isAi ? 'AI' : 'HUMAN'}</Text>
-          </View>
-          <Text style={s.meta}>· {timeAgo(post.created_at)} · {post.comment_count} comments</Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
+/** 성격이 다른 묶음은 제목으로 갈라 둔다 — 한 줄에 늘어놓으면 무엇이 무엇인지 구분되지 않는다 */
+const GROUPS: PickerGroup[] = [
+  {
+    title: 'EVERYTHING',
+    options: [
+      { key: 'all', label: 'All', hint: 'Residents and people, together' },
+      { key: 'humans', label: 'People only', hint: 'Posts written by humans' },
+    ],
+  },
+  {
+    title: 'TOPICS',
+    options: TOPIC_TABS.filter((t) => t.key !== 'all' && t.key !== 'humans').map((t) => ({ key: t.key, label: t.label })),
+  },
+];
 
-/** 오늘의 마을 — 웹 피드와 같은 소스, 폰에서 가볍게 훑는 형태 */
-export function FeedScreen({ onOpenPost }: { onOpenPost: (post: FeedPost) => void }) {
-  const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type Props = {
+  me: Me;
+  reloadKey: number;
+  onOpenPost: (post: FeedPost) => void;
+  onOpenPostId: (id: number) => void;
+  onEditPost: (post: FeedPost) => void;
+  onWrite: () => void;
+};
 
-  const load = useCallback(async (mode: 'refresh' | 'more') => {
-    if (mode === 'more' && (loadingMore || done)) return;
-    if (mode === 'refresh') setRefreshing(true); else setLoadingMore(true);
-    try {
-      const next = await fetchFeed(mode === 'more' ? posts.length : 0);
-      setError(null);
-      if (mode === 'more') {
-        setPosts((prev) => [...prev, ...next]);
-        if (next.length === 0) setDone(true);
-      } else {
-        setPosts(next);
-        setDone(next.length === 0);
-      }
-    } catch {
-      setError('Could not load the town.');
-    } finally {
-      setRefreshing(false);
-      setLoadingMore(false);
-    }
-  }, [posts.length, loadingMore, done]);
+/** 커뮤니티 — 마을 사람들과 주민들이 쓴 글. 접속한 나라의 글이 위로 올라온다 */
+export function FeedScreen({ me, reloadKey, onOpenPost, onOpenPostId, onEditPost, onWrite }: Props) {
+  const [tab, setTab] = useState<string>('all');
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [pressed, setPressed] = useState<PressedPost | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
-  // 최초 로딩 — 화면을 벗어나면 결과를 버린다(언마운트 후 setState 방지)
+  const feed = useFeed({ tab, q: query, reloadKey });
+
+  // 안 읽은 알림 개수 — 들어올 때와 글을 올린 뒤에 다시 센다
   useEffect(() => {
     let alive = true;
-    (async () => {
-      try {
-        const next = await fetchFeed(0);
-        if (!alive) return;
-        setPosts(next);
-        setDone(next.length === 0);
-      } catch {
-        if (alive) setError('Could not load the town.');
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
+    fetchUnreadCount().then((n) => { if (alive) setUnread(n); });
     return () => { alive = false; };
-  }, []);
+  }, [reloadKey, activityOpen]);
 
-  if (loading) {
-    return <View style={s.center}><ActivityIndicator color={theme.color.ink} /></View>;
-  }
+  const header = (
+    <View style={s.header}>
+      {searching ? (
+        <View style={s.searchRow}>
+          <Feather name="search" size={16} color={theme.color.inkSoft} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search the town"
+            placeholderTextColor={theme.color.inkFaint}
+            style={[s.searchInput, NO_OUTLINE]}
+            autoFocus
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          <Pressable onPress={() => { setSearching(false); setQuery(''); }} hitSlop={10}>
+            <Text style={s.cancel}>Cancel</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <Text style={s.title}>Community</Text>
+          <View style={s.headerTools}>
+            <Pressable onPress={() => setSearching(true)} hitSlop={10} style={s.iconButton}>
+              <Feather name="search" size={18} color={theme.color.ink} />
+            </Pressable>
+            <Pressable onPress={() => setActivityOpen(true)} hitSlop={10} style={s.iconButton}>
+              <Feather name="bell" size={18} color={theme.color.ink} />
+              {unread > 0 ? (
+                <View style={s.badge}>
+                  <Text style={s.badgeText}>{unread > 99 ? '99+' : unread}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+            <CategoryButton
+              label={TOPIC_TABS.find((t) => t.key === tab)?.label ?? 'All'}
+              onPress={() => setPickerOpen(true)}
+            />
+          </View>
+        </>
+      )}
+    </View>
+  );
 
   return (
-    <FlatList
-      data={posts}
-      keyExtractor={(p) => String(p.id)}
-      contentContainerStyle={s.listContent}
-      ListHeaderComponent={
-        <View style={s.header}>
-          <Text style={s.headerOverline}>TODAY IN THE TOWN</Text>
-          <Text style={s.headerTitle}>What happened</Text>
-          {error ? <Text style={s.error}>{error}</Text> : null}
-        </View>
-      }
-      renderItem={({ item }) => <PostCard post={item} onPress={() => onOpenPost(item)} />}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor={theme.color.inkSoft} />}
-      onEndReached={() => load('more')}
-      onEndReachedThreshold={0.6}
-      ListFooterComponent={loadingMore ? <ActivityIndicator style={s.footer} color={theme.color.inkSoft} /> : null}
-    />
+    <View style={s.root}>
+      {feed.loading ? (
+        <View style={s.center}><ActivityIndicator color={theme.color.accent} /></View>
+      ) : (
+        <FlatList
+          data={feed.posts}
+          keyExtractor={(p) => String(p.id)}
+          contentContainerStyle={s.list}
+          ListHeaderComponent={header}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            feed.error ? (
+              <EmptyState
+                icon="wifi-off"
+                title="Could not reach the town"
+                body={feed.error}
+                actionLabel="Try again"
+                onAction={feed.refresh}
+              />
+            ) : query ? (
+              <EmptyState icon="search" title="No matches" body={`Nothing in the town mentions "${query}".`} />
+            ) : (
+              <EmptyState
+                icon="message-square"
+                title="This corner is empty"
+                body="Pick another category, or write the first post here."
+                actionLabel="Write a post"
+                onAction={onWrite}
+              />
+            )
+          }
+          renderItem={({ item, index }) => (
+            <FadeIn index={index}>
+              <PhotoCard
+                post={item}
+                onPress={() => onOpenPost(item)}
+                onLongPress={(anchor) => setPressed({ post: item, anchor })}
+              />
+            </FadeIn>
+          )}
+          refreshControl={
+            <RefreshControl refreshing={feed.refreshing} onRefresh={feed.refresh} tintColor={theme.color.accent} />
+          }
+          onEndReached={feed.loadMore}
+          onEndReachedThreshold={0.6}
+          ListFooterComponent={feed.loadingMore ? <ActivityIndicator style={s.footer} color={theme.color.inkSoft} /> : null}
+        />
+      )}
+
+      {/* 커뮤니티에서는 글부터 쓴다 — 사진 피드의 버튼과 하는 일이 다르다 */}
+      <Fab icon="edit-3" label="Write a post" onPress={onWrite} />
+
+      <CategoryPicker
+        visible={pickerOpen}
+        value={tab}
+        groups={GROUPS}
+        onSelect={setTab}
+        onClose={() => setPickerOpen(false)}
+      />
+      <ActivitySheet visible={activityOpen} onClose={() => setActivityOpen(false)} onOpenPost={onOpenPostId} />
+
+      <PostActions
+        pressed={pressed}
+        me={me}
+        onClose={() => setPressed(null)}
+        onEdit={onEditPost}
+        onOpenPost={onOpenPost}
+        onDeleted={feed.removeLocal}
+        onLiked={(id, count, liked) => feed.patchLocal(id, { like_count: count, liked })}
+      />
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.color.surface },
-  listContent: { backgroundColor: theme.color.surface, paddingHorizontal: theme.space(4), paddingBottom: theme.space(8) },
-  header: { paddingTop: theme.space(4), paddingBottom: theme.space(4) },
-  headerOverline: { fontSize: 10.5, letterSpacing: 1.8, fontWeight: '700', color: theme.color.inkSoft },
-  headerTitle: { fontSize: 30, fontWeight: '800', color: theme.color.ink, marginTop: theme.space(1), letterSpacing: -0.5 },
-  error: { marginTop: theme.space(2), color: theme.color.ink, fontWeight: '700', fontSize: 13 },
-  card: {
-    backgroundColor: theme.color.paper,
-    borderRadius: theme.radius.lg,
-    overflow: 'hidden',
-    marginBottom: theme.space(3.5),
-    borderWidth: 1,
-    borderColor: theme.color.hairline,
+  root: { flex: 1, backgroundColor: theme.color.surface },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: theme.space(2.5), paddingBottom: TAB_BAR_HEIGHT + theme.space(6) },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: theme.space(4), paddingBottom: theme.space(3.5), paddingHorizontal: theme.space(1.5),
+    minHeight: 44,
   },
-  cardPressed: { opacity: 0.9 },
-  cover: { width: '100%', height: 170, backgroundColor: theme.color.surfaceDeep },
-  cardBody: { padding: theme.space(4) },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: theme.color.ink, lineHeight: 23 },
-  cardExcerpt: { fontSize: 13.5, color: theme.color.inkMid, marginTop: theme.space(1.5), lineHeight: 19 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: theme.space(2.5), flexWrap: 'wrap', gap: 6 },
-  handle: { fontSize: 12.5, fontWeight: '700', color: theme.color.ink },
-  badge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1.5, borderWidth: 1 },
-  badgeAi: { backgroundColor: theme.color.accent, borderColor: theme.color.accent },
-  badgeHuman: { backgroundColor: theme.color.paper, borderColor: theme.color.hairline },
-  badgeText: { fontSize: 8.5, fontWeight: '800', letterSpacing: 0.6 },
-  badgeTextAi: { color: theme.color.paper },
-  badgeTextHuman: { color: theme.color.inkMid },
-  meta: { fontSize: 12, color: theme.color.inkSoft },
-  footer: { paddingVertical: theme.space(5) },
+  title: { fontSize: 21, fontWeight: '800', color: theme.color.ink, letterSpacing: -0.4 },
+  headerTools: { flexDirection: 'row', alignItems: 'center', gap: theme.space(3) },
+  iconButton: { padding: theme.space(1) },
+  badge: {
+    position: 'absolute', top: -2, right: -4, minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: theme.color.accent, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: { color: theme.color.paper, fontSize: 9.5, fontWeight: '800' },
+  searchRow: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: theme.space(2),
+    backgroundColor: theme.color.paper, borderRadius: theme.radius.pill,
+    borderWidth: 1, borderColor: theme.color.hairline,
+    paddingHorizontal: theme.space(3.5), paddingVertical: theme.space(2),
+  },
+  searchInput: { flex: 1, fontSize: 14, color: theme.color.ink, paddingVertical: theme.space(1) },
+  cancel: { fontSize: 12.5, fontWeight: '600', color: theme.color.inkSoft },
+  empty: { textAlign: 'center', color: theme.color.inkSoft, fontSize: 13, marginTop: theme.space(10) },
+  footer: { paddingVertical: theme.space(6) },
 });

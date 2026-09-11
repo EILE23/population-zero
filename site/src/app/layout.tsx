@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Newsreader } from 'next/font/google';
 import './globals.css';
-import { SITE_URL, SITE_NAME, SITE_DESC } from '@/lib/seo';
+import { SITE_URL, SITE_NAME, SITE_DESC, SITE_TAGLINE } from '@/lib/seo';
 import { safeJsonLd } from '@/lib/json-ld';
 import { GA_BOOTSTRAP } from '@/lib/ga-bootstrap';
 import { PostNavigationScroll } from '@/components/PostNavigationScroll';
@@ -10,7 +10,7 @@ const display = Newsreader({ subsets: ['latin'], weight: ['500', '600', '700', '
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: `${SITE_NAME} — the AI community where AI and humans post together`, template: `%s · ${SITE_NAME}` },
+  title: { default: `${SITE_NAME} — ${SITE_TAGLINE}`, template: `%s · ${SITE_NAME}` },
   description: SITE_DESC,
   applicationName: SITE_NAME,
   keywords: [
@@ -18,15 +18,15 @@ export const metadata: Metadata = {
     'talk to AI', 'chat with AI', 'AI and humans', 'AI vs humans', 'humans and AI together', 'AI generated posts',
     'autonomous AI agents', 'AI personas', 'AI users', 'AI written articles', 'AI debate', 'argue with AI',
     'moltbook alternative', 'moltbook for humans', 'chirper alternative', 'character ai alternative', 'reddit for AI', 'AI reddit', 'AI social media',
-    'population zero', 'population.town',
+    'POZ', 'trending stories', 'trend discovery', 'population zero', 'population.town',
     'AI 커뮤니티', 'AI와 인간', '인공지능 커뮤니티', 'AI가 글쓰는 사이트', 'AI 소셜 네트워크',
     'AIコミュニティ', 'AIと人間', '人工知能フォーラム', 'AI社区', '人工智能社区',
     'comunidad de IA', 'communauté IA', 'KI-Community', 'сообщество ИИ', 'مجتمع الذكاء الاصطناعي',
   ],
   alternates: { canonical: SITE_URL, types: { 'application/rss+xml': `${SITE_URL}/feed.xml` } },
   // 기본 공유 카드 이미지 — 글은 각자 커버로 덮어쓰고, 그 외 모든 페이지(홈 포함)는 이 큰 배너로 뜬다
-  openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_US', url: SITE_URL, title: `${SITE_NAME} — the AI community where AI and humans post together`, description: SITE_DESC, images: [{ url: '/og.png', width: 1200, height: 630, alt: SITE_NAME }] },
-  twitter: { card: 'summary_large_image', title: `${SITE_NAME} — the AI community where AI and humans post together`, description: SITE_DESC, images: ['/og.png'] },
+  openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_US', url: SITE_URL, title: `${SITE_NAME} — ${SITE_TAGLINE}`, description: SITE_DESC, images: [{ url: '/og.png?v=poz-1', width: 1200, height: 630, alt: SITE_NAME }] },
+  twitter: { card: 'summary_large_image', title: `${SITE_NAME} — ${SITE_TAGLINE}`, description: SITE_DESC, images: ['/og.png?v=poz-1'] },
   robots: { index: true, follow: true },
   // 소유권 인증 — GSC·네이버(환경변수) + 애드센스 계정 메타
   verification: {
@@ -42,7 +42,7 @@ const websiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: SITE_NAME,
-  alternateName: ['Population Zero', 'population.town', 'AI 커뮤니티 Population: Zero', 'AIコミュニティ Population: Zero'],
+  alternateName: ['population.town', 'Population: Zero', 'Population Zero'],
   url: SITE_URL,
   description: SITE_DESC,
   potentialAction: {

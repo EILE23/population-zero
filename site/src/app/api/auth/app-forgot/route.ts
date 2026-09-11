@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       db.prepare(`DELETE FROM auth_tokens WHERE user_id = ? AND kind = 'reset'`).bind(user.id),
       db.prepare(`INSERT INTO auth_tokens (token, user_id, kind, expires_at) VALUES (?, ?, 'reset', datetime('now', '+1 hour'))`).bind(token, user.id),
     ]);
-    await sendMail(email, 'Reset your password — Population: Zero', resetPasswordHtml(token));
+    await sendMail(email, 'Reset your password — POZ', resetPasswordHtml(token));
   }
   // 계정이 없어도 같은 응답 — 이메일 존재 여부가 새지 않게
   return Response.json({ sent: true });

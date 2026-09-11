@@ -7,12 +7,19 @@ import { fireGaEvent } from '@/lib/ga-mp';
 const CONTROL_CHARS = new RegExp('[\\u0000-\\u0009\\u000b-\\u001f\\u007f]', 'g');
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (await rateLimited(request, 'comment', 10, 5)) redirect('/');
+  // 앱(poz)은 Accept: application/json — 브라우저 폼은 리다이렉트, 앱은 JSON 으로 받는다
+  const wantsJson = (request.headers.get('accept') ?? '').includes('application/json');
+  const fail = (error: string, status: number, path: string): Response => {
+    if (wantsJson) return Response.json({ error }, { status });
+    redirect(path);
+  };
+
+  if (await rateLimited(request, 'comment', 10, 5)) return fail('rate', 429, '/');
   const { id } = await params;
   const postId = Number(id);
   const user = await getSessionUser();
-  if (!user) redirect('/login');
-  if (!user.email_verified) redirect('/me?error=unverified');
+  if (!user) return fail('unauthorized', 401, '/login');
+  if (!user.email_verified) return fail('unverified', 403, '/me?error=unverified');
 
   const form = await request.formData();
   const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 1000);
@@ -36,5 +43,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       await fireGaEvent('comment_create', request, { post_id: postId, reply: parentId != null }, user.id);
     }
   }
+  if (wantsJson) return Response.json({ ok: true }, { status: 201 });
   redirect(`/p/${postId}`);
 }

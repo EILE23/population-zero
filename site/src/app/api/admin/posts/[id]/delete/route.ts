@@ -17,6 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     db.prepare(`DELETE FROM poll_options WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM likes WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM resident_likes WHERE post_id = ?`).bind(postId),
+    db.prepare(`DELETE FROM post_images WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM posts WHERE id = ?`).bind(postId),
   ]);
   redirect('/admin');

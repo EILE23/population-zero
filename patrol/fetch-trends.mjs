@@ -90,9 +90,30 @@ for (const geo of ['US', 'GB', 'KR', 'JP', 'IN', 'BR', 'DE', 'FR', 'MX', 'AU', '
 }
 
 // 주제·지역별 공식 RSS 팩 — 언론사·기관이 배포용으로 제공하는 피드만 (스크래핑 아님)
-const rssItems = (xml, n = 8) =>
-  [...xml.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>[\s\S]*?<\/item>/g)]
-    .slice(0, n).map((m) => ({ title: m[1].trim(), link: m[2].trim() }));
+// 피드마다 모양이 다르다: RSS 2.0 은 <item>, RDF(아사히 등)는 <item rdf:about=...>, Atom 은 <entry> +
+// <link href=...>. 하나만 보면 멀쩡한 언론사가 0건으로 잡혀 그 나라가 통째로 빈다.
+const decodeXml = (v) => v
+  .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
+  .replace(/<[^>]+>/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const rssItems = (xml, n = 60) => {
+  const out = [];
+  const blocks = [...xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/g)];
+  for (const [, , inner] of blocks) {
+    const title = inner.match(/<title\b[^>]*>([\s\S]*?)<\/title>/)?.[1];
+    // <link>https://…</link> (RSS/RDF) 또는 <link href="https://…"/> (Atom)
+    const link = inner.match(/<link\b[^>]*>([\s\S]*?)<\/link>/)?.[1]
+      ?? inner.match(/<link\b[^>]*href=["']([^"']+)["']/)?.[1];
+    if (!title || !link) continue;
+    out.push({ title: decodeXml(title), link: decodeXml(link) });
+    if (out.length >= n) break;
+  }
+  return out;
+};
 const FEEDS = [
   { name: 'rss_bbc_world', topic: 'world', url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
   { name: 'rss_aljazeera', topic: 'world', url: 'https://www.aljazeera.com/xml/rss/all.xml' },
@@ -100,6 +121,51 @@ const FEEDS = [
   { name: 'rss_france24_en', topic: 'world', region: 'FR', url: 'https://www.france24.com/en/rss' },
   { name: 'rss_japantimes', topic: 'world', region: 'JP', url: 'https://www.japantimes.co.jp/feed/' },
   { name: 'rss_timesofindia', topic: 'world', region: 'IN', url: 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms' },
+  // 나라별 자국 뉴스 — 앱 Today 는 "지금 그 나라가 어떻게 돌아가는지"라서,
+  // 그 나라 사람이 읽는 언어의 그 나라 매체가 있어야 성립한다. 전부 공개 RSS.
+  // 한국 — 종합·경제·IT를 고루 (네이버는 RSS 를 없앴으므로 각 언론사 피드가 정공법)
+  { name: 'rss_yonhap_kr', topic: 'world', region: 'KR', url: 'https://www.yna.co.kr/rss/news.xml' },
+  { name: 'rss_hani_kr', topic: 'world', region: 'KR', url: 'https://www.hani.co.kr/rss/' },
+  { name: 'rss_khan_kr', topic: 'world', region: 'KR', url: 'https://www.khan.co.kr/rss/rssdata/total_news.xml' },
+  { name: 'rss_sbs_kr', topic: 'world', region: 'KR', url: 'https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER' },
+  { name: 'rss_nocut_kr', topic: 'world', region: 'KR', url: 'https://rss.nocutnews.co.kr/nocutnews.xml' },
+  { name: 'rss_ohmynews_kr', topic: 'world', region: 'KR', url: 'http://rss.ohmynews.com/rss/ohmynews.xml' },
+  { name: 'rss_hankyung_kr', topic: 'business', region: 'KR', url: 'https://www.hankyung.com/feed/all-news' },
+  { name: 'rss_mk_kr', topic: 'business', region: 'KR', url: 'https://www.mk.co.kr/rss/30000001/' },
+  { name: 'rss_etnews_kr', topic: 'tech', region: 'KR', url: 'https://rss.etnews.com/Section901.xml' },
+  { name: 'rss_zdnet_kr', topic: 'tech', region: 'KR', url: 'https://feeds.feedburner.com/zdkorea' },
+  // 일본
+  { name: 'rss_nhk_jp', topic: 'world', region: 'JP', url: 'https://www.nhk.or.jp/rss/news/cat0.xml' },
+  { name: 'rss_asahi_jp', topic: 'world', region: 'JP', url: 'https://www.asahi.com/rss/asahi/newsheadlines.rdf' },
+  { name: 'rss_itmedia_jp', topic: 'tech', region: 'JP', url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml' },
+  // 미국
+  { name: 'rss_npr_us', topic: 'world', region: 'US', url: 'https://feeds.npr.org/1001/rss.xml' },
+  { name: 'rss_cbs_us', topic: 'world', region: 'US', url: 'https://www.cbsnews.com/latest/rss/main' },
+  { name: 'rss_thehill_us', topic: 'world', region: 'US', url: 'https://thehill.com/news/feed/' },
+  // 영국
+  { name: 'rss_bbc_uk', topic: 'world', region: 'GB', url: 'https://feeds.bbci.co.uk/news/uk/rss.xml' },
+  { name: 'rss_guardian_uk', topic: 'world', region: 'GB', url: 'https://www.theguardian.com/uk/rss' },
+  { name: 'rss_independent_uk', topic: 'world', region: 'GB', url: 'https://www.independent.co.uk/news/uk/rss' },
+  // 독일·프랑스
+  { name: 'rss_tagesschau_de', topic: 'world', region: 'DE', url: 'https://www.tagesschau.de/xml/rss2/' },
+  { name: 'rss_spiegel_de', topic: 'world', region: 'DE', url: 'https://www.spiegel.de/schlagzeilen/index.rss' },
+  { name: 'rss_zeit_de', topic: 'world', region: 'DE', url: 'https://newsfeed.zeit.de/index' },
+  { name: 'rss_lemonde_fr', topic: 'world', region: 'FR', url: 'https://www.lemonde.fr/rss/une.xml' },
+  { name: 'rss_lefigaro_fr', topic: 'world', region: 'FR', url: 'https://www.lefigaro.fr/rss/figaro_actualites.xml' },
+  { name: 'rss_liberation_fr', topic: 'world', region: 'FR', url: 'https://www.liberation.fr/arc/outboundfeeds/rss-all/' },
+  // 브라질·멕시코
+  { name: 'rss_g1_br', topic: 'world', region: 'BR', url: 'https://g1.globo.com/rss/g1/' },
+  { name: 'rss_folha_br', topic: 'world', region: 'BR', url: 'https://feeds.folha.uol.com.br/emcimadahora/rss091.xml' },
+  { name: 'rss_jornada_mx', topic: 'world', region: 'MX', url: 'https://www.jornada.com.mx/rss/edicion.xml' },
+  { name: 'rss_expansion_mx', topic: 'business', region: 'MX', url: 'https://expansion.mx/rss' },
+  // 인도·호주·인도네시아·나이지리아
+  { name: 'rss_ndtv_in', topic: 'world', region: 'IN', url: 'https://feeds.feedburner.com/ndtvnews-top-stories' },
+  { name: 'rss_thehindu_in', topic: 'world', region: 'IN', url: 'https://www.thehindu.com/news/national/feeder/default.rss' },
+  { name: 'rss_abc_au', topic: 'world', region: 'AU', url: 'https://www.abc.net.au/news/feed/2942460/rss.xml' },
+  { name: 'rss_smh_au', topic: 'world', region: 'AU', url: 'https://www.smh.com.au/rss/feed.xml' },
+  { name: 'rss_antara_id', topic: 'world', region: 'ID', url: 'https://www.antaranews.com/rss/terkini.xml' },
+  { name: 'rss_punch_ng', topic: 'world', region: 'NG', url: 'https://punchng.com/feed/' },
+  { name: 'rss_vanguard_ng', topic: 'world', region: 'NG', url: 'https://www.vanguardngr.com/feed/' },
   { name: 'rss_theverge', topic: 'tech', url: 'https://www.theverge.com/rss/index.xml' },
   { name: 'rss_arstechnica', topic: 'tech', url: 'https://feeds.arstechnica.com/arstechnica/index' },
   { name: 'rss_techcrunch', topic: 'tech', url: 'https://techcrunch.com/feed/' },

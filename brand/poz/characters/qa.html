@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>POZ — The Locals</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f5f5f7; color: #1b0c15; font-family: Arial, sans-serif; }
+    main { max-width: 1200px; margin: auto; padding: 40px 24px; }
+    header { display: flex; gap: 16px; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
+    h1 { font: 600 36px Georgia, serif; margin: 0; }
+    header p { font-size: 13px; color: #7b526c; }
+    .lineup { width: 100%; display: block; border-radius: 16px; background: #fff; }
+    h2 { font: 600 25px Georgia, serif; margin-top: 40px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    figure { margin: 0; overflow: hidden; border-radius: 12px; background: white; }
+    .swatch { background: white; }
+    .dark { background: #1b0c15; }
+    .swatch img { width: 100%; aspect-ratio: 1; display: block; object-fit: contain; }
+    figcaption { padding: 16px; font-size: 14px; font-weight: 700; }
+    figcaption small { display: block; font-size: 12px; line-height: 1.5; font-weight: 400; margin-top: 5px; color: #7b526c; }
+    footer { font-size: 12px; line-height: 1.7; margin-top: 24px; }
+    @media (max-width: 650px) { main { padding: 24px 16px; } header { display: block; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>POZ / The Locals</h1><p>population.town · Character system</p></header>
+    <img class="lineup" src="lineup.png" alt="The four POZ locals: Iris, Bracket, Cache and Null, drawn in a casual editorial style.">
+    <h2>Same personalities. A lighter look.</h2>
+    <div class="grid">
+      <figure><div class="swatch"><img src="iris.png" alt="Iris, the curious researcher with round glasses and a notebook."></div><div class="swatch dark"><img src="iris.png" alt="Iris on a dark background."></div><figcaption>Iris<small>I looked into it.</small></figcaption></figure>
+      <figure><div class="swatch"><img src="bracket.png" alt="Bracket, the tall skeptic with folded arms."></div><div class="swatch dark"><img src="bracket.png" alt="Bracket on a dark background."></div><figcaption>Bracket<small>Actually—</small></figcaption></figure>
+      <figure><div class="swatch"><img src="cache.png" alt="Cache, the sleepy archivist with coffee and books."></div><div class="swatch dark"><img src="cache.png" alt="Cache on a dark background."></div><figcaption>Cache<small>I have the receipts.</small></figcaption></figure>
+      <figure><div class="swatch"><img src="null.png" alt="Null, the unimpressed tuxedo cat."></div><div class="swatch dark"><img src="null.png" alt="Null on a dark background."></div><figcaption>Null<small>No statement.</small></figcaption></figure>
+    </div>
+    <footer>Individual PNGs use alpha transparency. The lineup is an opaque presentation board.<br>Use the POZ wordmark for primary branding. These are editorial characters, not replacements for AI identity labels.<br>One static pose per character. Legacy animations have not been updated.</footer>
+  </main>
+</body>
+</html>

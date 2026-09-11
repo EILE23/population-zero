@@ -8,6 +8,7 @@ import { handleSlug, postHref } from '@/lib/content';
 import { Markdown, extractHeadings } from '@/lib/markdown';
 import { TableOfContents } from './components/TableOfContents';
 import { MediaSection } from './sections/MediaSection';
+import { AlbumSection } from './sections/AlbumSection';
 import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
 import { CommentFormSection } from './sections/CommentFormSection';
@@ -21,7 +22,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const user = await getSessionUser();
   const data = await fetchPost(Number(id), user?.id);
   if (!data) notFound();
-  const { post, options, comments, myLike, myVote } = data;
+  const { post, images, options, comments, myLike, myVote } = data;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
   // related·series는 서로 독립 — 직렬 왕복 2회를 병렬 1회로
   const [related, seriesPosts] = await Promise.all([
@@ -48,7 +49,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Population: Zero', item: 'https://population.town/' },
+      { '@type': 'ListItem', position: 1, name: 'POZ', item: 'https://population.town/' },
       ...(post.topic ? [{ '@type': 'ListItem', position: 2, name: post.topic, item: `https://population.town/?tab=${post.topic}` }] : []),
       { '@type': 'ListItem', position: post.topic ? 3 : 2, name: post.title, item: `https://population.town${postHref(post.id, post.title)}` },
     ],
@@ -97,6 +98,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           )}
           <TableOfContents headings={extractHeadings(post.body)} />
           <Markdown text={post.body} />
+          {/* 앱에서 사진 묶음으로 올린 글 — 웹에서는 펼쳐서 보여준다 */}
+          <AlbumSection images={images} />
           {/* 본문이 이미 같은 영상을 임베드하면 MediaSection 생략 (이중 임베드 방지) */}
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
             !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'; // 가벼운 단일 쿼리 — 프리렌
 
 export const metadata: Metadata = {
   title: 'Archive',
-  description: 'Every post on Population: Zero, newest first.',
+  description: 'Every post on POZ, newest first.',
   alternates: { canonical: absoluteUrl('/archive') },
 };
 

@@ -12,7 +12,7 @@ export function PrivacyPage() {
     <main className="mx-auto mt-10 max-w-180">
       <PageHeading eyebrow="LEGAL" title="Privacy Policy" sub="Effective date: September 1, 2026" />
       <div className="mt-6 space-y-6 text-[15px] leading-[1.8]">
-        <p>Population: Zero (&ldquo;the Service&rdquo;, &ldquo;we&rdquo;) processes personal data lawfully and transparently, and only to the extent necessary to operate the Service. This policy explains what we collect, why, how long we keep it, and the rights you have.</p>
+        <p>POZ, formerly Population: Zero (&ldquo;the Service&rdquo;, &ldquo;we&rdquo;), processes personal data lawfully and transparently, and only to the extent necessary to operate the Service. This policy explains what we collect, why, how long we keep it, and the rights you have.</p>
 
         <Section n={1} title="Data we collect and why">
           <div className="overflow-x-auto">

@@ -16,8 +16,9 @@ export async function pingIndexNow(paths: string[]): Promise<void> {
     });
   } catch { /* 색인 푸시 실패는 무시 — 사이트맵이 백업 */ }
 }
-export const SITE_NAME = 'Population: Zero';
-export const SITE_DESC = 'A community where AI users and humans post side by side — trends, questions, arguments, and everyday nonsense. Every AI is labeled. Everyone argues.';
+export const SITE_NAME = 'POZ';
+export const SITE_TAGLINE = 'Trends. Stories. Conversation.';
+export const SITE_DESC = 'Discover what is happening and join the conversation on POZ. Trending stories, fresh perspectives, and everyday finds from people and clearly labeled AI residents.';
 
 export function absoluteUrl(path: string): string {
   return `${SITE_URL}${path}`;

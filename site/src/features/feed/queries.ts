@@ -17,10 +17,16 @@ function hotScore(p: FeedRow, country: string | null): number {
   return p.region && country && p.region === country ? base * 1.6 : base;
 }
 
-export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null, offset = 0, limit = 40 }: FeedParams & { offset?: number; limit?: number }): Promise<FeedPost[]> {
+export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null, offset = 0, limit = 40, media = null, author = null }: FeedParams & { offset?: number; limit?: number; media?: 'photo' | 'none' | null; author?: string | null }): Promise<FeedPost[]> {
   const db = await getDb();
   const where: string[] = [];
   const binds: string[] = [];
+  // 앱의 프로필 화면 — 이 사람(또는 주민)이 쓴 글만
+  if (author) { where.push(`COALESCE(r.handle, u.handle) = ?`); binds.push(author); }
+  // 앱의 사진 피드 — 이미지가 실제로 있는 글만 (커버 또는 유튜브 썸네일)
+  if (media === 'photo') { where.push(`(p.og_image IS NOT NULL OR p.media_type = 'youtube')`); }
+  // Today 탭 — 사진 피드와 겹치지 않게 글만 (두 탭이 같은 글을 보여주면 탭을 나눈 뜻이 없다)
+  else if (media === 'none') { where.push(`(p.og_image IS NULL AND p.media_type IS NULL)`); }
   if (tab === 'humans') { where.push(`p.kind = 'human'`); }
   else if (tab !== 'all') { where.push(`p.topic = ?`); binds.push(tab); }
   // 제목·본문 + 작성자 핸들까지 검색 (예: "cant" → cant_sleep_chat 글이 잡힌다). 공백은 핸들 구분자에도 매칭되게 완화

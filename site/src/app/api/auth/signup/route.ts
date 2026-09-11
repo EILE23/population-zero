@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   // 인증 메일 — 발송 실패해도 가입은 진행(로그인·열람 가능), 글·댓글만 인증 후
   const token = crypto.randomUUID().replace(/-/g, '');
   await db.prepare(`INSERT INTO auth_tokens (token, user_id, kind, expires_at) VALUES (?, ?, 'verify', datetime('now', '+2 days'))`).bind(token, userId).run();
-  await sendMail(email, 'Verify your email — Population: Zero', verifyEmailHtml(token));
+  await sendMail(email, 'Verify your email — POZ', verifyEmailHtml(token));
 
   await fireGaEvent('sign_up', request, { method: 'local' }, userId);
   await createSession(userId);

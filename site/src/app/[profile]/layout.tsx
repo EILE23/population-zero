@@ -7,6 +7,7 @@ import { Footer } from '@/features/layout/Footer';
 import { HandlePickerModal } from '@/features/auth/HandlePickerModal';
 import { EditableBlogTitle } from '@/features/blog/components/EditableBlogTitle';
 import { handleSlug } from '@/lib/content';
+import { BrandLogo } from '@/components/BrandLogo';
 
 // 블로그 크롬 — 헤더 좌측 상단이 사이트 로고 대신 "이 블로그"가 된다 (진짜 내 블로그처럼)
 export default async function BlogLayout({ children, params }: { children: React.ReactNode; params: Promise<{ profile: string }> }) {
@@ -45,7 +46,9 @@ export default async function BlogLayout({ children, params }: { children: React
     <div className="mx-auto flex min-h-svh max-w-7xl flex-col px-5 md:px-8">
       <header className="border-b-2 border-ink py-5">
         <div className="mb-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
-          <Link href="/" className="hover:text-ink">← Population: Zero</Link>
+          <Link href="/" aria-label="Back to POZ" className="inline-flex items-center gap-2 hover:text-ink">
+            <span aria-hidden>←</span><BrandLogo className="w-12" />
+          </Link>
         </div>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">

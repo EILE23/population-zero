@@ -1,23 +1,47 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { API_BASE, logout, restoreSession, type FeedPost, type Me } from '@/api';
+import { logout, restoreSession, type FeedPost, type Me } from '@/api';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { SignupScreen } from '@/screens/SignupScreen';
 import { ForgotScreen } from '@/screens/ForgotScreen';
+import { TodayScreen } from '@/screens/TodayScreen';
 import { FeedScreen } from '@/screens/FeedScreen';
+import { AlbumScreen } from '@/screens/AlbumScreen';
 import { ComposeScreen } from '@/screens/ComposeScreen';
+import { PhotoComposeScreen } from '@/screens/PhotoComposeScreen';
+import { EditPostScreen } from '@/screens/EditPostScreen';
+import { PostScreen } from '@/screens/PostScreen';
+import { MeScreen } from '@/screens/MeScreen';
+import { OpeningScreen } from '@/screens/OpeningScreen';
+import { TabBar, TabPage, TAB_ORDER, type TabKey } from '@/ui/TabBar';
 import { theme } from '@/theme';
+
+/** 탭 위에 겹쳐 뜨는 화면 — 상세·글쓰기·앨범 만들기·수정 */
+type Overlay =
+  | { kind: 'none' }
+  | { kind: 'post'; id: number }
+  | { kind: 'compose'; mode: 'write' | 'album' }
+  | { kind: 'edit'; id: number };
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [booting, setBooting] = useState(true);
-  const [composing, setComposing] = useState(false);
+  const [opening, setOpening] = useState(true); // 오프닝 애니메이션이 끝날 때까지 덮어둔다
+  const [tab, setTab] = useState<TabKey>('today');
+  const [overlay, setOverlay] = useState<Overlay>({ kind: 'none' });
   // 로그인 전 화면 전환 — 가입·비밀번호 찾기도 앱 안에서 처리한다
   const [authView, setAuthView] = useState<'login' | 'signup' | 'forgot'>('login');
-  // 글을 올리면 이 값을 바꿔 피드를 다시 읽게 한다 (앱에서 쓴 글이 바로 목록에 보이도록)
-  const [feedKey, setFeedKey] = useState(0);
+  // 글을 쓰거나 고치면 이 값을 올려 목록들을 다시 읽게 한다
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // 어느 쪽에서 넘어왔는지 — 새 화면이 그 방향에서 미끄러져 들어오도록
+  const prevTab = useRef<TabKey>('today');
+  const direction = TAB_ORDER.indexOf(tab) >= TAB_ORDER.indexOf(prevTab.current) ? 1 : -1;
+  const selectTab = useCallback((next: TabKey) => {
+    setTab((current) => { prevTab.current = current; return next; });
+  }, []);
 
   // 저장된 토큰이 아직 살아 있으면 로그인 화면을 건너뛴다
   useEffect(() => {
@@ -31,20 +55,25 @@ export default function App() {
   const signOut = useCallback(async () => {
     await logout();
     setMe(null);
+    setTab('today');
+    setOverlay({ kind: 'none' });
   }, []);
 
-  // 글 상세는 아직 앱 화면이 없다 — 우선 웹으로 열어 연동을 확인한다 (다음 단계에서 앱 화면으로 대체)
-  const openPost = useCallback((post: FeedPost) => {
-    void Linking.openURL(`${API_BASE}/p/${post.id}`);
+  const openPost = useCallback((post: FeedPost) => setOverlay({ kind: 'post', id: post.id }), []);
+  const openPostId = useCallback((id: number) => setOverlay({ kind: 'post', id }), []);
+  const editPost = useCallback((post: FeedPost) => setOverlay({ kind: 'edit', id: post.id }), []);
+  const closeOverlay = useCallback(() => setOverlay({ kind: 'none' }), []);
+  const afterWrite = useCallback(() => {
+    setOverlay({ kind: 'none' });
+    setReloadKey((k) => k + 1);
   }, []);
+  const onOpeningDone = useCallback(() => setOpening(false), []);
 
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-        {booting ? (
-          <View style={s.center}><ActivityIndicator color={theme.color.ink} /></View>
-        ) : !me ? (
+        {!me ? (
           authView === 'signup' ? (
             <SignupScreen onDone={setMe} onBack={() => setAuthView('login')} />
           ) : authView === 'forgot' ? (
@@ -52,26 +81,60 @@ export default function App() {
           ) : (
             <LoginScreen onDone={setMe} onSignup={() => setAuthView('signup')} onForgot={() => setAuthView('forgot')} />
           )
-        ) : composing ? (
-          <ComposeScreen
-            onCancel={() => setComposing(false)}
-            onPosted={() => { setComposing(false); setFeedKey((k) => k + 1); }}
-          />
         ) : (
           <View style={s.root}>
-            <View style={s.topBar}>
-              <Text style={s.brand}>poz</Text>
-              <Pressable onPress={signOut} hitSlop={8}>
-                <Text style={s.signOut}>{me.handle} · sign out</Text>
-              </Pressable>
-            </View>
-            <FeedScreen key={feedKey} onOpenPost={openPost} />
-            {/* 앱의 본업 — 찍어서 올리기 */}
-            <Pressable onPress={() => setComposing(true)} style={({ pressed }) => [s.fab, pressed && s.fabPressed]}>
-              <Text style={s.fabText}>＋</Text>
-            </Pressable>
+            {/* 네 화면 모두 살려둔 채 감춘다 — 탭을 오갈 때 스크롤 위치와 목록이 유지되도록 */}
+            <TabPage active={tab === 'today'} direction={direction}>
+              <TodayScreen />
+            </TabPage>
+            <TabPage active={tab === 'community'} direction={direction}>
+              <FeedScreen
+                me={me}
+                reloadKey={reloadKey}
+                onOpenPost={openPost}
+                onOpenPostId={openPostId}
+                onEditPost={editPost}
+                onWrite={() => setOverlay({ kind: 'compose', mode: 'write' })}
+              />
+            </TabPage>
+            <TabPage active={tab === 'album'} direction={direction}>
+              <AlbumScreen
+                reloadKey={reloadKey}
+                onOpenPost={openPostId}
+                onCompose={() => setOverlay({ kind: 'compose', mode: 'album' })}
+              />
+            </TabPage>
+            <TabPage active={tab === 'me'} direction={direction}>
+              <MeScreen me={me} reloadKey={reloadKey} onSignOut={signOut} onOpenPost={openPostId} />
+            </TabPage>
+
+            <TabBar active={tab} onSelect={selectTab} />
+
+            {overlay.kind === 'post' ? (
+              <View style={s.overlay}>
+                <PostScreen
+                  postId={overlay.id}
+                  onBack={closeOverlay}
+                  onEdit={(detail) => setOverlay({ kind: 'edit', id: detail.post.id })}
+                />
+              </View>
+            ) : overlay.kind === 'compose' ? (
+              <View style={s.overlay}>
+                {/* 앨범과 글쓰기는 올리는 화면 자체가 다르다 */}
+                {overlay.mode === 'album'
+                  ? <PhotoComposeScreen onCancel={closeOverlay} onPosted={afterWrite} />
+                  : <ComposeScreen onCancel={closeOverlay} onPosted={afterWrite} />}
+              </View>
+            ) : overlay.kind === 'edit' ? (
+              <View style={s.overlay}>
+                <EditPostScreen postId={overlay.id} onCancel={closeOverlay} onSaved={afterWrite} />
+              </View>
+            ) : null}
           </View>
         )}
+
+        {/* 켜자마자 보이는 오프닝 — 세션 복구가 끝나면 로고가 커지며 걷힌다 */}
+        {opening ? <OpeningScreen ready={!booting} onDone={onOpeningDone} /> : null}
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -79,35 +142,9 @@ export default function App() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.color.surface },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space(4),
-    paddingVertical: theme.space(3),
-    borderBottomWidth: 2,
-    borderBottomColor: theme.color.ink,
-    backgroundColor: theme.color.surface,
-  },
-  brand: { fontSize: 22, fontWeight: '800', color: theme.color.ink, letterSpacing: -0.5 },
-  signOut: { fontSize: 12.5, color: theme.color.inkSoft, fontWeight: '600' },
-  fab: {
+  overlay: {
     position: 'absolute',
-    right: theme.space(5),
-    bottom: theme.space(6),
-    width: 58,
-    height: 58,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.color.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: theme.color.inkBlack,
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: theme.color.paper,
   },
-  fabPressed: { backgroundColor: theme.color.accentDeep },
-  fabText: { color: theme.color.paper, fontSize: 26, fontWeight: '700', lineHeight: 30 },
 });

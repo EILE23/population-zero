@@ -42,6 +42,10 @@ CREATE TABLE users (
   blog_title TEXT,                 -- 내 블로그 이름 (/me에서 수정)
   email_verified INTEGER NOT NULL DEFAULT 0, -- 이메일 인증 완료 (구글 가입은 1로 시작; 로컬 미인증은 글·댓글 불가)
   notifs_seen_at TEXT,             -- 알림 읽음 커서
+  -- 알림 종류별 수신 여부 (앱 Me > 알림 설정). 끄면 목록에서도 빠진다
+  notify_comments INTEGER NOT NULL DEFAULT 1, -- 내 글·내 댓글에 달린 댓글·대댓글
+  notify_likes INTEGER NOT NULL DEFAULT 1,    -- 내 글 좋아요
+  notify_follows INTEGER NOT NULL DEFAULT 1,  -- 나를 팔로우
   handle_picked INTEGER NOT NULL DEFAULT 0, -- 구글 가입은 핸들이 자동 배정된다 — 본인이 고르기 전까지 0
   avatar_url TEXT,                 -- 직접 올린 프로필 이미지 (없으면 핸들 시드 아바타)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -106,6 +110,58 @@ CREATE TABLE posts (
   edited_at TEXT,                  -- 본인 수정 시각 — 있으면 "(edited)" 표기, 게시 시각은 유지
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 오늘(Today): 앱이 보여주는 "지금 그 나라에서 일어나는 일".
+-- 순찰이 이미 긁어오는 무료 소스(나라별 구글 트렌드·유튜브 트렌딩·지역 뉴스 RSS·위키백과)를
+-- 그대로 적재한 것 — 런타임에 모델을 부르지 않는다(운영비 0 원칙).
+-- region 이 NULL 이면 전세계 공통. 미국 사용자에게 한국 트렌드가 섞이지 않도록 조회에서 나라로 가른다.
+CREATE TABLE trends (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source TEXT NOT NULL,            -- google_trends_kr, rss_japantimes …
+  kind TEXT NOT NULL,              -- keyword | news | video | reading
+  region TEXT,                     -- ISO 2자리, NULL = 전세계
+  lang TEXT NOT NULL DEFAULT 'en', -- 그 나라 사람이 읽을 언어
+  topic TEXT,
+  title TEXT NOT NULL,
+  summary TEXT,                    -- 원문 og:description 발췌 (인용 수준, 출처 표기와 함께)
+  source_name TEXT,                -- 화면에 보일 출처 이름 (BBC, The Verge …)
+  url TEXT,
+  image TEXT,
+  score INTEGER NOT NULL DEFAULT 0, -- 조회수·점수 등 소스가 주는 세기
+  rank INTEGER NOT NULL DEFAULT 0,  -- 원본 목록에서의 순위 (0이 가장 위)
+  collected_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX idx_trends_key ON trends(source, title);
+CREATE INDEX idx_trends_region ON trends(region, collected_at);
+
+-- 무엇을 보고 무엇을 눌렀는지 — Today 의 개인화 근거.
+-- 내용이 아니라 '어떤 분류·어떤 매체를 골랐는지'만 남긴다(제목·본문은 저장하지 않는다).
+-- 로그인 전에는 기기별 익명 키(anon)로 쌓고, 로그인하면 user_id 로 이어진다.
+CREATE TABLE trend_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id),
+  anon TEXT,                       -- 비로그인 기기 식별자 (앱이 만들어 보관)
+  trend_id INTEGER,
+  action TEXT NOT NULL,            -- 'view' (화면에 보였다) | 'open' (눌러서 읽었다)
+  topic TEXT,
+  source TEXT,
+  kind TEXT,
+  region TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_trend_events_user ON trend_events(user_id, created_at);
+CREATE INDEX idx_trend_events_anon ON trend_events(anon, created_at);
+
+-- 앨범: 글 하나에 붙는 사진 묶음 (앱에서 여러 장을 한 번에 올린다).
+-- 커버 한 장은 posts.og_image 로 남겨 둔다 — 웹 카드·OG 태그가 그걸 본다.
+CREATE TABLE post_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  post_id INTEGER NOT NULL REFERENCES posts(id),
+  url TEXT NOT NULL,
+  sort INTEGER NOT NULL DEFAULT 0,  -- 앨범 안에서의 순서
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_post_images_post ON post_images(post_id, sort);
 
 CREATE TABLE poll_options (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

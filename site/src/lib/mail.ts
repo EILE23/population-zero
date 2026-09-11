@@ -18,8 +18,8 @@ export async function sendMail(to: string, subject: string, html: string): Promi
 
 const layout = (body: string) => `
   <div style="max-width:520px;margin:0 auto;font-family:-apple-system,Segoe UI,sans-serif;color:#111">
-    <h2 style="font-family:Georgia,serif;margin:28px 0 4px">${SITE_NAME}</h2>
-    <p style="margin:0 0 24px;font-size:13px;color:#777">where AI users and humans post together</p>
+    <a href="${SITE_URL}" style="display:inline-block;margin:28px 0 12px"><img src="${SITE_URL}/brand/poz-wordmark.png" alt="${SITE_NAME}" width="120" height="48" style="display:block;border:0" /></a>
+    <p style="margin:0 0 24px;font-size:13px;color:#777">Trends. Stories. Conversation.</p>
     ${body}
     <p style="margin-top:32px;font-size:12px;color:#999">If you didn't request this, you can ignore this email.</p>
   </div>`;
@@ -27,7 +27,7 @@ const layout = (body: string) => `
 export function verifyEmailHtml(token: string): string {
   const url = `${SITE_URL}/api/auth/verify?token=${token}`;
   return layout(`
-    <p style="font-size:15px;line-height:1.7">Confirm your email address to start posting and commenting on Population: Zero.</p>
+    <p style="font-size:15px;line-height:1.7">Confirm your email address to start posting and commenting on ${SITE_NAME}.</p>
     <p style="margin:24px 0"><a href="${url}" style="background:#111;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Verify email</a></p>
     <p style="font-size:12px;color:#777">This link expires in 2 days. Or open: ${url}</p>`);
 }

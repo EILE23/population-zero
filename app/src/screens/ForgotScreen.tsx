@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { requestPasswordReset } from '@/api';
+import { AuthLayout } from '@/ui/AuthLayout';
 import { Field } from '@/ui/Field';
-import { PressableScale } from '@/ui/PressableScale';
 import { theme } from '@/theme';
 
 /**
@@ -14,6 +14,7 @@ export function ForgotScreen({ onBack }: { onBack: () => void }) {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shakeKey, setShakeKey] = useState(0);
 
   async function submit() {
     if (busy || !email.trim()) return;
@@ -24,66 +25,54 @@ export function ForgotScreen({ onBack }: { onBack: () => void }) {
       setSent(true);
     } catch {
       setError('Could not send the email. Check your connection.');
+      setShakeKey((k) => k + 1);
     } finally {
       setBusy(false);
     }
   }
 
-  return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={s.inner}>
-        <Text style={s.title}>Reset password</Text>
+  if (sent) {
+    return (
+      <AuthLayout
+        title="CHECK YOUR EMAIL"
+        subtitle="If an account uses that address, a reset link is on its way."
+        submitLabel="Back to sign in"
+        onSubmit={onBack}
+        links={[]}
+        footnote="The link opens in your browser and expires in an hour."
+      >
+        <Text style={s.sentTo}>{email.trim()}</Text>
+      </AuthLayout>
+    );
+  }
 
-        {sent ? (
-          <>
-            <Text style={s.sub}>
-              If an account uses that email, a reset link is on its way. The link opens in your browser and expires in an hour.
-            </Text>
-            <PressableScale onPress={onBack} style={s.button}>
-              <Text style={s.buttonText}>Back to sign in</Text>
-            </PressableScale>
-          </>
-        ) : (
-          <>
-            <Text style={s.sub}>Enter the email on your account and we will send a reset link.</Text>
-            <Field
-              value={email}
-              onChangeText={setEmail}
-              label="Email"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              onSubmitEditing={submit}
-            />
-            {error ? <Text style={s.error}>{error}</Text> : null}
-            <PressableScale onPress={submit} disabled={busy} style={[s.button, busy && s.busy]}>
-              {busy ? <ActivityIndicator color={theme.color.paper} /> : <Text style={s.buttonText}>Send reset link</Text>}
-            </PressableScale>
-            <Pressable onPress={onBack} hitSlop={12} style={s.back}>
-              <Text style={s.backText}>Back to sign in</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+  return (
+    <AuthLayout
+      title="RESET PASSWORD"
+      subtitle="Enter the email on your account and we will send a reset link."
+      shakeKey={shakeKey}
+      error={error}
+      busy={busy}
+      submitLabel="Send reset link"
+      onSubmit={submit}
+      links={[{ label: 'Back to sign in', onPress: onBack }]}
+    >
+      <Field
+        value={email}
+        onChangeText={setEmail}
+        label="Email"
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="email-address"
+        onSubmitEditing={submit}
+      />
+    </AuthLayout>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: theme.space(7) },
-  title: { fontSize: 30, fontWeight: '800', color: theme.color.ink, letterSpacing: -0.6 },
-  sub: { fontSize: 13.5, color: theme.color.inkMid, lineHeight: 20, marginTop: theme.space(2), marginBottom: theme.space(8) },
-  error: { color: theme.color.accentDeep, fontWeight: '700', fontSize: 13, marginBottom: theme.space(2) },
-  button: {
-    backgroundColor: theme.color.inkBlack,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.space(4.5),
-    alignItems: 'center',
-    marginTop: theme.space(2),
+  sentTo: {
+    fontSize: 14, fontWeight: '700', color: theme.color.ink, textAlign: 'center',
+    marginBottom: theme.space(4),
   },
-  busy: { opacity: 0.7 },
-  buttonText: { color: theme.color.paper, fontWeight: '700', fontSize: 15.5 },
-  back: { marginTop: theme.space(6), alignItems: 'center' },
-  backText: { fontSize: 12.5, color: theme.color.inkMid, fontWeight: '600' },
 });

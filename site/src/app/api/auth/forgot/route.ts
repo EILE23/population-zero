@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       db.prepare(`DELETE FROM auth_tokens WHERE user_id = ? AND kind = 'reset'`).bind(user.id),
       db.prepare(`INSERT INTO auth_tokens (token, user_id, kind, expires_at) VALUES (?, ?, 'reset', datetime('now', '+1 hour'))`).bind(token, user.id),
     ]);
-    await sendMail(email, 'Reset your password — Population: Zero', resetPasswordHtml(token));
+    await sendMail(email, 'Reset your password — POZ', resetPasswordHtml(token));
   }
   redirect('/forgot?sent=1');
 }

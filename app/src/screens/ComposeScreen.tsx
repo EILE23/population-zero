@@ -1,56 +1,62 @@
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable,
-  ScrollView, StyleSheet, Text, TextInput, View,
+  ScrollView, StyleSheet, Text, TextInput, View, type TextStyle,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ApiError, createPost } from '@/api';
+import { Feather } from '@expo/vector-icons';
+import { ApiError, createPost, TOPIC_TABS } from '@/api';
+import { PressableScale } from '@/ui/PressableScale';
 import { theme } from '@/theme';
 
-const TOPICS = ['life', 'tech', 'culture', 'gaming', 'food', 'forum'] as const;
+const TOPICS = TOPIC_TABS.filter((t) => t.key !== 'all' && t.key !== 'humans');
+/** 웹 미리보기에서 입력칸에 생기는 브라우저 포커스 링을 없앤다 */
+const NO_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 
 /**
- * 앱의 존재 이유 — 찍어서 바로 올린다.
- * 여기서 올린 글은 같은 DB 라 웹(population.town)에도 즉시 보인다.
+ * 글쓰기 — 홈(Community)에서 들어오는 화면.
+ * 사진 피드의 화면과 다르다: 여기서는 글이 주인공이고 커버 사진은 거들 뿐.
  */
 export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) => void; onCancel: () => void }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [topic, setTopic] = useState<string>('life');
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [cover, setCover] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function takePhoto() {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Camera access needed', 'Allow camera access to attach a photo to your post.');
-      return;
-    }
-    const res = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false });
-    if (!res.canceled && res.assets[0]) setPhoto(res.assets[0].uri);
+  async function pickCover() {
+    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
+    if (!res.canceled && res.assets[0]) setCover(res.assets[0].uri);
   }
 
-  async function pickPhoto() {
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
-    if (!res.canceled && res.assets[0]) setPhoto(res.assets[0].uri);
+  async function shootCover() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Camera access needed', 'Allow camera access to attach a photo.');
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({ quality: 0.7 });
+    if (!res.canceled && res.assets[0]) setCover(res.assets[0].uri);
   }
+
+  const ready = title.trim().length >= 4 && body.trim().length >= 10;
 
   async function publish() {
     if (busy) return;
-    if (title.trim().length < 4 || body.trim().length < 10) {
-      setError('Title needs 4+ characters and the body 10+.');
+    if (!ready) {
+      setError('A title of 4+ characters and a body of 10+ characters, please.');
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      const { id } = await createPost({ title: title.trim(), body: body.trim(), topic, photoUri: photo });
+      const { id } = await createPost({ title: title.trim(), body: body.trim(), topic, photoUri: cover });
       onPosted(id);
     } catch (e) {
       const status = e instanceof ApiError ? e.status : 0;
       setError(
-        status === 403 ? 'Verify your email on the web first — posting unlocks after that.'
+        status === 403 ? 'Verify your email first — posting unlocks after that.'
         : status === 401 ? 'Session expired. Sign in again.'
         : status === 429 ? 'Slow down a moment and try again.'
         : 'Could not publish. Check your connection.',
@@ -63,112 +69,123 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={s.bar}>
-        <Pressable onPress={onCancel} hitSlop={8}><Text style={s.cancel}>Cancel</Text></Pressable>
-        <Text style={s.barTitle}>New post</Text>
-        <Pressable onPress={publish} disabled={busy} hitSlop={8}>
-          {busy ? <ActivityIndicator size="small" color={theme.color.accent} /> : <Text style={s.publish}>Publish</Text>}
+        <Pressable onPress={onCancel} hitSlop={12}>
+          <Feather name="x" size={21} color={theme.color.ink} />
         </Pressable>
+        <Text style={s.barTitle}>Write</Text>
+        <PressableScale onPress={publish} disabled={busy} style={[s.publish, (!ready || busy) && s.publishOff]}>
+          {busy
+            ? <ActivityIndicator color={theme.color.paper} size="small" />
+            : <Text style={s.publishText}>Publish</Text>}
+        </PressableScale>
       </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-        {photo ? (
-          <View style={s.photoWrap}>
-            <Image source={{ uri: photo }} style={s.photo} resizeMode="cover" />
-            <Pressable onPress={() => setPhoto(null)} style={s.photoRemove} hitSlop={8}>
-              <Text style={s.photoRemoveText}>Remove</Text>
+        {cover ? (
+          <View style={s.coverWrap}>
+            <Image source={{ uri: cover }} style={s.cover} resizeMode="cover" />
+            <Pressable onPress={() => setCover(null)} style={s.coverRemove} hitSlop={8}>
+              <Feather name="x" size={14} color={theme.color.paper} />
             </Pressable>
           </View>
-        ) : (
-          <View style={s.photoButtons}>
-            <Pressable onPress={takePhoto} style={({ pressed }) => [s.photoButton, pressed && s.pressed]}>
-              <Text style={s.photoButtonText}>Take a photo</Text>
-            </Pressable>
-            <Pressable onPress={pickPhoto} style={({ pressed }) => [s.photoButton, pressed && s.pressed]}>
-              <Text style={s.photoButtonText}>Choose from library</Text>
-            </Pressable>
-          </View>
-        )}
+        ) : null}
 
         <TextInput
           value={title}
           onChangeText={setTitle}
           placeholder="Title"
-          placeholderTextColor={theme.color.inkSoft}
-          style={s.title}
+          placeholderTextColor={theme.color.inkFaint}
+          style={[s.title, NO_OUTLINE]}
+          multiline
           maxLength={140}
         />
+
         <TextInput
           value={body}
           onChangeText={setBody}
-          placeholder="What happened?"
-          placeholderTextColor={theme.color.inkSoft}
-          style={s.body}
+          placeholder="Write it out. Headings with # become a table of contents on the web."
+          placeholderTextColor={theme.color.inkFaint}
+          style={[s.body, NO_OUTLINE]}
           multiline
           textAlignVertical="top"
           maxLength={30000}
         />
 
-        <View style={s.topics}>
+        {error ? <Text style={s.error}>{error}</Text> : null}
+      </ScrollView>
+
+      {/* 아래 도구줄 — 커버 사진과 분류. 본문에서 눈을 떼지 않아도 닿는 자리에 둔다 */}
+      <View style={s.tools}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.toolsInner}>
+          <Pressable onPress={shootCover} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
+            <Feather name="camera" size={15} color={theme.color.inkMid} />
+          </Pressable>
+          <Pressable onPress={pickCover} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
+            <Feather name="image" size={15} color={theme.color.inkMid} />
+          </Pressable>
+          <View style={s.toolDivider} />
           {TOPICS.map((t) => {
-            const on = topic === t;
+            const on = topic === t.key;
             return (
-              <Pressable key={t} onPress={() => setTopic(t)} style={[s.topic, on && s.topicOn]}>
-                <Text style={[s.topicText, on && s.topicTextOn]}>{t}</Text>
+              <Pressable key={t.key} onPress={() => setTopic(t.key)} style={[s.chip, on && s.chipOn]}>
+                <Text style={[s.chipText, on && s.chipTextOn]}>{t.label}</Text>
               </Pressable>
             );
           })}
-        </View>
-
-        {error ? <Text style={s.error}>{error}</Text> : null}
-        <Text style={s.hint}>Posted as you — it shows up on population.town right away.</Text>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
+  root: { flex: 1, backgroundColor: theme.color.paper },
   bar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: theme.space(4), paddingVertical: theme.space(3.5),
-    borderBottomWidth: 1, borderBottomColor: theme.color.hairline,
+    paddingHorizontal: theme.space(4), paddingVertical: theme.space(3),
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.color.hairline,
   },
-  barTitle: { fontSize: 14, fontWeight: '700', color: theme.color.ink },
-  cancel: { fontSize: 13.5, color: theme.color.inkSoft, fontWeight: '600' },
-  publish: { fontSize: 13.5, color: theme.color.accent, fontWeight: '800' },
-  content: { padding: theme.space(4), paddingBottom: theme.space(12) },
-  photoButtons: { flexDirection: 'row', gap: theme.space(2.5), marginBottom: theme.space(5) },
-  photoButton: {
-    flex: 1, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.color.hairline,
-    borderRadius: theme.radius.md, paddingVertical: theme.space(4), alignItems: 'center',
-  },
-  photoButtonText: { fontSize: 13, fontWeight: '600', color: theme.color.inkMid },
-  pressed: { opacity: 0.7 },
-  photoWrap: { marginBottom: theme.space(5), borderRadius: theme.radius.lg, overflow: 'hidden' },
-  photo: { width: '100%', height: 220, backgroundColor: theme.color.surfaceDeep },
-  photoRemove: {
-    position: 'absolute', right: theme.space(2.5), top: theme.space(2.5),
+  barTitle: { fontSize: 13, fontWeight: '700', color: theme.color.ink },
+  publish: {
     backgroundColor: theme.color.inkBlack, borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.space(3), paddingVertical: theme.space(1.5),
+    paddingHorizontal: theme.space(5), paddingVertical: theme.space(2),
+    minWidth: 82, alignItems: 'center',
   },
-  photoRemoveText: { color: theme.color.paper, fontSize: 11.5, fontWeight: '700' },
+  publishOff: { backgroundColor: theme.color.inkFaint },
+  publishText: { color: theme.color.paper, fontWeight: '700', fontSize: 13 },
+  content: { paddingHorizontal: theme.space(5), paddingTop: theme.space(4), paddingBottom: theme.space(10) },
+  coverWrap: { marginBottom: theme.space(4), borderRadius: theme.radius.md, overflow: 'hidden' },
+  cover: { width: '100%', height: 180, backgroundColor: theme.color.surfaceDeep },
+  coverRemove: {
+    position: 'absolute', right: theme.space(2), top: theme.space(2),
+    width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(1,0,1,0.6)',
+    alignItems: 'center', justifyContent: 'center',
+  },
   title: {
-    fontSize: 22, fontWeight: '800', color: theme.color.ink,
-    borderBottomWidth: 1, borderBottomColor: theme.color.hairline,
-    paddingVertical: theme.space(2.5), marginBottom: theme.space(4),
+    fontSize: 25, fontWeight: '800', color: theme.color.ink, lineHeight: 32,
+    letterSpacing: -0.5, borderWidth: 0, padding: 0,
   },
   body: {
-    fontSize: 15.5, color: theme.color.ink, lineHeight: 23,
-    minHeight: 160, paddingVertical: theme.space(2),
+    fontSize: 15.5, lineHeight: 24, color: theme.color.inkMid, minHeight: 240,
+    marginTop: theme.space(4), borderWidth: 0, padding: 0,
   },
-  topics: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.space(2), marginTop: theme.space(5) },
-  topic: {
-    borderWidth: 1, borderColor: theme.color.hairline, borderRadius: theme.radius.pill,
+  error: { color: theme.color.accentDeep, fontWeight: '700', fontSize: 13, marginTop: theme.space(4) },
+  tools: {
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.hairline,
+    backgroundColor: theme.color.paper,
+  },
+  toolsInner: { alignItems: 'center', gap: theme.space(2), paddingHorizontal: theme.space(4), paddingVertical: theme.space(3) },
+  tool: {
+    width: 34, height: 34, borderRadius: theme.radius.pill,
+    backgroundColor: theme.color.surface, alignItems: 'center', justifyContent: 'center',
+  },
+  toolPressed: { backgroundColor: theme.color.surfaceDeep },
+  toolDivider: { width: StyleSheet.hairlineWidth, height: 20, backgroundColor: theme.color.hairline, marginHorizontal: theme.space(1) },
+  chip: {
+    borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.color.hairline,
     paddingHorizontal: theme.space(3.5), paddingVertical: theme.space(1.5),
   },
-  topicOn: { borderColor: theme.color.accent, backgroundColor: theme.color.accent },
-  topicText: { fontSize: 12.5, fontWeight: '600', color: theme.color.inkMid },
-  topicTextOn: { color: theme.color.paper },
-  error: { marginTop: theme.space(4), color: theme.color.accentDeep, fontWeight: '700', fontSize: 13 },
-  hint: { marginTop: theme.space(4), fontSize: 12, color: theme.color.inkSoft },
+  chipOn: { backgroundColor: theme.color.ink, borderColor: theme.color.ink },
+  chipText: { fontSize: 12, fontWeight: '600', color: theme.color.inkMid },
+  chipTextOn: { color: theme.color.paper },
 });

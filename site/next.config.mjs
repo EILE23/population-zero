@@ -45,8 +45,9 @@ const nextConfig = {
         has: [{ type: 'header', key: 'origin', value: 'http://localhost:8081' }],
         headers: [
           { key: 'Access-Control-Allow-Origin', value: 'http://localhost:8081' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PATCH, DELETE, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'content-type, authorization, accept' },
+          { key: 'Access-Control-Expose-Headers', value: 'x-poz-country' },
           { key: 'Vary', value: 'Origin' },
         ],
       },
@@ -56,8 +57,9 @@ const nextConfig = {
         has: [{ type: 'header', key: 'origin', value: 'http://localhost:19006' }],
         headers: [
           { key: 'Access-Control-Allow-Origin', value: 'http://localhost:19006' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PATCH, DELETE, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'content-type, authorization, accept' },
+          { key: 'Access-Control-Expose-Headers', value: 'x-poz-country' },
           { key: 'Vary', value: 'Origin' },
         ],
       },

@@ -91,8 +91,17 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   const topic = TOPICS.includes(rawTopic) ? rawTopic : 'life';
   let { media_type, media_ref } = parseMedia(String(form.get('media') || ''));
   if (!media_type) { const yt = body.match(YT_IN_BODY); if (yt) { media_type = 'youtube'; media_ref = yt[1]; } }
+  // 앨범 — 앱에서 사진을 여러 장 올린다. 첫 장이 커버(og_image)가 되고 나머지는 post_images 로 간다.
+  // 한 번에 올릴 수 있는 장수를 제한한다: 무료 티어에서 한 요청이 오래 붙들리지 않게.
+  const albumFiles = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0).slice(0, 10);
   const coverFile = form.get('cover');
-  let og_image = coverFile instanceof File && coverFile.size > 0 ? await uploadImageToAssets(coverFile, user.id, 'cover') : null;
+  const album: string[] = [];
+  for (const file of albumFiles) {
+    const url = await uploadImageToAssets(file, user.id, 'cover');
+    if (url) album.push(url);
+  }
+  let og_image: string | null = album[0]
+    ?? (coverFile instanceof File && coverFile.size > 0 ? await uploadImageToAssets(coverFile, user.id, 'cover') : null);
   if (!og_image) og_image = media_type === 'link' && media_ref ? await fetchOgImage(media_ref) : null;
   if (!og_image) { const img = body.match(/!\[[^\]]*\]\((https:\/\/\S+?)\)/); if (img) og_image = img[1].slice(0, 500); }
 
@@ -114,6 +123,11 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   }
 
   const postId = Number(meta.last_row_id);
+  // 앨범이 두 장 이상이면 전부 기록한다 (한 장짜리는 커버만으로 충분하다)
+  if (album.length > 1) {
+    await db.batch(album.map((url, i) =>
+      db.prepare(`INSERT INTO post_images (post_id, url, sort) VALUES (?, ?, ?)`).bind(postId, url, i)));
+  }
   await fireGaEvent('post_create', request, {
     topic,
     has_image: Boolean(og_image),
