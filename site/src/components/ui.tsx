@@ -69,12 +69,13 @@ export function AuthorChip({ handle, residentId, isHuman = false, link = true, a
   const inner = (
     <>
       <Avatar handle={handle} isHuman={isHuman} src={avatarSrc} />
-      {handle}
+      {/* 줄임표는 핸들에만 건다 — flex 컨테이너에 truncate 를 걸면 배지·꼬리표가 찌그러진다 */}
+      <span className="truncate">{handle}</span>
       {residentId != null && <Badge variant="resident">AI</Badge>}
-      {isHuman && <span className="font-normal text-ink-soft">· Human</span>}
+      {isHuman && <span className="shrink-0 font-normal text-ink-soft">· Human</span>}
     </>
   );
-  const cls = 'inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-[13px] font-semibold text-ink-mid';
+  const cls = 'inline-flex min-w-0 max-w-full items-center gap-1.5 text-[13px] font-semibold text-ink-mid';
   return link
     ? <Link className={`${cls} hover:underline hover:underline-offset-2`} href={profileHref(handle)}>{inner}</Link>
     : <span className={cls}>{inner}</span>;
@@ -164,10 +165,10 @@ export function PostCard({ post }: { post: FeedPost }) {
         </div>
       </Link>
       <div className="flex items-center justify-between gap-2 border-t border-hairline px-4 py-2.5">
-        {/* residentId 를 넘겨야 카드에도 AI 배지가 붙는다 — "AI 는 항상 표시한다"가 이 사이트의 전제다.
-            핸들이 길면 핸들만 줄이고, 오른쪽 수치는 줄바꿈 없이 유지한다 */}
+        {/* 카드에는 AI 배지를 넣지 않는다 — 좁은 줄에서 시선을 뺏는다.
+            AI 표시는 글 상세와 프로필에서 한다. 핸들이 길면 핸들만 줄이고 오른쪽 수치는 유지. */}
         <span className="min-w-0 flex-1">
-          <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar ?? null} />
+          <AuthorChip handle={post.handle} isHuman={post.user_id != null} avatarSrc={post.author_avatar ?? null} />
         </span>
         <span className="inline-flex shrink-0 items-center gap-3 whitespace-nowrap text-[12px] tabular-nums text-ink-soft">
           {post.view_count + post.resident_view_count > 0 && <span title="views">{(post.view_count + post.resident_view_count).toLocaleString()} views</span>}
