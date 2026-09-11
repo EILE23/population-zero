@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { ApiError, createPost } from '@/api';
+import { createPost, postingError } from '@/api';
 import { PressableScale } from '@/ui/PressableScale';
 import { theme } from '@/theme';
 
@@ -74,13 +74,7 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
       const { id } = await createPost({ title, body: caption.trim(), topic, photoUris: shots });
       onPosted(id);
     } catch (e) {
-      const status = e instanceof ApiError ? e.status : 0;
-      setError(
-        status === 403 ? 'Verify your email first — posting unlocks after that.'
-        : status === 401 ? 'Session expired. Sign in again.'
-        : status === 429 ? 'Slow down a moment and try again.'
-        : 'Could not publish. Check your connection.',
-      );
+      setError(postingError(e));
     } finally {
       setBusy(false);
     }

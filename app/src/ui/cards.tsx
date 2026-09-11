@@ -1,8 +1,10 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
-import { Animated, Dimensions, Easing, Image, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Animated, Dimensions, Easing, Image, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import type { FeedPost } from '@/api';
 import type { Anchor } from '@/ui/ActionMenu';
+import { LikeButton } from '@/ui/LikeButton';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 
 /** 발췌에 남은 마크다운 기호를 걷어낸다 — 카드에는 **굵게** 같은 표시가 글자로 보이면 안 된다 */
@@ -75,11 +77,12 @@ function anchorOf(e: GestureResponderEvent): Anchor {
 export function PhotoCard({ post, onPress, onLongPress, onLike, onComment }: CardProps) {
   const thumb = thumbOf(post);
   return (
-    <Pressable
+    <Tap
       onPress={onPress}
       onLongPress={(e) => onLongPress(anchorOf(e))}
       delayLongPress={280}
-      style={({ pressed }) => [s.card, pressed && s.pressed]}
+      style={s.card}
+      scale={0.985}
     >
       {thumb ? <Image source={{ uri: thumb }} style={s.cover} resizeMode="cover" /> : null}
       <View style={s.cardBody}>
@@ -88,22 +91,15 @@ export function PhotoCard({ post, onPress, onLongPress, onLike, onComment }: Car
         <View style={s.metaRow}>
           <Text style={s.handle} numberOfLines={1}>{post.handle}</Text>
           <View style={s.metaSpacer} />
-          <Pressable onPress={onLike} disabled={!onLike} hitSlop={10} style={s.metaButton}>
-            <Ionicons
-              name={post.liked ? 'heart' : 'heart-outline'}
-              size={17}
-              color={post.liked ? theme.color.accent : theme.color.inkSoft}
-            />
-            <Text style={[s.meta, post.liked && s.metaOn]}>{post.like_count}</Text>
-          </Pressable>
-          <Pressable onPress={onComment} disabled={!onComment} hitSlop={10} style={s.metaButton}>
+          <LikeButton liked={!!post.liked} count={post.like_count} onPress={() => onLike?.()} />
+          <Tap onPress={onComment} disabled={!onComment} hitSlop={10} style={s.metaButton} scale={0.86}>
             <Feather name="message-circle" size={16} color={theme.color.inkSoft} />
             <Text style={s.meta}>{post.comment_count}</Text>
-          </Pressable>
+          </Tap>
           <Text style={s.metaTime}>{timeAgo(post.created_at)}</Text>
         </View>
       </View>
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -112,11 +108,12 @@ export function MediaTile({ post, onPress, onLongPress }: CardProps) {
   const thumb = thumbOf(post);
   const height = tileHeight(post);
   return (
-    <Pressable
+    <Tap
       onPress={onPress}
       onLongPress={(e) => onLongPress(anchorOf(e))}
       delayLongPress={280}
-      style={({ pressed }) => [s.tile, pressed && s.pressed]}
+      style={s.tile}
+      scale={0.97}
     >
       {thumb
         ? <Image source={{ uri: thumb }} style={[s.tileImage, { height }]} resizeMode="cover" />
@@ -126,7 +123,7 @@ export function MediaTile({ post, onPress, onLongPress }: CardProps) {
       ) : null}
       <Text style={s.tileTitle} numberOfLines={2}>{post.title}</Text>
       <Text style={s.tileHandle} numberOfLines={1}>{post.handle}</Text>
-    </Pressable>
+    </Tap>
   );
 }
 

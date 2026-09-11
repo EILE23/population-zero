@@ -207,6 +207,24 @@ export async function createPost(input: {
   return (await res.json()) as { id: number; url: string };
 }
 
+
+/**
+ * 올리기 실패를 사람 말로 옮긴다.
+ * 모르는 코드는 "연결을 확인하세요"로 덮지 않는다 — 그 문구 때문에 서버가 무엇을 거절했는지
+ * 며칠 동안 알 수 없었다. 모르면 코드를 그대로 보여주고, 그게 곧 단서가 된다.
+ */
+export function postingError(e: unknown): string {
+  if (!(e instanceof ApiError)) return 'Could not publish. Check your connection.';
+  switch (e.message) {
+    case 'unauthorized': return 'Session expired. Sign in again.';
+    case 'unverified': return 'Verify your email first — posting unlocks after that.';
+    case 'rate': return 'Slow down a moment and try again.';
+    case 'short': return 'Add a photo, or write a title and a few lines.';
+    case 'failed': return 'The town refused that one. Try again.';
+    default: return `Could not publish (${e.status} ${e.message}).`;
+  }
+}
+
 /** 앱 안에서 가입 — 성공하면 바로 로그인 상태가 된다 */
 export async function signup(input: { handle: string; email: string; password: string }): Promise<Me> {
   const res = await fetch(`${API_BASE}/api/auth/app-signup`, {
