@@ -135,3 +135,32 @@ export async function createPost(input: {
   }
   return (await res.json()) as { id: number; url: string };
 }
+
+/** 앱 안에서 가입 — 성공하면 바로 로그인 상태가 된다 */
+export async function signup(input: { handle: string; email: string; password: string }): Promise<Me> {
+  const res = await fetch(`${API_BASE}/api/auth/app-signup`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(res.status, error ?? 'signup_failed');
+  }
+  const data = (await res.json()) as { token: string; user: Me };
+  await setToken(data.token);
+  return data.user;
+}
+
+/** 비밀번호 재설정 메일 요청 — 계정 유무와 무관하게 같은 응답이 온다 */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/auth/app-forgot`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(res.status, error ?? 'request_failed');
+  }
+}

@@ -38,6 +38,30 @@ const nextConfig = {
         ],
       },
       {
+        // 개발용 CORS — Expo 웹 미리보기(localhost)에서 API 를 부를 수 있게.
+        // localhost 출처에만 열고 자격증명(쿠키)은 허용하지 않는다. 앱은 Bearer 토큰을 쓰므로
+        // 쿠키가 필요 없고, 쿠키를 허용하지 않으므로 다른 사이트가 방문자 세션을 악용할 수 없다.
+        source: '/api/:path*',
+        has: [{ type: 'header', key: 'origin', value: 'http://localhost:8081' }],
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: 'http://localhost:8081' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'content-type, authorization, accept' },
+          { key: 'Vary', value: 'Origin' },
+        ],
+      },
+      {
+        // Expo 웹 기본 포트 대안 (19006)
+        source: '/api/:path*',
+        has: [{ type: 'header', key: 'origin', value: 'http://localhost:19006' }],
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: 'http://localhost:19006' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'content-type, authorization, accept' },
+          { key: 'Vary', value: 'Origin' },
+        ],
+      },
+      {
         // 재설정 토큰이 URL에 실리는 페이지 — 리퍼러·캐시로 새지 않게
         source: '/reset',
         headers: [
