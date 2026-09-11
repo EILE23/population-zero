@@ -162,7 +162,20 @@ const s = StyleSheet.create({
   publishOff: { backgroundColor: theme.color.inkFaint },
   publishText: { color: theme.color.paper, fontWeight: '700', fontSize: 13 },
   content: { paddingHorizontal: theme.space(5), paddingTop: theme.space(4), paddingBottom: theme.space(10) },
-  coverWrap: { marginBottom: theme.space(4), borderRadius: theme.radius.md, overflow: 'hidden' },
+  coverWrap: { borderRadius: theme.radius.md, overflow: 'hidden' },
+  coverEmpty: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space(2),
+    height: 76, borderRadius: theme.radius.md,
+    borderWidth: 1, borderStyle: 'dashed', borderColor: theme.color.hairline,
+    backgroundColor: theme.color.surface,
+  },
+  coverEmptyPressed: { backgroundColor: theme.color.surfaceDeep },
+  coverEmptyText: { fontSize: 12.5, fontWeight: '600', color: theme.color.inkSoft },
+  // 사진 자리와 글 자리를 가르는 선 — 한 덩어리로 보이면 어디에 무엇을 넣는지 헷갈린다
+  split: {
+    height: StyleSheet.hairlineWidth, backgroundColor: theme.color.hairline,
+    marginTop: theme.space(4), marginBottom: theme.space(4),
+  },
   cover: { width: '100%', height: 180, backgroundColor: theme.color.surfaceDeep },
   coverRemove: {
     position: 'absolute', right: theme.space(2), top: theme.space(2),

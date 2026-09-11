@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Pressable, RefreshControl, ScrollView,
   StyleSheet, Text, View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { fetchThreads, type DmThread } from '@/api';
 import { Avatar } from '@/ui/Avatar';
 import { EmptyState } from '@/ui/EmptyState';
@@ -58,7 +59,7 @@ export function MessagesScreen({ onOpen }: {
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <Text style={s.heading}>Chat</Text>
+        <Feather name="message-circle" size={22} color={theme.color.ink} />
       </View>
 
       {threads == null ? (

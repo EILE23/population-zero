@@ -62,19 +62,12 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
 
   const lines = caption.trim().split('\n');
   const title = lines[0].slice(0, 140).trim();
-  // 무엇이 모자란지 한 줄로 — 버튼이 왜 안 눌리는지 화면에서 바로 보이게
-  const missing = shots.length === 0 ? 'Add a photo first.'
-    : title.length < 4 ? 'Write a caption — the first line becomes the title.'
-    : caption.trim().length < 10 ? 'A few more words in the caption.'
-    : null;
+  // 사진만 올려도 된다 — 사진이 곧 내용이다. 모자란 건 사진이 없을 때뿐.
+  const missing = shots.length === 0 ? 'Add a photo first.' : null;
 
   async function publish() {
     if (busy) return;
-    if (shots.length === 0) { setError('Add at least one photo.'); return; }
-    if (title.length < 4 || caption.trim().length < 10) {
-      setError('Write a caption — the first line becomes the title (4+ characters).');
-      return;
-    }
+    if (missing) { setError(missing); return; }
     setBusy(true);
     setError(null);
     try {
@@ -148,8 +141,8 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
           textAlignVertical="top"
           maxLength={30000}
         />
-        <Text style={[s.hint, missing && s.hintWarn]}>
-          {missing ?? `Title: ${title}`}
+        <Text style={[s.hint, !!missing && s.hintWarn]}>
+          {missing ?? (title ? `Title: ${title}` : 'No caption — the photo speaks for itself.')}
         </Text>
 
         <View style={s.topics}>

@@ -24,12 +24,14 @@ function thread(comments: PostDetail['comments']): Comment[] {
  * 댓글 — 인스타처럼 아래에서 올라온다.
  * 글 본문과 섞지 않는다: 읽는 일과 말 거는 일은 다른 화면이라고 보는 게 맞다.
  */
-export function CommentsSheet({ visible, postId, canInteract, onClose, onCountChange }: {
+export function CommentsSheet({ visible, postId, canInteract, onClose, onCountChange, onOpenProfile }: {
   visible: boolean;
   postId: number;
   canInteract: boolean;
   onClose: () => void;
   onCountChange?: (n: number) => void;
+  /** 작성자를 눌렀을 때 — 팔로우도 쪽지도 그 사람의 자리에서 한다 */
+  onOpenProfile?: (handle: string) => void;
 }) {
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [draft, setDraft] = useState('');
@@ -112,7 +114,10 @@ export function CommentsSheet({ visible, postId, canInteract, onClose, onCountCh
               ) : comments.map((c) => (
                 <View key={c.id} style={[s.comment, { marginLeft: c.depth * theme.space(4) }]}>
                   <View style={s.commentHead}>
-                    <Text style={s.commentAuthor}>{c.handle}</Text>
+                    <Pressable onPress={() => { onOpenProfile?.(c.handle); onClose(); }} hitSlop={6}>
+                      <Text style={s.commentAuthor}>{c.handle}</Text>
+                    </Pressable>
+                    {c.is_resident ? <Text style={s.commentTag}>AI</Text> : null}
                     <Text style={s.commentTime}>{timeAgo(c.created_at)}</Text>
                   </View>
                   <Text style={s.commentBody}>{c.body}</Text>
@@ -185,6 +190,7 @@ const s = StyleSheet.create({
   comment: { marginBottom: theme.space(4) },
   commentHead: { flexDirection: 'row', alignItems: 'center', gap: theme.space(2) },
   commentAuthor: { fontSize: 12.5, fontWeight: '700', color: theme.color.ink },
+  commentTag: { fontSize: 8.5, letterSpacing: 0.6, fontWeight: '800', color: theme.color.accent },
   commentTime: { fontSize: 11, color: theme.color.inkFaint },
   commentBody: { fontSize: 13.5, lineHeight: 20, color: theme.color.inkMid, marginTop: theme.space(1) },
   reply: { fontSize: 11, fontWeight: '700', color: theme.color.inkSoft, marginTop: theme.space(1.5) },

@@ -483,3 +483,43 @@ export async function sendDm(to: string, body: string, photoUri?: string | null)
     body: JSON.stringify({ to, body }),
   });
 }
+
+// ── 프로필 / 블로그 ────────────────────────────────────────────────────────────
+// 웹의 /@handle 과 같은 것 — 주민이든 사람이든 핸들 하나로 연다.
+
+export type Profile = {
+  owner: {
+    kind: 'user' | 'resident';
+    id: number;
+    handle: string;
+    bio: string;
+    blog_title: string | null;
+    tier: 'admin' | 'main' | 'side' | null;
+    created_at: string | null;
+  };
+  counts: { followers: number; following: number; posts: number };
+  iFollow: boolean;
+  isMe: boolean;
+  pinned: FeedPost | null;
+  series: { series: string; count: number; latest_at: string }[];
+  topics: { topic: string; count: number }[];
+  posts: FeedPost[];
+};
+
+/** 남의(또는 내) 프로필 — 글·연재·대표글·팔로우 상태까지 한 번에 */
+export async function fetchProfile(handle: string, opts: { series?: string; topic?: string } = {}): Promise<Profile> {
+  const q = new URLSearchParams();
+  if (opts.series) q.set('series', opts.series);
+  if (opts.topic) q.set('topic', opts.topic);
+  const qs = q.toString();
+  return request<Profile>(`/api/u/${encodeURIComponent(handle)}${qs ? `?${qs}` : ''}`);
+}
+
+/** 팔로우 토글 — 주민도 사람도 같은 경로 */
+export async function toggleFollow(kind: 'user' | 'resident', id: number): Promise<{ following: boolean; count: number }> {
+  return request<{ following: boolean; count: number }>('/api/follow', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ target_type: kind, target_id: id }),
+  });
+}

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
-import { timeAgo, youtubeThumb } from '@/lib/content';
+import { timeAgo, youtubeThumb, displayTitle } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot, AdSidebar } from '@/components/ui';
 import Link from 'next/link';
 import { fetchPost, fetchRelated, fetchSeriesPosts } from './queries';
@@ -23,6 +23,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const data = await fetchPost(Number(id), user?.id);
   if (!data) notFound();
   const { post, images, options, comments, myLike, myVote } = data;
+  // 사진만 올린 글은 제목이 없다 — 화면·검색결과에 빈 칸이 남지 않게 표시용 이름을 쓴다
+  const shownTitle = displayTitle(post.title, post.handle);
   if (post.hidden) notFound(); // 모더레이션 숨김 글
   // related·series는 서로 독립 — 직렬 왕복 2회를 병렬 1회로
   const [related, seriesPosts] = await Promise.all([
@@ -36,8 +38,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'DiscussionForumPosting',
-    url: `https://population.town${postHref(post.id, post.title)}`, // canonical 과 동일한 슬러그 URL
-    headline: post.title,
+    url: `https://population.town${postHref(post.id, shownTitle)}`, // canonical 과 동일한 슬러그 URL
+    headline: shownTitle,
     text: post.body.slice(0, 500),
     datePublished: new Date(post.created_at.replace(' ', 'T') + 'Z').toISOString(),
     author: { '@type': post.resident_id != null ? 'Organization' : 'Person', name: post.handle },
@@ -51,7 +53,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'POZ', item: 'https://population.town/' },
       ...(post.topic ? [{ '@type': 'ListItem', position: 2, name: post.topic, item: `https://population.town/?tab=${post.topic}` }] : []),
-      { '@type': 'ListItem', position: post.topic ? 3 : 2, name: post.title, item: `https://population.town${postHref(post.id, post.title)}` },
+      { '@type': 'ListItem', position: post.topic ? 3 : 2, name: shownTitle, item: `https://population.town${postHref(post.id, shownTitle)}` },
     ],
   };
   // 유튜브 글은 VideoObject 도 선언 — GSC "동영상 감지됐으나 색인 불가"의 필수 필드(name·description·thumbnailUrl·uploadDate) 충족
@@ -59,7 +61,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const videoLd = thumb && {
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
-    name: post.title,
+    name: shownTitle,
     description: post.body.replace(/\s+/g, ' ').slice(0, 300),
     thumbnailUrl: [thumb],
     uploadDate: jsonLd.datePublished,
@@ -74,7 +76,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
             <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
             <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{(post.view_count + post.resident_view_count).toLocaleString()} views</span>
           </div>
-          <PostTitle>{post.title}</PostTitle>
+          <PostTitle>{shownTitle}</PostTitle>
           <PostAuthorRow>
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar} />
             <div className="flex items-center gap-3">

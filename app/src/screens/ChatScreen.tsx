@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Animated, Easing, FlatList, Image, KeyboardAvoidingView, Platform,
   Pressable, StyleSheet, Text, TextInput, View, type TextStyle,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { fetchThread, sendDm, type DmMessage, type DmThread } from '@/api';
+import { type DmMessage, type DmThread } from '@/api';
+import { useChat } from '@/hooks/useChat';
 import { Avatar } from '@/ui/Avatar';
+import { useToast } from '@/ui/Toast';
 import { theme } from '@/theme';
 
 const NO_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
@@ -57,51 +59,16 @@ export function ChatScreen({ thread, other, onBack }: {
   other: DmThread['other'];
   onBack: () => void;
 }) {
-  const [messages, setMessages] = useState<DmMessage[]>([]);
-  const [live, setLive] = useState(other.kind === 'user');
+  const { messages, live, loaded, connected, error: chatError, send: sendMessage } = useChat(thread, other.kind);
   const [draft, setDraft] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const lastId = useRef(0);
   const list = useRef<FlatList<DmMessage>>(null);
+  const toast = useToast();
 
-  const absorb = useCallback((incoming: DmMessage[]) => {
-    if (!incoming.length) return;
-    lastId.current = Math.max(lastId.current, ...incoming.map((m) => m.id));
-    setMessages((prev) => {
-      const seen = new Set(prev.map((m) => m.id));
-      return [...prev, ...incoming.filter((m) => !seen.has(m.id))];
-    });
-  }, []);
-
-  // 처음 열기 + 열려 있는 동안 되묻기
-  useEffect(() => {
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout>;
-
-    const tick = async () => {
-      try {
-        const data = await fetchThread(thread, lastId.current);
-        if (!alive) return;
-        absorb(data.messages);
-        setLive(data.live);
-        setError(null);
-      } catch {
-        if (alive) setError('Could not reach the conversation.');
-      } finally {
-        if (alive) {
-          setLoaded(true);
-          // 사람과의 대화만 빠르게 — 주민은 순찰 때만 답하므로 자주 물을 이유가 없다
-          timer = setTimeout(tick, live ? 2500 : 20000);
-        }
-      }
-    };
-    void tick();
-    return () => { alive = false; clearTimeout(timer); };
-  }, [thread, absorb, live]);
+  // 연결이 끊겼다 붙었다 하는 걸 글자로 설명하지 않는다 — 막 실패했을 때만 한 번 알린다
+  useEffect(() => { if (chatError) toast(chatError); }, [chatError, toast]);
 
   async function pickPhoto() {
     const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
@@ -113,16 +80,12 @@ export function ChatScreen({ thread, other, onBack }: {
     if ((!body && !photo) || sending) return;
     setSending(true);
     try {
-      await sendDm(other.handle, body, photo);
+      await sendMessage(other.handle, body, photo);
       setDraft('');
       setPhoto(null);
       setEmojiOpen(false);
-      // 보낸 것이 바로 보이도록 곧장 한 번 더 읽는다
-      const data = await fetchThread(thread, lastId.current);
-      absorb(data.messages);
-      setError(null);
     } catch {
-      setError('Could not send that.');
+      toast('Could not send that.');
     } finally {
       setSending(false);
     }
@@ -137,7 +100,9 @@ export function ChatScreen({ thread, other, onBack }: {
         <Avatar handle={other.handle} size={30} isHuman={other.kind === 'user'} src={other.avatar} />
         <View style={s.barText}>
           <Text style={s.barTitle} numberOfLines={1}>{other.handle}</Text>
-          <Text style={s.barHint}>{live ? 'Live' : 'A resident — replies on the next patrol'}</Text>
+          <Text style={s.barHint}>
+            {live ? (connected ? 'Live' : 'Reconnecting…') : 'A resident — replies on the next patrol'}
+          </Text>
         </View>
       </View>
 
@@ -160,8 +125,6 @@ export function ChatScreen({ thread, other, onBack }: {
           }
         />
       )}
-
-      {error ? <Text style={s.error}>{error}</Text> : null}
 
       {photo ? (
         <View style={s.pending}>

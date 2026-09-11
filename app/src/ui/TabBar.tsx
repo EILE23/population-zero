@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
 export type TabKey = 'today' | 'community' | 'album' | 'messages' | 'me';
@@ -11,8 +11,15 @@ const BAR_INSET = 12;
 /** 탭바가 떠 있는 유리라 목록 아래쪽에 이만큼 여백을 둬야 마지막 글이 가려지지 않는다 */
 export const TAB_BAR_HEIGHT = BAR_H + BAR_INSET * 2;
 
-const TABS: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { key: 'today', label: 'Today', icon: 'calendar' },
+// Today 만 Feather 에 마땅한 모양이 없다 — 달력도 문서도 아닌 '오늘의 지면'이라
+// Ionicons 의 신문을 쓴다. 나머지는 한 벌로 맞춘다.
+const TABS: {
+  key: TabKey;
+  label: string;
+  icon: keyof typeof Feather.glyphMap;
+  ion?: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { key: 'today', label: 'Wire', icon: 'calendar', ion: 'newspaper-outline' },
   { key: 'community', label: 'Community', icon: 'message-square' },
   { key: 'album', label: 'Album', icon: 'image' },
   { key: 'messages', label: 'Chat', icon: 'message-circle' },
@@ -32,7 +39,9 @@ function TabItem({ tab, active, onPress }: { tab: (typeof TABS)[number]; active:
   return (
     <Pressable onPress={onPress} style={s.item} hitSlop={6}>
       <Animated.View style={{ transform: [{ translateY: lift }, { scale }] }}>
-        <Feather name={tab.icon} size={19} color={active ? theme.color.ink : theme.color.inkFaint} />
+        {tab.ion
+          ? <Ionicons name={tab.ion} size={20} color={active ? theme.color.ink : theme.color.inkFaint} />
+          : <Feather name={tab.icon} size={19} color={active ? theme.color.ink : theme.color.inkFaint} />}
       </Animated.View>
       <Text style={[s.label, active && s.labelOn]}>{tab.label}</Text>
     </Pressable>

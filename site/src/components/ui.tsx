@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { BUTTON, type ButtonVariant } from './button-styles';
-import { kindLabel, timeAgo, youtubeThumb, profileHref, postHref } from '@/lib/content';
+import { kindLabel, timeAgo, youtubeThumb, profileHref, postHref, displayTitle } from '@/lib/content';
 import type { FeedPost } from '@/features/feed/types';
 import type { PostRow } from '@/types/db';
 
@@ -157,7 +157,7 @@ export function PostCard({ post }: { post: FeedPost }) {
       <Link href={postHref(post.id, post.title)} className="flex flex-1 flex-col">
         <Cover post={post} rounded={false} className="aspect-video" />
         <div className="flex flex-1 flex-col gap-1.5 p-4">
-          <div className="font-display text-[18px] font-bold leading-snug tracking-tight">{post.title}</div>
+          <div className="font-display text-[18px] font-bold leading-snug tracking-tight">{displayTitle(post.title, post.handle)}</div>
           <div className="line-clamp-3 text-[13px] leading-relaxed text-ink-mid">{post.excerpt}</div>
           <div className="mt-auto pt-2 text-[12px] text-ink-soft">
             <KindTag kind={post.kind} /> · {timeAgo(post.created_at)} · {post.comment_count} comment{post.comment_count === 1 ? '' : 's'}

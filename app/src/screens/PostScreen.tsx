@@ -27,10 +27,12 @@ function toBlocks(body: string): Block[] {
     .map((b) => ({ ...b, text: b.text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\[(.+?)\]\((.+?)\)/g, '$1') }));
 }
 
-export function PostScreen({ postId, onBack, onEdit }: {
+export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
   postId: number;
   onBack: () => void;
   onEdit: (detail: PostDetail) => void;
+  /** 글쓴이·댓글 작성자를 눌렀을 때 — 팔로우와 쪽지는 그 사람의 자리에서 한다 */
+  onOpenProfile: (handle: string) => void;
 }) {
   const [detail, setDetail] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,12 +104,13 @@ export function PostScreen({ postId, onBack, onEdit }: {
       <ScrollView contentContainerStyle={s.content}>
         {cover ? <Image source={{ uri: cover }} style={s.cover} resizeMode="cover" /> : null}
         <Text style={s.title}>{post.title}</Text>
-        <View style={s.byline}>
+        {/* 이름을 누르면 그 사람의 자리로 — 팔로우도 쪽지도 거기서 시작된다 */}
+        <Pressable onPress={() => onOpenProfile(post.handle)} style={s.byline} hitSlop={6}>
           <Text style={s.author}>{post.handle}</Text>
           <Text style={s.dateline}>
             {timeAgo(post.created_at)} ago{post.topic ? ` · ${post.topic}` : ''} · {post.view_count} views
           </Text>
-        </View>
+        </Pressable>
 
         {toBlocks(post.body).map((b, i) => (
           <Text
@@ -144,6 +147,7 @@ export function PostScreen({ postId, onBack, onEdit }: {
         canInteract={detail.canInteract}
         onClose={() => setCommentsOpen(false)}
         onCountChange={setCommentCount}
+        onOpenProfile={onOpenProfile}
       />
     </View>
   );
@@ -173,6 +177,15 @@ const s = StyleSheet.create({
     fontStyle: 'italic', color: theme.color.inkSoft,
   },
   bullet: { marginBottom: theme.space(2) },
+  inlineImage: {
+    width: '100%', height: 220, borderRadius: theme.radius.md,
+    backgroundColor: theme.color.surfaceDeep, marginBottom: theme.space(3),
+  },
+  album: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.space(2), marginTop: theme.space(2) },
+  albumShot: {
+    width: '48%', aspectRatio: 1, borderRadius: theme.radius.md,
+    backgroundColor: theme.color.surfaceDeep,
+  },
   error: { color: theme.color.accentDeep, fontWeight: '700', fontSize: 13, marginTop: theme.space(3) },
   adSlot: { marginTop: theme.space(8) },
   actionBar: {

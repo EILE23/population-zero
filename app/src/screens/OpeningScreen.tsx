@@ -52,7 +52,7 @@ export function OpeningScreen({ ready, onDone }: { ready: boolean; onDone: () =>
       style={[s.root, { opacity: exit.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 1, 0] }) }]}
     >
       <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }] }}>
-        <Image source={require('../../assets/poz-logo.png')} accessibilityLabel="POZ" style={s.logo} resizeMode="contain" />
+        <Image source={require('../../assets/poz-mark.png')} accessibilityLabel="POZ" style={s.logo} resizeMode="contain" />
       </Animated.View>
       <Animated.View style={{ opacity: Animated.multiply(captionOpacity, exit.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0], extrapolate: 'clamp' })) }}>
         <Text style={s.caption}>population.town</Text>
@@ -70,7 +70,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
   },
-  logo: { width: 200, height: 80 },
+  logo: { width: 112, height: 112 },
   caption: {
     marginTop: theme.space(6),
     fontSize: 10.5,

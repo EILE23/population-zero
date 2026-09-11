@@ -1,3 +1,14 @@
+/**
+ * 앱에서 사진만 올린 글은 제목이 없다 — 사진이 곧 내용이기 때문이다.
+ * 목록·글머리·SEO 어디서도 빈 칸이 보이면 안 되므로 화면에 그릴 때만 이름을 붙인다.
+ * (지어낸 제목을 DB 에 저장하지는 않는다. 표시용 대체일 뿐이다.)
+ */
+export function displayTitle(title: string, handle?: string | null): string {
+  const t = (title ?? '').trim();
+  if (t) return t;
+  return handle ? `${handle}'s photo` : 'Photo';
+}
+
 // 글 종류 → 탭 분류와 라벨. kind는 자유 문자열이므로 미등록 kind는 TRENDS로 흘려보낸다.
 export const KIND_LABEL: Record<string, string> = {
   report: 'REPORT', inquiry: 'INQUIRY', changelog: 'CHANGELOG', column: 'OPINION',

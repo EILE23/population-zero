@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { logout, restoreSession, type DmThread, type FeedPost, type Me } from '@/api';
+import { fetchThreads, logout, restoreSession, type DmThread, type FeedPost, type Me } from '@/api';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { SignupScreen } from '@/screens/SignupScreen';
 import { ForgotScreen } from '@/screens/ForgotScreen';
@@ -15,6 +15,7 @@ import { EditPostScreen } from '@/screens/EditPostScreen';
 import { PostScreen } from '@/screens/PostScreen';
 import { MeScreen } from '@/screens/MeScreen';
 import { MessagesScreen } from '@/screens/MessagesScreen';
+import { ProfileScreen } from '@/screens/ProfileScreen';
 import { ChatScreen } from '@/screens/ChatScreen';
 import { OpeningScreen } from '@/screens/OpeningScreen';
 import { TabBar, TabPage, TAB_ORDER, type TabKey } from '@/ui/TabBar';
@@ -28,7 +29,8 @@ type Overlay =
   | { kind: 'compose'; mode: 'write' | 'album' }
   | { kind: 'edit'; id: number }
   | { kind: 'messages' }
-  | { kind: 'chat'; thread: DmThread };
+  | { kind: 'chat'; thread: DmThread }
+  | { kind: 'profile'; handle: string };
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
@@ -65,6 +67,28 @@ export default function App() {
   }, []);
 
   const openPost = useCallback((post: FeedPost) => setOverlay({ kind: 'post', id: post.id }), []);
+  const openProfile = useCallback((handle: string) => setOverlay({ kind: 'profile', handle }), []);
+  /**
+   * 프로필에서 '쪽지'를 누르면 아직 대화가 없을 수 있다.
+   * 그때는 빈 실을 열어 준다 — 첫 마디를 보내는 순간 서버가 진짜 열쇠로 묶는다.
+   */
+  const startChat = useCallback(async (handle: string) => {
+    try {
+      const threads = await fetchThreads();
+      const found = threads.find((t) => t.other.handle === handle);
+      if (found) { setOverlay({ kind: 'chat', thread: found }); return; }
+    } catch { /* 목록을 못 읽어도 새 대화는 열 수 있다 */ }
+    setOverlay({
+      kind: 'chat',
+      thread: {
+        thread: '',
+        preview: '',
+        created_at: new Date().toISOString(),
+        unread: 0,
+        other: { kind: 'user', id: 0, handle, avatar: null },
+      },
+    });
+  }, []);
   const openPostId = useCallback((id: number) => setOverlay({ kind: 'post', id }), []);
   const editPost = useCallback((post: FeedPost) => setOverlay({ kind: 'edit', id: post.id }), []);
   const closeOverlay = useCallback(() => setOverlay({ kind: 'none' }), []);
@@ -130,6 +154,7 @@ export default function App() {
                   postId={overlay.id}
                   onBack={closeOverlay}
                   onEdit={(detail) => setOverlay({ kind: 'edit', id: detail.post.id })}
+                  onOpenProfile={openProfile}
                 />
               </View>
             ) : overlay.kind === 'compose' ? (
@@ -142,6 +167,15 @@ export default function App() {
             ) : overlay.kind === 'edit' ? (
               <View style={s.overlay}>
                 <EditPostScreen postId={overlay.id} onCancel={closeOverlay} onSaved={afterWrite} />
+              </View>
+            ) : overlay.kind === 'profile' ? (
+              <View style={s.overlay}>
+                <ProfileScreen
+                  handle={overlay.handle}
+                  onBack={closeOverlay}
+                  onOpenPost={openPostId}
+                  onMessage={(h) => void startChat(h)}
+                />
               </View>
             ) : overlay.kind === 'chat' ? (
               <View style={s.overlay}>

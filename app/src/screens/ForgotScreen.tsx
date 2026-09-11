@@ -35,11 +35,11 @@ export function ForgotScreen({ onBack }: { onBack: () => void }) {
     return (
       <AuthLayout
         title="CHECK YOUR EMAIL"
-        subtitle="If an account uses that address, a reset link is on its way."
+        subtitle="If an account uses that address, the link is on its way."
         submitLabel="Back to sign in"
         onSubmit={onBack}
         links={[]}
-        footnote="The link opens in your browser and expires in an hour."
+        footnote="It opens in your browser and expires in an hour."
       >
         <Text style={s.sentTo}>{email.trim()}</Text>
       </AuthLayout>
@@ -48,12 +48,12 @@ export function ForgotScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <AuthLayout
-      title="RESET PASSWORD"
-      subtitle="Enter the email on your account and we will send a reset link."
+      title="FORGOT YOUR PASSWORD"
+      subtitle="We will send a link to the email on your account."
       shakeKey={shakeKey}
       error={error}
       busy={busy}
-      submitLabel="Send reset link"
+      submitLabel="Send the link"
       onSubmit={submit}
       links={[{ label: 'Back to sign in', onPress: onBack }]}
     >

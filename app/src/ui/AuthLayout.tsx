@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useMemo, type ReactNode } from 'react';
 import {
   ActivityIndicator, Animated, Image, KeyboardAvoidingView, Platform,
   Pressable, ScrollView, StyleSheet, Text, View,
@@ -51,11 +51,18 @@ export function AuthLayout({ title, subtitle, shakeKey = 0, error, busy, submitL
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Animated.View style={[s.inner, { opacity: enter, transform: [{ translateY: rise }] }]}>
-          <Image source={require('../../assets/poz-logo.png')} accessibilityLabel="POZ" style={s.logo} resizeMode="contain" />
+          {/* 워드마크 대신 파비콘의 그 얼굴 — 앱은 좁은 화면이라 표식 하나가 더 또렷하다 */}
+          <Image source={require('../../assets/poz-mark.png')} accessibilityLabel="POZ" style={s.logo} resizeMode="contain" />
           <Text style={[s.overline, !subtitle && s.overlineAlone]}>{title}</Text>
           {subtitle ? <Text style={s.sub}>{subtitle}</Text> : null}
 
-          <Animated.View style={{ transform: [{ translateX: shift }] }}>{children}</Animated.View>
+          {/* 어느 칸에서 Enter 를 눌러도 제출된다 — 칸마다 따로 붙이면 빠뜨린 칸이 생긴다 */}
+          <Animated.View style={{ transform: [{ translateX: shift }] }}>
+            {Children.map(children, (child) =>
+              isValidElement<{ onSubmitEditing?: () => void; returnKeyType?: string }>(child)
+                ? cloneElement(child, { onSubmitEditing: onSubmit, returnKeyType: 'go' })
+                : child)}
+          </Animated.View>
 
           {error ? <Text style={s.error}>{error}</Text> : null}
 
@@ -85,7 +92,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.color.surface },
   scroll: { flexGrow: 1, justifyContent: 'center' },
   inner: { paddingHorizontal: theme.space(7), paddingVertical: theme.space(10) },
-  logo: { width: 144, height: 58, alignSelf: 'center' },
+  logo: { width: 76, height: 76, alignSelf: 'center' },
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space(4) },
   overline: {
     fontSize: 10.5, letterSpacing: 2.4, color: theme.color.inkSoft, fontWeight: '700',

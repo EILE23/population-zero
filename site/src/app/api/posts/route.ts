@@ -95,6 +95,10 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   // 한 번에 올릴 수 있는 장수를 제한한다: 무료 티어에서 한 요청이 오래 붙들리지 않게.
   const albumFiles = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0).slice(0, 10);
   const coverFile = form.get('cover');
+  // 사진만 올리는 글은 말이 없어도 된다 — 사진이 곧 내용이다.
+  // 글로만 올리는 경우에만 제목·본문 길이를 따진다.
+  const photoOnly = albumFiles.length > 0;
+  if (!photoOnly && (title.length < 4 || body.length < 10)) return { ok: false, error: 'short' };
   const album: string[] = [];
   for (const file of albumFiles) {
     const url = await uploadImageToAssets(file, user.id, 'cover');

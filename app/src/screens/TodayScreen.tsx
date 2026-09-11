@@ -4,7 +4,7 @@ import {
   StyleSheet, Text, View,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { anonId, fetchToday, sendTrendEvents, type TodayFeed, type TrendItem } from '@/api';
 import { AdSlot } from '@/ui/AdSlot';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
@@ -236,7 +236,7 @@ export function TodayScreen() {
         ListHeaderComponent={
           <View style={s.header}>
             <View style={s.headerRow}>
-              <Text style={s.heading}>Today</Text>
+              <Ionicons name="newspaper-outline" size={23} color={theme.color.ink} />
               <CategoryButton label={LABEL_OF.get(filter) ?? 'All'} onPress={() => setPickerOpen(true)} />
             </View>
             {/* 문장으로 늘어놓는 대신 표식으로 — 어디 것인지, 내게 맞춰졌는지만 알면 된다 */}
