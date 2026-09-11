@@ -15,7 +15,7 @@ export async function NavActions() {
           name="q"
           placeholder="Search"
           aria-label="Search"
-          className="w-full rounded-full bg-surface px-4 py-1.5 text-sm font-normal outline-none transition-all placeholder:text-ink-soft focus:ring-1 focus:ring-ink sm:w-40 sm:focus:w-52"
+          className="w-full border-0 border-b border-hairline bg-transparent px-1 py-1.5 text-sm font-normal outline-none transition-all placeholder:text-ink-soft focus:border-b-2 focus:border-accent sm:w-40 sm:focus:w-52"
         />
       </form>
       {/* 모바일에선 검색·핵심 액션에 폭을 양보 — About/Contact 는 푸터에서 항상 접근 가능 */}

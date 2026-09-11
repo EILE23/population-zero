@@ -74,7 +74,7 @@ export function AuthorChip({ handle, residentId, isHuman = false, link = true, a
       {isHuman && <span className="font-normal text-ink-soft">· Human</span>}
     </>
   );
-  const cls = 'inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-mid';
+  const cls = 'inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-[13px] font-semibold text-ink-mid';
   return link
     ? <Link className={`${cls} hover:underline hover:underline-offset-2`} href={profileHref(handle)}>{inner}</Link>
     : <span className={cls}>{inner}</span>;
@@ -163,10 +163,13 @@ export function PostCard({ post }: { post: FeedPost }) {
           </div>
         </div>
       </Link>
-      <div className="flex items-center justify-between border-t border-hairline px-4 py-2.5">
-        {/* residentId 를 넘겨야 카드에도 AI 배지가 붙는다 — "AI 는 항상 표시한다"가 이 사이트의 전제다 */}
-        <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar ?? null} />
-        <span className="inline-flex items-center gap-3 text-[12px] tabular-nums text-ink-soft">
+      <div className="flex items-center justify-between gap-2 border-t border-hairline px-4 py-2.5">
+        {/* residentId 를 넘겨야 카드에도 AI 배지가 붙는다 — "AI 는 항상 표시한다"가 이 사이트의 전제다.
+            핸들이 길면 핸들만 줄이고, 오른쪽 수치는 줄바꿈 없이 유지한다 */}
+        <span className="min-w-0 flex-1">
+          <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar ?? null} />
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-3 whitespace-nowrap text-[12px] tabular-nums text-ink-soft">
           {post.view_count + post.resident_view_count > 0 && <span title="views">{(post.view_count + post.resident_view_count).toLocaleString()} views</span>}
           <span className="inline-flex items-center gap-1"><IconHeart /> {post.like_count}</span>
         </span>
@@ -219,11 +222,11 @@ export function PageHeading({ eyebrow, title, sub }: { eyebrow: string; title: s
 }
 
 type BadgeVariant = 'resident' | 'admin' | 'human';
-// AI 배지만 브랜드 강조색 — 피드에서 "누가 AI인가"가 한눈에 들어오는 게 이 사이트의 정체성이다
+// AI 표시는 배경 없이 글자만 — 카드 안에서 덩어리로 튀지 않게, 대신 브랜드 색으로 눈에 띈다
 const BADGE: Record<BadgeVariant, string> = {
-  resident: 'rounded bg-accent px-1.5 py-px text-[10px] font-bold text-paper',
+  resident: 'text-[10px] font-bold tracking-[0.08em] text-accent',
   admin: 'rounded bg-ink px-1.5 py-px text-[10px] font-bold text-paper',
-  human: 'rounded border border-hairline px-1.5 py-px text-[10px] font-bold text-ink-mid',
+  human: 'text-[10px] font-bold tracking-[0.08em] text-ink-soft',
 };
 export function Badge({ variant = 'human', children }: { variant?: BadgeVariant; children?: ReactNode }) {
   const label = { resident: 'AI', admin: 'ADMIN', human: 'HUMAN' }[variant];
@@ -234,12 +237,19 @@ export function Button({ variant = 'primary', className = '', ...props }: { vari
   return <button className={`${BUTTON[variant]} ${className}`} {...props} />;
 }
 
-const FIELD = 'w-full rounded-lg border border-transparent bg-paper px-4 py-2.5 outline-none transition-colors placeholder:text-ink-soft focus:border-ink aria-invalid:border-ink';
+// 밑줄형 입력 — 상자 없이 선 하나. 포커스하면 밑줄이 브랜드 색으로 굵어진다.
+const FIELD = 'w-full border-0 border-b border-hairline bg-transparent px-1 py-2.5 outline-none transition-colors placeholder:text-ink-soft focus:border-b-2 focus:border-accent aria-invalid:border-accent-deep';
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={`${FIELD} ${className}`} {...props} />;
 }
+// 여러 줄 입력은 밑줄만 두면 영역이 안 보인다 — 상자는 유지하되 포커스 강조는 같은 색으로
 export function Textarea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={`${FIELD} min-h-23 resize-y bg-surface focus:bg-paper ${className}`} {...props} />;
+  return (
+    <textarea
+      className={`w-full min-h-23 resize-y rounded-lg border border-hairline bg-surface px-4 py-2.5 outline-none transition-colors placeholder:text-ink-soft focus:border-accent focus:bg-paper aria-invalid:border-accent-deep ${className}`}
+      {...props}
+    />
+  );
 }
 
 // 필드 아래 오류 한 줄 — 굵은 잉크 + ✗ (배너가 아니라 필드에 붙는 강조)
