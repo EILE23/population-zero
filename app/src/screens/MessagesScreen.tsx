@@ -3,19 +3,18 @@ import {
   ActivityIndicator, Pressable, RefreshControl, ScrollView,
   StyleSheet, Text, View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { fetchThreads, type DmThread } from '@/api';
 import { Avatar } from '@/ui/Avatar';
 import { EmptyState } from '@/ui/EmptyState';
 import { timeAgo } from '@/ui/cards';
+import { TAB_BAR_HEIGHT } from '@/ui/TabBar';
 import { theme } from '@/theme';
 
 /**
  * 대화 내역 — 지금까지 누구와 무슨 말을 했는지.
  * 웹에서는 같은 데이터가 쪽지함으로 보인다. 주민(AI)과의 대화도 여기 같이 쌓인다.
  */
-export function MessagesScreen({ onBack, onOpen }: {
-  onBack: () => void;
+export function MessagesScreen({ onOpen }: {
   onOpen: (thread: DmThread) => void;
 }) {
   const [threads, setThreads] = useState<DmThread[] | null>(null);
@@ -58,29 +57,27 @@ export function MessagesScreen({ onBack, onOpen }: {
 
   return (
     <View style={s.root}>
-      <View style={s.bar}>
-        <Pressable onPress={onBack} hitSlop={12} style={s.barButton}>
-          <Feather name="chevron-left" size={22} color={theme.color.ink} />
-        </Pressable>
-        <Text style={s.barTitle}>Messages</Text>
-        <View style={s.barButton} />
+      <View style={s.header}>
+        <Text style={s.heading}>Chat</Text>
       </View>
 
       {threads == null ? (
         <View style={s.center}><ActivityIndicator color={theme.color.accent} /></View>
+      ) : threads.length === 0 ? (
+        // 아무것도 없을 때는 목록의 첫 줄이 아니라 화면 한가운데에 — 앨범과 같은 자리
+        <View style={s.emptyRoot}>
+          <EmptyState
+            title={error ? 'Could not open your messages' : 'No conversations yet'}
+            body={error ?? 'Open a post, tap the author, and say something. Residents answer on the next patrol.'}
+            actionLabel={error ? 'Try again' : undefined}
+            onAction={error ? refresh : undefined}
+          />
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={s.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.color.accent} />}
         >
-          {threads.length === 0 ? (
-            <EmptyState
-              title={error ? 'Could not open your messages' : 'No conversations yet'}
-              body={error ?? 'Open a post, tap the author, and say something. Residents answer on the next patrol.'}
-              actionLabel={error ? 'Try again' : undefined}
-              onAction={error ? refresh : undefined}
-            />
-          ) : (
             <View style={s.list}>
               {threads.map((t, i) => (
                 <Pressable
@@ -108,7 +105,6 @@ export function MessagesScreen({ onBack, onOpen }: {
                 </Pressable>
               ))}
             </View>
-          )}
         </ScrollView>
       )}
     </View>
@@ -118,15 +114,10 @@ export function MessagesScreen({ onBack, onOpen }: {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.color.surface },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  bar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: theme.space(2), paddingVertical: theme.space(3),
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.color.hairline,
-    backgroundColor: theme.color.paper,
-  },
-  barButton: { width: 40, alignItems: 'center' },
-  barTitle: { fontSize: 14.5, fontWeight: '800', color: theme.color.ink },
-  content: { padding: theme.space(4) },
+  emptyRoot: { flex: 1, justifyContent: 'center' },
+  header: { paddingHorizontal: theme.space(4), paddingTop: theme.space(4), paddingBottom: theme.space(1) },
+  heading: { fontSize: 21, fontWeight: '800', color: theme.color.ink, letterSpacing: -0.4 },
+  content: { padding: theme.space(4), paddingBottom: TAB_BAR_HEIGHT + theme.space(6) },
   list: {
     backgroundColor: theme.color.paper, borderRadius: theme.radius.lg,
     borderWidth: 1, borderColor: theme.color.hairline, overflow: 'hidden',

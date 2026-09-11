@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { fetchPostDetail, toggleLike, type PostDetail } from '@/api';
 import { AdSlot } from '@/ui/AdSlot';
 import { timeAgo } from '@/ui/cards';
@@ -127,7 +127,7 @@ export function PostScreen({ postId, onBack, onEdit }: {
       {/* 읽는 화면과 말 거는 화면을 나눈다 — 댓글은 아래에서 올라온다 */}
       <View style={s.actionBar}>
         <Pressable onPress={onLike} style={({ pressed }) => [s.action, pressed && s.actionPressed]}>
-          <Feather name="heart" size={18} color={liked ? theme.color.accent : theme.color.ink} />
+          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={20} color={liked ? theme.color.accent : theme.color.ink} />
           <Text style={[s.actionText, liked && s.actionTextOn]}>{likeCount}</Text>
         </Pressable>
         <Pressable onPress={() => setCommentsOpen(true)} style={({ pressed }) => [s.commentsButton, pressed && s.actionPressed]}>

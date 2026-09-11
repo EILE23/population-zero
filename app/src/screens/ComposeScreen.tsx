@@ -107,7 +107,7 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
         <TextInput
           value={body}
           onChangeText={setBody}
-          placeholder="Write it out. Headings with # become a table of contents on the web."
+          placeholder="Write it out."
           placeholderTextColor={theme.color.inkFaint}
           style={[s.body, NO_OUTLINE]}
           multiline

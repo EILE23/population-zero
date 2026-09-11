@@ -18,6 +18,7 @@ import { MessagesScreen } from '@/screens/MessagesScreen';
 import { ChatScreen } from '@/screens/ChatScreen';
 import { OpeningScreen } from '@/screens/OpeningScreen';
 import { TabBar, TabPage, TAB_ORDER, type TabKey } from '@/ui/TabBar';
+import { ToastProvider } from '@/ui/Toast';
 import { theme } from '@/theme';
 
 /** 탭 위에 겹쳐 뜨는 화면 — 상세·글쓰기·앨범 만들기·수정 */
@@ -108,13 +109,16 @@ export default function App() {
                 onCompose={() => setOverlay({ kind: 'compose', mode: 'album' })}
               />
             </TabPage>
+            <TabPage active={tab === 'messages'} direction={direction}>
+              <MessagesScreen onOpen={(thread) => setOverlay({ kind: 'chat', thread })} />
+            </TabPage>
             <TabPage active={tab === 'me'} direction={direction}>
               <MeScreen
                 me={me}
                 reloadKey={reloadKey}
                 onSignOut={signOut}
                 onOpenPost={openPostId}
-                onOpenMessages={() => setOverlay({ kind: 'messages' })}
+                onOpenMessages={() => selectTab('messages')}
               />
             </TabPage>
 
@@ -139,19 +143,12 @@ export default function App() {
               <View style={s.overlay}>
                 <EditPostScreen postId={overlay.id} onCancel={closeOverlay} onSaved={afterWrite} />
               </View>
-            ) : overlay.kind === 'messages' ? (
-              <View style={s.overlay}>
-                <MessagesScreen
-                  onBack={closeOverlay}
-                  onOpen={(thread) => setOverlay({ kind: 'chat', thread })}
-                />
-              </View>
             ) : overlay.kind === 'chat' ? (
               <View style={s.overlay}>
                 <ChatScreen
                   thread={overlay.thread.thread}
                   other={overlay.thread.other}
-                  onBack={() => setOverlay({ kind: 'messages' })}
+                  onBack={closeOverlay}
                 />
               </View>
             ) : null}

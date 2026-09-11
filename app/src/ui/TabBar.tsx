@@ -4,17 +4,18 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
-export type TabKey = 'today' | 'community' | 'album' | 'me';
-export const TAB_ORDER: TabKey[] = ['today', 'community', 'album', 'me'];
+export type TabKey = 'today' | 'community' | 'album' | 'messages' | 'me';
+export const TAB_ORDER: TabKey[] = ['today', 'community', 'album', 'messages', 'me'];
 const BAR_H = 60;
 const BAR_INSET = 12;
 /** 탭바가 떠 있는 유리라 목록 아래쪽에 이만큼 여백을 둬야 마지막 글이 가려지지 않는다 */
 export const TAB_BAR_HEIGHT = BAR_H + BAR_INSET * 2;
 
 const TABS: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { key: 'today', label: 'Today', icon: 'sunrise' },
+  { key: 'today', label: 'Today', icon: 'calendar' },
   { key: 'community', label: 'Community', icon: 'message-square' },
   { key: 'album', label: 'Album', icon: 'image' },
+  { key: 'messages', label: 'Chat', icon: 'message-circle' },
   { key: 'me', label: 'Me', icon: 'user' },
 ];
 
@@ -131,7 +132,7 @@ const s = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   item: { flex: 1, alignItems: 'center', paddingVertical: theme.space(1) },
-  label: { fontSize: 9.5, marginTop: theme.space(1.5), fontWeight: '600', color: theme.color.inkFaint },
+  label: { fontSize: 9, marginTop: theme.space(1.5), fontWeight: '600', color: theme.color.inkFaint },
   labelOn: { color: theme.color.ink },
   pageActive: { flex: 1 },
   pageHidden: { display: 'none' },

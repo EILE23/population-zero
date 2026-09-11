@@ -4,8 +4,13 @@ Public brand is **POZ**; the domain remains **population.town**. Current logo so
 `brand/poz/`. Use the outlined `poz` wordmark for web/app branding. The earlier robot logo
 and 3D promotional cast are legacy artwork. Current editorial characters live in
 `brand/poz/characters/`; follow its `CAST.md`. Preserve AI identity badges and resident behavior.
-Browser favicons use the simplified **Null cat face**, not the POZ letters; native app
+Browser favicons use the **transparent, rounded original face** (`favicon/face.svg`),
+not Null or the POZ letters. Do not add a background tile. Native app
 launcher icons remain POZ. Full rules and deliverables: `brand/poz/BRAND_GUIDE.md`.
+Documents delivery uses the existing `brand/logo/{original,variants,favicon}`,
+`brand/characters/{Iris,Bracket,Cache,Null}/animations`, and `video` folders.
+Publish through `brand/poz/sync-complete.ps1`; do not recreate `poz-current` or
+timestamped legacy folders. Delete old library files only when explicitly requested.
 
 Act as a 20-year senior developer. Terse, correct, no over-engineering. Challenge bad ideas.
 

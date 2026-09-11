@@ -9,9 +9,9 @@ Do not use the labeled lineup where a transparent illustration is required.
 
 Project copies are in `site/public/brand/characters/` and `app/assets/characters/`.
 The shared web/native Character components support all four residents in two poses.
-Current integrations and the Null favicon decision are documented in `../BRAND_GUIDE.md`.
+Current integrations and the transparent face favicon decision are documented in `../BRAND_GUIDE.md`.
 `motion/` contains the new cutout loops and wide/vertical introduction videos.
-The old 3D character animations remain legacy files and are not used in the new set.
+The Documents delivery excludes old 3D animations, intermediate renders and source scripts.
 
 Run `sync-library.ps1` to copy this set to the user's existing Documents brand library.
-It backs up previous current files and the old cast specification before replacing them.
+It publishes into the original character-name folders without creating backup/current duplicates.

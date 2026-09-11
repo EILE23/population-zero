@@ -5,6 +5,17 @@ import type { FeedPost } from '@/api';
 import type { Anchor } from '@/ui/ActionMenu';
 import { theme } from '@/theme';
 
+/** 발췌에 남은 마크다운 기호를 걷어낸다 — 카드에는 **굵게** 같은 표시가 글자로 보이면 안 된다 */
+export function plain(text: string): string {
+  return text
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')       // ![alt](url)
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')    // [글자](url) → 글자
+    .replace(/\*\*(.+?)\*\*/g, '$1')            // **굵게** → 굵게
+    .replace(/[*_`>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function timeAgo(iso: string): string {
   const t = Date.parse(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z'));
   const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
@@ -50,6 +61,10 @@ type CardProps = {
   onPress: () => void;
   /** 길게 누른 지점을 함께 넘긴다 — 메뉴를 손가락이 닿은 자리에 띄우려고 */
   onLongPress: (anchor: Anchor) => void;
+  /** 카드 안에서 바로 누르는 좋아요 — 글을 열지 않고 반응할 수 있어야 한다 */
+  onLike?: () => void;
+  /** 댓글로 바로 가기 */
+  onComment?: () => void;
 };
 
 function anchorOf(e: GestureResponderEvent): Anchor {
@@ -57,7 +72,7 @@ function anchorOf(e: GestureResponderEvent): Anchor {
 }
 
 /** 오늘의집식 — 사진이 먼저, 제목·작성자가 아래 붙는 카드 */
-export function PhotoCard({ post, onPress, onLongPress }: CardProps) {
+export function PhotoCard({ post, onPress, onLongPress, onLike, onComment }: CardProps) {
   const thumb = thumbOf(post);
   return (
     <Pressable
@@ -69,19 +84,23 @@ export function PhotoCard({ post, onPress, onLongPress }: CardProps) {
       {thumb ? <Image source={{ uri: thumb }} style={s.cover} resizeMode="cover" /> : null}
       <View style={s.cardBody}>
         <Text style={s.cardTitle} numberOfLines={2}>{post.title}</Text>
-        {post.excerpt ? <Text style={s.cardExcerpt} numberOfLines={2}>{post.excerpt}</Text> : null}
+        {post.excerpt ? <Text style={s.cardExcerpt} numberOfLines={2}>{plain(post.excerpt)}</Text> : null}
         <View style={s.metaRow}>
           <Text style={s.handle} numberOfLines={1}>{post.handle}</Text>
           <View style={s.metaSpacer} />
-          <Ionicons
-            name={post.liked ? 'heart' : 'heart-outline'}
-            size={13}
-            color={post.liked ? theme.color.accent : theme.color.inkFaint}
-          />
-          <Text style={[s.meta, post.liked && s.metaOn]}>{post.like_count}</Text>
-          <Feather name="message-circle" size={12} color={theme.color.inkFaint} />
-          <Text style={s.meta}>{post.comment_count}</Text>
-          <Text style={s.meta}>{timeAgo(post.created_at)}</Text>
+          <Pressable onPress={onLike} disabled={!onLike} hitSlop={10} style={s.metaButton}>
+            <Ionicons
+              name={post.liked ? 'heart' : 'heart-outline'}
+              size={17}
+              color={post.liked ? theme.color.accent : theme.color.inkSoft}
+            />
+            <Text style={[s.meta, post.liked && s.metaOn]}>{post.like_count}</Text>
+          </Pressable>
+          <Pressable onPress={onComment} disabled={!onComment} hitSlop={10} style={s.metaButton}>
+            <Feather name="message-circle" size={16} color={theme.color.inkSoft} />
+            <Text style={s.meta}>{post.comment_count}</Text>
+          </Pressable>
+          <Text style={s.metaTime}>{timeAgo(post.created_at)}</Text>
         </View>
       </View>
     </Pressable>
@@ -125,10 +144,13 @@ const s = StyleSheet.create({
   cardBody: { padding: theme.space(3.5) },
   cardTitle: { fontSize: 16.5, fontWeight: '700', color: theme.color.ink, lineHeight: 22 },
   cardExcerpt: { fontSize: 13, color: theme.color.inkMid, marginTop: theme.space(1.5), lineHeight: 18 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: theme.space(2.5), gap: 5 },
+  // 글자와 아이콘의 가운데를 맞춘다 — 줄이 어긋나면 카드가 흐트러져 보인다
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: theme.space(2.5), gap: theme.space(3) },
+  metaButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2 },
   metaSpacer: { flex: 1 },
-  handle: { fontSize: 12.5, fontWeight: '700', color: theme.color.ink, flexShrink: 1 },
-  meta: { fontSize: 11.5, color: theme.color.inkSoft, marginRight: theme.space(1) },
+  handle: { fontSize: 12.5, fontWeight: '700', color: theme.color.ink, flexShrink: 1, lineHeight: 17 },
+  meta: { fontSize: 12, color: theme.color.inkSoft, lineHeight: 17 },
+  metaTime: { fontSize: 11.5, color: theme.color.inkFaint, lineHeight: 17 },
   metaOn: { color: theme.color.accent, fontWeight: '700' },
   tile: { width: COL_WIDTH, marginBottom: theme.space(4) },
   tileImage: { width: '100%', borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceDeep },

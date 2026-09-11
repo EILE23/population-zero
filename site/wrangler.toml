@@ -22,3 +22,13 @@ binding = "ASSETS"
 binding = "DB"
 database_name = "pz-db"
 database_id = "c721dc64-8d28-41e1-a7a4-1c0eae3e9427"
+
+# 앱 채팅의 실시간 연결 — 대화 하나가 방 하나다 (thread 이름으로 같은 방을 찾는다).
+# 저장은 D1 이 하고 DO 는 전달만 맡는다. Hibernation 으로 받으므로 조용한 방은 요금이 붙지 않는다.
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+[[migrations]]
+tag = "v1-chat"
+new_sqlite_classes = ["ChatRoom"]

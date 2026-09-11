@@ -103,6 +103,17 @@ jobs:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
         run: node fetch-trends.mjs || true
 
+      # 앱 Today 탭의 재료 — 방금 긁어온 나라별 트렌드·뉴스를 D1 trends 로 적재한다.
+      # 순찰 세션이 쓰는 게 아니라 결정적인 적재 작업이라 프록시를 거치지 않고 wrangler 직결.
+      - name: Save trends to D1 (app Today feed)
+        if: steps.mode.outputs.mode == 'full'
+        working-directory: patrol
+        env:
+          PZ_D1_PROXY: ''
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+        run: node save-trends.mjs || true
+
       - name: Search demand report (SEO loop)
         working-directory: patrol
         env:

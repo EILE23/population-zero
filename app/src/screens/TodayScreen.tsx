@@ -4,6 +4,7 @@ import {
   StyleSheet, Text, View,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { Feather } from '@expo/vector-icons';
 import { anonId, fetchToday, sendTrendEvents, type TodayFeed, type TrendItem } from '@/api';
 import { AdSlot } from '@/ui/AdSlot';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
@@ -238,10 +239,18 @@ export function TodayScreen() {
               <Text style={s.heading}>Today</Text>
               <CategoryButton label={LABEL_OF.get(filter) ?? 'All'} onPress={() => setPickerOpen(true)} />
             </View>
-            <Text style={s.sub}>
-              {where ? `What is happening in ${where}` : 'What is happening around the world'}
-              {feed.personalized ? ' · tuned to you' : ''}
-            </Text>
+            {/* 문장으로 늘어놓는 대신 표식으로 — 어디 것인지, 내게 맞춰졌는지만 알면 된다 */}
+            <View style={s.subRow}>
+              <Feather name="map-pin" size={11} color={theme.color.inkSoft} />
+              <Text style={s.sub}>{where ?? 'Worldwide'}</Text>
+              {feed.personalized ? (
+                <>
+                  <Text style={s.subDot}>·</Text>
+                  <Feather name="sliders" size={11} color={theme.color.accent} />
+                  <Text style={[s.sub, s.subTuned]}>Tuned to you</Text>
+                </>
+              ) : null}
+            </View>
           </View>
         }
         ListEmptyComponent={
@@ -294,7 +303,10 @@ const s = StyleSheet.create({
   header: { paddingTop: theme.space(4), paddingBottom: theme.space(3.5), paddingHorizontal: theme.space(1) },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heading: { fontSize: 21, fontWeight: '800', color: theme.color.ink, letterSpacing: -0.4 },
-  sub: { fontSize: 12, color: theme.color.inkSoft, marginTop: 4 },
+  subRow: { flexDirection: 'row', alignItems: 'center', gap: theme.space(1.5), marginTop: 5 },
+  sub: { fontSize: 12, color: theme.color.inkSoft },
+  subDot: { fontSize: 11, color: theme.color.inkFaint, marginHorizontal: 2 },
+  subTuned: { color: theme.color.accent, fontWeight: '700' },
   pressed: { opacity: 0.9 },
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: theme.space(1.5) },
   source: { fontSize: 9.5, letterSpacing: 1, fontWeight: '800', color: theme.color.accent },

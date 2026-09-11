@@ -69,7 +69,7 @@ await png('app/assets/android-icon-foreground.png', icon(null, paper, 560));
 await png('app/assets/android-icon-monochrome.png', icon(null, '#FFFFFF', 560));
 await png('app/assets/android-icon-background.png', svg(1024, 1024, rect(1024, 1024, ink)));
 
-// Null is the browser identity; keep the POZ wordmark on native launcher icons.
+// The transparent original-face redesign is the browser identity; native launchers keep POZ.
 await import('./favicon/generate.mjs');
 
 const proof = svg(1440, 960, rect(1440, 960, '#F5F5F7') +

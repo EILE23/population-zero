@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Pressable, RefreshControl,
   StyleSheet, Text, View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { fetchUnreadCount, TOPIC_TABS, type FeedPost, type Me } from '@/api';
+import { fetchUnreadCount, toggleLike, TOPIC_TABS, type FeedPost, type Me } from '@/api';
 import { useFeed } from '@/hooks/useFeed';
 import { ActivitySheet } from '@/ui/ActivitySheet';
 import { AdSlot } from '@/ui/AdSlot';
@@ -52,6 +52,18 @@ export function FeedScreen({ me, reloadKey, onOpenPost, onOpenPostId, onEditPost
   const [unread, setUnread] = useState(0);
 
   const feed = useFeed({ tab, q: query, reloadKey });
+
+  // 카드에서 바로 누르는 좋아요 — 화면부터 바꾸고 서버 응답으로 맞춘다
+  const like = useCallback(async (post: FeedPost) => {
+    const next = !post.liked;
+    feed.patchLocal(post.id, { liked: next, like_count: post.like_count + (next ? 1 : -1) });
+    try {
+      const r = await toggleLike(post.id);
+      feed.patchLocal(post.id, { liked: r.liked, like_count: r.count });
+    } catch {
+      feed.patchLocal(post.id, { liked: post.liked, like_count: post.like_count });
+    }
+  }, [feed]);
 
   // 안 읽은 알림 개수 — 들어올 때와 글을 올린 뒤에 다시 센다
   useEffect(() => {
@@ -128,6 +140,8 @@ export function FeedScreen({ me, reloadKey, onOpenPost, onOpenPostId, onEditPost
                 post={item}
                 onPress={() => onOpenPost(item)}
                 onLongPress={(anchor) => setPressed({ post: item, anchor })}
+                onLike={() => void like(item)}
+                onComment={() => onOpenPost(item)}
               />
               {/* 다섯 글마다 한 칸 — 붙박이 배너가 아니라 스크롤에 실려 지나간다 */}
               {index > 0 && (index + 1) % 5 === 0 ? <AdSlot /> : null}

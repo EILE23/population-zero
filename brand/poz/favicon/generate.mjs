@@ -7,13 +7,13 @@ const require = createRequire(import.meta.url);
 const sharp = require(process.argv[2] || 'sharp');
 const dir = dirname(fileURLToPath(import.meta.url));
 const root = resolve(dir, '../../..');
-const source = await readFile(resolve(dir, 'null.svg'));
+const source = await readFile(resolve(dir, 'face.svg'));
 const write = async (path, value) => { const dest = resolve(root, path); await mkdir(dirname(dest), { recursive: true }); await writeFile(dest, value); };
 const png = async (size) => sharp(source, { density: 384 }).resize(size, size).png().toBuffer();
 await write('site/src/app/icon.svg', source);
 for (const size of [16, 32, 48, 64, 180, 256, 512]) {
   const bytes = await png(size);
-  await write(`brand/poz/favicon/null-${size}.png`, bytes);
+  await write(`brand/poz/favicon/face-${size}.png`, bytes);
   if (size <= 64) await write(`site/public/brand/favicon-${size}.png`, bytes);
   if (size === 64) await write('app/assets/favicon.png', bytes);
   if (size === 180) {
@@ -40,6 +40,7 @@ const inner = source.toString().replace(/<svg[^>]*>/, '').replace(/<\/svg>\s*$/,
 const sampleRows = [0, 110].map((top, row) => [16, 32, 48, 64].map((size, i) =>
   `<svg x="${24 + i * 118}" y="${top + 18}" width="${size}" height="${size}" viewBox="0 0 64 64">${inner}</svg>` +
   `<text x="${24 + i * 118}" y="${top + 98}" font-family="Arial" font-size="11" fill="${row ? '#FFFFFF' : '#1B0C15'}">${size}px</text>`).join('')).join('');
-const proof = `<svg xmlns="http://www.w3.org/2000/svg" width="496" height="220"><rect width="496" height="220" fill="#FFFFFF"/><rect y="110" width="496" height="110" fill="#1B0C15"/>${sampleRows}</svg>`;
+// These backgrounds belong only to the comparison sheet, never the icon exports.
+const proof = `<svg xmlns="http://www.w3.org/2000/svg" width="496" height="220"><rect width="496" height="220" fill="#FFFFFF"/><rect y="110" width="496" height="110" fill="#3B3B3B"/>${sampleRows}</svg>`;
 await write('brand/poz/favicon/preview.png', await sharp(Buffer.from(proof)).png().toBuffer());
-console.log('Null favicon: SVG, 16/32/48 ICO, PNG sizes, Apple web clip and Expo web favicon.');
+console.log('Transparent POZ face: SVG, 16/32/48 ICO, PNG sizes and Expo web favicon. Apple web clip is a separate opaque export.');

@@ -62,6 +62,11 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
 
   const lines = caption.trim().split('\n');
   const title = lines[0].slice(0, 140).trim();
+  // 무엇이 모자란지 한 줄로 — 버튼이 왜 안 눌리는지 화면에서 바로 보이게
+  const missing = shots.length === 0 ? 'Add a photo first.'
+    : title.length < 4 ? 'Write a caption — the first line becomes the title.'
+    : caption.trim().length < 10 ? 'A few more words in the caption.'
+    : null;
 
   async function publish() {
     if (busy) return;
@@ -95,7 +100,7 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
           <Feather name="x" size={21} color={theme.color.paper} />
         </Pressable>
         <Text style={s.barTitle}>New album</Text>
-        <PressableScale onPress={publish} disabled={busy} style={[s.post, busy && s.postOff]}>
+        <PressableScale onPress={publish} disabled={busy || !!missing} style={[s.post, (busy || !!missing) && s.postOff]}>
           {busy ? <ActivityIndicator size="small" color={theme.color.paper} /> : <Text style={s.postText}>Share</Text>}
         </PressableScale>
       </View>
@@ -143,7 +148,9 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
           textAlignVertical="top"
           maxLength={30000}
         />
-        <Text style={s.hint}>{title ? `Title: ${title}` : 'The first line becomes the title.'}</Text>
+        <Text style={[s.hint, missing && s.hintWarn]}>
+          {missing ?? `Title: ${title}`}
+        </Text>
 
         <View style={s.topics}>
           {TOPICS.map((t) => {
@@ -198,6 +205,8 @@ const s = StyleSheet.create({
     paddingHorizontal: theme.space(4), marginTop: theme.space(3),
   },
   hint: { color: theme.color.inkFaint, fontSize: 11.5, paddingHorizontal: theme.space(4), marginTop: theme.space(2) },
+  hintWarn: { color: theme.color.accent, fontWeight: '700' },
+
   topics: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.space(2), padding: theme.space(4) },
   topic: {
     borderRadius: theme.radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',

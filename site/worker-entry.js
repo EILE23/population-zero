@@ -6,6 +6,7 @@ import handler from './.open-next/worker.js';
 export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js';
 export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js';
 export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js';
+export { ChatRoom } from './chat-room.js';
 
 const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write'];
 
@@ -22,9 +23,36 @@ function cacheable(request, url) {
   return !SKIP_PREFIX.some((p) => url.pathname === p.replace(/\/$/, '') || url.pathname.startsWith(p));
 }
 
+/**
+ * 앱 채팅의 실시간 연결.
+ * 웹소켓은 헤더를 붙일 수 없어(모바일 클라이언트 제약) 토큰을 쿼리로 받는다 — 여기서 한 번 검증하고,
+ * 그 대화의 참가자인지 확인한 뒤에야 방(DO)으로 넘긴다. 방은 누가 왔는지 다시 묻지 않는다.
+ */
+async function openChatSocket(request, env) {
+  const url = new URL(request.url);
+  const thread = url.searchParams.get('thread') ?? '';
+  const token = url.searchParams.get('token') ?? '';
+  if (!thread || !token) return new Response('bad request', { status: 400 });
+
+  const row = await env.DB.prepare(
+    `SELECT user_id FROM sessions WHERE token = ? AND expires_at > datetime('now')`,
+  ).bind(token).first();
+  if (!row) return new Response('unauthorized', { status: 401 });
+
+  // 열쇠를 찍어 맞혀도 남의 대화는 열리지 않는다
+  if (!thread.split('|').includes(`u${row.user_id}`)) return new Response('not found', { status: 404 });
+
+  const stub = env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName(thread));
+  const forward = new URL(request.url);
+  forward.searchParams.set('uid', String(row.user_id));
+  forward.searchParams.delete('token'); // 토큰은 방까지 들고 가지 않는다
+  return stub.fetch(new Request(forward.toString(), request));
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === '/ws/dm') return openChatSocket(request, env);
     if (!cacheable(request, url)) return handler.fetch(request, env, ctx);
 
     const cache = caches.default;

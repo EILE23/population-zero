@@ -1,37 +1,81 @@
+param([switch]$CleanLegacy, [switch]$Preview, [switch]$Permanent)
 $ErrorActionPreference = 'Stop'
-$pozLibrary = 'C:\Users\Administrator\Documents\aproject\population-zero\brand'
-if (-not (Test-Path -LiteralPath $pozLibrary -PathType Container)) { throw 'Expected brand library is missing.' }
+if ($Permanent -and -not $CleanLegacy) { throw 'Permanent requires an explicitly requested legacy cleanup.' }
+$pozLibrary = 'C:\Users\Administrator\Documents\aproject\population-zero'
+$pozStage = Join-Path $PSScriptRoot '.library-stage'
+& node (Join-Path $PSScriptRoot 'export-library.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Library export failed; no Documents files changed.' }
+if (-not (Test-Path -LiteralPath $pozLibrary -PathType Container)) { throw 'Expected Documents library is missing.' }
 $pozBoundary = [IO.Path]::GetFullPath($pozLibrary).TrimEnd('\') + '\'
-$pozBackup = Join-Path $pozLibrary ('legacy-before-poz-complete-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
-function Copy-PozFile([string]$pozSource, [string]$pozRelative) {
-  if (-not (Test-Path -LiteralPath $pozSource -PathType Leaf)) { throw "Missing source: $pozSource" }
+$pozManifest = Get-Content -LiteralPath (Join-Path $pozStage 'manifest.json') -Raw | ConvertFrom-Json
+function Resolve-PozTarget([string]$pozRelative) {
   $pozTarget = [IO.Path]::GetFullPath((Join-Path $pozLibrary $pozRelative))
-  if (-not $pozTarget.StartsWith($pozBoundary, [StringComparison]::OrdinalIgnoreCase)) { throw 'Target escapes brand library.' }
+  if (-not $pozTarget.StartsWith($pozBoundary, [StringComparison]::OrdinalIgnoreCase)) { throw "Target escapes library: $pozRelative" }
+  if ($pozRelative -notmatch '^(brand|video)/' -or $pozRelative.Contains('..')) { throw "Unexpected target: $pozRelative" }
+  $pozAncestor = $pozTarget
+  while ($pozAncestor.Length -ge $pozLibrary.Length) {
+    if ((Test-Path -LiteralPath $pozAncestor) -and ((Get-Item -LiteralPath $pozAncestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw "Linked path refused: $pozAncestor" }
+    $pozAncestor = Split-Path $pozAncestor
+  }
+  return $pozTarget
+}
+# Resolve every target and reject junctions before modifying anything.
+foreach ($pozRelative in $pozManifest.files) {
+  $null = Resolve-PozTarget $pozRelative
+  if (-not (Test-Path -LiteralPath (Join-Path $pozStage $pozRelative) -PathType Leaf)) { throw "Missing source: $pozRelative" }
+}
+$pozRemovals = @()
+foreach ($pozRelative in $pozManifest.obsolete) {
+  $pozTarget = Resolve-PozTarget $pozRelative
   if (Test-Path -LiteralPath $pozTarget) {
-    $pozBackupFile = Join-Path $pozBackup $pozRelative
-    New-Item -ItemType Directory -Path (Split-Path $pozBackupFile) -Force | Out-Null
-    Copy-Item -LiteralPath $pozTarget -Destination $pozBackupFile
+    if (Get-ChildItem -LiteralPath $pozTarget -Force -Recurse | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }) { throw "Linked descendant refused: $pozTarget" }
+    $pozRemovals += $pozTarget
   }
+}
+if ($Preview) {
+  Write-Output "Final files to copy and verify: $($pozManifest.files.Count)"
+  Write-Output "Existing obsolete items to recycle: $($pozRemovals.Count)"
+  $pozRemovals | Write-Output
+  return
+}
+if ($CleanLegacy -and -not $Permanent) { Add-Type -AssemblyName Microsoft.VisualBasic }
+foreach ($pozRelative in $pozManifest.files) {
+  $pozTarget = Resolve-PozTarget $pozRelative
   New-Item -ItemType Directory -Path (Split-Path $pozTarget) -Force | Out-Null
-  Copy-Item -LiteralPath $pozSource -Destination $pozTarget
+  Copy-Item -LiteralPath (Join-Path $pozStage $pozRelative) -Destination $pozTarget
 }
-$pozTopFiles = @('BRAND_GUIDE.md', 'index.html', 'README.md', 'QA.md', 'wordmark.svg', 'preview.png', 'app-icon.png', 'app-icon-mauve.png')
-foreach ($pozName in $pozTopFiles) { Copy-PozFile (Join-Path $PSScriptRoot $pozName) "poz-current\$pozName" }
-foreach ($pozFolder in @('characters', 'favicon')) {
-  $pozSourceFolder = Join-Path $PSScriptRoot $pozFolder
-  foreach ($pozFile in Get-ChildItem -LiteralPath $pozSourceFolder -File -Recurse) {
-    $pozRelative = [IO.Path]::GetRelativePath($PSScriptRoot, $pozFile.FullName)
-    Copy-PozFile $pozFile.FullName "poz-current\$pozRelative"
+# Verify all final copies before recycling any old versions.
+foreach ($pozRelative in $pozManifest.files) {
+  if ((Get-FileHash -LiteralPath (Join-Path $pozStage $pozRelative)).Hash -ne (Get-FileHash -LiteralPath (Resolve-PozTarget $pozRelative)).Hash) { throw "Verification failed: $pozRelative. Legacy files were not removed." }
+}
+if ($CleanLegacy) {
+  $pozCleanupErrors = @()
+  $pozRemovedCount = 0
+  foreach ($pozTarget in $pozRemovals) {
+    $pozRelative = [IO.Path]::GetRelativePath($pozLibrary, $pozTarget).Replace('\', '/')
+    if (-not ($pozManifest.obsolete -contains $pozRelative)) { throw 'Removal is not in the inspected manifest.' }
+    $null = Resolve-PozTarget $pozRelative
+    try {
+    if ($Permanent) {
+      # Exact preflighted targets only. Never remove the library or an owner folder.
+      Remove-Item -LiteralPath $pozTarget -Recurse -Force
+    } elseif (Test-Path -LiteralPath $pozTarget -PathType Container) {
+      [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($pozTarget, [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs, [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin, [Microsoft.VisualBasic.FileIO.UICancelOption]::ThrowException)
+    } else {
+      [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($pozTarget, [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs, [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin, [Microsoft.VisualBasic.FileIO.UICancelOption]::ThrowException)
+    }
+    if (Test-Path -LiteralPath $pozTarget) { throw "Cleanup did not remove: $pozTarget" }
+    $pozRemovedCount++
+    } catch {
+      $pozCleanupErrors += "$pozRelative : $($_.Exception.Message)"
+    }
+  }
+  if ($Permanent) { Write-Output "Permanently removed $pozRemovedCount obsolete files/folders. Not recoverable from Recycle Bin." }
+  else { Write-Output "Recycled $pozRemovedCount obsolete files/folders. Recoverable from Windows Recycle Bin." }
+  if ($pozCleanupErrors.Count) {
+    $pozCleanupErrors | Write-Output
+    throw "Cleanup incomplete: $($pozCleanupErrors.Count) items remain. No automatic permanent-delete fallback."
   }
 }
-# Existing character-library entry point remains up to date, without deleting legacy art.
-foreach ($pozFile in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'characters') -File -Recurse) {
-  $pozRelative = [IO.Path]::GetRelativePath((Join-Path $PSScriptRoot 'characters'), $pozFile.FullName)
-  Copy-PozFile $pozFile.FullName "characters\poz-current\$pozRelative"
-}
-Copy-PozFile (Join-Path $PSScriptRoot 'characters\CAST.md') 'characters\CAST.md'
-Copy-PozFile (Join-Path $PSScriptRoot 'library-entry.md') 'BRAND_GUIDE.md'
-Copy-PozFile (Join-Path $PSScriptRoot 'characters\library-index.html') 'characters\index.html'
-Write-Output "Complete brand set: $pozLibrary\poz-current"
-Write-Output "Previous overwritten files preserved: $pozBackup"
-Write-Output 'No files deleted. Legacy 3D artwork and animations remain available.'
+Write-Output "Verified $($pozManifest.files.Count) final files. Guide: $pozLibrary\brand\index.html"
+Write-Output 'No legacy backup or poz-current folder created.'

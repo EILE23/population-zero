@@ -61,6 +61,5 @@ behavior are unchanged. These four brand characters do not replace every residen
 - Additional poses: `iris-welcome.png`, `bracket-thinking.png`, `cache-receipt.png`, `null-sleeping.png`.
 - `motion/`: four 4-second cutout loops (MP4/GIF) and two 16-second introduction montages.
   These use held poses and whole-illustration transforms, not articulated frame animation.
-- Old 3D motion sheets, GIFs and promotional videos are retained as legacy references.
-- Existing historical files are preserved; consult `legacy-before-poz-*` backups in the
-  Documents brand library before reusing old promotional material.
+- The Documents library keeps final artwork in its original character-name folders.
+  Superseded 3D sheets, loops, videos and duplicate delivery folders are removed.

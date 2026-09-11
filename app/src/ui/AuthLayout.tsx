@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { PressableScale } from '@/ui/PressableScale';
 import { theme } from '@/theme';
-import { Character, type CharacterName, type CharacterPose } from '@/ui/Character';
 
 export type AuthLink = { label: string; onPress: () => void };
 
@@ -14,7 +13,7 @@ export type AuthLink = { label: string; onPress: () => void };
  * 세 화면의 로고 위치, 여백, 버튼, 흔들림이 전부 같아야 해서 여기 한 곳에만 둔다.
  * 흔드는 애니메이션은 `shakeKey` 가 바뀔 때마다 한 번씩 — 부모는 에러가 날 때 이 값을 올린다.
  */
-export function AuthLayout({ title, subtitle, shakeKey = 0, error, busy, submitLabel, onSubmit, links, children, footnote, character = 'iris', characterPose = 'alternate' }: {
+export function AuthLayout({ title, subtitle, shakeKey = 0, error, busy, submitLabel, onSubmit, links, children, footnote }: {
   title: string;
   subtitle: string;
   shakeKey?: number;
@@ -25,8 +24,6 @@ export function AuthLayout({ title, subtitle, shakeKey = 0, error, busy, submitL
   links: AuthLink[];
   children: ReactNode;
   footnote?: string;
-  character?: CharacterName;
-  characterPose?: CharacterPose;
 }) {
   // 진입 — 로고가 살짝 떠오르며 나타난다
   const enter = useMemo(() => new Animated.Value(0), []);
@@ -54,10 +51,7 @@ export function AuthLayout({ title, subtitle, shakeKey = 0, error, busy, submitL
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Animated.View style={[s.inner, { opacity: enter, transform: [{ translateY: rise }] }]}>
-          <View style={s.brandRow}>
-            <Image source={require('../../assets/poz-logo.png')} accessibilityLabel="POZ" style={s.logo} resizeMode="contain" />
-            <Character name={character} pose={characterPose} size={96} />
-          </View>
+          <Image source={require('../../assets/poz-logo.png')} accessibilityLabel="POZ" style={s.logo} resizeMode="contain" />
           <Text style={[s.overline, !subtitle && s.overlineAlone]}>{title}</Text>
           {subtitle ? <Text style={s.sub}>{subtitle}</Text> : null}
 
