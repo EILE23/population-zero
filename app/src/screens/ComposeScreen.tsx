@@ -1,24 +1,29 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable,
   ScrollView, StyleSheet, Text, TextInput, View, type TextStyle,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { createPost, postingError, TOPIC_TABS } from '@/api';
+import { createPost, postingError, uploadInlineImage, TOPIC_TABS } from '@/api';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
 import { PressableScale } from '@/ui/PressableScale';
 import { theme } from '@/theme';
 
 const TOPICS = TOPIC_TABS.filter((t) => t.key !== 'all' && t.key !== 'humans');
 /** 분류를 칩으로 늘어놓으면 가로로 넘쳐 무엇이 있는지 보이지 않는다 — 다른 화면과 같은 시트로 고른다 */
-const TOPIC_GROUPS: PickerGroup[] = [{ title: 'WHERE DOES THIS GO', options: TOPICS.map((t) => ({ key: t.key, label: t.label })) }];
+const TOPIC_GROUPS: PickerGroup[] = [
+  { title: 'WHERE DOES THIS GO', options: TOPICS.map((t) => ({ key: t.key, label: t.label })) },
+];
 /** 웹 미리보기에서 입력칸에 생기는 브라우저 포커스 링을 없앤다 */
 const NO_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 
 /**
- * 글쓰기 — 홈(Community)에서 들어오는 화면.
- * 사진 피드의 화면과 다르다: 여기서는 글이 주인공이고 커버 사진은 거들 뿐.
+ * 글쓰기 — Community 에서 들어오는 화면.
+ * 앨범 화면과 다르다: 여기서는 글이 주인공이고 사진은 두 가지 다른 역할을 한다.
+ *  - 커버: 목록·웹 카드에 뜨는 대표 사진 한 장
+ *  - 본문 사진: 글 중간에 들어가는 사진 (여러 장, 쓰던 자리에 박힌다)
+ * 같은 '사진'이라도 하는 일이 달라서 도구줄에서 이름으로 갈라 둔다.
  */
 export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) => void; onCancel: () => void }) {
   const [title, setTitle] = useState('');
@@ -26,22 +31,58 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
   const [topic, setTopic] = useState<string>('life');
   const [cover, setCover] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 커서 위치 — 본문 사진을 '지금 쓰던 자리'에 넣기 위해 따라다닌다
+  const caret = useRef(0);
 
-  async function pickCover() {
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
-    if (!res.canceled && res.assets[0]) setCover(res.assets[0].uri);
-  }
-
-  async function shootCover() {
+  /** 사진 하나를 고른다 — 카메라는 권한을 먼저 묻는다 */
+  async function choose(from: 'camera' | 'library') {
+    if (from === 'library') {
+      return ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
+    }
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Camera access needed', 'Allow camera access to attach a photo.');
-      return;
+      Alert.alert('Camera access needed', 'Allow camera access to put a photo in the post.');
+      return null;
     }
-    const res = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-    if (!res.canceled && res.assets[0]) setCover(res.assets[0].uri);
+    return ImagePicker.launchCameraAsync({ quality: 0.7 });
+  }
+
+  async function pickCover(from: 'camera' | 'library') {
+    const res = await choose(from);
+    if (res && !res.canceled && res.assets[0]) setCover(res.assets[0].uri);
+  }
+
+  /**
+   * 본문 안에 사진 넣기.
+   * 올린 뒤 커서 자리에 `![](주소)` 를 박는다 — 웹 에디터가 붙여넣기로 하는 것과 같은 결과다.
+   * 커버는 글이 올라갈 때 함께 보내지만 본문 사진은 지금 바로 올려야 한다: 본문에 주소가 들어가야
+   * 글에 박히기 때문이다.
+   */
+  async function insertPhoto(from: 'camera' | 'library') {
+    if (uploading) return;
+    const res = await choose(from);
+    if (!res || res.canceled || !res.assets[0]) return;
+
+    setUploading(true);
+    setError(null);
+    try {
+      const url = await uploadInlineImage(res.assets[0].uri);
+      const at = Math.min(caret.current, body.length);
+      const before = body.slice(0, at);
+      const after = body.slice(at);
+      // 사진은 제 줄을 차지해야 한다 — 문장 중간에 끼면 문단이 깨진다
+      const lead = before.length === 0 || before.endsWith('\n') ? '' : '\n\n';
+      const snippet = `${lead}![](${url})\n\n`;
+      setBody(before + snippet + after);
+      caret.current = (before + snippet).length;
+    } catch (e) {
+      setError(postingError(e));
+    } finally {
+      setUploading(false);
+    }
   }
 
   const ready = title.trim().length >= 4 && body.trim().length >= 10;
@@ -79,6 +120,7 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
       </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        {/* 커버 자리 — 글과 섞이지 않게 따로 세우고, 비어 있을 때도 자리를 보여준다 */}
         {cover ? (
           <View style={s.coverWrap}>
             <Image source={{ uri: cover }} style={s.cover} resizeMode="cover" />
@@ -86,7 +128,17 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
               <Feather name="x" size={14} color={theme.color.paper} />
             </Pressable>
           </View>
-        ) : null}
+        ) : (
+          <Pressable
+            onPress={() => void pickCover('library')}
+            style={({ pressed }) => [s.coverEmpty, pressed && s.coverEmptyPressed]}
+          >
+            <Feather name="image" size={17} color={theme.color.inkFaint} />
+            <Text style={s.coverEmptyText}>Add a cover — the picture people see in the feed</Text>
+          </Pressable>
+        )}
+
+        <View style={s.split} />
 
         <TextInput
           value={title}
@@ -101,6 +153,7 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
         <TextInput
           value={body}
           onChangeText={setBody}
+          onSelectionChange={(e) => { caret.current = e.nativeEvent.selection.start; }}
           placeholder="Write it out."
           placeholderTextColor={theme.color.inkFaint}
           style={[s.body, NO_OUTLINE]}
@@ -112,18 +165,34 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
         {error ? <Text style={s.error}>{error}</Text> : null}
       </ScrollView>
 
-      {/* 아이콘만 놓으면 무엇에 쓰는 건지 알 수 없다 — 묶음마다 이름을 붙인다 */}
+      {/* 아이콘만 놓으면 무엇에 쓰는 건지 알 수 없다 — 하는 일이 다른 묶음마다 이름을 붙인다 */}
       <View style={s.tools}>
         <View style={s.toolGroup}>
           <Text style={s.toolLabel}>COVER</Text>
-          <Pressable onPress={shootCover} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
+          <Pressable onPress={() => void pickCover('camera')} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
             <Feather name="camera" size={15} color={theme.color.inkMid} />
           </Pressable>
-          <Pressable onPress={pickCover} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
+          <Pressable onPress={() => void pickCover('library')} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
             <Feather name="image" size={15} color={theme.color.inkMid} />
           </Pressable>
         </View>
+
+        <View style={s.toolDivider} />
+
+        <View style={s.toolGroup}>
+          <Text style={s.toolLabel}>IN TEXT</Text>
+          <Pressable onPress={() => void insertPhoto('camera')} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
+            {uploading
+              ? <ActivityIndicator size="small" color={theme.color.accent} />
+              : <Feather name="camera" size={15} color={theme.color.inkMid} />}
+          </Pressable>
+          <Pressable onPress={() => void insertPhoto('library')} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
+            <Feather name="plus-square" size={15} color={theme.color.inkMid} />
+          </Pressable>
+        </View>
+
         <View style={s.toolSpacer} />
+
         <View style={s.toolGroup}>
           <Text style={s.toolLabel}>TOPIC</Text>
           <CategoryButton
@@ -161,24 +230,24 @@ const s = StyleSheet.create({
   publishText: { color: theme.color.paper, fontWeight: '700', fontSize: 13 },
   content: { paddingHorizontal: theme.space(5), paddingTop: theme.space(4), paddingBottom: theme.space(10) },
   coverWrap: { borderRadius: theme.radius.md, overflow: 'hidden' },
-  coverEmpty: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space(2),
-    height: 76, borderRadius: theme.radius.md,
-    borderWidth: 1, borderStyle: 'dashed', borderColor: theme.color.hairline,
-    backgroundColor: theme.color.surface,
-  },
-  coverEmptyPressed: { backgroundColor: theme.color.surfaceDeep },
-  coverEmptyText: { fontSize: 12.5, fontWeight: '600', color: theme.color.inkSoft },
-  // 사진 자리와 글 자리를 가르는 선 — 한 덩어리로 보이면 어디에 무엇을 넣는지 헷갈린다
-  split: {
-    height: StyleSheet.hairlineWidth, backgroundColor: theme.color.hairline,
-    marginTop: theme.space(4), marginBottom: theme.space(4),
-  },
   cover: { width: '100%', height: 180, backgroundColor: theme.color.surfaceDeep },
   coverRemove: {
     position: 'absolute', right: theme.space(2), top: theme.space(2),
     width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(1,0,1,0.6)',
     alignItems: 'center', justifyContent: 'center',
+  },
+  coverEmpty: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space(2),
+    height: 72, borderRadius: theme.radius.md,
+    borderWidth: 1, borderStyle: 'dashed', borderColor: theme.color.hairline,
+    backgroundColor: theme.color.surface, paddingHorizontal: theme.space(4),
+  },
+  coverEmptyPressed: { backgroundColor: theme.color.surfaceDeep },
+  coverEmptyText: { fontSize: 12, fontWeight: '600', color: theme.color.inkSoft, flexShrink: 1 },
+  // 사진 자리와 글 자리를 가르는 선 — 한 덩어리로 보이면 어디에 무엇을 넣는지 헷갈린다
+  split: {
+    height: StyleSheet.hairlineWidth, backgroundColor: theme.color.hairline,
+    marginVertical: theme.space(4),
   },
   title: {
     fontSize: 25, fontWeight: '800', color: theme.color.ink, lineHeight: 32,
@@ -190,10 +259,16 @@ const s = StyleSheet.create({
   },
   error: { color: theme.color.accentDeep, fontWeight: '700', fontSize: 13, marginTop: theme.space(4) },
   tools: {
+    flexDirection: 'row', alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.hairline,
     backgroundColor: theme.color.paper,
+    paddingHorizontal: theme.space(4), paddingVertical: theme.space(3),
   },
   toolGroup: { flexDirection: 'row', alignItems: 'center', gap: theme.space(2) },
+  toolDivider: {
+    width: StyleSheet.hairlineWidth, height: 18, backgroundColor: theme.color.hairline,
+    marginHorizontal: theme.space(3),
+  },
   toolSpacer: { flex: 1 },
   toolLabel: {
     fontSize: 9, letterSpacing: 1.2, fontWeight: '800', color: theme.color.inkFaint,
@@ -204,12 +279,4 @@ const s = StyleSheet.create({
     backgroundColor: theme.color.surface, alignItems: 'center', justifyContent: 'center',
   },
   toolPressed: { backgroundColor: theme.color.surfaceDeep },
-  toolDivider: { width: StyleSheet.hairlineWidth, height: 20, backgroundColor: theme.color.hairline, marginHorizontal: theme.space(1) },
-  chip: {
-    borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.color.hairline,
-    paddingHorizontal: theme.space(3.5), paddingVertical: theme.space(1.5),
-  },
-  chipOn: { backgroundColor: theme.color.ink, borderColor: theme.color.ink },
-  chipText: { fontSize: 12, fontWeight: '600', color: theme.color.inkMid },
-  chipTextOn: { color: theme.color.paper },
 });

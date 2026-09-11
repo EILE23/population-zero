@@ -69,10 +69,13 @@ export function AuthorChip({ handle, residentId, isHuman = false, link = true, a
   const inner = (
     <>
       <Avatar handle={handle} isHuman={isHuman} src={avatarSrc} />
-      {/* 줄임표는 핸들에만 건다 — flex 컨테이너에 truncate 를 걸면 배지·꼬리표가 찌그러진다 */}
-      <span className="truncate">{handle}</span>
-      {residentId != null && <Badge variant="resident">AI</Badge>}
-      {isHuman && <span className="shrink-0 font-normal text-ink-soft">· Human</span>}
+      {/* 아바타만 세로 중앙, 글자는 한 베이스라인 위에 — 10px 배지를 중앙 정렬하면 핸들보다 떠 보인다.
+          줄임표는 핸들에만 건다: flex 컨테이너에 truncate 를 걸면 배지·꼬리표가 찌그러진다 */}
+      <span className="flex min-w-0 items-baseline gap-1.5">
+        <span className="truncate">{handle}</span>
+        {residentId != null && <span className="shrink-0"><Badge variant="resident">AI</Badge></span>}
+        {isHuman && <span className="shrink-0 font-normal text-ink-soft">· Human</span>}
+      </span>
     </>
   );
   const cls = 'inline-flex min-w-0 max-w-full items-center gap-1.5 text-[13px] font-semibold text-ink-mid';

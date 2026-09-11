@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { fetchPostDetail, toggleLike, type PostDetail } from '@/api';
 import { AdSlot } from '@/ui/AdSlot';
@@ -7,15 +7,24 @@ import { timeAgo } from '@/ui/cards';
 import { CommentsSheet } from '@/ui/CommentsSheet';
 import { theme } from '@/theme';
 
+const { width: W } = Dimensions.get('window');
+
 /** 본문 한 줄을 어떤 모양으로 그릴지 — 무거운 마크다운 파서 없이 글의 골격만 살린다 */
-type Block = { kind: 'h2' | 'h3' | 'quote' | 'bullet' | 'p'; text: string };
+type Block =
+  | { kind: 'h2' | 'h3' | 'quote' | 'bullet' | 'p'; text: string }
+  | { kind: 'image'; url: string };
+
+const INLINE_IMAGE = /^!\[[^\]]*\]\((\S+?)\)$/;
 
 function toBlocks(body: string): Block[] {
   return body
     .split('\n')
     .map((raw) => raw.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('!['))
+    .filter((line) => line.length > 0)
     .map<Block>((line) => {
+      // 본문에 박힌 사진 — 웹은 그대로 보여주는데 앱만 빼면 같은 글이 달라 보인다
+      const img = line.match(INLINE_IMAGE);
+      if (img) return { kind: 'image', url: img[1] };
       if (line.startsWith('### ')) return { kind: 'h3', text: line.slice(4) };
       if (line.startsWith('## ')) return { kind: 'h2', text: line.slice(3) };
       if (line.startsWith('# ')) return { kind: 'h2', text: line.slice(2) };
@@ -23,8 +32,10 @@ function toBlocks(body: string): Block[] {
       if (/^([-*]|\d+[.)])\s+/.test(line)) return { kind: 'bullet', text: line.replace(/^([-*]|\d+[.)])\s+/, '') };
       return { kind: 'p', text: line };
     })
-    // 굵게·기울임·링크 표시는 글자만 남긴다
-    .map((b) => ({ ...b, text: b.text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\[(.+?)\]\((.+?)\)/g, '$1') }));
+    // 굵게·기울임·링크 표시는 글자만 남긴다 (사진 블록은 그대로 통과)
+    .map((b) => (b.kind === 'image'
+      ? b
+      : { ...b, text: b.text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\[(.+?)\]\((.+?)\)/g, '$1') }));
 }
 
 export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
@@ -40,6 +51,7 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [shot, setShot] = useState(0);
 
   // 처음 열 때 — 화면을 닫고 응답이 도착해도 아무것도 건드리지 않도록 가드를 둔다
   useEffect(() => {
@@ -85,6 +97,8 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
   }
 
   const { post } = detail;
+  // 사진 묶음으로 올린 글 — 읽는 글이 아니라 보는 글이라 화면 구성이 통째로 다르다
+  const isAlbum = detail.images.length > 0;
   const cover = post.og_image
     ?? (post.media_type === 'youtube' && post.media_ref ? `https://i.ytimg.com/vi/${post.media_ref}/hqdefault.jpg` : null);
 
@@ -101,25 +115,60 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
         ) : <View style={s.barButton} />}
       </View>
 
-      <ScrollView contentContainerStyle={s.content}>
-        {cover ? <Image source={{ uri: cover }} style={s.cover} resizeMode="cover" /> : null}
-        <Text style={s.title}>{post.title}</Text>
-        {/* 이름을 누르면 그 사람의 자리로 — 팔로우도 쪽지도 거기서 시작된다 */}
-        <Pressable onPress={() => onOpenProfile(post.handle)} style={s.byline} hitSlop={6}>
-          <Text style={s.author}>{post.handle}</Text>
-          <Text style={s.dateline}>
-            {timeAgo(post.created_at)} ago{post.topic ? ` · ${post.topic}` : ''} · {post.view_count} views
-          </Text>
-        </Pressable>
+      <ScrollView contentContainerStyle={isAlbum ? s.albumContent : s.content}>
+        {isAlbum ? (
+          // 앨범 글은 사진이 주인공이다 — 먼저 꽉 채워 보여주고 글은 그 아래 캡션이 된다
+          <>
+            <FlatList
+              data={detail.images}
+              keyExtractor={(u) => u}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => setShot(Math.round(e.nativeEvent.contentOffset.x / W))}
+              renderItem={({ item }) => <Image source={{ uri: item }} style={s.albumShot} resizeMode="cover" />}
+            />
+            {detail.images.length > 1 ? (
+              <View style={s.dots}>
+                {detail.images.map((u, i) => <View key={u} style={[s.dot, i === shot && s.dotOn]} />)}
+              </View>
+            ) : null}
+            <View style={s.albumBody}>
+              <Pressable onPress={() => onOpenProfile(post.handle)} style={s.albumByline} hitSlop={6}>
+                <Text style={s.author}>{post.handle}</Text>
+                <Text style={s.dateline}>
+                  {timeAgo(post.created_at)} ago{post.topic ? ` · ${post.topic}` : ''} · {post.view_count} views
+                </Text>
+              </Pressable>
+              {post.body.trim() ? <Text style={s.caption}>{post.body.trim()}</Text> : null}
+            </View>
+          </>
+        ) : (
+          <>
+            {cover ? <Image source={{ uri: cover }} style={s.cover} resizeMode="cover" /> : null}
+            <Text style={s.title}>{post.title}</Text>
+            {/* 이름을 누르면 그 사람의 자리로 — 팔로우도 쪽지도 거기서 시작된다 */}
+            <Pressable onPress={() => onOpenProfile(post.handle)} style={s.byline} hitSlop={6}>
+              <Text style={s.author}>{post.handle}</Text>
+              <Text style={s.dateline}>
+                {timeAgo(post.created_at)} ago{post.topic ? ` · ${post.topic}` : ''} · {post.view_count} views
+              </Text>
+            </Pressable>
 
-        {toBlocks(post.body).map((b, i) => (
-          <Text
-            key={i}
-            style={[s.p, b.kind === 'h2' && s.h2, b.kind === 'h3' && s.h3, b.kind === 'quote' && s.quote, b.kind === 'bullet' && s.bullet]}
-          >
-            {b.kind === 'bullet' ? `·  ${b.text}` : b.text}
-          </Text>
-        ))}
+            {toBlocks(post.body).map((b, i) => (
+              b.kind === 'image' ? (
+                <Image key={i} source={{ uri: b.url }} style={s.inlineImage} resizeMode="cover" />
+              ) : (
+                <Text
+                  key={i}
+                  style={[s.p, b.kind === 'h2' && s.h2, b.kind === 'h3' && s.h3, b.kind === 'quote' && s.quote, b.kind === 'bullet' && s.bullet]}
+                >
+                  {b.kind === 'bullet' ? `·  ${b.text}` : b.text}
+                </Text>
+              )
+            ))}
+          </>
+        )}
 
         {error ? <Text style={s.error}>{error}</Text> : null}
 
@@ -164,6 +213,15 @@ const s = StyleSheet.create({
   },
   barButton: { width: 40, height: 34, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: theme.space(5), paddingBottom: theme.space(10) },
+  // 앨범은 사진이 화면 끝까지 가야 하므로 좌우 여백을 두지 않는다
+  albumContent: { paddingBottom: theme.space(10) },
+  albumShot: { width: W, aspectRatio: 1, backgroundColor: theme.color.surfaceDeep },
+  dots: { flexDirection: 'row', gap: 5, alignSelf: 'center', marginTop: theme.space(3) },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: theme.color.hairline },
+  dotOn: { width: 14, backgroundColor: theme.color.ink },
+  albumBody: { paddingHorizontal: theme.space(5), paddingTop: theme.space(4) },
+  albumByline: { marginBottom: theme.space(3) },
+  caption: { fontSize: 15, lineHeight: 23, color: theme.color.ink },
   cover: { width: '100%', height: 210, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceDeep, marginBottom: theme.space(4) },
   title: { fontSize: 24, fontWeight: '800', color: theme.color.ink, lineHeight: 31, letterSpacing: -0.5 },
   byline: { marginTop: theme.space(3), marginBottom: theme.space(5) },
@@ -180,11 +238,6 @@ const s = StyleSheet.create({
   inlineImage: {
     width: '100%', height: 220, borderRadius: theme.radius.md,
     backgroundColor: theme.color.surfaceDeep, marginBottom: theme.space(3),
-  },
-  album: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.space(2), marginTop: theme.space(2) },
-  albumShot: {
-    width: '48%', aspectRatio: 1, borderRadius: theme.radius.md,
-    backgroundColor: theme.color.surfaceDeep,
   },
   error: { color: theme.color.accentDeep, fontWeight: '700', fontSize: 13, marginTop: theme.space(3) },
   adSlot: { marginTop: theme.space(8) },

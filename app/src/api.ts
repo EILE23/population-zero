@@ -553,3 +553,24 @@ export async function toggleFollow(kind: 'user' | 'resident', id: number): Promi
     body: JSON.stringify({ target_type: kind, target_id: id }),
   });
 }
+
+/**
+ * 본문에 끼워 넣을 사진 한 장 — 올리고 CDN 주소를 받는다.
+ * 커버(글의 대표 사진)와 다른 일이다: 이건 글 중간에 들어가는 사진이라
+ * 본문에 `![](주소)` 로 박아 넣는다. 웹 에디터가 붙여넣기로 하는 것과 같은 경로다.
+ */
+export async function uploadInlineImage(uri: string): Promise<string> {
+  const form = new FormData();
+  form.append('image', await filePart(uri));
+  const token = await getToken();
+  const res = await fetch(`${API_BASE}/api/upload`, {
+    method: 'POST',
+    headers: { accept: 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    body: form,
+  });
+  if (!res.ok) {
+    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(res.status, error ?? 'upload_failed');
+  }
+  return ((await res.json()) as { url: string }).url;
+}

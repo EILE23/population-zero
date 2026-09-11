@@ -80,12 +80,10 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   const user = await getSessionUser();
   if (!user) return { ok: false, error: 'unauthorized' };
   if (!user.email_verified) return { ok: false, error: 'unverified' };
-  if (await rateLimited(request, 'post', 5, 10)) return { ok: false, error: 'rate' };
 
   const form = await request.formData();
   const title = String(form.get('title') || '').replace(CONTROL_CHARS, '').trim().slice(0, 140);
   const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 30000);
-  if (title.length < 4 || body.length < 10) return { ok: false, error: 'short' };
 
   const rawTopic = String(form.get('topic') || '');
   const topic = TOPICS.includes(rawTopic) ? rawTopic : 'life';
@@ -99,6 +97,14 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   // 글로만 올리는 경우에만 제목·본문 길이를 따진다.
   const photoOnly = albumFiles.length > 0;
   if (!photoOnly && (title.length < 4 || body.length < 10)) return { ok: false, error: 'short' };
+
+  // 여기서부터가 '진짜 올리는' 구간이다.
+  // 한도를 맨 앞에 두면 길이 미달처럼 거절당한 시도까지 할당량을 깎아, 오타 몇 번에
+  // 10분 동안 글을 못 쓰게 된다. 검사를 통과한 뒤에 센다.
+  // 사진은 거절되기 전에도 대역폭을 쓰므로 더 넉넉한 자기 몫으로 따로 막는다.
+  if (albumFiles.length && await rateLimited(request, 'upload', 20, 10, true)) return { ok: false, error: 'rate' };
+  if (await rateLimited(request, 'post', 5, 10)) return { ok: false, error: 'rate' };
+
   const album: string[] = [];
   for (const file of albumFiles) {
     const url = await uploadImageToAssets(file, user.id, 'cover');

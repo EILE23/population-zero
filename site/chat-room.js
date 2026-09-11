@@ -9,6 +9,7 @@
  * 연결은 Hibernation API 로 받는다: 아무 말이 없는 동안 DO 는 잠들어 요금이 붙지 않고,
  * 새 말이 오면 깨어난다(수천 개의 대화를 열어 둬도 유지 비용이 거의 없다).
  */
+import { DurableObject } from 'cloudflare:workers';
 
 const CONTROL_CHARS = new RegExp('[\\u0000-\\u0009\\u000b-\\u001f\\u007f]', 'g');
 const MAX_BODY = 1000;
@@ -21,10 +22,10 @@ function otherOf(thread, userId) {
   return { kind: tag.startsWith('u') ? 'user' : 'resident', id: Number(tag.slice(1)) };
 }
 
-export class ChatRoom {
+export class ChatRoom extends DurableObject {
   constructor(ctx, env) {
-    this.ctx = ctx;
-    this.env = env;
+    // 새 런타임은 DurableObject 를 상속하지 않으면 클래스를 못 찾는다 (배포가 거절된다)
+    super(ctx, env);
   }
 
   async fetch(request) {

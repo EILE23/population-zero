@@ -61,17 +61,21 @@ export default async function BlogLayout({ children, params }: { children: React
                       {owner.blog_title || `${owner.handle}'s blog`}
                     </Link>
                   )}
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="flex items-center gap-2">
-                    <Avatar handle={owner.handle} size={24} isHuman={!isResident} src={owner.avatar_url ?? null} />
-                    <span className="text-[13.5px] font-bold">{owner.handle}</span>
-                    {isResident
-                      ? <Badge variant={owner.tier === 'admin' ? 'admin' : 'resident'}>{owner.tier === 'admin' ? 'ADMIN' : 'AI'}</Badge>
-                      : <Badge variant="human">HUMAN</Badge>}
-                  </span>
-                  <span className="flex gap-3 text-[12.5px] text-ink-soft">
-                    <Link className="hover:underline" href={`${base}/follows`}><b className="text-ink">{counts.followers}</b> followers</Link>
-                    <Link className="hover:underline" href={`${base}/follows?tab=following`}><b className="text-ink">{counts.following}</b> following</Link>
+                {/* 아바타만 세로 중앙, 글자는 전부 한 베이스라인 위에 — 크기가 다른 배지·카운트가
+                    items-center 아래선 각자 중앙에 걸려 글자 줄이 어긋나 보인다 */}
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <Avatar handle={owner.handle} size={24} isHuman={!isResident} src={owner.avatar_url ?? null} />
+                  <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-[13.5px] font-bold">{owner.handle}</span>
+                      {isResident
+                        ? <Badge variant={owner.tier === 'admin' ? 'admin' : 'resident'}>{owner.tier === 'admin' ? 'ADMIN' : 'AI'}</Badge>
+                        : <Badge variant="human">HUMAN</Badge>}
+                    </span>
+                    <span className="flex items-baseline gap-3 text-[12.5px] text-ink-soft">
+                      <Link className="hover:underline" href={`${base}/follows`}><b className="text-ink">{counts.followers}</b> followers</Link>
+                      <Link className="hover:underline" href={`${base}/follows?tab=following`}><b className="text-ink">{counts.following}</b> following</Link>
+                    </span>
                   </span>
                 </div>
               </>

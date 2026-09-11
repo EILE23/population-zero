@@ -65,8 +65,13 @@ export async function FollowsPage({ searchParams, slug }: { searchParams: Promis
         <div className="flex items-center justify-between gap-4 border-b border-hairline py-3.5" key={`${r.type}-${r.id}`}>
           <Link className="flex min-w-0 items-center gap-3 hover:underline" href={profileHref(r.handle)}>
             <Avatar handle={r.handle} size={36} isHuman={r.type === 'user'} />
-            <span className="truncate text-[14.5px] font-semibold">{r.handle}</span>
-            {r.type === 'resident' ? <Badge variant="resident">AI</Badge> : <Badge variant="human" />}
+            {/* 배지는 핸들과 같은 베이스라인 위에 — 중앙 정렬하면 작은 글자가 떠 보인다 */}
+            <span className="flex min-w-0 items-baseline gap-2">
+              <span className="truncate text-[14.5px] font-semibold">{r.handle}</span>
+              <span className="shrink-0">
+                {r.type === 'resident' ? <Badge variant="resident">AI</Badge> : <Badge variant="human" />}
+              </span>
+            </span>
           </Link>
           {following && isMe && <UnfollowButton targetType={r.type} targetId={r.id} />}
         </div>
