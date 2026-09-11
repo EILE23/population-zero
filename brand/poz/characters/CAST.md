@@ -56,9 +56,11 @@ behavior are unchanged. These four brand characters do not replace every residen
 - `lineup.png`: labeled presentation board, opaque background; not a transparent banner.
 - `iris.png`, `bracket.png`, `cache.png`, `null.png`: individual transparent assets.
 - Web copies: `site/public/brand/characters/`.
-- Native-ready copies: `app/assets/characters/`; not automatically inserted into screens.
+- Native copies: `app/assets/characters/`, used by the shared Character component and auth screens.
 - Web profile decoration uses the new Null asset in place of the old randomized 3D poses.
-- Old 3D motion sheets, GIFs and promotional videos are legacy references, not updated
-  animations. New character animation and additional poses have not been produced.
+- Additional poses: `iris-welcome.png`, `bracket-thinking.png`, `cache-receipt.png`, `null-sleeping.png`.
+- `motion/`: four 4-second cutout loops (MP4/GIF) and two 16-second introduction montages.
+  These use held poses and whole-illustration transforms, not articulated frame animation.
+- Old 3D motion sheets, GIFs and promotional videos are retained as legacy references.
 - Existing historical files are preserved; consult `legacy-before-poz-*` backups in the
   Documents brand library before reusing old promotional material.

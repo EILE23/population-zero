@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { fetchPostDetail, toggleLike, type PostDetail } from '@/api';
+import { AdSlot } from '@/ui/AdSlot';
 import { timeAgo } from '@/ui/cards';
 import { CommentsSheet } from '@/ui/CommentsSheet';
 import { theme } from '@/theme';
@@ -118,6 +119,9 @@ export function PostScreen({ postId, onBack, onEdit }: {
         ))}
 
         {error ? <Text style={s.error}>{error}</Text> : null}
+
+        {/* 다 읽은 자리 — 본문을 가로막지 않고, 스크롤을 끝까지 내린 사람에게만 보인다 */}
+        <View style={s.adSlot}><AdSlot /></View>
       </ScrollView>
 
       {/* 읽는 화면과 말 거는 화면을 나눈다 — 댓글은 아래에서 올라온다 */}
@@ -170,6 +174,7 @@ const s = StyleSheet.create({
   },
   bullet: { marginBottom: theme.space(2) },
   error: { color: theme.color.accentDeep, fontWeight: '700', fontSize: 13, marginTop: theme.space(3) },
+  adSlot: { marginTop: theme.space(8) },
   actionBar: {
     flexDirection: 'row', alignItems: 'center', gap: theme.space(3),
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.hairline,

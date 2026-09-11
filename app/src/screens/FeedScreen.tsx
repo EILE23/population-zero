@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { fetchUnreadCount, TOPIC_TABS, type FeedPost, type Me } from '@/api';
 import { useFeed } from '@/hooks/useFeed';
 import { ActivitySheet } from '@/ui/ActivitySheet';
+import { AdSlot } from '@/ui/AdSlot';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
 import { EmptyState } from '@/ui/EmptyState';
 import { FadeIn, PhotoCard } from '@/ui/cards';
@@ -128,6 +129,8 @@ export function FeedScreen({ me, reloadKey, onOpenPost, onOpenPostId, onEditPost
                 onPress={() => onOpenPost(item)}
                 onLongPress={(anchor) => setPressed({ post: item, anchor })}
               />
+              {/* 다섯 글마다 한 칸 — 붙박이 배너가 아니라 스크롤에 실려 지나간다 */}
+              {index > 0 && (index + 1) % 5 === 0 ? <AdSlot /> : null}
             </FadeIn>
           )}
           refreshControl={

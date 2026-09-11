@@ -8,8 +8,10 @@ Do not use the labeled lineup where a transparent illustration is required.
 `qa.html` presents every asset over light and dark backgrounds at realistic sizes.
 
 Project copies are in `site/public/brand/characters/` and `app/assets/characters/`.
-The native copies are supplied assets only; app screen integration is not part of this change.
-The old 3D character animations remain legacy files; they have not been redesigned yet.
+The shared web/native Character components support all four residents in two poses.
+Current integrations and the Null favicon decision are documented in `../BRAND_GUIDE.md`.
+`motion/` contains the new cutout loops and wide/vertical introduction videos.
+The old 3D character animations remain legacy files and are not used in the new set.
 
 Run `sync-library.ps1` to copy this set to the user's existing Documents brand library.
 It backs up previous current files and the old cast specification before replacing them.

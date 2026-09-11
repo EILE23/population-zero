@@ -1,36 +1,58 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { theme } from '@/theme';
 
 /**
- * 피드 사이를 지나가는 광고 자리.
+ * 피드 사이를 지나가는 광고 한 칸.
  *
- * 웹 피드 광고와 같은 성격이어야 한다 — 화면에 붙어 계속 보이는 배너가 아니라,
- * 스크롤에 실려 지나가는 한 칸. 그래서 탭바에 붙이지 않고 목록 항목으로 넣는다.
+ * 화면에 붙어 계속 보이는 배너가 아니라 스크롤에 실려 지나가는 항목이다 — 그래서 탭바가 아니라
+ * 목록 중간에 들어간다. 웹의 피드 광고와 같은 성격.
  *
- * 아직 실제 광고는 나오지 않는다: AdMob(react-native-google-mobile-ads)은 네이티브 모듈이라
- * Expo Go·웹 미리보기에서 돌지 않고, 개발 빌드(EAS)부터 붙는다. 그 전까지 이 칸은 비어 있고,
- * 자리만 잡아 두어 레이아웃이 나중에 흔들리지 않게 한다.
- * 빈 상자를 그려 두지 않는 이유: 없는 광고를 있는 것처럼 보이게 하지 않으려고.
+ * 광고 단위 ID 는 app.json 의 extra.admob 에서 온다. 아직 없으면 구글 공식 테스트 단위를 쓴다:
+ * 실서비스 ID 없이도 개발 빌드에서 실제로 뜨는지 확인할 수 있고, 테스트 광고는 수익에 잡히지 않아
+ * 계정이 정지될 위험도 없다. (자기 광고를 자기가 누르는 것이 정지 사유 1번이다.)
  */
-export function AdSlot({ debug = false }: { debug?: boolean }) {
-  if (!debug) return null;
+const UNIT_ID = __DEV__
+  ? TestIds.ADAPTIVE_BANNER
+  : (Platform.select({
+      ios: process.env.EXPO_PUBLIC_ADMOB_IOS_FEED,
+      android: process.env.EXPO_PUBLIC_ADMOB_ANDROID_FEED,
+    }) ?? TestIds.ADAPTIVE_BANNER);
+
+export function AdSlot() {
+  // 광고가 안 채워지는 일은 흔하다 — 그때는 빈 줄을 남기지 않고 칸 자체를 지운다
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+
   return (
     <View style={s.slot}>
-      <Text style={s.label}>AD SLOT</Text>
+      <Text style={s.label}>SPONSORED</Text>
+      <BannerAd
+        unitId={UNIT_ID}
+        size={BannerAdSize.MEDIUM_RECTANGLE}
+        onAdFailedToLoad={() => setFailed(true)}
+      />
     </View>
   );
 }
 
 const s = StyleSheet.create({
   slot: {
-    height: 250,
+    alignItems: 'center',
+    backgroundColor: theme.color.paper,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.color.hairline,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: theme.space(3),
     marginBottom: theme.space(3),
+    overflow: 'hidden',
   },
-  label: { fontSize: 10, letterSpacing: 1.4, fontWeight: '800', color: theme.color.inkFaint },
+  label: {
+    fontSize: 9,
+    letterSpacing: 1.4,
+    fontWeight: '800',
+    color: theme.color.inkFaint,
+    marginBottom: theme.space(2),
+  },
 });
