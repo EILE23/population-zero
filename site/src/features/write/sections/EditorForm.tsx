@@ -70,20 +70,89 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
   const bodyImgRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  async function onBodyImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = '';
-    if (!f || uploading) return;
+  // 이미지 삽입 공통 경로 — 툴바 버튼·붙여넣기·드래그가 모두 이걸 쓴다
+  async function uploadAndInsert(file: File) {
+    if (uploading) return;
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append('image', f);
+      fd.append('image', file);
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       if (res.ok) {
         const { url } = (await res.json()) as { url: string };
         insert(`\n![](${url})\n`, '', true);
       }
     } finally { setUploading(false); }
+  }
+
+  async function onBodyImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (f) await uploadAndInsert(f);
+  }
+
+  // 스크린샷 붙여넣기(Ctrl+V) — 클립보드에 이미지가 있으면 업로드해서 삽입, 아니면 기본 텍스트 붙여넣기
+  function onPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith('image/'));
+    const file = item?.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    void uploadAndInsert(file);
+  }
+
+  // 이미지 파일을 에디터에 끌어다 놓기
+  function onDrop(e: React.DragEvent<HTMLTextAreaElement>) {
+    const file = Array.from(e.dataTransfer?.files ?? []).find((f) => f.type.startsWith('image/'));
+    if (!file) return;
+    e.preventDefault();
+    void uploadAndInsert(file);
+  }
+
+  /** 노션식 편집 — 목록에서 Enter 는 다음 항목, Tab 은 한 단계 들여쓰기, Ctrl/Cmd+B·I·K 는 서식 */
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const ta = taRef.current;
+    if (!ta) return;
+    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'b') { e.preventDefault(); insert('**', '**'); return; }
+      if (k === 'i') { e.preventDefault(); insert('*', '*'); return; }
+      if (k === 'k') { e.preventDefault(); insert('[', '](https://)'); return; }
+    }
+    const { selectionStart: s, selectionEnd: selEnd, value } = ta;
+    const lineStart = value.lastIndexOf('\n', s - 1) + 1;
+    const nl = value.indexOf('\n', s);
+    const lineEnd = nl === -1 ? value.length : nl;
+    const curLine = value.slice(lineStart, lineEnd);
+    const m = curLine.match(/^([ \t]*)([-*]|\d+[.)])\s+(.*)$/);
+
+    if (e.key === 'Tab' && m) {
+      e.preventDefault(); // 목록 안에서만 가로챈다 — 밖에선 Tab 이 포커스 이동으로 남아야 접근성이 산다
+      const indent = m[1];
+      const nextIndent = e.shiftKey ? indent.slice(0, Math.max(0, indent.length - 2)) : indent + '  ';
+      const newLine = nextIndent + curLine.slice(indent.length);
+      const delta = newLine.length - curLine.length;
+      setBody(value.slice(0, lineStart) + newLine + value.slice(lineEnd));
+      requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(s + delta, selEnd + delta); });
+      return;
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey && m) {
+      e.preventDefault();
+      const [, indent, marker, content] = m;
+      if (content.trim() === '') {
+        // 빈 항목에서 Enter → 한 단계 내어쓰기, 최상단이면 목록 종료
+        const out = indent.length >= 2 ? `${indent.slice(0, -2)}${marker} ` : '';
+        setBody(value.slice(0, lineStart) + out + value.slice(lineEnd));
+        const pos = lineStart + out.length;
+        requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos, pos); });
+        return;
+      }
+      const nextMarker = /^\d/.test(marker) ? `${parseInt(marker, 10) + 1}${marker.slice(-1)}` : marker;
+      const ins = `\n${indent}${nextMarker} `;
+      setBody(value.slice(0, s) + ins + value.slice(selEnd));
+      const pos = s + ins.length;
+      requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos, pos); });
+    }
   }
 
   function insert(before: string, after: string, block?: boolean) {
@@ -161,9 +230,10 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
       <div className={`grid ${preview ? 'md:grid-cols-2' : ''} rounded-b-xl border border-hairline bg-paper`}>
         <textarea
           ref={taRef} name="body" value={body} onChange={(e) => setBody(e.target.value)}
+          onKeyDown={onKeyDown} onPaste={onPaste} onDrop={onDrop} onDragOver={(e) => e.preventDefault()}
           aria-label="Post body"
           maxLength={30000} minLength={10} required rows={18}
-          placeholder="Write your post… (10+ characters)"
+          placeholder="Write your post…  ( -  + space for a bullet · Tab to nest · paste or drop an image )"
           className="min-h-105 w-full resize-y bg-transparent p-4 font-mono text-[14px] leading-relaxed outline-none placeholder:text-ink-soft"
         />
         {preview && (

@@ -5,7 +5,8 @@ import { Overline, AuthorChip, AdSlot, AdSidebar } from '@/components/ui';
 import Link from 'next/link';
 import { fetchPost, fetchRelated, fetchSeriesPosts } from './queries';
 import { handleSlug, postHref } from '@/lib/content';
-import { Markdown } from '@/lib/markdown';
+import { Markdown, extractHeadings } from '@/lib/markdown';
+import { TableOfContents } from './components/TableOfContents';
 import { MediaSection } from './sections/MediaSection';
 import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
@@ -94,6 +95,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
               </div>
             </nav>
           )}
+          <TableOfContents headings={extractHeadings(post.body)} />
           <Markdown text={post.body} />
           {/* 본문이 이미 같은 영상을 임베드하면 MediaSection 생략 (이중 임베드 방지) */}
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
