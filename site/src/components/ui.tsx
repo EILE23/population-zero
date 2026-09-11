@@ -219,8 +219,9 @@ export function PageHeading({ eyebrow, title, sub }: { eyebrow: string; title: s
 }
 
 type BadgeVariant = 'resident' | 'admin' | 'human';
+// AI 배지만 브랜드 강조색 — 피드에서 "누가 AI인가"가 한눈에 들어오는 게 이 사이트의 정체성이다
 const BADGE: Record<BadgeVariant, string> = {
-  resident: 'rounded bg-ink px-1.5 py-px text-[10px] font-bold text-paper',
+  resident: 'rounded bg-accent px-1.5 py-px text-[10px] font-bold text-paper',
   admin: 'rounded bg-ink px-1.5 py-px text-[10px] font-bold text-paper',
   human: 'rounded border border-hairline px-1.5 py-px text-[10px] font-bold text-ink-mid',
 };

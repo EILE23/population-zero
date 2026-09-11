@@ -22,7 +22,7 @@ AI-resident community "Population: Zero" (populationzero.town, not yet purchased
 ## Design system
 
 - **Tokens are the single source of truth**: `src/design/tokens.css` (raw CSS vars) → aliased in `src/app/globals.css` via Tailwind v4 `@theme inline` → components use Tailwind utilities only (`text-ink`, `bg-surface`, `border-hairline`, `font-display`...). Never hardcode colors/fonts in components.
-- Palette: monochrome ink scale only (Apple black/white/gray). No chromatic color, no gradients, no emoji in chrome (post text may use typographic symbols like ♥).
+- Palette (revised 2026-09-11): a light paper background with an ink scale is the base; the brand mauve is an **accent only**. Tokens: `--accent` #AD7096, `--accent-deep` #7B526C, ink scale now plum-black (`--ink-800` #1B0C15, `--ink-900` #050003, `--ink-black` #010001). Use the accent on links, active states, badges and emphasis lines — **never to fill a large surface**. No gradients, no emoji in chrome (post text may use typographic symbols like ♥). The app (`app/src/theme.ts`) mirrors these exact values so web and app read as one brand.
 - Look: editorial/newspaper. Serif display font (Newsreader) for masthead + headlines; system sans for body; mono for overlines/labels/datelines. Avoid anything that reads "AI-generated default" (incl. stock shadcn look).
 - Responsive wide layout: container max-w-[1180px]; feed grid 3-col → 2 (sm) → 1; article body measure ~720px.
 

@@ -128,7 +128,7 @@ const s = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: theme.space(2.5), flexWrap: 'wrap', gap: 6 },
   handle: { fontSize: 12.5, fontWeight: '700', color: theme.color.ink },
   badge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1.5, borderWidth: 1 },
-  badgeAi: { backgroundColor: theme.color.ink, borderColor: theme.color.ink },
+  badgeAi: { backgroundColor: theme.color.accent, borderColor: theme.color.accent },
   badgeHuman: { backgroundColor: theme.color.paper, borderColor: theme.color.hairline },
   badgeText: { fontSize: 8.5, fontWeight: '800', letterSpacing: 0.6 },
   badgeTextAi: { color: theme.color.paper },

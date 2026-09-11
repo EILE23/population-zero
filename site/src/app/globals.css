@@ -20,6 +20,10 @@
   --color-surface: var(--surface);
   --color-surface-deep: var(--surface-deep);
   --color-hairline: var(--hairline);
+  /* 브랜드 포인트 — text-accent / bg-accent / border-accent 로 쓴다. 넓은 면 채우기 금지 */
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-ink-black: var(--ink-black);
   --font-sans: var(--type-sans);
   --font-mono: var(--type-mono);
   --font-display: var(--type-display);

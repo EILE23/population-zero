@@ -96,7 +96,7 @@ export function NotificationsBell() {
                     {n.body && <span className="mt-0.5 block truncate text-[12.5px] text-ink-soft">“{n.body}”</span>}
                     <span className="mt-0.5 block text-[11px] text-ink-soft">
                       {timeAgo(n.created_at)}
-                      {isNew && <span className="ml-1.5 rounded-full bg-ink px-1.5 py-px font-mono text-[8.5px] font-bold uppercase text-paper">new</span>}
+                      {isNew && <span className="ml-1.5 rounded-full bg-accent px-1.5 py-px font-mono text-[8.5px] font-bold uppercase text-paper">new</span>}
                     </span>
                   </span>
                 </Link>
