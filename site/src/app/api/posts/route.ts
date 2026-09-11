@@ -32,22 +32,24 @@ function blockedHost(u: string): boolean {
 }
 
 async function fetchOgImage(url: string): Promise<string | null> {
+  // 리다이렉트부터 본문 읽기까지 하나의 마감 시한을 공유한다. 예전에는 헤더를 받자마자 타이머를
+  // 지워서, 헤더만 빨리 주고 본문을 흘려보내지 않는 서버가 요청 전체를 붙잡을 수 있었다.
+  const ctrl = new AbortController();
+  const deadline = setTimeout(() => ctrl.abort(), 6000);
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     let target = url;
     let res: Response | null = null;
     for (let hop = 0; hop < 4; hop++) {
       if (blockedHost(target)) return null;
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
       res = await fetch(target, { signal: ctrl.signal, headers: { 'user-agent': 'Mozilla/5.0 (compatible; PopulationZero/1.0; link preview)' }, redirect: 'manual' });
-      clearTimeout(t);
       const loc = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
       if (!loc) break;
       target = new URL(loc, target).toString();
       res = null;
     }
     if (!res?.ok || !(res.headers.get('content-type') || '').includes('html')) return null;
-    const reader = res.body?.getReader();
+    reader = res.body?.getReader();
     if (!reader) return null;
     let html = '';
     const dec = new TextDecoder();
@@ -56,24 +58,34 @@ async function fetchOgImage(url: string): Promise<string | null> {
       if (done) break;
       html += dec.decode(value, { stream: true });
     }
-    reader.cancel().catch(() => {});
     const m = html.match(/<meta[^>]+(?:property|name)=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i)
       ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image(?::url)?["']/i);
     const img = m?.[1]?.trim();
     return img && /^https:\/\/\S+$/.test(img) && !blockedHost(img) ? img.slice(0, 500) : null;
-  } catch { return null; }
+  } catch { return null; } finally {
+    clearTimeout(deadline);
+    reader?.cancel().catch(() => {}); // 상한에서 멈췄든 예외로 빠졌든 연결을 반드시 닫는다
+  }
 }
 
-export async function POST(request: Request) {
+type CreateResult =
+  | { ok: true; id: number }
+  | { ok: false; error: 'unauthorized' | 'unverified' | 'rate' | 'short' | 'failed' };
+
+/**
+ * 글 생성 본체 — 웹 폼(리다이렉트)과 앱(JSON)이 같은 로직을 쓴다.
+ * 결과만 돌려주고, 응답 형태는 호출하는 쪽이 정한다.
+ */
+async function createHumanPost(request: Request): Promise<CreateResult> {
   const user = await getSessionUser();
-  if (!user) redirect('/login');
-  if (!user.email_verified) redirect('/me?error=unverified');
-  if (await rateLimited(request, 'post', 5, 10)) redirect('/write?error=rate');
+  if (!user) return { ok: false, error: 'unauthorized' };
+  if (!user.email_verified) return { ok: false, error: 'unverified' };
+  if (await rateLimited(request, 'post', 5, 10)) return { ok: false, error: 'rate' };
 
   const form = await request.formData();
   const title = String(form.get('title') || '').replace(CONTROL_CHARS, '').trim().slice(0, 140);
   const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 30000);
-  if (title.length < 4 || body.length < 10) redirect('/write?error=short');
+  if (title.length < 4 || body.length < 10) return { ok: false, error: 'short' };
 
   const rawTopic = String(form.get('topic') || '');
   const topic = TOPICS.includes(rawTopic) ? rawTopic : 'life';
@@ -93,11 +105,12 @@ export async function POST(request: Request) {
      )`,
   ).bind(user.id, title, body, media_type, media_ref, og_image, topic).run();
 
+  // 5분 내 같은 글 재전송(더블 탭·재시도) — 새로 만들지 않고 기존 글로 안내한다
   if (!meta.changes) {
     const first = await db.prepare(
       `SELECT id FROM posts WHERE user_id = ? AND title = ? AND body = ? ORDER BY id DESC LIMIT 1`,
     ).bind(user.id, title, body).first<{ id: number }>();
-    redirect(first ? `/p/${first.id}` : '/');
+    return first ? { ok: true, id: first.id } : { ok: false, error: 'failed' };
   }
 
   const postId = Number(meta.last_row_id);
@@ -107,5 +120,29 @@ export async function POST(request: Request) {
     media_type: media_type ?? 'none',
   }, user.id);
   await pingIndexNow([`/p/${postId}`]);
-  redirect(`/p/${postId}`);
+  return { ok: true, id: postId };
+}
+
+const WEB_ERROR_PATH: Record<Exclude<CreateResult, { ok: true }>['error'], string> = {
+  unauthorized: '/login',
+  unverified: '/me?error=unverified',
+  rate: '/write?error=rate',
+  short: '/write?error=short',
+  failed: '/',
+};
+const JSON_ERROR_STATUS: Record<Exclude<CreateResult, { ok: true }>['error'], number> = {
+  unauthorized: 401, unverified: 403, rate: 429, short: 400, failed: 500,
+};
+
+export async function POST(request: Request) {
+  // 앱(poz)은 Accept: application/json 을 보낸다 — 브라우저 폼은 리다이렉트, 앱은 JSON
+  const wantsJson = (request.headers.get('accept') ?? '').includes('application/json');
+  const result = await createHumanPost(request);
+
+  if (result.ok) {
+    if (wantsJson) return Response.json({ id: result.id, url: `/p/${result.id}` }, { status: 201 });
+    redirect(`/p/${result.id}`);
+  }
+  if (wantsJson) return Response.json({ error: result.error }, { status: JSON_ERROR_STATUS[result.error] });
+  redirect(WEB_ERROR_PATH[result.error]);
 }
