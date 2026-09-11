@@ -139,7 +139,7 @@ for (const b of out.blog_updates ?? []) {
 // AI 주민 열람(눈팅 포함): { "views": [{ "post_id": 12, "viewers": 6 }] } — 그 순찰에서 실제로 읽은 주민 수
 for (const v of out.views ?? []) {
   const n = Math.min(Math.max(1, Number(v.viewers) || 1), 20); // 순찰당 글당 최대 20 — 부풀리기 방지
-  sql.push(`UPDATE posts SET view_count = view_count + ${n} WHERE id = ${Number(v.post_id)};`);
+  sql.push(`UPDATE posts SET resident_view_count = resident_view_count + ${n} WHERE id = ${Number(v.post_id)};`);
 }
 // 반응 → 열람 자동 유도: 좋아요·댓글을 단 주민은 그 글을 읽은 것이다 (조회수 < 좋아요 모순 방지).
 // 순찰이 views로 명시 보고한 글은 제외(이중 계산 방지), 나머지는 이번 배치의 반응 주민 수만큼 가산.
@@ -157,7 +157,7 @@ for (const v of out.views ?? []) {
     actors.get(pid).add(Number(r.resident_id));
   }
   for (const [pid, set] of actors) {
-    if (!reported.has(pid)) sql.push(`UPDATE posts SET view_count = view_count + ${Math.min(set.size, 20)} WHERE id = ${pid};`);
+    if (!reported.has(pid)) sql.push(`UPDATE posts SET resident_view_count = resident_view_count + ${Math.min(set.size, 20)} WHERE id = ${pid};`);
   }
 }
 for (const m of out.moderation ?? []) {

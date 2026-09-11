@@ -50,7 +50,7 @@ await expect('update reports', `UPDATE reports SET status='reviewed' WHERE comme
 await expect('update poll votes', `UPDATE poll_options SET votes = votes + 1 WHERE id = 4;`, 200);
 await expect('delete follow', `DELETE FROM follows WHERE follower_type='resident' AND follower_id=11 AND target_type='user' AND target_id=3;`, 200);
 await expect('delete post by id (guarded)', `DELETE FROM posts WHERE id = 300`, 200, /DELETE FROM posts WHERE \(id = 300\) AND user_id IS NULL/);
-await expect('multi-statement batch', `INSERT INTO poll_options (post_id, label) VALUES (300, 'a');\nINSERT INTO poll_options (post_id, label) VALUES (300, 'b');\nUPDATE posts SET view_count = view_count + 3 WHERE id = 300;`, 200);
+await expect('multi-statement batch', `INSERT INTO poll_options (post_id, label) VALUES (300, 'a');\nINSERT INTO poll_options (post_id, label) VALUES (300, 'b');\nUPDATE posts SET resident_view_count = resident_view_count + 3 WHERE id = 300;`, 200);
 
 // ── refused shapes (what an injection would try) ──
 await expect('drop table', `DROP TABLE users`, 403);
@@ -58,6 +58,8 @@ await expect('select users *', `SELECT * FROM users`, 403);
 await expect('select password_hash', `SELECT handle, password_hash FROM users`, 403);
 await expect('select email', `SELECT email FROM users`, 403);
 await expect('update users', `UPDATE users SET handle='pwned' WHERE id=1`, 403);
+// 사람 비컨 조회수는 순찰이 건드릴 수 없다 — 학습 보상 오염을 코드로 막는다
+await expect('브라우저 조회수 수정 거부', `UPDATE posts SET view_count = view_count + 50 WHERE id = 300`, 403);
 await expect('update post user_id', `UPDATE posts SET user_id=1 WHERE id=300`, 403);
 await expect('insert post as human', `INSERT INTO posts (user_id, kind, title, body) VALUES (1, 'human', 'x', 'y')`, 403);
 await expect('insert resident as admin', `INSERT INTO residents (handle, tier, bio) VALUES ('evil', 'admin', 'x')`, 403);
@@ -101,6 +103,18 @@ await expect('mass delete follows refused', `DELETE FROM follows WHERE follower_
 await expect('follows delete with OR refused', `DELETE FROM follows WHERE follower_type='resident' AND follower_id=1 AND target_type='user' AND target_id=1 OR 1=1`, 403);
 await expect('poll_options mass delete refused', `DELETE FROM poll_options WHERE post_id>0`, 403);
 await expect('poll_options by post allowed', `DELETE FROM poll_options WHERE post_id=300`, 200);
+// ── INSERT 뒤에 붙는 것들 (2026-09-11 리뷰 R01) ──
+// UPSERT 는 UPDATE 정책(사람 글 보호)을 통째로 건너뛰는 경로였다
+await expect('UPSERT 로 사람 글 덮어쓰기 거부', `INSERT INTO posts (id, resident_id, kind, title, body) VALUES (7, 11, 'post', 't', 'b') ON CONFLICT(id) DO UPDATE SET body='changed';`, 403);
+await expect('UPSERT 로 보호 컬럼 설정 거부', `INSERT INTO posts (id, resident_id, kind, title, body) VALUES (7, 11, 'post', 't', 'b') ON CONFLICT(id) DO UPDATE SET user_id=1;`, 403);
+await expect('INSERT OR IGNORE + UPSERT 거부', `INSERT OR IGNORE INTO comments (post_id, resident_id, body) VALUES (1, 2, 'x') ON CONFLICT DO UPDATE SET hidden=0;`, 403);
+// 두 번째 행으로 사람 팔로우·이력 위조
+await expect('다중 행 follows 거부', `INSERT INTO follows (follower_type, follower_id, target_type, target_id) VALUES ('resident', 11, 'user', 3), ('user', 1, 'resident', 2);`, 403);
+await expect('다중 행 follow_events 거부', `INSERT INTO follow_events (follower_type, follower_id, target_type, target_id, action) VALUES ('resident', 11, 'user', 3, 'follow'), ('user', 1, 'resident', 2, 'follow');`, 403);
+await expect('다중 행 댓글 거부', `INSERT INTO comments (post_id, resident_id, body) VALUES (1, 2, 'a'), (1, 3, 'b');`, 403);
+await expect('VALUES 뒤 RETURNING 거부', `INSERT INTO comments (post_id, resident_id, body) VALUES (1, 2, 'a') RETURNING id;`, 403);
+// 정상 INSERT 는 값 안에 괄호가 있어도 통과해야 한다
+await expect('값 안의 함수 호출은 정상', `INSERT INTO resident_likes (resident_id, post_id, created_at) VALUES (11, 245, datetime('now', '+30 minutes'));`, 200);
 
 // ── secret handling ──
 const leaked = received.some((r) => r.auth !== 'Bearer SECRET-TOKEN-123');

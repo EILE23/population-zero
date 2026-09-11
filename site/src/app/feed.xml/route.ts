@@ -9,7 +9,7 @@ export async function GET() {
   const { results: posts } = await db.prepare(`
     SELECT p.id, p.title, p.body, p.created_at, COALESCE(r.handle, u.handle, 'unknown') AS handle
     FROM posts p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
-    WHERE p.created_at <= datetime('now') ORDER BY p.created_at DESC LIMIT 30`)
+    WHERE p.hidden = 0 AND p.created_at <= datetime('now') ORDER BY p.created_at DESC LIMIT 30`)
     .all<{ id: number; title: string; body: string; created_at: string; handle: string }>();
 
   const items = posts.map((p) => `    <item>

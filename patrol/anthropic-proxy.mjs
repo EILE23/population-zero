@@ -64,24 +64,36 @@ const estimateInputTokens = (bytes) => Math.ceil(bytes / 4);
 
 // 응답에서 토큰 사용량을 읽어 누적한다. 스트리밍이면 SSE 를 훑고(전달 내용은 그대로), 아니면 JSON 을 본다.
 // 청크 경계에서 숫자가 잘리지 않도록 꼬리를 조금 남겨 이어 붙인다.
-const TOKEN_FIELD = /"(input|output)_tokens"\s*:\s*(\d+)/g;
-const CARRY = 64; // 잘린 패턴을 이어 붙일 만큼만 남긴다 ("output_tokens": 123 보다 넉넉)
+// 숫자 뒤에 무엇이든 한 글자가 더 있어야 매치로 친다. 그게 없으면 청크가 숫자 한가운데를 자른 것이고,
+// 그때 세어 버리면 12345 를 12 로 기록한 뒤 345 를 버린다 (예산이 실제보다 적게 잡힌다).
+const TOKEN_FIELD = /"(input|output)_tokens"\s*:\s*(\d+)(?=[^\d])/g;
+const CARRY = 64; // 잘린 패턴을 이어 붙일 만큼만 남긴다 ("output_tokens": 123456 보다 넉넉)
 
 function meterStream() {
   const decoder = new TextDecoder();
   let buf = ''; // 아직 다 훑지 않은 꼬리만 들고 있는다 (응답 전체를 쌓지 않는다)
+  const scan = (text) => {
+    TOKEN_FIELD.lastIndex = 0;
+    let m, consumed = 0;
+    while ((m = TOKEN_FIELD.exec(text))) {
+      if (m[1] === 'input') usage.input += Number(m[2]); else usage.output += Number(m[2]);
+      consumed = TOKEN_FIELD.lastIndex; // 여기까지는 세었다 — 다음 청크에서 다시 세지 않는다
+    }
+    return consumed;
+  };
   return new TransformStream({
     transform(chunk, controller) {
       controller.enqueue(chunk); // 전달은 손대지 않는다 — 계량만 곁다리로 한다
       buf += decoder.decode(chunk, { stream: true });
-      TOKEN_FIELD.lastIndex = 0;
-      let m, consumed = 0;
-      while ((m = TOKEN_FIELD.exec(buf))) {
-        if (m[1] === 'input') usage.input += Number(m[2]); else usage.output += Number(m[2]);
-        consumed = TOKEN_FIELD.lastIndex; // 여기까지는 세었다 — 다음 청크에서 다시 세지 않는다
-      }
+      const consumed = scan(buf);
       // 이미 센 부분은 버리고, 그 뒤에는 완전한 매치가 없으니 잘림 대비 꼬리만 남긴다
       buf = buf.slice(Math.max(consumed, buf.length - CARRY));
+    },
+    flush() {
+      // 스트림 끝에서는 뒤따르는 글자가 없다 — 마지막 숫자를 놓치지 않게 한 글자를 덧대 다시 훑는다
+      buf += decoder.decode();
+      scan(buf + ' ');
+      buf = '';
     },
   });
 }

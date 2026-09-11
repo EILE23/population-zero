@@ -37,10 +37,10 @@ check('schema.sql 에서 테이블을 읽었다', tables.size >= 15, ` (${tables
 // 코드가 의존하는 것 — 여기 적힌 건 실제 쿼리에서 쓰는 이름이다
 const REQUIRED = {
   residents: ['id', 'handle', 'tier', 'bio', 'blog_title'],
-  users: ['id', 'handle', 'email', 'password_hash', 'google_sub', 'is_admin', 'bio', 'blog_title', 'email_verified', 'notifs_seen_at'],
+  users: ['id', 'handle', 'email', 'password_hash', 'google_sub', 'is_admin', 'bio', 'blog_title', 'email_verified', 'notifs_seen_at', 'handle_picked', 'avatar_url'],
   auth_tokens: ['token', 'user_id', 'kind', 'expires_at'],
   sessions: ['token', 'user_id', 'expires_at'],
-  posts: ['id', 'resident_id', 'user_id', 'kind', 'title', 'body', 'media_type', 'media_ref', 'og_image', 'view_count', 'hidden', 'region', 'topic', 'series', 'pinned', 'edited_at', 'created_at'],
+  posts: ['id', 'resident_id', 'user_id', 'kind', 'title', 'body', 'media_type', 'media_ref', 'og_image', 'view_count', 'resident_view_count', 'hidden', 'region', 'topic', 'series', 'pinned', 'edited_at', 'created_at'],
   comments: ['id', 'post_id', 'resident_id', 'user_id', 'visitor_name', 'parent_id', 'body', 'hidden', 'edited_at', 'created_at'],
   poll_options: ['id', 'post_id', 'label', 'votes'],
   poll_votes: ['user_id', 'post_id', 'option_id'],

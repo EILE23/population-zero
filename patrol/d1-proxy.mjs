@@ -97,7 +97,7 @@ const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 
 const RESIDENT_ONLY_INSERT = new Set(['follows', 'follow_events']); // 사람의 팔로우·이력을 순찰이 지어내지 못하게
 const INSERT_DENY_COLS = /\b(user_id|visitor_name|visitor_ip|password_hash|email|google_sub|tier)\b/i; // tier: no self-promotion to admin
 const UPDATE_RULES = {
-  posts: { cols: /^(pinned|og_image|series|view_count|hidden|title|body|media_type|media_ref|topic|region|kind|created_at)$/, guard: 'user_id IS NULL', guardExempt: /^(hidden|view_count)$/ },
+  posts: { cols: /^(pinned|og_image|series|resident_view_count|hidden|title|body|media_type|media_ref|topic|region|kind|created_at)$/, guard: 'user_id IS NULL', guardExempt: /^(hidden|resident_view_count)$/ },
   comments: { cols: /^(hidden|body)$/, guard: 'resident_id IS NOT NULL', guardExempt: /^hidden$/ },
   poll_options: { cols: /^votes$/ },
   reports: { cols: /^status$/ },
@@ -111,6 +111,20 @@ const DELETE_SHAPES = {
   resident_poll_votes: /^DELETE FROM resident_poll_votes WHERE (resident_id\s*=\s*\d+ AND post_id\s*=\s*\d+|post_id\s*=\s*\d+ AND resident_id\s*=\s*\d+)$/i,
   poll_options: /^DELETE FROM poll_options WHERE (id|post_id)\s*=\s*\d+$/i,
 };
+
+/** start 위치의 '(' 가 닫힌 뒤 문장이 끝나는가 (세미콜론·공백만 허용). 값 안의 괄호는 깊이로 센다. */
+function endsAfterOneGroup(sk, start) {
+  if (sk[start] !== '(') return false;
+  let depth = 0;
+  for (let i = start; i < sk.length; i++) {
+    if (sk[i] === '(') depth++;
+    else if (sk[i] === ')') {
+      depth--;
+      if (depth === 0) return /^[\s;]*$/.test(sk.slice(i + 1)); // 뒤에 UPSERT·추가 행이 붙으면 거부
+    }
+  }
+  return false;
+}
 
 function assignedColumns(setClause) {
   // "a = 1, b = 'x', c = c + 1"  → [a, b, c]   (literals are already blanked to '')
@@ -147,8 +161,13 @@ function check(stmt) {
   // writes: exactly one top-level verb of their own kind — no CTE prefix, no trailing tricks
   if (verbs[0] === 'WITH') return { ok: false, reason: 'CTE-fronted write' };
 
-  let m = sk.match(/^INSERT (?:OR IGNORE )?INTO ([a-z_]+) \(([^)]*)\) VALUES/i);
-  if (m) {
+  // INSERT 는 **한 테이블에 한 행을 넣는 형태만** 허용한다.
+  // 예전에는 컬럼 목록과 첫 VALUES 행만 봤다. 그 뒤에 붙는 것은 검사 밖이라
+  //   ① `ON CONFLICT (id) DO UPDATE SET body=...` 로 UPDATE 정책(사람 글 보호)을 통째로 우회하고
+  //   ② 두 번째 행에 `('user', …)` 를 얹어 사람 팔로우·이력을 위조할 수 있었다.
+  // 그래서 문장 끝까지 형태를 고정한다: 단일 행 VALUES 뒤에는 아무것도 못 온다.
+  let m = sk.match(/^INSERT (?:OR IGNORE )?INTO ([a-z_]+) \(([^)]*)\) VALUES\s*(\()/i);
+  if (m && endsAfterOneGroup(sk, sk.indexOf('(', m.index + m[0].length - 1))) {
     const table = m[1].toLowerCase(), cols = m[2];
     if (!INSERT_TABLES[table]) return { ok: false, reason: `insert into ${table}` };
     if (INSERT_DENY_COLS.test(cols)) return { ok: false, reason: `insert sets protected column (${table})` };
@@ -157,6 +176,10 @@ function check(stmt) {
       if (!/VALUES \(\s*'resident'/i.test(stmt.replace(/\s+/g, ' '))) return { ok: false, reason: `${table} insert must be follower_type=resident` };
     }
     return { ok: true, sql: stmt };
+  }
+  if (/^INSERT\b/i.test(sk)) {
+    // 어떤 이유로든 위 형태를 벗어난 INSERT — UPSERT·다중행·INSERT..SELECT·후행 토큰 전부 여기서 걸린다
+    return { ok: false, reason: 'insert must be a single VALUES row with nothing after it' };
   }
 
   m = sk.match(/^UPDATE ([a-z_]+) SET (.+?) WHERE (.+)$/i);

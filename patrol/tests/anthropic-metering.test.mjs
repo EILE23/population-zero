@@ -7,11 +7,14 @@ import { fileURLToPath } from 'node:url';
 const NL = String.fromCharCode(10);
 const PORT_UP = 8801, PORT_PROXY = 8802;
 
-// 한 응답 안에서 input 120 / output 1 + 345 = 346 만 나온다.
+// 한 응답 안에서 input 120 / output 1 + 12345 + 345 = 12691 이 나온다.
 // 경계 시험: usage 숫자가 청크 사이에서 잘리도록 일부러 쪼갠다.
 const PIECES = [
   `event: message_start${NL}data: {"message":{"usage":{"input_tok`,
   `ens":120,"output_tokens":1}}}${NL}${NL}`,
+  // 숫자 자체가 청크 경계에서 잘리는 경우 — 앞부분만 세고 나머지를 버리면 예산이 어긋난다
+  `event: ping${NL}data: {"usage":{"output_tokens":123`,
+  `45}}${NL}${NL}`,
   `event: ping${NL}data: {}${NL}${NL}`.repeat(8), // 사이에 usage 없는 청크가 많이 지나간다
   `event: message_delta${NL}data: {"usage":{"output_toke`,
   `ns":345}}${NL}${NL}event: done${NL}data: {}${NL}${NL}`,
@@ -49,7 +52,7 @@ let fail = 0;
 const check = (name, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${extra}`); if (!ok) fail++; };
 check('response passed through intact', body.includes('event: done') && body.includes('"output_tokens":345'));
 check('input counted once', tokens.input === 120, ` (got ${tokens.input}, want 120)`);
-check('output counted once', tokens.output === 346, ` (got ${tokens.output}, want 346)`);
+check('output counted once (숫자 분할 포함)', tokens.output === 12691, ` (got ${tokens.output}, want 12691)`);
 
 // 일반(비스트리밍) JSON 응답도 정확히 한 번만 세어야 한다
 const plain = createServer((req, res) => {

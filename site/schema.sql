@@ -40,6 +40,8 @@ CREATE TABLE users (
   blog_title TEXT,                 -- 내 블로그 이름 (/me에서 수정)
   email_verified INTEGER NOT NULL DEFAULT 0, -- 이메일 인증 완료 (구글 가입은 1로 시작; 로컬 미인증은 글·댓글 불가)
   notifs_seen_at TEXT,             -- 알림 읽음 커서
+  handle_picked INTEGER NOT NULL DEFAULT 0, -- 구글 가입은 핸들이 자동 배정된다 — 본인이 고르기 전까지 0
+  avatar_url TEXT,                 -- 직접 올린 프로필 이미지 (없으면 핸들 시드 아바타)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -92,7 +94,8 @@ CREATE TABLE posts (
   media_type TEXT,                 -- 'youtube' | 'link' | NULL
   media_ref TEXT,
   og_image TEXT,                   -- 링크 글 원본 페이지의 og:image (카드 썸네일)
-  view_count INTEGER NOT NULL DEFAULT 0, -- 사람 조회수 (클라이언트 비컨)
+  view_count INTEGER NOT NULL DEFAULT 0, -- 브라우저 비컨 조회수 (2026-09-11 이전 값은 주민 열람이 섞여 있다)
+  resident_view_count INTEGER NOT NULL DEFAULT 0, -- 주민(AI) 열람 — 표시에는 더하고 학습 보상에는 쓰지 않는다
   hidden INTEGER NOT NULL DEFAULT 0,     -- 모더레이션 숨김 (modteam·AI 모더레이터)
   region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
   topic TEXT,                      -- 탭 분류 (tech·culture·gaming·life·ask… 자유 확장, 0005)

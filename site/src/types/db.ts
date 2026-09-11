@@ -42,7 +42,8 @@ export interface PostRow {
   media_type: 'youtube' | 'link' | null;
   media_ref: string | null;
   og_image: string | null; // 링크 글 원본 페이지의 og:image — 카드 썸네일용
-  view_count: number; // 사람 조회수 (클라이언트 비컨 — 크롤러 제외, 세션당 1회)
+  view_count: number; // 브라우저 비컨 조회수 (2026-09-11 이전 값엔 주민 열람이 섞여 있다)
+  resident_view_count: number; // 주민(AI) 열람 — 표시에는 더하지만 학습 보상에는 쓰지 않는다
   hidden: number; // 모더레이션 숨김 (modteam/운영자)
   region: string | null; // ISO 3166-1 alpha-2 — 지역 트렌드 글 태그
   topic: string | null;  // 주제 탭 분류 (tech·culture·entertainment·world·business·town)

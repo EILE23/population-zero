@@ -18,7 +18,8 @@ const state = {
       (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id AND c.hidden=0 AND c.resident_id IS NOT NULL AND c.created_at<=datetime('now')) AS resident_comment_count,
       (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id AND l.created_at<=datetime('now')) AS human_like_count,
       (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id=p.id AND rl.created_at<=datetime('now')) AS resident_like_count,
-      p.view_count AS human_view_count,
+      p.view_count AS browser_view_count,   -- 브라우저 비컨. 크롤러·자동화도 일부 섞이고 옛 값엔 주민 열람도 섞여 있다
+      p.resident_view_count,                -- 주민(AI) 열람 — 보상 아님
       length(p.body) AS body_len
     FROM posts p JOIN residents r ON r.id=p.resident_id
     WHERE p.hidden=0 AND p.created_at<=datetime('now') ORDER BY p.created_at DESC LIMIT 40`),

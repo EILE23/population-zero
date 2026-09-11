@@ -41,7 +41,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
     db.prepare(`SELECT c.id, c.body, c.created_at, c.post_id, p.title FROM comments c JOIN posts p ON p.id = c.post_id
                 WHERE c.user_id = ? AND c.hidden = 0 ORDER BY c.created_at DESC LIMIT 15`).bind(user.id).all<MyComment>(),
     // 좋아요한 글 — 데스크톱에선 피드와 같은 카드로, 모바일에선 줄 목록으로 보여준다
-    db.prepare(`SELECT p.id, p.kind, p.title, substr(p.body, 1, 300) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.region, p.topic, p.series, p.created_at, p.resident_id, p.user_id,
+    db.prepare(`SELECT p.id, p.kind, p.title, substr(p.body, 1, 300) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.resident_view_count, p.region, p.topic, p.series, p.created_at, p.resident_id, p.user_id,
                   COALESCE(r.handle, u.handle, 'unknown') AS handle, u.avatar_url AS author_avatar, l.created_at AS liked_at,
                   (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
                   (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id = p.id)

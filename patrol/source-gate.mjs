@@ -69,24 +69,32 @@ export function checkSources(posts = [], collected = new Set(), opts = {}) {
       .map(normalizeUrl)
       .filter(Boolean);
 
-    if (p?.factual_claims === undefined) { problems.push(`"${title}": factual_claims 미표기`); continue; }
-    if (p.factual_claims !== true) continue; // 개인 이야기·질문 — 출처 요구 대상 아님
+    // 타입을 먼저 강제한다 — 문자열 "true" 나 1 을 사실 선언으로 받아 주면 검사를 통째로 건너뛴다
+    if (typeof p?.factual_claims !== 'boolean') {
+      problems.push(`"${title}": factual_claims 가 boolean 이 아님 (${JSON.stringify(p?.factual_claims)})`);
+      continue;
+    }
+    if (!p.factual_claims) continue; // 개인 이야기·질문 — 출처 요구 대상 아님
     if (!declared.length) { problems.push(`"${title}": 사실형인데 sources 없음 (https 만 인정)`); continue; }
 
-    // ③ 선언한 출처 중 최소 하나가 독자 눈에 보여야 한다 — 아무 링크나 하나 있으면 되는 게 아니다
+    // 독자에게 보이는 링크 — 본문 링크와 링크 글의 media_ref 만 해당한다.
+    // og_from 은 커버 이미지를 뽑는 입력일 뿐 글 어디에도 렌더되지 않으므로 '노출'로 치지 않는다.
     const visible = new Set();
     for (const m of String(p.body || '').matchAll(URL_IN_TEXT)) { const n = normalizeUrl(m[0]); if (n) visible.add(n); }
-    for (const u of [p.og_from, p.media_type === 'link' ? p.media_ref : null]) { const n = u && normalizeUrl(u); if (n) visible.add(n); }
-    if (!declared.some((u) => visible.has(u))) {
-      problems.push(`"${title}": 선언한 출처가 독자에게 보이지 않음 (본문 링크·media_ref·og_from 중 하나가 sources 와 같아야 함)`);
-    }
+    if (p.media_type === 'link' && p.media_ref) { const n = normalizeUrl(p.media_ref); if (n) visible.add(n); }
 
-    // ④ 선언한 출처가 이번 실행에서 실제로 만진 URL 인가 (정확 일치)
-    if (collected.size) {
-      if (!declared.some((u) => collected.has(u))) {
-        problems.push(`"${title}": 출처가 이번 실행 수집분에 없음 (${declared.slice(0, 2).map(hostOf).join(', ')})`);
-      }
-    } else if (opts.requireCollected) {
+    // 핵심: **같은 하나의 URL** 이 (수집됐고) ∧ (독자에게 보여야) 한다.
+    // 예전엔 두 조건을 각각 다른 URL 이 만족해도 통과해서, 수집한 A 를 근거로 내밀고
+    // 본문에는 아무 데서도 읽지 않은 B 만 보여 주는 글이 그대로 나갔다.
+    const proven = declared.filter((u) => visible.has(u) && (collected.size === 0 || collected.has(u)));
+    if (!proven.length) {
+      const shown = declared.filter((u) => visible.has(u));
+      const known = declared.filter((u) => collected.has(u));
+      if (!shown.length) problems.push(`"${title}": 선언한 출처가 독자에게 보이지 않음 (본문 링크 또는 링크 글의 media_ref 여야 함)`);
+      else if (collected.size && !known.length) problems.push(`"${title}": 출처가 이번 실행 수집분에 없음 (${declared.slice(0, 2).map(hostOf).join(', ')})`);
+      else problems.push(`"${title}": 수집한 출처와 독자에게 보이는 출처가 서로 다름 (같은 URL 이어야 함)`);
+    }
+    if (!collected.size && opts.requireCollected) {
       problems.push(`"${title}": 이번 실행에 수집 증거가 없어 사실형 글을 낼 수 없음`);
     }
   }

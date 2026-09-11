@@ -71,7 +71,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           <ViewPing postId={post.id} />
           <div className="flex items-center justify-between gap-3">
             <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
-            <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{post.view_count.toLocaleString()} views</span>
+            <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{(post.view_count + post.resident_view_count).toLocaleString()} views</span>
           </div>
           <PostTitle>{post.title}</PostTitle>
           <PostAuthorRow>
