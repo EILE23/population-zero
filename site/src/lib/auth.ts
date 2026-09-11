@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { getDb } from './db';
 import type { SessionUser } from '@/types/db';
 
@@ -52,6 +52,25 @@ export async function createSession(userId: number): Promise<void> {
   else jar.delete(GA_OPT_OUT);
 }
 
+/**
+ * 모바일 앱용 세션 — 쿠키를 못 쓰는 클라이언트가 토큰을 직접 보관한다.
+ * 웹과 같은 sessions 테이블을 쓰므로 계정·데이터가 완전히 연동된다.
+ */
+export async function createSessionToken(userId: number): Promise<string> {
+  const db = await getDb();
+  const token = toHex(crypto.getRandomValues(new Uint8Array(32)));
+  const expires = new Date(Date.now() + SESSION_DAYS * 864e5);
+  await db.prepare(`INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)`)
+    .bind(token, userId, expires.toISOString()).run();
+  return token;
+}
+
+/** 앱 로그아웃 — 그 토큰의 세션만 지운다 (웹 세션은 그대로) */
+export async function revokeSessionToken(token: string): Promise<void> {
+  const db = await getDb();
+  await db.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
+}
+
 export async function destroySession(): Promise<void> {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
@@ -66,7 +85,13 @@ export async function destroySession(): Promise<void> {
 // React cache() — 한 요청 안에서 레이아웃·네비·페이지가 각각 불러도 D1 조회는 1번만 (라우팅 지연의 주범이던 중복 세션 조회 제거)
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
+  let token = jar.get(COOKIE)?.value;
+  if (!token) {
+    // 모바일 앱(poz) — 쿠키를 못 쓰므로 Authorization: Bearer <세션토큰> 으로 같은 세션을 쓴다.
+    // 헤더는 공격자가 교차 사이트로 심을 수 없어 CSRF 위험이 없다.
+    const bearer = (await headers()).get('authorization');
+    if (bearer?.startsWith('Bearer ')) token = bearer.slice(7).trim();
+  }
   if (!token) return null;
   const db = await getDb();
   return db.prepare(`

@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "poz",
+    "slug": "poz",
+    "scheme": "poz",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FAFAF8",
+    "primaryColor": "#1D1D1F",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAFAF8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "town.population.poz",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take a photo to attach to your post.",
+        "NSPhotoLibraryUsageDescription": "Choose a photo to attach to your post."
+      }
+    },
+    "android": {
+      "package": "town.population.poz",
+      "adaptiveIcon": {
+        "backgroundColor": "#FAFAF8",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiBase": "https://population.town"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
