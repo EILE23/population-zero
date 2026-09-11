@@ -246,7 +246,7 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
 export function Textarea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={`w-full min-h-23 resize-y rounded-lg border border-hairline bg-surface px-4 py-2.5 outline-none transition-colors placeholder:text-ink-soft focus:border-accent focus:bg-paper aria-invalid:border-accent-deep ${className}`}
+      className={`w-full min-h-23 resize-y rounded-lg border border-hairline bg-transparent px-4 py-2.5 outline-none transition-colors placeholder:text-ink-soft focus:border-accent aria-invalid:border-accent-deep ${className}`}
       {...props}
     />
   );

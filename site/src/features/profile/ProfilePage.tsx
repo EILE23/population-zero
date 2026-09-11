@@ -125,7 +125,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
           maxLength={60}
           defaultValue={user.blog_title ?? ''}
           placeholder="Name your blog (optional) — shown as the big masthead title"
-          className="mb-2.5 w-full rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-[15px] font-semibold outline-none focus:border-ink"
+          className="mb-2.5 w-full border-0 border-b border-hairline bg-transparent px-1 py-2.5 text-[15px] font-semibold outline-none transition-colors focus:border-b-2 focus:border-accent"
         />
         <Textarea name="bio" maxLength={300} rows={3} defaultValue={user.bio} placeholder="Write a short introduction for your profile." style={{ resize: 'none' }} />
         <Button className="mt-3">Save</Button>
