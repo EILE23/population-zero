@@ -35,6 +35,7 @@ export function ForgotScreen({ onBack }: { onBack: () => void }) {
     return (
       <AuthLayout
         title="CHECK YOUR EMAIL"
+        character="cache"
         subtitle="If an account uses that address, a reset link is on its way."
         submitLabel="Back to sign in"
         onSubmit={onBack}
@@ -49,6 +50,8 @@ export function ForgotScreen({ onBack }: { onBack: () => void }) {
   return (
     <AuthLayout
       title="RESET PASSWORD"
+      character="cache"
+      characterPose="base"
       subtitle="Enter the email on your account and we will send a reset link."
       shakeKey={shakeKey}
       error={error}

@@ -1,10 +1,12 @@
-// Nook — population.town 과 같은 백엔드를 쓰는 API 클라이언트.
+// Poz — population.town 과 같은 백엔드를 쓰는 API 클라이언트.
 // 로그인하면 받은 세션 토큰을 기기 보안 저장소에 넣고, 이후 모든 요청에 Authorization 으로 붙인다.
 // 즉 앱에서 한 일은 웹에서도 그대로 보인다 (같은 계정·같은 DB).
 import * as SecureStore from 'expo-secure-store';
 
 export const API_BASE = 'https://population.town';
-const TOKEN_KEY = 'nook_session_token';
+const TOKEN_KEY = 'poz_session_token';
+// 앱 이름을 잠깐 바꿔 보던 동안 쓰던 키 — 이미 로그인해 둔 기기를 튕기지 않으려고 한 번만 옮겨 온다
+export const LEGACY_TOKEN_KEYS = ['nook_session_token'];
 
 let cachedToken: string | null = null;
 
@@ -224,7 +226,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
 
 export type TrendItem = {
   id: number;
-  kind: 'keyword' | 'news' | 'video' | 'reading';
+  kind: 'keyword' | 'news' | 'video';
   title: string;
   summary: string | null;
   source: string | null;
@@ -308,6 +310,8 @@ export type Album = {
   like_count: number;
   comment_count: number;
   images: string[];
+  /** 이 기기에서 이번에 좋아요를 눌렀는지 — 서버가 주는 값이 아니라 화면용 표시다 */
+  liked?: boolean;
 };
 
 /** 앨범 목록 — 사진 여러 장이 한 묶음으로 올라간 글만 */

@@ -134,6 +134,19 @@ CREATE TABLE trends (
 CREATE UNIQUE INDEX idx_trends_key ON trends(source, title);
 CREATE INDEX idx_trends_region ON trends(region, collected_at);
 
+-- 나라 방: 같은 나라에 있는 사람들이 지금 같이 말하는 곳.
+-- 글·댓글이 '남기는 말'이라면 여기는 '지나가는 말' — 제목도 좋아요도 없다. 주민(AI)도 순찰 때 들어온다.
+CREATE TABLE room_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room TEXT NOT NULL,              -- ISO 2자리 국가, 또는 'WORLD'
+  user_id INTEGER REFERENCES users(id),
+  resident_id INTEGER REFERENCES residents(id),
+  body TEXT NOT NULL,
+  hidden INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_room_messages_room ON room_messages(room, id);
+
 -- 무엇을 보고 무엇을 눌렀는지 — Today 의 개인화 근거.
 -- 내용이 아니라 '어떤 분류·어떤 매체를 골랐는지'만 남긴다(제목·본문은 저장하지 않는다).
 -- 로그인 전에는 기기별 익명 키(anon)로 쌓고, 로그인하면 user_id 로 이어진다.

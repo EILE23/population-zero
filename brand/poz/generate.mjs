@@ -49,8 +49,6 @@ await write('site/public/brand/poz-wordmark.svg', webMark(ink));
 await write('site/public/brand/poz-wordmark-light.svg', webMark(paper));
 await write('site/public/brand/poz-lockup.svg', lockup());
 await write('site/public/brand/poz-lockup-dark.svg', lockup(true));
-await write('site/src/app/icon.svg', icon(ink, paper, 850, true));
-await png('site/src/app/apple-icon.png', icon(ink, paper), 180);
 await png('site/public/brand/poz-icon.png', icon(ink, paper));
 await png('site/public/brand/poz-icon-mauve.png', icon(mauve, ink));
 await png('site/public/brand/poz-wordmark.png', webMark(ink));
@@ -66,26 +64,13 @@ await png('app/assets/icon.png', icon(ink, paper));
 await png('app/assets/poz-logo.png', webMark(ink));
 await png('app/assets/poz-logo-light.png', webMark(paper));
 await png('app/assets/splash-icon.png', icon(null, ink, 640));
-await png('app/assets/favicon.png', icon(ink, paper, 850, true), 64);
 // Adaptive foreground stays inside the central 66/108 safe circle, including its corners.
 await png('app/assets/android-icon-foreground.png', icon(null, paper, 560));
 await png('app/assets/android-icon-monochrome.png', icon(null, '#FFFFFF', 560));
 await png('app/assets/android-icon-background.png', svg(1024, 1024, rect(1024, 1024, ink)));
 
-// ICO supports PNG-compressed entries. Keep 16/32/48px explicit for browser compatibility.
-const sizes = [16, 32, 48];
-const images = await Promise.all(sizes.map((n) => sharp(Buffer.from(icon(ink, paper, 850, true))).resize(n, n).png().toBuffer()));
-const header = Buffer.alloc(6 + 16 * sizes.length);
-header.writeUInt16LE(1, 2); header.writeUInt16LE(sizes.length, 4);
-let offset = header.length;
-images.forEach((image, i) => {
-  const p = 6 + i * 16;
-  header[p] = sizes[i]; header[p + 1] = sizes[i];
-  header.writeUInt16LE(1, p + 4); header.writeUInt16LE(32, p + 6);
-  header.writeUInt32LE(image.length, p + 8); header.writeUInt32LE(offset, p + 12);
-  offset += image.length;
-});
-await write('site/src/app/favicon.ico', Buffer.concat([header, ...images]));
+// Null is the browser identity; keep the POZ wordmark on native launcher icons.
+await import('./favicon/generate.mjs');
 
 const proof = svg(1440, 960, rect(1440, 960, '#F5F5F7') +
   label(72, 66, 'POZ / BRAND ASSETS', 16) + mark(330, 115, 780) +

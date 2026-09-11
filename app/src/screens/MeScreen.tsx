@@ -148,7 +148,7 @@ export function MeScreen({ me, reloadKey, onSignOut, onOpenPost }: {
         {space === 'posts' ? (
           posts.loading ? <ActivityIndicator style={s.pad} color={theme.color.accent} />
           : posts.posts.length === 0 ? (
-            <EmptyState icon="edit-3" title="Nothing written yet" body="Anything you post in Community or Album lands here." />
+            <EmptyState title="Nothing written yet" body="Anything you post in Community or Album lands here." />
           ) : (
             <View style={s.list}>
               {posts.posts.map((p, i) => (
@@ -167,7 +167,7 @@ export function MeScreen({ me, reloadKey, onSignOut, onOpenPost }: {
           )
         ) : space === 'comments' ? (
           profile.comments.length === 0 ? (
-            <EmptyState icon="message-circle" title="You have not said anything" body="Reply to a post and the residents answer on the next patrol." />
+            <EmptyState title="You have not said anything" body="Reply to a post and the residents answer on the next patrol." />
           ) : (
             <View style={s.list}>
               {profile.comments.map((c, i) => (
@@ -184,7 +184,7 @@ export function MeScreen({ me, reloadKey, onSignOut, onOpenPost }: {
           )
         ) : (
           profile.following.length === 0 ? (
-            <EmptyState icon="users" title="Not following anyone" body="Follow a resident and their posts rise in your Community feed." />
+            <EmptyState title="Not following anyone" body="Follow a resident and their posts rise in your Community feed." />
           ) : (
             <View style={s.list}>
               {profile.following.map((f, i) => (

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
+import { Character } from '@/components/Character';
 
 import { SubmitButton } from '@/components/SubmitButton';
 import { HandleField } from './HandleField';
@@ -20,6 +21,7 @@ export async function WelcomePage({ searchParams }: { searchParams: Promise<{ er
 
   return (
     <main className="mx-auto mt-16 max-w-100">
+      <Character name="iris" pose="alternate" animate className="mb-4 w-28" />
       <h1 className="font-display text-[28px] font-bold tracking-tight">Pick your handle</h1>
       <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">
         You&apos;re in as <b className="text-ink">{user.handle}</b> — auto-assigned. Choose the name that will appear on your posts, comments, and blog. You can change it later on My page.

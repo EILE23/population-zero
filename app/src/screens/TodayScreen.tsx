@@ -22,7 +22,7 @@ const COUNTRY_NAME: Record<string, string> = {
 const GROUPS: PickerGroup[] = [
   {
     title: 'EVERYTHING',
-    options: [{ key: '', label: 'All', hint: 'News, searches, video and reading together' }],
+    options: [{ key: '', label: 'All', hint: 'News, searches and video together' }],
   },
   {
     title: 'WHERE IT COMES FROM',
@@ -30,7 +30,6 @@ const GROUPS: PickerGroup[] = [
       { key: 'kind:news', label: 'News', hint: 'Headlines from publishers' },
       { key: 'kind:keyword', label: 'Searched now', hint: 'What people are typing into search' },
       { key: 'kind:video', label: 'Watched', hint: 'Trending video' },
-      { key: 'kind:reading', label: 'Looked up', hint: 'Most-read Wikipedia articles' },
     ],
   },
   {
@@ -57,7 +56,6 @@ function sourceLine(item: TrendItem): string {
     case 'news': return item.source ?? 'News';
     case 'keyword': return 'Searched now';
     case 'video': return 'Trending video';
-    case 'reading': return 'Wikipedia';
   }
 }
 
@@ -222,7 +220,7 @@ export function TodayScreen() {
     return (
       <View style={s.center}>
         {error
-          ? <EmptyState icon="wifi-off" title="Could not reach the wire" body={error} actionLabel="Try again" onAction={refresh} />
+          ? <EmptyState title="Could not reach the wire" body={error} actionLabel="Try again" onAction={refresh} />
           : <ActivityIndicator color={theme.color.accent} />}
       </View>
     );
@@ -248,7 +246,6 @@ export function TodayScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            icon="inbox"
             title="Nothing here right now"
             body={error ?? 'Try another category, or pull down to check the wire again.'}
             actionLabel="Show everything"

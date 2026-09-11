@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, Platform, Pressable, RefreshControl,
-  StyleSheet, Text, TextInput, View, type TextStyle,
+  ActivityIndicator, FlatList, Pressable, RefreshControl,
+  StyleSheet, Text, View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { fetchUnreadCount, TOPIC_TABS, type FeedPost, type Me } from '@/api';
@@ -12,10 +12,9 @@ import { EmptyState } from '@/ui/EmptyState';
 import { FadeIn, PhotoCard } from '@/ui/cards';
 import { Fab } from '@/ui/Fab';
 import { PostActions, type PressedPost } from '@/ui/PostActions';
+import { SearchBar } from '@/ui/SearchBar';
 import { TAB_BAR_HEIGHT } from '@/ui/TabBar';
 import { theme } from '@/theme';
-
-const NO_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 
 /** 성격이 다른 묶음은 제목으로 갈라 둔다 — 한 줄에 늘어놓으면 무엇이 무엇인지 구분되지 않는다 */
 const GROUPS: PickerGroup[] = [
@@ -62,30 +61,18 @@ export function FeedScreen({ me, reloadKey, onOpenPost, onOpenPostId, onEditPost
 
   const header = (
     <View style={s.header}>
-      {searching ? (
-        <View style={s.searchRow}>
-          <Feather name="search" size={16} color={theme.color.inkSoft} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search the town"
-            placeholderTextColor={theme.color.inkFaint}
-            style={[s.searchInput, NO_OUTLINE]}
-            autoFocus
-            autoCapitalize="none"
-            returnKeyType="search"
-          />
-          <Pressable onPress={() => { setSearching(false); setQuery(''); }} hitSlop={10}>
-            <Text style={s.cancel}>Cancel</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <>
-          <Text style={s.title}>Community</Text>
-          <View style={s.headerTools}>
-            <Pressable onPress={() => setSearching(true)} hitSlop={10} style={s.iconButton}>
-              <Feather name="search" size={18} color={theme.color.ink} />
-            </Pressable>
+      {searching ? null : <Text style={s.title}>Community</Text>}
+      <View style={[s.headerTools, searching && s.headerToolsWide]}>
+        <SearchBar
+          open={searching}
+          value={query}
+          onChange={setQuery}
+          onOpen={() => setSearching(true)}
+          onClose={() => { setSearching(false); setQuery(''); }}
+          placeholder="Search the town"
+        />
+        {searching ? null : (
+          <>
             <Pressable onPress={() => setActivityOpen(true)} hitSlop={10} style={s.iconButton}>
               <Feather name="bell" size={18} color={theme.color.ink} />
               {unread > 0 ? (
@@ -98,9 +85,9 @@ export function FeedScreen({ me, reloadKey, onOpenPost, onOpenPostId, onEditPost
               label={TOPIC_TABS.find((t) => t.key === tab)?.label ?? 'All'}
               onPress={() => setPickerOpen(true)}
             />
-          </View>
-        </>
-      )}
+          </>
+        )}
+      </View>
     </View>
   );
 
@@ -118,17 +105,15 @@ export function FeedScreen({ me, reloadKey, onOpenPost, onOpenPostId, onEditPost
           ListEmptyComponent={
             feed.error ? (
               <EmptyState
-                icon="wifi-off"
                 title="Could not reach the town"
                 body={feed.error}
                 actionLabel="Try again"
                 onAction={feed.refresh}
               />
             ) : query ? (
-              <EmptyState icon="search" title="No matches" body={`Nothing in the town mentions "${query}".`} />
+              <EmptyState title="No matches" body={`Nothing in the town mentions "${query}".`} />
             ) : (
               <EmptyState
-                icon="message-square"
                 title="This corner is empty"
                 body="Pick another category, or write the first post here."
                 actionLabel="Write a post"
@@ -190,6 +175,7 @@ const s = StyleSheet.create({
   },
   title: { fontSize: 21, fontWeight: '800', color: theme.color.ink, letterSpacing: -0.4 },
   headerTools: { flexDirection: 'row', alignItems: 'center', gap: theme.space(3) },
+  headerToolsWide: { flex: 1 },
   iconButton: { padding: theme.space(1) },
   badge: {
     position: 'absolute', top: -2, right: -4, minWidth: 16, height: 16, borderRadius: 8,

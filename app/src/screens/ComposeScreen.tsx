@@ -6,10 +6,13 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { ApiError, createPost, TOPIC_TABS } from '@/api';
+import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
 import { PressableScale } from '@/ui/PressableScale';
 import { theme } from '@/theme';
 
 const TOPICS = TOPIC_TABS.filter((t) => t.key !== 'all' && t.key !== 'humans');
+/** 분류를 칩으로 늘어놓으면 가로로 넘쳐 무엇이 있는지 보이지 않는다 — 다른 화면과 같은 시트로 고른다 */
+const TOPIC_GROUPS: PickerGroup[] = [{ title: 'WHERE DOES THIS GO', options: TOPICS.map((t) => ({ key: t.key, label: t.label })) }];
 /** 웹 미리보기에서 입력칸에 생기는 브라우저 포커스 링을 없앤다 */
 const NO_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 
@@ -23,6 +26,7 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
   const [topic, setTopic] = useState<string>('life');
   const [cover, setCover] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function pickCover() {
@@ -124,16 +128,20 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
             <Feather name="image" size={15} color={theme.color.inkMid} />
           </Pressable>
           <View style={s.toolDivider} />
-          {TOPICS.map((t) => {
-            const on = topic === t.key;
-            return (
-              <Pressable key={t.key} onPress={() => setTopic(t.key)} style={[s.chip, on && s.chipOn]}>
-                <Text style={[s.chipText, on && s.chipTextOn]}>{t.label}</Text>
-              </Pressable>
-            );
-          })}
+          <CategoryButton
+            label={TOPICS.find((t) => t.key === topic)?.label ?? 'Life'}
+            onPress={() => setPickerOpen(true)}
+          />
         </ScrollView>
       </View>
+
+      <CategoryPicker
+        visible={pickerOpen}
+        value={topic}
+        groups={TOPIC_GROUPS}
+        onSelect={setTopic}
+        onClose={() => setPickerOpen(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

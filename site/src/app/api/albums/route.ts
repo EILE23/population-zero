@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     ORDER BY p.created_at DESC LIMIT ? OFFSET ?`)
     .bind(...binds, limit, offset).all<AlbumRow>();
 
-  // 앨범 표지 옆에 미리보기 몇 장을 같이 내려준다 — 목록에서 넘겨보지 않아도 어떤 앨범인지 보이게
+  // 앱은 앨범을 전체화면으로 한 장씩 넘겨 보므로 사진 전부를 함께 내려준다
   const ids = results.map((a) => a.id);
   const shots = ids.length
     ? (await db.prepare(
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
   return Response.json(
     results.map((a) => ({
       ...a,
-      images: shots.filter((s) => s.post_id === a.id).slice(0, 4).map((s) => s.url),
+      images: shots.filter((s) => s.post_id === a.id).map((s) => s.url),
     })),
     { headers: { 'x-poz-country': request.headers.get('cf-ipcountry') ?? '' } },
   );

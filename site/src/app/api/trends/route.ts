@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db';
 type TrendRow = {
   id: number;
   source: string;
-  kind: 'keyword' | 'news' | 'video' | 'reading';
+  kind: 'keyword' | 'news' | 'video';
   region: string | null;
   lang: string;
   topic: string | null;
@@ -117,7 +117,8 @@ export async function GET(request: Request) {
   const anon = url.searchParams.get('anon');
 
   const db = await getDb();
-  const where = [`collected_at > datetime('now','-2 days')`];
+  // 위키백과 '많이 본 문서'는 제목만 있어 카드로선 아무것도 알려주지 않는다 — 수집에서 뺐고 여기서도 막는다
+  const where = [`collected_at > datetime('now','-2 days')`, `kind != 'reading'`];
   const binds: (string | number)[] = [];
   // 나라가 정해졌으면 그 나라 것 + 그 언어의 전세계 항목만. 미국 사용자 화면에 한국어가 섞이지 않는다.
   if (region) { where.push(`(region = ? OR (region IS NULL AND lang = ?))`); binds.push(region, lang); }

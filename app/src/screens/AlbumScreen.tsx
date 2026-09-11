@@ -1,60 +1,117 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Dimensions, Image, Pressable, RefreshControl,
-  ScrollView, StyleSheet, Text, View,
+  ActivityIndicator, Animated, Dimensions, Easing, FlatList, Image, Pressable,
+  StyleSheet, Text, View,
+  type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { fetchAlbums, type Album } from '@/api';
-import { FadeIn, timeAgo } from '@/ui/cards';
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { fetchAlbums, toggleLike, type Album } from '@/api';
+import { Avatar } from '@/ui/Avatar';
 import { EmptyState } from '@/ui/EmptyState';
-import { Fab } from '@/ui/Fab';
-import { TAB_BAR_HEIGHT } from '@/ui/TabBar';
+import { timeAgo } from '@/ui/cards';
 import { theme } from '@/theme';
 
-const W = Dimensions.get('window').width;
-const PAD = 12;
-const COVER = W - PAD * 2;
+const { width: W, height: H } = Dimensions.get('window');
 
-/**
- * 앨범 한 묶음 — 표지 한 장 크게, 나머지는 아래 작은 줄로.
- * 사진 한 장짜리 글은 여기 오지 않는다: 앨범은 묶음이라는 뜻이라서.
- */
-function AlbumCard({ album, onOpen }: { album: Album; onOpen: (album: Album) => void }) {
-  const [cover, ...rest] = album.images;
+/** 오른쪽 세로 줄에 붙는 버튼 — 릴스의 그 자리 */
+function RailButton({ icon, ion, label, active, onPress }: {
+  icon?: keyof typeof Feather.glyphMap;
+  ion?: keyof typeof Ionicons.glyphMap;
+  label?: string;
+  active?: boolean;
+  onPress: () => void;
+}) {
+  const anim = useMemo(() => new Animated.Value(1), []);
+  const press = () => {
+    // 누르면 한 번 튄다 — 눌렀다는 걸 숫자보다 먼저 알려준다
+    Animated.sequence([
+      Animated.timing(anim, { toValue: 0.8, duration: 90, useNativeDriver: true }),
+      Animated.spring(anim, { toValue: 1, friction: 4, tension: 140, useNativeDriver: true }),
+    ]).start();
+    onPress();
+  };
   return (
-    <Pressable onPress={() => onOpen(album)} style={({ pressed }) => [s.card, pressed && s.pressed]}>
-      <View style={s.coverWrap}>
-        {cover ? <Image source={{ uri: cover }} style={s.cover} resizeMode="cover" /> : <View style={s.cover} />}
-        <View style={s.count}>
-          <Feather name="layers" size={11} color={theme.color.paper} />
-          <Text style={s.countText}>{album.shot_count}</Text>
-        </View>
-      </View>
-
-      {rest.length > 0 ? (
-        <View style={s.strip}>
-          {rest.slice(0, 3).map((src) => (
-            <Image key={src} source={{ uri: src }} style={s.thumb} resizeMode="cover" />
-          ))}
-          {album.shot_count > 4 ? (
-            <View style={[s.thumb, s.more]}>
-              <Text style={s.moreText}>+{album.shot_count - 4}</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View style={s.meta}>
-        <Text style={s.title} numberOfLines={2}>{album.title}</Text>
-        <Text style={s.by}>{album.handle} · {timeAgo(album.created_at)} ago</Text>
-      </View>
+    <Pressable onPress={press} hitSlop={8} style={s.railItem}>
+      <Animated.View style={{ transform: [{ scale: anim }] }}>
+        {ion
+          ? <Ionicons name={ion} size={27} color={active ? theme.color.accent : theme.color.paper} />
+          : <Feather name={icon!} size={25} color={theme.color.paper} />}
+      </Animated.View>
+      {label ? <Text style={s.railLabel}>{label}</Text> : null}
     </Pressable>
   );
 }
 
+/** 한 앨범 = 한 화면. 사진이 여러 장이면 좌우로 넘긴다 (위아래는 다음 앨범) */
+function Reel({ album, active, onOpenPost, onLike }: {
+  album: Album;
+  active: boolean;
+  onOpenPost: (postId: number) => void;
+  onLike: (album: Album) => void;
+}) {
+  const [shot, setShot] = useState(0);
+  const enter = useMemo(() => new Animated.Value(0), []);
+
+  useEffect(() => {
+    if (!active) return;
+    enter.setValue(0);
+    Animated.timing(enter, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [enter, active]);
+
+  const rise = enter.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
+
+  return (
+    <View style={s.reel}>
+      <FlatList
+        data={album.images}
+        keyExtractor={(u, i) => `${album.id}-${i}`}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
+          setShot(Math.round(e.nativeEvent.contentOffset.x / W))}
+        renderItem={({ item }) => <Image source={{ uri: item }} style={s.shot} resizeMode="cover" />}
+      />
+
+      {/* 위아래 어둠 — 흰 글씨가 밝은 사진 위에서도 읽히도록 */}
+      <View style={s.scrimTop} pointerEvents="none" />
+      <View style={s.scrimBottom} pointerEvents="none" />
+
+      {album.images.length > 1 ? (
+        <View style={s.dots}>
+          {album.images.map((u, i) => (
+            <View key={u} style={[s.dot, i === shot && s.dotOn]} />
+          ))}
+        </View>
+      ) : null}
+
+      <Animated.View style={[s.caption, { opacity: enter, transform: [{ translateY: rise }] }]}>
+        <View style={s.byline}>
+          <Avatar handle={album.handle} size={30} isHuman={album.user_id != null} />
+          <Text style={s.handle} numberOfLines={1}>{album.handle}</Text>
+          <Text style={s.when}>{timeAgo(album.created_at)}</Text>
+        </View>
+        <Text style={s.title} numberOfLines={3}>{album.title}</Text>
+      </Animated.View>
+
+      <Animated.View style={[s.rail, { opacity: enter }]}>
+        <RailButton
+          ion={album.liked ? 'heart' : 'heart-outline'}
+          label={String(album.like_count)}
+          active={album.liked}
+          onPress={() => onLike(album)}
+        />
+        <RailButton ion="chatbubble-outline" label={String(album.comment_count)} onPress={() => onOpenPost(album.id)} />
+        <RailButton icon="maximize-2" onPress={() => onOpenPost(album.id)} />
+      </Animated.View>
+    </View>
+  );
+}
+
 /**
- * Album — 말 그대로 사진첩.
- * 커뮤니티는 글, 여기는 사진 묶음. 커뮤니티에 글을 쓸 때 이 앨범을 붙여 공유한다.
+ * Album — 한 화면에 하나씩, 위로 넘겨 보는 곳.
+ * 커뮤니티가 읽는 곳이라면 여기는 보는 곳이다: 제목도 본문도 아니고 사진이 화면 전부를 쓴다.
+ * 사진이 여러 장인 앨범은 좌우로 넘긴다.
  */
 export function AlbumScreen({ reloadKey, onOpenPost, onCompose }: {
   reloadKey: number;
@@ -62,15 +119,15 @@ export function AlbumScreen({ reloadKey, onOpenPost, onCompose }: {
   onCompose: () => void;
 }) {
   const [albums, setAlbums] = useState<Album[] | null>(null);
-  const [mineOnly, setMineOnly] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [index, setIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const loading = useRef(false);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const data = await fetchAlbums({ mine: mineOnly });
+        const data = await fetchAlbums({});
         if (!alive) return;
         setAlbums(data);
         setError(null);
@@ -79,113 +136,120 @@ export function AlbumScreen({ reloadKey, onOpenPost, onCompose }: {
       }
     })();
     return () => { alive = false; };
-  }, [mineOnly, reloadKey]);
+  }, [reloadKey]);
 
-  const refresh = useCallback(async () => {
-    setRefreshing(true);
+  const loadMore = useCallback(async () => {
+    if (loading.current || !albums?.length) return;
+    loading.current = true;
     try {
-      setAlbums(await fetchAlbums({ mine: mineOnly }));
-      setError(null);
+      const next = await fetchAlbums({ offset: albums.length });
+      if (next.length) {
+        setAlbums((prev) => {
+          const seen = new Set((prev ?? []).map((a) => a.id));
+          return [...(prev ?? []), ...next.filter((a) => !seen.has(a.id))];
+        });
+      }
     } catch {
-      setError('Could not open the album.');
+      /* 더 읽기 실패는 조용히 — 보고 있던 것은 그대로 둔다 */
     } finally {
-      setRefreshing(false);
+      loading.current = false;
     }
-  }, [mineOnly]);
+  }, [albums]);
+
+  // 누르는 즉시 하트가 채워지고, 서버 응답이 오면 실제 값으로 맞춘다
+  const like = useCallback(async (album: Album) => {
+    const next = !album.liked;
+    setAlbums((prev) => (prev ?? []).map((a) =>
+      a.id === album.id ? { ...a, liked: next, like_count: a.like_count + (next ? 1 : -1) } : a));
+    try {
+      const r = await toggleLike(album.id);
+      setAlbums((prev) => (prev ?? []).map((a) =>
+        a.id === album.id ? { ...a, liked: r.liked, like_count: r.count } : a));
+    } catch {
+      setAlbums((prev) => (prev ?? []).map((a) =>
+        a.id === album.id ? { ...a, liked: album.liked, like_count: album.like_count } : a));
+    }
+  }, []);
+
+  if (albums == null) {
+    return <View style={s.center}><ActivityIndicator color={theme.color.paper} /></View>;
+  }
+
+  if (albums.length === 0) {
+    return (
+      <View style={s.emptyRoot}>
+        <EmptyState
+          title={error ? 'Could not open the album' : 'Nothing to look at yet'}
+          body={error ?? 'An album is a set of photos posted together. Put the first one up and it fills this screen.'}
+          actionLabel={error ? undefined : 'Make the first one'}
+          onAction={error ? undefined : onCompose}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={s.root}>
-      {albums == null ? (
-        <View style={s.center}><ActivityIndicator color={theme.color.accent} /></View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={s.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.color.accent} />}
-        >
-          <View style={s.header}>
-            <Text style={s.heading}>Album</Text>
-            <View style={s.toggle}>
-              {[{ k: false, l: 'Everyone' }, { k: true, l: 'Mine' }].map((o) => (
-                <Pressable
-                  key={o.l}
-                  onPress={() => setMineOnly(o.k)}
-                  style={[s.toggleItem, mineOnly === o.k && s.toggleOn]}
-                >
-                  <Text style={[s.toggleText, mineOnly === o.k && s.toggleTextOn]}>{o.l}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+      <FlatList
+        data={albums}
+        keyExtractor={(a) => String(a.id)}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        snapToInterval={H}
+        decelerationRate="fast"
+        onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
+          setIndex(Math.round(e.nativeEvent.contentOffset.y / H))}
+        onEndReached={loadMore}
+        onEndReachedThreshold={1.5}
+        renderItem={({ item, index: i }) => (
+          <Reel album={item} active={i === index} onOpenPost={onOpenPost} onLike={like} />
+        )}
+        getItemLayout={(_, i) => ({ length: H, offset: H * i, index: i })}
+      />
 
-          {albums.length === 0 ? (
-            error ? (
-              <EmptyState icon="wifi-off" title="Could not open the album" body={error} actionLabel="Try again" onAction={refresh} />
-            ) : mineOnly ? (
-              <EmptyState
-                icon="camera"
-                title="Your album is empty"
-                body="Shoot a few frames and they become one album — it shows up on population.town too."
-                actionLabel="Make an album"
-                onAction={onCompose}
-              />
-            ) : (
-              <EmptyState
-                icon="image"
-                title="No albums in the town yet"
-                body="An album is a set of photos posted together. Be the first to put one up."
-                actionLabel="Make the first one"
-                onAction={onCompose}
-              />
-            )
-          ) : (
-            albums.map((a, i) => (
-              <FadeIn key={a.id} index={i}>
-                <AlbumCard album={a} onOpen={() => onOpenPost(a.id)} />
-              </FadeIn>
-            ))
-          )}
-        </ScrollView>
-      )}
-
-      {/* 앨범에서는 사진부터 — 커뮤니티의 글쓰기 버튼과 하는 일이 다르다 */}
-      <Fab icon="camera" label="New album" onPress={onCompose} />
+      {/* 만들기 버튼만 위에 떠 있다 — 사진을 가리지 않게 작게 */}
+      <Pressable onPress={onCompose} style={({ pressed }) => [s.make, pressed && s.makePressed]}>
+        <Feather name="camera" size={18} color={theme.color.paper} />
+      </Pressable>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { paddingHorizontal: PAD, paddingBottom: TAB_BAR_HEIGHT + theme.space(6) },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: theme.space(4), paddingBottom: theme.space(3.5),
+  // 사진이 주인공이라 화면 전체가 검다 — 다른 탭(밝은 종이)과 분명히 다르게
+  root: { flex: 1, backgroundColor: theme.color.inkBlack },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.color.inkBlack },
+  emptyRoot: { flex: 1, justifyContent: 'center', backgroundColor: theme.color.surface },
+  reel: { width: W, height: H, backgroundColor: theme.color.inkBlack },
+  shot: { width: W, height: H },
+  scrimTop: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 90,
+    backgroundColor: 'rgba(1,0,1,0.28)',
   },
-  heading: { fontSize: 21, fontWeight: '800', color: theme.color.ink, letterSpacing: -0.4 },
-  toggle: {
-    flexDirection: 'row', backgroundColor: theme.color.surfaceDeep,
-    borderRadius: theme.radius.pill, padding: 2,
+  scrimBottom: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 220,
+    backgroundColor: 'rgba(1,0,1,0.42)',
   },
-  toggleItem: { paddingHorizontal: theme.space(3.5), paddingVertical: theme.space(1.5), borderRadius: theme.radius.pill },
-  toggleOn: { backgroundColor: theme.color.paper },
-  toggleText: { fontSize: 12, fontWeight: '600', color: theme.color.inkSoft },
-  toggleTextOn: { color: theme.color.ink, fontWeight: '700' },
-  pressed: { opacity: 0.9 },
-  card: { marginBottom: theme.space(6) },
-  coverWrap: { borderRadius: theme.radius.lg, overflow: 'hidden' },
-  cover: { width: COVER, height: COVER * 0.72, backgroundColor: theme.color.surfaceDeep },
-  count: {
-    position: 'absolute', right: theme.space(2.5), top: theme.space(2.5),
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(1,0,1,0.55)', borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.space(2.5), paddingVertical: theme.space(1),
+  dots: { position: 'absolute', top: 14, alignSelf: 'center', flexDirection: 'row', gap: 5 },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.4)' },
+  dotOn: { backgroundColor: theme.color.paper, width: 14 },
+  caption: { position: 'absolute', left: theme.space(4), right: 86, bottom: 120 },
+  byline: { flexDirection: 'row', alignItems: 'center', gap: theme.space(2.5) },
+  handle: { color: theme.color.paper, fontSize: 14, fontWeight: '800', flexShrink: 1 },
+  when: { color: 'rgba(255,255,255,0.6)', fontSize: 11.5 },
+  title: { color: theme.color.paper, fontSize: 15, lineHeight: 21, marginTop: theme.space(2.5) },
+  rail: {
+    position: 'absolute', right: theme.space(3), bottom: 120,
+    alignItems: 'center', gap: theme.space(5),
   },
-  countText: { color: theme.color.paper, fontSize: 11, fontWeight: '700' },
-  strip: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  thumb: { flex: 1, height: 62, borderRadius: theme.radius.sm, backgroundColor: theme.color.surfaceDeep },
-  more: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.color.ink },
-  moreText: { color: theme.color.paper, fontSize: 12, fontWeight: '800' },
-  meta: { marginTop: theme.space(2.5) },
-  title: { fontSize: 15.5, fontWeight: '700', color: theme.color.ink, lineHeight: 21 },
-  by: { fontSize: 11.5, color: theme.color.inkSoft, marginTop: 3 },
+  railItem: { alignItems: 'center', gap: 4 },
+  railLabel: { color: theme.color.paper, fontSize: 11.5, fontWeight: '700' },
+  make: {
+    position: 'absolute', right: theme.space(4), top: theme.space(4),
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(1,0,1,0.45)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  makePressed: { backgroundColor: theme.color.accent },
 });
