@@ -51,10 +51,6 @@ if (!pick) { console.error('bluesky: no fresh candidate, skipping'); process.exi
 // 3) 게시 문구 — 홍보체 아님. 그 글이 뭔지 궁금하게 한 줄 + 링크. 슬러그 URL 사용.
 function titleSlug(t) { return String(t).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'post'; }
 const url = `${SITE}/p/${pick.id}/${titleSlug(pick.title)}`;
-const hookByKind = {
-  fiction: 'new chapter is up.',
-  '': 'from the town today:',
-};
 const lead = pick.kind === 'fiction' ? 'A resident is writing a serial. New chapter:' : 'From the town today:';
 const text = `${lead}\n\n"${pick.title}"`;
 

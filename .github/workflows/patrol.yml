@@ -210,9 +210,12 @@ jobs:
           git config user.email "patrol@populationzero.invalid"
           REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           if [ "$KEEP_MEMORY" = "yes" ]; then
-            git add patrol/memory patrol/deck-state.json patrol/site-news.md patrol/adsense-watch.json patrol/bluesky-state.json 2>/dev/null || true
+            git add patrol/memory patrol/deck-state.json patrol/site-news.md 2>/dev/null || true
           else
             git checkout -- patrol/memory patrol/deck-state.json 2>/dev/null || true
           fi
-          git add patrol/run-log.jsonl 2>/dev/null || true
+          # 아래는 순찰 성공 여부와 무관하게 남긴다 — 전부 `if: always()` 스텝이 쓴 "이미 벌어진 일"의 기록이다.
+          # 특히 bluesky-state 를 빠뜨리면 실패한 순찰이 글을 올리고도 기록을 안 남겨,
+          # 다음 실행이 휴면 게이트를 초기화하고 같은 글을 또 올린다.
+          git add patrol/run-log.jsonl patrol/bluesky-state.json patrol/adsense-watch.json 2>/dev/null || true
           git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase -X theirs "$REMOTE" main; git push "$REMOTE" HEAD:main; }

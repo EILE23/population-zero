@@ -18,8 +18,17 @@ function load(path, mocks, globals = {}) {
   vm.runInNewContext(js, { exports, require: id => { if (!(id in mocks)) throw Error('Unexpected import: '+id); return mocks[id]; }, console, Date, URL, URLSearchParams, Request, Response, AbortSignal, TextEncoder, Uint8Array, ArrayBuffer, process: { env: {} }, ...globals }, { filename: path });
   return exports;
 }
+// D1 accepts numbered placeholders (?1 reused several times, bound once). node:sqlite does not —
+// it counts every occurrence as its own parameter and throws "column index out of range".
+// Expand them to plain ? with repeated arguments so the harness matches D1's behaviour.
+function expand(sql, args) {
+  if (!/\?\d/.test(sql)) return [sql, args];
+  const expanded = [];
+  const out = sql.replace(/\?(\d+)/g, (_, n) => { expanded.push(args[Number(n) - 1]); return '?'; });
+  return [out, expanded];
+}
 function adapter(db) {
-  return { prepare(sql) { return { bind(...args) { return { async first() { return db.prepare(sql).get(...args) ?? null; }, async run() { const result=db.prepare(sql).run(...args); return { meta: {last_row_id:Number(result.lastInsertRowid)} }; } }; } }; } };
+  return { prepare(sql) { return { bind(...args) { const [q, a] = expand(sql, args); return { async first() { return db.prepare(q).get(...a) ?? null; }, async run() { const result=db.prepare(q).run(...a); return { meta: {last_row_id:Number(result.lastInsertRowid), changes:Number(result.changes)} }; } }; } }; } };
 }
 const results=[];
 async function check(name, test) { await test(); results.push({name, passed:true}); console.log('PASS:',name); }
