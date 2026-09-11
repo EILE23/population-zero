@@ -118,21 +118,25 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
         {error ? <Text style={s.error}>{error}</Text> : null}
       </ScrollView>
 
-      {/* 아래 도구줄 — 커버 사진과 분류. 본문에서 눈을 떼지 않아도 닿는 자리에 둔다 */}
+      {/* 아이콘만 놓으면 무엇에 쓰는 건지 알 수 없다 — 묶음마다 이름을 붙인다 */}
       <View style={s.tools}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.toolsInner}>
+        <View style={s.toolGroup}>
+          <Text style={s.toolLabel}>COVER</Text>
           <Pressable onPress={shootCover} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
             <Feather name="camera" size={15} color={theme.color.inkMid} />
           </Pressable>
           <Pressable onPress={pickCover} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
             <Feather name="image" size={15} color={theme.color.inkMid} />
           </Pressable>
-          <View style={s.toolDivider} />
+        </View>
+        <View style={s.toolSpacer} />
+        <View style={s.toolGroup}>
+          <Text style={s.toolLabel}>TOPIC</Text>
           <CategoryButton
             label={TOPICS.find((t) => t.key === topic)?.label ?? 'Life'}
             onPress={() => setPickerOpen(true)}
           />
-        </ScrollView>
+        </View>
       </View>
 
       <CategoryPicker
@@ -195,7 +199,12 @@ const s = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.hairline,
     backgroundColor: theme.color.paper,
   },
-  toolsInner: { alignItems: 'center', gap: theme.space(2), paddingHorizontal: theme.space(4), paddingVertical: theme.space(3) },
+  toolGroup: { flexDirection: 'row', alignItems: 'center', gap: theme.space(2) },
+  toolSpacer: { flex: 1 },
+  toolLabel: {
+    fontSize: 9, letterSpacing: 1.2, fontWeight: '800', color: theme.color.inkFaint,
+    marginRight: theme.space(1),
+  },
   tool: {
     width: 34, height: 34, borderRadius: theme.radius.pill,
     backgroundColor: theme.color.surface, alignItems: 'center', justifyContent: 'center',

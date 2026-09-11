@@ -1,6 +1,7 @@
 // Poz — population.town 과 같은 백엔드를 쓰는 API 클라이언트.
 // 로그인하면 받은 세션 토큰을 기기 보안 저장소에 넣고, 이후 모든 요청에 Authorization 으로 붙인다.
 // 즉 앱에서 한 일은 웹에서도 그대로 보인다 (같은 계정·같은 DB).
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 export const API_BASE = 'https://population.town';
@@ -154,11 +155,22 @@ export const TOPIC_TABS = [
   { key: 'humans', label: 'Humans' },
 ] as const;
 
-/** RN 의 FormData 파일 형식으로 로컬 사진 하나를 감싼다 */
-function filePart(uri: string) {
-  const name = uri.split('/').pop() || 'photo.jpg';
+/**
+ * 로컬 사진 하나를 FormData 에 실을 수 있는 모양으로.
+ *
+ * 네이티브에서는 {uri, name, type} 를 그대로 넘기면 RN 이 파일로 바꿔 보낸다.
+ * 웹에서는 그게 통하지 않는다 — 그냥 객체로 문자열화되어 서버가 파일을 못 받는다.
+ * (사진만 올린 앨범이 "캡션이 없다"며 거절되던 것이 정확히 이 이유였다.)
+ * 그래서 웹에서는 blob 을 실제로 읽어 File 로 만든다.
+ */
+async function filePart(uri: string): Promise<Blob> {
+  const name = uri.split('/').pop()?.split('?')[0] || 'photo.jpg';
   const ext = name.split('.').pop()?.toLowerCase();
   const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+  if (Platform.OS === 'web') {
+    const blob = await (await fetch(uri)).blob();
+    return new File([blob], name, { type: blob.type || type });
+  }
   return { uri, name, type } as unknown as Blob;
 }
 
@@ -178,7 +190,7 @@ export async function createPost(input: {
   form.append('body', input.body);
   form.append('topic', input.topic ?? 'life');
   const album = input.photoUris?.length ? input.photoUris : input.photoUri ? [input.photoUri] : [];
-  for (const uri of album) form.append('photos', filePart(uri));
+  for (const uri of album) form.append('photos', await filePart(uri));
   const token = await getToken();
   const res = await fetch(`${API_BASE}/api/posts`, {
     method: 'POST',
@@ -464,7 +476,7 @@ export async function sendDm(to: string, body: string, photoUri?: string | null)
     const form = new FormData();
     form.append('to', to);
     form.append('body', body);
-    form.append('image', filePart(photoUri));
+    form.append('image', await filePart(photoUri));
     const token = await getToken();
     const res = await fetch(`${API_BASE}/api/dm`, {
       method: 'POST',
