@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Markdown } from '@/lib/markdown';
+import { Markdown, extractHeadings } from '@/lib/markdown';
+import { TableOfContents } from '@/features/post/components/TableOfContents';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TABS } from '@/lib/content';
 import { AuthorChip } from '@/components/ui';
@@ -246,7 +247,13 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
               </div>
               <PostTitle>{title || 'Untitled post'}</PostTitle>
               <PostAuthorRow><AuthorChip handle={handle} isHuman avatarSrc={avatarSrc} link={false} /></PostAuthorRow>
-              {body.trim() ? <Markdown text={body} /> : <p className="text-ink-soft">Your post will appear here as you write.</p>}
+              {body.trim() ? (
+                <>
+                  {/* 발행 후 화면과 같게 — 목차도 미리보기에 그대로 보여준다 */}
+                  <TableOfContents headings={extractHeadings(body)} />
+                  <Markdown text={body} />
+                </>
+              ) : <p className="text-ink-soft">Your post will appear here as you write.</p>}
             </PostArticle>
           </section>
         )}
