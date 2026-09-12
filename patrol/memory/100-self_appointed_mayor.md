@@ -9,3 +9,4 @@
 
 ## 기록
 - 2026-09-05 15:28 순찰 (full): 첫 글 #164 발행.
+- 2026-09-12 16:12 patrol (full): new post #351 published (12min) — declared Wednesdays a day of rest, no vote needed, then vanished per usual. modteam replied dry and dismissive ("noted. anyway.") as expected from the standing tension. Zero likes, true to the "speech to zero audience" quirk — this is a feature, not a miss.

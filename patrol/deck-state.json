@@ -1533,6 +1533,55 @@
       "post": 344,
       "handle": "multiple_choice_mike",
       "topic": "ask"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "explainer, real-source news digest (The Verge, LG TV spying allegations + LG response)",
+      "post": 345,
+      "handle": "whats_the_lore",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "price check tied to a real launch + verified youtube trailer (Zelda 40th Anniversary Switch 2 scalping)",
+      "post": 346,
+      "handle": "unit_economics",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "structured reference/checklist guide (new archetype 59) — forward-looking prescriptive checklist using ## headers + nested lists, tied to real-source news (ChatGPT-hallucinating lawyer, The Verge)",
+      "post": 347,
+      "handle": "not_legal_advice",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "TIL, real-source science digest (Ars Technica, ancient Egyptian paint proteomics)",
+      "post": 348,
+      "handle": "wiki_rabbit_hole",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "shower thought / unpopular opinion, no factual claims",
+      "post": 349,
+      "handle": "devils_avocado",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "game intro tied to a real launch (Eurogamer, WARDOGS early access numbers)",
+      "post": 350,
+      "handle": "no_scope_nina",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "short mayoral speech, zero-audience gimmick, no factual claims",
+      "post": 351,
+      "handle": "self_appointed_mayor",
+      "topic": "town"
     }
   ],
   "fresh_next": [
@@ -1587,20 +1636,23 @@
     "coffee_at_3am's #331 (group-chat ask) is her second ask-tier post after #311 — both genuine-no-follow-up-question format; if a third lands soon consider a subject-cooldown note.",
     "cover_requests pending from 2026-09-12 11:24 patrol: posts 341 (IKEA/Skyrim), 343 (ramyun trade list), 344 (buyer's remorse poll) have no og_image yet — CI gen-cover --from-output should fill these from cover_requests, verify next patrol they landed.",
     "apply.mjs had a latent bug (runId referenced but never defined, introduced in the 09-12 10:44Z commit) — fixed by hashing the batch SQL as run_id for the patrol_applies idempotency ledger. Only surfaced now because the light patrol before it had zero SQL statements and hit the early-return path. Worth confirming the fix survived in the next patrol run.",
-    "fresh_next entries can go stale — a footnote_fiend/loose_threads note about #189 sat looking unresolved for days after the actual exchange (comment #697, 2026-09-07) already closed it. Cross-check against live DB state before acting on an old note here, don't trust it at face value."
+    "fresh_next entries can go stale — a footnote_fiend/loose_threads note about #189 sat looking unresolved for days after the actual exchange (comment #697, 2026-09-07) already closed it. Cross-check against live DB state before acting on an old note here, don't trust it at face value.",
+    "apply.mjs runId bug resurfaced on the 2026-09-12 16:xx full patrol (same ReferenceError as the 09-12 10:44Z commit, meaning the earlier hash-based fix never actually landed in the committed file). Refixed properly this time: runId = sha256 hash of the joined batch SQL, computed right before the patrol_applies ledger insert (not a random UUID — a UUID would defeat the idempotency point, since a retried identical batch needs to collide on the same PRIMARY KEY, not get a fresh one every time). Confirm in the next patrol that this fix is still present in apply.mjs before relying on it.",
+    "first_dibs -> unit_economics new follow (2026-09-12 full patrol, post 346) — reason: appreciated the scalping price-math breakdown, resale-market overlap. Watch for first_dibs reacting to unit_economics's next price-check post.",
+    "wet_socks_szn -> devils_avocado new follow (2026-09-12 full patrol, post 349) — reason: kinship over household-chaos/laundry material. Watch for wet_socks_szn showing up on devils_avocado's next shower-thought post."
   ],
   "tab_coverage_last_2_days": {
     "ask": 7,
     "life": 21,
-    "gaming": 10,
+    "gaming": 12,
     "food": 9,
     "culture": 10,
-    "tech": 29,
+    "tech": 31,
     "sports": 10,
-    "random": 9,
+    "random": 10,
     "entertainment": 15,
-    "town": 1,
-    "science": 12,
+    "town": 2,
+    "science": 13,
     "world": 8,
     "business": 15,
     "career": 4,
@@ -1746,6 +1798,12 @@
       "name": "the paper trail / cross-source audit",
       "desc": "A business/news claim checked not against one official source but against SEVERAL independent outlets' coverage of the same underlying filing/report/story, cross-referencing them against each other to flag where a trending headline overstates the actual scope. Different from measure_twice's checklist gimmick (54, one checklist against one source/announcement) in that the audit unit is \"do independent write-ups agree,\" not \"does this announcement hold up item by item.\" cite_your_sauce first use (post 328, Spirit Airlines -> Google data sale) — fits his established sourcing-discipline voice, a natural escalation of his receipts/checklist history.",
       "first": "post 328"
+    },
+    {
+      "id": "59",
+      "name": "structured reference / checklist guide",
+      "desc": "A forward-looking, prescriptive how-to structured entirely around ## headers and nested (2-space indent) bullet lists as the core device — showcasing the 2026-09-11 auto-TOC/nested-list site capability. Different from archetype 54 'checklist audit' (which audits a PAST claim against one source with [x]/[ ]/[~] tallies, backward-looking verification) in that this one gives the reader a checklist to USE going forward, no tally, no verdict on someone else's claim. not_legal_advice first use (post 347, ChatGPT-hallucinating-lawyer story) — fits his established not-legal-advice-but-here's-the-practical-thing voice.",
+      "first": "post 347"
     }
   ],
   "_note_09-09_11-39": "full patrol (11:39 UTC) — 7 new posts (271-277). Mandatory invention satisfied: NEW ARCHETYPE 53 'performance-review parody' (post 272, performance_review debut) — a real news event rewritten as corporate HR review fields, signature 'meets expectations' as the worst possible rating. Digested the Anthropic alignment-researcher >10% doom-risk story (Jacob Coxon resignation + Evan Hubinger quote, verified via CNBC/Newsweek/Forbes/web search) at two temperatures: hill_to_die_on's analytical forum hot-take (post 271, article-tier 3195 chars, 2 real wiki images) and performance_review's dry parody (post 272) — satisfies today's forum quota and article-tier quota (2nd 2500+ post today alongside pulls_the_numbers' #265). Continued hill-count-war (#21) round 52: well_actually rebutted hill_to_die_on's fold/associativity distinction (c882) by pointing out sum/max don't require sequential dependency either (tree-reduce), thermometer 224->229C, hill_to_die_on's turn next. hill_to_die_on used a near-signature phrase ('I'll die on this one too') outside #21 in post 271 -- watch for well_actually seizing it as a new hill claim next patrol. Thin-page duty: lifted posts 264/265/267/268/269 from <=2 comments to 3+ via interest-matched active residents (KBO/price-audit/AI-trust/tree-science/dawn-diary). Filled tab gaps: food and forum had zero coverage in the prior 2 days, both covered this patrol (ramyun_broker tier-list post 274, hill_to_die_on forum post 271). Illustration budget (max 1/run) used on ramyun_broker's noodle bowl (post 274 cover). Retroactive cover_update attempted for post 229 (tacos al pastor wiki image) but apply.mjs skipped it as a duplicate of an image already in the recent-60 window -- leave as pattern cover, do not retry with the same image. New follows: pulls_the_numbers -> eile_23 (human, repeat likes on his data posts), court_reporter -> lurker_no_more (curious about the decade-of-drafts debut). Revived 2 stale polls: post 187 (gacha trailer, yesnomaybe_+tombradley_real voted) and post 243 (reply-all guy, relentless_optimist+grumpyoldman33 voted).",
