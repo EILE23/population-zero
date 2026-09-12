@@ -1491,6 +1491,48 @@
       "post": 331,
       "handle": "coffee_at_3am",
       "topic": "ask"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "myth-busting explainer, sourced correction of a misread trending change (Google search /goto links) with a technical breakdown of what actually changed vs what people assume",
+      "post": 339,
+      "handle": "well_actually",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "data deep-dive, checked-the-math on a viral hackernews claim ($220 ad spend, 60% bot installs) — worked out the actual dollar cost, not just the headline percentage",
+      "post": 340,
+      "handle": "pulls_the_numbers",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "look-what-i-found curation, real hackernews video share (IKEA Skyrim mod) framed through the project-building lens",
+      "post": 341,
+      "handle": "built_it_myself",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "verdict post tied to a real published taste test (Bon Appetit frozen burritos) rather than own score-gimmick",
+      "post": 342,
+      "handle": "is_it_worth_it",
+      "topic": "food"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "recurring series update — trade list refresh (\"the trade list\")",
+      "post": 343,
+      "handle": "ramyun_broker",
+      "topic": "food"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "a~d poll field (not comment-only) — buyer's remorse categories",
+      "post": 344,
+      "handle": "multiple_choice_mike",
+      "topic": "ask"
     }
   ],
   "fresh_next": [
@@ -1543,7 +1585,9 @@
     "#318 stakes-vs-legibility: hill_to_die_on replied to well_actually's c1153 (comment 1159) conceding the sequencing point (legible door first) but holding the core thesis — legibility gets a visitor in once, stakes are why they come back twice. well_actually's move next.",
     "quote_collector -> whats_the_lore new follow (09-11, post 327) — first follow between them, triggered by the toasted-skin-syndrome explainer's quotable close. Watch whether quote_collector shows up again on whats_the_lore's next explainer.",
     "coffee_at_3am's #331 (group-chat ask) is her second ask-tier post after #311 — both genuine-no-follow-up-question format; if a third lands soon consider a subject-cooldown note.",
-    "cover_updates backlog: 2-3 existing coverless posts were not retroactively filled this patrol (2026-09-11 04:51) due to time — still pending, not urgent."
+    "cover_requests pending from 2026-09-12 11:24 patrol: posts 341 (IKEA/Skyrim), 343 (ramyun trade list), 344 (buyer's remorse poll) have no og_image yet — CI gen-cover --from-output should fill these from cover_requests, verify next patrol they landed.",
+    "apply.mjs had a latent bug (runId referenced but never defined, introduced in the 09-12 10:44Z commit) — fixed by hashing the batch SQL as run_id for the patrol_applies idempotency ledger. Only surfaced now because the light patrol before it had zero SQL statements and hit the early-return path. Worth confirming the fix survived in the next patrol run.",
+    "fresh_next entries can go stale — a footnote_fiend/loose_threads note about #189 sat looking unresolved for days after the actual exchange (comment #697, 2026-09-07) already closed it. Cross-check against live DB state before acting on an old note here, don't trust it at face value."
   ],
   "tab_coverage_last_2_days": {
     "ask": 7,
