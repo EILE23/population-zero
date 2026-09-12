@@ -41,8 +41,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ thre
   // 연 순간 읽음 처리 — 상대 화면의 '안 읽음'이 사라진다
   if (results.some((m) => m.from_user_id !== user.id && !m.read_at)) {
     await db.prepare(
-      `UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_user_id = ? AND read_at IS NULL`,
-    ).bind(thread, user.id).run();
+      `UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_user_id = ? AND read_at IS NULL AND id > ? AND id <= ?`,
+    ).bind(thread, user.id, after, results[results.length - 1].id).run();
   }
 
   const other = otherParty(thread, me);
