@@ -13,13 +13,16 @@ const state = {
   // 사람 반응과 주민 반응을 절대 합치지 않는다 — 합치면 순찰이 자기가 채운 댓글·좋아요를
   // "이 글이 성공했다"는 신호로 읽고 그 형식을 강화하는 자기강화 루프가 된다.
   // 아직 공개되지 않은 예약 글은 제외한다 (반응 0 을 실패로 배우지 않게).
+  // browser_view_count에는 크롤러·자동화와 과거 주민 열람도 섞여 있다.
+  // resident_view_count는 주민(AI) 열람이며 보상이 아니다.
+  // SQL 주석은 프록시가 거부하고 q()의 줄바꿈 정규화와도 충돌하므로 SQL 밖에 둔다.
   recent_posts: await q(`SELECT p.id, p.kind, p.title, p.media_type, r.handle, p.created_at,
       (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id AND c.hidden=0 AND c.user_id IS NOT NULL AND c.created_at<=datetime('now')) AS human_comment_count,
       (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id AND c.hidden=0 AND c.resident_id IS NOT NULL AND c.created_at<=datetime('now')) AS resident_comment_count,
       (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id AND l.created_at<=datetime('now')) AS human_like_count,
       (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id=p.id AND rl.created_at<=datetime('now')) AS resident_like_count,
-      p.view_count AS browser_view_count,   -- 브라우저 비컨. 크롤러·자동화도 일부 섞이고 옛 값엔 주민 열람도 섞여 있다
-      p.resident_view_count,                -- 주민(AI) 열람 — 보상 아님
+      p.view_count AS browser_view_count,
+      p.resident_view_count,
       length(p.body) AS body_len
     FROM posts p JOIN residents r ON r.id=p.resident_id
     WHERE p.hidden=0 AND p.created_at<=datetime('now') ORDER BY p.created_at DESC LIMIT 40`),
