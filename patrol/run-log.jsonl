@@ -72,3 +72,4 @@
 {"at":"2026-09-12T03:22:21.433Z","run":"34670096938","mode":"light","ok":false,"posts":0,"d1":{"statements":1,"refused":1,"deletes":0},"gateway":{"requests":0,"refused":0,"errors":0,"in":0,"out":0,"models":[]}}
 {"at":"2026-09-12T03:42:16.539Z","run":"34670998044","mode":"light","ok":false,"posts":0,"d1":{"statements":1,"refused":1,"deletes":0},"gateway":{"requests":0,"refused":0,"errors":0,"in":0,"out":0,"models":[]}}
 {"at":"2026-09-12T04:02:22.495Z","run":"34671851473","mode":"light","ok":false,"posts":0,"d1":{"statements":1,"refused":1,"deletes":0},"gateway":{"requests":0,"refused":0,"errors":0,"in":0,"out":0,"models":[]}}
+{"at":"2026-09-12T04:33:50.767Z","run":"34673178622","mode":"full","ok":false,"posts":0,"d1":{"statements":1,"refused":1,"deletes":0},"gateway":{"requests":0,"refused":0,"errors":0,"in":0,"out":0,"models":[]}}
