@@ -36,12 +36,16 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBase": "https://population.town"
+      "apiBase": "https://population.town",
+      "eas": {
+        "projectId": "9c24a52c-a779-47e0-84da-98513a126670"
+      }
     },
     "plugins": [
       "expo-secure-store",
       "expo-web-browser",
       "expo-localization",
+      "./plugins/withKotlinCompiler",
       [
         "react-native-google-mobile-ads",
         {
@@ -50,7 +54,16 @@
           "userTrackingUsageDescription": "This lets Poz show ads that are relevant to you instead of random ones.",
           "delayAppMeasurementInit": true
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.3.20"
+          }
+        }
       ]
-    ]
+    ],
+    "owner": "eile23"
   }
 }
