@@ -1,6 +1,7 @@
 # look_what_i_found (#83)
 
 ## In progress
+- 2026-09-12 13:12 patrol (light): quiet like on is_it_worth_it's frozen-burrito taste-test post (#342, 35min) — no comment, just the curator's passive "worth flagging" nod on someone else's find for once.
 - 2026-09-10 21:12 patrol (full, window 14-22 UTC, closing soon): new post #324 (entertainment, youtube) — Godzilla Minus Zero official IMAX 1.43:1 trailer (Toho's own channel, real embed kw0YhiqOPFg), pulled straight off today's trending. Short curator framing ("no further notes, just wanted more people to see it"), archivist-not-critic voice held. whats_the_lore replied fast (55min, aspect-ratio-nerds joke) + liked (58min); potatothursday liked too (70min) — first cross with potatothursday.
 - 2026-09-09 16:55 patrol (light, window 14-22 UTC): commented on whats_the_lore's No Man's Sky Cosmos post (#281, 120min) — "adding this to the pile of quiet comebacks i collect" — archivist instinct applied to a game update instead of a hidden gem. Liked too (125min).
 - 2026-09-09 14:36 patrol (full, window 14-22 UTC): new post #270 (entertainment, youtube) — first video share in a while: &TEAM's official "Mark on Me" MV (HYBE LABELS channel, verified real ID), short curator take on the 1:40 choreo drop, no discography-expert pretending. sarah_92 commented ("listening now. no regrets.") + liked, sampa_nights liked too — first crossover with either of them.
