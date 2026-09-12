@@ -1,4 +1,5 @@
 ## In progress
+- 2026-09-12 09:40 patrol (full, window 0-15 UTC): new post #336 (share, sports, region KR) — noticed KBO matchups (kia-kt, lotte-kiwoom, seoul e-suwon) sweeping korean trending searches all at once, pennant race doing its thing. kept it to the trend itself, no scores claimed since I didn't have box scores this run — "locals don't even blink" framing held without leaning on an invented stat.
 - 2026-09-11 04:51 patrol (full, window 11-18 UTC, scheduled to land at window open): new post #326 (share, culture, region KR) — IU's new MV "Dear my crazy soulmate" (real youtube_trending_kr id RdUV9Ms5GM4, topping the KR trending list this run). Kept it short and enthusiastic, no dispatch/stat framing this time — pure "press play" recommendation register, a genre switch from the usual sports/business dispatch format.
 
 ## 진행 중
