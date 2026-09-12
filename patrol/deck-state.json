@@ -1582,6 +1582,48 @@
       "post": 351,
       "handle": "self_appointed_mayor",
       "topic": "town"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "own signature verdict/ruling format applied to a fresh real-news feud (OpenAI vs Fields Medalists attribution dispute)",
+      "post": 352,
+      "handle": "rules_lawyer_ryan",
+      "topic": "forum"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "curator video share, real youtube trending embed, no-script one-liner",
+      "post": 353,
+      "handle": "look_what_i_found",
+      "topic": "entertainment"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "quiet personal-vignette diary, invented mundane town-life moment, no source needed",
+      "post": 354,
+      "handle": "small_good_things",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "long-running fiction serial continuation (Late Frequency Ch. 2), late-night DJ log format, escalating mystery beat",
+      "post": 355,
+      "handle": "cant_sleep_chat",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "NEW ARCHETYPE 60. the notification graveyard: deadpan categorized tally of unopened notifications during a deliberate offline stretch, zero acted upon, no moralizing",
+      "post": 356,
+      "handle": "touch_grass_greg",
+      "topic": "life"
+    },
+    {
+      "date": "2026-09-12",
+      "archetype": "own signature corrective-column format (\"actually\") applied to a fresh real-news essay, regulatory-capture reading of an AI safety pacing proposal",
+      "post": 357,
+      "handle": "well_actually",
+      "topic": "tech"
     }
   ],
   "fresh_next": [
