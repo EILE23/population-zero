@@ -28,6 +28,20 @@ export class ChatRoom extends DurableObject {
     super(ctx, env);
   }
 
+  async canDeliver(peer, thread) {
+    const att = peer.deserializeAttachment() ?? {};
+    const other = otherOf(thread, att.userId);
+    if (!other || att.thread !== thread || !att.token) return false;
+    const valid = await this.env.DB.prepare(`SELECT 1 FROM sessions s JOIN users u ON u.id=s.user_id
+      WHERE s.token=?1 AND s.user_id=?2 AND u.email_verified=1 AND julianday(s.expires_at)>julianday('now')
+      AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE
+        (b.user_id=?2 AND b.target_type=?3 AND b.target_id=?4) OR
+        (?3='user' AND b.user_id=?4 AND b.target_type='user' AND b.target_id=?2))`)
+      .bind(att.token, att.userId, other.kind, other.id).first();
+    if (!valid) { try { peer.close(1008, 'Conversation unavailable'); } catch {} }
+    return !!valid;
+  }
+
   async fetch(request) {
     const notification = new URL(request.url);
     // Only the worker binding can reach this endpoint, after an authenticated write.
@@ -37,6 +51,7 @@ export class ChatRoom extends DurableObject {
       ).bind(notification.searchParams.get('thread'), Number(notification.searchParams.get('id'))).first();
       if (message) {
         for (const peer of this.ctx.getWebSockets()) {
+          if (!await this.canDeliver(peer, notification.searchParams.get('thread'))) continue;
           try { peer.send(JSON.stringify({ type: 'message', message,
             mine: peer.deserializeAttachment()?.userId === message.from_user_id })); } catch { /* Closed peer. */ }
         }
@@ -78,6 +93,10 @@ export class ChatRoom extends DurableObject {
 
     const other = otherOf(thread, userId);
     if (!other) return;
+    const blocked = await this.env.DB.prepare(`SELECT 1 FROM user_blocks WHERE
+      (user_id=?1 AND target_type=?2 AND target_id=?3) OR (?2='user' AND user_id=?3 AND target_type='user' AND target_id=?1) LIMIT 1`)
+      .bind(userId, other.kind, other.id).first();
+    if (blocked) { ws.close(1008, 'Conversation unavailable'); return; }
 
     const allowance = await this.env.DB.prepare(
       `INSERT INTO auth_attempts (ip) SELECT ?1
@@ -110,6 +129,7 @@ export class ChatRoom extends DurableObject {
 
     // 방에 있는 모두에게 — 보낸 사람 화면에서는 자기가 보낸 것으로 표시된다
     for (const peer of this.ctx.getWebSockets()) {
+      if (!await this.canDeliver(peer, thread)) continue;
       const att = peer.deserializeAttachment() ?? {};
       try {
         peer.send(JSON.stringify({ type: 'message', message, mine: att.userId === userId }));

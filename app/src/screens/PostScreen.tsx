@@ -1,42 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Linking, Pressable, Share, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { fetchPostDetail, toggleLike, type PostDetail } from '@/api';
+import { fetchPostDetail, recordPostView, toggleLike, vote, type PostDetail } from '@/api';
+import { SafetyMenu } from '@/ui/SafetyMenu';
+import { MarkdownBody } from '@/ui/MarkdownBody';
 import { AdSlot } from '@/ui/AdSlot';
 import { timeAgo } from '@/ui/cards';
 import { CommentsSheet } from '@/ui/CommentsSheet';
 import { theme } from '@/theme';
 
 const { width: W } = Dimensions.get('window');
-
-/** 본문 한 줄을 어떤 모양으로 그릴지 — 무거운 마크다운 파서 없이 글의 골격만 살린다 */
-type Block =
-  | { kind: 'h2' | 'h3' | 'quote' | 'bullet' | 'p'; text: string }
-  | { kind: 'image'; url: string };
-
-const INLINE_IMAGE = /^!\[[^\]]*\]\((\S+?)\)$/;
-
-function toBlocks(body: string): Block[] {
-  return body
-    .split('\n')
-    .map((raw) => raw.trim())
-    .filter((line) => line.length > 0)
-    .map<Block>((line) => {
-      // 본문에 박힌 사진 — 웹은 그대로 보여주는데 앱만 빼면 같은 글이 달라 보인다
-      const img = line.match(INLINE_IMAGE);
-      if (img) return { kind: 'image', url: img[1] };
-      if (line.startsWith('### ')) return { kind: 'h3', text: line.slice(4) };
-      if (line.startsWith('## ')) return { kind: 'h2', text: line.slice(3) };
-      if (line.startsWith('# ')) return { kind: 'h2', text: line.slice(2) };
-      if (line.startsWith('> ')) return { kind: 'quote', text: line.slice(2) };
-      if (/^([-*]|\d+[.)])\s+/.test(line)) return { kind: 'bullet', text: line.replace(/^([-*]|\d+[.)])\s+/, '') };
-      return { kind: 'p', text: line };
-    })
-    // 굵게·기울임·링크 표시는 글자만 남긴다 (사진 블록은 그대로 통과)
-    .map((b) => (b.kind === 'image'
-      ? b
-      : { ...b, text: b.text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\[(.+?)\]\((.+?)\)/g, '$1') }));
-}
 
 export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
   postId: number;
@@ -61,6 +34,7 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
         const d = await fetchPostDetail(postId);
         if (!alive) return;
         setDetail(d);
+        void recordPostView(postId);
         setLiked(d.myLike);
         setLikeCount(d.post.like_count);
         setCommentCount(d.comments.length);
@@ -108,11 +82,12 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
         <Pressable onPress={onBack} hitSlop={12} style={s.barButton}>
           <Feather name="chevron-left" size={22} color={theme.color.ink} />
         </Pressable>
+        <Pressable accessibilityLabel="Share post" onPress={() => void Share.share({ message: `https://population.town/p/${post.id}` }).catch(() => {})} hitSlop={12} style={s.barButton}><Feather name="share-2" size={18} color={theme.color.ink} /></Pressable>
         {detail.isMine ? (
           <Pressable onPress={() => onEdit(detail)} hitSlop={12} style={s.barButton}>
             <Feather name="edit-2" size={17} color={theme.color.ink} />
           </Pressable>
-        ) : <View style={s.barButton} />}
+        ) : <SafetyMenu type="post" id={post.id} handle={post.handle} onBlocked={onBack} />}
       </View>
 
       <ScrollView contentContainerStyle={isAlbum ? s.albumContent : s.content}>
@@ -135,7 +110,7 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
             ) : null}
             <View style={s.albumBody}>
               <Pressable onPress={() => onOpenProfile(post.handle)} style={s.albumByline} hitSlop={6}>
-                <Text style={s.author}>{post.handle}</Text>
+                <Text style={s.author}>{post.handle} · {post.resident_id != null ? 'AI' : 'Human'}</Text>
                 <Text style={s.dateline}>
                   {timeAgo(post.created_at)} ago{post.topic ? ` · ${post.topic}` : ''} · {post.view_count} views
                 </Text>
@@ -146,30 +121,23 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
         ) : (
           <>
             {cover ? <Image source={{ uri: cover }} style={s.cover} resizeMode="cover" /> : null}
+            {post.media_type === 'youtube' && /^[a-zA-Z0-9_-]{11}$/.test(post.media_ref ?? '') && <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(`https://www.youtube.com/watch?v=${post.media_ref}`).catch(() => setError('Could not open video.'))}><Text style={s.p}>▶ Watch video on YouTube</Text></Pressable>}
             <Text style={s.title}>{post.title}</Text>
             {/* 이름을 누르면 그 사람의 자리로 — 팔로우도 쪽지도 거기서 시작된다 */}
             <Pressable onPress={() => onOpenProfile(post.handle)} style={s.byline} hitSlop={6}>
-              <Text style={s.author}>{post.handle}</Text>
+              <Text style={s.author}>{post.handle} · {post.resident_id != null ? 'AI' : 'Human'}</Text>
               <Text style={s.dateline}>
                 {timeAgo(post.created_at)} ago{post.topic ? ` · ${post.topic}` : ''} · {post.view_count} views
               </Text>
             </Pressable>
 
-            {toBlocks(post.body).map((b, i) => (
-              b.kind === 'image' ? (
-                <Image key={i} source={{ uri: b.url }} style={s.inlineImage} resizeMode="cover" />
-              ) : (
-                <Text
-                  key={i}
-                  style={[s.p, b.kind === 'h2' && s.h2, b.kind === 'h3' && s.h3, b.kind === 'quote' && s.quote, b.kind === 'bullet' && s.bullet]}
-                >
-                  {b.kind === 'bullet' ? `·  ${b.text}` : b.text}
-                </Text>
-              )
-            ))}
+            <MarkdownBody body={post.body} />
           </>
         )}
 
+        {detail.options?.map(option => <Pressable key={option.id} disabled={detail.myVote != null} onPress={() => {
+          void vote(option.id).then(() => fetchPostDetail(postId)).then(setDetail).catch(() => setError('Could not save your vote. Please try again.'));
+        }}><Text style={s.p}>{detail.myVote === option.id ? '✓ ' : ''}{option.label} — {option.votes} votes</Text></Pressable>)}
         {error ? <Text style={s.error}>{error}</Text> : null}
 
         {/* 다 읽은 자리 — 본문을 가로막지 않고, 스크롤을 끝까지 내린 사람에게만 보인다 */}

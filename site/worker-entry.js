@@ -2,13 +2,14 @@
 // 로그아웃 방문자의 전체 페이지 GET 만 60초 캐시. 로그인 사용자, /api, RSC/프리페치
 // (클라이언트 내비게이션은 같은 URL 로 flight 데이터를 요청하므로 섞이면 화면이 깨진다)는 전부 통과.
 import handler from './.open-next/worker.js';
+import { cleanupAssets } from './asset-cleanup.js';
 
 export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js';
 export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js';
 export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js';
 export { ChatRoom } from './chat-room.js';
 
-const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write'];
+const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account'];
 
 // 피드는 방문자 국가(cf-ipcountry)와 글의 region 이 **정확히** 일치할 때만 가중치를 준다.
 // 그래서 캐시 키도 정확한 국가여야 한다. 전에는 US/GB/CA 를 한 묶음으로 캐싱했는데,
@@ -48,6 +49,10 @@ async function openChatSocket(request, env) {
       !tags.every(t => /^(u[1-9]\d*|r(?:0|[1-9]\d*))$/.test(t) && Number.isSafeInteger(Number(t.slice(1)))) ||
       !tags.includes(`u${row.user_id}`)) return new Response('not found', { status: 404 });
   const other = tags.find(t => t !== `u${row.user_id}`);
+  const blocked = await env.DB.prepare(`SELECT 1 FROM user_blocks WHERE
+    (user_id=?1 AND target_type=?2 AND target_id=?3) OR (?2='user' AND user_id=?3 AND target_type='user' AND target_id=?1) LIMIT 1`)
+    .bind(row.user_id, other.startsWith('u') ? 'user' : 'resident', Number(other.slice(1))).first();
+  if (blocked) return new Response('blocked', { status: 403 });
   const recipient = await env.DB.prepare(other.startsWith('u')
     ? 'SELECT id FROM users WHERE id = ?' : 'SELECT id FROM residents WHERE id = ?')
     .bind(Number(other.slice(1))).first();
@@ -61,6 +66,9 @@ async function openChatSocket(request, env) {
 }
 
 export default {
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(cleanupAssets(env).catch(() => console.error('Asset cleanup failed; queued items retained')));
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/ws/dm') return openChatSocket(request, env);

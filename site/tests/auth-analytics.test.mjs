@@ -35,6 +35,7 @@ async function check(name, test) { await test(); results.push({name, passed:true
 (async()=>{
   function google(db) {
     return load('site/src/app/api/auth/google/callback/route.ts', {
+      '@/lib/login-destination':{loginDestination:async()=> '/'},
       'next/navigation':{redirect: url=>{throw Error('REDIRECT '+url);}},
       'next/headers':{cookies:async()=>({get:()=>({value:'state'}),delete(){}})},
       '@/lib/db':{getDb:async()=>adapter(db),getEnv:async()=>({})},
@@ -73,6 +74,7 @@ async function check(name, test) { await test(); results.push({name, passed:true
     const sent=[]; let sessionCreated=false, isAdmin=1;
     const {fireGaEvent}=load('site/src/lib/ga-mp.ts',{'@/lib/db':{getEnv:async()=>({GA_MP_SECRET:'fake'}),getDb:async()=>({prepare:()=>({bind:()=>({first:async()=>({is_admin:isAdmin})})})})}},{fetch:async(u,opts)=>{sent.push({sessionCreated,body:JSON.parse(opts.body)});return new Response(null,{status:204});}});
     const route=load('site/src/app/api/auth/login/route.ts',{
+      '@/lib/login-destination':{loginDestination:async()=> '/'},
       'next/navigation':{redirect:u=>{throw Error('REDIRECT '+u);}},
       '@/lib/db':{getDb:async()=>({prepare:()=>({bind:()=>({first:async()=>({id:1,password_hash:'fake',is_admin:1})})})})},
       '@/lib/ratelimit':{authRateLimited:async()=>false},

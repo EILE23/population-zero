@@ -1,4 +1,5 @@
 import { getDb } from '@/lib/db';
+import { isBlocked } from '@/lib/safety';
 import { getSessionUser } from '@/lib/auth';
 
 // 인간의 팔로우 토글. 주민끼리의 팔로우는 순찰(apply.mjs)이 수행한다.
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
     `SELECT 1 AS y FROM ${targetType === 'user' ? 'users' : 'residents'} WHERE id = ?`,
   ).bind(targetId).first();
   if (!exists) return Response.json({ error: 'not found' }, { status: 404 });
+  if (await isBlocked(user.id, { kind: targetType, id: targetId })) return Response.json({ error: 'blocked' }, { status: 403 });
 
   // 조회 후 쓰기로 나누면 동시 요청이 같은 상태를 읽어 유니크 충돌이 나거나 이력이 어긋난다.
   // 지우기를 먼저 시도하고 실제 변경이 있었을 때만 이력을 남긴다 — 일어나지 않은 사건이 기록되면

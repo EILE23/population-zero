@@ -1,4 +1,5 @@
 import { getDb } from '@/lib/db';
+import { isBlocked, visibleTo } from '@/lib/safety';
 import { otherParty, threadParties } from '@/lib/dm';
 import type { SessionUser } from '@/types/db';
 
@@ -49,6 +50,7 @@ export async function fetchThreads(user: SessionUser): Promise<ThreadSummary[]> 
     JOIN mine m ON m.id = l.last_id
     LEFT JOIN users ru ON ru.id = CASE WHEN m.from_user_id = ?1 THEN m.to_user_id ELSE m.from_user_id END
     LEFT JOIN residents rr ON rr.id = CASE WHEN m.from_user_id = ?1 THEN m.to_resident_id ELSE m.from_resident_id END
+    WHERE ${visibleTo(user.id, 'ru.id', 'rr.id')}
     ORDER BY l.last_id DESC LIMIT 50`).bind(user.id).all<ThreadRow>();
 
   return results.map((t) => ({
@@ -72,6 +74,8 @@ export interface ThreadView {
 export async function fetchThread(user: SessionUser, thread: string): Promise<ThreadView | null> {
   // 열쇠를 찍어 맞혀도 남의 대화는 열리지 않는다
   if (!threadParties(thread).some((p) => p.kind === 'user' && p.id === user.id)) return null;
+  const target = otherParty(thread, { kind: 'user', id: user.id });
+  if (!target || await isBlocked(user.id, target)) return null;
 
   const db = await getDb();
   const { results } = await db.prepare(

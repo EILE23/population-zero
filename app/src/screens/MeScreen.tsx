@@ -1,10 +1,11 @@
+import { ChoiceSheet } from '@/ui/ChoiceSheet';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Pressable, RefreshControl, ScrollView,
+  ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView,
   StyleSheet, Text, View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { fetchMyProfile, updateMyProfile, type Me, type MyProfile } from '@/api';
+import { blockHandle, fetchBlocks, fetchMyProfile, requestAccountDeletion, resendVerification, updateMyProfile, type Me, type MyProfile } from '@/api';
 import { useFeed } from '@/hooks/useFeed';
 import { ActivitySheet } from '@/ui/ActivitySheet';
 import { Avatar } from '@/ui/Avatar';
@@ -13,6 +14,7 @@ import { Toggle as Switch2 } from '@/ui/Toggle';
 import { timeAgo } from '@/ui/cards';
 import { TAB_BAR_HEIGHT } from '@/ui/TabBar';
 import { theme } from '@/theme';
+import { showAdPrivacy } from '@/ads';
 
 type Space = 'posts' | 'comments' | 'following';
 
@@ -53,6 +55,7 @@ export function MeScreen({ me, reloadKey, onSignOut, onOpenPost, onOpenMessages 
   onOpenPost: (postId: number) => void;
   onOpenMessages: () => void;
 }) {
+  const [blocked, setBlocked] = useState<{ handle: string }[] | null>(null);
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [space, setSpace] = useState<Space>('posts');
   const [refreshing, setRefreshing] = useState(false);
@@ -236,6 +239,15 @@ export function MeScreen({ me, reloadKey, onSignOut, onOpenPost, onOpenMessages 
         </View>
 
         <Text style={s.sectionLabel}>ACCOUNT</Text>
+        <Pressable style={s.cardRow} onPress={() => void showAdPrivacy().catch(() => Alert.alert('Ad privacy', 'No additional privacy options are currently available.'))}><Text style={s.rowLabel}>Ad privacy choices</Text></Pressable>
+        <View style={s.card}>
+          {!profile.user.email_verified && <Pressable style={s.cardRow} onPress={() => void resendVerification().then(() => Alert.alert('Email sent', 'Verify your email, then return to the app.')).catch(e => Alert.alert('Could not send', e.message))}><Text style={s.rowLabel}>Resend verification email</Text></Pressable>}
+          {['privacy', 'terms', 'contact'].map(path => <Pressable key={path} style={s.cardRow} onPress={() => void Linking.openURL(`https://population.town/${path}`)}><Text style={s.rowLabel}>{path === 'privacy' ? 'Privacy policy' : path === 'terms' ? 'Terms' : 'Contact support'}</Text></Pressable>)}
+          <Pressable style={s.cardRow} onPress={() => void fetchBlocks().then(({ blocks }) => setBlocked(blocks)).catch(e => Alert.alert('Error', e.message))}><Text style={s.rowLabel}>Blocked accounts</Text></Pressable>
+          <Pressable style={s.cardRow} onPress={() => Alert.alert('Delete account?', 'We will email a confirmation link. Confirming it permanently removes your account, posts, comments and messages.', [
+            { text: 'Cancel', style: 'cancel' }, { text: 'Send confirmation', style: 'destructive', onPress: () => void requestAccountDeletion().then(() => Alert.alert('Check your email', 'Open the confirmation link to review and finish deletion.')).catch(e => Alert.alert('Could not send', e.message)) },
+          ])}><Text style={s.signOutText}>Delete account</Text></Pressable>
+        </View>
         <View style={s.card}>
           <View style={s.toggleRow}>
             <View style={s.toggleText}>
@@ -254,6 +266,7 @@ export function MeScreen({ me, reloadKey, onSignOut, onOpenPost, onOpenMessages 
         <Text style={s.note}>Same account as population.town. What you do here shows up there.</Text>
       </ScrollView>
 
+      {blocked !== null && <ChoiceSheet title={blocked.length ? 'Unblock an account' : 'No blocked accounts'} onClose={() => setBlocked(null)} choices={blocked.map(({ handle }) => ({ label: handle, action: () => void blockHandle(handle, true).then(() => Alert.alert('Unblocked', handle)).catch(e => Alert.alert('Error', e.message)) }))} />}
       <ActivitySheet visible={activityOpen} onClose={() => setActivityOpen(false)} onOpenPost={onOpenPost} />
     </View>
   );

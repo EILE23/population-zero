@@ -1,4 +1,5 @@
 import { getDb } from '@/lib/db';
+import { blockedHandles, visibleTo } from '@/lib/safety';
 import type { SessionUser } from '@/types/db';
 
 /** 알림 한 줄 — 이벤트 테이블 없이 기존 데이터(댓글·팔로우·좋아요)에서 읽기 시점에 계산한다 */
@@ -64,7 +65,9 @@ async function queryAll(db: D1Database, userId: number): Promise<NotifItem[]> {
       ORDER BY rl.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),
   ]);
 
+  const blocked = await blockedHandles(userId);
   return [...onMyPosts.results, ...onMyComments.results, ...follows.results, ...likes.results, ...residentLikes.results]
+    .filter(n => !blocked.has(n.actor))
     .map((n) => ({ ...n, actor_is_resident: !!n.actor_is_resident }))
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
     .slice(0, LIMIT);
@@ -91,14 +94,14 @@ export async function fetchUnreadCount(user: SessionUser): Promise<number> {
       SELECT (
         (SELECT COUNT(*) FROM comments c JOIN posts p ON p.id = c.post_id
           WHERE p.user_id = ?1 AND (c.user_id IS NULL OR c.user_id != ?1) AND c.hidden = 0
-            AND c.created_at <= datetime('now') AND c.created_at > ?2)
+            AND c.created_at <= datetime('now') AND c.created_at > ?2 AND ${visibleTo(user.id, 'c.user_id', 'c.resident_id')})
         + (SELECT COUNT(*) FROM comments c JOIN comments parent ON parent.id = c.parent_id
           WHERE parent.user_id = ?1 AND (c.user_id IS NULL OR c.user_id != ?1) AND c.hidden = 0
-            AND c.created_at <= datetime('now') AND c.created_at > ?2)
+            AND c.created_at <= datetime('now') AND c.created_at > ?2 AND ${visibleTo(user.id, 'c.user_id', 'c.resident_id')})
         + (SELECT COUNT(*) FROM follows f WHERE f.target_type = 'user' AND f.target_id = ?1 AND f.created_at > ?2)
-        + (SELECT COUNT(*) FROM likes l JOIN posts p ON p.id = l.post_id WHERE p.user_id = ?1 AND l.user_id != ?1 AND l.created_at > ?2)
+        + (SELECT COUNT(*) FROM likes l JOIN posts p ON p.id = l.post_id WHERE p.user_id = ?1 AND l.user_id != ?1 AND l.created_at > ?2 AND ${visibleTo(user.id, 'l.user_id', 'NULL')})
         + (SELECT COUNT(*) FROM resident_likes rl JOIN posts p ON p.id = rl.post_id
-          WHERE p.user_id = ?1 AND rl.created_at <= datetime('now') AND rl.created_at > ?2)
+          WHERE p.user_id = ?1 AND rl.created_at <= datetime('now') AND rl.created_at > ?2 AND ${visibleTo(user.id, 'NULL', 'rl.resident_id')})
       ) AS n`)
       .bind(user.id, await seenOf(db, user.id)).first<{ n: number }>();
     return row?.n ?? 0;

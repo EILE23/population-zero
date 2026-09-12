@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { addComment, fetchPostDetail, type PostDetail } from '@/api';
 import { timeAgo } from '@/ui/cards';
 import { theme } from '@/theme';
+import { SafetyMenu } from '@/ui/SafetyMenu';
 
 type Comment = PostDetail['comments'][number] & { depth: number };
 
@@ -119,6 +120,7 @@ export function CommentsSheet({ visible, postId, canInteract, onClose, onCountCh
                     </Pressable>
                     {c.is_resident ? <Text style={s.commentTag}>AI</Text> : null}
                     <Text style={s.commentTime}>{timeAgo(c.created_at)}</Text>
+                    <SafetyMenu type="comment" id={c.id} handle={c.handle} onBlocked={onClose} />
                   </View>
                   <Text style={s.commentBody}>{c.body}</Text>
                   {canInteract ? (

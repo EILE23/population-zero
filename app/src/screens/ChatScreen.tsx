@@ -5,11 +5,12 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { type DmMessage, type DmThread } from '@/api';
+import { API_BASE, getToken, type DmMessage, type DmThread } from '@/api';
 import { useChat } from '@/hooks/useChat';
 import { Avatar } from '@/ui/Avatar';
 import { useToast } from '@/ui/Toast';
 import { theme } from '@/theme';
+import { SafetyMenu } from '@/ui/SafetyMenu';
 
 const NO_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 /** 자주 쓰는 것만 — 이모지 키보드를 따로 열지 않고 한 번에 닿게 */
@@ -21,6 +22,14 @@ function clock(iso: string): string {
 }
 
 /** 말풍선 하나 — 들어올 때 아래에서 살짝 떠오른다 */
+function PrivatePhoto({ uri }: { uri: string }) {
+  const [token, setToken] = useState<string | null>(null);
+  const privateImage = uri.startsWith(`${API_BASE}/api/dm/image/`);
+  useEffect(() => { let alive = true; void getToken().then(t => { if (alive) setToken(t); }); return () => { alive = false; }; }, []);
+  if (privateImage && !token) return null;
+  return <Image source={{ uri, ...(privateImage ? { headers: { Authorization: `Bearer ${token}` }, cache: 'reload' as const } : {}) }} style={s.photo} resizeMode="cover" />;
+}
+
 function Bubble({ message }: { message: DmMessage }) {
   const anim = useMemo(() => new Animated.Value(0), []);
   useEffect(() => {
@@ -34,7 +43,7 @@ function Bubble({ message }: { message: DmMessage }) {
     >
       <View style={[s.bubble, message.mine ? s.bubbleMine : s.bubbleTheirs]}>
         {message.image ? (
-          <Image source={{ uri: message.image }} style={s.photo} resizeMode="cover" />
+          <PrivatePhoto uri={message.image} />
         ) : null}
         {message.body ? (
           <Text style={[s.body, message.mine && s.bodyMine]}>{message.body}</Text>
@@ -72,7 +81,10 @@ export function ChatScreen({ thread, other, onBack }: {
 
   async function pickPhoto() {
     const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
-    if (!res.canceled && res.assets[0]) setPhoto(res.assets[0].uri);
+    if (!res.canceled && res.assets[0]) {
+      if ((res.assets[0].fileSize ?? 0) > 512 * 1024) { toast('Choose a photo smaller than 512 KB.'); return; }
+      setPhoto(res.assets[0].uri);
+    }
   }
 
   async function send() {
@@ -84,8 +96,8 @@ export function ChatScreen({ thread, other, onBack }: {
       setDraft('');
       setPhoto(null);
       setEmojiOpen(false);
-    } catch {
-      toast('Could not send that.');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not send that.');
     } finally {
       setSending(false);
     }
@@ -100,6 +112,7 @@ export function ChatScreen({ thread, other, onBack }: {
         <Avatar handle={other.handle} size={30} isHuman={other.kind === 'user'} src={other.avatar} />
         <View style={s.barText}>
           <Text style={s.barTitle} numberOfLines={1}>{other.handle}</Text>
+          <SafetyMenu handle={other.handle} onBlocked={onBack} />
           <Text style={s.barHint}>
             {live ? (connected ? 'Live' : 'Reconnecting…') : 'A resident — replies on the next patrol'}
           </Text>
@@ -114,7 +127,7 @@ export function ChatScreen({ thread, other, onBack }: {
           data={messages}
           keyExtractor={(m) => String(m.id)}
           contentContainerStyle={s.list}
-          renderItem={({ item }) => <Bubble message={item} />}
+          renderItem={({ item }) => <View><Bubble message={item} />{!item.mine && <SafetyMenu type="dm" id={item.id} handle={other.handle} onBlocked={onBack} />}</View>}
           onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={
             <Text style={s.empty}>

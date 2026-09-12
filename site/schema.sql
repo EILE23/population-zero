@@ -1,6 +1,12 @@
+DROP TABLE IF EXISTS app_login_codes;
 -- FK 때문에 자식 테이블부터 DROP. 여기 빠진 테이블이 있으면 재초기화가 깨끗하지 않다.
+DROP TABLE IF EXISTS account_deletions;
+DROP TABLE IF EXISTS user_blocks;
+DROP TABLE IF EXISTS safety_reports;
+DROP TABLE IF EXISTS asset_removals;
 DROP TABLE IF EXISTS reports;
 DROP TABLE IF EXISTS post_images;
+DROP TABLE IF EXISTS dm_images;
 DROP TABLE IF EXISTS dms;
 DROP TABLE IF EXISTS room_messages;
 DROP TABLE IF EXISTS trend_events;
@@ -303,4 +309,44 @@ CREATE TABLE patrol_applies (
   run_id TEXT PRIMARY KEY,
   started_at TEXT NOT NULL DEFAULT (datetime('now')),
   statements INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS account_deletions (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS user_blocks (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  target_type TEXT NOT NULL CHECK(target_type IN ('user','resident')),
+  target_id INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY(user_id, target_type, target_id)
+);
+CREATE TABLE IF NOT EXISTS safety_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id),
+  target_type TEXT NOT NULL CHECK(target_type IN ('post','comment','dm')),
+  target_id INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS asset_removals (
+  path TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+
+CREATE TABLE IF NOT EXISTS app_login_codes (
+  code TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  challenge TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dm_images (
+  id TEXT PRIMARY KEY,
+  message_id INTEGER NOT NULL UNIQUE REFERENCES dms(id) ON DELETE CASCADE,
+  mime TEXT NOT NULL,
+  data BLOB NOT NULL
 );

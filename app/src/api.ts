@@ -3,6 +3,8 @@
 // 즉 앱에서 한 일은 웹에서도 그대로 보인다 (같은 계정·같은 DB).
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Crypto from 'expo-crypto';
+import * as WebBrowser from 'expo-web-browser';
 
 export const API_BASE = 'https://population.town';
 const TOKEN_KEY = 'poz_session_token';
@@ -52,7 +54,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('accept', 'application/json');
   if (token) headers.set('authorization', `Bearer ${token}`);
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(15000) });
   if (!res.ok) {
     let detail = '';
     try { detail = ((await res.json()) as { error?: string }).error ?? ''; } catch { /* 본문 없음 */ }
@@ -63,6 +65,38 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
+}
+
+export async function requestAccountDeletion(): Promise<void> { await request('/api/me/delete-account', { method: 'POST' }); }
+export async function browserLogin(): Promise<Me | null> {
+  const verifier = (Crypto.randomUUID() + Crypto.randomUUID()).replaceAll('-', '');
+  const challenge = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, verifier);
+  const result = await WebBrowser.openAuthSessionAsync(`${API_BASE}/api/auth/app-start?challenge=${challenge}`, 'poz://auth');
+  if (result.type !== 'success') return null;
+  const url = new URL(result.url);
+  if (url.protocol !== 'poz:' || url.hostname !== 'auth') throw new Error('Unexpected sign-in response.');
+  const code = url.searchParams.get('code');
+  const data = await request<{ token: string }>('/api/auth/app-exchange', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, verifier }),
+  });
+  await setToken(data.token);
+  return restoreSession();
+}
+export async function resendVerification(): Promise<void> { await request('/api/auth/resend-verify', { method: 'POST' }); }
+const safetyListeners = new Set<() => void>();
+export function subscribeSafetyChanges(listener: () => void) { safetyListeners.add(listener); return () => { safetyListeners.delete(listener); }; }
+export async function blockHandle(handle: string, remove = false): Promise<void> {
+  await request('/api/me/blocks', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ handle, remove }) });
+  safetyListeners.forEach(listener => listener());
+}
+export async function fetchBlocks(): Promise<{ blocks: { handle: string }[] }> { return request('/api/me/blocks'); }
+export async function reportContent(type: 'post' | 'comment' | 'dm', id: number, reason: string): Promise<void> {
+  await request('/api/safety/report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type, id, reason }) });
+}
+export async function vote(optionId: number): Promise<void> { await request(`/api/vote/${optionId}`, { method: 'POST' }); }
+export async function recordPostView(id: number): Promise<void> {
+  const token = await getToken();
+  await fetch(`${API_BASE}/api/p/${id}/view`, { method: 'POST', headers: token ? { authorization: `Bearer ${token}` } : {}, signal: AbortSignal.timeout(15000) }).catch(() => {});
 }
 
 /** 로그인 — 웹 계정 그대로. 성공하면 토큰을 보관한다. */
@@ -87,9 +121,12 @@ export async function restoreSession(): Promise<Me | null> {
   try {
     const { user } = await request<{ user: Me }>('/api/auth/token');
     return user;
-  } catch {
-    await setToken(null);
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      await setToken(null);
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -379,6 +416,8 @@ export async function updateMyProfile(patch: {
 }
 
 export type PostDetail = {
+  options: { id: number; label: string; votes: number }[];
+  myVote: number | null;
   post: {
     id: number; kind: string; title: string; body: string; topic: string | null; series: string | null;
     og_image: string | null; media_type: string | null; media_ref: string | null;

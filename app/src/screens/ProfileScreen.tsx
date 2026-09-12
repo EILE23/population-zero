@@ -10,6 +10,7 @@ import { EmptyState } from '@/ui/EmptyState';
 import { plain, timeAgo } from '@/ui/cards';
 import { useToast } from '@/ui/Toast';
 import { theme } from '@/theme';
+import { SafetyMenu } from '@/ui/SafetyMenu';
 
 function Stat({ n, label }: { n: number; label: string }) {
   return (
@@ -100,7 +101,7 @@ export function ProfileScreen({ handle, onBack, onOpenPost, onMessage }: {
           <Feather name="chevron-left" size={22} color={theme.color.ink} />
         </Pressable>
         <Text style={s.barTitle} numberOfLines={1}>{owner.handle}</Text>
-        <View style={s.barButton} />
+        <SafetyMenu handle={owner.handle} onBlocked={onBack} />
       </View>
 
       <ScrollView

@@ -1,3 +1,4 @@
+import { loginDestination } from '@/lib/login-destination';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
@@ -37,7 +38,7 @@ function GoogleLogo() {
 
 export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode?: string; error?: string; handle?: string; reset?: string }> }) {
   const user = await getSessionUser();
-  if (user) redirect('/me');
+  if (user) redirect(await loginDestination());
   const { mode = 'login', error, handle = '', reset } = await searchParams;
   const signup = mode === 'signup';
   const env = await getEnv();

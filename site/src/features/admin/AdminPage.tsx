@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SafetyQueue } from './SafetyQueue';
 import { redirect } from 'next/navigation';
 import { getDb, getEnv } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
@@ -90,6 +91,7 @@ export async function AdminPage() {
   return (
     <main className="mx-auto mt-10 max-w-7xl">
       <PageHeading eyebrow="OPERATOR CONSOLE" title="The back office" sub="Visible to the operator only. Even The Management does not know this room exists." />
+      <SafetyQueue />
 
       <SectionLabel>ALL TIME</SectionLabel>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">

@@ -37,8 +37,19 @@ assert.equal(closed,2);
 console.log('PASS revoked session cannot keep sending');
 const r=db.prepare('INSERT INTO dms(thread,from_user_id,to_user_id,body,image) VALUES(?,?,?,?,?)').run('u1|u2',2,1,'','https://example.test/photo.png');
 await room.fetch(new Request(`https://room.internal/notify?thread=u1%7Cu2&id=${r.lastInsertRowid}`,{method:'POST'}));
+assert.equal(closed,3); // Revoked recipients must not receive HTTP broadcasts either.
+db.prepare('INSERT INTO sessions(token,user_id,expires_at) VALUES(?,?,?)').run('valid',1,new Date(Date.now()+3600000).toISOString());
+await room.fetch(new Request(`https://room.internal/notify?thread=u1%7Cu2&id=${r.lastInsertRowid}`,{method:'POST'}));
 assert.equal(sent.at(-1).message.image,'https://example.test/photo.png'); assert.equal(sent.at(-1).mine,false);
-console.log('PASS HTTP photo notification reaches connected peer');
+console.log('PASS HTTP photo notification reaches authenticated peer only');
+db.exec("INSERT INTO user_blocks(user_id,target_type,target_id) VALUES(2,'user',1)");
+const beforeBlock=sent.length;
+await room.fetch(new Request(`https://room.internal/notify?thread=u1%7Cu2&id=${r.lastInsertRowid}`,{method:'POST'}));
+assert.equal(sent.length,beforeBlock);
+await room.webSocketMessage(peer,JSON.stringify({body:'blocked reply'}));
+assert.equal(sent.length,beforeBlock);
+db.exec('DELETE FROM user_blocks');
+console.log('PASS block stops existing socket delivery and sending');
 
 // Exercise the real hook with deterministic network/timer/lifecycle boundaries.
 let state, cleanup, effect, socket;
@@ -62,14 +73,14 @@ console.log('PASS late socket callback cannot update closed conversation');
 // Run the edge handshake itself: malformed threads, expiry and unverified accounts.
 let forwarded=0;
 let edge=fs.readFileSync('site/worker-entry.js','utf8')
-  .replace(/import handler[^;]+;/,'')
+  .replace(/import handler[^;]+;/,'').replace(/import \{ cleanupAssets \}[^;]+;/,'')
   .replace(/export \{[^}]+\} from [^;]+;/g,'')
   .replace('export default {','this.worker = {');
 const edgeContext={Response,Request,URL,console,handler:{fetch:async()=>new Response('ok')}};
 vm.runInNewContext(edge,edgeContext);
 const env={DB,CHAT_ROOM:{idFromName:t=>t,get:()=>({fetch:async()=>{forwarded++;return new Response('forwarded');}})}};
 const open=thread=>edgeContext.worker.fetch(new Request(`https://example.test/ws/dm?thread=${encodeURIComponent(thread)}&token=valid`),env,{});
-db.prepare('INSERT INTO sessions(token,user_id,expires_at) VALUES(?,?,?)').run('valid',1,new Date(Date.now()-1000).toISOString());
+db.prepare('UPDATE sessions SET expires_at=? WHERE token=?').run(new Date(Date.now()-1000).toISOString(),'valid');
 assert.equal((await open('u1|u2')).status,401);
 db.prepare('UPDATE sessions SET expires_at=?').run(new Date(Date.now()+3600000).toISOString());
 db.exec('UPDATE users SET email_verified=0 WHERE id=1');assert.equal((await open('u1|u2')).status,403);
@@ -83,6 +94,8 @@ let route=stripTypeScriptTypes(fs.readFileSync('site/src/app/api/dm/[thread]/rou
 const routeContext={Response,URL,getSessionUser:async()=>({id:1}),getDb:async()=>DB,
  threadParties:t=>t.split('|').map(p=>({kind:p[0]==='u'?'user':'resident',id:Number(p.slice(1))})),
  otherParty:()=>({kind:'user',id:2})};
+const safety=stripTypeScriptTypes(fs.readFileSync('site/src/lib/safety.ts','utf8')).replace(/import[^;]+;/g,'').replaceAll('export ','');
+vm.runInNewContext(safety+'\nthis.isBlocked=isBlocked;',routeContext);
 vm.runInNewContext(route,routeContext);
 const before=Number(r.lastInsertRowid);
 const response=await routeContext.GET(new Request(`https://example.test/api/dm/u1%7Cu2?before=${before}`),{params:Promise.resolve({thread:'u1%7Cu2'})});

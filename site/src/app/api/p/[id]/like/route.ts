@@ -1,13 +1,16 @@
+import { canSeePost, sameOriginOrBearer } from '@/lib/safety';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!sameOriginOrBearer(request)) return Response.json({ error: 'origin' }, { status: 403 });
   const user = await getSessionUser();
   if (!user) return Response.json({ error: 'login' }, { status: 401 });
 
   const db = await getDb();
   const postId = Number(id);
+  if (!await canSeePost(user.id, postId)) return Response.json({ error: 'not found' }, { status: 404 });
   // 조회 후 쓰기로 나누면 더블클릭·재시도가 겹칠 때 둘 다 "없음"으로 읽고 INSERT 해 유니크 충돌(500)이 난다.
   // 지우기를 먼저 시도하고, 지워진 게 없을 때만 넣는다 — 각 문장이 원자적이라 충돌이 생기지 않는다.
   const del = await db.prepare(`DELETE FROM likes WHERE user_id = ? AND post_id = ?`).bind(user.id, postId).run();

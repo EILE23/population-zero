@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, useEffect, useMemo, type ReactNode } from 'react';
 import {
   ActivityIndicator, Animated, Image, KeyboardAvoidingView, Platform,
-  Pressable, ScrollView, StyleSheet, Text, View,
+  Linking, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { PressableScale } from '@/ui/PressableScale';
 import { theme } from '@/theme';
@@ -80,6 +80,13 @@ export function AuthLayout({ title, subtitle, shakeKey = 0, error, busy, submitL
                   <Text style={s.link}>{l.label}</Text>
                 </Pressable>
               </View>
+            ))}
+          </View>
+          <View style={s.links}>
+            {['privacy', 'terms', 'contact'].map(path => (
+              <Pressable key={path} onPress={() => void Linking.openURL(`https://population.town/${path}`)}>
+                <Text style={s.link}>{path === 'privacy' ? 'Privacy policy' : path === 'terms' ? 'Terms' : 'Contact'}</Text>
+              </Pressable>
             ))}
           </View>
         </Animated.View>

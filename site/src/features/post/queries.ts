@@ -1,14 +1,17 @@
+import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
+import { visibleTo } from '@/lib/safety';
 import type { PollOptionRow } from '@/types/db';
 import type { PostDetail, PostWithMeta, CommentView } from './types';
 
 /** 같은 주제의 최근 글 — 내부 링크(SEO)·다음 읽을거리 */
 export async function fetchRelated(topic: string | null, excludeId: number): Promise<{ id: number; title: string; handle: string }[]> {
   const db = await getDb();
+  const viewer = await getSessionUser();
   const { results } = await db.prepare(`
     SELECT p.id, p.title, COALESCE(r.handle, u.handle, 'unknown') AS handle
     FROM posts p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
-    WHERE p.hidden = 0 AND p.created_at <= datetime('now') AND p.id != ?
+    WHERE p.hidden = 0 AND p.created_at <= datetime('now') AND p.id != ? AND ${visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id')}
       ${topic ? 'AND p.topic = ?' : ''}
     ORDER BY p.created_at DESC LIMIT 4`)
     .bind(...(topic ? [excludeId, topic] : [excludeId]))
@@ -19,10 +22,11 @@ export async function fetchRelated(topic: string | null, excludeId: number): Pro
 /** 같은 작성자의 같은 연재 글 전부 (연재순) — 글 페이지의 시리즈 박스·이전/다음 내비 */
 export async function fetchSeriesPosts(series: string, residentId: number | null, userId: number | null): Promise<{ id: number; title: string }[]> {
   const db = await getDb();
+  const viewer = await getSessionUser();
   const ownerCol = residentId != null ? 'p.resident_id' : 'p.user_id';
   const { results } = await db.prepare(`
     SELECT p.id, p.title FROM posts p
-    WHERE p.series = ? AND ${ownerCol} = ? AND p.hidden = 0 AND p.created_at <= datetime('now')
+    WHERE p.series = ? AND ${ownerCol} = ? AND p.hidden = 0 AND p.created_at <= datetime('now') AND ${visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id')}
     ORDER BY p.created_at ASC LIMIT 30`)
     .bind(series, residentId ?? userId)
     .all<{ id: number; title: string }>();
@@ -41,7 +45,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       FROM posts p
       LEFT JOIN residents r ON r.id = p.resident_id
       LEFT JOIN users u ON u.id = p.user_id
-      WHERE p.id = ? AND p.hidden = 0 AND p.created_at <= datetime('now')`).bind(id),
+      WHERE p.id = ? AND p.hidden = 0 AND p.created_at <= datetime('now') AND ${visibleTo(uid, 'p.user_id', 'p.resident_id')}`).bind(id),
     db.prepare(`SELECT o.id, o.label,
       (SELECT COUNT(*) FROM poll_votes v WHERE v.option_id = o.id)
     + (SELECT COUNT(*) FROM resident_poll_votes rv WHERE rv.option_id = o.id AND rv.created_at <= datetime('now')) AS votes
@@ -52,7 +56,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       FROM comments c
       LEFT JOIN residents res ON res.id = c.resident_id
       LEFT JOIN users u ON u.id = c.user_id
-      WHERE c.post_id = ? AND c.created_at <= datetime('now') ORDER BY c.created_at`).bind(id),
+      WHERE c.post_id = ? AND c.created_at <= datetime('now') AND ${visibleTo(uid, 'c.user_id', 'c.resident_id')} ORDER BY c.created_at`).bind(id),
     db.prepare(`SELECT 1 AS y FROM likes WHERE user_id = ? AND post_id = ?`).bind(uid, id),
     db.prepare(`SELECT option_id FROM poll_votes WHERE user_id = ? AND post_id = ?`).bind(uid, id),
     db.prepare(`SELECT url FROM post_images WHERE post_id = ? ORDER BY sort`).bind(id),

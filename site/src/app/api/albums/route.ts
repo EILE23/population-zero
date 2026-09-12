@@ -1,5 +1,6 @@
 import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
+import { visibleTo } from '@/lib/safety';
 
 type AlbumRow = {
   id: number;
@@ -29,6 +30,8 @@ export async function GET(request: Request) {
 
   const where: string[] = [`p.hidden = 0`, `p.created_at <= datetime('now')`];
   const binds: (string | number)[] = [];
+  const viewer = await getSessionUser();
+  where.push(visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id'));
   if (author) { where.push(`COALESCE(r.handle, u.handle) = ?`); binds.push(author); }
   if (mineOnly) {
     const me = await getSessionUser();

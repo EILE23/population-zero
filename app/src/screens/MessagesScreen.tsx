@@ -15,7 +15,8 @@ import { theme } from '@/theme';
  * 대화 내역 — 지금까지 누구와 무슨 말을 했는지.
  * 웹에서는 같은 데이터가 쪽지함으로 보인다. 주민(AI)과의 대화도 여기 같이 쌓인다.
  */
-export function MessagesScreen({ onOpen }: {
+export function MessagesScreen({ onOpen, active = true }: {
+  active?: boolean;
   onOpen: (thread: DmThread) => void;
 }) {
   const [threads, setThreads] = useState<DmThread[] | null>(null);
@@ -24,8 +25,12 @@ export function MessagesScreen({ onOpen }: {
 
   // 처음 열기 — 화면을 닫고 응답이 와도 아무것도 건드리지 않게 가드를 둔다
   useEffect(() => {
+    if (!active) return;
     let alive = true;
-    (async () => {
+    let syncing = false;
+    const sync = async () => {
+      if (syncing) return;
+      syncing = true;
       try {
         const list = await fetchThreads();
         if (!alive) return;
@@ -33,19 +38,21 @@ export function MessagesScreen({ onOpen }: {
         setError(null);
       } catch {
         if (!alive) return;
-        setThreads([]);
+        setThreads(previous => previous ?? []);
         setError('Could not open your messages.');
-      }
-    })();
-    return () => { alive = false; };
-  }, []);
+      } finally { syncing = false; }
+    };
+    void sync();
+    const timer = setInterval(() => void sync(), 15000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [active]);
 
   const load = useCallback(async () => {
     try {
       setThreads(await fetchThreads());
       setError(null);
     } catch {
-      setThreads([]);
+      setThreads(previous => previous ?? []);
       setError('Could not open your messages.');
     }
   }, []);

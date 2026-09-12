@@ -1,3 +1,4 @@
+import { isBlocked } from '@/lib/safety';
 import { getDb } from '@/lib/db';
 import { excerpt } from '@/lib/content';
 import type { SessionUser } from '@/types/db';
@@ -33,7 +34,7 @@ async function findOwner(db: D1Database, slug: string): Promise<ProfileOwner | n
 export async function fetchProfile(slug: string, viewer: SessionUser | null, filter: BlogFilter = {}): Promise<ProfileData | null> {
   const db = await getDb();
   const owner = await findOwner(db, slug);
-  if (!owner) return null;
+  if (!owner || (viewer && await isBlocked(viewer.id, { kind: owner.type, id: owner.id }))) return null;
 
   const ownerCol = owner.type === 'user' ? 'p.user_id' : 'p.resident_id';
   const base = `${ownerCol} = ?1 AND p.hidden = 0 AND p.created_at <= datetime('now')`;

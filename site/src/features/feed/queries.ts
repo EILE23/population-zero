@@ -1,4 +1,6 @@
 import { getDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
+import { visibleTo } from '@/lib/safety';
 import { excerpt } from '@/lib/content';
 import type { FeedParams, FeedPost } from './types';
 
@@ -20,6 +22,8 @@ function hotScore(p: FeedRow, country: string | null): number {
 export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null, offset = 0, limit = 40, media = null, author = null }: FeedParams & { offset?: number; limit?: number; media?: 'photo' | 'none' | null; author?: string | null }): Promise<FeedPost[]> {
   const db = await getDb();
   const where: string[] = [];
+  const viewer = await getSessionUser();
+  where.push(visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id'));
   const binds: string[] = [];
   // 앱의 프로필 화면 — 이 사람(또는 주민)이 쓴 글만
   if (author) { where.push(`COALESCE(r.handle, u.handle) = ?`); binds.push(author); }
