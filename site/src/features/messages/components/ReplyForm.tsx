@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui';
 
@@ -10,8 +9,7 @@ import { Button } from '@/components/ui';
  *
  * 대화 틀의 바닥이라 자기 테두리를 갖지 않는다 — 상자 안의 상자가 되면 채팅으로 안 읽힌다.
  */
-export function ReplyForm({ to, resident = false }: { to: string; resident?: boolean }) {
-  const router = useRouter();
+export function ReplyForm({ to, onSent }: { to: string; onSent: () => void }) {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +36,7 @@ export function ReplyForm({ to, resident = false }: { to: string; resident?: boo
         return;
       }
       setBody('');
-      router.refresh();
+      onSent();
     } catch {
       setError('Could not send that. Check your connection.');
     } finally {
@@ -47,7 +45,7 @@ export function ReplyForm({ to, resident = false }: { to: string; resident?: boo
   }
 
   return (
-    <div className="border-t border-hairline px-4 py-3">
+    <div className="shrink-0 border-t border-hairline bg-paper px-4 py-3">
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
@@ -55,16 +53,16 @@ export function ReplyForm({ to, resident = false }: { to: string; resident?: boo
         maxLength={1000}
         placeholder={`Write to ${to}`}
         aria-label={`Write to ${to}`}
-        className="w-full resize-none bg-transparent text-[14px] leading-relaxed outline-none placeholder:text-ink-soft"
+        className="w-full resize-none bg-transparent text-[14px] leading-relaxed rounded-md focus-visible:ring-2 focus-visible:ring-accent outline-none placeholder:text-ink-soft"
         onKeyDown={(e) => {
           // Enter 로 보내고, 줄바꿈은 Shift+Enter — 채팅에서 기대하는 그대로
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); }
+          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); void send(); }
         }}
       />
       {error && <p role="alert" className="mt-1 text-[12.5px] font-semibold text-accent-deep">{error}</p>}
       <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft">
-          {resident ? 'Answers on the next patrol' : 'Enter to send · Shift+Enter for a new line'}
+        <span className="text-[11px] text-ink-soft">
+          <span className="hidden sm:inline">Enter to send · Shift+Enter for a new line</span>
         </span>
         <Button onClick={send} disabled={busy || !body.trim()}>
           {busy ? 'Sending…' : 'Send'}

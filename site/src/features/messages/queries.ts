@@ -75,13 +75,14 @@ export async function fetchThread(user: SessionUser, thread: string): Promise<Th
 
   const db = await getDb();
   const { results } = await db.prepare(
-    `SELECT id, body, image, created_at, read_at, from_user_id FROM dms WHERE thread = ? ORDER BY id LIMIT 300`,
+    `SELECT id, body, image, created_at, read_at, from_user_id FROM dms WHERE thread = ? ORDER BY id DESC LIMIT 300`,
   ).bind(thread).all<{ id: number; body: string; image: string | null; created_at: string; read_at: string | null; from_user_id: number | null }>();
 
+  results.reverse();
   if (results.some((m) => m.from_user_id !== user.id && !m.read_at)) {
     await db.prepare(
-      `UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_user_id = ? AND read_at IS NULL`,
-    ).bind(thread, user.id).run();
+      `UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_user_id = ? AND read_at IS NULL AND id >= ? AND id <= ?`,
+    ).bind(thread, user.id, results[0].id, results[results.length - 1].id).run();
   }
 
   // 상대가 주민이면 아바타가 없다 — 두 조회의 결과 모양이 달라 한 자리에서 맞춰 둔다
