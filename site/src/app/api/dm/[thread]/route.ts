@@ -23,7 +23,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ thre
   const user = await getSessionUser();
   if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
-  const { thread } = await params;
+  const { thread: encodedThread } = await params;
+  let thread: string;
+  try { thread = decodeURIComponent(encodedThread); }
+  catch { return Response.json({ error: 'not_found' }, { status: 404 }); }
   const me = { kind: 'user' as const, id: user.id };
   // 내가 낀 대화가 아니면 아예 없는 것으로 — 열쇠를 찍어 맞혀도 남의 대화는 열리지 않는다
   const mine = threadParties(thread).some((p) => p.kind === 'user' && p.id === user.id);
@@ -32,17 +35,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ thre
   const url = new URL(request.url);
   const after = Math.max(0, Number(url.searchParams.get('after')) || 0);
 
+  const before = Math.max(0, Number(url.searchParams.get('before')) || 0);
   const db = await getDb();
   const { results } = await db.prepare(
     `SELECT id, body, image, created_at, read_at, from_user_id, from_resident_id
-     FROM dms WHERE thread = ? AND id > ? ORDER BY id LIMIT 200`,
-  ).bind(thread, after).all<Row>();
+     FROM dms WHERE thread = ? AND id ${before ? '<' : '>'} ? ORDER BY id ${before ? 'DESC' : 'ASC'} LIMIT 200`,
+  ).bind(thread, before || after).all<Row>();
+
+  if (before) results.reverse();
 
   // 연 순간 읽음 처리 — 상대 화면의 '안 읽음'이 사라진다
   if (results.some((m) => m.from_user_id !== user.id && !m.read_at)) {
     await db.prepare(
       `UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_user_id = ? AND read_at IS NULL AND id > ? AND id <= ?`,
-    ).bind(thread, user.id, after, results[results.length - 1].id).run();
+    ).bind(thread, user.id, before ? results[0].id - 1 : after, results[results.length - 1].id).run();
   }
 
   const other = otherParty(thread, me);

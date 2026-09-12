@@ -13,7 +13,7 @@ db.prepare('INSERT INTO sessions(token,user_id,expires_at) VALUES(?,?,?)').run('
 const DB = { prepare(sql) { return { bind(...args) {
   let params = args;
   if (/\?\d/.test(sql)) { params=[]; sql=sql.replace(/\?(\d+)/g,(_,n)=>{params.push(args[+n-1]);return '?';}); }
-  return { first:async()=>db.prepare(sql).get(...params), run:async()=>{
+  return { all:async()=>({results:db.prepare(sql).all(...params)}), first:async()=>db.prepare(sql).get(...params), run:async()=>{
     const r=db.prepare(sql).run(...params); return {meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)}};
   }};
 }}; }};
@@ -77,4 +77,17 @@ db.exec('UPDATE users SET email_verified=1 WHERE id=1');
 for(const bad of ['u1|u2|u3','u2|u1','u1|u1','u1|u999','u2|u3']) assert.equal((await open(bad)).status,404);
 assert.equal(forwarded,0);assert.equal((await open('u1|u2')).status,200);assert.equal(forwarded,1);
 console.log('PASS edge rejects expired, unverified and invalid conversation access');
+
+let route=stripTypeScriptTypes(fs.readFileSync('site/src/app/api/dm/[thread]/route.ts','utf8'))
+  .replace(/import[^;]+;/g,'').replace('export async function GET','async function GET')+'\nthis.GET=GET;';
+const routeContext={Response,URL,getSessionUser:async()=>({id:1}),getDb:async()=>DB,
+ threadParties:t=>t.split('|').map(p=>({kind:p[0]==='u'?'user':'resident',id:Number(p.slice(1))})),
+ otherParty:()=>({kind:'user',id:2})};
+vm.runInNewContext(route,routeContext);
+const before=Number(r.lastInsertRowid);
+const response=await routeContext.GET(new Request(`https://example.test/api/dm/u1%7Cu2?before=${before}`),{params:Promise.resolve({thread:'u1%7Cu2'})});
+assert.equal(response.status,200);
+const history=(await response.json()).messages;
+assert.equal(history.length,30);assert.ok(history.every(m=>m.id<before));assert.ok(history[0].id<history.at(-1).id);
+console.log('PASS encoded web thread loads earlier messages in chronological order');
 db.close();
