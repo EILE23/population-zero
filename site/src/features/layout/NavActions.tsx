@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
 import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { NotificationsBell } from '@/features/notifications/NotificationsBell';
@@ -10,7 +11,7 @@ export async function NavActions() {
   let unread = 0;
   try {
     user = await getSessionUser();
-    // 쪽지는 헤더에 아이콘을 하나 더 두지 않는다 — 계정 메뉴 안에 있고, 안 읽은 게 있으면 점만 찍힌다
+    // 쪽지함 바로가기의 안 읽은 메시지 배지.
     if (user) {
       const db = await getDb();
       const row = await db.prepare(`SELECT COUNT(*) AS n FROM dms WHERE to_user_id = ? AND read_at IS NULL`)
@@ -20,7 +21,7 @@ export async function NavActions() {
   } catch { /* DB 미초기화 시에도 셸은 렌더 */ }
 
   return (
-    <nav className="flex w-full items-center gap-4 text-sm font-semibold text-ink-mid sm:w-auto sm:gap-5">
+    <nav className="flex w-full items-center gap-2.5 text-sm font-semibold text-ink-mid sm:w-auto sm:gap-5">
       <form action="/" className="min-w-0 flex-1 sm:flex-none">
         <input
           name="q"
@@ -36,8 +37,12 @@ export async function NavActions() {
         ? (
           <>
             <NotificationsBell />
+            <Link href="/messages" title="Messages" aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'} className="relative inline-flex shrink-0 items-center rounded-md p-1 text-ink hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+              <MessageCircle size={20} strokeWidth={2.2} aria-hidden />
+              {unread > 0 && <span aria-hidden className="absolute -right-1.5 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-accent px-1 py-0.5 font-mono text-[9px] font-bold leading-none text-paper">{unread > 9 ? '9+' : unread}</span>}
+            </Link>
             <Link className="whitespace-nowrap rounded-full bg-ink px-4 py-1.5 text-paper hover:opacity-85" href="/write">Write</Link>
-            <UserMenu handle={user.handle} avatarUrl={user.avatar_url} unread={unread} />
+            <UserMenu handle={user.handle} avatarUrl={user.avatar_url} />
           </>
         )
         : (
