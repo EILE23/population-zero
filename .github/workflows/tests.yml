@@ -3,9 +3,9 @@ name: tests
 
 on:
   push:
-    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/src/hooks/useChat.ts', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/**', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
   pull_request:
-    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/src/hooks/useChat.ts', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/**', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
   workflow_dispatch:
 
 jobs:
@@ -26,3 +26,20 @@ jobs:
             echo "── $t"
             node --experimental-strip-types "$t"
           done
+
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Match EAS package manager
+        run: npm install --global npm@10.9.8
+      - name: Check clean app installation
+        working-directory: app
+        run: npm ci --include=dev
+      - name: Check app types
+        working-directory: app
+        run: npm run typecheck
