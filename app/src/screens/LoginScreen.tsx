@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ApiError, login, type Me } from '@/api';
+import { ApiError, browserLogin, login, type Me } from '@/api';
 import { AuthLayout } from '@/ui/AuthLayout';
 import { Field } from '@/ui/Field';
 
@@ -44,6 +44,11 @@ export function LoginScreen({ onDone, onSignup, onForgot }: {
       submitLabel="Sign in"
       onSubmit={submit}
       links={[
+        { label: 'Sign in with your web account', onPress: () => {
+          if (busy) return;
+          setBusy(true);
+          void browserLogin().then(user => { if (user) onDone(user); }).catch(() => setError('Web sign-in failed. Please try again.')).finally(() => setBusy(false));
+        } },
         { label: 'Create account', onPress: onSignup },
         { label: 'Forgot password', onPress: onForgot },
       ]}

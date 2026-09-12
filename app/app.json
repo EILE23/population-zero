@@ -49,8 +49,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "androidAppId": "ca-app-pub-8000384176395236~7032342976",
+          "iosAppId": "ca-app-pub-8000384176395236~3439748176",
           "userTrackingUsageDescription": "This lets Poz show ads that are relevant to you instead of random ones.",
           "delayAppMeasurementInit": true
         }

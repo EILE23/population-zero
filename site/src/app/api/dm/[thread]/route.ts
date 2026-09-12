@@ -1,6 +1,7 @@
 import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { otherParty, threadParties } from '@/lib/dm';
+import { isBlocked } from '@/lib/safety';
 
 type Row = {
   id: number;
@@ -31,6 +32,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ thre
   // 내가 낀 대화가 아니면 아예 없는 것으로 — 열쇠를 찍어 맞혀도 남의 대화는 열리지 않는다
   const mine = threadParties(thread).some((p) => p.kind === 'user' && p.id === user.id);
   if (!mine) return Response.json({ error: 'not_found' }, { status: 404 });
+  const target = otherParty(thread, me);
+  if (!target || await isBlocked(user.id, target)) return Response.json({ error: 'blocked' }, { status: 403 });
 
   const url = new URL(request.url);
   const after = Math.max(0, Number(url.searchParams.get('after')) || 0);

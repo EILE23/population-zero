@@ -1,3 +1,4 @@
+import { loginDestination } from '@/lib/login-destination';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getDb, getEnv } from '@/lib/db';
@@ -66,5 +67,5 @@ export async function GET(request: Request) {
     await fireGaEvent('login', request, { method: 'google' }, user.id);
   }
   await createSession(user.id);
-  redirect('/');
+  redirect(await loginDestination());
 }

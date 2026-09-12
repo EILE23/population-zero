@@ -1,3 +1,4 @@
+import { canSeePost, sameOriginOrBearer, visibleTo } from '@/lib/safety';
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
@@ -17,10 +18,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (await rateLimited(request, 'comment', 10, 5)) return fail('rate', 429, '/');
   const { id } = await params;
   const postId = Number(id);
+  if (!sameOriginOrBearer(request)) return Response.json({ error: 'origin' }, { status: 403 });
   const user = await getSessionUser();
   if (!user) return fail('unauthorized', 401, '/login');
   if (!user.email_verified) return fail('unverified', 403, '/me?error=unverified');
 
+  if (!await canSeePost(user.id, postId)) return fail('not found', 404, '/');
   const form = await request.formData();
   const body = String(form.get('body') || '').replace(CONTROL_CHARS, '').trim().slice(0, 1000);
   if (body) {
@@ -28,8 +31,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     let parentId: number | null = null;
     const rawParent = Number(form.get('parent_id'));
     if (Number.isInteger(rawParent) && rawParent > 0) {
-      const parent = await db.prepare(`SELECT id, parent_id FROM comments WHERE id = ? AND post_id = ?`)
+      const parent = await db.prepare(`SELECT id, parent_id FROM comments WHERE id = ? AND post_id = ? AND hidden=0 AND created_at<=datetime('now') AND ${visibleTo(user.id, 'user_id', 'resident_id')}`)
         .bind(rawParent, postId).first<{ id: number; parent_id: number | null }>();
+      if (!parent) return fail('Reply unavailable', 404, `/p/${postId}`);
       if (parent) parentId = parent.parent_id ?? parent.id;
     }
     const result = await db.prepare(

@@ -1,8 +1,9 @@
 import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
-import { uploadImageToAssets } from '@/lib/assets';
+import { validImage } from '@/lib/assets';
 import { cleanBody, threadKey, type Party } from '@/lib/dm';
 import { rateLimited } from '@/lib/ratelimit';
+import { isBlocked, visibleTo, sameOriginOrBearer } from '@/lib/safety';
 
 type ThreadRow = {
   thread: string;
@@ -43,6 +44,7 @@ export async function GET() {
     -- 상대는 "내가 아닌 쪽" — 보낸 사람이 나면 받는 사람이, 아니면 보낸 사람이 상대다
     LEFT JOIN users ru ON ru.id = CASE WHEN m.from_user_id = ?1 THEN m.to_user_id ELSE m.from_user_id END
     LEFT JOIN residents rr ON rr.id = CASE WHEN m.from_user_id = ?1 THEN m.to_resident_id ELSE m.from_resident_id END
+    WHERE ${visibleTo(user.id, 'ru.id', 'rr.id')}
     ORDER BY l.last_id DESC LIMIT 50`).bind(user.id).all<ThreadRow>();
 
   return Response.json({
@@ -61,6 +63,7 @@ export async function GET() {
  * 사진을 붙일 때만 multipart 로 오고, 글만 보낼 때는 JSON 으로 온다.
  */
 export async function POST(request: Request) {
+  if (!sameOriginOrBearer(request)) return Response.json({ error: 'origin' }, { status: 403 });
   const user = await getSessionUser();
   if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!user.email_verified) return Response.json({ error: 'unverified' }, { status: 403 });
@@ -70,12 +73,19 @@ export async function POST(request: Request) {
   let body = '';
   let handle = '';
   let image: string | null = null;
+  let attachment: { id: string; mime: string; data: ArrayBuffer } | null = null;
   if (multipart) {
     const form = await request.formData();
     body = cleanBody(form.get('body'));
     handle = String(form.get('to') ?? '').trim();
     const file = form.get('image');
-    if (file instanceof File && file.size > 0) image = await uploadImageToAssets(file, user.id, 'inline');
+    if (file instanceof File && file.size > 0) {
+      if (file.size > 512 * 1024) return Response.json({ error: 'Choose a photo smaller than 512 KB.' }, { status: 413 });
+      const data = await file.arrayBuffer();
+      if (!validImage(file.type, new Uint8Array(data))) return Response.json({ error: 'Unsupported image.' }, { status: 400 });
+      attachment = { id: crypto.randomUUID(), mime: file.type, data };
+      image = `https://population.town/api/dm/image/${attachment.id}`;
+    }
   } else {
     const input = (await request.json().catch(() => ({}))) as { to?: string; body?: string };
     body = cleanBody(input.body);
@@ -98,10 +108,15 @@ export async function POST(request: Request) {
   const me: Party = { kind: 'user', id: user.id };
   const them: Party = toUser ? { kind: 'user', id: toUser } : { kind: 'resident', id: toResident! };
   const thread = threadKey(me, them);
+  if (await isBlocked(user.id, them)) return Response.json({ error: 'blocked' }, { status: 403 });
 
-  const { meta } = await db.prepare(
+  const insert = db.prepare(
     `INSERT INTO dms (thread, from_user_id, to_user_id, to_resident_id, body, image) VALUES (?, ?, ?, ?, ?, ?)`,
-  ).bind(thread, user.id, toUser, toResident, body, image).run();
+  ).bind(thread, user.id, toUser, toResident, body, image);
+  const statements = [insert];
+  if (attachment) statements.push(db.prepare(`INSERT INTO dm_images(id,message_id,mime,data)
+    SELECT ?,id,?,? FROM dms WHERE image=? AND from_user_id=?`).bind(attachment.id, attachment.mime, attachment.data, image, user.id));
+  const [{ meta }] = await db.batch(statements);
 
   return Response.json({ ok: true, id: Number(meta.last_row_id), thread, image }, { status: 201 });
 }

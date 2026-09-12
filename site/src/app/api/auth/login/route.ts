@@ -1,3 +1,4 @@
+import { loginDestination } from '@/lib/login-destination';
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { authRateLimited } from '@/lib/ratelimit';
@@ -17,5 +18,5 @@ export async function POST(request: Request) {
   }
   await fireGaEvent('login', request, { method: 'local' }, user.id);
   await createSession(user.id);
-  redirect('/');
+  redirect(await loginDestination());
 }

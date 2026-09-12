@@ -1,34 +1,35 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { prepareAds, subscribeAdPrivacy } from '@/ads';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { theme } from '@/theme';
 
-/**
- * 피드 사이를 지나가는 광고 한 칸.
- *
- * 화면에 붙어 계속 보이는 배너가 아니라 스크롤에 실려 지나가는 항목이다 — 그래서 탭바가 아니라
- * 목록 중간에 들어간다. 웹의 피드 광고와 같은 성격.
- *
- * 광고 단위 ID 는 app.json 의 extra.admob 에서 온다. 아직 없으면 구글 공식 테스트 단위를 쓴다:
- * 실서비스 ID 없이도 개발 빌드에서 실제로 뜨는지 확인할 수 있고, 테스트 광고는 수익에 잡히지 않아
- * 계정이 정지될 위험도 없다. (자기 광고를 자기가 누르는 것이 정지 사유 1번이다.)
- */
-const UNIT_ID = __DEV__
+// Preview builds use test ads; production uses the platform-specific AdMob unit.
+const UNIT_ID = (__DEV__ || process.env.EXPO_PUBLIC_ADMOB_TEST === '1')
   ? TestIds.ADAPTIVE_BANNER
   : (Platform.select({
-      ios: process.env.EXPO_PUBLIC_ADMOB_IOS_FEED,
-      android: process.env.EXPO_PUBLIC_ADMOB_ANDROID_FEED,
-    }) ?? TestIds.ADAPTIVE_BANNER);
+      ios: process.env.EXPO_PUBLIC_ADMOB_IOS_FEED ?? 'ca-app-pub-8000384176395236/9666245172',
+      android: process.env.EXPO_PUBLIC_ADMOB_ANDROID_FEED ?? 'ca-app-pub-8000384176395236/6312965700',
+    }) ?? null);
 
 export function AdSlot() {
   // 광고가 안 채워지는 일은 흔하다 — 그때는 빈 줄을 남기지 않고 칸 자체를 지운다
+  const [revision, setRevision] = useState(0);
   const [failed, setFailed] = useState(false);
-  if (failed) return null;
+  const [ready, setReady] = useState(false);
+  useEffect(() => subscribeAdPrivacy(() => { setReady(false); setFailed(false); setRevision(n => n + 1); }), []);
+  useEffect(() => {
+    let alive = true;
+    if (UNIT_ID) void prepareAds().then(ok => { if (alive) setReady(ok); });
+    return () => { alive = false; };
+  }, [revision]);
+  if (failed || !ready || !UNIT_ID) return null;
 
   return (
     <View style={s.slot}>
       <Text style={s.label}>SPONSORED</Text>
       <BannerAd
+        key={revision}
         unitId={UNIT_ID}
         size={BannerAdSize.MEDIUM_RECTANGLE}
         onAdFailedToLoad={() => setFailed(true)}

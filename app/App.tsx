@@ -1,5 +1,6 @@
+import { subscribeSafetyChanges } from '@/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, AppState, BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { fetchThreads, logout, restoreSession, type DmThread, type FeedPost, type Me } from '@/api';
@@ -35,6 +36,8 @@ type Overlay =
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [booting, setBooting] = useState(true);
+  const [bootError, setBootError] = useState(false);
+  const [sessionRetry, setSessionRetry] = useState(0);
   const [opening, setOpening] = useState(true); // 오프닝 애니메이션이 끝날 때까지 덮어둔다
   const [tab, setTab] = useState<TabKey>('today');
   const [overlay, setOverlay] = useState<Overlay>({ kind: 'none' });
@@ -55,9 +58,49 @@ export default function App() {
     let alive = true;
     restoreSession()
       .then((user) => { if (alive) setMe(user); })
+      .catch(() => { if (alive) setBootError(true); })
       .finally(() => { if (alive) setBooting(false); });
     return () => { alive = false; };
+  }, [sessionRetry]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      void restoreSession().then(user => { setMe(user); setReloadKey(k => k + 1); }).catch(() => {});
+    });
+    return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    const open = (url: string) => {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'poz:' && !(parsed.protocol === 'https:' && parsed.hostname === 'population.town')) return;
+        const route = parsed.protocol === 'poz:' ? `/${parsed.hostname}${parsed.pathname}` : parsed.pathname;
+        const match = route.match(/^\/p\/([1-9]\d*)\/?$/);
+        if (match) setOverlay({ kind: 'post', id: Number(match[1]) });
+      } catch { /* Ignore unsupported URLs. */ }
+    };
+    void Linking.getInitialURL().then(url => { if (url) open(url); });
+    const subscription = Linking.addEventListener('url', event => open(event.url));
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (overlay.kind === 'compose' || overlay.kind === 'edit') {
+        Alert.alert('Discard changes?', 'Your unpublished changes will be lost.', [
+          { text: 'Keep writing', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: () => setOverlay({ kind: 'none' }) },
+        ]);
+        return true;
+      }
+      if (overlay.kind !== 'none') { setOverlay({ kind: 'none' }); return true; }
+      if (authView !== 'login') { setAuthView('login'); return true; }
+      if (tab !== 'today') { setTab('today'); return true; }
+      return false;
+    });
+    return () => subscription.remove();
+  }, [overlay.kind, authView, tab]);
 
   const signOut = useCallback(async () => {
     await logout();
@@ -91,6 +134,7 @@ export default function App() {
   }, []);
   const openPostId = useCallback((id: number) => setOverlay({ kind: 'post', id }), []);
   const editPost = useCallback((post: FeedPost) => setOverlay({ kind: 'edit', id: post.id }), []);
+  useEffect(() => subscribeSafetyChanges(() => { setOverlay({ kind: 'none' }); setReloadKey(n => n + 1); }), []);
   const closeOverlay = useCallback(() => setOverlay({ kind: 'none' }), []);
   const afterWrite = useCallback(() => {
     setOverlay({ kind: 'none' });
@@ -102,7 +146,12 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-        {!me ? (
+        {bootError ? (
+          <View style={s.root}>
+            <Text>Could not reconnect. Your saved login is safe.</Text>
+            <Pressable onPress={() => { setBootError(false); setBooting(true); setSessionRetry(k => k + 1); }}><Text>Try again</Text></Pressable>
+          </View>
+        ) : !me ? (
           authView === 'signup' ? (
             <SignupScreen onDone={setMe} onBack={() => setAuthView('login')} />
           ) : authView === 'forgot' ? (
@@ -134,7 +183,7 @@ export default function App() {
               />
             </TabPage>
             <TabPage active={tab === 'messages'} direction={direction}>
-              <MessagesScreen onOpen={(thread) => setOverlay({ kind: 'chat', thread })} />
+              <MessagesScreen active={tab === 'messages' && overlay.kind === 'none'} onOpen={(thread) => setOverlay({ kind: 'chat', thread })} />
             </TabPage>
             <TabPage active={tab === 'me'} direction={direction}>
               <MeScreen

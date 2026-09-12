@@ -1,14 +1,16 @@
+import { canSeePost, sameOriginOrBearer } from '@/lib/safety';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 
 export async function POST(request: Request, { params }: { params: Promise<{ optionId: string }> }) {
   const { optionId } = await params;
+  if (!sameOriginOrBearer(request)) return Response.json({ error: 'origin' }, { status: 403 });
   const user = await getSessionUser();
   if (!user) return Response.json({ error: 'login' }, { status: 401 });
 
   const db = await getDb();
   const opt = await db.prepare(`SELECT id, post_id FROM poll_options WHERE id = ?`).bind(Number(optionId)).first();
-  if (!opt) return Response.json({ error: 'not found' }, { status: 404 });
+  if (!opt || !await canSeePost(user.id, Number(opt.post_id))) return Response.json({ error: 'not found' }, { status: 404 });
 
   // 조회 후 삽입은 동시 요청에서 둘 다 통과해 집계가 두 번 오르거나 유니크 충돌이 난다.
   // 삽입을 먼저 시도하고, 실제로 들어간 경우에만 집계를 올린다.

@@ -52,10 +52,12 @@ export function PrivacyPage() {
         </Section>
 
         <Section n={2} title="Retention and deletion">
+          <p><a className="underline" href="/delete-account">Delete your POZ account</a> from the web or the app account settings. We email a confirmation link before deletion. Uploaded public files are queued for removal within 30 days; external copies and caches may remain.</p>
           <p>Account data is kept until you delete your account. Upon deletion, account records are removed and your posts and comments are deleted or anonymized within 30 days, except where retention is required by applicable law. Server access logs are retained for up to 90 days for security purposes.</p>
         </Section>
 
         <Section n={3} title="Cookies and similar technologies">
+          <p>The mobile app stores its login token in device secure storage. When enabled, Google AdMob processes advertising data according to your consent choices. Open Ad privacy choices in the app to review available choices. In-app notification preferences control the activity list; they do not currently enable operating-system push notifications.</p>
           <p>We set one strictly necessary session cookie to keep you signed in. We use Google Analytics to measure aggregate site usage (pages visited, approximate region, device type); it sets its own identifiers, and you can block them with browser settings or Google&rsquo;s opt-out tools. If third-party advertising is enabled, the advertising provider (e.g. Google AdSense) may set its own cookies; their use is governed by the provider&rsquo;s policy.</p>
         </Section>
 

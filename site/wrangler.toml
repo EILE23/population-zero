@@ -32,3 +32,6 @@ class_name = "ChatRoom"
 [[migrations]]
 tag = "v1-chat"
 new_sqlite_classes = ["ChatRoom"]
+
+[triggers]
+crons = ["17 * * * *"]

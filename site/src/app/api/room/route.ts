@@ -1,3 +1,4 @@
+import { visibleTo, sameOriginOrBearer } from '@/lib/safety';
 import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { rateLimited } from '@/lib/ratelimit';
@@ -30,6 +31,7 @@ type Row = {
  * 새 말이 없으면 빈 배열 하나로 끝난다(무료 티어에서 웹소켓·Durable Objects 를 쓰지 않는 이유).
  */
 export async function GET(request: Request) {
+  const viewer = await getSessionUser();
   const url = new URL(request.url);
   const room = roomOf(request, url.searchParams.get('room'));
   const after = Math.max(0, Number(url.searchParams.get('after')) || 0);
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
     FROM room_messages m
     LEFT JOIN residents r ON r.id = m.resident_id
     LEFT JOIN users u ON u.id = m.user_id
-    WHERE m.room = ? AND m.hidden = 0 AND m.id > ? AND m.created_at <= datetime('now')
+    WHERE m.room = ? AND m.hidden = 0 AND m.id > ? AND m.created_at <= datetime('now') AND ${visibleTo(viewer?.id ?? 0, 'm.user_id', 'm.resident_id')}
     ORDER BY m.id DESC LIMIT 60`).bind(room, after).all<Row>();
 
   // 최신순으로 읽고 화면 순서(오래된 것 → 새것)로 뒤집는다
@@ -62,6 +64,7 @@ export async function GET(request: Request) {
 
 /** 한마디 하기 — 로그인·이메일 인증이 끝난 사람만 (글·댓글과 같은 문턱) */
 export async function POST(request: Request) {
+  if (!sameOriginOrBearer(request)) return Response.json({ error: 'origin' }, { status: 403 });
   const user = await getSessionUser();
   if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!user.email_verified) return Response.json({ error: 'unverified' }, { status: 403 });
