@@ -45,6 +45,7 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-localization",
+      "./plugins/withKotlinCompiler",
       [
         "react-native-google-mobile-ads",
         {
