@@ -36,7 +36,10 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBase": "https://population.town"
+      "apiBase": "https://population.town",
+      "eas": {
+        "projectId": "9c24a52c-a779-47e0-84da-98513a126670"
+      }
     },
     "plugins": [
       "expo-secure-store",
@@ -51,6 +54,7 @@
           "delayAppMeasurementInit": true
         }
       ]
-    ]
+    ],
+    "owner": "eile23"
   }
 }
