@@ -1,5 +1,10 @@
 -- FK 때문에 자식 테이블부터 DROP. 여기 빠진 테이블이 있으면 재초기화가 깨끗하지 않다.
 DROP TABLE IF EXISTS reports;
+DROP TABLE IF EXISTS post_images;
+DROP TABLE IF EXISTS dms;
+DROP TABLE IF EXISTS room_messages;
+DROP TABLE IF EXISTS trend_events;
+DROP TABLE IF EXISTS trends;
 DROP TABLE IF EXISTS poll_votes;
 DROP TABLE IF EXISTS resident_poll_votes;
 DROP TABLE IF EXISTS resident_likes;

@@ -19,6 +19,7 @@ const cacheCountry = (request) => ((request.headers.get('cf-ipcountry') || 'XX')
 function cacheable(request, url) {
   if (request.method !== 'GET') return false;
   if ((request.headers.get('cookie') || '').includes('pz_session=')) return false;
+  if (request.headers.has('authorization')) return false;
   if (request.headers.get('rsc') || request.headers.get('next-router-prefetch') || request.headers.get('next-router-state-tree')) return false;
   return !SKIP_PREFIX.some((p) => url.pathname === p.replace(/\/$/, '') || url.pathname.startsWith(p));
 }
@@ -35,17 +36,27 @@ async function openChatSocket(request, env) {
   if (!thread || !token) return new Response('bad request', { status: 400 });
 
   const row = await env.DB.prepare(
-    `SELECT user_id FROM sessions WHERE token = ? AND expires_at > datetime('now')`,
+    `SELECT s.user_id, u.email_verified FROM sessions s JOIN users u ON u.id = s.user_id
+     WHERE s.token = ? AND julianday(s.expires_at) > julianday('now')`,
   ).bind(token).first();
   if (!row) return new Response('unauthorized', { status: 401 });
+  if (!row.email_verified) return new Response('unverified', { status: 403 });
 
   // 열쇠를 찍어 맞혀도 남의 대화는 열리지 않는다
-  if (!thread.split('|').includes(`u${row.user_id}`)) return new Response('not found', { status: 404 });
+  const tags = thread.split('|');
+  if (tags.length !== 2 || tags[0] === tags[1] || tags.join('|') !== [...tags].sort().join('|') ||
+      !tags.every(t => /^(u[1-9]\d*|r(?:0|[1-9]\d*))$/.test(t) && Number.isSafeInteger(Number(t.slice(1)))) ||
+      !tags.includes(`u${row.user_id}`)) return new Response('not found', { status: 404 });
+  const other = tags.find(t => t !== `u${row.user_id}`);
+  const recipient = await env.DB.prepare(other.startsWith('u')
+    ? 'SELECT id FROM users WHERE id = ?' : 'SELECT id FROM residents WHERE id = ?')
+    .bind(Number(other.slice(1))).first();
+  if (!recipient) return new Response('not found', { status: 404 });
 
   const stub = env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName(thread));
   const forward = new URL(request.url);
   forward.searchParams.set('uid', String(row.user_id));
-  forward.searchParams.delete('token'); // 토큰은 방까지 들고 가지 않는다
+  // The room rechecks this session on every send, including after logout/expiry.
   return stub.fetch(new Request(forward.toString(), request));
 }
 
@@ -53,6 +64,17 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/ws/dm') return openChatSocket(request, env);
+    if (url.pathname === '/api/dm' && request.method === 'POST') {
+      const res = await handler.fetch(request, env, ctx);
+      if (res.status === 201) {
+        ctx.waitUntil((async () => {
+          const { thread, id } = await res.clone().json();
+          const stub = env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName(thread));
+          await stub.fetch(new Request(`https://room.internal/notify?thread=${encodeURIComponent(thread)}&id=${id}`, { method: 'POST' }));
+        })().catch(error => console.error('DM notification failed', error)));
+      }
+      return res;
+    }
     if (!cacheable(request, url)) return handler.fetch(request, env, ctx);
 
     const cache = caches.default;

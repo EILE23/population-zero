@@ -29,6 +29,20 @@ export class ChatRoom extends DurableObject {
   }
 
   async fetch(request) {
+    const notification = new URL(request.url);
+    // Only the worker binding can reach this endpoint, after an authenticated write.
+    if (request.method === 'POST' && notification.pathname === '/notify') {
+      const message = await this.env.DB.prepare(
+        'SELECT id, body, image, created_at, from_user_id FROM dms WHERE thread = ? AND id = ?',
+      ).bind(notification.searchParams.get('thread'), Number(notification.searchParams.get('id'))).first();
+      if (message) {
+        for (const peer of this.ctx.getWebSockets()) {
+          try { peer.send(JSON.stringify({ type: 'message', message,
+            mine: peer.deserializeAttachment()?.userId === message.from_user_id })); } catch { /* Closed peer. */ }
+        }
+      }
+      return new Response(null, { status: 204 });
+    }
     if (request.headers.get('upgrade') !== 'websocket') {
       return new Response('expected websocket', { status: 426 });
     }
@@ -41,22 +55,38 @@ export class ChatRoom extends DurableObject {
     const [client, server] = Object.values(pair);
     // 잠든 동안에도 이 소켓이 누구의 것인지 남아 있어야 한다
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ thread, userId });
+    server.serializeAttachment({ thread, userId, token: url.searchParams.get('token'),
+      ip: request.headers.get('cf-connecting-ip') ?? 'unknown' });
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async webSocketMessage(ws, raw) {
-    const { thread, userId } = ws.deserializeAttachment() ?? {};
-    if (!thread || !userId) return;
+    const { thread, userId, token, ip } = ws.deserializeAttachment() ?? {};
+    if (!thread || !userId || !token) { ws.close(1008, 'Reconnect to authenticate'); return; }
+    const session = await this.env.DB.prepare(
+      `SELECT u.email_verified FROM sessions s JOIN users u ON u.id = s.user_id
+       WHERE s.token = ? AND s.user_id = ? AND julianday(s.expires_at) > julianday('now')`,
+    ).bind(token, userId).first();
+    if (!session?.email_verified) { ws.close(1008, 'Session unavailable'); return; }
 
     let payload;
     try { payload = JSON.parse(String(raw)); } catch { return; }
     const body = String(payload?.body ?? '').replace(CONTROL_CHARS, '').trim().slice(0, MAX_BODY);
-    const image = typeof payload?.image === 'string' ? payload.image.slice(0, 500) : null;
+    // Images must pass the authenticated HTTP upload validation.
+    const image = null;
     if (!body && !image) return;
 
     const other = otherOf(thread, userId);
     if (!other) return;
+
+    const allowance = await this.env.DB.prepare(
+      `INSERT INTO auth_attempts (ip) SELECT ?1
+       WHERE (SELECT COUNT(*) FROM auth_attempts WHERE ip = ?1 AND ts > datetime('now', '-5 minutes')) < 30`,
+    ).bind(`dm:${ip ?? 'unknown'}`).run();
+    if (!allowance.meta.changes) {
+      ws.send(JSON.stringify({ type: 'error', error: 'rate' }));
+      return;
+    }
 
     // 기록은 D1 에 — 웹 쪽지함이 읽는 곳과 같아야 한다
     const { meta } = await this.env.DB.prepare(

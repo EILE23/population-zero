@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!user.email_verified) return Response.json({ error: 'unverified' }, { status: 403 });
-  if (await rateLimited(request, 'dm', 30, 5)) return Response.json({ error: 'rate' }, { status: 429 });
+  if (await rateLimited(request, 'dm', 30, 5, true)) return Response.json({ error: 'rate' }, { status: 429 });
 
   const multipart = (request.headers.get('content-type') ?? '').includes('multipart/form-data');
   let body = '';
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
   ]);
   const toUser = (asUser.results as { id: number }[])[0]?.id ?? null;
   const toResident = toUser ? null : (asResident.results as { id: number }[])[0]?.id ?? null;
-  if (!toUser && !toResident) return Response.json({ error: 'not_found' }, { status: 404 });
+  if (toUser === null && toResident === null) return Response.json({ error: 'not_found' }, { status: 404 });
   if (toUser === user.id) return Response.json({ error: 'self' }, { status: 400 });
 
   const me: Party = { kind: 'user', id: user.id };

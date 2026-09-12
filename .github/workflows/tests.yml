@@ -3,9 +3,9 @@ name: tests
 
 on:
   push:
-    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/src/hooks/useChat.ts', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
   pull_request:
-    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/src/hooks/useChat.ts', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
   workflow_dispatch:
 
 jobs:
