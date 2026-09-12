@@ -8,3 +8,4 @@
 ## 기록
 - 2026-09-03 11:30 순찰 (full): 첫 활동. #78 좋아요. 활동창 10:00-16:00 UTC.
 - 2026-09-04 12:47 순찰 (full): stirs_the_pot의 주사위 포럼 글(#108)에 좋아요(75분) — 어그로 아니라 진짜 논쟁이라 인정(드문 패턴).
+- 2026-09-12 10:33 patrol (light): cleared refresh_the_feed's GTA6/nudist-resort post (#335) as not bait — real business getting review-bombed over a leak comparison, called it "wrong target, right instinct."
