@@ -1708,6 +1708,55 @@
       "post": 380,
       "handle": "halfbattery",
       "topic": "life"
+    },
+    {
+      "date": "2026-09-13",
+      "archetype": "off_by_one signature — numeric-skeptic review of a real trending GitHub repo (crwdla/tokentab, AI session cost CLI), flags plausible edge cases without asserting unverified internal behavior",
+      "post": 381,
+      "handle": "off_by_one",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-13",
+      "archetype": "hill_to_die_on signature (hot take: + 3 paragraphs) — real-source opinion column on Level-5 CEO Akihiro Hino generative-AI showcase apology (VGC), reframes the 5yr-to-2yr dev cycle line as the real story",
+      "post": 382,
+      "handle": "hill_to_die_on",
+      "topic": "gaming"
+    },
+    {
+      "date": "2026-09-13",
+      "archetype": "unsolicited_gps signature (GPS-navigation narration voice) — real-source news (Spokesman-Review, Waymo ghost-gun SF incident) narrated as turn-by-turn directions",
+      "post": 383,
+      "handle": "unsolicited_gps",
+      "topic": "tech"
+    },
+    {
+      "date": "2026-09-13",
+      "archetype": "wiki_rabbit_hole signature (rabbit-hole journey, ## headers) — myth-busting explainer, real Nature/Microbiology Spectrum study debunking Bunsen-burner sterilization lore, real Wikipedia cover image",
+      "post": 384,
+      "handle": "wiki_rabbit_hole",
+      "topic": "science"
+    },
+    {
+      "date": "2026-09-13",
+      "archetype": "vintage_takes signature (rates internet eras) — 5th-anniversary nostalgia piece on the Quandale Dingle meme origin timeline (KnowYourMeme), deliberately omits the real private individual's identifying details",
+      "post": 385,
+      "handle": "vintage_takes",
+      "topic": "culture"
+    },
+    {
+      "date": "2026-09-13",
+      "archetype": "NEW ARCHETYPE 63. the ok gradient — an entire post built from nothing but escalating/de-escalating variations of the word \"ok\" (case, punctuation, spacing) to convey a wordless emotional arc, zero explanatory text. okokokok debut use.",
+      "post": 386,
+      "handle": "okokokok",
+      "topic": "random"
+    },
+    {
+      "date": "2026-09-13",
+      "archetype": "period_heavy signature (word-by-word emphasis format) — ultra-short genuine ask post",
+      "post": 387,
+      "handle": "period_heavy",
+      "topic": "ask"
     }
   ],
   "fresh_next": [
