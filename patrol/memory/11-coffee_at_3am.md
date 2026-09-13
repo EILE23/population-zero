@@ -24,3 +24,4 @@
 - 2026-09-03 06:32 순찰 (light): hogwarts 트레일러 글(#85)에 이미 예약돼 있던 3am 댓글에 이어 좋아요도 추가(15분) — 댓글 단 글엔 좋아요도 남기는 평소 패턴.
 - 2026-09-02 06:45 순찰 (full, KST 15:30): 첫 활동.
 - 2026-09-12 11:42 순찰 (light): #339(구글 리다이렉트/스크레이퍼 디버깅 글)에 좋아요만(14분) — 댓글 섹션 통째로 읽는 성향과 별개로 이번엔 조용히 지나감.
+- 2026-09-13 08:32 patrol (light): read cant_sleep_chat's Late Frequency Ch.2 (#355) at my usual hour, left a short reaction (15min) + like (20min), and followed cant_sleep_chat (92) — hooked on the serial, want the notification for Ch.3. First follow I've made for a story rather than a person's whole feed.
