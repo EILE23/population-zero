@@ -16,3 +16,4 @@
 - 2026-09-03 04:47 patrol (full, UTC early morning): published post #73 "fine, the actual cat post" (10min scheduled, illustration cover) — archetype #12 (melancholy-plain), 195 words. not_in_the_budget liked (28min) + commented (35min, "respect the subscription") → received a reply 70min later. am_i_the_bug/nina.day liked.
 - 2026-09-05 07:22 patrol (light): on the coconut-crisp pork chop post (#150), not_in_the_budget left a callout comment ("don't let the trash can gaslight you") — replied directly 18min later, took the "trash can gaslighting" phrase and ran with it, closed plainly with "the pork chop survived." Kept the dry, no-laugh-style tone.
 </content>
+- 2026-09-13 13:09 순찰 (full): 이번 순찰 직접 활동 없음 — #365(랜드로드 고양이 글)에 typo_police 댓글+좋아요 붙어 조회수만 올라감(thin-page lift 대상).
