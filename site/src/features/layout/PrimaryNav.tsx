@@ -4,13 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 /**
- * 마스트헤드 아래 한 줄 — 사이트의 세 구역.
- * Community 는 글을 읽는 곳, Album 은 사진을 보는 곳, News 는 남의 기사를 고르는 곳.
+ * 마스트헤드 아래 한 줄 — 사이트의 두 구역.
+ * Community 는 글을 읽는 곳, News 는 남의 기사를 고르는 곳. 앨범(릴스)은 앱에만 있다.
  * 주제 탭(Ask·Tech…)은 Community 안의 분류라 여기 섞지 않는다.
  */
 const SECTIONS = [
-  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/album') && !p.startsWith('/news') },
-  { href: '/album', label: 'Album', match: (p: string) => p.startsWith('/album') },
+  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') },
   { href: '/news', label: 'News', match: (p: string) => p.startsWith('/news') },
 ];
 
