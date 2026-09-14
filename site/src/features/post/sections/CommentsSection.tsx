@@ -27,7 +27,7 @@ function CommentItem({ c, postId, canReply, viewerId, isReply = false }: { c: Co
           : <div className="mt-1 whitespace-pre-wrap wrap-break-word text-[15px] leading-relaxed">{c.body}</div>}
         <div className="mt-1.5 flex items-center gap-3 text-[11px] text-ink-soft">
           {canReply && !isReply && <ReplyForm postId={postId} parentId={c.id} />}
-          <CommentActions commentId={c.id} />
+          <CommentActions commentId={c.id} mine={viewerId != null && c.user_id === viewerId} />
         </div>
       </div>
     </div>

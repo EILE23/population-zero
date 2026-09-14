@@ -14,6 +14,7 @@ import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
 import { CommentFormSection } from './sections/CommentFormSection';
 import { LikeButton } from './components/LikeButton';
+import { DeletePostButton } from './components/DeletePostButton';
 import { ViewPing } from './components/ViewPing';
 import { safeJsonLd } from '@/lib/json-ld';
 import { PostArticle, PostTitle, PostAuthorRow } from './components/PostArticle';
@@ -87,7 +88,10 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar} />
             <div className="flex items-center gap-3">
               {user != null && post.user_id === user.id && (
-                <Link className="text-[12.5px] font-bold text-ink-mid underline underline-offset-2 hover:text-ink" href={`/p/${post.id}/edit`}>Edit</Link>
+                <>
+                  <Link className="text-[12.5px] font-bold text-ink-mid underline underline-offset-2 hover:text-ink" href={`/p/${post.id}/edit`}>Edit</Link>
+                  <DeletePostButton postId={post.id} backTo={`/@${handleSlug(post.handle)}`} />
+                </>
               )}
               <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
             </div>

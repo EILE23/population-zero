@@ -67,29 +67,47 @@ function record(item: WireItem, action: 'view' | 'open') {
   else if (!flushTimer) flushTimer = setTimeout(() => flush(), 4000);
 }
 
-const REGION_NAME: Record<string, string> = {
-  US: 'the US', GB: 'the UK', KR: 'Korea', JP: 'Japan', IN: 'India', BR: 'Brazil',
-  DE: 'Germany', FR: 'France', MX: 'Mexico', AU: 'Australia', ID: 'Indonesia', NG: 'Nigeria',
-};
-
 /** 출처 · 시간 — 모든 카드가 같은 자리에 같은 순서로 */
-function Byline({ item }: { item: WireItem }) {
+function Byline({ item, onDark = false }: { item: WireItem; onDark?: boolean }) {
   return (
-    <div className="flex min-w-0 items-baseline gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-soft">
-      <span className="truncate font-bold text-ink-mid">{item.source ?? 'Source'}</span>
+    <div className={`flex min-w-0 items-baseline gap-2 font-mono text-[10.5px] uppercase tracking-widest ${onDark ? 'text-paper/75' : 'text-ink-soft'}`}>
+      <span className={`truncate font-bold ${onDark ? 'text-paper' : 'text-ink-mid'}`}>{item.source ?? 'Source'}</span>
       <span className="shrink-0">· {timeAgo(item.collected_at)}</span>
     </div>
   );
 }
 
+/**
+ * 칸의 모양 — 신문 1면처럼 크기가 고르지 않다.
+ *  hero  : 6칸 중 4칸, 사진 위에 제목을 얹는다
+ *  wide  : 3칸, 사진 위·제목 아래
+ *  tile  : 2칸, 사진 위·제목 아래 (사진이 없으면 제목만 큼직하게)
+ *  row   : 6칸 전부, 사진 왼쪽·제목 오른쪽
+ * 사진이 없는 항목은 어느 자리에 오든 글자 카드가 된다 — 그래서 같은 패턴을 돌려도 화면마다 결이 다르다.
+ */
+type Shape = 'hero' | 'wide' | 'tile' | 'row';
+const STORY_CYCLE: Shape[] = ['hero', 'tile', 'tile', 'wide', 'wide', 'row', 'tile', 'tile', 'tile', 'wide', 'wide'];
+function shapeFor(kind: WireKind, i: number): Shape {
+  if (kind === 'video') return i === 0 ? 'row' : 'tile'; // 영상은 썸네일이 늘 있으니 첫 장만 크게, 나머지는 고르게
+  return STORY_CYCLE[i % STORY_CYCLE.length];
+}
+const SPAN: Record<Shape, string> = {
+  hero: 'sm:col-span-2 lg:col-span-4 lg:row-span-2',
+  wide: 'sm:col-span-1 lg:col-span-3',
+  tile: 'sm:col-span-1 lg:col-span-2',
+  row: 'sm:col-span-2 lg:col-span-6',
+};
+
 /** 카드 전체가 링크 — 기사는 여기서 읽는 게 아니라 원문에서 읽는다 */
-function Card({ item, lead }: { item: WireItem; lead?: boolean }) {
+function Card({ item, shape }: { item: WireItem; shape: Shape }) {
   const href = item.url && /^https?:\/\//.test(item.url) ? item.url : null;
   const Tag = href ? 'a' : 'div';
   const ref = useRef<HTMLElement>(null);
+  const [broken, setBroken] = useState(false);
   const linkProps = href
     ? { href, target: '_blank', rel: 'noopener noreferrer', onClick: () => record(item, 'open') }
     : {};
+  const image = broken ? null : item.image;
 
   // 화면에 절반 이상 들어와 있으면 '스쳤다' — 순위 신호 중 약한 쪽
   useEffect(() => {
@@ -102,24 +120,39 @@ function Card({ item, lead }: { item: WireItem; lead?: boolean }) {
     return () => io.disconnect();
   }, [item]);
 
-  if (lead) {
+  const shell = `group overflow-hidden rounded-2xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)] ${SPAN[shape]}`;
+  // 매체가 링크 미리보기 이미지를 핫링크로 막는 경우가 있다 — referrer 를 보내지 않고, 깨지면 글자 카드로 내려간다
+  const img = (cls: string, eager = false) => image && (
+    <img src={image} alt="" loading={eager ? 'eager' : 'lazy'} referrerPolicy="no-referrer" onError={() => setBroken(true)}
+      className={`${cls} object-cover transition-transform duration-500 group-hover:scale-[1.03]`} />
+  );
+
+  if (shape === 'hero' && image) {
     return (
-      <Tag
-        ref={ref as never}
-        {...linkProps}
-        className="group col-span-full grid gap-5 rounded-2xl bg-paper p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)] md:grid-cols-[1.25fr_1fr] md:p-6"
-      >
-        {item.image && (
-          <div className="aspect-[16/10] overflow-hidden rounded-xl bg-surface-deep">
-            <img src={item.image} alt="" loading="eager" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
-          </div>
-        )}
-        <div className="flex min-w-0 flex-col justify-center">
+      <Tag ref={ref as never} {...linkProps} className={`${shell} relative flex min-h-80 flex-col justify-end bg-ink-black lg:min-h-0`}>
+        {img('absolute inset-0 size-full', true)}
+        <div className="absolute inset-0 bg-linear-to-t from-ink-black/85 via-ink-black/30 to-transparent" />
+        <div className="relative p-5 md:p-6">
+          <Byline item={item} onDark />
+          <h2 className="mt-2 font-display text-[26px] font-bold leading-[1.12] tracking-tight text-paper text-balance md:text-[32px]">{item.title}</h2>
+          {href && (
+            <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-paper/90 group-hover:underline">
+              Read at {item.source ?? 'the source'} <ArrowUpRight size={13} />
+            </span>
+          )}
+        </div>
+      </Tag>
+    );
+  }
+
+  if (shape === 'row' && image) {
+    return (
+      <Tag ref={ref as never} {...linkProps} className={`${shell} grid gap-0 md:grid-cols-[1.2fr_1fr]`}>
+        <div className="aspect-video overflow-hidden bg-surface-deep md:aspect-auto md:min-h-65">{img('size-full', true)}</div>
+        <div className="flex min-w-0 flex-col justify-center p-5 md:p-7">
           <Byline item={item} />
-          <h2 className="mt-3 font-display text-[26px] font-bold leading-[1.15] tracking-tight [text-wrap:balance] md:text-[30px]">
-            {item.title}
-          </h2>
-          {item.summary && <p className="mt-3 line-clamp-4 text-[14.5px] leading-relaxed text-ink-mid">{item.summary}</p>}
+          <h2 className="mt-3 font-display text-[24px] font-bold leading-[1.15] tracking-tight text-balance md:text-[28px]">{item.title}</h2>
+          {item.summary && <p className="mt-3 line-clamp-3 text-[14px] leading-relaxed text-ink-mid">{item.summary}</p>}
           {href && (
             <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-bold text-ink group-hover:underline">
               Read at {item.source ?? 'the source'} <ArrowUpRight size={14} />
@@ -130,21 +163,19 @@ function Card({ item, lead }: { item: WireItem; lead?: boolean }) {
     );
   }
 
+  // 사진이 있으면 위에, 없으면 제목이 카드의 전부 — 큰 자리(hero/row)에 사진 없이 오면 글자를 더 키운다
+  const big = shape === 'hero' || shape === 'row';
   return (
-    <Tag
-      ref={ref as never}
-      {...linkProps}
-      className="group flex flex-col overflow-hidden rounded-2xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
-    >
-      {item.image && (
-        <div className="aspect-[16/9] overflow-hidden bg-surface-deep">
-          <img src={item.image} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-        </div>
+    <Tag ref={ref as never} {...linkProps} className={`${shell} flex flex-col`}>
+      {image && (
+        <div className={`overflow-hidden bg-surface-deep ${shape === 'wide' ? 'aspect-video' : 'aspect-4/3'}`}>{img('size-full')}</div>
       )}
-      <div className="flex flex-1 flex-col p-4">
+      <div className={`flex flex-1 flex-col ${big ? 'p-6 md:p-8' : 'p-4'}`}>
         <Byline item={item} />
-        <h2 className="mt-2 line-clamp-3 font-display text-[17px] font-bold leading-snug">{item.title}</h2>
-        {item.summary && <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-ink-mid">{item.summary}</p>}
+        <h2 className={`mt-2 font-display font-bold tracking-tight ${big ? 'text-[24px] leading-[1.15] text-balance md:text-[30px]' : image ? 'line-clamp-3 text-[17px] leading-snug' : 'line-clamp-4 text-[19px] leading-snug'}`}>
+          {item.title}
+        </h2>
+        {item.summary && <p className={`mt-2 text-ink-mid ${big ? 'line-clamp-3 text-[14px] leading-relaxed' : 'line-clamp-2 text-[13px] leading-relaxed'}`}>{item.summary}</p>}
         {href && (
           <span className="mt-auto inline-flex items-center gap-1 pt-3 text-[11.5px] font-bold text-ink-soft group-hover:text-ink">
             Open <ArrowUpRight size={12} />
@@ -164,7 +195,6 @@ function Card({ item, lead }: { item: WireItem; lead?: boolean }) {
 export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
   const [kind, setKind] = useState<WireKind>(initialKind);
   const [items, setItems] = useState<WireItem[]>([]);
-  const [region, setRegion] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -196,7 +226,6 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
       .then((page) => {
         if (!alive || gen.current !== mine) return;
         setItems(page.items);
-        setRegion(page.covered ? page.region : null);
         setHasMore(page.hasMore);
       })
       .catch(() => { if (alive && gen.current === mine) setFailed(true); })
@@ -242,18 +271,10 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
     }
   }
 
-  const where = region ? REGION_NAME[region] ?? region : null;
-
   return (
     <main className="mt-8">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-        <div>
-          <h1 className="font-display text-[32px] font-bold leading-tight tracking-tight">News</h1>
-          <p className="mt-2 max-w-150 text-[13px] text-ink-soft">
-            {where ? `What people in ${where} are reading right now.` : 'What people are reading right now.'}
-            {' '}Previews only — every story opens at its source.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        <h1 className="font-display text-[32px] font-bold leading-tight tracking-tight">News</h1>
         {/* 종류는 칩 두 개면 된다 — 드롭다운은 고를 게 많을 때의 도구다 */}
         <div role="tablist" aria-label="Kind" className="flex gap-2">
           {(['news', 'video'] as const).map((k) => {
@@ -284,14 +305,11 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
         <p className="py-14 text-[13px] text-ink-soft">Nothing collected yet. The patrol brings the next batch within a few hours.</p>
       )}
 
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item, i) => (
-          <div key={item.id} className={`contents`}>
-            <Card item={item} lead={i === 0 && !!item.image} />
-          </div>
-        ))}
+      {/* 6칸 격자 위에 크기가 다른 카드들 — 신문 1면처럼 고르지 않게 */}
+      <div className="mt-6 grid grid-flow-dense gap-5 sm:grid-cols-2 lg:grid-cols-6">
+        {items.map((item, i) => <Card key={item.id} item={item} shape={shapeFor(kind, i)} />)}
         {loading && Array.from({ length: 6 }, (_, i) => (
-          <div key={`s${i}`} className="h-56 animate-pulse rounded-2xl bg-surface-deep/60" />
+          <div key={`s${i}`} className={`h-56 animate-pulse rounded-2xl bg-surface-deep/60 ${SPAN[i === 0 ? 'hero' : 'tile']}`} />
         ))}
       </div>
 
