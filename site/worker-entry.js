@@ -66,14 +66,15 @@ async function openChatSocket(request, env) {
 }
 
 /**
- * Next 가 그린 404 페이지가 사람에게는 200 으로 나온다(soft 404): 레이아웃이 먼저 스트리밍을 시작한 뒤
- * notFound() 가 던져지면 상태줄은 이미 나간 뒤다. 검색엔진 봇은 next.config 의 htmlLimitedBots 로
- * 블로킹 렌더를 받아 진짜 404 를 본다. 여기서는 그 200 짜리 "없음" 페이지가 캐시에 들어가는 것만 막는다 —
- * 표식(not-found.tsx 의 data-pz-status)은 본문을 다 읽어야 보이므로 응답을 붙들지 않고 저장 직전에 본다.
+ * Next 가 그린 404 페이지가 200 으로 나온다(soft 404): 동적 라우트는 로딩 스켈레톤이 먼저 스트리밍되고
+ * notFound() 는 그 뒤에 던져져 상태줄을 바꿀 수 없다. 여기서 두 가지를 한다 — 그 200 짜리 "없음" 페이지가
+ * 캐시에 들어가지 않게 하고(저장 직전에 본문을 본다, 응답은 붙들지 않는다), 크롤러에게는 상태를 404 로 바로잡는다.
  */
-// 표식은 두 모양으로 온다: 서버 HTML 에 그려진 속성(data-pz-status="404")과, 로딩 스켈레톤 뒤에
-// RSC 페이로드(JSON 문자열)로 실려 오는 형태(data-pz-status\":\"404\") — 동적 라우트는 후자다.
-const NOT_FOUND_MARK = /data-pz-status(?:="|\\":\\")404/;
+// 유일하게 믿을 수 있는 표식은 Next 가 not-found 일 때만 <head> 에 넣는 <meta name="robots" content="noindex"/> 다.
+// 우리가 metadata 로 넣는 noindex 는 "noindex, follow"/"noindex, nofollow" 라 겹치지 않는다.
+// 페이지 안의 data-* 표식은 못 쓴다: not-found 경계 템플릿이 RSC 페이로드로 모든 페이지에 실려 와 전부 404 가 됐다.
+// (htmlLimitedBots 의 블로킹 렌더도 상태줄은 못 바꾼다 — 실측 200.)
+const NOT_FOUND_MARK = /<meta name="robots" content="noindex"\/>/;
 async function putUnlessNotFound(cache, key, copy) {
   const html = await copy.clone().text();
   if (NOT_FOUND_MARK.test(html)) return;
