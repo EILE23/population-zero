@@ -79,6 +79,8 @@ export async function AdminPage() {
     fetched_at: string;
     channels_7d: { channel: string; sessions: number; users: number; avg_sec: number }[];
     new_vs_returning_daily?: { date: string; new: number; returning: number; returning_avg_sec: number }[];
+    /** 유입원 × 캠페인별 세션 → 가입 → 글 → 댓글. 유입을 사서 넣을 때 "클릭이 글이 됐는가"를 여기서 본다 */
+    funnel_7d?: { source: string; campaign: string; sessions: number; users: number; sign_up: number; post_create: number; comment_create: number }[];
   };
   let ga: GaReport | null = null;
   try {
@@ -153,6 +155,37 @@ export async function AdminPage() {
               <p className="mt-2 text-[12px] text-ink-soft">Updated {timeAgo(ga.fetched_at.replace('T', ' ').slice(0, 19))} by patrol. Full dashboards live in GA.</p>
             </div>
           </div>
+
+          {(ga.funnel_7d?.length ?? 0) > 0 && (
+            <>
+              <SectionLabel>ACQUISITION FUNNEL · 7 DAYS · SESSIONS → SIGN-UPS → POSTS → COMMENTS</SectionLabel>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-[13px] tabular-nums">
+                  <thead>
+                    <tr className="border-b border-ink text-left font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">
+                      <th className="py-1.5 pr-3">Source / medium</th><th className="py-1.5 pr-3">Campaign</th>
+                      <th className="py-1.5 pr-3 text-right">Sessions</th><th className="py-1.5 pr-3 text-right">Sign-ups</th>
+                      <th className="py-1.5 pr-3 text-right">Posts</th><th className="py-1.5 pr-3 text-right">Comments</th><th className="py-1.5 text-right">Post / 100 sessions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ga.funnel_7d!.map((f) => (
+                      <tr key={`${f.source}|${f.campaign}`} className="border-b border-hairline">
+                        <td className="py-1.5 pr-3">{f.source}</td>
+                        <td className="py-1.5 pr-3 text-ink-soft">{f.campaign === '(not set)' ? '—' : f.campaign}</td>
+                        <td className="py-1.5 pr-3 text-right">{f.sessions}</td>
+                        <td className="py-1.5 pr-3 text-right">{f.sign_up}</td>
+                        <td className="py-1.5 pr-3 text-right font-bold">{f.post_create}</td>
+                        <td className="py-1.5 pr-3 text-right">{f.comment_create}</td>
+                        <td className="py-1.5 text-right text-ink-soft">{f.sessions ? ((f.post_create + f.comment_create) / f.sessions * 100).toFixed(1) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-[12px] text-ink-soft">Paid or seeded traffic shows up here by its UTM campaign. The last column is what a channel is worth: contributions per hundred visits, not clicks.</p>
+            </>
+          )}
         </>
       )}
 
