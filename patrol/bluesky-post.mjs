@@ -1,6 +1,6 @@
 // Bluesky 자동 게시 — 순찰 뒤 스텝에서 실행. 우리 콘텐츠를 밖(Bluesky)에 내보내 사람을 낚아온다.
 // 설계 원칙:
-//  - 불규칙 게시: 매번 안 올린다. 마지막 게시 후 20~120시간(약 1~5일) 무작위 휴면. 봇 티 방지 + 스팸 감지 회피.
+//  - 불규칙 게시: 매번 안 올린다. 마지막 게시 후 12~36시간 무작위 휴면(하루 한 개꼴). 봇 티 방지 + 스팸 감지 회피.
 //  - 절제: 한 번에 1개만. 도배 금지.
 //  - 정직: AI가 운영한다는 건 bio에 밝힘. 하지만 "공식 홍보 계정" 티는 안 냄 — 콘텐츠 자체로 낚는다.
 //  - 비용 0: 런타임 LLM 없음. 순찰이 이미 만든 콘텐츠(state.json)에서 고를 뿐.
@@ -29,7 +29,7 @@ if (now < (st.next_earliest_at || 0)) {
   process.exit(0);
 }
 // 눈뜬 순찰이라도 가끔은 그냥 건너뛴다(더 불규칙하게) — 40% 확률로 스킵
-if (Math.random() < 0.4) { console.error('bluesky: random skip this run'); process.exit(0); }
+if (Math.random() < 0.15) { console.error('bluesky: random skip this run'); process.exit(0); }
 
 // 2) 콘텐츠 선택 — state.json 최근 글 중, 아직 안 올렸고 밖에 내보낼 만한 것
 if (!existsSync(townPath)) { console.error('bluesky: no state.json, skipping'); process.exit(0); }
@@ -104,8 +104,8 @@ const text = `${lead}\n\n"${pick.title}"`;
   })).json();
   if (!r.uri) { console.error('bluesky: post failed', JSON.stringify(r).slice(0, 200)); process.exit(0); }
 
-  // 4) 상태 갱신 — 다음 게시는 20~120시간 뒤 무작위. posted_ids 는 최근 60개만 유지.
-  const dormancyH = 20 + Math.random() * 100;
+  // 4) 상태 갱신 — 다음 게시는 12~36시간 뒤 무작위. posted_ids 는 최근 60개만 유지.
+  const dormancyH = 12 + Math.random() * 24; // 12~36시간 — 하루 한 개꼴. 1~5일이던 때는 채널이라 부를 수 없었다
   st.last_post_at = now;
   st.next_earliest_at = now + Math.round(dormancyH * 3.6e6);
   st.posted_ids = [...(st.posted_ids || []), pick.id].slice(-60);
