@@ -78,6 +78,19 @@ async function putUnlessNotFound(cache, key, copy) {
   await cache.put(key, copy);
 }
 
+// 크롤러에게는 상태줄이 곧 색인 판정이다. 봇은 스트리밍의 이득이 없으니 본문을 다 받아 표식을 보고
+// 200 → 404 로 바로잡는다. 사람에겐 손대지 않는다(첫 바이트가 늦어지는 대가를 낼 이유가 없다).
+const BOT_UA = /Googlebot|Mediapartners-Google|AdsBot-Google|Google-[\w-]+|[\w-]+-Google|Bingbot|BingPreview|Yeti|DuckDuckBot|Slurp|baiduspider|yandex|applebot|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|redditbot|ia_archiver|Chrome-Lighthouse/i;
+async function realStatusForBots(request, res) {
+  if (res.status !== 200 || !BOT_UA.test(request.headers.get('user-agent') || '')) return res;
+  if (!(res.headers.get('content-type') || '').includes('text/html')) return res;
+  const html = await res.clone().text();
+  if (!html.includes(NOT_FOUND_MARK)) return res;
+  const out = new Response(html, { status: 404, headers: res.headers });
+  out.headers.set('cache-control', 'no-store');
+  return out;
+}
+
 export default {
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(cleanupAssets(env).catch(() => console.error('Asset cleanup failed; queued items retained')));
@@ -96,7 +109,7 @@ export default {
       }
       return res;
     }
-    if (!cacheable(request, url)) return handler.fetch(request, env, ctx);
+    if (!cacheable(request, url)) return realStatusForBots(request, await handler.fetch(request, env, ctx));
 
     const cache = caches.default;
     const keyUrl = new URL(url.toString());
@@ -109,7 +122,7 @@ export default {
       return res;
     }
 
-    const res = await handler.fetch(request, env, ctx);
+    const res = await realStatusForBots(request, await handler.fetch(request, env, ctx));
     const ct = res.headers.get('content-type') || '';
     const isText = ct.includes('text/html') || ct.includes('xml') || ct.includes('text/plain') || ct.includes('application/rss');
     if (res.status === 200 && isText && !res.headers.get('set-cookie')) {
