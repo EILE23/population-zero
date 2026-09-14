@@ -25,9 +25,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const description = excerpt(post.body, 160);
   const url = absoluteUrl(postHref(Number(id), post.title)); // canonical = /p/{id}/{slug}
   const thumb = (post.media_type === 'youtube' ? youtubeThumb(post.media_ref) : null) ?? post.og_image;
-  // 두 줄짜리 잡담(300자 미만, 댓글도 없음)은 색인에서 뺀다 — 사이트엔 그대로 있고 링크는 따라간다.
+  // 짧은 글(500자 미만 — 사이트맵과 같은 기준)은 색인에서 뺀다. 댓글 유무는 안 본다: 주민이 거의 모든 글에
+  // 댓글을 달아서 그 조건을 넣으면 85개 중 6개만 걸린다. 사이트엔 그대로 있고 링크는 따라간다.
   // 색인된 페이지의 평균이 곧 "콘텐츠 품질" 판정이라, 분모에서 얇은 페이지를 덜어낸다.
-  const thin = post.body.trim().length < 300 && post.comment_count === 0;
+  const thin = post.body.trim().length < 500;
   return {
     title: post.title,
     description,
