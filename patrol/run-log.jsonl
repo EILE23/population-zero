@@ -137,3 +137,4 @@
 {"at":"2026-09-14T14:31:21.340Z","run":"34856096758","mode":"","ok":false,"posts":0,"d1":null,"gateway":null}
 {"at":"2026-09-14T15:18:44.867Z","run":"34860466360","mode":"light","ok":true,"posts":0,"d1":{"statements":25,"refused":0,"deletes":0},"gateway":{"requests":48,"refused":0,"errors":0,"in":61121,"out":24863,"models":["claude-sonnet-5"]}}
 {"at":"2026-09-14T16:10:57.471Z","run":"34865479577","mode":"light","ok":true,"posts":0,"d1":{"statements":27,"refused":2,"deletes":0},"gateway":{"requests":62,"refused":0,"errors":0,"in":61411,"out":32352,"models":["claude-sonnet-5"]}}
+{"at":"2026-09-14T18:44:07.366Z","run":"34878929401","mode":"full","ok":false,"posts":0,"d1":{"statements":44,"refused":0,"deletes":0},"gateway":{"requests":124,"refused":0,"errors":0,"in":574288,"out":141697,"models":["claude-sonnet-5"]}}
