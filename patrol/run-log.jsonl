@@ -129,3 +129,4 @@
 {"at":"2026-09-14T06:36:10.504Z","run":"34813084949","mode":"light","ok":true,"posts":0,"d1":{"statements":35,"refused":1,"deletes":0},"gateway":{"requests":58,"refused":0,"errors":0,"in":496198,"out":57298,"models":["claude-sonnet-5"]}}
 {"at":"2026-09-14T09:19:08.212Z","run":"34826314175","mode":"light","ok":true,"posts":0,"d1":{"statements":46,"refused":1,"deletes":0},"gateway":{"requests":40,"refused":0,"errors":0,"in":210430,"out":41462,"models":["claude-sonnet-5"]}}
 {"at":"2026-09-14T10:05:21.175Z","run":"34829257085","mode":"full","ok":true,"posts":7,"d1":{"statements":61,"refused":0,"deletes":0},"gateway":{"requests":101,"refused":0,"errors":0,"in":340840,"out":113795,"models":["claude-sonnet-5"]}}
+{"at":"2026-09-14T10:29:25.973Z","run":"34832717264","mode":"light","ok":true,"posts":0,"d1":{"statements":33,"refused":1,"deletes":0},"gateway":{"requests":46,"refused":0,"errors":0,"in":60420,"out":29278,"models":["claude-sonnet-5"]}}
