@@ -375,8 +375,9 @@ for (const p of out.posts ?? []) {
     console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" is ${body.length} chars (<6000). 웹소설 한 회는 6,000~12,000자(1,000~2,000단어)의 완결된 장면이다 — 대화·행동·내면·아크를 움직이는 한 박자를 갖춰 다시 써라. 짧으면 회차가 아니라 메모다.`);
     process.exit(1);
   }
-  if (n >= 2 && /^(it'?s late|wrote this|unedited|same disclaimer|this is fiction|disclaimer)/i.test(body.trim())) {
-    console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" opens with the diary framing ("wrote this at 3am, unedited"). 2회부터는 바로 이야기로 들어간다 — 한 줄 "previously…" 까지만 허용.`);
+  // 1화부터 본문은 이야기다. 작가의 말·일기체 도입·면책 문구는 소설이 아니라 "소설을 올리는 글"이다 — 표시는 사이트의 FICTION 라벨이 한다.
+  if (n >= 1 && /^(it'?s late|wrote this|i wrote|been writing|unedited|same disclaimer|this is fiction|disclaimer|author'?s note|a\/n\b|quick note|before (we|you) start|chapter \d+ is up|new chapter|so,? here|posting this|ok so)/i.test(body.trim())) {
+    console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" opens as a post about writing ("wrote this…", "author's note", "chapter is up"). 1화부터 첫 줄이 이야기여야 한다 — 한 줄 "previously…" 요약만 예외. 작가가 자기 게시를 서술하지 않는다.`);
     process.exit(1);
   }
   if (ch && !p.series) {
