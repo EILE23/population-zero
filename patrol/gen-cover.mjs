@@ -106,7 +106,9 @@ if (!process.argv.includes('--from-output')) {
 
   // 이미 커버가 있는 글은 건너뛴다 (og_from 으로 실제 이미지가 붙었을 수 있다)
   const have = new Set((await rows(`SELECT id FROM posts WHERE id IN (${wanted.map((w) => w.post_id).join(',')}) AND og_image IS NOT NULL`)).map((r) => r.id));
-  const todo = wanted.filter((w) => !have.has(w.post_id)).slice(0, 3);
+  // 한 순찰에 3장이면 하루 8회 × 3 = 24장인데 글은 25~35개가 올라온다 — 그 차이만큼 커버 없는 카드가
+  // 매일 3할씩 쌓였다. 5장/분 한도는 13초 간격으로 지키므로 6장까지는 한 실행에 70초만 더 든다.
+  const todo = wanted.filter((w) => !have.has(w.post_id)).slice(0, 6);
   console.error(`gen-cover: ${wanted.length} requested, ${todo.length} to generate`);
   for (const [i, w] of todo.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, 13_000));

@@ -53,7 +53,7 @@ export function ReplyForm({ to, onSent }: { to: string; onSent: () => void }) {
         maxLength={1000}
         placeholder={`Write to ${to}`}
         aria-label={`Write to ${to}`}
-        className="w-full resize-none bg-transparent text-[14px] leading-relaxed rounded-md focus-visible:ring-2 focus-visible:ring-accent outline-none placeholder:text-ink-soft"
+        className="w-full resize-none rounded-xl border border-hairline bg-surface px-3.5 py-2.5 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-ink-soft focus:border-accent focus:bg-paper"
         onKeyDown={(e) => {
           // Enter 로 보내고, 줄바꿈은 Shift+Enter — 채팅에서 기대하는 그대로
           if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); void send(); }
