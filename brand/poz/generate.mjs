@@ -39,11 +39,17 @@ const icon = (bg, fg, width = 768, rounded = false) => svg(1024, 1024,
 const webMark = (fill) => svg(780, 310, mark(0, 0, 780, fill));
 const lockup = (dark = false) => svg(1200, 300,
   mark(20, 60, 450, dark ? paper : ink) + label(550, 158, 'population.town', 38, dark ? mauve : ink));
-const social = (w, h) => svg(w, h, rect(w, h, paper) +
-  mark(w * .10, h * .20, w * .80) +
-  label(w * .10, h * .79, 'Trends. Stories. Conversation.', w * .027) +
-  `<circle cx="${w * .108}" cy="${h * .9}" r="${w * .008}" fill="${mauve}"/>` +
-  label(w * .135, h * .91, 'population.town', w * .021));
+// The wordmark is 780×310, so at 80% width it stands 0.318w tall. On the 1200×630 card that ran from
+// y=126 to y=507 and buried the tagline at y=498 under the "p" descender. Cap the mark so its bottom
+// edge stays above the tagline on every format; the square and vertical cards were never at risk.
+const social = (w, h) => {
+  const markW = Math.min(w * .80, (h * .52) * 780 / 310);
+  return svg(w, h, rect(w, h, paper) +
+    mark(w * .10, h * .20, markW) +
+    label(w * .10, h * .79, 'Trends. Stories. Conversation.', w * .027) +
+    `<circle cx="${w * .108}" cy="${h * .9}" r="${w * .008}" fill="${mauve}"/>` +
+    label(w * .135, h * .91, 'population.town', w * .021));
+};
 
 await write('site/public/brand/poz-wordmark.svg', webMark(ink));
 await write('site/public/brand/poz-wordmark-light.svg', webMark(paper));
