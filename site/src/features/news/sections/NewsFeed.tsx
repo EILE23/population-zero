@@ -68,31 +68,30 @@ function record(item: WireItem, action: 'view' | 'open') {
 }
 
 /** 출처 · 시간 — 모든 카드가 같은 자리에 같은 순서로 */
-function Byline({ item, onDark = false }: { item: WireItem; onDark?: boolean }) {
+function Byline({ item }: { item: WireItem }) {
   return (
-    <div className={`flex min-w-0 items-baseline gap-2 font-mono text-[10.5px] uppercase tracking-widest ${onDark ? 'text-paper/75' : 'text-ink-soft'}`}>
-      <span className={`truncate font-bold ${onDark ? 'text-paper' : 'text-ink-mid'}`}>{item.source ?? 'Source'}</span>
+    <div className="flex min-w-0 items-baseline gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-soft">
+      <span className="truncate font-bold text-ink-mid">{item.source ?? 'Source'}</span>
       <span className="shrink-0">· {timeAgo(item.collected_at)}</span>
     </div>
   );
 }
 
 /**
- * 칸의 모양 — 신문 1면처럼 크기가 고르지 않다.
- *  hero  : 6칸 중 4칸, 사진 위에 제목을 얹는다
- *  wide  : 3칸, 사진 위·제목 아래
- *  tile  : 2칸, 사진 위·제목 아래 (사진이 없으면 제목만 큼직하게)
- *  row   : 6칸 전부, 사진 왼쪽·제목 오른쪽
- * 사진이 없는 항목은 어느 자리에 오든 글자 카드가 된다 — 그래서 같은 패턴을 돌려도 화면마다 결이 다르다.
+ * 칸의 모양 — 기본은 고른 3열, 리듬만 조금 준다.
+ *  row  : 6칸 전부, 사진 왼쪽·제목 오른쪽 — 맨 위 한 장
+ *  tile : 2칸(3열), 사진 위·제목 아래
+ *  wide : 3칸(2열), 같은 구성에 사진만 넓게 — 여섯 장마다 한 쌍
+ * 사진이 없는 항목은 어느 자리에 오든 글자 카드가 된다. 영상은 썸네일이 늘 있으니 첫 장만 크게, 나머지는 고르게.
  */
-type Shape = 'hero' | 'wide' | 'tile' | 'row';
-const STORY_CYCLE: Shape[] = ['hero', 'tile', 'tile', 'wide', 'wide', 'row', 'tile', 'tile', 'tile', 'wide', 'wide'];
+type Shape = 'wide' | 'tile' | 'row';
+const STORY_CYCLE: Shape[] = ['tile', 'tile', 'tile', 'tile', 'tile', 'tile', 'wide', 'wide'];
 function shapeFor(kind: WireKind, i: number): Shape {
-  if (kind === 'video') return i === 0 ? 'row' : 'tile'; // 영상은 썸네일이 늘 있으니 첫 장만 크게, 나머지는 고르게
-  return STORY_CYCLE[i % STORY_CYCLE.length];
+  if (i === 0) return 'row';
+  if (kind === 'video') return 'tile';
+  return STORY_CYCLE[(i - 1) % STORY_CYCLE.length];
 }
 const SPAN: Record<Shape, string> = {
-  hero: 'sm:col-span-2 lg:col-span-4 lg:row-span-2',
   wide: 'sm:col-span-1 lg:col-span-3',
   tile: 'sm:col-span-1 lg:col-span-2',
   row: 'sm:col-span-2 lg:col-span-6',
@@ -127,24 +126,6 @@ function Card({ item, shape }: { item: WireItem; shape: Shape }) {
       className={`${cls} object-cover transition-transform duration-500 group-hover:scale-[1.03]`} />
   );
 
-  if (shape === 'hero' && image) {
-    return (
-      <Tag ref={ref as never} {...linkProps} className={`${shell} relative flex min-h-80 flex-col justify-end bg-ink-black lg:min-h-0`}>
-        {img('absolute inset-0 size-full', true)}
-        <div className="absolute inset-0 bg-linear-to-t from-ink-black/85 via-ink-black/30 to-transparent" />
-        <div className="relative p-5 md:p-6">
-          <Byline item={item} onDark />
-          <h2 className="mt-2 font-display text-[26px] font-bold leading-[1.12] tracking-tight text-paper text-balance md:text-[32px]">{item.title}</h2>
-          {href && (
-            <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-paper/90 group-hover:underline">
-              Read at {item.source ?? 'the source'} <ArrowUpRight size={13} />
-            </span>
-          )}
-        </div>
-      </Tag>
-    );
-  }
-
   if (shape === 'row' && image) {
     return (
       <Tag ref={ref as never} {...linkProps} className={`${shell} grid gap-0 md:grid-cols-[1.2fr_1fr]`}>
@@ -163,8 +144,8 @@ function Card({ item, shape }: { item: WireItem; shape: Shape }) {
     );
   }
 
-  // 사진이 있으면 위에, 없으면 제목이 카드의 전부 — 큰 자리(hero/row)에 사진 없이 오면 글자를 더 키운다
-  const big = shape === 'hero' || shape === 'row';
+  // 사진이 있으면 위에, 없으면 제목이 카드의 전부 — 맨 위 자리(row)에 사진 없이 오면 글자를 더 키운다
+  const big = shape === 'row';
   return (
     <Tag ref={ref as never} {...linkProps} className={`${shell} flex flex-col`}>
       {image && (
@@ -305,11 +286,11 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
         <p className="py-14 text-[13px] text-ink-soft">Nothing collected yet. The patrol brings the next batch within a few hours.</p>
       )}
 
-      {/* 6칸 격자 위에 크기가 다른 카드들 — 신문 1면처럼 고르지 않게 */}
-      <div className="mt-6 grid grid-flow-dense gap-5 sm:grid-cols-2 lg:grid-cols-6">
+      {/* 6칸 격자: 위에 한 장 크게, 아래는 3열 — 가끔 2열 한 쌍 */}
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
         {items.map((item, i) => <Card key={item.id} item={item} shape={shapeFor(kind, i)} />)}
         {loading && Array.from({ length: 6 }, (_, i) => (
-          <div key={`s${i}`} className={`h-56 animate-pulse rounded-2xl bg-surface-deep/60 ${SPAN[i === 0 ? 'hero' : 'tile']}`} />
+          <div key={`s${i}`} className={`h-56 animate-pulse rounded-2xl bg-surface-deep/60 ${SPAN[i === 0 ? 'row' : 'tile']}`} />
         ))}
       </div>
 
