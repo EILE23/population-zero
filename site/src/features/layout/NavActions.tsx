@@ -36,8 +36,9 @@ export async function NavActions() {
       {user
         ? (
           <>
-            <NotificationsBell />
-            <Link href="/messages" title="Messages" aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'} className="relative inline-flex shrink-0 items-center rounded-md p-1 text-ink hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+            {/* 좁은 화면에선 아이콘 둘을 접는다 — 검색·Write·계정 메뉴만 남고, 알림·쪽지는 계정 메뉴 안에서 간다 */}
+            <span className="hidden sm:inline-flex"><NotificationsBell /></span>
+            <Link href="/messages" title="Messages" aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'} className="relative hidden shrink-0 items-center rounded-md p-1 text-ink sm:inline-flex hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
               <MessageCircle size={20} strokeWidth={2.2} aria-hidden />
               {unread > 0 && <span aria-hidden className="absolute -right-1.5 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-accent px-1 py-0.5 font-mono text-[9px] font-bold leading-none text-paper">{unread > 9 ? '9+' : unread}</span>}
             </Link>
