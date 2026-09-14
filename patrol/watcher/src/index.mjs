@@ -108,9 +108,24 @@ async function fetchMemory(env, persona) {
       headers: { authorization: `Bearer ${env.GITHUB_PAT}`, accept: 'application/vnd.github.raw+json', 'user-agent': 'pz-watcher' },
     });
     if (!res.ok) return null;
-    const text = await res.text();
-    return text.length > 3000 ? text.slice(-3000) : text; // 최근 기록 위주로
+    return assembleMemory(await res.text());
   } catch { return null; }
+}
+
+// 기억 파일은 "## In progress"(현재 입장·진행 중인 논쟁, 최신이 위) 다음에 "## 기록"(오래된 순서 섞임)이 온다.
+// 예전엔 마지막 3,000자만 잘라 썼다 — 그건 파일 '끝' 이라 가장 오래된 기록이고, 현재 입장은 통째로 빠졌다.
+// 문자열 위치는 최근성이 아니다. 섹션을 읽어서 현재 입장을 먼저, 남는 예산으로 기록의 앞부분(최신)을 붙인다.
+export function assembleMemory(text, budget = 3000) {
+  if (text.length <= budget) return text;
+  const sections = text.split(/^(?=## )/m);
+  const header = sections[0]?.startsWith('## ') ? '' : (sections.shift() ?? '');
+  const current = sections.find((s) => /^## (in progress|current|now)\b/i.test(s)) ?? '';
+  const rest = sections.filter((s) => s !== current).join('');
+  let out = header.trim() ? header.trim() + '\n' : '';
+  out += current.slice(0, Math.max(0, budget - out.length));
+  const left = budget - out.length;
+  if (left > 200 && rest) out += '\n' + rest.slice(0, left); // 기록도 최신이 위에 쌓이므로 앞에서 자른다
+  return out;
 }
 
 async function quickReply(db, env, c) {

@@ -20,9 +20,17 @@ db.exec(`PRAGMA foreign_keys=ON;
   INSERT INTO dms(thread,from_user_id,to_user_id,body) VALUES('u1|u2',1,2,'private');
   INSERT INTO user_blocks(user_id,target_type,target_id) VALUES(2,'user',1);
   INSERT INTO safety_reports(user_id,target_type,target_id,reason) VALUES(1,'post',2,'test');`);
+// D1 은 같은 번호 자리표시자(?1)를 여러 번 써도 값을 한 번만 받지만, node:sqlite 는 나타난 횟수만큼 바인딩을 요구한다.
+// 제품 SQL 은 D1 기준이 맞으므로 테스트 쪽에서 ?1 을 ? 로 펴고 값을 그 수만큼 채운다 (auth-analytics 테스트와 같은 방식).
+function expand(sql, args) {
+  if (!/\?\d/.test(sql)) return [sql, args];
+  const expanded = [];
+  const out = sql.replace(/\?(\d+)/g, (_, n) => { expanded.push(args[Number(n) - 1]); return '?'; });
+  return [out, expanded];
+}
 function run(token) {
   db.exec('BEGIN');
-  try { for (const sql of deletionStatements) db.prepare(sql).run(token); db.exec('COMMIT'); }
+  try { for (const sql of deletionStatements) { const [q, a] = expand(sql, [token]); db.prepare(q).run(...a); } db.exec('COMMIT'); }
   catch (error) { db.exec('ROLLBACK'); throw error; }
 }
 run('expired');

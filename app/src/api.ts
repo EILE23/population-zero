@@ -223,11 +223,14 @@ export async function createPost(input: {
   photoUris?: string[];
   /** 이미 있는 앨범을 이 글에 붙인다(공유) — 사진을 새로 올리는 대신 */
   albumId?: number | null;
+  /** 작성 화면이 열릴 때 만든 재시도 열쇠 — 같은 값의 재전송만 같은 글로 묶인다 (사진 글은 텍스트로 구별할 수 없다) */
+  clientKey?: string;
 }): Promise<{ id: number; url: string }> {
   const form = new FormData();
   form.append('title', input.title);
   form.append('body', input.body);
   form.append('topic', input.topic ?? 'life');
+  if (input.clientKey) form.append('client_key', input.clientKey);
   const album = input.photoUris?.length ? input.photoUris : input.photoUri ? [input.photoUri] : [];
   for (const uri of album) form.append('photos', await filePart(uri));
   if (input.albumId) form.append('album_id', String(input.albumId));
@@ -338,17 +341,30 @@ export async function fetchToday(
  * 무엇을 보고 무엇을 눌렀는지 서버에 넘긴다 — Today 순서가 그 사람에게 맞춰지는 근거.
  * 제목·본문은 보내지 않는다: 분류·매체·종류만. 실패해도 조용히 넘어간다(기록이지 기능이 아니다).
  */
+/** 취향 신호 전송 — 서버가 받았으면 true. 실패는 화면에 영향을 주지 않지만, 호출자가 큐를 지울지 결정하는 데는 쓰인다. */
 export async function sendTrendEvents(anon: string, events: {
-  trend_id: number; action: 'view' | 'open'; topic: string | null; source: string | null; kind: string;
-}[]): Promise<void> {
-  if (!events.length) return;
+  trend_id: number; action: 'view' | 'open';
+}[]): Promise<boolean> {
+  if (!events.length) return true;
   try {
     await request('/api/trends/event', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ anon, events }),
     });
-  } catch { /* 기록 실패는 화면에 영향을 주지 않는다 */ }
+    return true;
+  } catch { return false; }
+}
+
+/** 실(대화) 열쇠 — 서버(lib/dm.ts)와 같은 규칙: 두 참가자 표식을 정렬해 '|' 로 잇는다. 첫 마디 전에도 주소를 알 수 있다. */
+export function threadKey(a: { kind: 'user' | 'resident'; id: number }, b: { kind: 'user' | 'resident'; id: number }): string {
+  const tag = (p: { kind: 'user' | 'resident'; id: number }) => `${p.kind === 'user' ? 'u' : 'r'}${p.id}`;
+  return [tag(a), tag(b)].sort().join('|');
+}
+
+/** 작성 화면 하나에 하나 — 재시도해도 같은 글로 묶이도록 */
+export function newClientKey(): string {
+  return `c${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
 }
 
 const ANON_KEY = 'poz_anon_id';

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { createPost, postingError, uploadInlineImage, TOPIC_TABS, type Album } from '@/api';
+import { createPost, newClientKey, postingError, uploadInlineImage, TOPIC_TABS, type Album } from '@/api';
 import { AlbumPicker } from '@/ui/AlbumPicker';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
 import { Tap } from '@/ui/Tap';
@@ -40,6 +40,8 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
   const [error, setError] = useState<string | null>(null);
   // 커서 위치 — 본문 사진을 '지금 쓰던 자리'에 넣기 위해 따라다닌다
   const caret = useRef(0);
+  // 이 화면에서 나가는 모든 발행 시도는 같은 글이다 — 반려 뒤 다시 눌러도 두 글이 되지 않게
+  const [clientKey] = useState(() => newClientKey());
 
   /** 사진 하나를 고른다 — 카메라는 권한을 먼저 묻는다 */
   async function choose(from: 'camera' | 'library') {
@@ -74,14 +76,18 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
     setError(null);
     try {
       const url = await uploadInlineImage(res.assets[0].uri);
-      const at = Math.min(caret.current, body.length);
-      const before = body.slice(0, at);
-      const after = body.slice(at);
-      // 사진은 제 줄을 차지해야 한다 — 문장 중간에 끼면 문단이 깨진다
-      const lead = before.length === 0 || before.endsWith('\n') ? '' : '\n\n';
-      const snippet = `${lead}![](${url})\n\n`;
-      setBody(before + snippet + after);
-      caret.current = (before + snippet).length;
+      // 업로드를 기다리는 동안 쓴 글을 잃지 않게, 시작 시점의 body 가 아니라 '지금' body 에 끼워 넣는다.
+      // (예전엔 클로저에 잡힌 옛 body 로 덮어써서 그 사이 타이핑이 사라졌다)
+      setBody((cur) => {
+        const at = Math.min(caret.current, cur.length);
+        const before = cur.slice(0, at);
+        const after = cur.slice(at);
+        // 사진은 제 줄을 차지해야 한다 — 문장 중간에 끼면 문단이 깨진다
+        const lead = before.length === 0 || before.endsWith('\n') ? '' : '\n\n';
+        const snippet = `${lead}![](${url})\n\n`;
+        caret.current = (before + snippet).length;
+        return before + snippet + after;
+      });
     } catch (e) {
       setError(postingError(e));
     } finally {
@@ -93,6 +99,8 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
 
   async function publish() {
     if (busy) return;
+    // 사진이 아직 올라가는 중이면 본문에 주소가 없다 — 지금 발행하면 사진 없는 글이 된다
+    if (uploading) { setError('Wait a moment — a photo is still uploading.'); return; }
     if (!ready) {
       setError('A title of 4+ characters and a body of 10+ characters, please.');
       return;
@@ -100,7 +108,7 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
     setBusy(true);
     setError(null);
     try {
-      const { id } = await createPost({ title: title.trim(), body: body.trim(), topic, photoUri: cover, albumId: album?.album_id ?? null });
+      const { id } = await createPost({ title: title.trim(), body: body.trim(), topic, photoUri: cover, albumId: album?.album_id ?? null, clientKey });
       onPosted(id);
     } catch (e) {
       setError(postingError(e));

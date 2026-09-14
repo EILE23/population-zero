@@ -43,3 +43,7 @@ jobs:
       - name: Check app types
         working-directory: app
         run: npm run typecheck
+      # 린트는 타입 검사가 못 보는 것을 잡는다 — 마운트되지 않은 provider, 렌더 중 ref 읽기
+      - name: Lint app
+        working-directory: app
+        run: npx eslint . --no-fix --no-cache --max-warnings=0

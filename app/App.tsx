@@ -1,9 +1,9 @@
 import { subscribeSafetyChanges } from '@/api';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, AppState, BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { fetchThreads, logout, restoreSession, type DmThread, type FeedPost, type Me } from '@/api';
+import { fetchThreads, logout, restoreSession, threadKey, type DmThread, type FeedPost, type Me } from '@/api';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { SignupScreen } from '@/screens/SignupScreen';
 import { ForgotScreen } from '@/screens/ForgotScreen';
@@ -46,12 +46,13 @@ export default function App() {
   // 글을 쓰거나 고치면 이 값을 올려 목록들을 다시 읽게 한다
   const [reloadKey, setReloadKey] = useState(0);
 
-  // 어느 쪽에서 넘어왔는지 — 새 화면이 그 방향에서 미끄러져 들어오도록
-  const prevTab = useRef<TabKey>('today');
-  const direction = TAB_ORDER.indexOf(tab) >= TAB_ORDER.indexOf(prevTab.current) ? 1 : -1;
+  // 어느 쪽에서 넘어왔는지 — 새 화면이 그 방향에서 미끄러져 들어오도록.
+  // 상태로 둔다: 렌더 중에 ref 를 읽으면 React 가 경고하고, 동시 렌더에서 값이 어긋날 수 있다.
+  const [direction, setDirection] = useState<1 | -1>(1);
   const selectTab = useCallback((next: TabKey) => {
-    setTab((current) => { prevTab.current = current; return next; });
-  }, []);
+    setDirection(TAB_ORDER.indexOf(next) >= TAB_ORDER.indexOf(tab) ? 1 : -1);
+    setTab(next);
+  }, [tab]);
 
   // 저장된 토큰이 아직 살아 있으면 로그인 화면을 건너뛴다
   useEffect(() => {
@@ -113,25 +114,29 @@ export default function App() {
   const openProfile = useCallback((handle: string) => setOverlay({ kind: 'profile', handle }), []);
   /**
    * 프로필에서 '쪽지'를 누르면 아직 대화가 없을 수 있다.
-   * 그때는 빈 실을 열어 준다 — 첫 마디를 보내는 순간 서버가 진짜 열쇠로 묶는다.
+   * 실 열쇠는 참가자 둘로 정해지므로(threadKey — 서버와 같은 규칙) 첫 마디 전에도 진짜 열쇠로 연다.
+   * 예전엔 빈 열쇠('')와 kind 'user' 로 열어서, 첫 전송 뒤에도 화면의 조회·폴링이 빈 실을 보고 있었고
+   * 주민(AI)도 사람처럼 취급됐다.
    */
-  const startChat = useCallback(async (handle: string) => {
+  const startChat = useCallback(async (other: { kind: 'user' | 'resident'; id: number; handle: string }) => {
+    if (!me) return;
+    const thread = threadKey({ kind: 'user', id: me.id }, other);
     try {
       const threads = await fetchThreads();
-      const found = threads.find((t) => t.other.handle === handle);
+      const found = threads.find((t) => t.thread === thread);
       if (found) { setOverlay({ kind: 'chat', thread: found }); return; }
     } catch { /* 목록을 못 읽어도 새 대화는 열 수 있다 */ }
     setOverlay({
       kind: 'chat',
       thread: {
-        thread: '',
+        thread,
         preview: '',
         created_at: new Date().toISOString(),
         unread: 0,
-        other: { kind: 'user', id: 0, handle, avatar: null },
+        other: { kind: other.kind, id: other.id, handle: other.handle, avatar: null },
       },
     });
-  }, []);
+  }, [me]);
   const openPostId = useCallback((id: number) => setOverlay({ kind: 'post', id }), []);
   const editPost = useCallback((post: FeedPost) => setOverlay({ kind: 'edit', id: post.id }), []);
   useEffect(() => subscribeSafetyChanges(() => { setOverlay({ kind: 'none' }); setReloadKey(n => n + 1); }), []);
@@ -146,6 +151,8 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <SafeAreaView style={s.root} edges={['top', 'bottom']}>
+      {/* 한 줄 알림의 뿌리 — 없으면 useToast() 가 기본값(아무것도 안 함)을 받아 오류 안내가 조용히 사라진다 */}
+      <ToastProvider>
         {bootError ? (
           <View style={s.root}>
             <Text>Could not reconnect. Your saved login is safe.</Text>
@@ -163,7 +170,8 @@ export default function App() {
           <View style={s.root}>
             {/* 네 화면 모두 살려둔 채 감춘다 — 탭을 오갈 때 스크롤 위치와 목록이 유지되도록 */}
             <TabPage active={tab === 'today'} direction={direction}>
-              <TodayScreen />
+              {/* 탭이 살아 있어도 가려져 있으면 '봤다' 가 아니다 — 활성 여부를 알려 준다 */}
+              <TodayScreen active={tab === 'today' && overlay.kind === 'none'} />
             </TabPage>
             <TabPage active={tab === 'community'} direction={direction}>
               <FeedScreen
@@ -224,7 +232,7 @@ export default function App() {
                   handle={overlay.handle}
                   onBack={closeOverlay}
                   onOpenPost={openPostId}
-                  onMessage={(h) => void startChat(h)}
+                  onMessage={(other) => void startChat(other)}
                 />
               </View>
             ) : overlay.kind === 'chat' ? (
@@ -241,6 +249,7 @@ export default function App() {
 
         {/* 켜자마자 보이는 오프닝 — 세션 복구가 끝나면 로고가 커지며 걷힌다 */}
         {opening ? <OpeningScreen ready={!booting} onDone={onOpeningDone} /> : null}
+      </ToastProvider>
       </SafeAreaView>
     </SafeAreaProvider>
   );

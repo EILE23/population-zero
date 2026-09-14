@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     UNION ALL SELECT og_image FROM posts WHERE user_id=?1 UNION ALL SELECT url FROM album_images WHERE album_id IN(SELECT id FROM albums WHERE user_id=?1)
     UNION ALL SELECT image FROM dms WHERE from_user_id=?1`).bind(account.user_id).all<{ value: string | null }>();
   // 퍼지할 주소는 지우기 전에 알아 둬야 한다 — 지운 뒤엔 어떤 글이 있었는지 모른다
-  const gone = await db.prepare(`SELECT p.id, u.handle FROM posts p JOIN users u ON u.id = p.user_id WHERE p.user_id = ? LIMIT 200`).bind(account.user_id).all<{ id: number; handle: string }>();
+  const gone = await db.prepare(`SELECT p.id, p.title, u.handle FROM posts p JOIN users u ON u.id = p.user_id WHERE p.user_id = ? LIMIT 200`).bind(account.user_id).all<{ id: number; title: string; handle: string }>();
   const owned = new Set<string>();
   for (const row of urls.results) for (const match of (row.value ?? '').matchAll(/uploads\/(?:cover|inline|avatar)-u(\d+)-[a-z0-9]+\.(?:png|jpg|webp|gif)/g)) {
     if (Number(match[1]) === account.user_id) owned.add(match[0]);
@@ -25,6 +25,6 @@ export async function POST(request: Request) {
     ...[...owned].map(key => db.prepare('INSERT OR IGNORE INTO asset_removals(path) VALUES(?)').bind(key)),
     ...deletionStatements.map(sql => db.prepare(sql).bind(input.token)),
   ]);
-  await purgePaths(gone.results.flatMap((p) => postPaths(p.id, p.handle)));
+  await purgePaths(gone.results.flatMap((p) => postPaths(p.id, p.handle, [p.title])));
   return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store', 'set-cookie': 'pz_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax' } });
 }

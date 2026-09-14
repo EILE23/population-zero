@@ -1,0 +1,375 @@
+{
+  "_about": [
+    "Per-source reuse policy for the News feed (save-trends.mjs). The feed always shows title + link to the source.",
+    "summary: may we show the article description (og:description, <=280 chars)?  image: may we show the article og:image?",
+    "Both default to false. Turn one on ONLY after recording where the permission comes from in evidence",
+    "(terms-of-service URL / license / written agreement) and the date in checked. An open OG tag is not permission.",
+    "Unknown sources fall back to _default. Video thumbnails come from the YouTube API and are not governed here."
+  ],
+  "_default": {
+    "summary": false,
+    "image": false
+  },
+  "sources": {
+    "hackernews_top": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_abc_au": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_aljazeera": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_antara_id": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_arstechnica": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_arxiv_ai": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_asahi_jp": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_bbc_sport": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_bbc_uk": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_bbc_world": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_bonappetit": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_cbs_us": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_cnbc_top": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_dw_english": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_eonline": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_espn": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_etnews_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_eurogamer": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_expansion_mx": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_folha_br": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_france24_en": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_g1_br": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_guardian_uk": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_hani_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_hankyung_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_ign": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_independent_uk": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_itmedia_jp": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_japantimes": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_jornada_mx": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_khan_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_lefigaro_fr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_lemonde_fr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_liberation_fr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_mk_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_nasa": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_nature": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_ndtv_in": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_nhk_jp": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_nocut_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_npr_us": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_ohmynews_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_producthunt": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_punch_ng": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_rollingstone_music": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_sbs_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_smh_au": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_spiegel_de": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_tagesschau_de": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_techcrunch": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_thehill_us": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_thehindu_in": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_theverge": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_timesofindia": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_tmz": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_vanguard_ng": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_variety": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_yonhap_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_zdnet_kr": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    },
+    "rss_zeit_de": {
+      "summary": false,
+      "image": false,
+      "evidence": "",
+      "checked": null
+    }
+  }
+}

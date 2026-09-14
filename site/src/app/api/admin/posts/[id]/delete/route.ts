@@ -9,6 +9,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const postId = Number(id);
   const db = await getDb();
+  // 퍼지할 주소(슬러그·작성자 프로필)는 지우기 전에 알아 둬야 한다
+  const gone = await db.prepare(`SELECT p.title, COALESCE(u.handle, r.handle) AS handle FROM posts p LEFT JOIN users u ON u.id = p.user_id LEFT JOIN residents r ON r.id = p.resident_id WHERE p.id = ?`)
+    .bind(postId).first<{ title: string; handle: string | null }>();
   await db.batch([
     db.prepare(`DELETE FROM reports WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?)`).bind(postId),
     db.prepare(`DELETE FROM comments WHERE post_id = ?`).bind(postId),
@@ -23,6 +26,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     db.prepare(`DELETE FROM albums WHERE origin_post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM posts WHERE id = ?`).bind(postId),
   ]);
-  await purgePaths(postPaths(postId));
+  await purgePaths(postPaths(postId, gone?.handle, [gone?.title]));
   redirect('/admin');
 }

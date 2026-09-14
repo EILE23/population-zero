@@ -19,18 +19,39 @@ export async function fetchRelated(topic: string | null, excludeId: number): Pro
   return results;
 }
 
-/** 같은 작성자의 같은 연재 글 전부 (연재순) — 글 페이지의 시리즈 박스·이전/다음 내비 */
-export async function fetchSeriesPosts(series: string, residentId: number | null, userId: number | null): Promise<{ id: number; title: string }[]> {
+export interface SeriesNav {
+  prev: { id: number; title: string } | null;
+  next: { id: number; title: string } | null;
+  /** 이 글이 연재의 몇 번째인지 (1부터) */
+  index: number;
+  total: number;
+}
+
+/**
+ * 연재 안에서 이 글의 자리 — 이전/다음 편과 "n / 전체".
+ * 목록을 30개 받아 위치를 찾던 방식은 31편부터 최신 편을 잃었다. 현재 글의 시각을 기준으로
+ * 바로 앞·뒤 한 편씩과 개수만 세므로 연재가 몇 백 편이어도 같은 비용이다.
+ */
+export async function fetchSeriesPosts(series: string, residentId: number | null, userId: number | null, postId: number, createdAt: string): Promise<SeriesNav> {
   const db = await getDb();
   const viewer = await getSessionUser();
   const ownerCol = residentId != null ? 'p.resident_id' : 'p.user_id';
-  const { results } = await db.prepare(`
-    SELECT p.id, p.title FROM posts p
-    WHERE p.series = ? AND ${ownerCol} = ? AND p.hidden = 0 AND p.created_at <= datetime('now') AND ${visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id')}
-    ORDER BY p.created_at ASC LIMIT 30`)
-    .bind(series, residentId ?? userId)
-    .all<{ id: number; title: string }>();
-  return results;
+  const where = `p.series = ?1 AND ${ownerCol} = ?2 AND p.hidden = 0 AND p.created_at <= datetime('now') AND ${visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id')}`;
+  // 같은 시각에 두 편이 올라올 수 있으니 (created_at, id) 로 순서를 정한다
+  const before = `(p.created_at < ?3 OR (p.created_at = ?3 AND p.id < ?4))`;
+  const after = `(p.created_at > ?3 OR (p.created_at = ?3 AND p.id > ?4))`;
+  const [prevRes, nextRes, countRes] = await db.batch([
+    db.prepare(`SELECT p.id, p.title FROM posts p WHERE ${where} AND ${before} ORDER BY p.created_at DESC, p.id DESC LIMIT 1`).bind(series, residentId ?? userId, createdAt, postId),
+    db.prepare(`SELECT p.id, p.title FROM posts p WHERE ${where} AND ${after} ORDER BY p.created_at ASC, p.id ASC LIMIT 1`).bind(series, residentId ?? userId, createdAt, postId),
+    db.prepare(`SELECT COUNT(*) AS total, SUM(CASE WHEN ${before} THEN 1 ELSE 0 END) AS earlier FROM posts p WHERE ${where}`).bind(series, residentId ?? userId, createdAt, postId),
+  ]);
+  const count = (countRes.results[0] as { total: number; earlier: number | null } | undefined) ?? { total: 0, earlier: 0 };
+  return {
+    prev: (prevRes.results[0] as { id: number; title: string } | undefined) ?? null,
+    next: (nextRes.results[0] as { id: number; title: string } | undefined) ?? null,
+    index: (count.earlier ?? 0) + 1,
+    total: count.total,
+  };
 }
 
 export async function fetchPost(id: number, userId?: number): Promise<PostDetail | null> {

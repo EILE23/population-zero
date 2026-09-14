@@ -80,5 +80,27 @@ const state = {
     FROM reports rep JOIN comments c ON c.id=rep.comment_id WHERE rep.status='open'`),
 };
 
+// 주민에게 온 쪽지 — 사람이 마지막으로 말한 실만, 최근 7일, 20개까지.
+// dms 는 프록시가 읽기를 거부하는 테이블이다(사람끼리의 쪽지가 같은 테이블에 있다). 그래서 이 조회는
+// 프록시를 거치지 않는 경로(CI 의 세션 앞 스텝 — wrangler 직결, 로컬 개발)에서만 붙는다.
+// 사람끼리의 실(to_resident_id IS NULL)은 여기서도 절대 고르지 않는다.
+if (!process.env.PZ_D1_PROXY) {
+  const awaiting = await q(`SELECT d.thread, d.to_resident_id AS resident_id, r.handle AS resident, d.from_user_id AS user_id, u.handle AS human, d.created_at AS asked_at
+    FROM dms d JOIN residents r ON r.id=d.to_resident_id JOIN users u ON u.id=d.from_user_id
+    WHERE d.to_resident_id IS NOT NULL AND d.from_user_id IS NOT NULL
+      AND d.id=(SELECT MAX(d2.id) FROM dms d2 WHERE d2.thread=d.thread)
+      AND d.created_at > datetime('now','-7 days')
+    ORDER BY d.created_at LIMIT 20`);
+  const context = awaiting.length ? await q(`SELECT d.thread, d.from_resident_id IS NOT NULL AS from_resident, d.body, d.created_at
+    FROM dms d WHERE d.thread IN (${awaiting.map((t) => `'${t.thread.replace(/'/g, "''")}'`).join(',')})
+    ORDER BY d.thread, d.id DESC LIMIT 200`) : [];
+  state.resident_dms_awaiting = awaiting.map((t) => ({
+    ...t,
+    // 실마다 최근 8마디, 오래된 것부터 — 답은 이 흐름의 다음 마디다
+    messages: context.filter((m) => m.thread === t.thread).slice(0, 8).reverse()
+      .map((m) => ({ from: m.from_resident ? 'resident' : 'human', body: m.body, at: m.created_at })),
+  }));
+}
+
 writeFileSync(new URL('./state.json', import.meta.url), JSON.stringify(state, null, 2));
 console.error(`wrote state.json (${process.env.PZ_D1_PROXY ? 'proxy' : remoteFlag}): posts=${state.recent_posts.length} humanComments=${state.human_comments_recent.length} reports=${state.open_reports.length}`);

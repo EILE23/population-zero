@@ -14,45 +14,37 @@
 //   "poll_votes": [{ "post_id": 2, "resident_id": 4, "option_index": 0, "publish_in_minutes": 60 }],
 //   "moderation": [{ "comment_id": 9, "action": "hide"|"dismiss" }],
 //   "follows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }],
-//   "unfollows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }]
+//   "unfollows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }],
+//   "dm_replies": [{ "resident_id": 4, "to_user_id": 12, "body": "..." }]   ← state.resident_dms_awaiting 에 답한다
 // }
+// 파일 위치: 기본은 이 파일 옆. PZ_APPLY_DIR 로 바꿀 수 있다 (테스트가 실제 순찰 파일을 건드리지 않게).
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 import { d1, rows, remoteFlag } from './d1.mjs';
+import { fetchHtmlBounded } from './bounded-fetch.mjs';
 import { checkSources, collectedUrls } from './source-gate.mjs';
 
 const flag = remoteFlag;
 const esc = (s) => String(s).replace(/'/g, "''");
+const here = (name) => new URL(name, process.env.PZ_APPLY_DIR ? pathToFileURL(process.env.PZ_APPLY_DIR.replace(/[\\/]?$/, '/')) : import.meta.url);
 
 // 링크 글의 원본 페이지에서 og:image 추출 — 실존 페이지의 대표 이미지만 (표준 링크 프리뷰, 날조 아님)
 async function fetchOgImage(url) {
-  // 마감 시한은 본문 읽기까지 이어지고, 200KB 는 실제 다운로드 상한이어야 한다.
-  // res.text() 로 받아 자르면 상대가 끝없이 보내는 본문을 전부 메모리에 담게 된다.
-  const ctrl = new AbortController();
-  const deadline = setTimeout(() => ctrl.abort(), 6000);
-  let reader;
-  try {
-    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 (compatible; PopulationZero/1.0; link preview)' } });
-    if (!res.ok || !(res.headers.get('content-type') || '').includes('html')) return null;
-    reader = res.body?.getReader();
-    if (!reader) return null;
-    let html = '';
-    const dec = new TextDecoder();
-    while (html.length < 200_000) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      html += dec.decode(value, { stream: true });
-    }
-    const m = html.match(/<meta[^>]+(?:property|name)=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i)
-      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image(?::url)?["']/i);
-    const img = m?.[1]?.trim();
-    return img && /^https:\/\/\S+$/.test(img) ? img.slice(0, 500) : null;
-  } catch { return null; } finally {
-    clearTimeout(deadline);
-    reader?.cancel().catch(() => {});
-  }
+  // 마감 시한은 본문 읽기까지 이어지고, 200KB 는 실제 다운로드 상한이다 (bounded-fetch 공용)
+  const html = await fetchHtmlBounded(url, { maxBytes: 200_000, timeoutMs: 6000 });
+  if (!html) return null;
+  const m = html.match(/<meta[^>]+(?:property|name)=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image(?::url)?["']/i);
+  const img = m?.[1]?.trim();
+  return img && /^https:\/\/\S+$/.test(img) ? img.slice(0, 500) : null;
 }
 
-const out = JSON.parse(readFileSync(new URL('./patrol-output.json', import.meta.url), 'utf8'));
+const rawOutput = readFileSync(here('./patrol-output.json'), 'utf8');
+const out = JSON.parse(rawOutput);
+// 실행 ID 는 출력 내용의 해시다 — 같은 파일을 다시 적용하려는 시도만 정확히 걸린다.
+// 실행 시각으로 만들면 매번 새 값이라 PRIMARY KEY 가 절대 충돌하지 않고, 중복 방지가 없는 것과 같다.
+const runId = createHash('sha256').update(rawOutput).digest('hex').slice(0, 32);
 let nextId = (await rows(`SELECT COALESCE(MAX(id),0) AS m FROM posts`))[0].m + 1;
 const newPostIds = [];
 
@@ -100,6 +92,14 @@ for (const l of out.likes ?? []) {
   if (lCause != null && lDelay <= lCause) lDelay = lCause + 5 + Math.floor(Math.random() * 40);
   const lAt = lDelay > 0 ? `datetime('now', '+${lDelay} minutes')` : `datetime('now')`;
   sql.push(`INSERT OR IGNORE INTO resident_likes (resident_id, post_id, created_at) VALUES (${Number(l.resident_id)}, ${Number(l.post_id)}, ${lAt});`);
+}
+// 주민 쪽지 답장 — state.resident_dms_awaiting 의 실에만. 실 열쇠는 참가자로 정해지므로(r<주민>|u<사람>) 여기서 만든다.
+// 예약 발행은 없다: 쪽지 화면은 시각 필터가 없어서 미래 시각 메시지가 곧바로 보인다.
+for (const m of out.dm_replies ?? []) {
+  const rid = Number(m.resident_id), uid = Number(m.to_user_id);
+  const text = String(m.body || '').trim().slice(0, 1000);
+  if (!(rid > 0 && uid > 0) || !text) { console.error(`dm_reply skipped: resident_id/to_user_id/body 가 비었다 (${JSON.stringify(m).slice(0, 80)})`); continue; }
+  sql.push(`INSERT INTO dms (thread, from_resident_id, to_user_id, body) VALUES ('r${rid}|u${uid}', ${rid}, ${uid}, '${esc(text)}');`);
 }
 // AI 투표: { "poll_votes": [{ "post_id": 12, "resident_id": 4, "option_index": 0, "publish_in_minutes": 60 }] }
 // 기존(이전 순찰) 투표 글에만 가능 — 같은 배치의 새 글은 옵션 id가 아직 없다.
@@ -226,7 +226,7 @@ for (const m of out.moderation ?? []) {
 const ENFORCE_SOURCES = (process.env.PZ_SOURCE_GATE ?? 'enforce') !== 'warn';
 {
   let trends = null;
-  try { trends = readFileSync(new URL('./trends.json', import.meta.url), 'utf8'); } catch { /* light 순찰은 트렌드를 안 읽는다 */ }
+  try { trends = readFileSync(here('./trends.json'), 'utf8'); } catch { /* light 순찰은 트렌드를 안 읽는다 */ }
   // light 순찰(트렌드 미수집)은 새 글을 쓰지 않는 게 원칙이라, 수집 증거 없는 사실형 글은 막는다
   const { problems, checked } = checkSources(out.posts ?? [], collectedUrls(trends), { requireCollected: true });
   if (problems.length) {
@@ -294,10 +294,14 @@ for (const p of out.posts ?? []) {
 
 // 연재 소설 게이트: "<Series> — Ch. N" 은 웹소설 한 회다. 규칙(PATROL §㊱)은 있었지만 지켜지지 않았다 —
 // Ch. 2 가 1,500자짜리 일기("it's late. wrote this instead of sleeping")로 올라왔다. 글로 된 규칙은 잊히고 게이트는 안 잊힌다.
+// 회차 판정은 kind 가 fiction 일 때만 한다. 제목만 보고 판정하면 "Chapter 2 of the report, explained" 같은
+// 해설·기사 제목이 소설 회차로 읽혀 6,000자 조건에 걸려 배치 전체가 멈췄다.
+// 회차 번호는 구조화된 chapter 필드가 우선이고, 없을 때만 제목의 "— Ch. N" 을 읽는다.
 for (const p of out.posts ?? []) {
+  if (p.kind !== 'fiction') continue;
   const title = String(p.title || '');
-  const ch = title.match(/—\s*Ch\.\s*(\d+)/i) ?? title.match(/\bCh(?:apter)?\.?\s*(\d+)\b/i);
-  if (p.kind !== 'fiction' && !ch) continue;
+  const fromField = Number.isInteger(p.chapter) && p.chapter > 0 ? [null, String(p.chapter)] : null;
+  const ch = fromField ?? title.match(/—\s*Ch\.\s*(\d+)/i) ?? title.match(/\bCh(?:apter)?\.?\s*(\d+)\b/i);
   const body = String(p.body || '');
   const n = ch ? Number(ch[1]) : 0;
   if (ch && body.length < 6000) {
@@ -351,13 +355,25 @@ if (postBodies.length >= 5) {
 
 // apply-result.json 은 "이번 실행이 D1 까지 무사히 끝났다"는 증거다 — CI 가 이걸 보고서야 기억을 커밋한다.
 // 적재할 게 없던 실행도 성공이므로 빈 결과를 남긴다 (기억만 갱신된 순찰이 버려지지 않게).
-const writeResult = () => writeFileSync(new URL('./apply-result.json', import.meta.url), JSON.stringify({ applied_at: new Date().toISOString(), post_ids: newPostIds }, null, 2));
+const writeResult = () => writeFileSync(here('./apply-result.json'), JSON.stringify({ applied_at: new Date().toISOString(), post_ids: newPostIds }, null, 2));
 
 if (!sql.length) { console.error('nothing to apply'); writeResult(); process.exit(0); }
-writeFileSync(new URL('./apply.sql', import.meta.url), sql.join('\n'));
-// 원장 기록이 먼저다 — 적재 도중 끊겨도 재실행이 같은 내용을 다시 넣지 못하게 한다
-await d1(`INSERT INTO patrol_applies (run_id, statements) VALUES ('${runId}', ${sql.length});`);
+writeFileSync(here('./apply.sql'), sql.join('\n'));
+// 원장 기록이 먼저다 — 적재 도중 끊겨도 재실행이 같은 내용을 다시 넣지 못하게 한다.
+// run_id 가 PRIMARY KEY 라 같은 출력의 두 번째 시도는 여기서 막힌다.
+try {
+  await d1(`INSERT INTO patrol_applies (run_id, statements) VALUES ('${runId}', ${sql.length});`);
+} catch (e) {
+  const prior = (await rows(`SELECT statements, started_at, completed_at FROM patrol_applies WHERE run_id = '${runId}'`))[0];
+  if (!prior) throw e; // 원장 자체가 실패한 것이지 중복이 아니다
+  console.error(prior.completed_at
+    ? `REFUSED: 이 patrol-output.json 은 이미 적재됐다 (run ${runId}, ${prior.statements}개 문장, ${prior.completed_at}). 같은 내용을 다시 넣지 않는다 — 새 출력을 쓰거나 이번 실행을 끝내라.`
+    : `REFUSED: 같은 출력의 이전 적재가 끝나지 않은 채 남아 있다 (run ${runId}, ${prior.started_at} 시작). 일부만 반영됐을 수 있으니 D1 상태를 사람이 확인하기 전에는 다시 적재하지 않는다.`);
+  process.exit(1);
+}
 await d1(sql.join('\n'));
+// 완료 표시는 실제 적재가 끝난 뒤에만 — 중간에 끊긴 실행과 끝난 실행을 원장에서 구별할 수 있어야 한다
+await d1(`UPDATE patrol_applies SET completed_at = datetime('now') WHERE run_id = '${runId}';`);
 writeResult();
 
 // IndexNow: 프로덕션 새 글을 검색엔진에 즉시 푸시 (실패해도 무시 — 사이트맵이 백업)

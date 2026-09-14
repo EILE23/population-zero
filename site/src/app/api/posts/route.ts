@@ -70,7 +70,7 @@ async function fetchOgImage(url: string): Promise<string | null> {
 
 type CreateResult =
   | { ok: true; id: number }
-  | { ok: false; error: 'unauthorized' | 'unverified' | 'rate' | 'short' | 'failed' };
+  | { ok: false; error: 'unauthorized' | 'unverified' | 'rate' | 'short' | 'upload' | 'failed' };
 
 /**
  * 글 생성 본체 — 웹 폼(리다이렉트)과 앱(JSON)이 같은 로직을 쓴다.
@@ -123,30 +123,48 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
     if (!sharedAlbum) return { ok: false, error: 'failed' };
   }
 
+  // 재시도 열쇠 — 작성 화면이 열릴 때 하나 만들어 반려·재전송에도 같은 값을 보낸다.
+  // 이 값이 있으면 텍스트 비교 대신 이걸로 "같은 글" 을 판정한다: 사진 글은 제목·본문이 비어 있어
+  // 텍스트만 보면 서로 다른 사진 두 장이 한 글로 합쳐졌다.
+  const clientKey = String(form.get('client_key') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || null;
+  if (clientKey) {
+    const dup = await db.prepare(`SELECT id FROM posts WHERE user_id = ? AND client_key = ? AND created_at > datetime('now','-1 day') ORDER BY id DESC LIMIT 1`)
+      .bind(user.id, clientKey).first<{ id: number }>();
+    if (dup) return { ok: true, id: dup.id }; // 이미 올라간 그 글 — 사진을 다시 올리기 전에 돌려보낸다
+  }
+
   const album: string[] = [];
   for (const file of albumFiles) {
     const url = await uploadImageToAssets(file, user.id, 'cover');
     if (url) album.push(url);
   }
+  // 사진이 본문인 글은 사진이 있어야 글이다. 한 장이라도 실패하면 발행하지 않는다 —
+  // 일부만 붙은 앨범을 말없이 올리면 사용자는 어느 사진이 빠졌는지 알 길이 없다.
+  // (거절되기 전에 올라간 사진은 자산 저장소에 남는다: 글에 연결되지 않은 파일이라 노출되지 않는다)
+  if (albumFiles.length && album.length < albumFiles.length) return { ok: false, error: 'upload' };
   let og_image: string | null = album[0]
     ?? sharedAlbum?.cover
     ?? (coverFile instanceof File && coverFile.size > 0 ? await uploadImageToAssets(coverFile, user.id, 'cover') : null);
   if (!og_image) og_image = media_type === 'link' && media_ref ? await fetchOgImage(media_ref) : null;
   if (!og_image) { const img = body.match(/!\[[^\]]*\]\((https:\/\/\S+?)\)/); if (img) og_image = img[1].slice(0, 500); }
 
+  // 열쇠가 없는 옛 클라이언트만 텍스트로 재전송을 잡는다 — 사진 글은 텍스트가 비어 있으니 그 판정에서 뺀다
   const { meta } = await db.prepare(
-    `INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic, series, album_id)
-     SELECT ?1, 'human', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
+    `INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic, series, album_id, client_key)
+     SELECT ?1, 'human', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10
      WHERE NOT EXISTS (
-       SELECT 1 FROM posts WHERE user_id = ?1 AND title = ?2 AND body = ?3 AND created_at > datetime('now','-5 minutes')
+       SELECT 1 FROM posts WHERE user_id = ?1 AND created_at > datetime('now','-1 day') AND (
+         (?10 IS NOT NULL AND client_key = ?10)
+         OR (?10 IS NULL AND ?11 = 0 AND title = ?2 AND body = ?3 AND created_at > datetime('now','-5 minutes'))
+       )
      )`,
-  ).bind(user.id, title, body, media_type, media_ref, og_image, topic, series, sharedAlbum?.id ?? null).run();
+  ).bind(user.id, title, body, media_type, media_ref, og_image, topic, series, sharedAlbum?.id ?? null, clientKey, photoOnly ? 1 : 0).run();
 
-  // 5분 내 같은 글 재전송(더블 탭·재시도) — 새로 만들지 않고 기존 글로 안내한다
+  // 재전송(더블 탭·재시도) — 새로 만들지 않고 기존 글로 안내한다
   if (!meta.changes) {
-    const first = await db.prepare(
-      `SELECT id FROM posts WHERE user_id = ? AND title = ? AND body = ? ORDER BY id DESC LIMIT 1`,
-    ).bind(user.id, title, body).first<{ id: number }>();
+    const first = clientKey
+      ? await db.prepare(`SELECT id FROM posts WHERE user_id = ? AND client_key = ? ORDER BY id DESC LIMIT 1`).bind(user.id, clientKey).first<{ id: number }>()
+      : await db.prepare(`SELECT id FROM posts WHERE user_id = ? AND title = ? AND body = ? ORDER BY id DESC LIMIT 1`).bind(user.id, title, body).first<{ id: number }>();
     return first ? { ok: true, id: first.id } : { ok: false, error: 'failed' };
   }
 
@@ -176,10 +194,11 @@ const WEB_ERROR_PATH: Record<Exclude<CreateResult, { ok: true }>['error'], strin
   unverified: '/me?error=unverified',
   rate: '/write?error=rate',
   short: '/write?error=short',
+  upload: '/write?error=upload',
   failed: '/',
 };
 const JSON_ERROR_STATUS: Record<Exclude<CreateResult, { ok: true }>['error'], number> = {
-  unauthorized: 401, unverified: 403, rate: 429, short: 400, failed: 500,
+  unauthorized: 401, unverified: 403, rate: 429, short: 400, upload: 422, failed: 500,
 };
 
 export async function POST(request: Request) {
@@ -189,7 +208,7 @@ export async function POST(request: Request) {
 
   if (result.ok) {
     if (wantsJson) return Response.json({ id: result.id, url: `/p/${result.id}` }, { status: 201 });
-    redirect(`/p/${result.id}`);
+    redirect(`/p/${result.id}?posted=1`); // posted=1: 글쓰기 화면의 초안을 지워도 된다는 표식 (ClearDraft)
   }
   if (wantsJson) return Response.json({ error: result.error }, { status: JSON_ERROR_STATUS[result.error] });
   redirect(WEB_ERROR_PATH[result.error]);

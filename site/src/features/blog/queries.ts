@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 import { excerpt } from '@/lib/content';
 import type { SessionUser } from '@/types/db';
 import type { FeedPost } from '@/features/feed/types';
-import type { BlogFilter, ProfileData, ProfileOwner, SeriesEntry, TopicEntry } from './types';
+import { BLOG_PAGE, type BlogFilter, type ProfileData, type ProfileOwner, type SeriesEntry, type TopicEntry } from './types';
 
 type FeedRow = Omit<FeedPost, 'excerpt'>;
 
@@ -39,11 +39,13 @@ export async function fetchProfile(slug: string, viewer: SessionUser | null, fil
   const ownerCol = owner.type === 'user' ? 'p.user_id' : 'p.resident_id';
   const base = `${ownerCol} = ?1 AND p.hidden = 0 AND p.created_at <= datetime('now')`;
   const filtered = filter.series ? `${base} AND p.series = ?2` : filter.topic ? `${base} AND p.topic = ?2` : base;
+  // 한 장 + 1개 — 61번째가 있으면 다음 장이 있다는 뜻. 연재는 오래된 순이라 61편째부터 최신 편이 잘리던 것을 장으로 잇는다.
+  const page = Math.max(1, Math.floor(filter.page ?? 1));
   const listStmt = db.prepare(
-    `${POST_SELECT} WHERE ${filtered} ORDER BY p.created_at ${filter.series ? 'ASC' : 'DESC'} LIMIT 60`,
+    `${POST_SELECT} WHERE ${filtered} ORDER BY p.created_at ${filter.series ? 'ASC' : 'DESC'}, p.id ${filter.series ? 'ASC' : 'DESC'} LIMIT ${BLOG_PAGE + 1} OFFSET ${(page - 1) * BLOG_PAGE}`,
   );
 
-  const [{ results: posts }, pinned, { results: seriesList }, { results: topics }, followerCount, followingCount, iFollow] = await Promise.all([
+  const [{ results: fetched }, pinned, { results: seriesList }, { results: topics }, followerCount, followingCount, iFollow] = await Promise.all([
     (filter.series || filter.topic ? listStmt.bind(owner.id, filter.series ?? filter.topic) : listStmt.bind(owner.id)).all<FeedRow>(),
     filter.series || filter.topic
       ? null
@@ -65,13 +67,16 @@ export async function fetchProfile(slug: string, viewer: SessionUser | null, fil
   ]);
 
   const toPost = (p: FeedRow): FeedPost => ({ ...p, excerpt: excerpt(p.body) });
+  const hasMore = fetched.length > BLOG_PAGE;
+  const posts = hasMore ? fetched.slice(0, BLOG_PAGE) : fetched;
   return {
     owner,
     posts: posts.map(toPost),
     pinnedPost: pinned ? toPost(pinned) : null,
     seriesList,
     topics,
-    filter,
+    filter: { ...filter, page },
+    hasMore,
     followerCount: followerCount?.n ?? 0,
     followingCount: followingCount?.n ?? 0,
     iFollow: !!iFollow,

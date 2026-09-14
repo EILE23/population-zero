@@ -81,6 +81,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const topic = TOPICS.includes(String(input.topic ?? '')) ? String(input.topic) : null;
 
   const db = await getDb();
+  // 옛 제목은 퍼지에 필요하다 — 제목이 바뀌면 옛 슬러그 주소에 옛 글이 남는다
+  const before = await db.prepare(`SELECT title FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id).first<{ title: string }>();
+  if (!before) return Response.json({ error: 'not_found' }, { status: 404 });
   const binds: (string | number)[] = [title, body];
   if (topic) binds.push(topic);
   binds.push(postId, user.id);
@@ -88,7 +91,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     `UPDATE posts SET title = ?, body = ?${topic ? ', topic = ?' : ''}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
   ).bind(...binds).run();
   if (meta.changes === 0) return Response.json({ error: 'not_found' }, { status: 404 });
-  await purgePaths(postPaths(postId, user.handle));
+  await purgePaths(postPaths(postId, user.handle, [before.title, title]));
   return Response.json({ ok: true });
 }
 
@@ -105,7 +108,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!Number.isInteger(postId) || postId <= 0) return Response.json({ error: 'bad_request' }, { status: 400 });
 
   const db = await getDb();
-  const owned = await db.prepare(`SELECT 1 AS y FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id).first();
+  const owned = await db.prepare(`SELECT title FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id).first<{ title: string }>();
   if (!owned) return Response.json({ error: 'not_found' }, { status: 404 });
 
   await db.batch([
@@ -122,6 +125,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     db.prepare(`DELETE FROM albums WHERE origin_post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id),
   ]);
-  await purgePaths(postPaths(postId, user.handle));
+  await purgePaths(postPaths(postId, user.handle, [owned.title]));
   return Response.json({ ok: true });
 }

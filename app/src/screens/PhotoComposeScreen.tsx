@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { createPost, postingError } from '@/api';
+import { createPost, newClientKey, postingError } from '@/api';
 import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 
@@ -24,6 +24,8 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
   const [topic, setTopic] = useState<string>('life');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 이 화면의 발행 시도는 전부 같은 앨범이다 — 반려 뒤 다시 눌러도, 서로 다른 앨범 두 개가 되지도 한 앨범으로 합쳐지지도 않게
+  const [clientKey] = useState(() => newClientKey());
 
   const addShots = (uris: string[]) =>
     setShots((prev) => [...prev, ...uris].slice(0, MAX_SHOTS));
@@ -71,7 +73,7 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
     setBusy(true);
     setError(null);
     try {
-      const { id } = await createPost({ title, body: caption.trim(), topic, photoUris: shots });
+      const { id } = await createPost({ title, body: caption.trim(), topic, photoUris: shots, clientKey });
       onPosted(id);
     } catch (e) {
       setError(postingError(e));

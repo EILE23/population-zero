@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, Image, Pressable, RefreshControl,
+  ActivityIndicator, AppState, FlatList, Image, Pressable, RefreshControl,
   StyleSheet, Text, View,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
@@ -110,7 +110,7 @@ type Entry =
  * 전문은 언론사 페이지를 앱 안에서 연다(재게시하지 않는다).
  * 무엇을 보고 눌렀는지는 서버로 보내 다음 순서에 반영된다.
  */
-export function TodayScreen() {
+export function TodayScreen({ active = true }: { active?: boolean }) {
   const [feed, setFeed] = useState<TodayFeed | null>(null);
   const [items, setItems] = useState<TrendItem[]>([]);
   const [filter, setFilter] = useState<string>('');
@@ -123,6 +123,9 @@ export function TodayScreen() {
   // 화면에 보인 항목은 모아 두었다가 한 번에 보낸다 — 스크롤마다 요청하지 않으려고
   const pending = useRef<Map<number, TrendItem>>(new Map());
   const sentViews = useRef<Set<number>>(new Set());
+  const flushing = useRef(false);
+  // 가려진 탭에서는 아무것도 '본 것' 이 아니다 — renderItem 이 아니라 실제 노출로만 센다
+  const activeRef = useRef(active);
 
   const kind = filter.startsWith('kind:') ? filter.slice(5) : undefined;
   const topic = filter.startsWith('topic:') ? filter.slice(6) : undefined;
@@ -145,17 +148,42 @@ export function TodayScreen() {
     return () => { alive = false; };
   }, [kind, topic, anon]);
 
+  // 서버가 받았다고 답한 뒤에만 큐를 비운다. 실패하면 남겨 두고 다음 기회에 다시 보낸다 —
+  // 서버가 같은 항목·같은 행동을 6시간 안에 한 번만 남기므로 재전송이 중복으로 쌓이지 않는다.
   const flush = useCallback(async () => {
-    if (!anon || pending.current.size === 0) return;
-    const batch = [...pending.current.values()].map((i) => ({
-      trend_id: i.id, action: 'view' as const, topic: i.topic, source: i.source, kind: i.kind,
-    }));
-    pending.current.clear();
-    await sendTrendEvents(anon, batch);
+    if (!anon || pending.current.size === 0 || flushing.current) return;
+    flushing.current = true;
+    const batch = [...pending.current.values()];
+    try {
+      const ok = await sendTrendEvents(anon, batch.map((i) => ({ trend_id: i.id, action: 'view' as const })));
+      if (ok) for (const i of batch) pending.current.delete(i.id);
+      else while (pending.current.size > 200) pending.current.delete(pending.current.keys().next().value!); // 오래 못 보낸 것부터
+    } finally { flushing.current = false; }
   }, [anon]);
 
-  // 화면을 벗어나면 남은 기록을 보낸다
-  useEffect(() => () => { void flush(); }, [flush]);
+  // 실제로 화면에 60% 이상, 0.8초 넘게 머문 항목만 '봤다' — 미리 그려진 줄은 노출이 아니다.
+  // FlatList 는 이 둘이 마운트 뒤 바뀌면 경고하므로 한 번 만들어 고정한다.
+  const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 60, minimumViewTime: 800 }), []);
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: { item: Entry }[] }) => {
+    if (!activeRef.current) return;
+    for (const v of viewableItems) {
+      if (v.item.type !== 'item') continue;
+      const item = v.item.item;
+      if (sentViews.current.has(item.id)) continue;
+      sentViews.current.add(item.id);
+      pending.current.set(item.id, item);
+    }
+  }, []);
+
+  // 탭을 떠나거나 앱이 뒤로 가면 남은 기록을 보낸다 — 마운트된 채 가려지는 탭이라 unmount 는 오지 않는다
+  useEffect(() => {
+    activeRef.current = active;
+    if (!active) void flush();
+  }, [active, flush]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => { if (state !== 'active') void flush(); });
+    return () => { sub.remove(); void flush(); };
+  }, [flush]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -192,11 +220,7 @@ export function TodayScreen() {
   // 언론사 페이지를 앱 안에서 연다 — 우리 색으로 칠한 브라우저라 앱을 벗어난 느낌이 없다
   const open = useCallback(async (item: TrendItem) => {
     if (!item.url) return;
-    if (anon) {
-      void sendTrendEvents(anon, [{
-        trend_id: item.id, action: 'open', topic: item.topic, source: item.source, kind: item.kind,
-      }]);
-    }
+    if (anon) void sendTrendEvents(anon, [{ trend_id: item.id, action: 'open' }]);
     await WebBrowser.openBrowserAsync(item.url, {
       toolbarColor: theme.color.paper,
       controlsColor: theme.color.accent,
@@ -261,14 +285,11 @@ export function TodayScreen() {
             onAction={() => setFilter('')}
           />
         }
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
         renderItem={({ item: entry, index }) => {
           if (entry.type === 'ad') return <AdSlot />;
           const { item, lead } = entry;
-          // 화면에 그려진 것 = 본 것. 같은 항목을 두 번 세지 않는다
-          if (!sentViews.current.has(item.id)) {
-            sentViews.current.add(item.id);
-            pending.current.set(item.id, item);
-          }
           return (
             <FadeIn index={index}>
               {lead ? <LeadCard item={item} onOpen={open} /> : <CompactRow item={item} onOpen={open} />}

@@ -121,6 +121,42 @@ await expect('VALUES 뒤 RETURNING 거부', `INSERT INTO comments (post_id, resi
 // 정상 INSERT 는 값 안에 괄호가 있어도 통과해야 한다
 await expect('값 안의 함수 호출은 정상', `INSERT INTO resident_likes (resident_id, post_id, created_at) VALUES (11, 245, datetime('now', '+30 minutes'));`, 200);
 
+// ── F02: SET 절을 끝까지 읽는다 ──
+// 알아보지 못한 할당을 조용히 버리면, 허용된 컬럼 하나로 검사를 통과시킨 뒤
+// 괄호형 다중 할당으로 보호 컬럼을 바꿀 수 있었다.
+await expect('괄호형 다중 할당 거부', `UPDATE posts SET hidden=0, (user_id, body) = (9, 'taken') WHERE id=7;`, 403);
+await expect('괄호형 할당 단독도 거부', `UPDATE posts SET (title, body) = ('t', 'b') WHERE id=7;`, 403);
+await expect('사람 글 보호 가드는 그대로', `UPDATE posts SET title='x' WHERE id=7;`, 200, /WHERE \(id=7\) AND user_id IS NULL/i);
+await expect('hidden 만이면 가드 없이 통과', `UPDATE posts SET hidden=1 WHERE id=7;`, 200, /^UPDATE posts SET hidden=1 WHERE id=7/i);
+// 서브쿼리의 WHERE 로 문장이 잘리면 가드가 엉뚱한 테이블(albums)에 붙는다
+await expect('서브쿼리 WHERE 가 있어도 가드는 바깥에', `UPDATE posts SET album_id=(SELECT id FROM albums WHERE origin_post_id=5) WHERE id=7;`, 200, /WHERE origin_post_id=5\) WHERE \(id=7\) AND user_id IS NULL/i);
+
+// ── F02: 자식 행은 부모의 주인을 따른다 ──
+await expect('앨범 사진은 주민 앨범에만', `INSERT INTO album_images (album_id, url, sort) VALUES (4, 'https://cdn/x.webp', 0);`, 200, /SELECT 4, 'https:\/\/cdn\/x\.webp', 0 WHERE EXISTS \(SELECT 1 FROM albums WHERE id = 4 AND resident_id IS NOT NULL AND user_id IS NULL\)/i);
+await expect('앨범 사진의 부모 id 가 리터럴이 아니면 거부', `INSERT INTO album_images (album_id, url, sort) VALUES ((SELECT MAX(id) FROM albums), 'https://cdn/x.webp', 0);`, 403);
+await expect('주인 없는 앨범 생성 거부', `INSERT INTO albums (caption, origin_post_id) VALUES ('c', 5);`, 403);
+await expect('앨범의 origin 글도 주민 것이어야', `INSERT INTO albums (resident_id, caption, origin_post_id) VALUES (11, 'c', 5);`, 200, /WHERE EXISTS \(SELECT 1 FROM posts WHERE id = 5 AND resident_id IS NOT NULL AND user_id IS NULL\)/i);
+
+// ── F11: 주민 → 사람 쪽지 답장만 ──
+await expect('주민의 쪽지 답장 허용', `INSERT INTO dms (thread, from_resident_id, to_user_id, body) VALUES ('r13|u7', 13, 7, 'noted. it''s procedural, not moral.');`, 200);
+await expect('사람 이름으로 보내는 쪽지 거부', `INSERT INTO dms (thread, from_user_id, to_user_id, body) VALUES ('u1|u7', 1, 7, 'hi');`, 403);
+await expect('주민에게 보내는 쪽지 거부', `INSERT INTO dms (thread, from_resident_id, to_resident_id, body) VALUES ('r13|r2', 13, 2, 'hi');`, 403);
+await expect('실 열쇠가 참가자와 다르면 거부', `INSERT INTO dms (thread, from_resident_id, to_user_id, body) VALUES ('u1|u7', 13, 7, 'hi');`, 403);
+await expect('읽음 표시를 끼워 넣는 쪽지 거부', `INSERT INTO dms (thread, from_resident_id, to_user_id, body, read_at) VALUES ('r13|u7', 13, 7, 'hi', datetime('now'));`, 403);
+
+// ── F03: 읽기는 허용 목록 — 새 테이블은 기본 거부 ──
+await expect('사람끼리의 쪽지 읽기 거부', `SELECT body FROM dms WHERE thread='u1|u2'`, 403);
+await expect('쪽지 사진 읽기 거부', `SELECT data FROM dm_images`, 403);
+await expect('앱 로그인 교환 코드 읽기 거부', `SELECT code FROM app_login_codes`, 403);
+await expect('계정 삭제 토큰 읽기 거부', `SELECT token FROM account_deletions`, 403);
+await expect('신고 원문 테이블 읽기 거부', `SELECT * FROM safety_reports`, 403);
+await expect('채팅방 메시지 읽기 거부', `SELECT body FROM room_messages`, 403);
+await expect('차단 목록 읽기 거부', `SELECT * FROM user_blocks`, 403);
+await expect('조인으로 숨겨도 거부', `SELECT p.id FROM posts p JOIN dms d ON d.id = p.id`, 403);
+await expect('서브쿼리로 숨겨도 거부', `SELECT (SELECT body FROM dms LIMIT 1) AS x FROM posts LIMIT 1`, 403);
+await expect('원장 완료 표시는 허용', `UPDATE patrol_applies SET completed_at = datetime('now') WHERE run_id = 'abc';`, 200);
+await expect('원장의 다른 컬럼 수정은 거부', `UPDATE patrol_applies SET statements = 0 WHERE run_id = 'abc';`, 403);
+
 // ── secret handling ──
 const leaked = received.some((r) => r.auth !== 'Bearer SECRET-TOKEN-123');
 console.log(`${leaked ? 'FAIL' : 'PASS'} upstream got the stdin token (${received[0]?.auth})`);

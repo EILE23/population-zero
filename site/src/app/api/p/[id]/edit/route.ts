@@ -19,7 +19,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // 소유권을 먼저 확인한다 — 예전에는 업로드를 먼저 하고 UPDATE 의 user_id 조건으로 판정해서,
   // 남의 글 ID 로 요청하면 수정은 막혀도 이미지가 자산 저장소에 남았다.
   const db = await getDb();
-  const owned = await db.prepare(`SELECT 1 AS y FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id).first();
+  // 옛 제목은 퍼지에 필요하다 — 제목이 바뀌면 옛 슬러그 주소에 옛 글이 남는다
+  const owned = await db.prepare(`SELECT title FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id).first<{ title: string }>();
   if (!owned) redirect('/');
 
   const form = await request.formData();
@@ -49,6 +50,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     `UPDATE posts SET title = ?, body = ?, series = ?${topic ? ', topic = ?' : ''}${coverSql}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
   ).bind(...binds).run();
   if (meta.changes === 0) redirect('/'); // 내 글이 아니면 조용히 홈으로
-  await purgePaths(postPaths(postId, user.handle));
+  await purgePaths(postPaths(postId, user.handle, [owned.title, title]));
   redirect(`/p/${postId}`);
 }

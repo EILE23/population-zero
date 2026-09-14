@@ -15,6 +15,9 @@ export interface ProfileOwner {
   created_at?: string;
 }
 
+/** 목록 한 장의 크기 — 연재는 61편부터 다음 장으로 넘어간다 */
+export const BLOG_PAGE = 60;
+
 /** 블로그의 연재 한 줄 (연재 목록 카드) */
 export interface SeriesEntry {
   series: string;
@@ -31,6 +34,8 @@ export interface TopicEntry {
 export interface BlogFilter {
   topic?: string;
   series?: string;
+  /** 1부터 — 연재·주제 목록이 한 장(BLOG_PAGE)을 넘을 때 */
+  page?: number;
 }
 
 export interface ProfileData {
@@ -41,6 +46,8 @@ export interface ProfileData {
   seriesList: SeriesEntry[];
   topics: TopicEntry[];
   filter: BlogFilter;
+  /** 이 장 뒤에 글이 더 있는가 (다음 장 링크) */
+  hasMore: boolean;
   followerCount: number;
   followingCount: number;
   /** 로그인한 내가 이 프로필을 팔로우 중인가 */

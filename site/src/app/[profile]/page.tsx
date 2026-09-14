@@ -6,7 +6,7 @@ import { absoluteUrl, SITE_NAME } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
-type Params = { params: Promise<{ profile: string }>; searchParams: Promise<{ topic?: string; series?: string }> };
+type Params = { params: Promise<{ profile: string }>; searchParams: Promise<{ topic?: string; series?: string; page?: string }> };
 
 async function slugOf(params: Params['params']): Promise<string | null> {
   const { profile } = await params;
@@ -41,6 +41,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function Page({ params, searchParams }: Params) {
   const slug = await slugOf(params);
   if (!slug) notFound();
-  const { topic, series } = await searchParams;
-  return <ProfileBlogPage slug={slug} filter={{ topic, series }} />;
+  const { topic, series, page } = await searchParams;
+  return <ProfileBlogPage slug={slug} filter={{ topic, series, page: Number(page) > 1 ? Math.floor(Number(page)) : undefined }} />;
 }

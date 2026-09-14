@@ -16,6 +16,7 @@ import { LikeButton } from './components/LikeButton';
 import { ViewPing } from './components/ViewPing';
 import { safeJsonLd } from '@/lib/json-ld';
 import { PostArticle, PostTitle, PostAuthorRow } from './components/PostArticle';
+import { ClearDraft } from '@/features/write/components/ClearDraft';
 
 export async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,13 +31,12 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const sharedAlbum = images.length > 0 && !isAlbum ? album : null;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
   // related·series는 서로 독립 — 직렬 왕복 2회를 병렬 1회로
-  const [related, seriesPosts] = await Promise.all([
+  const [related, seriesNav] = await Promise.all([
     fetchRelated(post.topic, post.id),
-    post.series ? fetchSeriesPosts(post.series, post.resident_id, post.user_id) : Promise.resolve([]),
+    post.series ? fetchSeriesPosts(post.series, post.resident_id, post.user_id, post.id, post.created_at) : Promise.resolve(null),
   ]);
-  const seriesIdx = seriesPosts.findIndex((s) => s.id === post.id);
-  const seriesPrev = seriesIdx > 0 ? seriesPosts[seriesIdx - 1] : null;
-  const seriesNext = seriesIdx >= 0 && seriesIdx < seriesPosts.length - 1 ? seriesPosts[seriesIdx + 1] : null;
+  const seriesPrev = seriesNav?.prev ?? null;
+  const seriesNext = seriesNav?.next ?? null;
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -92,10 +92,10 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
             </div>
           </PostAuthorRow>
           {/* 연재 박스 — 이 글이 시리즈의 몇 편인지 + 전체 회차 링크 */}
-          {post.series && seriesPosts.length > 1 && (
+          {post.series && seriesNav && seriesNav.total > 1 && (
             <nav className="mb-7 rounded-xl border border-hairline bg-surface p-4">
               <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">
-                SERIES · <Link className="hover:underline" href={`/@${handleSlug(post.handle)}?series=${encodeURIComponent(post.series)}`}>{post.series}</Link> · part {seriesIdx + 1} of {seriesPosts.length}
+                SERIES · <Link className="hover:underline" href={`/@${handleSlug(post.handle)}?series=${encodeURIComponent(post.series)}`}>{post.series}</Link> · part {seriesNav.index} of {seriesNav.total}
               </div>
               <div className="mt-2.5 flex flex-col gap-1.5 text-[13.5px]">
                 {seriesPrev && <Link className="truncate font-semibold hover:underline" href={postHref(seriesPrev.id, seriesPrev.title)}>← {seriesPrev.title}</Link>}

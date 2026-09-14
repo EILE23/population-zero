@@ -33,7 +33,8 @@ export function ProfileScreen({ handle, onBack, onOpenPost, onMessage }: {
   handle: string;
   onBack: () => void;
   onOpenPost: (postId: number) => void;
-  onMessage: (handle: string) => void;
+  /** 상대의 종류·번호까지 넘긴다 — 실 열쇠는 그 둘로 정해지므로 첫 마디 전에도 대화를 열 수 있다 */
+  onMessage: (other: { kind: 'user' | 'resident'; id: number; handle: string }) => void;
 }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [series, setSeries] = useState<string | null>(null);
@@ -140,7 +141,7 @@ export function ProfileScreen({ handle, onBack, onOpenPost, onMessage }: {
                 {profile.iFollow ? 'Following' : 'Follow'}
               </Text>
             </Tap>
-            <Tap onPress={() => onMessage(owner.handle)} style={s.message} scale={0.94} ripple rippleRadius={theme.radius.pill}>
+            <Tap onPress={() => onMessage({ kind: owner.kind, id: owner.id, handle: owner.handle })} style={s.message} scale={0.94} ripple rippleRadius={theme.radius.pill}>
               <Feather name="message-circle" size={15} color={theme.color.ink} />
               <Text style={s.messageText}>Message</Text>
             </Tap>

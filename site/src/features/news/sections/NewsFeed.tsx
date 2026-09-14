@@ -22,25 +22,46 @@ function anonId(): string {
   } catch { return ''; }
 }
 
-type Signal = { trend_id: number; action: 'view' | 'open'; topic: string | null; source: string | null; kind: string };
+type Signal = { trend_id: number; action: 'view' | 'open' };
+const QUEUE_MAX = 200;
 const queue: Signal[] = [];
 const seen = new Set<string>();
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let sending = false;
+let failures = 0;
 
+/**
+ * 큐는 서버가 받았다고 답한 뒤에만 비운다. 예전엔 보내기 전에 잘라내서 실패하면 그대로 사라졌다.
+ * 실패하면 남겨 두고 조금 뒤(백오프) 다시 보낸다. 서버가 같은 항목·같은 행동을 6시간 안에 한 번만 남기므로
+ * 재전송이 중복으로 쌓이지 않는다. 분류·매체는 보내지 않는다 — 서버가 trend_id 로 직접 읽는다.
+ */
 function flush(beacon = false) {
   if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-  if (!queue.length) return;
-  const body = JSON.stringify({ anon: anonId(), events: queue.splice(0, 60) });
-  // 페이지를 떠나는 순간엔 fetch 가 잘리므로 beacon 으로
-  if (beacon && navigator.sendBeacon) { navigator.sendBeacon('/api/trends/event', new Blob([body], { type: 'application/json' })); return; }
-  void fetch('/api/trends/event', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true }).catch(() => {});
+  if (!queue.length || sending) return;
+  const batch = queue.slice(0, 60);
+  const body = JSON.stringify({ anon: anonId(), events: batch });
+  const ack = () => { queue.splice(0, batch.length); failures = 0; };
+  // 페이지를 떠나는 순간엔 fetch 가 잘리므로 beacon 으로 — 브라우저가 받아 주면(true) 전달을 맡긴 것이다
+  if (beacon && navigator.sendBeacon) {
+    if (navigator.sendBeacon('/api/trends/event', new Blob([body], { type: 'application/json' }))) { ack(); return; }
+    // 거절(false)이면 아래 keepalive fetch 로 떨어진다
+  }
+  sending = true;
+  fetch('/api/trends/event', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true })
+    .then((r) => { if (r.ok) ack(); else throw new Error(String(r.status)); })
+    .catch(() => {
+      failures = Math.min(failures + 1, 6);
+      if (!flushTimer) flushTimer = setTimeout(() => flush(), 2000 * 2 ** failures); // 4s → 8s → … 최대 ~2분
+    })
+    .finally(() => { sending = false; });
 }
 
 function record(item: WireItem, action: 'view' | 'open') {
   const key = `${action}:${item.id}`;
   if (seen.has(key)) return;
   seen.add(key);
-  queue.push({ trend_id: item.id, action, topic: item.topic, source: item.source, kind: item.kind });
+  if (queue.length >= QUEUE_MAX) queue.shift(); // 오래 못 보낸 것부터 버린다 — 큐가 끝없이 자라지 않게
+  queue.push({ trend_id: item.id, action });
   // 누른 건 바로, 스친 건 모아서
   if (action === 'open') flush();
   else if (!flushTimer) flushTimer = setTimeout(() => flush(), 4000);
@@ -147,8 +168,11 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [moreFailed, setMoreFailed] = useState(false); // 추가 로딩 실패 — "끝까지 읽음" 과는 다른 상태다
   const [attempt, setAttempt] = useState(0);
   const sentinel = useRef<HTMLDivElement>(null);
+  // 요청 세대 — 탭이 바뀌면 올라간다. 늦게 도착한 이전 탭의 응답은 세대가 달라서 버려진다.
+  const gen = useRef(0);
 
   // 탭을 닫거나 떠날 때 모아 둔 신호를 흘리지 않는다
   useEffect(() => {
@@ -161,51 +185,58 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
   // 종류가 바뀌면 처음부터 — offset 은 지금 가진 개수로 계산한다 (별도 상태를 두면 둘이 어긋난다)
   useEffect(() => {
     let alive = true;
+    const mine = ++gen.current; // 이 effect 의 세대 — 진행 중이던 loadMore 는 여기서 무효가 된다
     busy.current = true;
     setLoading(true);
     setFailed(false);
+    setMoreFailed(false);
     setItems([]);
     fetch(`/api/trends?kind=${kind}&anon=${encodeURIComponent(anonId())}&limit=${PAGE}`)
       .then(async (r) => { if (!r.ok) throw new Error(String(r.status)); return (await r.json()) as WirePage; })
       .then((page) => {
-        if (!alive) return;
+        if (!alive || gen.current !== mine) return;
         setItems(page.items);
         setRegion(page.covered ? page.region : null);
         setHasMore(page.hasMore);
       })
-      .catch(() => { if (alive) setFailed(true); })
-      .finally(() => { if (alive) { setLoading(false); busy.current = false; } });
+      .catch(() => { if (alive && gen.current === mine) setFailed(true); })
+      .finally(() => { if (alive && gen.current === mine) { setLoading(false); busy.current = false; } });
     return () => { alive = false; };
   }, [kind, attempt]);
 
   // 끝에 닿으면 다음 장 — 버튼도 남겨 둔다 (스크롤 감지가 안 되는 환경이 있다)
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || !hasMore || loading) return;
+    if (!el || !hasMore || loading || moreFailed) return; // 실패 뒤엔 자동으로 다시 두드리지 않는다 — 버튼으로
+
     const io = new IntersectionObserver((entries) => {
       if (entries.some((e) => e.isIntersecting)) void loadMore();
     }, { rootMargin: '600px 0px' });
     io.observe(el);
     return () => io.disconnect();
     // items.length 가 바뀔 때마다 다시 붙인다 — 한 장 받은 뒤에도 끝에 닿아 있으면 곧장 다음 장
-  }, [hasMore, loading, items.length]);
+  }, [hasMore, loading, moreFailed, items.length]);
 
   async function loadMore() {
     if (busy.current || !hasMore) return;
     busy.current = true;
+    setMoreFailed(false);
+    const mine = gen.current; // 요청을 보낸 시점의 탭 세대
     try {
       const r = await fetch(`/api/trends?kind=${kind}&anon=${encodeURIComponent(anonId())}&offset=${items.length}&limit=${PAGE}`);
       if (!r.ok) throw new Error(String(r.status));
       const page = (await r.json()) as WirePage;
+      if (gen.current !== mine) return; // 그새 탭이 바뀌었다 — 이 응답은 다른 목록의 것이다
       setItems((prev) => {
         const seen = new Set(prev.map((i) => i.id));
         return [...prev, ...page.items.filter((i) => !seen.has(i.id))];
       });
       setHasMore(page.hasMore);
     } catch {
-      setHasMore(false);
+      // 실패는 "끝까지 읽음" 이 아니다 — 목록·커서·hasMore 는 그대로 두고 다시 시도할 수 있게 한다
+      if (gen.current === mine) setMoreFailed(true);
     } finally {
-      busy.current = false;
+      if (gen.current === mine) busy.current = false;
     }
   }
 
@@ -262,10 +293,11 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
         ))}
       </div>
 
-      <div ref={sentinel} className="mt-8 flex justify-center">
+      <div ref={sentinel} className="mt-8 flex flex-col items-center gap-2">
+        {moreFailed && <p className="text-[13px] text-ink-soft">Couldn’t load more just now.</p>}
         {!loading && hasMore && (
           <button onClick={() => void loadMore()} className="rounded-full border border-hairline px-5 py-2 text-[13px] font-bold text-ink-mid hover:bg-surface">
-            More stories
+            {moreFailed ? 'Try again' : 'More stories'}
           </button>
         )}
         {!loading && !hasMore && items.length > 0 && (

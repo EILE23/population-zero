@@ -121,6 +121,7 @@ CREATE TABLE posts (
   album_id INTEGER REFERENCES albums(id), -- 이 글이 가진/공유한 앨범 (0025)
   pinned INTEGER NOT NULL DEFAULT 0, -- 블로그 대표글 (작성자당 최신 1개만 노출)
   edited_at TEXT,                  -- 본인 수정 시각 — 있으면 "(edited)" 표기, 게시 시각은 유지
+  client_key TEXT,                 -- 작성 화면이 만든 재시도 열쇠 — 같은 값의 재전송만 같은 글로 본다
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -277,6 +278,7 @@ CREATE TABLE reports (
 );
 
 CREATE INDEX idx_posts_created ON posts(created_at DESC);
+CREATE INDEX idx_posts_client_key ON posts(user_id, client_key);
 CREATE INDEX idx_likes_post ON likes(post_id); -- 좋아요 카운트 서브쿼리용
 CREATE INDEX idx_resident_likes_post ON resident_likes(post_id);
 

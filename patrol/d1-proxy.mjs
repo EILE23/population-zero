@@ -93,9 +93,28 @@ function skeleton(stmt) {
 
 // ── policy ─────────────────────────────────────────────────────────────────────
 const DENY_ANYWHERE = /\b(auth_tokens|sessions|contact_messages|api_budget|wake_log|site_meta|stats_daily|comment_decisions|sqlite_master|sqlite_sequence|password_hash|google_sub|email|ATTACH|DETACH|PRAGMA|VACUUM|CREATE|DROP|ALTER|TRIGGER|INDEX|REINDEX|REPLACE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i;
+
+// 읽을 수 있는 테이블 — **여기 없는 테이블은 전부 거부한다.**
+// 예전에는 금지어 목록에 없으면 읽을 수 있었다. 그래서 스키마에 테이블이 하나 늘 때마다
+// (dms, dm_images, room_messages, app_login_codes, account_deletions, safety_reports …)
+// 순찰이 조용히 읽을 수 있게 됐다 — 사람끼리 주고받은 쪽지와 일회성 토큰까지.
+// 새 테이블은 기본 거부가 맞다. 순찰이 정말 읽어야 하면 그때 이 목록에 이유와 함께 추가한다.
+const READ_TABLES = new Set([
+  'posts', 'comments', 'residents', 'users',      // users 는 아래에서 SELECT * 와 개인정보 컬럼이 따로 막힌다
+  'follows', 'follow_events',                     // 관계 — 누가 누구를 따르는지는 사이트에 공개돼 있다
+  'likes', 'resident_likes', 'poll_options', 'resident_poll_votes', // 반응 집계 (사람/AI 분리 보상의 입력)
+  'reports',                                      // 신고 처리(The Management)
+  'patrol_applies',                               // 자기 적재 원장
+  'albums', 'album_images',                       // 앨범 — 커버 생성이 중복을 피하려고 읽는다
+]);
+const tablesIn = (sk) => [...sk.matchAll(/\b(?:FROM|JOIN|INTO|UPDATE)\s+([a-z_][a-z0-9_]*)/gi)].map((m) => m[1].toLowerCase());
+// `WITH recent AS (…) SELECT … FROM recent` 의 recent 는 테이블이 아니라 이 문장 안의 이름이다.
+// CTE 안에서 진짜 테이블을 읽으면 그건 tablesIn 이 따로 잡는다.
+const cteNames = (sk) => new Set([...sk.matchAll(/(?:\bWITH\b|,)\s*([a-z_][a-z0-9_]*)\s+AS\s*\(/gi)].map((m) => m[1].toLowerCase()));
 // albums/album_images: 패널 쇼츠(여러 컷 만화)를 주민 글에 붙인다. 주인 컬럼은 resident_id 뿐(user_id 는
 // INSERT_DENY_COLS)이라 사람 계정의 앨범을 지어낼 수는 없다.
-const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 1, resident_poll_votes: 1, follows: 1, follow_events: 1, residents: 1, patrol_applies: 1, albums: 1, album_images: 1 };
+// dms: 주민이 사람에게 답하는 쪽지만 (from_resident_id → to_user_id). 읽기는 여전히 거부 — 사람끼리의 쪽지가 같은 테이블이다.
+const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 1, resident_poll_votes: 1, follows: 1, follow_events: 1, residents: 1, patrol_applies: 1, albums: 1, album_images: 1, dms: 1 };
 const RESIDENT_ONLY_INSERT = new Set(['follows', 'follow_events']); // 사람의 팔로우·이력을 순찰이 지어내지 못하게
 const INSERT_DENY_COLS = /\b(user_id|visitor_name|visitor_ip|password_hash|email|google_sub|tier)\b/i; // tier: no self-promotion to admin
 const UPDATE_RULES = {
@@ -103,6 +122,7 @@ const UPDATE_RULES = {
   comments: { cols: /^(hidden|body)$/, guard: 'resident_id IS NOT NULL', guardExempt: /^hidden$/ },
   reports: { cols: /^status$/ },
   residents: { cols: /^(blog_title|bio|avatar_url)$/ },
+  patrol_applies: { cols: /^completed_at$/ }, // 적재가 끝났다는 표시 — 자기 원장만 닫는다
 };
 // DELETE: only the exact single-row / single-relationship shapes apply.mjs and a feed fix need.
 // Matched against the whitespace-normalized ORIGINAL statement (literal values matter here).
@@ -127,10 +147,76 @@ function endsAfterOneGroup(sk, start) {
   return false;
 }
 
-function assignedColumns(setClause) {
-  // "a = 1, b = 'x', c = c + 1"  → [a, b, c]   (literals are already blanked to '')
-  return setClause.split(',').map((s) => s.trim().match(/^([a-z_]+)\s*=/i)?.[1]?.toLowerCase()).filter(Boolean);
+/** 여는 따옴표 위치를 받아 닫는 따옴표 위치를 돌려준다 ('' 는 이스케이프) */
+function skipLiteral(s, i) {
+  for (let j = i + 1; j < s.length; j++) {
+    if (s[j] !== "'") continue;
+    if (s[j + 1] === "'") { j++; continue; }
+    return j;
+  }
+  return s.length;
 }
+
+/** 깊이 0 의 쉼표로만 쪼갠다 — 값 안의 괄호·따옴표는 건너뛴다 */
+function splitTopLevel(s) {
+  const parts = [];
+  let depth = 0, cur = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "'") { const end = skipLiteral(s, i); cur += s.slice(i, end + 1); i = end; continue; }
+    if (ch === '(') { depth++; cur += ch; continue; }
+    if (ch === ')') { depth--; cur += ch; continue; }
+    if (ch === ',' && depth === 0) { parts.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  parts.push(cur);
+  return parts;
+}
+
+/** 깊이 0 에 있는 첫 WHERE 의 위치. 없으면 -1.
+ *  서브쿼리 안의 WHERE 로 문장을 자르면 SET 절이 잘못 읽히고, 소유자 가드가 엉뚱한 테이블에 붙는다.
+ *  (`UPDATE posts SET album_id=(SELECT id FROM albums WHERE …) WHERE id=7` 가 실제로 그랬다) */
+function topLevelWhereIndex(s) {
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "'") { i = skipLiteral(s, i); continue; }
+    if (ch === '(') { depth++; continue; }
+    if (ch === ')') { depth--; continue; }
+    if (depth === 0 && (ch === 'W' || ch === 'w') && /^where\b/i.test(s.slice(i, i + 6)) && (i === 0 || /\s/.test(s[i - 1]))) return i;
+  }
+  return -1;
+}
+
+/** "a = 1, b = 'x', c = c + 1" → [a, b, c].
+ *  `col = expr` 로 읽히지 않는 조각이 하나라도 있으면 **null** — 모르는 구문은 통과시키지 않는다.
+ *  예전에는 알아보지 못한 조각을 조용히 버렸다. 그래서 `SET hidden=0, (user_id, body)=(9,'x')` 처럼
+ *  허용된 할당과 괄호형 다중 할당을 섞으면 보호 컬럼이 검사 없이 지나가고 소유자 가드도 빠졌다. */
+function assignedColumns(setClause) {
+  const cols = [];
+  for (const part of splitTopLevel(setClause)) {
+    const m = part.trim().match(/^([a-z_][a-z0-9_]*)\s*=(?!=)/i);
+    if (!m) return null;
+    cols.push(m[1].toLowerCase());
+  }
+  return cols;
+}
+
+/** 원문 INSERT 의 VALUES (…) 안 값들 — 깊이 0 쉼표로 나눈다. 못 찾으면 null */
+function insertValues(stmt) {
+  const open = stmt.indexOf('(', stmt.toUpperCase().indexOf(') VALUES'));
+  const close = stmt.lastIndexOf(')');
+  if (open < 0 || close <= open) return null;
+  return splitTopLevel(stmt.slice(open + 1, close)).map((v) => v.trim());
+}
+
+// 자식 행은 부모의 주인을 따른다. 순찰이 사람의 앨범·사람의 글에 사진을 매달지 못하게,
+// INSERT 를 `… SELECT 값들 WHERE EXISTS (부모가 주민 소유)` 로 바꿔 넣는다.
+// 부모가 사람 것이면 행이 0개 들어가고, 문장은 실패하지 않는다.
+const PARENT_GUARDS = {
+  album_images: { col: 'album_id', owner: (v) => `SELECT 1 FROM albums WHERE id = ${v} AND resident_id IS NOT NULL AND user_id IS NULL` },
+  albums: { col: 'origin_post_id', owner: (v) => `SELECT 1 FROM posts WHERE id = ${v} AND resident_id IS NOT NULL AND user_id IS NULL` },
+};
 
 // Verbs that appear at parenthesis depth 0 — a CTE (`WITH x AS (...) DELETE ...`) puts its real verb here,
 // while subqueries sit inside parentheses. Literals are already blanked, so quoted text can't fake a verb.
@@ -152,6 +238,12 @@ function check(stmt) {
   if (DENY_ANYWHERE.test(sk)) return { ok: false, reason: 'denied keyword/table' };
   // whole-row reads of users would expose email/password_hash — but COUNT(*) is fine
   if (/\busers\b/i.test(sk) && /\bSELECT\s+\*|\b[a-z_]+\.\*/i.test(sk)) return { ok: false, reason: 'SELECT * over users' };
+  // 기본 거부: 서브쿼리·조인까지 포함해 이 문장이 '읽는' 모든 테이블이 허용 목록에 있어야 한다.
+  // 쓰기 대상 테이블(INSERT INTO x / UPDATE x / DELETE FROM x)은 아래 쓰기 규칙이 따로 판정한다 —
+  // dms 처럼 "쓸 수는 있지만 읽을 수는 없는" 테이블이 있다.
+  const ctes = cteNames(sk);
+  const writeTarget = sk.match(/^(?:INSERT (?:OR IGNORE )?INTO|UPDATE|DELETE FROM)\s+([a-z_][a-z0-9_]*)/i)?.[1]?.toLowerCase();
+  for (const t of tablesIn(sk)) if (!READ_TABLES.has(t) && !ctes.has(t) && t !== writeTarget) return { ok: false, reason: `table not readable: ${t}` };
 
   const verbs = topLevelVerbs(sk);
   if (/^(SELECT|WITH)\b/i.test(sk)) {
@@ -176,6 +268,30 @@ function check(stmt) {
       if (!/^\s*follower_type\b/i.test(cols)) return { ok: false, reason: `${table} insert must lead with follower_type` };
       if (!/VALUES \(\s*'resident'/i.test(stmt.replace(/\s+/g, ' '))) return { ok: false, reason: `${table} insert must be follower_type=resident` };
     }
+    // 앨범은 주민 것만 만들 수 있다 — 주인 없는 앨범이 생기면 사람 글에 붙일 여지가 남는다
+    if (table === 'albums' && !/\bresident_id\b/i.test(cols)) return { ok: false, reason: 'albums insert must set resident_id' };
+
+    const names = splitTopLevel(cols).map((c) => c.trim().toLowerCase());
+    const values = insertValues(stmt);
+    if (!values || values.length !== names.length) return { ok: false, reason: `${table} insert column/value count mismatch` };
+
+    // 쪽지는 "주민 → 사람" 한 방향, 실 열쇠는 그 둘로만 만들어진다. 사람 이름으로 보내거나 남의 실에 끼어드는 형태를 막는다.
+    if (table === 'dms') {
+      if (names.some((n) => !['thread', 'from_resident_id', 'to_user_id', 'body'].includes(n))) return { ok: false, reason: 'dms insert may only set thread, from_resident_id, to_user_id, body' };
+      const rid = values[names.indexOf('from_resident_id')], uid = values[names.indexOf('to_user_id')], thread = values[names.indexOf('thread')];
+      if (!/^\d+$/.test(rid ?? '') || !/^\d+$/.test(uid ?? '') || thread !== `'r${rid}|u${uid}'`) return { ok: false, reason: 'dms thread must be r<from_resident_id>|u<to_user_id>' };
+      if (!names.includes('body')) return { ok: false, reason: 'dms insert needs body' };
+    }
+
+    const guard = PARENT_GUARDS[table];
+    if (guard) {
+      const at = names.indexOf(guard.col);
+      if (at > -1) {
+        const parent = values[at];
+        if (!/^\d+$/.test(parent)) return { ok: false, reason: `${table}.${guard.col} must be a literal id` };
+        return { ok: true, sql: `INSERT INTO ${table} (${cols}) SELECT ${values.join(', ')} WHERE EXISTS (${guard.owner(parent)})`, guarded: true };
+      }
+    }
     return { ok: true, sql: stmt };
   }
   if (/^INSERT\b/i.test(sk)) {
@@ -183,21 +299,24 @@ function check(stmt) {
     return { ok: false, reason: 'insert must be a single VALUES row with nothing after it' };
   }
 
-  m = sk.match(/^UPDATE ([a-z_]+) SET (.+?) WHERE (.+)$/i);
+  m = sk.match(/^UPDATE ([a-z_]+) SET /i);
   if (m) {
     const table = m[1].toLowerCase(), rule = UPDATE_RULES[table];
     if (!rule) return { ok: false, reason: `update ${table}` };
-    const cols = assignedColumns(m[2]);
+    // SET/WHERE 는 깊이 0 에서 가른다 — 서브쿼리의 WHERE 로 자르면 두 절이 뒤섞인다
+    const w = topLevelWhereIndex(sk);
+    if (w < 0) return { ok: false, reason: 'update without WHERE' };
+    const cols = assignedColumns(sk.slice(m[0].length, w));
+    if (cols === null) return { ok: false, reason: `update ${table}: unparsed assignment` };
     if (!cols.length || cols.some((c) => !rule.cols.test(c))) return { ok: false, reason: `update ${table} column not allowed (${cols.join(',')})` };
-    if (rule.guard && cols.some((c) => !rule.guardExempt?.test(c))) {
-      // rewrite on the ORIGINAL statement: UPDATE t SET ... WHERE (orig) AND guard
-      const om = stmt.replace(/\s+/g, ' ').match(/^(UPDATE [a-z_]+ SET .+? WHERE )(.+)$/i);
-      if (!om) return { ok: false, reason: 'update rewrite failed' };
-      return { ok: true, sql: `${om[1]}(${om[2]}) AND ${rule.guard}`, guarded: true };
-    }
-    return { ok: true, sql: stmt };
+    if (!rule.guard || cols.every((c) => rule.guardExempt?.test(c))) return { ok: true, sql: stmt };
+    // 가드는 원문의 깊이 0 WHERE 에만 붙인다: UPDATE t SET ... WHERE (원래 조건) AND guard
+    const trimmed = stmt.replace(/;\s*$/, '');
+    const ow = topLevelWhereIndex(trimmed);
+    if (ow < 0) return { ok: false, reason: 'update rewrite failed' };
+    return { ok: true, sql: `${trimmed.slice(0, ow)}WHERE (${trimmed.slice(ow + 5).trim()}) AND ${rule.guard}`, guarded: true };
   }
-  if (/^UPDATE\b/i.test(sk)) return { ok: false, reason: 'update without WHERE' };
+  if (/^UPDATE\b/i.test(sk)) return { ok: false, reason: 'unsupported UPDATE shape' };
 
   m = sk.match(/^DELETE FROM ([a-z_]+) WHERE (.+)$/i);
   if (m) {

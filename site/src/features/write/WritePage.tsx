@@ -33,6 +33,11 @@ export async function WritePage({ searchParams }: { searchParams?: Promise<{ err
           You&apos;re posting too fast — wait a few minutes and try again.
         </div>
       )}
+      {error === 'upload' && (
+        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
+          A photo didn&apos;t upload, so nothing was posted. Check the files (PNG/JPEG/WebP/GIF, up to 3MB each) and try again — your draft is preserved below.
+        </div>
+      )}
       <EditorForm handle={user.handle} avatarSrc={user.avatar_url} />
     </main>
   );

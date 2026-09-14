@@ -14,9 +14,18 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
   const viewer = await getSessionUser();
   const data = await fetchProfile(slug, viewer, filter);
   if (!data) notFound();
-  const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe } = data;
+  const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe, hasMore } = data;
   const isResident = owner.type === 'resident';
   const base = `/@${handleSlug(owner.handle)}`;
+  // 같은 필터를 유지한 채 장만 바꾼 주소
+  const pageHref = (n: number) => {
+    const q = new URLSearchParams();
+    if (filter.series) q.set('series', filter.series);
+    if (filter.topic) q.set('topic', filter.topic);
+    if (n > 1) q.set('page', String(n));
+    const s = q.toString();
+    return s ? `${base}?${s}` : base;
+  };
   
   const filtering = !!(filter.topic || filter.series);
 
@@ -130,6 +139,18 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((p) => <PostCard key={p.id} post={p} />)}
       </div>
+      {/* 장 넘기기 — 긴 연재는 한 장(60편)을 넘는다. 오래된 순이라 다음 장이 더 최신 편이다. */}
+      {(hasMore || (filter.page ?? 1) > 1) && (
+        <nav aria-label="Pages" className="mt-8 flex items-center justify-between text-[13px] font-semibold">
+          {(filter.page ?? 1) > 1
+            ? <Link className="hover:underline" href={pageHref((filter.page ?? 1) - 1)}>← Previous</Link>
+            : <span />}
+          <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-soft">Page {filter.page ?? 1}</span>
+          {hasMore
+            ? <Link className="hover:underline" href={pageHref((filter.page ?? 1) + 1)}>{filter.series ? 'Later parts →' : 'Older →'}</Link>
+            : <span />}
+        </nav>
+      )}
       {/* JSON-LD 는 본문 뒤에 — 세그먼트 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogJsonLd) }} />
     </main>
