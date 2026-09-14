@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { createPost, newClientKey, postingError, uploadInlineImage, TOPIC_TABS, type Album } from '@/api';
 import { AlbumPicker } from '@/ui/AlbumPicker';
+import { YOUTUBE_LINE } from '@/markdown-ast';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
 import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
@@ -37,6 +38,26 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
   // 붙인 앨범 — 사진을 새로 올리는 게 아니라 이미 있는 앨범을 이 글이 가리킨다
   const [album, setAlbum] = useState<Album | null>(null);
   const [albumPickerOpen, setAlbumPickerOpen] = useState(false);
+  // 영상 = 유튜브 주소 한 줄. 파일 업로드가 아니다 — 무료 티어에 영상 저장소가 없고, 웹도 같은 규칙(줄 하나 = 임베드)이다.
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
+
+  function insertVideo() {
+    const url = videoUrl.trim();
+    if (!YOUTUBE_LINE.test(url)) { setError('Paste a YouTube link (youtube.com/watch?v=… or youtu.be/…).'); return; }
+    setError(null);
+    // 사진과 같은 자리 규칙: 제 줄을 차지해야 웹·앱 모두 영상으로 그린다
+    setBody((cur) => {
+      const at = Math.min(caret.current, cur.length);
+      const before = cur.slice(0, at), after = cur.slice(at);
+      const lead = before.length === 0 || before.endsWith('\n') ? '' : '\n\n';
+      const snippet = `${lead}${url}\n\n`;
+      caret.current = (before + snippet).length;
+      return before + snippet + after;
+    });
+    setVideoUrl('');
+    setVideoOpen(false);
+  }
   const [error, setError] = useState<string | null>(null);
   // 커서 위치 — 본문 사진을 '지금 쓰던 자리'에 넣기 위해 따라다닌다
   const caret = useRef(0);
@@ -192,6 +213,26 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
         {error ? <Text style={s.error}>{error}</Text> : null}
       </ScrollView>
 
+      {videoOpen ? (
+        <View style={s.videoRow}>
+          <Feather name="youtube" size={16} color={theme.color.inkMid} />
+          <TextInput
+            value={videoUrl}
+            onChangeText={setVideoUrl}
+            placeholder="YouTube link — goes in at the cursor, on its own line"
+            placeholderTextColor={theme.color.inkFaint}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            autoFocus
+            onSubmitEditing={insertVideo}
+            style={[s.videoInput, NO_OUTLINE]}
+          />
+          <Tap onPress={insertVideo} style={s.videoAdd} scale={0.94}><Text style={s.videoAddText}>Add</Text></Tap>
+          <Pressable onPress={() => { setVideoOpen(false); setVideoUrl(''); }} hitSlop={8}><Feather name="x" size={16} color={theme.color.inkSoft} /></Pressable>
+        </View>
+      ) : null}
+
       {/* 아이콘만 놓으면 무엇에 쓰는 건지 알 수 없다 — 하는 일이 다른 묶음마다 이름을 붙인다 */}
       <View style={s.tools}>
         <View style={s.toolGroup}>
@@ -215,6 +256,9 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
           </Pressable>
           <Pressable onPress={() => void insertPhoto('library')} style={({ pressed }) => [s.tool, pressed && s.toolPressed]}>
             <Feather name="plus-square" size={15} color={theme.color.inkMid} />
+          </Pressable>
+          <Pressable onPress={() => setVideoOpen((v) => !v)} style={({ pressed }) => [s.tool, pressed && s.toolPressed, videoOpen && s.toolOn]}>
+            <Feather name="youtube" size={15} color={videoOpen ? theme.color.paper : theme.color.inkMid} />
           </Pressable>
         </View>
 
@@ -247,6 +291,7 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
       />
       <AlbumPicker
         visible={albumPickerOpen}
+        selectedId={album?.album_id ?? null}
         onPick={(a) => { setAlbum(a); setAlbumPickerOpen(false); }}
         onClose={() => setAlbumPickerOpen(false)}
       />
@@ -312,6 +357,14 @@ const s = StyleSheet.create({
   albumLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: theme.color.inkSoft },
   albumRemove: { fontSize: 12, fontWeight: '700', color: theme.color.accentDeep },
   toolOn: { backgroundColor: theme.color.ink },
+  videoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: theme.space(2.5),
+    paddingHorizontal: theme.space(4), paddingVertical: theme.space(2.5),
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.hairline, backgroundColor: theme.color.surface,
+  },
+  videoInput: { flex: 1, fontSize: 13, color: theme.color.ink, paddingVertical: theme.space(1) },
+  videoAdd: { backgroundColor: theme.color.ink, borderRadius: theme.radius.pill, paddingHorizontal: theme.space(3.5), paddingVertical: theme.space(1.5) },
+  videoAddText: { color: theme.color.paper, fontSize: 12, fontWeight: '700' },
   tools: {
     flexDirection: 'row', alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.hairline,

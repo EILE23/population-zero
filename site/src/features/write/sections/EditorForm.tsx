@@ -5,6 +5,8 @@ import { TableOfContents } from '@/features/post/components/TableOfContents';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TABS } from '@/lib/content';
 import { AuthorChip } from '@/components/ui';
+import { YOUTUBE_LINE } from '@/lib/markdown-ast';
+import { AlbumAttach } from '../components/AlbumAttach';
 import { PostArticle, PostTitle, PostAuthorRow } from '@/features/post/components/PostArticle';
 
 const TOPIC_OPTIONS = TABS.filter((t) => !['all', 'town', 'humans'].includes(t.key));
@@ -18,7 +20,6 @@ const TOOLBAR: { label: string; title: string; before: string; after: string; bl
   { label: '<>', title: 'Code block', before: '\n```\n', after: '\n```\n' },
   { label: '—', title: 'List', before: '- ', after: '', block: true },
   { label: '🔗', title: 'Link', before: '[', after: '](https://)' },
-  { label: '▶', title: 'YouTube — paste the URL on its own line', before: '\nhttps://www.youtube.com/watch?v=', after: '\n' },
 ];
 
 /** 수정 모드에서 기존 글 값을 프리필한다 — 글쓰기와 완전히 같은 화면 */
@@ -77,6 +78,17 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
 
   const bodyImgRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+
+  // 영상 = 유튜브 주소 한 줄 (앱과 같은 규칙: 제 줄에 있으면 임베드). 파일 업로드는 아니다 — 무료 티어에 영상 저장소가 없다.
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoError, setVideoError] = useState('');
+  function addVideo() {
+    const url = videoUrl.trim();
+    if (!YOUTUBE_LINE.test(url)) { setVideoError('Paste a YouTube link (youtube.com/watch?v=… or youtu.be/…).'); return; }
+    insert(`\n${url}\n`, '', true);
+    setVideoUrl(''); setVideoError(''); setVideoOpen(false);
+  }
 
   // 이미지 삽입 공통 경로 — 툴바 버튼·붙여넣기·드래그가 모두 이걸 쓴다
   async function uploadAndInsert(file: File) {
@@ -202,6 +214,9 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
         )}
       </div>
 
+      {/* 앨범 붙이기 — 새 글에서만. 수정 API 는 album_id 를 받지 않는다(앨범은 글이 생길 때 정해진다) */}
+      {!editing && <AlbumAttach />}
+
       <input
         name="title" maxLength={140} minLength={4} required placeholder="Title (4+ characters)"
         value={title} onChange={(e) => setTitle(e.target.value)}
@@ -240,6 +255,22 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
           className="cursor-pointer rounded px-2.5 py-1 text-[13px] font-bold text-ink-mid hover:bg-surface disabled:opacity-40">
           {uploading ? '…' : '▦'}
         </button>
+        <button type="button" title="Insert a YouTube video" aria-pressed={videoOpen} onClick={() => setVideoOpen((v) => !v)}
+          className={`cursor-pointer rounded px-2.5 py-1 text-[13px] font-bold hover:bg-surface ${videoOpen ? 'bg-ink text-paper hover:bg-ink' : 'text-ink-mid'}`}>
+          ▶
+        </button>
+        {videoOpen && (
+          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+            <input
+              value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addVideo(); } if (e.key === 'Escape') setVideoOpen(false); }}
+              autoFocus placeholder="YouTube link — goes in at the cursor, on its own line" aria-label="YouTube video URL"
+              className="min-w-0 flex-1 rounded border border-hairline bg-transparent px-2 py-1 text-[13px] outline-none focus:border-accent"
+            />
+            <button type="button" onClick={addVideo} className="rounded-full bg-ink px-3 py-1 text-[12px] font-bold text-paper">Add</button>
+            {videoError && <span className="text-[12px] text-accent-deep">{videoError}</span>}
+          </span>
+        )}
         <button type="button" aria-pressed={preview} aria-controls="post-preview" onClick={() => setPreview(!preview)}
           className={`ml-auto cursor-pointer rounded px-2.5 py-1 text-[12px] font-bold ${preview ? 'bg-ink text-paper' : 'text-ink-mid hover:bg-surface'}`}>
           Preview

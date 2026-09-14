@@ -48,3 +48,29 @@ for (const [name, appValue] of pairs) {
   assert.equal(String(appValue).toLowerCase(), token(name), `color token ${name}`);
 }
 console.log('PASS colour tokens: app theme mirrors tokens.css');
+
+// 마크다운 파서 — 같은 본문이 같은 블록 트리가 되어야 웹과 앱이 같은 글을 보여준다
+const webMd = await import('../src/lib/markdown-ast.ts');
+const appMd = await import('../../app/src/markdown-ast.ts');
+const fixtures = [
+  '# Title\n\nplain **bold** *em* `code` [link](https://a.b/c) and https://bare.example/path, then.\nsecond line same paragraph\n\nnew paragraph',
+  '## Section one\n- item\n  - nested\n- item two\n1. first\n2. second\n\n> quoted\n> lines\n\n```\ncode # not heading\n```\n![alt](https://img.example/x.png)',
+  'https://www.youtube.com/watch?v=dQw4w9WgXcQ\nafter video\n\nhttps://youtu.be/abc123def45?t=10',
+  '#### too deep\n| a | b |\n|---|---|\n~~gone~~ <b>html</b>\n---',
+  '',
+  '   \n\n\n',
+  'trailing spaces   \n\ttab-indented\n\t- tab list\n    - four spaces',
+];
+for (const f of fixtures) {
+  assert.deepEqual(appMd.parseMarkdown(f), webMd.parseMarkdown(f), `parseMarkdown ${JSON.stringify(f.slice(0, 30))}`);
+  assert.deepEqual(appMd.extractHeadings(f), webMd.extractHeadings(f));
+  assert.equal(appMd.stripMarkdown(f), webMd.stripMarkdown(f));
+  assert.deepEqual(appMd.unsupportedMarkdown(f), webMd.unsupportedMarkdown(f));
+}
+// 부분집합 밖의 문법은 잡히고, 안의 문법은 잡히지 않는다
+assert.equal(webMd.unsupportedMarkdown(fixtures[3]).length, 4, 'h4, table separator, html (one per line), hr'); // 표 헤더 줄은 구분선 줄에서 잡힌다
+assert.deepEqual(webMd.unsupportedMarkdown(fixtures[1]), []);
+assert.deepEqual(webMd.unsupportedMarkdown('```\n| in | code |\n|---|---|\n```'), [], 'code blocks are not inspected');
+// 웹의 임베드 줄이 앱에서도 같은 블록이다
+assert.deepEqual(webMd.parseMarkdown(fixtures[2]).map((b) => b.type), ['youtube', 'paragraph', 'youtube']);
+console.log('PASS markdown: same block tree, same headings, same excerpt, same unsupported list');

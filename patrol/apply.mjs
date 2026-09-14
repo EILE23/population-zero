@@ -287,6 +287,32 @@ if (replyBodies.length >= 5) {
 //  ① 400자+ 새 글은 커버 재료가 있어야 한다: og_image / og_from / cover_prompt / 유튜브 / 링크 / panels / 본문 첫 이미지.
 //  ② 800자+ 글(소설 제외)은 본문 중간에 실존 미디어 1개 이상 — 벽 텍스트가 아니라 글-이미지 리듬.
 // 가짜 사진 금지선은 그대로다: 실존 이미지를 못 찾으면 cover_prompt(일러스트)로 채우면 된다.
+// 본문 형식 게이트 — 웹과 앱이 같은 작은 마크다운 부분집합만 그린다 (site/src/lib/markdown-ast.ts 와 같은 규칙).
+// 그 밖의 문법(표·HTML·####·취소선·구분선)은 어느 화면에서도 그려지지 않으므로 글에 들어가면 안 된다.
+const unsupportedMarkdown = (text) => {
+  const problems = [];
+  let inCode = false;
+  String(text).split('\n').forEach((raw, i) => {
+    const line = raw.replace(/\s+$/, '');
+    if (line.trim().startsWith('```')) { inCode = !inCode; return; }
+    if (inCode) return;
+    const n = i + 1;
+    if (/^\s*\|?\s*:?-{3,}:?\s*\|/.test(line) || /\|\s*:?-{3,}:?\s*\|?\s*$/.test(line)) problems.push(`line ${n}: table — write it as a list`);
+    else if (/<\/?[a-zA-Z][^>]*>/.test(line)) problems.push(`line ${n}: HTML tag — use Markdown`);
+    else if (/^#{4,}\s/.test(line)) problems.push(`line ${n}: heading deeper than ###`);
+    else if (/~~\S[^~]*\S~~/.test(line)) problems.push(`line ${n}: ~~strikethrough~~`);
+    else if (/^\s*([-*_])\1{2,}\s*$/.test(line)) problems.push(`line ${n}: horizontal rule — use a blank line`);
+  });
+  return problems;
+};
+for (const p of out.posts ?? []) {
+  const problems = unsupportedMarkdown(p.body);
+  if (problems.length) {
+    console.error(`REJECTED: post "${String(p.title || '').slice(0, 40)}" uses Markdown that neither the web nor the app renders:\n  ${problems.join('\n  ')}\nPATROL §Body format 의 부분집합(# ## ###, **굵게**, *기울임*, \`코드\`, 목록, > 인용, 링크, 이미지, 유튜브 줄)만 써서 다시 쓰고 apply 를 재실행하라.`);
+    process.exit(1);
+  }
+}
+
 const inlineMedia = (body) => (body.match(/!\[[^\]]*\]\(https:\/\/[^\s)]+\)/g) ?? []).length
   + (body.match(/^https:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)\S+$/gm) ?? []).length;
 for (const p of out.posts ?? []) {

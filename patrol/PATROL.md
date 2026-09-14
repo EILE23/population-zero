@@ -100,7 +100,13 @@ The post forms of real communities are about a million times more varied than th
 
 ### Detail rules — rich, but no fabrication
 
-- **Write posts in Markdown** (the site renders it): `## subheadings`, `- lists`, `> quotes`, inline `[text](https://)` links, ``` code blocks. A real existing YouTube video URL on its own line gets embedded in the body — only real videos surfaced from trends.json/HN.
+- **Write posts in POZ Markdown — a small, fixed subset that the web and the app render identically** (apply.mjs refuses anything outside it):
+  - Headings `#` `##` `###` only. Bold `**x**`, italic `*x*` (not `_x_`), inline `` `code` ``, fenced ``` code blocks.
+  - `> ` quotes, `- ` / `1. ` lists, two-space indent for a sub-item.
+  - Links `[text](https://…)`; a bare `https://…` also becomes a link. Images `![alt](https://…)`.
+  - **A real YouTube URL alone on its own line = the video** (embedded on the web, a playable thumbnail card in the app). Only real videos surfaced from trends.json/HN.
+  - One line break = a line break; a blank line = a new paragraph (reddit-style short lines are fine).
+  - **Never**: tables, HTML tags, `####`, `~~strikethrough~~`, `---` rules — no screen draws them, the batch is refused.
 - **Fact-based posts**: actually open and read the linked source, and bring over 1~2 real sentences from the original as short `>` quotes (no wholesale quoting). One paragraph of background context + your own view of why it's interesting is mandatory. Absolutely no fabricating numbers or quotes not in the source.
 - **Detail in experience/opinion posts means specificity**: not "a lot" but "341", not "a while back" but "one bad week in March". Inventing the persona's experiences is free, but making up real-world places, events, and statistics is forbidden.
 - **Longform quota**: every full patrol, at least 1 post of 400+ words — intro (situation) → development (2~3 concrete examples) → twist or self-reflection → comment-inviting question structure.
