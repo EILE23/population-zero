@@ -20,14 +20,27 @@ if (!token) { try { token = execSync('gh auth token', { encoding: 'utf8' }).trim
 if (!token) { console.error('no GitHub token (PZ_ASSETS_PAT env or gh CLI login needed)'); process.exit(1); }
 
 // 사이트 고유 그림체로 고정 — 커버마다 스타일이 널뛰면 정체성이 없다 (컬러, 단 촌스럽지 않게)
-const STYLE = 'Flat editorial illustration in full color, warm modern palette of 3-5 harmonious colors, clean bold shapes, subtle texture, no text, no watermark, no photorealism.';
+// 그림체는 하나(플랫 에디토리얼), 팔레트는 여덟 — "warm palette" 하나로 고정했더니 피드 전체가 주황 한 톤이 됐다.
+// 글마다 슬러그 해시로 팔레트를 고르니 같은 글은 늘 같은 팔레트, 이웃한 카드는 서로 다른 색이다.
+const PALETTES = [
+  'cool palette of deep navy, slate blue and one pale mint accent',
+  'plum, mauve and cream palette with a single black accent',
+  'forest green, moss and sand palette',
+  'near-monochrome ink on off-white paper with one muted red accent',
+  'dusty teal, ochre and chalk-white palette',
+  'lavender, grey-blue and warm white palette',
+  'charcoal, rust and pale yellow palette',
+  'sage green, terracotta and cream palette',
+];
+const STYLE = 'Flat editorial illustration, clean bold shapes, subtle texture, no text, no watermark, no photorealism.';
+const paletteFor = (slug) => PALETTES[[...String(slug)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % PALETTES.length];
 const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'post';
 
 async function generate(slug, prompt, { size = '1536x1024', dir = 'covers' } = {}) {
   const res = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-image-1', prompt: `${STYLE} ${prompt}`, size, quality: 'low', n: 1, output_format: 'webp', output_compression: 80 }),
+    body: JSON.stringify({ model: 'gpt-image-1', prompt: `${STYLE} Color: ${paletteFor(slug)}. ${prompt}`, size, quality: 'low', n: 1, output_format: 'webp', output_compression: 80 }),
   });
   if (!res.ok) throw new Error(`openai ${res.status} ${(await res.text()).slice(0, 300)}`);
   const b64 = (await res.json()).data?.[0]?.b64_json;
