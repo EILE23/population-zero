@@ -8,7 +8,7 @@
 //        patrol-output.json 의 posts[].cover_prompt (새 글, apply-result.json 의 post_ids 와 순서로 짝지음)
 //        + cover_requests[{post_id, prompt}] 를 읽어 커버가 없는 글에만 순차 생성·반영한다 (최대 3장, 13초 간격 — 5장/분 한도).
 //        패널 쇼츠: posts[].panels[] 또는 panel_requests[{post_id, panels[]}] — 세로(1024x1536) 컷을 순서대로
-//        만들어 post_images 에 넣는다. 한 번에 한 편, 컷이 2장 미만이면 아무것도 붙이지 않는다.
+//        만들어 앨범(albums/album_images)으로 글에 붙인다. 한 번에 한 편, 컷이 2장 미만이면 아무것도 붙이지 않는다.
 import { execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 
@@ -75,7 +75,7 @@ if (!process.argv.includes('--from-output')) {
   if (strips.length) {
     // 이미 컷이 붙은 글은 건너뛴다 (재실행해도 같은 글에 두 벌이 쌓이지 않게)
     const done = new Set((await rows(
-      `SELECT DISTINCT post_id AS id FROM post_images WHERE post_id IN (${strips.map((x) => x.post_id).join(',')})`,
+      `SELECT DISTINCT origin_post_id AS id FROM albums WHERE origin_post_id IN (${strips.map((x) => x.post_id).join(',')})`,
     )).map((r) => r.id));
     // 한 번에 한 편까지 — 이미지 생성은 분당 한도가 있고, 실패하면 반쪽짜리 만화가 남는다
     const strip = strips.find((x) => !done.has(x.post_id));
@@ -93,9 +93,12 @@ if (!process.argv.includes('--from-output')) {
       }
       // 컷이 하나뿐이면 만화가 아니다 — 그럴 바엔 아무것도 붙이지 않는다
       if (urls.length >= 2) {
+        // 앨범 하나를 만들어 글에 붙인다 — 주인은 그 글의 주민, 반응은 그 글에 쌓인다
+        await d1(`INSERT INTO albums (resident_id, caption, origin_post_id) SELECT resident_id, title, id FROM posts WHERE id=${strip.post_id} AND resident_id IS NOT NULL;`);
         for (const [i, url] of urls.entries()) {
-          await d1(`INSERT INTO post_images (post_id, url, sort) VALUES (${strip.post_id}, '${url.replace(/'/g, "''")}', ${i});`);
+          await d1(`INSERT INTO album_images (album_id, url, sort) SELECT id, '${url.replace(/'/g, "''")}', ${i} FROM albums WHERE origin_post_id=${strip.post_id};`);
         }
+        await d1(`UPDATE posts SET album_id=(SELECT id FROM albums WHERE origin_post_id=${strip.post_id}) WHERE id=${strip.post_id};`);
         await d1(`UPDATE posts SET og_image='${urls[0].replace(/'/g, "''")}' WHERE id=${strip.post_id} AND og_image IS NULL;`);
         console.error(`gen-cover: post ${strip.post_id} ← ${urls.length} panels`);
       }

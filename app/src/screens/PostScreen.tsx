@@ -11,12 +11,14 @@ import { theme } from '@/theme';
 
 const { width: W } = Dimensions.get('window');
 
-export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
+export function PostScreen({ postId, onBack, onEdit, onOpenProfile, onOpenPost }: {
   postId: number;
   onBack: () => void;
   onEdit: (detail: PostDetail) => void;
   /** 글쓴이·댓글 작성자를 눌렀을 때 — 팔로우와 쪽지는 그 사람의 자리에서 한다 */
   onOpenProfile: (handle: string) => void;
+  /** 공유한 앨범의 원래 글로 — 반응은 거기에 쌓인다 */
+  onOpenPost?: (postId: number) => void;
 }) {
   const [detail, setDetail] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,8 +73,10 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
   }
 
   const { post } = detail;
-  // 사진 묶음으로 올린 글 — 읽는 글이 아니라 보는 글이라 화면 구성이 통째로 다르다
-  const isAlbum = detail.images.length > 0;
+  // 앨범이 처음 올라온 글(origin)은 보는 글 — 화면 구성이 통째로 다르다.
+  // 남의 앨범을 공유한 글은 읽는 글이고, 앨범이 본문 뒤에 딸려 온다.
+  const isAlbum = detail.images.length > 0 && detail.album?.originPostId === post.id;
+  const sharedAlbum = detail.images.length > 0 && !isAlbum ? detail.album : null;
   const cover = post.og_image
     ?? (post.media_type === 'youtube' && post.media_ref ? `https://i.ytimg.com/vi/${post.media_ref}/hqdefault.jpg` : null);
 
@@ -132,6 +136,28 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile }: {
             </Pressable>
 
             <MarkdownBody body={post.body} />
+
+            {/* 공유한 앨범 — 글 뒤에 딸려 오고, 누구의 앨범인지 밝힌다. 누르면 원래 글로 */}
+            {sharedAlbum ? (
+              <View style={s.shared}>
+                <FlatList
+                  data={detail.images}
+                  keyExtractor={(u) => u}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={s.sharedShots}
+                  renderItem={({ item }) => <Image source={{ uri: item }} style={s.sharedShot} resizeMode="cover" />}
+                />
+                <Pressable
+                  onPress={() => { if (sharedAlbum.originPostId) onOpenPost?.(sharedAlbum.originPostId); }}
+                  hitSlop={6}
+                  style={s.sharedMeta}
+                >
+                  <Text style={s.sharedLabel}>ALBUM BY {sharedAlbum.owner ?? 'SOMEONE'}</Text>
+                  {sharedAlbum.originPostId ? <Text style={s.sharedLink}>Open original →</Text> : null}
+                </Pressable>
+              </View>
+            ) : null}
           </>
         )}
 
@@ -188,6 +214,18 @@ const s = StyleSheet.create({
   dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: theme.color.hairline },
   dotOn: { width: 14, backgroundColor: theme.color.ink },
   albumBody: { paddingHorizontal: theme.space(5), paddingTop: theme.space(4) },
+  shared: {
+    marginTop: theme.space(6), borderRadius: theme.radius.md, overflow: 'hidden',
+    backgroundColor: theme.color.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.color.hairline,
+  },
+  sharedShots: { flexDirection: 'row', gap: 2 },
+  sharedShot: { width: 160, height: 160, backgroundColor: theme.color.surfaceDeep },
+  sharedMeta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: theme.space(3), paddingVertical: theme.space(2.5),
+  },
+  sharedLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: theme.color.inkSoft },
+  sharedLink: { fontSize: 12.5, fontWeight: '700', color: theme.color.ink },
   albumByline: { marginBottom: theme.space(3) },
   caption: { fontSize: 15, lineHeight: 23, color: theme.color.ink },
   cover: { width: '100%', height: 210, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceDeep, marginBottom: theme.space(4) },

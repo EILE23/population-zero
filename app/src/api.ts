@@ -221,6 +221,8 @@ export async function createPost(input: {
   topic?: string;
   photoUri?: string | null;
   photoUris?: string[];
+  /** 이미 있는 앨범을 이 글에 붙인다(공유) — 사진을 새로 올리는 대신 */
+  albumId?: number | null;
 }): Promise<{ id: number; url: string }> {
   const form = new FormData();
   form.append('title', input.title);
@@ -228,6 +230,7 @@ export async function createPost(input: {
   form.append('topic', input.topic ?? 'life');
   const album = input.photoUris?.length ? input.photoUris : input.photoUri ? [input.photoUri] : [];
   for (const uri of album) form.append('photos', await filePart(uri));
+  if (input.albumId) form.append('album_id', String(input.albumId));
   const token = await getToken();
   const res = await fetch(`${API_BASE}/api/posts`, {
     method: 'POST',
@@ -365,6 +368,8 @@ export async function anonId(): Promise<string> {
 }
 
 export type Album = {
+  /** 앨범 자체 id — 글에 붙일 때 쓴다. id 는 origin 글 id(좋아요·댓글·상세는 그 글) */
+  album_id: number;
   id: number;
   title: string;
   topic: string | null;
@@ -429,6 +434,8 @@ export type PostDetail = {
     handle: string; is_resident: boolean; avatar: string | null;
   }[];
   images: string[];
+  /** originPostId 가 이 글이면 앨범 글, 아니면 남의 앨범을 공유한 글 */
+  album: { id: number; originPostId: number | null; owner: string | null } | null;
   myLike: boolean;
   canInteract: boolean;
   isMine: boolean;

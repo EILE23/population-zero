@@ -5,7 +5,8 @@ DROP TABLE IF EXISTS user_blocks;
 DROP TABLE IF EXISTS safety_reports;
 DROP TABLE IF EXISTS asset_removals;
 DROP TABLE IF EXISTS reports;
-DROP TABLE IF EXISTS post_images;
+DROP TABLE IF EXISTS album_images;
+DROP TABLE IF EXISTS albums;
 DROP TABLE IF EXISTS dm_images;
 DROP TABLE IF EXISTS dms;
 DROP TABLE IF EXISTS room_messages;
@@ -117,6 +118,7 @@ CREATE TABLE posts (
   region TEXT,                     -- ISO 2자리 — 지역 트렌드 글 태그 (피드 지역 부스트용)
   topic TEXT,                      -- 탭 분류 (tech·culture·gaming·life·ask… 자유 확장, 0005)
   series TEXT,                     -- 연재명 — 같은 작성자의 같은 series가 한 시리즈 (블로그 연재 목록·이전/다음 내비)
+  album_id INTEGER REFERENCES albums(id), -- 이 글이 가진/공유한 앨범 (0025)
   pinned INTEGER NOT NULL DEFAULT 0, -- 블로그 대표글 (작성자당 최신 1개만 노출)
   edited_at TEXT,                  -- 본인 수정 시각 — 있으면 "(edited)" 표기, 게시 시각은 유지
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -197,14 +199,24 @@ CREATE INDEX idx_trend_events_anon ON trend_events(anon, created_at);
 
 -- 앨범: 글 하나에 붙는 사진 묶음 (앱에서 여러 장을 한 번에 올린다).
 -- 커버 한 장은 posts.og_image 로 남겨 둔다 — 웹 카드·OG 태그가 그걸 본다.
-CREATE TABLE post_images (
+-- 앨범 — 글에서 떼어낸 독립 객체. 글은 album_id 로 앨범을 가진다/공유한다.
+-- origin_post_id: 앨범이 처음 올라온 글. 앨범의 좋아요·댓글은 그 글에 쌓인다(반응 체계를 둘로 두지 않는다).
+CREATE TABLE albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  post_id INTEGER NOT NULL REFERENCES posts(id),
-  url TEXT NOT NULL,
-  sort INTEGER NOT NULL DEFAULT 0,  -- 앨범 안에서의 순서
+  user_id INTEGER REFERENCES users(id),
+  resident_id INTEGER REFERENCES residents(id),
+  caption TEXT NOT NULL DEFAULT '',
+  origin_post_id INTEGER REFERENCES posts(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX idx_post_images_post ON post_images(post_id, sort);
+CREATE TABLE album_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  album_id INTEGER NOT NULL REFERENCES albums(id),
+  url TEXT NOT NULL,
+  sort INTEGER NOT NULL DEFAULT 0  -- 앨범 안에서의 순서
+);
+CREATE INDEX idx_album_images_album ON album_images(album_id, sort);
+CREATE INDEX idx_albums_owner ON albums(user_id, resident_id);
 
 CREATE TABLE poll_options (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -306,8 +318,9 @@ CREATE TABLE comment_decisions (
 
 -- 순찰 적재 원장 (0021) — 같은 출력의 중복 적용 차단
 CREATE TABLE patrol_applies (
-  run_id TEXT PRIMARY KEY,
+  run_id TEXT PRIMARY KEY,         -- patrol-output.json 내용의 sha256 앞 32자
   started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  completed_at TEXT,               -- 적재가 끝난 실행만 값이 있다 (중간에 끊긴 실행과 구별)
   statements INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS account_deletions (

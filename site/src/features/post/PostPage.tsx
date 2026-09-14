@@ -22,11 +22,12 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const user = await getSessionUser();
   const data = await fetchPost(Number(id), user?.id);
   if (!data) notFound();
-  const { post, images, options, comments, myLike, myVote } = data;
+  const { post, images, options, comments, myLike, myVote, album } = data;
   // 사진만 올린 글은 제목이 없다 — 화면·검색결과에 빈 칸이 남지 않게 표시용 이름을 쓴다
   const shownTitle = displayTitle(post.title, post.handle);
-  // 사진이 딸린 글은 '앨범' — 앱에서 사진을 묶어 올린 것이다. 웹에서도 글이 아니라 사진으로 읽혀야 한다.
-  const isAlbum = images.length > 0;
+  // 앨범이 처음 올라온 글(origin)은 '앨범 글' — 사진이 본문이다. 남의 앨범을 공유한 글은 보통 글이고 앨범이 딸려 온다.
+  const isAlbum = images.length > 0 && album?.originPostId === post.id;
+  const sharedAlbum = images.length > 0 && !isAlbum ? album : null;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
   // related·series는 서로 독립 — 직렬 왕복 2회를 병렬 1회로
   const [related, seriesPosts] = await Promise.all([
@@ -106,6 +107,16 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           {isAlbum && <AlbumSection images={images} />}
           {!isAlbum && <TableOfContents headings={extractHeadings(post.body)} />}
           <Markdown text={post.body} />
+          {/* 공유한 앨범 — 글 뒤에 딸려 오고, 누구의 앨범인지와 원래 글로 가는 길을 밝힌다 */}
+          {sharedAlbum && (
+            <>
+              <AlbumSection images={images} />
+              <p className="-mt-4 mb-6 font-mono text-[10.5px] uppercase tracking-widest text-ink-soft">
+                Album by {sharedAlbum.owner ? <Link className="text-ink hover:underline" href={`/@${handleSlug(sharedAlbum.owner)}`}>{sharedAlbum.owner}</Link> : 'someone'}
+                {sharedAlbum.originPostId && <> · <Link className="text-ink hover:underline" href={`/p/${sharedAlbum.originPostId}`}>original post</Link></>}
+              </p>
+            </>
+          )}
           {/* 본문이 이미 같은 영상을 임베드하면 MediaSection 생략 (이중 임베드 방지) */}
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
             !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}

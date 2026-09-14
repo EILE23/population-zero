@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { createPost, postingError, uploadInlineImage, TOPIC_TABS } from '@/api';
+import { createPost, postingError, uploadInlineImage, TOPIC_TABS, type Album } from '@/api';
+import { AlbumPicker } from '@/ui/AlbumPicker';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
 import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
@@ -33,6 +34,9 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // 붙인 앨범 — 사진을 새로 올리는 게 아니라 이미 있는 앨범을 이 글이 가리킨다
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [albumPickerOpen, setAlbumPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 커서 위치 — 본문 사진을 '지금 쓰던 자리'에 넣기 위해 따라다닌다
   const caret = useRef(0);
@@ -96,7 +100,7 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
     setBusy(true);
     setError(null);
     try {
-      const { id } = await createPost({ title: title.trim(), body: body.trim(), topic, photoUri: cover });
+      const { id } = await createPost({ title: title.trim(), body: body.trim(), topic, photoUri: cover, albumId: album?.album_id ?? null });
       onPosted(id);
     } catch (e) {
       setError(postingError(e));
@@ -162,6 +166,21 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
           maxLength={30000}
         />
 
+        {/* 붙인 앨범 — 글 아래 띠로 보여주고, 떼는 것도 여기서 */}
+        {album ? (
+          <View style={s.albumStrip}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.albumShots}>
+              {album.images.slice(0, 8).map((u) => <Image key={u} source={{ uri: u }} style={s.albumShot} resizeMode="cover" />)}
+            </ScrollView>
+            <View style={s.albumMeta}>
+              <Text style={s.albumLabel} numberOfLines={1}>ALBUM · {album.shot_count} {album.shot_count === 1 ? 'shot' : 'shots'}</Text>
+              <Pressable onPress={() => setAlbum(null)} hitSlop={8}>
+                <Text style={s.albumRemove}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         {error ? <Text style={s.error}>{error}</Text> : null}
       </ScrollView>
 
@@ -191,6 +210,15 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
           </Pressable>
         </View>
 
+        <View style={s.toolDivider} />
+
+        <View style={s.toolGroup}>
+          <Text style={s.toolLabel}>ALBUM</Text>
+          <Pressable onPress={() => setAlbumPickerOpen(true)} style={({ pressed }) => [s.tool, pressed && s.toolPressed, album && s.toolOn]}>
+            <Feather name="layers" size={15} color={album ? theme.color.paper : theme.color.inkMid} />
+          </Pressable>
+        </View>
+
         <View style={s.toolSpacer} />
 
         <View style={s.toolGroup}>
@@ -208,6 +236,11 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
         groups={TOPIC_GROUPS}
         onSelect={setTopic}
         onClose={() => setPickerOpen(false)}
+      />
+      <AlbumPicker
+        visible={albumPickerOpen}
+        onPick={(a) => { setAlbum(a); setAlbumPickerOpen(false); }}
+        onClose={() => setAlbumPickerOpen(false)}
       />
     </KeyboardAvoidingView>
   );
@@ -258,6 +291,19 @@ const s = StyleSheet.create({
     marginTop: theme.space(4), borderWidth: 0, padding: 0,
   },
   error: { color: theme.color.accentDeep, fontWeight: '700', fontSize: 13, marginTop: theme.space(4) },
+  albumStrip: {
+    marginTop: theme.space(5), borderRadius: theme.radius.md, overflow: 'hidden',
+    backgroundColor: theme.color.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.color.hairline,
+  },
+  albumShots: { flexDirection: 'row', gap: 2 },
+  albumShot: { width: 96, height: 96, backgroundColor: theme.color.surfaceDeep },
+  albumMeta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: theme.space(3), paddingVertical: theme.space(2),
+  },
+  albumLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: theme.color.inkSoft },
+  albumRemove: { fontSize: 12, fontWeight: '700', color: theme.color.accentDeep },
+  toolOn: { backgroundColor: theme.color.ink },
   tools: {
     flexDirection: 'row', alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.hairline,

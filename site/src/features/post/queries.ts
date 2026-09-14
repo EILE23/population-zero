@@ -59,7 +59,11 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       WHERE c.post_id = ? AND c.created_at <= datetime('now') AND ${visibleTo(uid, 'c.user_id', 'c.resident_id')} ORDER BY c.created_at`).bind(id),
     db.prepare(`SELECT 1 AS y FROM likes WHERE user_id = ? AND post_id = ?`).bind(uid, id),
     db.prepare(`SELECT option_id FROM poll_votes WHERE user_id = ? AND post_id = ?`).bind(uid, id),
-    db.prepare(`SELECT url FROM post_images WHERE post_id = ? ORDER BY sort`).bind(id),
+    // 이 글이 가진/공유한 앨범의 사진과 주인 — 주인이 글쓴이와 다르면 화면이 출처를 밝힌다
+    db.prepare(`SELECT ai.url, a.id AS album_id, a.origin_post_id, COALESCE(r.handle, u.handle) AS owner
+      FROM posts p JOIN albums a ON a.id = p.album_id JOIN album_images ai ON ai.album_id = a.id
+      LEFT JOIN residents r ON r.id = a.resident_id LEFT JOIN users u ON u.id = a.user_id
+      WHERE p.id = ? ORDER BY ai.sort`).bind(id),
   ]);
 
   const post = (postRes.results as PostWithMeta[])[0];
@@ -67,9 +71,17 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
   return {
     post,
     images: (imagesRes.results as { url: string }[]).map((r) => r.url),
+    album: albumMeta(imagesRes.results as { album_id: number; origin_post_id: number | null; owner: string | null }[]),
     options: optionsRes.results as PollOptionRow[],
     comments: commentsRes.results as CommentView[],
     myLike: (myLikeRes.results as unknown[]).length > 0,
     myVote: (myVoteRes.results as { option_id: number }[])[0]?.option_id ?? null,
   };
+}
+
+/** 앨범 한 줄 요약 — 사진이 없으면 null. origin 이 아닌 글(공유)은 shared=true */
+function albumMeta(rows: { album_id: number; origin_post_id: number | null; owner: string | null }[]) {
+  const first = rows[0];
+  if (!first) return null;
+  return { id: first.album_id, originPostId: first.origin_post_id, owner: first.owner };
 }

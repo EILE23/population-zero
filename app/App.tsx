@@ -204,6 +204,7 @@ export default function App() {
                   onBack={closeOverlay}
                   onEdit={(detail) => setOverlay({ kind: 'edit', id: detail.post.id })}
                   onOpenProfile={openProfile}
+                  onOpenPost={(id) => setOverlay({ kind: 'post', id })}
                 />
               </View>
             ) : overlay.kind === 'compose' ? (

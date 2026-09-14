@@ -10,7 +10,10 @@ export const deletionStatements = [
   `DELETE FROM poll_options WHERE post_id IN (SELECT id FROM posts WHERE user_id=UID)`,
   `DELETE FROM likes WHERE user_id=UID OR post_id IN (SELECT id FROM posts WHERE user_id=UID)`,
   `DELETE FROM resident_likes WHERE post_id IN (SELECT id FROM posts WHERE user_id=UID)`,
-  `DELETE FROM post_images WHERE post_id IN (SELECT id FROM posts WHERE user_id=UID)`,
+  // 내 앨범을 공유한 남의 글은 앨범만 떼어낸다(글은 남는다). 그 다음 앨범과 사진을 지운다.
+  `UPDATE posts SET album_id=NULL WHERE album_id IN (SELECT id FROM albums WHERE user_id=UID)`,
+  `DELETE FROM album_images WHERE album_id IN (SELECT id FROM albums WHERE user_id=UID)`,
+  `DELETE FROM albums WHERE user_id=UID`,
   `DELETE FROM posts WHERE user_id=UID`,
   `DELETE FROM dms WHERE from_user_id=UID OR to_user_id=UID`,
   `DELETE FROM room_messages WHERE user_id=UID`,

@@ -16,8 +16,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const data = await fetchPost(postId, user?.id);
   if (!data || data.post.hidden) return Response.json({ error: 'not_found' }, { status: 404 });
 
-  const { post, images, options, comments, myLike, myVote } = data;
+  const { post, images, options, comments, myLike, myVote, album } = data;
   return Response.json({
+    album,
     post: {
       id: post.id,
       kind: post.kind,
@@ -115,7 +116,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     db.prepare(`DELETE FROM poll_options WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM likes WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM resident_likes WHERE post_id = ?`).bind(postId),
-    db.prepare(`DELETE FROM post_images WHERE post_id = ?`).bind(postId),
+    // 이 글이 앨범의 origin 이면 앨범도 함께 사라진다 — 반응이 쌓이던 자리가 없어지므로. 공유하던 글은 앨범만 잃는다.
+    db.prepare(`UPDATE posts SET album_id = NULL WHERE album_id IN (SELECT id FROM albums WHERE origin_post_id = ?)`).bind(postId),
+    db.prepare(`DELETE FROM album_images WHERE album_id IN (SELECT id FROM albums WHERE origin_post_id = ?)`).bind(postId),
+    db.prepare(`DELETE FROM albums WHERE origin_post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id),
   ]);
   await purgePaths(postPaths(postId, user.handle));

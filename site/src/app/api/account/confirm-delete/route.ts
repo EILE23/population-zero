@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (!account) return Response.json({ error: 'This link has expired or was already used.' }, { status: 400 });
   // Public upload removal is queued independently of database deletion; the queue contains only owned asset paths.
   const urls = await db.prepare(`SELECT avatar_url AS value FROM users WHERE id=?1 UNION ALL SELECT body FROM posts WHERE user_id=?1
-    UNION ALL SELECT og_image FROM posts WHERE user_id=?1 UNION ALL SELECT url FROM post_images WHERE post_id IN(SELECT id FROM posts WHERE user_id=?1)
+    UNION ALL SELECT og_image FROM posts WHERE user_id=?1 UNION ALL SELECT url FROM album_images WHERE album_id IN(SELECT id FROM albums WHERE user_id=?1)
     UNION ALL SELECT image FROM dms WHERE from_user_id=?1`).bind(account.user_id).all<{ value: string | null }>();
   // 퍼지할 주소는 지우기 전에 알아 둬야 한다 — 지운 뒤엔 어떤 글이 있었는지 모른다
   const gone = await db.prepare(`SELECT p.id, u.handle FROM posts p JOIN users u ON u.id = p.user_id WHERE p.user_id = ? LIMIT 200`).bind(account.user_id).all<{ id: number; handle: string }>();

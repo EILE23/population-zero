@@ -91,9 +91,12 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   const series = String(form.get('series') || '').replace(CONTROL_CHARS, '').trim().slice(0, 60) || null;
   let { media_type, media_ref } = parseMedia(String(form.get('media') || ''));
   if (!media_type) { const yt = body.match(YT_IN_BODY); if (yt) { media_type = 'youtube'; media_ref = yt[1]; } }
-  // 앨범 — 앱에서 사진을 여러 장 올린다. 첫 장이 커버(og_image)가 되고 나머지는 post_images 로 간다.
+  // 앨범 — 두 갈래다.
+  //  ① photos 로 사진을 올리면 새 앨범이 만들어지고 이 글이 그 앨범의 origin 이 된다(반응이 쌓이는 자리).
+  //  ② album_id 로 이미 있는 앨범을 붙이면 이 글은 그 앨범을 '공유'한다 — 앨범 주인이 달라도 된다.
   // 한 번에 올릴 수 있는 장수를 제한한다: 무료 티어에서 한 요청이 오래 붙들리지 않게.
   const albumFiles = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0).slice(0, 10);
+  const attachAlbumId = Number(form.get('album_id')) || 0;
   const coverFile = form.get('cover');
   // 사진만 올리는 글은 말이 없어도 된다 — 사진이 곧 내용이다.
   // 글로만 올리는 경우에만 제목·본문 길이를 따진다.
@@ -107,24 +110,37 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   if (albumFiles.length && await rateLimited(request, 'upload', 20, 10, true)) return { ok: false, error: 'rate' };
   if (await rateLimited(request, 'post', 5, 10)) return { ok: false, error: 'rate' };
 
+  const db = await getDb();
+
+  // ② 붙일 앨범이 있으면 실제로 있고 보이는 앨범인지 먼저 — 없는 걸 붙인 글을 만들지 않는다
+  let sharedAlbum: { id: number; cover: string | null } | null = null;
+  if (attachAlbumId > 0) {
+    sharedAlbum = await db.prepare(
+      `SELECT a.id, (SELECT url FROM album_images WHERE album_id = a.id ORDER BY sort LIMIT 1) AS cover
+       FROM albums a JOIN posts p ON p.id = a.origin_post_id
+       WHERE a.id = ? AND p.hidden = 0 AND EXISTS (SELECT 1 FROM album_images WHERE album_id = a.id)`,
+    ).bind(attachAlbumId).first<{ id: number; cover: string | null }>();
+    if (!sharedAlbum) return { ok: false, error: 'failed' };
+  }
+
   const album: string[] = [];
   for (const file of albumFiles) {
     const url = await uploadImageToAssets(file, user.id, 'cover');
     if (url) album.push(url);
   }
   let og_image: string | null = album[0]
+    ?? sharedAlbum?.cover
     ?? (coverFile instanceof File && coverFile.size > 0 ? await uploadImageToAssets(coverFile, user.id, 'cover') : null);
   if (!og_image) og_image = media_type === 'link' && media_ref ? await fetchOgImage(media_ref) : null;
   if (!og_image) { const img = body.match(/!\[[^\]]*\]\((https:\/\/\S+?)\)/); if (img) og_image = img[1].slice(0, 500); }
 
-  const db = await getDb();
   const { meta } = await db.prepare(
-    `INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic, series)
-     SELECT ?1, 'human', ?2, ?3, ?4, ?5, ?6, ?7, ?8
+    `INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic, series, album_id)
+     SELECT ?1, 'human', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
      WHERE NOT EXISTS (
        SELECT 1 FROM posts WHERE user_id = ?1 AND title = ?2 AND body = ?3 AND created_at > datetime('now','-5 minutes')
      )`,
-  ).bind(user.id, title, body, media_type, media_ref, og_image, topic, series).run();
+  ).bind(user.id, title, body, media_type, media_ref, og_image, topic, series, sharedAlbum?.id ?? null).run();
 
   // 5분 내 같은 글 재전송(더블 탭·재시도) — 새로 만들지 않고 기존 글로 안내한다
   if (!meta.changes) {
@@ -135,11 +151,16 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   }
 
   const postId = Number(meta.last_row_id);
-  // 한 장이어도 기록한다 — 앨범 탭은 post_images 가 있는 글만 모으므로,
-  // 커버만 남기면 사진 한 장짜리 글이 앨범에서 통째로 사라진다.
+  // ① 새 앨범: 이 글이 origin. 한 장이어도 앨범이다 — 앨범 탭은 albums 를 보므로 빠지지 않는다.
   if (album.length > 0) {
-    await db.batch(album.map((url, i) =>
-      db.prepare(`INSERT INTO post_images (post_id, url, sort) VALUES (?, ?, ?)`).bind(postId, url, i)));
+    const made = await db.prepare(
+      `INSERT INTO albums (user_id, caption, origin_post_id) VALUES (?, ?, ?)`,
+    ).bind(user.id, title, postId).run();
+    const albumId = Number(made.meta.last_row_id);
+    await db.batch([
+      ...album.map((url, i) => db.prepare(`INSERT INTO album_images (album_id, url, sort) VALUES (?, ?, ?)`).bind(albumId, url, i)),
+      db.prepare(`UPDATE posts SET album_id = ? WHERE id = ?`).bind(albumId, postId),
+    ]);
   }
   await fireGaEvent('post_create', request, {
     topic,

@@ -18,7 +18,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     db.prepare(`DELETE FROM poll_options WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM likes WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM resident_likes WHERE post_id = ?`).bind(postId),
-    db.prepare(`DELETE FROM post_images WHERE post_id = ?`).bind(postId),
+    db.prepare(`UPDATE posts SET album_id = NULL WHERE album_id IN (SELECT id FROM albums WHERE origin_post_id = ?)`).bind(postId),
+    db.prepare(`DELETE FROM album_images WHERE album_id IN (SELECT id FROM albums WHERE origin_post_id = ?)`).bind(postId),
+    db.prepare(`DELETE FROM albums WHERE origin_post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM posts WHERE id = ?`).bind(postId),
   ]);
   await purgePaths(postPaths(postId));

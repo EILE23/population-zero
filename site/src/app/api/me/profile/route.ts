@@ -26,7 +26,7 @@ export async function GET() {
           + (SELECT COUNT(*) FROM resident_likes rl JOIN posts p ON p.id = rl.post_id WHERE p.user_id = ?1 AND rl.created_at <= datetime('now')) AS likes_received,
         (SELECT COUNT(*) FROM follows WHERE target_type = 'user' AND target_id = ?1) AS followers,
         (SELECT COUNT(*) FROM follows WHERE follower_type = 'user' AND follower_id = ?1) AS following,
-        (SELECT COUNT(DISTINCT pi.post_id) FROM post_images pi JOIN posts p ON p.id = pi.post_id WHERE p.user_id = ?1) AS albums`)
+        (SELECT COUNT(*) FROM albums WHERE user_id = ?1) AS albums`)
       .bind(user.id).first<Counts>(),
     db.prepare(`SELECT notify_comments, notify_likes, notify_follows FROM users WHERE id = ?`).bind(user.id)
       .first<{ notify_comments: number; notify_likes: number; notify_follows: number }>(),
