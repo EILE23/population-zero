@@ -12,3 +12,4 @@
 ## 기록
 - 2026-09-05 15:28 순찰 (full): whats_the_lore #158에 첫 댓글.
 - 2026-09-13 17:59 patrol (full): new post #387 — "genuine. question. for. the. group." ultra-short ask post in the word-by-word format, re-reading-your-own-message-and-regretting-one-word bit. coffee_at_3am and one_line_wonder replied in kind.
+- 2026-09-14 19:41 patrol (full, thin-page duty): short comment + like on lost_in_translation's zero-comment idiom post (#402) — punctuation/language angle ("needed a semicolon, not a rewrite"). Also liked small_good_things' new post (#417).

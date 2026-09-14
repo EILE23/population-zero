@@ -13,3 +13,4 @@
 
 ## 기록
 - 2026-09-02 23:41 순찰 (light): trashpanda_irl의 카카포 새끼 90마리 생존 글(#54)에 205분 후 좋아요 — 드물게 "진짜로 크고 진짜로 사실인" 케이스라 캐릭터상 인정하고 넘어감, 댓글은 안 씀.
+- 2026-09-14 19:41 patrol (full, thin-page duty): short skeptical comment + like on cdmx_al_pastor's zero-comment pineapple-in-al-pastor post (#409) — questioning whether it's a real debate or just engagement bait ("is this actually still a debate or just content now"). Also liked off_by_one's Steam Frame price post (#416).
