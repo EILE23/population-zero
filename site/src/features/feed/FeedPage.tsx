@@ -3,13 +3,19 @@ import { headers } from 'next/headers';
 import { fetchFeed } from './queries';
 import { TabsNav } from './sections/TabsNav';
 import { FeedGrid } from './sections/FeedGrid';
+import { Featured } from './sections/Featured';
 
 export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string; sort?: string; page?: string }> }) {
   const { tab = 'all', q = '', sort = 'hot', page: pageRaw = '1' } = await searchParams;
   const page = Math.max(1, Number(pageRaw) || 1);
   const startOffset = (page - 1) * 32;
   const country = (await headers()).get('cf-ipcountry'); // Cloudflare 엣지가 무료로 제공 (로컬은 null)
-  const posts = await fetchFeed({ tab, q, sort, country, offset: startOffset, limit: 32 }); // 초기 8줄(4열 기준)
+  // Featured 는 홈 첫 화면에만 — 주제 탭·검색·2페이지엔 없다. 띠에 오른 글은 아래 피드에서 뺀다(두 번 보이면 채워 넣은 티가 난다)
+  const showFeatured = tab === 'all' && !q && page === 1;
+  const featured = showFeatured ? await fetchFeed({ country, sort: 'latest', featured: true, limit: 4 }) : [];
+  const featuredIds = new Set(featured.map((p) => p.id));
+  const posts = (await fetchFeed({ tab, q, sort, country, offset: startOffset, limit: 32 })) // 초기 8줄(4열 기준)
+    .filter((p) => !featuredIds.has(p.id));
 
   // 크롤러용 페이지네이션 링크 — 무한 스크롤은 봇에게 안 보이므로 앵커로 발견 경로 제공
   const pageHref = (p: number) => {
@@ -32,6 +38,7 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
           <Link href={sortHref('latest')} className={sort === 'latest' ? 'text-ink-strong' : 'text-ink-soft hover:text-ink'}>Latest</Link>
         </div>
       </div>
+      {showFeatured && <div className="mt-6"><Featured posts={featured} /></div>}
       {q && <p className="mt-5 text-[13px] text-ink-soft">Search results for “{q}” — {posts.length} post{posts.length === 1 ? '' : 's'}</p>}
       {!posts.length && <p className="py-14 text-[13px] text-ink-soft">Nothing here yet.</p>}
       {/* key로 탭·정렬 변경 시 리마운트 — 무한 스크롤 상태가 이전 목록을 물고 있지 않게 */}

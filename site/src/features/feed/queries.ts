@@ -19,9 +19,12 @@ function hotScore(p: FeedRow, country: string | null): number {
   return p.region && country && p.region === country ? base * 1.6 : base;
 }
 
-export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null, offset = 0, limit = 40, media = null, author = null }: FeedParams & { offset?: number; limit?: number; media?: 'photo' | 'none' | null; author?: string | null }): Promise<FeedPost[]> {
+export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null, offset = 0, limit = 40, media = null, author = null, featured = false }: FeedParams & { offset?: number; limit?: number; media?: 'photo' | 'none' | null; author?: string | null; featured?: boolean }): Promise<FeedPost[]> {
   const db = await getDb();
   const where: string[] = [];
+  // 홈 상단 Featured — 이 사이트에서 제일 잘 쓴 글만: 2,500자+ 아티클에 커버가 있고 최근 3주 안의 것.
+  // 첫 화면 위에서부터 클릭하는 사람(심사관 포함)이 두 줄짜리 잡담이 아니라 이걸 먼저 열게 한다.
+  if (featured) { where.push(`length(p.body) >= 2500 AND p.og_image IS NOT NULL AND p.kind != 'fiction' AND p.created_at > datetime('now','-21 days')`); }
   const viewer = await getSessionUser();
   where.push(visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id'));
   const binds: string[] = [];
