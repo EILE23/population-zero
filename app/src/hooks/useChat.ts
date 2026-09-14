@@ -9,12 +9,18 @@ type State = {
   error: string | null;
 };
 
+/** 대화가 바뀌면 상태도 처음부터 — 어느 대화의 것인지 key 로 구분한다 */
+type Keyed = State & { key: string };
+
+function fresh(key: string, otherKind: 'user' | 'resident'): Keyed {
+  return { key, messages: [], live: otherKind === 'user', loaded: false, connected: false, error: null };
+}
+
 /** HTTP owns the ordered cursor. Sockets wake the reader sooner; polling also
  * catches uploads, web sends, and missed socket events while connected. */
 export function useChat(thread: string, otherKind: 'user' | 'resident') {
-  const [state, setState] = useState<State>({
-    messages: [], live: otherKind === 'user', loaded: false, connected: false, error: null,
-  });
+  const key = `${thread}|${otherKind}`;
+  const [state, setState] = useState<Keyed>(() => fresh(key, otherKind));
   const refresh = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -24,7 +30,9 @@ export function useChat(thread: string, otherKind: 'user' | 'resident') {
     let again = false;
     let poll: ReturnType<typeof setTimeout> | null = null;
     let ws: WebSocket | null = null;
-    setState({ messages: [], live: otherKind === 'user', loaded: false, connected: false, error: null });
+    // 이전 대화의 상태 위에 덮어쓰지 않는다 — key 가 다르면 새로 시작한다.
+    // (effect 안에서 바로 setState 로 비우면 한 프레임 이전 대화가 비치고, 린트도 막는다)
+    const base = (prev: Keyed): Keyed => (prev.key === key ? prev : fresh(key, otherKind));
 
     const sync = (): Promise<void> => {
       again = true;
@@ -36,9 +44,10 @@ export function useChat(thread: string, otherKind: 'user' | 'resident') {
           if (!alive) return;
           if (data.messages.length) cursor = data.messages[data.messages.length - 1].id;
           setState(prev => {
-            const merged = new Map(prev.messages.map(m => [m.id, m]));
+            const p = base(prev);
+            const merged = new Map(p.messages.map(m => [m.id, m]));
             for (const m of data.messages) merged.set(m.id, m);
-            return { ...prev, messages: [...merged.values()].sort((a, b) => a.id - b.id),
+            return { ...p, messages: [...merged.values()].sort((a, b) => a.id - b.id),
               live: data.live, loaded: true, error: null };
           });
           // Drain every page. Socket IDs must never skip unread history.
@@ -50,7 +59,7 @@ export function useChat(thread: string, otherKind: 'user' | 'resident') {
     refresh.current = sync;
     const tick = async () => {
       try { await sync(); }
-      catch { if (alive) setState(p => ({ ...p, loaded: true, error: 'Could not reach the conversation.' })); }
+      catch { if (alive) setState(p => ({ ...base(p), loaded: true, error: 'Could not reach the conversation.' })); }
       if (alive) poll = setTimeout(tick, otherKind === 'user' ? 3000 : 20000);
     };
     void tick();
@@ -63,12 +72,12 @@ export function useChat(thread: string, otherKind: 'user' | 'resident') {
           ws = new WebSocket(`${API_BASE.replace(/^http/, 'ws')}/ws/dm?thread=${encodeURIComponent(thread)}&token=${encodeURIComponent(token)}`);
           ws.onopen = () => {
             if (!alive) return;
-            setState(p => ({ ...p, connected: true }));
+            setState(p => ({ ...base(p), connected: true }));
             void sync().catch(() => {});
           };
           ws.onmessage = () => { if (alive) void sync().catch(() => {}); };
           ws.onerror = () => {}; // HTTP synchronization continues independently.
-          ws.onclose = () => { if (alive) setState(p => ({ ...p, connected: false })); };
+          ws.onclose = () => { if (alive) setState(p => ({ ...base(p), connected: false })); };
         } catch { /* HTTP synchronization remains available. */ }
       })();
     }
@@ -78,7 +87,7 @@ export function useChat(thread: string, otherKind: 'user' | 'resident') {
       ws?.close();
       if (refresh.current === sync) refresh.current = null;
     };
-  }, [thread, otherKind]);
+  }, [thread, otherKind, key]);
 
   const send = useCallback(async (toHandle: string, body: string, photoUri?: string | null) => {
     const sync = refresh.current;
@@ -88,5 +97,7 @@ export function useChat(thread: string, otherKind: 'user' | 'resident') {
     if (sync && refresh.current === sync) void sync().catch(() => {});
   }, []);
 
-  return { ...state, send };
+  // 아직 이전 대화의 상태가 남아 있으면 비어 있는 것으로 보여준다
+  const view: State = state.key === key ? state : fresh(key, otherKind);
+  return { ...view, send };
 }

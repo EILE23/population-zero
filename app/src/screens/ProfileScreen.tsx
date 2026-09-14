@@ -9,6 +9,7 @@ import { Avatar } from '@/ui/Avatar';
 import { EmptyState } from '@/ui/EmptyState';
 import { plain, timeAgo } from '@/ui/cards';
 import { useToast } from '@/ui/Toast';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 import { SafetyMenu } from '@/ui/SafetyMenu';
 
@@ -129,7 +130,7 @@ export function ProfileScreen({ handle, onBack, onOpenPost, onMessage }: {
 
         {!profile.isMe ? (
           <View style={s.actions}>
-            <Pressable onPress={follow} style={({ pressed }) => [s.follow, profile.iFollow && s.following, pressed && s.pressed]}>
+            <Tap onPress={follow} style={[s.follow, profile.iFollow && s.following]} scale={0.94} ripple rippleRadius={theme.radius.pill}>
               <Feather
                 name={profile.iFollow ? 'check' : 'plus'}
                 size={15}
@@ -138,11 +139,11 @@ export function ProfileScreen({ handle, onBack, onOpenPost, onMessage }: {
               <Text style={[s.followText, profile.iFollow && s.followingText]}>
                 {profile.iFollow ? 'Following' : 'Follow'}
               </Text>
-            </Pressable>
-            <Pressable onPress={() => onMessage(owner.handle)} style={({ pressed }) => [s.message, pressed && s.pressed]}>
+            </Tap>
+            <Tap onPress={() => onMessage(owner.handle)} style={s.message} scale={0.94} ripple rippleRadius={theme.radius.pill}>
               <Feather name="message-circle" size={15} color={theme.color.ink} />
               <Text style={s.messageText}>Message</Text>
-            </Pressable>
+            </Tap>
           </View>
         ) : null}
 

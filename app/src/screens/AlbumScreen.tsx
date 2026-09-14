@@ -7,6 +7,8 @@ import {
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { fetchAlbums, toggleLike, type Album } from '@/api';
 import { Avatar } from '@/ui/Avatar';
+import { LikeButton } from '@/ui/LikeButton';
+import { Tap } from '@/ui/Tap';
 import { EmptyState } from '@/ui/EmptyState';
 import { timeAgo } from '@/ui/cards';
 import { theme } from '@/theme';
@@ -95,14 +97,20 @@ function Reel({ album, active, onOpenPost, onLike }: {
       </Animated.View>
 
       <Animated.View style={[s.rail, { opacity: enter }]}>
-        <RailButton
-          ion={album.liked ? 'heart' : 'heart-outline'}
-          label={String(album.like_count)}
-          active={album.liked}
-          onPress={() => onLike(album)}
-        />
+        {/* 하트는 다른 화면과 같은 것을 쓴다 — 누르면 부풀고 작은 하트가 흩어진다 */}
+        <View style={s.railItem}>
+          <LikeButton
+            liked={!!album.liked}
+            count={album.like_count}
+            size={27}
+            column
+            onDark
+            onPress={() => onLike(album)}
+          />
+        </View>
         <RailButton ion="chatbubble-outline" label={String(album.comment_count)} onPress={() => onOpenPost(album.id)} />
-        <RailButton icon="maximize-2" onPress={() => onOpenPost(album.id)} />
+        {/* 확대가 아니라 '글로 가기' — 앨범에 달린 글과 댓글이 있는 곳 */}
+        <RailButton ion="reader-outline" onPress={() => onOpenPost(album.id)} />
       </Animated.View>
     </View>
   );
@@ -208,9 +216,9 @@ export function AlbumScreen({ reloadKey, onOpenPost, onCompose }: {
       />
 
       {/* 만들기 버튼만 위에 떠 있다 — 사진을 가리지 않게 작게 */}
-      <Pressable onPress={onCompose} style={({ pressed }) => [s.make, pressed && s.makePressed]}>
+      <Tap onPress={onCompose} style={s.make} scale={0.88} ripple rippleRadius={20}>
         <Feather name="camera" size={18} color={theme.color.paper} />
-      </Pressable>
+      </Tap>
     </View>
   );
 }
@@ -251,5 +259,4 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)',
   },
-  makePressed: { backgroundColor: theme.color.accent },
 });

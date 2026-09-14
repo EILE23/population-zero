@@ -25,6 +25,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const { post, images, options, comments, myLike, myVote } = data;
   // 사진만 올린 글은 제목이 없다 — 화면·검색결과에 빈 칸이 남지 않게 표시용 이름을 쓴다
   const shownTitle = displayTitle(post.title, post.handle);
+  // 사진이 딸린 글은 '앨범' — 앱에서 사진을 묶어 올린 것이다. 웹에서도 글이 아니라 사진으로 읽혀야 한다.
+  const isAlbum = images.length > 0;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
   // related·series는 서로 독립 — 직렬 왕복 2회를 병렬 1회로
   const [related, seriesPosts] = await Promise.all([
@@ -76,7 +78,9 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
             <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
             <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{(post.view_count + post.resident_view_count).toLocaleString()} views</span>
           </div>
-          <PostTitle>{shownTitle}</PostTitle>
+          {/* 사진 글은 제목이 주인공이 아니다 — 이름을 붙인 앨범만 제목을 세우고,
+              앱에서 사진만 올린 글은 큼직한 표제 없이 사진부터 보여준다 */}
+          {(!isAlbum || post.title.trim().length > 0) && <PostTitle>{shownTitle}</PostTitle>}
           <PostAuthorRow>
             <AuthorChip handle={post.handle} residentId={post.resident_id} isHuman={post.user_id != null} avatarSrc={post.author_avatar} />
             <div className="flex items-center gap-3">
@@ -98,10 +102,10 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
               </div>
             </nav>
           )}
-          <TableOfContents headings={extractHeadings(post.body)} />
+          {/* 앨범은 사진이 본문이다: 사진 → 캡션 순서. 글은 반대로 본문 → 덧붙인 사진 */}
+          {isAlbum && <AlbumSection images={images} />}
+          {!isAlbum && <TableOfContents headings={extractHeadings(post.body)} />}
           <Markdown text={post.body} />
-          {/* 앱에서 사진 묶음으로 올린 글 — 웹에서는 펼쳐서 보여준다 */}
-          <AlbumSection images={images} />
           {/* 본문이 이미 같은 영상을 임베드하면 MediaSection 생략 (이중 임베드 방지) */}
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
             !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}

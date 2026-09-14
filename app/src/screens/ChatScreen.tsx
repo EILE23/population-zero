@@ -9,6 +9,7 @@ import { API_BASE, getToken, type DmMessage, type DmThread } from '@/api';
 import { useChat } from '@/hooks/useChat';
 import { Avatar } from '@/ui/Avatar';
 import { useToast } from '@/ui/Toast';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 import { SafetyMenu } from '@/ui/SafetyMenu';
 
@@ -158,30 +159,36 @@ export function ChatScreen({ thread, other, onBack }: {
         </View>
       ) : null}
 
+      {/* 아이콘·입력칸·보내기가 한 줄에서 바닥을 맞춘다 — 입력칸만 여러 줄로 자란다 */}
       <View style={s.composer}>
-        <Pressable onPress={pickPhoto} hitSlop={8} style={s.tool}>
-          <Feather name="image" size={19} color={theme.color.inkMid} />
-        </Pressable>
-        <Pressable onPress={() => setEmojiOpen((v) => !v)} hitSlop={8} style={s.tool}>
-          <Feather name="smile" size={19} color={emojiOpen ? theme.color.accent : theme.color.inkMid} />
-        </Pressable>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Message"
-          placeholderTextColor={theme.color.inkFaint}
-          style={[s.input, NO_OUTLINE]}
-          multiline
-        />
-        <Pressable
+        <Tap onPress={pickPhoto} hitSlop={8} style={s.tool} scale={0.85}>
+          <Feather name="image" size={20} color={theme.color.inkMid} />
+        </Tap>
+        <View style={s.inputPill}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Message"
+            placeholderTextColor={theme.color.inkFaint}
+            style={[s.input, NO_OUTLINE]}
+            multiline
+          />
+          <Tap onPress={() => setEmojiOpen((v) => !v)} hitSlop={8} style={s.emojiToggle} scale={0.85}>
+            <Feather name="smile" size={18} color={emojiOpen ? theme.color.accent : theme.color.inkSoft} />
+          </Tap>
+        </View>
+        <Tap
           onPress={send}
           disabled={sending || (!draft.trim() && !photo)}
+          ripple
+          rippleRadius={19}
+          scale={0.88}
           style={[s.send, (sending || (!draft.trim() && !photo)) && s.sendOff]}
         >
           {sending
             ? <ActivityIndicator color={theme.color.paper} size="small" />
-            : <Feather name="arrow-up" size={17} color={theme.color.paper} />}
-        </Pressable>
+            : <Feather name="arrow-up" size={18} color={theme.color.paper} />}
+        </Tap>
       </View>
     </KeyboardAvoidingView>
   );
@@ -233,13 +240,22 @@ const s = StyleSheet.create({
     paddingHorizontal: theme.space(3), paddingVertical: theme.space(2.5),
     backgroundColor: theme.color.paper,
   },
-  tool: { padding: theme.space(2) },
-  input: {
-    flex: 1, maxHeight: 110, fontSize: 14.5, color: theme.color.ink,
-    paddingVertical: theme.space(2), paddingHorizontal: theme.space(2),
+  tool: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  // 입력칸과 이모지 버튼을 한 알약 안에 — 따로 떼어 두면 셋의 바닥선이 각자 논다
+  inputPill: {
+    flex: 1, minHeight: 38, maxHeight: 120, borderRadius: 19,
+    flexDirection: 'row', alignItems: 'flex-end',
+    backgroundColor: theme.color.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: theme.color.hairline,
+    paddingLeft: theme.space(3.5), paddingRight: theme.space(1),
   },
+  input: {
+    flex: 1, fontSize: 14.5, lineHeight: 19, color: theme.color.ink,
+    paddingTop: 9, paddingBottom: 9, paddingHorizontal: 0,
+  },
+  emojiToggle: { width: 32, height: 38, alignItems: 'center', justifyContent: 'center' },
   send: {
-    width: 36, height: 36, borderRadius: theme.radius.pill, backgroundColor: theme.color.accent,
+    width: 38, height: 38, borderRadius: 19, backgroundColor: theme.color.accent,
     alignItems: 'center', justifyContent: 'center',
   },
   sendOff: { backgroundColor: theme.color.inkFaint },

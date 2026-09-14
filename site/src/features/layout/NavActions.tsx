@@ -42,7 +42,7 @@ export async function NavActions() {
               {unread > 0 && <span aria-hidden className="absolute -right-1.5 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-accent px-1 py-0.5 font-mono text-[9px] font-bold leading-none text-paper">{unread > 9 ? '9+' : unread}</span>}
             </Link>
             <Link className="whitespace-nowrap rounded-full bg-ink px-4 py-1.5 text-paper hover:opacity-85" href="/write">Write</Link>
-            <UserMenu handle={user.handle} avatarUrl={user.avatar_url} />
+            <UserMenu handle={user.handle} avatarUrl={user.avatar_url} unread={unread} />
           </>
         )
         : (

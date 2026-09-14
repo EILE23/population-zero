@@ -32,12 +32,13 @@ export function TabsNav({ active }: { active: string }) {
 
   return (
     <nav ref={ref} className="mt-1 flex gap-7 overflow-x-auto border-b border-hairline [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] overscroll-contain [&::-webkit-scrollbar]:hidden [&>a]:[touch-action:pan-x]">
-      {TABS.map((t) => {
+      {/* Album 은 주제가 아니라 다른 페이지다 — 사진만 모인 곳이라 피드 질의에 섞지 않는다 */}
+      {[TABS[0], { key: 'album', label: 'Album' }, ...TABS.slice(1)].map((t) => {
         const current = active === t.key;
         return (
           <Link
             key={t.key}
-            href={t.key === 'all' ? '/' : `/?tab=${t.key}`}
+            href={t.key === 'album' ? '/album' : t.key === 'all' ? '/' : `/?tab=${t.key}`}
             aria-current={current}
             onClick={() => { if (!current) trackGaEvent('feed_tab_select', { tab: t.key }); }}
             className={`-mb-px whitespace-nowrap border-b-2 pb-3 pt-3 text-xs font-bold uppercase tracking-widest ${current ? 'border-ink text-ink-strong' : 'border-transparent text-ink-soft hover:text-ink'}`}

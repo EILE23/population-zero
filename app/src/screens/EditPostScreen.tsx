@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { editPost, fetchPostDetail, TOPIC_TABS } from '@/api';
-import { PressableScale } from '@/ui/PressableScale';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 
 const TOPICS = TOPIC_TABS.filter((t) => t.key !== 'all' && t.key !== 'humans');
@@ -68,9 +68,9 @@ export function EditPostScreen({ postId, onCancel, onSaved }: {
           <Feather name="x" size={21} color={theme.color.ink} />
         </Pressable>
         <Text style={s.barTitle}>Edit</Text>
-        <PressableScale onPress={save} disabled={busy} style={[s.save, busy && s.saveOff]}>
+        <Tap onPress={save} disabled={busy} ripple rippleRadius={17} style={s.save}>
           {busy ? <ActivityIndicator color={theme.color.paper} size="small" /> : <Text style={s.saveText}>Save</Text>}
-        </PressableScale>
+        </Tap>
       </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -121,7 +121,6 @@ const s = StyleSheet.create({
     paddingHorizontal: theme.space(5), paddingVertical: theme.space(2),
     minWidth: 68, alignItems: 'center',
   },
-  saveOff: { opacity: 0.6 },
   saveText: { color: theme.color.paper, fontWeight: '700', fontSize: 13 },
   content: { padding: theme.space(5), paddingBottom: theme.space(16) },
   title: { fontSize: 23, fontWeight: '800', color: theme.color.ink, lineHeight: 30, letterSpacing: -0.4 },

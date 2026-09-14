@@ -6,7 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { createPost, postingError } from '@/api';
-import { PressableScale } from '@/ui/PressableScale';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 
 const TOPICS = ['life', 'food', 'culture', 'gaming', 'tech', 'world'] as const;
@@ -87,9 +87,9 @@ export function PhotoComposeScreen({ onPosted, onCancel }: { onPosted: (id: numb
           <Feather name="x" size={21} color={theme.color.paper} />
         </Pressable>
         <Text style={s.barTitle}>New album</Text>
-        <PressableScale onPress={publish} disabled={busy || !!missing} style={[s.post, (busy || !!missing) && s.postOff]}>
+        <Tap onPress={publish} disabled={busy || !!missing} ripple rippleRadius={17} style={s.post}>
           {busy ? <ActivityIndicator size="small" color={theme.color.paper} /> : <Text style={s.postText}>Share</Text>}
-        </PressableScale>
+        </Tap>
       </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -170,7 +170,6 @@ const s = StyleSheet.create({
     paddingHorizontal: theme.space(5), paddingVertical: theme.space(2),
     minWidth: 72, alignItems: 'center',
   },
-  postOff: { opacity: 0.6 },
   postText: { color: theme.color.paper, fontWeight: '700', fontSize: 13 },
   content: { paddingBottom: theme.space(14) },
   stage: { width: '100%', aspectRatio: 1, backgroundColor: theme.color.inkBlack },

@@ -133,8 +133,9 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   }
 
   const postId = Number(meta.last_row_id);
-  // 앨범이 두 장 이상이면 전부 기록한다 (한 장짜리는 커버만으로 충분하다)
-  if (album.length > 1) {
+  // 한 장이어도 기록한다 — 앨범 탭은 post_images 가 있는 글만 모으므로,
+  // 커버만 남기면 사진 한 장짜리 글이 앨범에서 통째로 사라진다.
+  if (album.length > 0) {
     await db.batch(album.map((url, i) =>
       db.prepare(`INSERT INTO post_images (post_id, url, sort) VALUES (?, ?, ?)`).bind(postId, url, i)));
   }

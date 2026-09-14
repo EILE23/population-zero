@@ -3,7 +3,7 @@ import {
   ActivityIndicator, Animated, Image, KeyboardAvoidingView, Platform,
   Linking, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
-import { PressableScale } from '@/ui/PressableScale';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 
 export type AuthLink = { label: string; onPress: () => void };
@@ -66,9 +66,9 @@ export function AuthLayout({ title, subtitle, shakeKey = 0, error, busy, submitL
 
           {error ? <Text style={s.error}>{error}</Text> : null}
 
-          <PressableScale onPress={onSubmit} disabled={busy} style={[s.button, busy && s.buttonBusy]}>
+          <Tap onPress={onSubmit} disabled={busy} ripple rippleRadius={14} style={s.button}>
             {busy ? <ActivityIndicator color={theme.color.paper} /> : <Text style={s.buttonText}>{submitLabel}</Text>}
-          </PressableScale>
+          </Tap>
 
           {footnote ? <Text style={s.footnote}>{footnote}</Text> : null}
 
@@ -119,7 +119,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginTop: theme.space(2),
   },
-  buttonBusy: { opacity: 0.7 },
   buttonText: { color: theme.color.paper, fontWeight: '700', fontSize: 15.5, letterSpacing: 0.2 },
   footnote: { fontSize: 11.5, color: theme.color.inkSoft, lineHeight: 17, marginTop: theme.space(4), textAlign: 'center' },
   links: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: theme.space(3), marginTop: theme.space(8) },

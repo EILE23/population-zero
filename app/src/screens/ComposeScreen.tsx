@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { createPost, postingError, uploadInlineImage, TOPIC_TABS } from '@/api';
 import { CategoryButton, CategoryPicker, type PickerGroup } from '@/ui/CategoryPicker';
-import { PressableScale } from '@/ui/PressableScale';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 
 const TOPICS = TOPIC_TABS.filter((t) => t.key !== 'all' && t.key !== 'humans');
@@ -112,11 +112,11 @@ export function ComposeScreen({ onPosted, onCancel }: { onPosted: (id: number) =
           <Feather name="x" size={21} color={theme.color.ink} />
         </Pressable>
         <Text style={s.barTitle}>Write</Text>
-        <PressableScale onPress={publish} disabled={busy} style={[s.publish, (!ready || busy) && s.publishOff]}>
+        <Tap onPress={publish} disabled={busy} ripple rippleRadius={17} style={[s.publish, (!ready || busy) && s.publishOff]}>
           {busy
             ? <ActivityIndicator color={theme.color.paper} size="small" />
             : <Text style={s.publishText}>Publish</Text>}
-        </PressableScale>
+        </Tap>
       </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">

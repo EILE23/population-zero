@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, Easing, StyleSheet, Text } from 'react-native';
+import { Tap } from '@/ui/Tap';
 import { theme } from '@/theme';
 
 /**
@@ -23,9 +24,9 @@ export function EmptyState({ title, body, actionLabel, onAction }: {
       <Text style={s.title}>{title}</Text>
       <Text style={s.body}>{body}</Text>
       {actionLabel && onAction ? (
-        <Pressable onPress={onAction} style={({ pressed }) => [s.action, pressed && s.actionPressed]}>
+        <Tap onPress={onAction} style={s.action} scale={0.94} ripple rippleRadius={theme.radius.pill}>
           <Text style={s.actionText}>{actionLabel}</Text>
-        </Pressable>
+        </Tap>
       ) : null}
     </Animated.View>
   );
@@ -45,6 +46,5 @@ const s = StyleSheet.create({
     paddingHorizontal: theme.space(6),
     paddingVertical: theme.space(3),
   },
-  actionPressed: { backgroundColor: theme.color.ink },
   actionText: { color: theme.color.paper, fontSize: 13.5, fontWeight: '700' },
 });

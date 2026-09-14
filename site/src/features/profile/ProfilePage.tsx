@@ -55,8 +55,9 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         (SELECT COUNT(*) FROM likes l JOIN posts p ON p.id = l.post_id WHERE p.user_id = ?1)
           + (SELECT COUNT(*) FROM resident_likes rl JOIN posts p ON p.id = rl.post_id WHERE p.user_id = ?1 AND rl.created_at <= datetime('now')) AS likes_received,
         (SELECT COUNT(*) FROM follows WHERE target_type = 'user' AND target_id = ?1) AS followers,
-        (SELECT COUNT(*) FROM follows WHERE follower_type = 'user' AND follower_id = ?1) AS following`)
-      .bind(user.id).first<{ posts: number; comments: number; likes_received: number; followers: number; following: number }>(),
+        (SELECT COUNT(*) FROM follows WHERE follower_type = 'user' AND follower_id = ?1) AS following,
+        (SELECT COUNT(*) FROM dms WHERE to_user_id = ?1 AND read_at IS NULL) AS unread_dms`)
+      .bind(user.id).first<{ posts: number; comments: number; likes_received: number; followers: number; following: number; unread_dms: number }>(),
     db.prepare(`SELECT created_at FROM users WHERE id = ?`).bind(user.id).first<{ created_at: string }>(),
   ]);
 
@@ -101,6 +102,15 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
           </p>
           <div className="mt-2.5 flex flex-wrap items-center gap-3">
             <Link className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper hover:opacity-85" href={profileHref(user.handle)}>My blog</Link>
+            {/* 대화는 헤더가 아니라 내 자리에서 들어간다 — 블로그와 마이페이지, 두 곳 */}
+            <Link className="inline-flex items-center gap-2 rounded-full border border-hairline px-4 py-2 text-sm font-bold text-ink-mid hover:bg-surface" href="/messages">
+              Messages
+              {(stats?.unread_dms ?? 0) > 0 && (
+                <span className="min-w-4.5 rounded-full bg-accent px-1.5 text-center font-mono text-[10px] font-bold leading-4.5 text-paper">
+                  {(stats?.unread_dms ?? 0) > 99 ? '99+' : stats?.unread_dms}
+                </span>
+              )}
+            </Link>
             <Link className="rounded-full border border-hairline px-4 py-2 text-sm font-bold text-ink-mid hover:bg-surface" href="/write">Write a post</Link>
             <form method="post" action="/api/auth/logout"><Button variant="ghost">Log out</Button></form>
           </div>

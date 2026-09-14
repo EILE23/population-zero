@@ -58,10 +58,14 @@ function Piece({ spark, size, onDone }: { spark: Spark; size: number; onDone: ()
  * 숫자만 조용히 바뀌면 눌렀는지 알 수 없다. 취소할 때는 터뜨리지 않는다:
  * 되돌리는 동작에 축하를 붙이면 무슨 일이 일어났는지 헷갈린다.
  */
-export function LikeButton({ liked, count, size = 17, onPress }: {
+export function LikeButton({ liked, count, size = 17, column = false, onDark = false, onPress }: {
   liked: boolean;
   count: number;
   size?: number;
+  /** 숫자를 하트 아래에 — 릴스의 오른쪽 세로 줄 */
+  column?: boolean;
+  /** 사진 위에 올라갈 때: 안 누른 하트도 흰색이어야 보인다 */
+  onDark?: boolean;
   onPress: () => void;
 }) {
   const pop = useMemo(() => new Animated.Value(1), []);
@@ -80,8 +84,10 @@ export function LikeButton({ liked, count, size = 17, onPress }: {
     onPress();
   }
 
+  const idle = onDark ? theme.color.paper : theme.color.inkSoft;
+
   return (
-    <Pressable onPress={press} hitSlop={10} style={s.root}>
+    <Pressable onPress={press} hitSlop={10} style={[s.root, column && s.rootColumn]}>
       <View style={s.heart}>
         {sparks.map((sp) => (
           <Piece
@@ -95,18 +101,29 @@ export function LikeButton({ liked, count, size = 17, onPress }: {
           <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
             size={size}
-            color={liked ? theme.color.accent : theme.color.inkSoft}
+            color={liked ? theme.color.accent : idle}
           />
         </Animated.View>
       </View>
-      <Text style={[s.count, { fontSize: size * 0.72 }, liked && s.countOn]}>{count}</Text>
+      <Text
+        style={[
+          s.count,
+          { fontSize: size * 0.72, lineHeight: size * 1.05, color: idle },
+          column && s.countColumn,
+          liked && s.countOn,
+        ]}
+      >
+        {count}
+      </Text>
     </Pressable>
   );
 }
 
 const s = StyleSheet.create({
   root: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2 },
+  rootColumn: { flexDirection: 'column', gap: 4, paddingVertical: 0 },
   heart: { alignItems: 'center', justifyContent: 'center' },
-  count: { color: theme.color.inkSoft, lineHeight: 17 },
+  count: { color: theme.color.inkSoft },
+  countColumn: { fontWeight: '700' },
   countOn: { color: theme.color.accent, fontWeight: '700' },
 });

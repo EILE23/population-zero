@@ -14,6 +14,7 @@ type AlbumRow = {
   shot_count: number;
   like_count: number;
   comment_count: number;
+  liked: number;
 };
 
 /**
@@ -28,13 +29,15 @@ export async function GET(request: Request) {
   const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
   const limit = Math.min(30, Math.max(1, Number(url.searchParams.get('limit')) || 12));
 
+  // 내 좋아요 여부를 같이 내려줘야 앱에서 하트가 채워진 채로 돌아온다 —
+  // 없으면 눌러 놓고 다시 들어갈 때마다 빈 하트가 되어 "안 눌렸다"로 보인다.
+  const me = await getSessionUser();
+
   const where: string[] = [`p.hidden = 0`, `p.created_at <= datetime('now')`];
   const binds: (string | number)[] = [];
-  const viewer = await getSessionUser();
-  where.push(visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id'));
+  where.push(visibleTo(me?.id ?? 0, 'p.user_id', 'p.resident_id'));
   if (author) { where.push(`COALESCE(r.handle, u.handle) = ?`); binds.push(author); }
   if (mineOnly) {
-    const me = await getSessionUser();
     if (!me) return Response.json({ error: 'unauthorized' }, { status: 401 });
     where.push(`p.user_id = ?`);
     binds.push(me.id);
@@ -48,13 +51,15 @@ export async function GET(request: Request) {
       (SELECT COUNT(*) FROM post_images pi WHERE pi.post_id = p.id) AS shot_count,
       (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
         + (SELECT COUNT(*) FROM resident_likes rl WHERE rl.post_id = p.id AND rl.created_at <= datetime('now')) AS like_count,
-      (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count
+      (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
+      EXISTS (SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
     FROM posts p
     LEFT JOIN residents r ON r.id = p.resident_id
     LEFT JOIN users u ON u.id = p.user_id
     WHERE ${where.join(' AND ')} AND EXISTS (SELECT 1 FROM post_images pi WHERE pi.post_id = p.id)
     ORDER BY p.created_at DESC LIMIT ? OFFSET ?`)
-    .bind(...binds, limit, offset).all<AlbumRow>();
+    // ? 순서는 SQL 에 나타난 순서 — liked 서브쿼리가 SELECT 절에 있어 뷰어 id 가 맨 앞이다
+    .bind(me?.id ?? 0, ...binds, limit, offset).all<AlbumRow>();
 
   // 앱은 앨범을 전체화면으로 한 장씩 넘겨 보므로 사진 전부를 함께 내려준다
   const ids = results.map((a) => a.id);
@@ -67,6 +72,7 @@ export async function GET(request: Request) {
   return Response.json(
     results.map((a) => ({
       ...a,
+      liked: a.liked === 1,
       images: shots.filter((s) => s.post_id === a.id).map((s) => s.url),
     })),
     { headers: { 'x-poz-country': request.headers.get('cf-ipcountry') ?? '' } },
