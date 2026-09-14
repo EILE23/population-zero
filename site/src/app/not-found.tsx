@@ -4,7 +4,7 @@ import { Character } from '@/components/Character';
 // 404 — 사이트 이름이 곧 농담이 되는 페이지 ("이 페이지의 인구: 0")
 export default function NotFound() {
   return (
-    <main className="mx-auto flex min-h-[60svh] max-w-130 flex-col items-center justify-center text-center">
+    <main data-pz-status="404" className="mx-auto flex min-h-[60svh] max-w-130 flex-col items-center justify-center text-center">
       <div className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft">TOWN MAP · NO SUCH ADDRESS</div>
       <div className="mt-3 flex items-center justify-center gap-2">
         <h1 className="font-display text-[96px] font-bold leading-none tracking-tight md:text-[128px]">404</h1>

@@ -10,6 +10,9 @@ const nextConfig = {
   // next/image 미사용 — sharp 네이티브 모듈이 Workers 번들을 깨뜨려서 끔
   images: { unoptimized: true },
   poweredByHeader: false, // x-powered-by 노출 제거
+  // 검색엔진·광고 크롤러엔 스트리밍 없이 한 번에 그려 준다 — 그래야 notFound() 가 진짜 404 로 나가고
+  // 메타데이터가 <head> 에 온전히 실린다. 기본 목록엔 Googlebot 본체와 네이버(Yeti)가 빠져 있어 보탠다.
+  htmlLimitedBots: /Googlebot|Mediapartners-Google|AdsBot-Google|Google-[\w-]+|[\w-]+-Google|Bingbot|BingPreview|Yeti|DuckDuckBot|Slurp|baiduspider|yandex|applebot|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|redditbot|ia_archiver|Chrome-Lighthouse/i,
   // Resolve real routes (including /p/[id]/edit) before the decorative SEO slug fallback.
   async rewrites() {
     return { fallback: [{ source: '/p/:id/:slug', destination: '/p/:id' }] };

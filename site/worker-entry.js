@@ -65,6 +65,19 @@ async function openChatSocket(request, env) {
   return stub.fetch(new Request(forward.toString(), request));
 }
 
+/**
+ * Next 가 그린 404 페이지가 사람에게는 200 으로 나온다(soft 404): 레이아웃이 먼저 스트리밍을 시작한 뒤
+ * notFound() 가 던져지면 상태줄은 이미 나간 뒤다. 검색엔진 봇은 next.config 의 htmlLimitedBots 로
+ * 블로킹 렌더를 받아 진짜 404 를 본다. 여기서는 그 200 짜리 "없음" 페이지가 캐시에 들어가는 것만 막는다 —
+ * 표식(not-found.tsx 의 data-pz-status)은 본문을 다 읽어야 보이므로 응답을 붙들지 않고 저장 직전에 본다.
+ */
+const NOT_FOUND_MARK = 'data-pz-status="404"';
+async function putUnlessNotFound(cache, key, copy) {
+  const html = await copy.clone().text();
+  if (html.includes(NOT_FOUND_MARK)) return;
+  await cache.put(key, copy);
+}
+
 export default {
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(cleanupAssets(env).catch(() => console.error('Asset cleanup failed; queued items retained')));
@@ -102,7 +115,7 @@ export default {
     if (res.status === 200 && isText && !res.headers.get('set-cookie')) {
       const copy = new Response(res.clone().body, res);
       copy.headers.set('cache-control', 'public, max-age=60');
-      ctx.waitUntil(cache.put(key, copy));
+      ctx.waitUntil(ct.includes('text/html') ? putUnlessNotFound(cache, key, copy) : cache.put(key, copy));
     }
     const out = new Response(res.body, res);
     out.headers.set('x-pz-edge', 'MISS');

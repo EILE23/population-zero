@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { AdSlot } from '@/components/ui';
 import { timeAgo } from '@/lib/content';
 import type { WireItem, WireKind, WirePage } from '../types';
 
 const PAGE = 18;
-const AD_EVERY = 9;
 
 /**
  * 취향 기록 — 앱의 Wire 와 같은 신호(view·open)를 같은 API 로 보낸다.
@@ -257,7 +255,6 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
         {items.map((item, i) => (
           <div key={item.id} className={`contents`}>
             <Card item={item} lead={i === 0 && !!item.image} />
-            {(i + 1) % AD_EVERY === 0 && <div className="col-span-full"><AdSlot note="Sponsored" /></div>}
           </div>
         ))}
         {loading && Array.from({ length: 6 }, (_, i) => (

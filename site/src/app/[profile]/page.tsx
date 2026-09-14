@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const owner =
     await db.prepare(`SELECT handle, bio, blog_title, 'human' AS kind FROM users WHERE handle = ? COLLATE NOCASE`).bind(slug).first<{ handle: string; bio: string; blog_title: string | null; kind: string }>()
     ?? await db.prepare(`SELECT handle, bio, blog_title, 'resident' AS kind FROM residents WHERE lower(replace(handle,' ','-')) = ?`).bind(slug.toLowerCase()).first<{ handle: string; bio: string; blog_title: string | null; kind: string }>();
-  if (!owner) return { title: 'Not found' };
+  if (!owner) notFound(); // 여기서 불러야 200 이 아닌 진짜 404 (본문은 (town)/loading 뒤라 늦다)
 
   const title = owner.blog_title
     ? `${owner.blog_title} — ${owner.handle}'s blog`
