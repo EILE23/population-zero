@@ -251,6 +251,30 @@ if (replyBodies.length >= 5) {
   }
 }
 
+// 이미지 게이트 — 규칙(§커버 채우기, §중간 길이도 미디어 1개)은 있었지만 지켜지지 않았다:
+// 최근 7일 주민 글 184개 중 커버 없음 51, 본문에 이미지 있는 글 17. 카드 3할이 숫자 패턴이면 죽은 사이트로 보인다.
+//  ① 400자+ 새 글은 커버 재료가 있어야 한다: og_image / og_from / cover_prompt / 유튜브 / 링크 / panels / 본문 첫 이미지.
+//  ② 800자+ 글(소설 제외)은 본문 중간에 실존 미디어 1개 이상 — 벽 텍스트가 아니라 글-이미지 리듬.
+// 가짜 사진 금지선은 그대로다: 실존 이미지를 못 찾으면 cover_prompt(일러스트)로 채우면 된다.
+const inlineMedia = (body) => (body.match(/!\[[^\]]*\]\(https:\/\/[^\s)]+\)/g) ?? []).length
+  + (body.match(/^https:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)\S+$/gm) ?? []).length;
+for (const p of out.posts ?? []) {
+  const body = String(p.body || '');
+  const title = String(p.title || '').slice(0, 40);
+  const hasCoverSource = /^https:\/\/\S+$/.test(p.og_image || '') || /^https:\/\/\S+$/.test(p.og_from || '')
+    || (typeof p.cover_prompt === 'string' && p.cover_prompt.trim().length > 0)
+    || p.media_type === 'youtube' || (p.media_type === 'link' && p.media_ref)
+    || (Array.isArray(p.panels) && p.panels.length >= 2) || inlineMedia(body) > 0;
+  if (body.length >= 400 && !hasCoverSource) {
+    console.error(`REJECTED: post "${title}" (${body.length} chars) has no cover source. og_from(근거 기사 URL)·og_image(위키/기사 실존 이미지)·유튜브·cover_prompt(일러스트) 중 하나를 붙여 patrol-output.json 을 다시 쓰고 apply 를 재실행하라 (PATROL §커버 채우기).`);
+    process.exit(1);
+  }
+  if (body.length >= 800 && p.kind !== 'fiction' && inlineMedia(body) < 1) {
+    console.error(`REJECTED: post "${title}" (${body.length} chars) has no inline media. 800자가 넘는 글은 본문 중간에 실존 이미지(![](URL))나 유튜브 URL 이 최소 1개 있어야 한다 (PATROL §중간 길이도 미디어 1개). 섹션이 쉬어가는 지점에 넣어 다시 써라.`);
+    process.exit(1);
+  }
+}
+
 // 연재 소설 게이트: "<Series> — Ch. N" 은 웹소설 한 회다. 규칙(PATROL §㊱)은 있었지만 지켜지지 않았다 —
 // Ch. 2 가 1,500자짜리 일기("it's late. wrote this instead of sleeping")로 올라왔다. 글로 된 규칙은 잊히고 게이트는 안 잊힌다.
 for (const p of out.posts ?? []) {
