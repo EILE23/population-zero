@@ -37,12 +37,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const removeCover = String(form.get('remove_cover') || '') === '1';
   const coverSql = newCover ? `, og_image = ?` : removeCover ? `, og_image = NULL` : '';
 
-  const binds: (string | number)[] = [title, body];
+  // 연재명은 비우면 해제된다 — 폼에 항상 실려 오므로 '없음'과 '지움'을 구분할 필요가 없다
+  const series = String(form.get('series') || '').replace(CONTROL_CHARS, '').trim().slice(0, 60) || null;
+
+  const binds: (string | number | null)[] = [title, body, series];
   if (topic) binds.push(topic);
   if (newCover) binds.push(newCover);
   binds.push(postId, user.id);
   const { meta } = await db.prepare(
-    `UPDATE posts SET title = ?, body = ?${topic ? ', topic = ?' : ''}${coverSql}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
+    `UPDATE posts SET title = ?, body = ?, series = ?${topic ? ', topic = ?' : ''}${coverSql}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
   ).bind(...binds).run();
   if (meta.changes === 0) redirect('/'); // 내 글이 아니면 조용히 홈으로
   redirect(`/p/${postId}`);

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, MessageSquare } from 'lucide-react';
+import { BookOpen, ChevronDown, LogOut, MessageSquare, UserRound } from 'lucide-react';
 import { profileHref } from '@/lib/content';
 import { Avatar } from '@/components/ui';
 
@@ -24,7 +24,8 @@ export function UserMenu({ handle, avatarUrl = null, unread = 0 }: {
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
 
-  const item = 'flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-semibold hover:bg-surface';
+  // 항목마다 아이콘 — 하나만 달려 있으면 그 줄만 튀어 보인다
+  const item = 'flex items-center gap-2.5 px-3.5 py-2 text-[13.5px] font-semibold text-ink hover:bg-surface [&>svg]:shrink-0 [&>svg]:text-ink-soft';
 
   return (
     <div className="relative" ref={rootRef}>
@@ -37,15 +38,16 @@ export function UserMenu({ handle, avatarUrl = null, unread = 0 }: {
           {unread > 0 && (
             <span aria-hidden className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-paper bg-accent" />
           )}
-        </span>        <span className="max-w-24 truncate sm:max-w-40">{handle}</span>
+        </span>
+        <span className="max-w-24 truncate sm:max-w-40">{handle}</span>
         <ChevronDown size={14} strokeWidth={2.4} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute right-0 top-9 z-50 w-48 overflow-hidden rounded-xl border border-hairline bg-paper py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-          <Link className={item} href={profileHref(handle)} onClick={() => setOpen(false)}>My blog</Link>
-          <Link className={item} href="/me" onClick={() => setOpen(false)}>My page</Link>
+        <div className="absolute right-0 top-9 z-50 w-52 overflow-hidden rounded-xl border border-hairline bg-paper py-1.5 shadow-[0_6px_24px_rgba(0,0,0,0.1)]">
+          <Link className={item} href={profileHref(handle)} onClick={() => setOpen(false)}><BookOpen size={15} aria-hidden /> My blog</Link>
+          <Link className={item} href="/me" onClick={() => setOpen(false)}><UserRound size={15} aria-hidden /> My page</Link>
           <Link className={item} href="/messages" onClick={() => setOpen(false)}>
-            <MessageSquare size={14} aria-hidden /> Messages
+            <MessageSquare size={15} aria-hidden /> Messages
             {unread > 0 && (
               <span className="ml-auto min-w-4.5 rounded-full bg-accent px-1.5 text-center font-mono text-[10px] font-bold leading-4.5 text-paper">
                 {unread > 99 ? '99+' : unread}
@@ -54,7 +56,7 @@ export function UserMenu({ handle, avatarUrl = null, unread = 0 }: {
           </Link>
           <div className="my-1.5 border-t border-hairline" />
           <form method="post" action="/api/auth/logout">
-            <button className={`${item} w-full cursor-pointer text-left text-ink-mid`}>Log out</button>
+            <button className={`${item} w-full cursor-pointer text-left`}><LogOut size={15} aria-hidden /> Log out</button>
           </form>
         </div>
       )}

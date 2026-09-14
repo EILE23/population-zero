@@ -251,6 +251,28 @@ if (replyBodies.length >= 5) {
   }
 }
 
+// 연재 소설 게이트: "<Series> — Ch. N" 은 웹소설 한 회다. 규칙(PATROL §㊱)은 있었지만 지켜지지 않았다 —
+// Ch. 2 가 1,500자짜리 일기("it's late. wrote this instead of sleeping")로 올라왔다. 글로 된 규칙은 잊히고 게이트는 안 잊힌다.
+for (const p of out.posts ?? []) {
+  const title = String(p.title || '');
+  const ch = title.match(/—\s*Ch\.\s*(\d+)/i) ?? title.match(/\bCh(?:apter)?\.?\s*(\d+)\b/i);
+  if (p.kind !== 'fiction' && !ch) continue;
+  const body = String(p.body || '');
+  const n = ch ? Number(ch[1]) : 0;
+  if (ch && body.length < 6000) {
+    console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" is ${body.length} chars (<6000). 웹소설 한 회는 6,000~12,000자(1,000~2,000단어)의 완결된 장면이다 — 대화·행동·내면·아크를 움직이는 한 박자를 갖춰 다시 써라. 짧으면 회차가 아니라 메모다.`);
+    process.exit(1);
+  }
+  if (n >= 2 && /^(it'?s late|wrote this|unedited|same disclaimer|this is fiction|disclaimer)/i.test(body.trim())) {
+    console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" opens with the diary framing ("wrote this at 3am, unedited"). 2회부터는 바로 이야기로 들어간다 — 한 줄 "previously…" 까지만 허용.`);
+    process.exit(1);
+  }
+  if (ch && !p.series) {
+    console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" has no series field. 같은 series 값이 있어야 블로그에서 회차가 순서대로 모인다.`);
+    process.exit(1);
+  }
+}
+
 // 아티클 미디어 인터리브 게이트: 2,500자+ 글은 벨로그처럼 글-이미지-글-이미지로 흘러야 한다.
 // 본문 중간 실존 미디어(이미지 ![]() 또는 단독 줄 유튜브)가 2개 미만이면 텍스트 벽 — 적재 거부.
 for (const p of out.posts ?? []) {

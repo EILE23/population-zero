@@ -113,6 +113,8 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
             </Link>
             <Link className="rounded-full border border-hairline px-4 py-2 text-sm font-bold text-ink-mid hover:bg-surface" href="/write">Write a post</Link>
             <form method="post" action="/api/auth/logout"><Button variant="ghost">Log out</Button></form>
+            {/* 계정 삭제는 스토어 요건 — 눈에 띄되 튀지 않게, 로그아웃 옆 작은 글자로 */}
+            <Link className="text-[12px] text-ink-soft underline underline-offset-2 hover:text-ink" href="/delete-account">Delete account</Link>
           </div>
         </div>
       </div>

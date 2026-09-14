@@ -9,6 +9,45 @@ import type { WireItem, WireKind, WirePage } from '../types';
 const PAGE = 18;
 const AD_EVERY = 9;
 
+/**
+ * 취향 기록 — 앱의 Wire 와 같은 신호(view·open)를 같은 API 로 보낸다.
+ * 로그인 전에도 이어지도록 기기 식별자를 localStorage 에 둔다. 제목은 보내지 않는다(분류·매체·종류만).
+ */
+const ANON_KEY = 'poz_anon_id';
+function anonId(): string {
+  try {
+    const stored = localStorage.getItem(ANON_KEY);
+    if (stored) return stored;
+    const made = `w${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    localStorage.setItem(ANON_KEY, made);
+    return made;
+  } catch { return ''; }
+}
+
+type Signal = { trend_id: number; action: 'view' | 'open'; topic: string | null; source: string | null; kind: string };
+const queue: Signal[] = [];
+const seen = new Set<string>();
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flush(beacon = false) {
+  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+  if (!queue.length) return;
+  const body = JSON.stringify({ anon: anonId(), events: queue.splice(0, 60) });
+  // 페이지를 떠나는 순간엔 fetch 가 잘리므로 beacon 으로
+  if (beacon && navigator.sendBeacon) { navigator.sendBeacon('/api/trends/event', new Blob([body], { type: 'application/json' })); return; }
+  void fetch('/api/trends/event', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true }).catch(() => {});
+}
+
+function record(item: WireItem, action: 'view' | 'open') {
+  const key = `${action}:${item.id}`;
+  if (seen.has(key)) return;
+  seen.add(key);
+  queue.push({ trend_id: item.id, action, topic: item.topic, source: item.source, kind: item.kind });
+  // 누른 건 바로, 스친 건 모아서
+  if (action === 'open') flush();
+  else if (!flushTimer) flushTimer = setTimeout(() => flush(), 4000);
+}
+
 const REGION_NAME: Record<string, string> = {
   US: 'the US', GB: 'the UK', KR: 'Korea', JP: 'Japan', IN: 'India', BR: 'Brazil',
   DE: 'Germany', FR: 'France', MX: 'Mexico', AU: 'Australia', ID: 'Indonesia', NG: 'Nigeria',
@@ -28,11 +67,26 @@ function Byline({ item }: { item: WireItem }) {
 function Card({ item, lead }: { item: WireItem; lead?: boolean }) {
   const href = item.url && /^https?:\/\//.test(item.url) ? item.url : null;
   const Tag = href ? 'a' : 'div';
-  const linkProps = href ? { href, target: '_blank', rel: 'noopener noreferrer' } : {};
+  const ref = useRef<HTMLElement>(null);
+  const linkProps = href
+    ? { href, target: '_blank', rel: 'noopener noreferrer', onClick: () => record(item, 'open') }
+    : {};
+
+  // 화면에 절반 이상 들어와 있으면 '스쳤다' — 순위 신호 중 약한 쪽
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.intersectionRatio >= 0.5)) { record(item, 'view'); io.disconnect(); }
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [item]);
 
   if (lead) {
     return (
       <Tag
+        ref={ref as never}
         {...linkProps}
         className="group col-span-full grid gap-5 rounded-2xl bg-paper p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)] md:grid-cols-[1.25fr_1fr] md:p-6"
       >
@@ -59,6 +113,7 @@ function Card({ item, lead }: { item: WireItem; lead?: boolean }) {
 
   return (
     <Tag
+      ref={ref as never}
       {...linkProps}
       className="group flex flex-col overflow-hidden rounded-2xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
     >
@@ -96,6 +151,13 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const sentinel = useRef<HTMLDivElement>(null);
+
+  // 탭을 닫거나 떠날 때 모아 둔 신호를 흘리지 않는다
+  useEffect(() => {
+    const bye = () => flush(true);
+    window.addEventListener('pagehide', bye);
+    return () => { window.removeEventListener('pagehide', bye); flush(true); };
+  }, []);
   const busy = useRef(false);
 
   // 종류가 바뀌면 처음부터 — offset 은 지금 가진 개수로 계산한다 (별도 상태를 두면 둘이 어긋난다)
@@ -105,7 +167,7 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
     setLoading(true);
     setFailed(false);
     setItems([]);
-    fetch(`/api/trends?kind=${kind}&limit=${PAGE}`)
+    fetch(`/api/trends?kind=${kind}&anon=${encodeURIComponent(anonId())}&limit=${PAGE}`)
       .then(async (r) => { if (!r.ok) throw new Error(String(r.status)); return (await r.json()) as WirePage; })
       .then((page) => {
         if (!alive) return;
@@ -134,7 +196,7 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
     if (busy.current || !hasMore) return;
     busy.current = true;
     try {
-      const r = await fetch(`/api/trends?kind=${kind}&offset=${items.length}&limit=${PAGE}`);
+      const r = await fetch(`/api/trends?kind=${kind}&anon=${encodeURIComponent(anonId())}&offset=${items.length}&limit=${PAGE}`);
       if (!r.ok) throw new Error(String(r.status));
       const page = (await r.json()) as WirePage;
       setItems((prev) => {

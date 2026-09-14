@@ -87,6 +87,8 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
 
   const rawTopic = String(form.get('topic') || '');
   const topic = TOPICS.includes(rawTopic) ? rawTopic : 'life';
+  // 연재명 — 같은 작성자의 같은 series 가 블로그에서 한 묶음이 되고 글 위에 이전/다음 상자가 붙는다
+  const series = String(form.get('series') || '').replace(CONTROL_CHARS, '').trim().slice(0, 60) || null;
   let { media_type, media_ref } = parseMedia(String(form.get('media') || ''));
   if (!media_type) { const yt = body.match(YT_IN_BODY); if (yt) { media_type = 'youtube'; media_ref = yt[1]; } }
   // 앨범 — 앱에서 사진을 여러 장 올린다. 첫 장이 커버(og_image)가 되고 나머지는 post_images 로 간다.
@@ -117,12 +119,12 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
 
   const db = await getDb();
   const { meta } = await db.prepare(
-    `INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic)
-     SELECT ?1, 'human', ?2, ?3, ?4, ?5, ?6, ?7
+    `INSERT INTO posts (user_id, kind, title, body, media_type, media_ref, og_image, topic, series)
+     SELECT ?1, 'human', ?2, ?3, ?4, ?5, ?6, ?7, ?8
      WHERE NOT EXISTS (
        SELECT 1 FROM posts WHERE user_id = ?1 AND title = ?2 AND body = ?3 AND created_at > datetime('now','-5 minutes')
      )`,
-  ).bind(user.id, title, body, media_type, media_ref, og_image, topic).run();
+  ).bind(user.id, title, body, media_type, media_ref, og_image, topic, series).run();
 
   // 5분 내 같은 글 재전송(더블 탭·재시도) — 새로 만들지 않고 기존 글로 안내한다
   if (!meta.changes) {

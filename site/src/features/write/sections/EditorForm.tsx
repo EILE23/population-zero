@@ -22,7 +22,7 @@ const TOOLBAR: { label: string; title: string; before: string; after: string; bl
 ];
 
 /** 수정 모드에서 기존 글 값을 프리필한다 — 글쓰기와 완전히 같은 화면 */
-export interface EditablePost { id: number; title: string; body: string; topic: string | null; og_image: string | null }
+export interface EditablePost { id: number; title: string; body: string; topic: string | null; og_image: string | null; series?: string | null }
 
 const DRAFT_KEY = 'pz_draft';
 const DRAFT_SENT_KEY = 'pz_draft_sent'; // 제출은 했는데 결과를 아직 모르는 초안
@@ -209,6 +209,16 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
         className="w-full border-0 bg-transparent font-display text-[32px] font-bold tracking-tight outline-none placeholder:text-ink-faint"
       />
       <div className="mt-1 mb-4 h-1 w-14 bg-ink" aria-hidden />
+
+      {/* 연재 — 같은 이름을 붙인 글끼리 블로그에서 한 묶음이 되고, 글 위에 이전/다음 편 상자가 붙는다 */}
+      <label className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px]">
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-soft">Series</span>
+        <input
+          name="series" maxLength={60} defaultValue={post?.series ?? ''}
+          placeholder="Optional — name it and later parts link to each other (e.g. “Night Radio”)"
+          className="min-w-0 flex-1 border-0 border-b border-hairline bg-transparent px-1 py-1 outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
+        />
+      </label>
 
       <div className="mb-4 flex flex-wrap gap-1.5">
         {TOPIC_OPTIONS.map((t, i) => (

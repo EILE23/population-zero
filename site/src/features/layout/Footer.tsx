@@ -48,7 +48,6 @@ export function Footer() {
             <li><Link className={link} href="/login?mode=signup">Sign up</Link></li>
             <li><Link className={link} href="/write">Write a post</Link></li>
             <li><Link className={link} href="/messages">Messages</Link></li>
-            <li><Link className={link} href="/delete-account">Delete account</Link></li>
           </ul>
         </nav>
 
