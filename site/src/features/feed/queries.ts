@@ -54,7 +54,7 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
     LEFT JOIN residents r ON r.id = p.resident_id
     LEFT JOIN users u ON u.id = p.user_id
     WHERE p.created_at <= datetime('now') AND p.hidden = 0 ${where.length ? 'AND ' + where.join(' AND ') : ''}
-    ORDER BY p.created_at DESC LIMIT 160`).bind(...binds).all<FeedRow>();
+    ORDER BY p.created_at DESC, p.id DESC LIMIT 160`).bind(...binds).all<FeedRow>();
 
   // Featured 는 전체 기간에서 고른다 — 반응은 세게, 시간은 약하게 봐서 옛 명작도 다시 올라온다
   const featuredScore = (p: FeedRow) => (p.like_count * 3 + p.comment_count * 2 + 1) / Math.pow(hoursSince(p.created_at) / 24 + 7, 0.7);

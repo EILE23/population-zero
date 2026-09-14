@@ -109,7 +109,13 @@ const rssItems = (xml, n = 60) => {
     const link = inner.match(/<link\b[^>]*>([\s\S]*?)<\/link>/)?.[1]
       ?? inner.match(/<link\b[^>]*href=["']([^"']+)["']/)?.[1];
     if (!title || !link) continue;
-    out.push({ title: decodeXml(title), link: decodeXml(link) });
+    // 피드가 그림을 같이 주는 경우(BBC media:thumbnail, 연합·가디언 media:content, TOI enclosure) — 기사 페이지를 읽지 않아도 된다
+    const image = inner.match(/<media:thumbnail\b[^>]*\burl=["']([^"']+)["']/)?.[1]
+      ?? inner.match(/<media:content\b[^>]*\burl=["']([^"']+\.(?:jpe?g|png|webp|gif)(?:\?[^"']*)?)["']/i)?.[1]
+      ?? inner.match(/<media:content\b[^>]*\b(?:medium=["']image["']|type=["']image\/)[^>]*\burl=["']([^"']+)["']/)?.[1]
+      ?? inner.match(/<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*\btype=["']image\//)?.[1]
+      ?? inner.match(/<enclosure\b[^>]*\btype=["']image\/[^>]*\burl=["']([^"']+)["']/)?.[1];
+    out.push({ title: decodeXml(title), link: decodeXml(link), ...(image && /^https:\/\/\S+$/.test(decodeXml(image)) ? { image: decodeXml(image).slice(0, 500) } : {}) });
     if (out.length >= n) break;
   }
   return out;
@@ -231,15 +237,31 @@ for (const lang of ['en', 'ko', 'ja', 'de', 'es']) {
   });
 }
 
-// 나라별 유튜브 인기 영상 — media_type:"youtube" 글의 1차 소재 (실존 영상 ID 보장)
-for (const region of ['US', 'KR', 'JP', 'GB', 'IN', 'BR']) {
+// 나라별 유튜브 인기 영상 — media_type:"youtube" 글의 1차 소재 (실존 영상 ID 보장). 뉴스를 모으는 나라 전부, 한 나라 20편.
+const VIDEO_REGIONS = ['US', 'KR', 'JP', 'GB', 'IN', 'BR', 'DE', 'FR', 'MX', 'AU', 'ID', 'NG'];
+for (const region of VIDEO_REGIONS) {
   await safe(`youtube_trending_${region.toLowerCase()}`, async () => {
     const key = process.env.YT_API_KEY;
     if (!key) return { skipped: 'set YT_API_KEY to enable (free quota)' };
-    const d = await j(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=${region}&maxResults=10&key=${key}`);
+    const d = await j(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=${region}&maxResults=20&key=${key}`);
     return d.items.map((v) => ({ id: v.id, title: v.snippet.title, channel: v.snippet.channelTitle, views: Number(v.statistics.viewCount) }));
   });
 }
+
+// Videos 탭이 유튜브 인기급상승만 비추면 유튜브를 보는 게 낫다 — 다른 판의 인기 영상도 같은 줄에 세운다.
+// Dailymotion 은 열쇠 없이 나라별 트렌딩을 준다(썸네일 포함, 언론사 클립이 많다).
+for (const region of VIDEO_REGIONS) {
+  await safe(`dailymotion_trending_${region.toLowerCase()}`, async () => {
+    const d = await j(`https://api.dailymotion.com/videos?country=${region.toLowerCase()}&sort=trending&limit=20&fields=id,title,url,thumbnail_480_url,views_total,owner.screenname,language`);
+    return (d.list ?? []).filter((v) => v?.id && v?.title && v?.url).map((v) => ({
+      id: v.id, title: v.title, url: v.url, thumbnail: v.thumbnail_480_url ?? null,
+      channel: v['owner.screenname'] ?? null, views: Number(v.views_total) || 0, lang: v.language ?? null,
+    }));
+  });
+}
+
+// Vimeo 스태프 픽 — 전 세계 단편·뮤직비디오, 영어권 화면에만 섞인다 (RSS 에 media:thumbnail 이 있다)
+await safe('vimeo_staffpicks', async () => ({ items: rssItems(await t('https://vimeo.com/channels/staffpicks/videos/rss'), 20) }));
 
 writeFileSync(new URL('./trends.json', import.meta.url), JSON.stringify(out, null, 2));
 console.error('wrote trends.json');
