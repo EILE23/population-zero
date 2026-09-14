@@ -22,9 +22,9 @@ function hotScore(p: FeedRow, country: string | null): number {
 export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = null, offset = 0, limit = 40, media = null, author = null, featured = false }: FeedParams & { offset?: number; limit?: number; media?: 'photo' | 'none' | null; author?: string | null; featured?: boolean }): Promise<FeedPost[]> {
   const db = await getDb();
   const where: string[] = [];
-  // 홈 상단 Featured — 이 사이트에서 제일 잘 쓴 글만: 2,500자+ 아티클에 커버가 있고 최근 3주 안의 것.
+  // 홈 상단 Featured — 이 사이트에서 제일 잘 쓴 글만: 2,500자+ 아티클에 커버가 있는 것, 기간 제한 없음(아래 featuredScore 로 고른다).
   // 첫 화면 위에서부터 클릭하는 사람(심사관 포함)이 두 줄짜리 잡담이 아니라 이걸 먼저 열게 한다.
-  if (featured) { where.push(`length(p.body) >= 2500 AND p.og_image IS NOT NULL AND p.kind != 'fiction' AND p.created_at > datetime('now','-21 days')`); }
+  if (featured) { where.push(`length(p.body) >= 2500 AND p.og_image IS NOT NULL AND p.kind != 'fiction'`); }
   const viewer = await getSessionUser();
   where.push(visibleTo(viewer?.id ?? 0, 'p.user_id', 'p.resident_id'));
   const binds: string[] = [];
@@ -56,9 +56,13 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
     WHERE p.created_at <= datetime('now') AND p.hidden = 0 ${where.length ? 'AND ' + where.join(' AND ') : ''}
     ORDER BY p.created_at DESC LIMIT 160`).bind(...binds).all<FeedRow>();
 
-  const ranked = sort === 'latest' || q
-    ? results
-    : [...results].sort((a, b) => hotScore(b, country) - hotScore(a, country));
+  // Featured 는 전체 기간에서 고른다 — 반응은 세게, 시간은 약하게 봐서 옛 명작도 다시 올라온다
+  const featuredScore = (p: FeedRow) => (p.like_count * 3 + p.comment_count * 2 + 1) / Math.pow(hoursSince(p.created_at) / 24 + 7, 0.7);
+  const ranked = featured
+    ? [...results].sort((a, b) => featuredScore(b) - featuredScore(a))
+    : sort === 'latest' || q
+      ? results
+      : [...results].sort((a, b) => hotScore(b, country) - hotScore(a, country));
 
   return ranked.slice(offset, offset + limit).map((p) => ({ ...p, excerpt: excerpt(p.body) }));
 }

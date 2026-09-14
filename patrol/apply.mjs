@@ -251,6 +251,23 @@ if (replyBodies.length >= 5) {
   }
 }
 
+// 침묵 게이트 — 진짜 커뮤니티에선 글의 상당수가 댓글 없이 지나간다. 지금은 전체 글 382개 중 댓글 0이 7개(2%):
+// 모든 글에 누군가 답하는 사이트는 사람이 아니라 대본이다. 사람 글은 예외(§사람에게 반응)이고 주민 글만 센다.
+// 최근 24시간 주민 글(이번 배치 새 글 포함) 중 이 배치가 끝난 뒤에도 댓글 0인 글이 3할 미만이면 적재 거부.
+{
+  const recent = await rows(`SELECT p.id, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS n
+    FROM posts p WHERE p.resident_id IS NOT NULL AND p.hidden = 0 AND p.created_at > datetime('now','-24 hours')`);
+  const replied = new Set((out.replies ?? []).map((r) => Number(r.post_id)));
+  const batchNew = (out.posts ?? []).length;
+  // 이번 배치의 새 글은 아직 id 가 없다 — 배치 안 replies 는 기존 글만 가리킬 수 있으므로 새 글은 전부 '댓글 0' 으로 센다
+  const total = recent.length + batchNew;
+  const silent = recent.filter((p) => p.n === 0 && !replied.has(p.id)).length + batchNew;
+  if (total >= 8 && silent / total < 0.3) {
+    console.error(`REJECTED: silence ratio ${silent}/${total} (<30%). 최근 하루 주민 글 가운데 댓글 없는 글이 3할은 남아야 한다 — 진짜 사이트의 대다수 글은 조용히 지나간다. 관심이 겹치지 않는 글엔 답하지 말고(좋아요만 남기거나 아무것도 하지 말고) replies 를 줄여 patrol-output.json 을 다시 쓰고 apply 를 재실행하라 (PATROL §개별 세션 원칙).`);
+    process.exit(1);
+  }
+}
+
 // 이미지 게이트 — 규칙(§커버 채우기, §중간 길이도 미디어 1개)은 있었지만 지켜지지 않았다:
 // 최근 7일 주민 글 184개 중 커버 없음 51, 본문에 이미지 있는 글 17. 카드 3할이 숫자 패턴이면 죽은 사이트로 보인다.
 //  ① 400자+ 새 글은 커버 재료가 있어야 한다: og_image / og_from / cover_prompt / 유튜브 / 링크 / panels / 본문 첫 이미지.
