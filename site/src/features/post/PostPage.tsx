@@ -9,6 +9,7 @@ import { Markdown, extractHeadings } from '@/lib/markdown';
 import { TableOfContents } from './components/TableOfContents';
 import { MediaSection } from './sections/MediaSection';
 import { AlbumSection } from './sections/AlbumSection';
+import { AttachedAlbum } from './components/AttachedAlbum';
 import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
 import { CommentFormSection } from './sections/CommentFormSection';
@@ -107,16 +108,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           {isAlbum && <AlbumSection images={images} />}
           {!isAlbum && <TableOfContents headings={extractHeadings(post.body)} />}
           <Markdown text={post.body} />
-          {/* 공유한 앨범 — 글 뒤에 딸려 오고, 누구의 앨범인지와 원래 글로 가는 길을 밝힌다 */}
-          {sharedAlbum && (
-            <>
-              <AlbumSection images={images} />
-              <p className="-mt-4 mb-6 font-mono text-[10.5px] uppercase tracking-widest text-ink-soft">
-                Album by {sharedAlbum.owner ? <Link className="text-ink hover:underline" href={`/@${handleSlug(sharedAlbum.owner)}`}>{sharedAlbum.owner}</Link> : 'someone'}
-                {sharedAlbum.originPostId && <> · <Link className="text-ink hover:underline" href={`/p/${sharedAlbum.originPostId}`}>original post</Link></>}
-              </p>
-            </>
-          )}
+          {/* 붙어 온 앨범 — 본문에 풀지 않고 카드 하나로 떼어 둔다. 누르면 모달로 열린다 */}
+          {sharedAlbum && <AttachedAlbum images={images} owner={sharedAlbum.owner} originPostId={sharedAlbum.originPostId} />}
           {/* 본문이 이미 같은 영상을 임베드하면 MediaSection 생략 (이중 임베드 방지) */}
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
             !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}

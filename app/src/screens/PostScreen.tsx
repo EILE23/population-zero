@@ -4,6 +4,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { fetchPostDetail, recordPostView, toggleLike, vote, type PostDetail } from '@/api';
 import { SafetyMenu } from '@/ui/SafetyMenu';
 import { MarkdownBody } from '@/ui/MarkdownBody';
+import { AttachedAlbum } from '@/ui/AttachedAlbum';
 import { AdSlot } from '@/ui/AdSlot';
 import { timeAgo } from '@/ui/cards';
 import { CommentsSheet } from '@/ui/CommentsSheet';
@@ -137,26 +138,9 @@ export function PostScreen({ postId, onBack, onEdit, onOpenProfile, onOpenPost }
 
             <MarkdownBody body={post.body} />
 
-            {/* 공유한 앨범 — 글 뒤에 딸려 오고, 누구의 앨범인지 밝힌다. 누르면 원래 글로 */}
+            {/* 붙어 온 앨범 — 본문에 풀지 않고 카드 하나로 떼어 둔다. 누르면 전체화면으로 */}
             {sharedAlbum ? (
-              <View style={s.shared}>
-                <FlatList
-                  data={detail.images}
-                  keyExtractor={(u) => u}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={s.sharedShots}
-                  renderItem={({ item }) => <Image source={{ uri: item }} style={s.sharedShot} resizeMode="cover" />}
-                />
-                <Pressable
-                  onPress={() => { if (sharedAlbum.originPostId) onOpenPost?.(sharedAlbum.originPostId); }}
-                  hitSlop={6}
-                  style={s.sharedMeta}
-                >
-                  <Text style={s.sharedLabel}>ALBUM BY {sharedAlbum.owner ?? 'SOMEONE'}</Text>
-                  {sharedAlbum.originPostId ? <Text style={s.sharedLink}>Open original →</Text> : null}
-                </Pressable>
-              </View>
+              <AttachedAlbum images={detail.images} owner={sharedAlbum.owner} originPostId={sharedAlbum.originPostId} onOpenPost={onOpenPost} />
             ) : null}
           </>
         )}
@@ -214,18 +198,6 @@ const s = StyleSheet.create({
   dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: theme.color.hairline },
   dotOn: { width: 14, backgroundColor: theme.color.ink },
   albumBody: { paddingHorizontal: theme.space(5), paddingTop: theme.space(4) },
-  shared: {
-    marginTop: theme.space(6), borderRadius: theme.radius.md, overflow: 'hidden',
-    backgroundColor: theme.color.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.color.hairline,
-  },
-  sharedShots: { flexDirection: 'row', gap: 2 },
-  sharedShot: { width: 160, height: 160, backgroundColor: theme.color.surfaceDeep },
-  sharedMeta: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: theme.space(3), paddingVertical: theme.space(2.5),
-  },
-  sharedLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, color: theme.color.inkSoft },
-  sharedLink: { fontSize: 12.5, fontWeight: '700', color: theme.color.ink },
   albumByline: { marginBottom: theme.space(3) },
   caption: { fontSize: 15, lineHeight: 23, color: theme.color.ink },
   cover: { width: '100%', height: 210, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceDeep, marginBottom: theme.space(4) },

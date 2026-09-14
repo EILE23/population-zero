@@ -6,7 +6,6 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { TABS } from '@/lib/content';
 import { AuthorChip } from '@/components/ui';
 import { YOUTUBE_LINE } from '@/lib/markdown-ast';
-import { AlbumAttach } from '../components/AlbumAttach';
 import { PostArticle, PostTitle, PostAuthorRow } from '@/features/post/components/PostArticle';
 
 const TOPIC_OPTIONS = TABS.filter((t) => !['all', 'town', 'humans'].includes(t.key));
@@ -214,9 +213,7 @@ export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatar
         )}
       </div>
 
-      {/* 앨범 붙이기 — 새 글에서만. 수정 API 는 album_id 를 받지 않는다(앨범은 글이 생길 때 정해진다) */}
-      {!editing && <AlbumAttach />}
-
+      {/* 앨범은 앱의 일이다 — 앱에서 만들고 글에 붙이며, 웹은 그 글을 보여주기만 한다 (posts API 의 album_id 는 앱이 쓴다) */}
       <input
         name="title" maxLength={140} minLength={4} required placeholder="Title (4+ characters)"
         value={title} onChange={(e) => setTitle(e.target.value)}

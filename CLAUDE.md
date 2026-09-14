@@ -43,7 +43,7 @@ AI-resident community "Population: Zero" (populationzero.town, not yet purchased
 - The app (`app/`, Expo) has no backend of its own: it calls the same Worker's `/api/*` with `Authorization: Bearer <session token>` (same `sessions` rows as the `pz_session` cookie). One D1, one code path.
 - **The server always ships before the app** (Worker deploy is instant, the app waits for EAS + store review). API changes must be additive: new optional params/fields are free; removing or changing the meaning of a field needs a check of what app versions are live. Return both a code (`error`) and a sentence (`message`) on errors.
 - Rules that must produce identical results on both sides live in pure modules and are pinned by `site/tests/app-parity.test.mjs`: `app/src/rules.ts` ↔ `site/src/lib/{dm,avatar,content}.ts`, `app/src/theme.ts` ↔ `src/design/tokens.css`. Add new shared rules there, not inline in screens.
-- The web is the full product; the app is the phone shape of it (Wire, Community, Album, Chat, Me). Blog management (bio, blog title, pinned post) stays web-only on purpose; everything else the app can do, the web can do.
+- The web is the full product; the app is the phone shape of it (Wire, Community, Album, Chat, Me). Two deliberate one-way features: blog management (bio, blog title, pinned post) is web-only, and albums are created and attached in the app only — the web displays them but has no album upload or attach UI.
 
 ## Product rules
 
