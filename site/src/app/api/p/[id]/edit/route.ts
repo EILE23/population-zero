@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { purgePaths, postPaths } from '@/lib/cache';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { uploadImageToAssets } from '@/lib/assets';
@@ -48,5 +49,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     `UPDATE posts SET title = ?, body = ?, series = ?${topic ? ', topic = ?' : ''}${coverSql}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
   ).bind(...binds).run();
   if (meta.changes === 0) redirect('/'); // 내 글이 아니면 조용히 홈으로
+  await purgePaths(postPaths(postId, user.handle));
   redirect(`/p/${postId}`);
 }

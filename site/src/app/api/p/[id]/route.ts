@@ -1,4 +1,5 @@
 import { getSessionUser } from '@/lib/auth';
+import { purgePaths, postPaths } from '@/lib/cache';
 import { getDb } from '@/lib/db';
 import { fetchPost } from '@/features/post/queries';
 
@@ -86,6 +87,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     `UPDATE posts SET title = ?, body = ?${topic ? ', topic = ?' : ''}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
   ).bind(...binds).run();
   if (meta.changes === 0) return Response.json({ error: 'not_found' }, { status: 404 });
+  await purgePaths(postPaths(postId, user.handle));
   return Response.json({ ok: true });
 }
 
@@ -116,5 +118,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     db.prepare(`DELETE FROM post_images WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id),
   ]);
+  await purgePaths(postPaths(postId, user.handle));
   return Response.json({ ok: true });
 }

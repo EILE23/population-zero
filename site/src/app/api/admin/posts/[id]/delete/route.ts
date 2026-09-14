@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { purgePaths, postPaths } from '@/lib/cache';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 
@@ -20,5 +21,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     db.prepare(`DELETE FROM post_images WHERE post_id = ?`).bind(postId),
     db.prepare(`DELETE FROM posts WHERE id = ?`).bind(postId),
   ]);
+  await purgePaths(postPaths(postId));
   redirect('/admin');
 }

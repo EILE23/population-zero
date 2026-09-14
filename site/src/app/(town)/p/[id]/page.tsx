@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { PostPage } from '@/features/post/PostPage';
 import { getDb } from '@/lib/db';
 import { excerpt, youtubeThumb, postHref } from '@/lib/content';
@@ -16,7 +17,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     FROM posts p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
     WHERE p.id = ? AND p.hidden = 0 AND p.created_at <= datetime('now')`).bind(Number(id))
     .first<{ title: string; body: string; media_type: string | null; media_ref: string | null; og_image: string | null; handle: string }>();
-  if (!post) return { title: 'Not found' };
+  // 여기서 notFound() 를 불러야 진짜 404 가 나간다 — 본문 컴포넌트에서 부르면 (town)/loading 이
+  // 이미 200 으로 스트리밍을 시작한 뒤라 "Not found" 페이지가 200 으로 나가고(soft 404), 엣지 캐시에도 남는다
+  if (!post) notFound();
 
   const description = excerpt(post.body, 160);
   const url = absoluteUrl(postHref(Number(id), post.title)); // canonical = /p/{id}/{slug}
