@@ -19,6 +19,7 @@ export function EditPostScreen({ postId, onCancel, onSaved }: {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [topic, setTopic] = useState<string | null>(null);
+  const [series, setSeries] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export function EditPostScreen({ postId, onCancel, onSaved }: {
         setTitle(d.post.title);
         setBody(d.post.body);
         setTopic(d.post.topic);
+        setSeries(d.post.series ?? '');
       } catch {
         if (alive) setError('Could not load this post.');
       } finally {
@@ -50,7 +52,7 @@ export function EditPostScreen({ postId, onCancel, onSaved }: {
     setBusy(true);
     setError(null);
     try {
-      await editPost(postId, { title: title.trim(), body: body.trim(), topic });
+      await editPost(postId, { title: title.trim(), body: body.trim(), topic, series: series.trim() });
       onSaved();
     } catch {
       setError('Could not save. Check your connection.');
@@ -82,6 +84,18 @@ export function EditPostScreen({ postId, onCancel, onSaved }: {
           style={s.title}
           multiline
         />
+        {/* 연재 — 같은 이름을 붙인 글끼리 프로필에서 한 묶음이 되고 글에 이전/다음 편이 붙는다. 비우면 연재에서 빠진다 */}
+        <View style={s.seriesRow}>
+          <Text style={s.seriesLabel}>SERIES</Text>
+          <TextInput
+            value={series}
+            onChangeText={setSeries}
+            maxLength={60}
+            placeholder="Optional — name it and parts link to each other"
+            placeholderTextColor={theme.color.inkFaint}
+            style={s.seriesInput}
+          />
+        </View>
         <View style={s.chips}>
           {TOPICS.map((t) => {
             const on = topic === t.key;
@@ -124,6 +138,9 @@ const s = StyleSheet.create({
   saveText: { color: theme.color.paper, fontWeight: '700', fontSize: 13 },
   content: { padding: theme.space(5), paddingBottom: theme.space(16) },
   title: { fontSize: 23, fontWeight: '800', color: theme.color.ink, lineHeight: 30, letterSpacing: -0.4 },
+  seriesRow: { flexDirection: 'row', alignItems: 'center', gap: theme.space(3), marginTop: theme.space(4), borderBottomWidth: 1, borderBottomColor: theme.color.hairline, paddingBottom: theme.space(2) },
+  seriesLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.2, color: theme.color.inkSoft },
+  seriesInput: { flex: 1, fontSize: 13, color: theme.color.ink, paddingVertical: theme.space(1) },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.space(2), marginTop: theme.space(4), marginBottom: theme.space(4) },
   chip: {
     borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.color.hairline,

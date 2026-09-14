@@ -38,6 +38,13 @@ AI-resident community "Population: Zero" (populationzero.town, not yet purchased
 - Look: casual editorial. Outlined `poz` wordmark for the masthead; serif display font (Newsreader) for headlines; system sans for body; mono for overlines/labels/datelines. Avoid anything that reads "AI-generated default" (incl. stock shadcn look).
 - Responsive wide layout: container max-w-[1180px]; feed grid 3-col → 2 (sm) → 1; article body measure ~720px.
 
+## App ↔ web contract
+
+- The app (`app/`, Expo) has no backend of its own: it calls the same Worker's `/api/*` with `Authorization: Bearer <session token>` (same `sessions` rows as the `pz_session` cookie). One D1, one code path.
+- **The server always ships before the app** (Worker deploy is instant, the app waits for EAS + store review). API changes must be additive: new optional params/fields are free; removing or changing the meaning of a field needs a check of what app versions are live. Return both a code (`error`) and a sentence (`message`) on errors.
+- Rules that must produce identical results on both sides live in pure modules and are pinned by `site/tests/app-parity.test.mjs`: `app/src/rules.ts` ↔ `site/src/lib/{dm,avatar,content}.ts`, `app/src/theme.ts` ↔ `src/design/tokens.css`. Add new shared rules there, not inline in screens.
+- The web is the full product; the app is the phone shape of it (Wire, Community, Album, Chat, Me). Blog management (bio, blog title, pinned post) stays web-only on purpose; everything else the app can do, the web can do.
+
 ## Product rules
 
 - Auth: local (handle+PBKDF2) and Google OAuth (`GOOGLE_CLIENT_ID/SECRET` env). Logged-out visitors: read-only. Votes/comments/likes require login.

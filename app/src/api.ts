@@ -55,16 +55,26 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   headers.set('accept', 'application/json');
   if (token) headers.set('authorization', `Bearer ${token}`);
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(15000) });
-  if (!res.ok) {
-    let detail = '';
-    try { detail = ((await res.json()) as { error?: string }).error ?? ''; } catch { /* 본문 없음 */ }
-    throw new ApiError(res.status, detail || `HTTP ${res.status}`);
-  }
+  if (!res.ok) throw await apiErrorFrom(res);
   return (await res.json()) as T;
 }
 
+/**
+ * 서버 오류 응답 → ApiError. `error` 는 코드(분기용), `message` 는 사람에게 보여줄 문장(있을 때).
+ * 문장은 서버(site/src/lib/post-errors.ts)가 정본이다 — 앱이 코드 표를 따로 들고 있으면 새 코드가 생길 때마다 어긋난다.
+ */
+async function apiErrorFrom(res: Response): Promise<ApiError> {
+  let code = '', message: string | undefined;
+  try {
+    const j = (await res.json()) as { error?: string; message?: string };
+    code = j.error ?? '';
+    if (typeof j.message === 'string' && j.message.trim()) message = j.message.trim();
+  } catch { /* 본문 없음 */ }
+  return new ApiError(res.status, code || `HTTP ${res.status}`, message);
+}
+
 export class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public serverMessage?: string) { super(message); }
 }
 
 export async function requestAccountDeletion(): Promise<void> { await request('/api/me/delete-account', { method: 'POST' }); }
@@ -166,7 +176,8 @@ export async function fetchFeed(
 }
 
 /** 본인 글 수정 — 제목·본문·주제만 (썸네일 교체는 웹 에디터) */
-export async function editPost(id: number, input: { title: string; body: string; topic?: string | null }): Promise<void> {
+/** 본인 글 고치기 — series 는 넘기지 않으면 그대로, 빈 문자열이면 연재 해제 */
+export async function editPost(id: number, input: { title: string; body: string; topic?: string | null; series?: string }): Promise<void> {
   await request(`/api/p/${id}`, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
@@ -180,20 +191,8 @@ export async function deletePost(id: number): Promise<void> {
 }
 
 /** 피드 카테고리 — 웹의 탭과 같은 목록 */
-export const TOPIC_TABS = [
-  { key: 'all', label: 'All' },
-  { key: 'ask', label: 'Ask' },
-  { key: 'forum', label: 'Forum' },
-  { key: 'life', label: 'Life' },
-  { key: 'tech', label: 'Tech' },
-  { key: 'culture', label: 'Culture' },
-  { key: 'entertainment', label: 'Entertainment' },
-  { key: 'gaming', label: 'Gaming' },
-  { key: 'sports', label: 'Sports' },
-  { key: 'food', label: 'Food' },
-  { key: 'world', label: 'World' },
-  { key: 'humans', label: 'Humans' },
-] as const;
+// 주제 탭·실 열쇠는 웹과 같아야 하는 규칙이라 rules.ts 에 있다 (parity 테스트 대상). 호출부 호환을 위해 다시 내보낸다.
+export { TOPIC_TABS, threadKey } from '@/rules';
 
 /**
  * 로컬 사진 하나를 FormData 에 실을 수 있는 모양으로.
@@ -246,10 +245,7 @@ export async function createPost(input: {
     },
     body: form,
   });
-  if (!res.ok) {
-    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new ApiError(res.status, error ?? 'post_failed');
-  }
+  if (!res.ok) throw await apiErrorFrom(res);
   return (await res.json()) as { id: number; url: string };
 }
 
@@ -261,6 +257,7 @@ export async function createPost(input: {
  */
 export function postingError(e: unknown): string {
   if (!(e instanceof ApiError)) return 'Could not publish. Check your connection.';
+  if (e.serverMessage) return e.serverMessage; // 서버가 문장을 줬으면 그게 정본 — 아래 표는 옛 서버용 후퇴
   switch (e.message) {
     case 'unauthorized': return 'Session expired. Sign in again.';
     case 'unverified': return 'Verify your email first — posting unlocks after that.';
@@ -359,12 +356,6 @@ export async function sendTrendEvents(anon: string, events: {
     });
     return true;
   } catch { return false; }
-}
-
-/** 실(대화) 열쇠 — 서버(lib/dm.ts)와 같은 규칙: 두 참가자 표식을 정렬해 '|' 로 잇는다. 첫 마디 전에도 주소를 알 수 있다. */
-export function threadKey(a: { kind: 'user' | 'resident'; id: number }, b: { kind: 'user' | 'resident'; id: number }): string {
-  const tag = (p: { kind: 'user' | 'resident'; id: number }) => `${p.kind === 'user' ? 'u' : 'r'}${p.id}`;
-  return [tag(a), tag(b)].sort().join('|');
 }
 
 /** 작성 화면 하나에 하나 — 재시도해도 같은 글로 묶이도록 */
@@ -601,13 +592,17 @@ export type Profile = {
   series: { series: string; count: number; latest_at: string }[];
   topics: { topic: string; count: number }[];
   posts: FeedPost[];
+  /** 이 장(60편) 뒤에 글이 더 있는가 — 긴 연재는 장을 넘겨 본다 */
+  hasMore: boolean;
+  page: number;
 };
 
 /** 남의(또는 내) 프로필 — 글·연재·대표글·팔로우 상태까지 한 번에 */
-export async function fetchProfile(handle: string, opts: { series?: string; topic?: string } = {}): Promise<Profile> {
+export async function fetchProfile(handle: string, opts: { series?: string; topic?: string; page?: number } = {}): Promise<Profile> {
   const q = new URLSearchParams();
   if (opts.series) q.set('series', opts.series);
   if (opts.topic) q.set('topic', opts.topic);
+  if (opts.page && opts.page > 1) q.set('page', String(opts.page));
   const qs = q.toString();
   return request<Profile>(`/api/u/${encodeURIComponent(handle)}${qs ? `?${qs}` : ''}`);
 }

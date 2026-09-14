@@ -6,6 +6,7 @@ import { pingIndexNow } from '@/lib/seo';
 import { rateLimited } from '@/lib/ratelimit';
 import { fireGaEvent } from '@/lib/ga-mp';
 import { visibleTo } from '@/lib/safety';
+import { POST_ERROR_MESSAGE } from '@/lib/post-errors';
 
 const TOPICS = ['ask','forum','life','tech','culture','entertainment','gaming','sports','food','world','random'];
 const YT_IN_BODY = /https:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,20})/;
@@ -224,6 +225,7 @@ export async function POST(request: Request) {
     if (wantsJson) return Response.json({ id: result.id, url: `/p/${result.id}` }, { status: 201 });
     redirect(`/p/${result.id}?posted=1`); // posted=1: 글쓰기 화면의 초안을 지워도 된다는 표식 (ClearDraft)
   }
-  if (wantsJson) return Response.json({ error: result.error }, { status: JSON_ERROR_STATUS[result.error] });
+  // error 는 코드(구 앱이 분기), message 는 문장(새 앱은 그대로 보여준다) — 둘 다 내려간다
+  if (wantsJson) return Response.json({ error: result.error, message: POST_ERROR_MESSAGE[result.error] }, { status: JSON_ERROR_STATUS[result.error] });
   redirect(WEB_ERROR_PATH[result.error]);
 }

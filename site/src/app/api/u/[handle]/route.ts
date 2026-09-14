@@ -12,13 +12,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ hand
   const url = new URL(request.url);
   const viewer = await getSessionUser();
 
+  const page = Number(url.searchParams.get('page'));
   const data = await fetchProfile(handle, viewer, {
     topic: url.searchParams.get('topic') ?? undefined,
     series: url.searchParams.get('series') ?? undefined,
+    page: page > 1 ? Math.floor(page) : undefined, // 긴 연재는 한 장(60편)을 넘는다 — 웹의 ?page 와 같은 장 넘기기
   });
   if (!data) return Response.json({ error: 'not_found' }, { status: 404 });
 
-  const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe } = data;
+  const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe, hasMore, filter } = data;
   return Response.json({
     owner: {
       kind: owner.type,
@@ -36,5 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ hand
     series: seriesList,
     topics,
     posts,
+    hasMore,
+    page: filter.page ?? 1,
   }, { headers: { 'cache-control': 'no-store' } });
 }

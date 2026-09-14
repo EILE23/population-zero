@@ -19,6 +19,12 @@ const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login',
 // 키에 쓰는 국가는 지우는 쪽(lib/cache.ts)과 같은 목록으로 접는다 — 목록 밖 나라의 사본은 지울 방법이 없었다.
 const cacheCountry = (request) => cacheCountryOf(request.headers.get('cf-ipcountry'));
 
+/** Cookie 헤더에서 pz_session 값만 — 다른 쿠키는 보지 않는다 */
+function sessionCookie(request) {
+  const m = (request.headers.get('cookie') || '').match(/(?:^|;\s*)pz_session=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
 function cacheable(request, url) {
   if (request.method !== 'GET') return false;
   if ((request.headers.get('cookie') || '').includes('pz_session=')) return false;
@@ -35,7 +41,9 @@ function cacheable(request, url) {
 async function openChatSocket(request, env) {
   const url = new URL(request.url);
   const thread = url.searchParams.get('thread') ?? '';
-  const token = url.searchParams.get('token') ?? '';
+  // 앱은 토큰을 쿼리로, 웹은 같은 세션을 pz_session 쿠키로 — 둘 다 sessions 테이블의 같은 행이다.
+  // 브라우저의 WebSocket 은 쿠키를 자동으로 싣고 헤더는 못 붙이므로 쿠키가 웹의 유일한 길이다.
+  const token = url.searchParams.get('token') || sessionCookie(request);
   if (!thread || !token) return new Response('bad request', { status: 400 });
 
   const row = await env.DB.prepare(

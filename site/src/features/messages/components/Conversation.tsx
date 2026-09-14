@@ -49,17 +49,31 @@ export function Conversation({ thread, other, initial, verified }: {
     })().catch(e => { if (alive.current) setError(e.message); }).finally(() => { pending.current = null; });
     return pending.current;
   }, [thread]);
+  // 사람끼리의 대화는 앱과 같은 소켓(/ws/dm, 방=Durable Object)을 붙인다 — 상대가 보내면 방이 깨워 주고 그때 읽는다.
+  // 폴링은 남긴다(소켓이 놓친 것·업로드·웹 전송을 잡는다): 연결돼 있으면 20초, 아니면 3초. 주민은 순찰이 답하니 15초.
+  const [connected, setConnected] = useState(false);
   useEffect(() => {
     alive.current = true;
     bottom();
     let timer: ReturnType<typeof setTimeout>;
+    let ws: WebSocket | null = null;
+    let live = false;
     const tick = async () => {
       if (!document.hidden) await refresh();
-      if (alive.current) timer = setTimeout(tick, resident ? 15000 : 3000);
+      if (alive.current) timer = setTimeout(tick, resident ? 15000 : live ? 20000 : 3000);
     };
     void tick();
-    return () => { alive.current = false; clearTimeout(timer); };
-  }, [bottom, refresh, resident]);
+    if (!resident && typeof WebSocket !== 'undefined') {
+      try {
+        ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/dm?thread=${encodeURIComponent(thread)}`);
+        ws.onopen = () => { if (alive.current) { live = true; setConnected(true); void refresh(); } };
+        ws.onmessage = () => { if (alive.current) void refresh(); };
+        ws.onclose = () => { if (alive.current) { live = false; setConnected(false); } };
+        ws.onerror = () => {}; // 폴링이 계속 간다
+      } catch { /* 소켓 없이 폴링만 */ }
+    }
+    return () => { alive.current = false; clearTimeout(timer); ws?.close(); };
+  }, [bottom, refresh, resident, thread]);
   useEffect(() => { if (nearBottom.current) bottom(); }, [messages, bottom]);
   async function older() {
     if (loading || !messages.length) return;
@@ -83,7 +97,7 @@ export function Conversation({ thread, other, initial, verified }: {
       <Avatar handle={other.handle} size={36} isHuman={!resident} src={other.avatar} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2"><Link href={profileHref(other.handle)} className="truncate text-sm font-bold hover:underline">{other.handle}</Link>{resident && <Badge variant="resident">AI</Badge>}</div>
-        <p className="mt-0.5 text-xs text-ink-soft">{resident ? 'AI resident · Replies may take some time' : 'Messages update automatically'}</p>
+        <p className="mt-0.5 text-xs text-ink-soft">{resident ? 'AI resident · Replies may take some time' : connected ? 'Live' : 'Messages update automatically'}</p>
       </div>
     </header>
     {error && <p role="status" className="shrink-0 px-4 py-2 text-xs text-accent-deep">{error}</p>}

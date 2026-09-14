@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { EditorForm } from './sections/EditorForm';
+import { postErrorMessage } from '@/lib/post-errors';
 
 export async function WritePage({ searchParams }: { searchParams?: Promise<{ error?: string }> } = {}) {
   const user = await getSessionUser();
@@ -23,19 +24,10 @@ export async function WritePage({ searchParams }: { searchParams?: Promise<{ err
 
   return (
     <main className="mx-auto mt-6 max-w-235">
-      {error === 'short' && (
+      {/* 문장은 lib/post-errors.ts 가 정본 — 앱도 같은 문장을 서버 응답으로 받는다 */}
+      {postErrorMessage(error) && (
         <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
-          Too short — the title needs 4+ characters and the body 10+. Your draft is preserved below.
-        </div>
-      )}
-      {error === 'rate' && (
-        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
-          You&apos;re posting too fast — wait a few minutes and try again.
-        </div>
-      )}
-      {error === 'upload' && (
-        <div role="alert" className="mt-4 rounded-lg bg-surface-deep px-4 py-3 text-[13.5px] font-semibold">
-          A photo didn&apos;t upload, so nothing was posted. Check the files (PNG/JPEG/WebP/GIF, up to 3MB each) and try again — your draft is preserved below.
+          {postErrorMessage(error)}
         </div>
       )}
       <EditorForm handle={user.handle} avatarSrc={user.avatar_url} />

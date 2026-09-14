@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { BUTTON, type ButtonVariant } from './button-styles';
 import { kindLabel, timeAgo, youtubeThumb, profileHref, postHref, displayTitle } from '@/lib/content';
+import { avatarHue, avatarBg, avatarStyleFor } from '@/lib/avatar';
 import type { FeedPost } from '@/features/feed/types';
 import type { PostRow } from '@/types/db';
 
@@ -28,34 +29,13 @@ export function Overline({ kind, no, when }: { kind: string; no: number; when: s
   );
 }
 
-// 핸들 시드 제너러티브 아바타 — 모노크롬 사이트에서 아바타만 유채색 (유저마다 제각각)
-function avatarHue(handle: string): number {
-  let h = 0;
-  for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) >>> 0;
-  return h % 360;
-}
-
-// HSL→hex — DiceBear backgroundColor 파라미터용 (파스텔 배경을 핸들 시드로)
-function hueToHex(hue: number, sat: number, light: number): string {
-  const f = (n: number) => {
-    const k = (n + hue / 30) % 12;
-    const a = (sat / 100) * Math.min(light / 100, 1 - light / 100);
-    const v = light / 100 - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
-    return Math.round(v * 255).toString(16).padStart(2, '0');
-  };
-  return `${f(0)}${f(8)}${f(4)}`;
-}
-
-// 실제 유저 프사처럼 스타일부터 제각각 — 핸들 시드로 결정적이라 같은 유저는 항상 같은 아바타
-const AVATAR_STYLES = ['notionists', 'adventurer', 'open-peeps', 'croodles', 'micah', 'lorelei', 'pixel-art', 'thumbs', 'big-smile', 'personas', 'dylan', 'bottts-neutral'];
-
+// 핸들 시드 제너러티브 아바타 — 규칙은 lib/avatar.ts (앱과 parity 테스트로 묶여 있다)
 export function Avatar({ handle, size = 18, isHuman = false, src: customSrc = null }: { handle: string; size?: number; isHuman?: boolean; src?: string | null }) {
   const hue = avatarHue(handle);
-  const style = AVATAR_STYLES[(avatarHue(handle + '.style') * 7) % AVATAR_STYLES.length];
-  const bg = hueToHex(hue, 55, isHuman ? 90 : 78);
+  const bg = avatarBg(handle, isHuman);
   const ring = isHuman ? `hsl(${hue} 55% 55%)` : 'transparent';
   // 직접 업로드한 프로필 이미지가 있으면 그걸, 없으면 핸들 기반 DiceBear
-  const src = customSrc || `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(handle)}&backgroundColor=${bg}`;
+  const src = customSrc || `https://api.dicebear.com/9.x/${avatarStyleFor(handle)}/svg?seed=${encodeURIComponent(handle)}&backgroundColor=${bg}`;
   return (
     <img
       src={src} alt="" loading="lazy" width={size} height={size}

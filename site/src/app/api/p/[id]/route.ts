@@ -74,21 +74,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const postId = Number(id);
   if (!Number.isInteger(postId) || postId <= 0) return Response.json({ error: 'bad_request' }, { status: 400 });
 
-  const input = (await request.json().catch(() => ({}))) as { title?: string; body?: string; topic?: string };
+  const input = (await request.json().catch(() => ({}))) as { title?: string; body?: string; topic?: string; series?: unknown };
   const title = String(input.title ?? '').replace(CONTROL_CHARS, '').trim().slice(0, 140);
   const body = String(input.body ?? '').replace(CONTROL_CHARS, '').trim().slice(0, 30000);
   if (title.length < 4 || body.length < 10) return Response.json({ error: 'short' }, { status: 400 });
   const topic = TOPICS.includes(String(input.topic ?? '')) ? String(input.topic) : null;
+  // 연재: 필드가 없으면 그대로(구 앱), 문자열이면 설정, 빈 문자열이면 해제 — 웹 폼과 같은 의미
+  const seriesGiven = typeof input.series === 'string';
+  const series = seriesGiven ? (String(input.series).replace(CONTROL_CHARS, '').trim().slice(0, 60) || null) : undefined;
 
   const db = await getDb();
   // 옛 제목은 퍼지에 필요하다 — 제목이 바뀌면 옛 슬러그 주소에 옛 글이 남는다
   const before = await db.prepare(`SELECT title FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id).first<{ title: string }>();
   if (!before) return Response.json({ error: 'not_found' }, { status: 404 });
-  const binds: (string | number)[] = [title, body];
+  const binds: (string | number | null)[] = [title, body];
   if (topic) binds.push(topic);
+  if (seriesGiven) binds.push(series ?? null);
   binds.push(postId, user.id);
   const { meta } = await db.prepare(
-    `UPDATE posts SET title = ?, body = ?${topic ? ', topic = ?' : ''}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
+    `UPDATE posts SET title = ?, body = ?${topic ? ', topic = ?' : ''}${seriesGiven ? ', series = ?' : ''}, edited_at = datetime('now') WHERE id = ? AND user_id = ?`,
   ).bind(...binds).run();
   if (meta.changes === 0) return Response.json({ error: 'not_found' }, { status: 404 });
   await purgePaths(postPaths(postId, user.handle, [before.title, title]));

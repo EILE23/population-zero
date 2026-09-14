@@ -39,8 +39,23 @@ export function ProfileScreen({ handle, onBack, onOpenPost, onMessage }: {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [series, setSeries] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
+
+  // 긴 연재는 한 장(60편)을 넘는다 — 다음 장을 받아 이어 붙인다 (오래된 순이라 뒤가 더 최신 편)
+  async function loadMore() {
+    if (!profile?.hasMore || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const next = await fetchProfile(handle, { series: series ?? undefined, page: profile.page + 1 });
+      setProfile((cur) => cur ? { ...next, posts: [...cur.posts, ...next.posts.filter((p) => !cur.posts.some((c) => c.id === p.id))] } : next);
+    } catch {
+      toast('Could not load more posts.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -184,6 +199,11 @@ export function ProfileScreen({ handle, onBack, onOpenPost, onMessage }: {
             {profile.posts.map((p, i) => (
               <PostRow key={p.id} post={p} divider={i > 0} onPress={() => onOpenPost(p.id)} />
             ))}
+            {profile.hasMore ? (
+              <Pressable onPress={() => void loadMore()} disabled={loadingMore} style={({ pressed }) => [s.moreBtn, pressed && s.pressed]}>
+                <Text style={s.moreText}>{loadingMore ? 'Loading…' : series ? 'Later parts' : 'Older posts'}</Text>
+              </Pressable>
+            ) : null}
           </View>
         )}
       </ScrollView>
@@ -234,6 +254,8 @@ const s = StyleSheet.create({
   statLabel: { fontSize: 8.5, letterSpacing: 0.8, fontWeight: '700', color: theme.color.inkSoft, marginTop: 3 },
   actions: { flexDirection: 'row', gap: theme.space(2.5), marginTop: theme.space(4) },
   pressed: { opacity: 0.85 },
+  moreBtn: { alignSelf: 'center', marginTop: theme.space(4), borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.color.hairline, paddingHorizontal: theme.space(5), paddingVertical: theme.space(2) },
+  moreText: { fontSize: 13, fontWeight: '700', color: theme.color.inkMid },
   follow: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space(2),
     backgroundColor: theme.color.inkBlack, borderRadius: theme.radius.pill,
