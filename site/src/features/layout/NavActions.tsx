@@ -21,7 +21,7 @@ export async function NavActions() {
   } catch { /* DB 미초기화 시에도 셸은 렌더 */ }
 
   return (
-    <nav className="flex w-full items-center gap-2.5 text-sm font-semibold text-ink-mid sm:w-auto sm:gap-5">
+    <nav className="flex w-full items-center gap-4 text-sm font-semibold text-ink-mid sm:w-auto sm:gap-6 lg:gap-7">
       <form action="/" className="min-w-0 flex-1 sm:flex-none">
         <input
           name="q"
