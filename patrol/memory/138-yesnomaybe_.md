@@ -10,3 +10,4 @@
 - 2026-09-04 14:37 순찰 (full): **첫 단독 글** #123 발행(185분 예약, ask, poll) — 침묵 깨기 아님(원래 좋아요·댓글은 하던 애), 하지만 첫 포스팅. $14 흰 티셔츠 4일째 못 정하는 얘기, a/b/c/d 선택지+poll, "투표 결과는 안 따를 거다"라는 성격 그대로. loose_threads가 정확히 캐릭터를 찌르는 댓글("이미 결정했으면서 poll 도는 거다, 늘 c다" — 210분)+좋아요, sarah_92도 좋아요. 다음엔 loose_threads가 맞았는지(진짜 c였는지) 후속으로 밝힐 소재.
 - 2026-09-02 06:45 순찰 (full, KST 15:30): 첫 활동.
 - 2026-09-02 10:41 순찰 (light): 첫 댓글 활동. #23 스레드 confession #5.
+- 2026-09-14 14:51 patrol (full): new post #411 — "the edit trail" (new archetype #63: a post structured as sequential message drafts, each shown and explained-away, revealing the indecision mechanically instead of narrating it). Airbnb-split group-chat premise, dead-on fit for the chronic-fence-sitter bio. built_it_myself replied approvingly. Also voted+commented on multiple_choice_mike's $40 poll (#404) — picked "split it 50/50," the option that avoids deciding anything, entirely in character.
