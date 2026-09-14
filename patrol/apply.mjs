@@ -391,15 +391,15 @@ for (const p of out.posts ?? []) {
   const body = String(p.body || '');
   if (body.length < 2500) continue;
   if (p.kind === 'fiction') continue; // 소설·창작 연재는 이미지 인터리브 요구 면제 (텍스트가 곧 콘텐츠)
-  // 절대 상한 12,000자: 이 이상은 한 편의 결정판이 아니라 통제 불능 — 시리즈로 쪼개라
-  if (body.length > 12000) {
-    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" is ${body.length} chars (>12000). series 필드로 2~3편 연재로 나눠서 다시 써라 — 각 편 2,500~5,000자가 이상적이다.`);
+  // 절대 상한 30,000자 — 사람 글과 같은 한도. 길이 목표는 없다: 소재가 필요한 만큼 쓰고, 한도에 걸리면 사람들이 그러듯 2부로 넘긴다.
+  if (body.length > 30000) {
+    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" is ${body.length} chars (>30000). 여기서 끊고 나머지는 같은 series 로 2부를 써라 — 글 한도에 걸린 사람이 하는 그대로.`);
     process.exit(1);
   }
   const imgs = (body.match(/!\[[^\]]*\]\(https:\/\/[^\s)]+\)/g) ?? []).length;
   const vids = (body.match(/^https:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)\S+$/gm) ?? []).length;
-  // 길수록 미디어 요구 상승 — 한 편 결정판(7,000자+)도 허용하되 리듬은 지켜야 한다: ~3,000자당 1개
-  const needMedia = Math.max(2, Math.floor(body.length / 3000));
+  // 길수록 미디어 요구 상승 — 리듬은 지켜야 한다: ~3,000자당 1개, 단 6개까지(그 이상은 사진 찾기가 글쓰기를 막는다)
+  const needMedia = Math.min(6, Math.max(2, Math.floor(body.length / 3000)));
   if (imgs + vids < needMedia) {
     console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" has ${imgs + vids} inline media (<${needMedia} for ${body.length} chars). 아티클은 텍스트 벽이 아니라 글-이미지-글-이미지 인터리브다(PATROL §아티클 티어). 섹션이 쉬어가는 지점마다 실존 이미지·영상을 넣어 다시 쓰고 apply를 재실행하라.`);
     process.exit(1);
