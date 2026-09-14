@@ -55,30 +55,34 @@ if (!process.argv.includes('--from-output')) {
   const out = JSON.parse(readFileSync(outPath, 'utf8'));
   const ids = existsSync(resPath) ? JSON.parse(readFileSync(resPath, 'utf8')).post_ids ?? [] : [];
 
+  // patrol-output.json 과 apply-result.json 은 모델 세션이 만든 파일이다 — 여기 적힌 post_id 는 요청이지 권한이 아니다.
+  // 실제 권한은 D1 이 정한다: 주민 글이고, 커버가 없을 때만. 사람 글 id 가 섞여 있어도 이미지를 만들지도, 붙이지도 않는다.
+  const okId = (v) => Number.isSafeInteger(Number(v)) && Number(v) > 0;
   const wanted = [];
-  (out.posts ?? []).forEach((p, i) => { if (typeof p.cover_prompt === 'string' && p.cover_prompt.trim() && ids[i]) wanted.push({ post_id: ids[i], prompt: p.cover_prompt.trim(), slug: slugify(p.title) }); });
-  for (const c of out.cover_requests ?? []) if (Number(c.post_id) > 0 && typeof c.prompt === 'string' && c.prompt.trim()) wanted.push({ post_id: Number(c.post_id), prompt: c.prompt.trim(), slug: `p${Number(c.post_id)}` });
+  (out.posts ?? []).forEach((p, i) => { if (typeof p.cover_prompt === 'string' && p.cover_prompt.trim() && okId(ids[i])) wanted.push({ post_id: Number(ids[i]), prompt: p.cover_prompt.trim(), slug: slugify(p.title) }); });
+  for (const c of (out.cover_requests ?? []).slice(0, 20)) if (okId(c.post_id) && typeof c.prompt === 'string' && c.prompt.trim()) wanted.push({ post_id: Number(c.post_id), prompt: c.prompt.trim(), slug: `p${Number(c.post_id)}` });
+  const RESIDENT_ONLY = `resident_id IS NOT NULL AND user_id IS NULL`;
   // 패널 쇼츠 — 한 글에 여러 컷. 컷은 세로(9:16)라야 앨범 탭에서 화면을 꽉 채운다.
   // 마지막 컷이 반전이라 순서가 곧 내용이다: 받은 순서대로 sort 를 매긴다.
   const strips = [];
   (out.posts ?? []).forEach((p, i) => {
-    if (Array.isArray(p.panels) && p.panels.length >= 2 && ids[i]) {
-      strips.push({ post_id: ids[i], slug: slugify(p.title), panels: p.panels.slice(0, 6).map(String) });
+    if (Array.isArray(p.panels) && p.panels.length >= 2 && okId(ids[i])) {
+      strips.push({ post_id: Number(ids[i]), slug: slugify(p.title), panels: p.panels.slice(0, 6).map(String) });
     }
   });
-  for (const r of out.panel_requests ?? []) {
-    if (Number(r.post_id) > 0 && Array.isArray(r.panels) && r.panels.length >= 2) {
+  for (const r of (out.panel_requests ?? []).slice(0, 10)) {
+    if (okId(r.post_id) && Array.isArray(r.panels) && r.panels.length >= 2) {
       strips.push({ post_id: Number(r.post_id), slug: `p${Number(r.post_id)}`, panels: r.panels.slice(0, 6).map(String) });
     }
   }
 
   if (strips.length) {
-    // 이미 컷이 붙은 글은 건너뛴다 (재실행해도 같은 글에 두 벌이 쌓이지 않게)
-    const done = new Set((await rows(
-      `SELECT DISTINCT origin_post_id AS id FROM albums WHERE origin_post_id IN (${strips.map((x) => x.post_id).join(',')})`,
+    // 주민 글이 아니거나 이미 컷이 붙은 글은 건너뛴다 (재실행해도 같은 글에 두 벌이 쌓이지 않게)
+    const eligible = new Set((await rows(
+      `SELECT id FROM posts WHERE id IN (${strips.map((x) => x.post_id).join(',')}) AND ${RESIDENT_ONLY} AND album_id IS NULL`,
     )).map((r) => r.id));
     // 한 번에 한 편까지 — 이미지 생성은 분당 한도가 있고, 실패하면 반쪽짜리 만화가 남는다
-    const strip = strips.find((x) => !done.has(x.post_id));
+    const strip = strips.find((x) => eligible.has(x.post_id));
     if (strip) {
       console.error(`gen-cover: panels for post ${strip.post_id} (${strip.panels.length} cuts)`);
       const urls = [];
@@ -94,12 +98,12 @@ if (!process.argv.includes('--from-output')) {
       // 컷이 하나뿐이면 만화가 아니다 — 그럴 바엔 아무것도 붙이지 않는다
       if (urls.length >= 2) {
         // 앨범 하나를 만들어 글에 붙인다 — 주인은 그 글의 주민, 반응은 그 글에 쌓인다
-        await d1(`INSERT INTO albums (resident_id, caption, origin_post_id) SELECT resident_id, title, id FROM posts WHERE id=${strip.post_id} AND resident_id IS NOT NULL;`);
+        await d1(`INSERT INTO albums (resident_id, caption, origin_post_id) SELECT resident_id, title, id FROM posts WHERE id=${strip.post_id} AND ${RESIDENT_ONLY};`);
         for (const [i, url] of urls.entries()) {
-          await d1(`INSERT INTO album_images (album_id, url, sort) SELECT id, '${url.replace(/'/g, "''")}', ${i} FROM albums WHERE origin_post_id=${strip.post_id};`);
+          await d1(`INSERT INTO album_images (album_id, url, sort) SELECT id, '${url.replace(/'/g, "''")}', ${i} FROM albums WHERE origin_post_id=${strip.post_id} AND resident_id IS NOT NULL;`);
         }
-        await d1(`UPDATE posts SET album_id=(SELECT id FROM albums WHERE origin_post_id=${strip.post_id}) WHERE id=${strip.post_id};`);
-        await d1(`UPDATE posts SET og_image='${urls[0].replace(/'/g, "''")}' WHERE id=${strip.post_id} AND og_image IS NULL;`);
+        await d1(`UPDATE posts SET album_id=(SELECT id FROM albums WHERE origin_post_id=${strip.post_id}) WHERE id=${strip.post_id} AND ${RESIDENT_ONLY};`);
+        await d1(`UPDATE posts SET og_image='${urls[0].replace(/'/g, "''")}' WHERE id=${strip.post_id} AND og_image IS NULL AND ${RESIDENT_ONLY};`);
         console.error(`gen-cover: post ${strip.post_id} ← ${urls.length} panels`);
       }
     }
@@ -107,17 +111,17 @@ if (!process.argv.includes('--from-output')) {
 
   if (!wanted.length) { console.error('gen-cover: no cover requests'); process.exit(0); }
 
-  // 이미 커버가 있는 글은 건너뛴다 (og_from 으로 실제 이미지가 붙었을 수 있다)
-  const have = new Set((await rows(`SELECT id FROM posts WHERE id IN (${wanted.map((w) => w.post_id).join(',')}) AND og_image IS NOT NULL`)).map((r) => r.id));
+  // 주민 글이고 아직 커버가 없는 것만 — 이미지를 만들기(비용) 전에 D1 로 거른다. 사람 글 id 는 여기서 떨어진다.
+  const eligible = new Set((await rows(`SELECT id FROM posts WHERE id IN (${wanted.map((w) => w.post_id).join(',')}) AND ${RESIDENT_ONLY} AND og_image IS NULL`)).map((r) => r.id));
   // 한 순찰에 3장이면 하루 8회 × 3 = 24장인데 글은 25~35개가 올라온다 — 그 차이만큼 커버 없는 카드가
   // 매일 3할씩 쌓였다. 5장/분 한도는 13초 간격으로 지키므로 6장까지는 한 실행에 70초만 더 든다.
-  const todo = wanted.filter((w) => !have.has(w.post_id)).slice(0, 6);
-  console.error(`gen-cover: ${wanted.length} requested, ${todo.length} to generate`);
+  const todo = wanted.filter((w) => eligible.has(w.post_id)).slice(0, 6);
+  console.error(`gen-cover: ${wanted.length} requested, ${todo.length} eligible (resident, no cover)`);
   for (const [i, w] of todo.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, 13_000));
     try {
       const url = await generate(w.slug, w.prompt.slice(0, 600));
-      await d1(`UPDATE posts SET og_image='${url.replace(/'/g, "''")}' WHERE id=${w.post_id} AND og_image IS NULL;`);
+      await d1(`UPDATE posts SET og_image='${url.replace(/'/g, "''")}' WHERE id=${w.post_id} AND og_image IS NULL AND ${RESIDENT_ONLY};`);
       console.error(`gen-cover: post ${w.post_id} ← ${url}`);
     } catch (e) { console.error(`gen-cover: post ${w.post_id} failed: ${e.message.slice(0, 200)}`); }
   }

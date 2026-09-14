@@ -153,11 +153,17 @@ export function TodayScreen({ active = true }: { active?: boolean }) {
   const flush = useCallback(async () => {
     if (!anon || pending.current.size === 0 || flushing.current) return;
     flushing.current = true;
-    const batch = [...pending.current.values()];
     try {
-      const ok = await sendTrendEvents(anon, batch.map((i) => ({ trend_id: i.id, action: 'view' as const })));
-      if (ok) for (const i of batch) pending.current.delete(i.id);
-      else while (pending.current.size > 200) pending.current.delete(pending.current.keys().next().value!); // 오래 못 보낸 것부터
+      // 서버는 한 번에 60개까지만 받는다 — 그보다 많이 쌓였으면 60개씩 나눠 보내고, 받아 준 묶음만 지운다.
+      // 실패한 묶음에서 멈춘다: 다음 기회에 그 묶음부터 다시 간다.
+      const all = [...pending.current.values()];
+      for (let i = 0; i < all.length; i += 60) {
+        const batch = all.slice(i, i + 60);
+        const ok = await sendTrendEvents(anon, batch.map((x) => ({ trend_id: x.id, action: 'view' as const })));
+        if (!ok) break;
+        for (const x of batch) pending.current.delete(x.id);
+      }
+      while (pending.current.size > 200) pending.current.delete(pending.current.keys().next().value!); // 오래 못 보낸 것부터
     } finally { flushing.current = false; }
   }, [anon]);
 
@@ -203,7 +209,7 @@ export function TodayScreen({ active = true }: { active?: boolean }) {
     if (loadingMore || !feed?.hasMore) return;
     setLoadingMore(true);
     try {
-      const data = await fetchToday({ offset: items.length, kind, topic, anon: anon || undefined });
+      const data = await fetchToday({ exclude: items.map((i) => i.id), kind, topic, anon: anon || undefined });
       setItems((prev) => {
         const seen = new Set(prev.map((i) => i.id));
         return [...prev, ...data.items.filter((i) => !seen.has(i.id))];
@@ -215,7 +221,7 @@ export function TodayScreen({ active = true }: { active?: boolean }) {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, feed?.hasMore, items.length, kind, topic, anon, flush]);
+  }, [loadingMore, feed?.hasMore, items, kind, topic, anon, flush]);
 
   // 언론사 페이지를 앱 안에서 연다 — 우리 색으로 칠한 브라우저라 앱을 벗어난 느낌이 없다
   const open = useCallback(async (item: TrendItem) => {

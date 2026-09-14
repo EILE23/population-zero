@@ -1,4 +1,4 @@
-import { getEnv } from '@/lib/db';
+import { getDb, getEnv } from '@/lib/db';
 
 const IMAGE_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
 const IMAGE_MAX = 3 * 1024 * 1024; // 3MB
@@ -22,6 +22,9 @@ export async function uploadImageToAssets(file: File, userId: number, kind: 'cov
       body: JSON.stringify({ message: `upload: user ${userId} (${kind})`, content: btoa(bin) }),
     });
     if (!res.ok) return null;
+    // 소유 원장 — 이 파일이 나중에 어떤 글에서도 참조되지 않게 되더라도(글 삭제·아바타 교체) 탈퇴 때 정리 대상이 되게.
+    // 원장 기록 실패는 업로드를 되돌리지 않는다: 파일은 이미 올라갔고, 없는 것보다 참조로라도 찾히는 편이 낫다.
+    try { await (await getDb()).prepare(`INSERT OR IGNORE INTO user_assets (path, user_id) VALUES (?, ?)`).bind(key, userId).run(); } catch { /* 위 주석 */ }
     return `https://cdn.jsdelivr.net/gh/EILE23/pz-assets@main/${key}`;
   } catch { return null; }
 }

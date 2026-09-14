@@ -49,8 +49,7 @@ await expect('update residents blog_title', `UPDATE residents SET blog_title='Ma
 await expect('update reports', `UPDATE reports SET status='reviewed' WHERE comment_id=9;`, 200);
 // 집계는 이제 투표 행에서 센다 — 저장된 카운터를 만질 이유가 없어 거부한다
 // 적재 원장 — 중복 적용을 막는 유일한 기록이라 프록시가 다룰 수 있어야 한다
-await expect('patrol_applies 기록 허용', `INSERT INTO patrol_applies (run_id, statements) VALUES ('abc123', 42);`, 200);
-await expect('patrol_applies 조회 허용', `SELECT started_at, statements FROM patrol_applies WHERE run_id = 'abc123'`, 200);
+// 원장(patrol_applies)은 세션의 SQL 로는 닿을 수 없다 — 프록시의 /apply 만 쓴다 (R04 절에서 검증)
 await expect('감시자 판정 테이블은 순찰이 못 건드린다', `DELETE FROM comment_decisions WHERE comment_id = 1`, 403);
 await expect('poll_options votes 수정 거부', `UPDATE poll_options SET votes = votes + 1 WHERE id = 4;`, 403);
 await expect('delete follow', `DELETE FROM follows WHERE follower_type='resident' AND follower_id=11 AND target_type='user' AND target_id=3;`, 200);
@@ -154,8 +153,21 @@ await expect('채팅방 메시지 읽기 거부', `SELECT body FROM room_message
 await expect('차단 목록 읽기 거부', `SELECT * FROM user_blocks`, 403);
 await expect('조인으로 숨겨도 거부', `SELECT p.id FROM posts p JOIN dms d ON d.id = p.id`, 403);
 await expect('서브쿼리로 숨겨도 거부', `SELECT (SELECT body FROM dms LIMIT 1) AS x FROM posts LIMIT 1`, 403);
-await expect('원장 완료 표시는 허용', `UPDATE patrol_applies SET completed_at = datetime('now') WHERE run_id = 'abc';`, 200);
-await expect('원장의 다른 컬럼 수정은 거부', `UPDATE patrol_applies SET statements = 0 WHERE run_id = 'abc';`, 403);
+// ── R04: 원장은 프록시만 쓴다 — 세션이 SQL 로 완료 표시를 만들 수 있으면 영수증이 아니다 ──
+await expect('원장 완료 표시를 SQL 로 만들기 거부', `UPDATE patrol_applies SET completed_at = datetime('now') WHERE run_id = 'abc';`, 403);
+await expect('원장 행을 SQL 로 만들기 거부', `INSERT INTO patrol_applies (run_id, statements) VALUES ('abc', 1);`, 403);
+await expect('원장 읽기도 거부', `SELECT run_id FROM patrol_applies`, 403);
+
+// ── R01: SQLite 의 다른 참조 문법으로 읽기 허용목록을 우회하는 길 ──
+await expect('쉼표 JOIN 으로 dms 읽기 거부', `SELECT d.body FROM posts p, dms d;`, 403);
+await expect('쉼표 JOIN 의 두 번째 테이블(별칭 없음) 거부', `SELECT body FROM posts, dms;`, 403);
+await expect('문자열 테이블 이름 거부', `SELECT body FROM 'dms';`, 403);
+await expect('스키마 한정 이름 거부', `SELECT body FROM main.dms;`, 403);
+await expect('INSERT 값 자리의 서브쿼리로 dms 읽기 거부', `INSERT INTO dms (thread, from_resident_id, to_user_id, body) VALUES ('r1|u1', 1, 1, (SELECT body FROM dms LIMIT 1));`, 403);
+await expect('INSERT 값 자리의 서브쿼리로 다른 비공개 테이블 읽기 거부', `INSERT INTO comments (post_id, resident_id, body) VALUES (1, 2, (SELECT code FROM app_login_codes LIMIT 1));`, 403);
+await expect('UPDATE 값 자리의 서브쿼리로 dms 읽기 거부', `UPDATE posts SET body=(SELECT body FROM dms LIMIT 1) WHERE id=7;`, 403);
+await expect('쉼표 JOIN 이라도 허용 테이블끼리면 통과', `SELECT p.id FROM posts p, residents r WHERE r.id = p.resident_id;`, 200);
+await expect('허용 테이블의 서브쿼리 값은 통과', `UPDATE posts SET album_id=(SELECT id FROM albums WHERE origin_post_id=5) WHERE id=7;`, 200);
 
 // ── secret handling ──
 const leaked = received.some((r) => r.auth !== 'Bearer SECRET-TOKEN-123');

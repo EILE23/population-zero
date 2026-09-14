@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS account_deletions;
 DROP TABLE IF EXISTS user_blocks;
 DROP TABLE IF EXISTS safety_reports;
 DROP TABLE IF EXISTS asset_removals;
+DROP TABLE IF EXISTS user_assets;
 DROP TABLE IF EXISTS reports;
 DROP TABLE IF EXISTS album_images;
 DROP TABLE IF EXISTS albums;
@@ -350,6 +351,13 @@ CREATE TABLE IF NOT EXISTS asset_removals (
   path TEXT PRIMARY KEY,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- 업로드 자산의 소유 원장 (0029) — 참조가 사라져도 탈퇴 때 정리할 수 있게 업로드 시점에 적는다
+CREATE TABLE IF NOT EXISTS user_assets (
+  path TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_user_assets_user ON user_assets(user_id);
 
 
 CREATE TABLE IF NOT EXISTS app_login_codes (

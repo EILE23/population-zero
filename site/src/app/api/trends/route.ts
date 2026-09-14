@@ -77,7 +77,10 @@ async function loadAffinity(db: D1Database, userId: number | null, anon: string 
 
 /** 한쪽으로 쏠리지 않게 로그로 누른 배수 — 최대 2배까지만 밀어준다 */
 function affinityBoost(t: TrendRow, a: Affinity): number {
-  const score = (a.topic.get(t.topic ?? '') ?? 0) + (a.source.get(t.source_name ?? '') ?? 0) * 0.6 + (a.kind.get(t.kind) ?? 0) * 0.4;
+  // 매체 선호는 내부 source 키(rss_bbc_world)로 저장된다 — 표시 이름(BBC)으로 찾으면 영영 0 이었다.
+  // 기록 API 가 표시 이름을 저장하던 시절의 행이 2주 동안 남아 있으므로 그동안은 둘 다 본다.
+  const bySource = a.source.get(t.source) ?? a.source.get(t.source_name ?? '') ?? 0;
+  const score = (a.topic.get(t.topic ?? '') ?? 0) + bySource * 0.6 + (a.kind.get(t.kind) ?? 0) * 0.4;
   if (score <= 0) return 1;
   return Math.min(2, 1 + Math.log10(1 + score) / 2);
 }
@@ -108,6 +111,10 @@ export async function GET(request: Request) {
   const topic = url.searchParams.get('topic');
   const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
   const limit = Math.min(30, Math.max(1, Number(url.searchParams.get('limit')) || 20));
+  // 이미 화면에 있는 항목들 — 있으면 offset 대신 이걸 기준으로 '다음' 을 고른다.
+  // 스크롤하는 동안 취향 기록이 쌓이면 순서가 바뀌어 offset 이 다른 항목을 가리킨다: 같은 걸 두 번 주거나 하나를 건너뛴다.
+  // 본 것을 빼고 현재 순서의 앞에서 자르면 중복도 누락도 없다.
+  const exclude = new Set((url.searchParams.get('exclude') ?? '').split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 400));
 
   // 직접 수집하는 나라면 그대로, 아니면 같은 말을 쓰는 나라의 피드로
   const region = COVERED.has(asked) ? asked : (READS_LIKE[asked] && COVERED.has(READS_LIKE[asked]) ? READS_LIKE[asked] : null);
@@ -147,7 +154,9 @@ export async function GET(request: Request) {
     woven.push(...pending.splice(i === -1 ? 0 : i, 1));
   }
 
-  const page = woven.slice(offset, offset + limit);
+  const pool = exclude.size ? woven.filter((x) => !exclude.has(x.t.id)) : woven;
+  const start = exclude.size ? 0 : offset;
+  const page = pool.slice(start, start + limit);
   const items = page
     .map(({ t }) => ({
       id: t.id,
@@ -165,7 +174,7 @@ export async function GET(request: Request) {
     {
       country: asked || null, region, lang, covered: region != null, items,
       /** 더 내려갈 게 남았는지 — 앱의 무한 스크롤이 이걸 보고 멈춘다 */
-      hasMore: offset + limit < woven.length,
+      hasMore: start + limit < pool.length,
       total: woven.length,
       /** 개인화가 켜졌는지 — 아직 기록이 없으면 모두 같은 순서를 본다 */
       personalized: affinity.topic.size > 0,

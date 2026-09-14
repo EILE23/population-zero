@@ -3,6 +3,7 @@
 // (클라이언트 내비게이션은 같은 URL 로 flight 데이터를 요청하므로 섞이면 화면이 깨진다)는 전부 통과.
 import handler from './.open-next/worker.js';
 import { cleanupAssets } from './asset-cleanup.js';
+import { cacheCountryOf } from './src/lib/cache-countries.ts';
 
 export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js';
 export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js';
@@ -15,7 +16,8 @@ const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login',
 // 그래서 캐시 키도 정확한 국가여야 한다. 전에는 US/GB/CA 를 한 묶음으로 캐싱했는데,
 // 그러면 먼저 온 US 방문자의 정렬이 60초 동안 GB 방문자에게도 나갔다.
 // 트래픽 규모상 국가별로 쪼개져도 캐시 효율 손해는 작다.
-const cacheCountry = (request) => ((request.headers.get('cf-ipcountry') || 'XX').toUpperCase().match(/^[A-Z]{2}$/) || ['XX'])[0];
+// 키에 쓰는 국가는 지우는 쪽(lib/cache.ts)과 같은 목록으로 접는다 — 목록 밖 나라의 사본은 지울 방법이 없었다.
+const cacheCountry = (request) => cacheCountryOf(request.headers.get('cf-ipcountry'));
 
 function cacheable(request, url) {
   if (request.method !== 'GET') return false;

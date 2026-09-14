@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { postHref } from '@/lib/content';
+import { CACHE_COUNTRIES } from '@/lib/cache-countries';
 
 /** population.town 존 — 비밀이 아니라 상수로 둔다 */
 const ZONE_ID = 'ad96c14729f6558562751461a818849b';
@@ -47,8 +48,8 @@ export async function purgePaths(paths: string[]): Promise<void> {
   } catch (e) { console.error('cache purge error', e); }
 }
 
-/** 워커 캐시 키에 쓰이는 국가 코드 후보 — 뉴스 수집 대상 + 근처 큰 나라 + 미상 */
-const WORKER_CACHE_COUNTRIES = ['XX', 'US', 'GB', 'KR', 'JP', 'IN', 'BR', 'DE', 'FR', 'MX', 'AU', 'ID', 'NG', 'CA', 'SG', 'VN', 'TW', 'PH'];
+/** 워커가 실제로 저장하는 키의 국가 목록 — 저장 쪽과 같은 정의(cache-countries.ts)를 쓴다 */
+const WORKER_CACHE_COUNTRIES: readonly string[] = CACHE_COUNTRIES;
 
 /**
  * 글 하나가 바뀌었을 때 옛 모습이 남아 있을 수 있는 주소들.

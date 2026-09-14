@@ -11,6 +11,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { rows } from './d1.mjs';
+import { nothingToApply } from './apply-kinds.mjs';
 
 const outPath = new URL('./patrol-output.json', import.meta.url);
 if (!existsSync(outPath)) { console.error('verify-apply: no patrol-output.json — 이번 순찰은 적재할 게 없었다'); process.exit(1); }
@@ -21,9 +22,7 @@ const runId = createHash('sha256').update(raw).digest('hex').slice(0, 32);
 // 적재할 문장이 하나도 없는 순찰(기억만 갱신)은 원장에 행을 남기지 않는다 — 그것도 정상이다.
 let parsed;
 try { parsed = JSON.parse(raw); } catch { console.error('verify-apply: patrol-output.json 이 JSON 이 아니다'); process.exit(1); }
-const nothingToApply = ['posts', 'replies', 'likes', 'poll_votes', 'moderation', 'follows', 'unfollows', 'blog_updates']
-  .every((k) => !Array.isArray(parsed?.[k]) || parsed[k].length === 0);
-if (nothingToApply) { console.error(`verify-apply: 적재 대상이 없는 순찰 (run ${runId}) — 기억은 유지한다`); process.exit(0); }
+if (nothingToApply(parsed)) { console.error(`verify-apply: 적재 대상이 없는 순찰 (run ${runId}) — 기억은 유지한다`); process.exit(0); }
 
 const row = (await rows(`SELECT started_at, completed_at, statements FROM patrol_applies WHERE run_id = '${runId}'`))[0];
 if (!row) { console.error(`verify-apply: 원장에 run ${runId} 가 없다 — 적재가 시작되지 않았다`); process.exit(1); }

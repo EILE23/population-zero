@@ -74,9 +74,10 @@ console.log('PASS late socket callback cannot update closed conversation');
 let forwarded=0;
 let edge=fs.readFileSync('site/worker-entry.js','utf8')
   .replace(/import handler[^;]+;/,'').replace(/import \{ cleanupAssets \}[^;]+;/,'')
+  .replace(/import \{ cacheCountryOf \}[^;]+;/,'')
   .replace(/export \{[^}]+\} from [^;]+;/g,'')
   .replace('export default {','this.worker = {');
-const edgeContext={Response,Request,URL,console,handler:{fetch:async()=>new Response('ok')}};
+const edgeContext={Response,Request,URL,console,handler:{fetch:async()=>new Response('ok')},cacheCountryOf:(h)=>String(h||'XX').toUpperCase()};
 vm.runInNewContext(edge,edgeContext);
 const env={DB,CHAT_ROOM:{idFromName:t=>t,get:()=>({fetch:async()=>{forwarded++;return new Response('forwarded');}})}};
 const open=thread=>edgeContext.worker.fetch(new Request(`https://example.test/ws/dm?thread=${encodeURIComponent(thread)}&token=valid`),env,{});

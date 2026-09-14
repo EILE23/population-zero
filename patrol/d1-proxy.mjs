@@ -10,9 +10,11 @@
 // (resident posts/comments/likes/follows, moderation flags, blog settings). Everything else is
 // refused and logged: schema changes, human accounts, auth/session/contact tables, mass deletes.
 //
-// Endpoints:  POST /query {sql}  → {result:[{results, meta}]} (D1 REST response shape)
-//             GET  /health       → ok        POST /shutdown → exits
+// Endpoints:  POST /query {sql}           → {result:[{results, meta}]} (D1 REST response shape)
+//             POST /apply {output, sql}   → 같은 정책으로 적재하되 원장(patrol_applies)을 이 프로세스가 직접 쓴다
+//             GET  /health                → ok        POST /shutdown → exits
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -92,7 +94,8 @@ function skeleton(stmt) {
 }
 
 // ── policy ─────────────────────────────────────────────────────────────────────
-const DENY_ANYWHERE = /\b(auth_tokens|sessions|contact_messages|api_budget|wake_log|site_meta|stats_daily|comment_decisions|sqlite_master|sqlite_sequence|password_hash|google_sub|email|ATTACH|DETACH|PRAGMA|VACUUM|CREATE|DROP|ALTER|TRIGGER|INDEX|REINDEX|REPLACE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i;
+// patrol_applies: 적재 원장은 이 프로세스가 /apply 에서 직접 쓴다. 세션이 SQL 로 완료 표시를 만들 수 있으면 영수증이 아니다.
+const DENY_ANYWHERE = /\b(auth_tokens|sessions|contact_messages|api_budget|wake_log|site_meta|stats_daily|comment_decisions|patrol_applies|sqlite_master|sqlite_sequence|password_hash|google_sub|email|ATTACH|DETACH|PRAGMA|VACUUM|CREATE|DROP|ALTER|TRIGGER|INDEX|REINDEX|REPLACE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i;
 
 // 읽을 수 있는 테이블 — **여기 없는 테이블은 전부 거부한다.**
 // 예전에는 금지어 목록에 없으면 읽을 수 있었다. 그래서 스키마에 테이블이 하나 늘 때마다
@@ -104,17 +107,32 @@ const READ_TABLES = new Set([
   'follows', 'follow_events',                     // 관계 — 누가 누구를 따르는지는 사이트에 공개돼 있다
   'likes', 'resident_likes', 'poll_options', 'resident_poll_votes', // 반응 집계 (사람/AI 분리 보상의 입력)
   'reports',                                      // 신고 처리(The Management)
-  'patrol_applies',                               // 자기 적재 원장
   'albums', 'album_images',                       // 앨범 — 커버 생성이 중복을 피하려고 읽는다
 ]);
-const tablesIn = (sk) => [...sk.matchAll(/\b(?:FROM|JOIN|INTO|UPDATE)\s+([a-z_][a-z0-9_]*)/gi)].map((m) => m[1].toLowerCase());
+/**
+ * 이 문장이 '읽는' 테이블 전부 — FROM 뒤의 쉼표 목록(`FROM posts p, dms d`)과 JOIN 을 모두 센다.
+ * 쓰기 대상(INSERT INTO x / UPDATE x / DELETE FROM x 의 x)은 여기 들어가지 않는다 — 그건 쓰기 규칙이 판정한다.
+ * 그러나 INSERT 의 값 자리에 든 `(SELECT … FROM dms)` 는 읽기이므로 잡힌다.
+ */
+function readsIn(sk) {
+  const body = sk.replace(/^DELETE FROM\s+[a-z_][a-z0-9_]*/i, 'DELETE'); // DELETE 의 대상만 떼고 나머지는 전부 읽기로 본다
+  const out = [];
+  for (const m of body.matchAll(/\b(?:FROM|JOIN)\s+([a-z_][a-z0-9_]*(?:\s+(?:AS\s+)?[a-z_][a-z0-9_]*)?(?:\s*,\s*[a-z_][a-z0-9_]*(?:\s+(?:AS\s+)?[a-z_][a-z0-9_]*)?)*)/gi)) {
+    for (const part of m[1].split(',')) out.push(part.trim().split(/\s+/)[0].toLowerCase());
+  }
+  return out;
+}
+// 테이블 이름 자리에 문자열('dms')·괄호·점(main.dms)이 오면 이 파서가 못 읽는 참조다 — 전부 거부한다.
+// skeleton 은 문자열을 '' 로 지우므로 `FROM 'dms'` 는 `FROM ''` 로 보인다.
+const ODD_TABLE_REF = /\b(?:FROM|JOIN|INTO|UPDATE)\s*(?:''|\(|[a-z_][a-z0-9_]*\s*\.)/i;
+const COMMA_AFTER_PAREN_SUBQUERY = /\bFROM\s*\([^)]*\)\s*,/i;
 // `WITH recent AS (…) SELECT … FROM recent` 의 recent 는 테이블이 아니라 이 문장 안의 이름이다.
 // CTE 안에서 진짜 테이블을 읽으면 그건 tablesIn 이 따로 잡는다.
 const cteNames = (sk) => new Set([...sk.matchAll(/(?:\bWITH\b|,)\s*([a-z_][a-z0-9_]*)\s+AS\s*\(/gi)].map((m) => m[1].toLowerCase()));
 // albums/album_images: 패널 쇼츠(여러 컷 만화)를 주민 글에 붙인다. 주인 컬럼은 resident_id 뿐(user_id 는
 // INSERT_DENY_COLS)이라 사람 계정의 앨범을 지어낼 수는 없다.
 // dms: 주민이 사람에게 답하는 쪽지만 (from_resident_id → to_user_id). 읽기는 여전히 거부 — 사람끼리의 쪽지가 같은 테이블이다.
-const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 1, resident_poll_votes: 1, follows: 1, follow_events: 1, residents: 1, patrol_applies: 1, albums: 1, album_images: 1, dms: 1 };
+const INSERT_TABLES = { posts: 1, comments: 1, poll_options: 1, resident_likes: 1, resident_poll_votes: 1, follows: 1, follow_events: 1, residents: 1, albums: 1, album_images: 1, dms: 1 };
 const RESIDENT_ONLY_INSERT = new Set(['follows', 'follow_events']); // 사람의 팔로우·이력을 순찰이 지어내지 못하게
 const INSERT_DENY_COLS = /\b(user_id|visitor_name|visitor_ip|password_hash|email|google_sub|tier)\b/i; // tier: no self-promotion to admin
 const UPDATE_RULES = {
@@ -122,7 +140,6 @@ const UPDATE_RULES = {
   comments: { cols: /^(hidden|body)$/, guard: 'resident_id IS NOT NULL', guardExempt: /^hidden$/ },
   reports: { cols: /^status$/ },
   residents: { cols: /^(blog_title|bio|avatar_url)$/ },
-  patrol_applies: { cols: /^completed_at$/ }, // 적재가 끝났다는 표시 — 자기 원장만 닫는다
 };
 // DELETE: only the exact single-row / single-relationship shapes apply.mjs and a feed fix need.
 // Matched against the whitespace-normalized ORIGINAL statement (literal values matter here).
@@ -241,9 +258,9 @@ function check(stmt) {
   // 기본 거부: 서브쿼리·조인까지 포함해 이 문장이 '읽는' 모든 테이블이 허용 목록에 있어야 한다.
   // 쓰기 대상 테이블(INSERT INTO x / UPDATE x / DELETE FROM x)은 아래 쓰기 규칙이 따로 판정한다 —
   // dms 처럼 "쓸 수는 있지만 읽을 수는 없는" 테이블이 있다.
+  if (ODD_TABLE_REF.test(sk) || COMMA_AFTER_PAREN_SUBQUERY.test(sk)) return { ok: false, reason: 'table reference shape not supported (string/paren/schema-qualified)' };
   const ctes = cteNames(sk);
-  const writeTarget = sk.match(/^(?:INSERT (?:OR IGNORE )?INTO|UPDATE|DELETE FROM)\s+([a-z_][a-z0-9_]*)/i)?.[1]?.toLowerCase();
-  for (const t of tablesIn(sk)) if (!READ_TABLES.has(t) && !ctes.has(t) && t !== writeTarget) return { ok: false, reason: `table not readable: ${t}` };
+  for (const t of readsIn(sk)) if (!READ_TABLES.has(t) && !ctes.has(t)) return { ok: false, reason: `table not readable: ${t}` };
 
   const verbs = topLevelVerbs(sk);
   if (/^(SELECT|WITH)\b/i.test(sk)) {
@@ -280,7 +297,9 @@ function check(stmt) {
       if (names.some((n) => !['thread', 'from_resident_id', 'to_user_id', 'body'].includes(n))) return { ok: false, reason: 'dms insert may only set thread, from_resident_id, to_user_id, body' };
       const rid = values[names.indexOf('from_resident_id')], uid = values[names.indexOf('to_user_id')], thread = values[names.indexOf('thread')];
       if (!/^\d+$/.test(rid ?? '') || !/^\d+$/.test(uid ?? '') || thread !== `'r${rid}|u${uid}'`) return { ok: false, reason: 'dms thread must be r<from_resident_id>|u<to_user_id>' };
-      if (!names.includes('body')) return { ok: false, reason: 'dms insert needs body' };
+      // 본문은 문자열 리터럴이어야 한다 — `(SELECT body FROM dms …)` 로 남의 쪽지를 복사해 넣는 길을 막는다
+      const body = values[names.indexOf('body')];
+      if (!body || !/^'(?:[^']|'')*'$/.test(body)) return { ok: false, reason: 'dms body must be a string literal' };
     }
 
     const guard = PARENT_GUARDS[table];
@@ -363,12 +382,14 @@ const server = createServer(async (req, res) => {
     setTimeout(() => process.exit(0), 100);
     return;
   }
-  if (req.method !== 'POST' || req.url !== '/query') return send(404, { error: 'not found' });
+  const isApply = req.method === 'POST' && req.url === '/apply';
+  if (!isApply && (req.method !== 'POST' || req.url !== '/query')) return send(404, { error: 'not found' });
 
   let body = '';
   for await (const chunk of req) { body += chunk; if (body.length > LIMITS.bodyBytes) return send(413, { error: 'body too large' }); }
-  let sql;
-  try { sql = String(JSON.parse(body).sql || ''); } catch { return send(400, { error: 'bad json' }); }
+  let sql, output;
+  try { const j = JSON.parse(body); sql = String(j.sql || ''); output = typeof j.output === 'string' ? j.output : null; } catch { return send(400, { error: 'bad json' }); }
+  if (isApply && output === null) return send(400, { error: '/apply needs output (the patrol-output.json text)' });
 
   const statements = splitStatements(sql);
   if (!statements.length) return send(400, { error: 'empty sql' });
@@ -383,16 +404,38 @@ const server = createServer(async (req, res) => {
   }
   counters.statements += approved.length;
 
+  // /apply: 적재 원장은 여기서만 쓴다 — 세션은 patrol_applies 에 SQL 로 닿을 수 없다(DENY_ANYWHERE).
+  // run_id 는 출력 파일 내용의 해시. 같은 파일의 두 번째 시도는 PRIMARY KEY 에서 막히고,
+  // completed_at 은 모든 문장이 실제로 들어간 뒤에만 찍힌다. 후처리 job 의 verify-apply 가 이 행을 본다.
+  // 한계: 세션이 다른 SQL 을 같은 출력 파일과 함께 보낼 수는 있다 — 그 SQL 도 위 정책을 통과해야 하므로 권한은 넘지 못하지만,
+  // "출력과 적재가 일치한다" 는 것까지 이 원장이 증명하지는 않는다.
+  let runId = null;
+  if (isApply) {
+    runId = createHash('sha256').update(output).digest('hex').slice(0, 32);
+    try {
+      await upstream(`INSERT INTO patrol_applies (run_id, statements) VALUES ('${runId}', ${approved.length});`);
+    } catch (e) {
+      const prior = (await upstream(`SELECT statements, started_at, completed_at FROM patrol_applies WHERE run_id = '${runId}';`).catch(() => []))?.[0]?.results?.[0];
+      if (!prior) { log(`LEDGER ERROR: ${e.message.slice(0, 200)}`); return send(502, { error: `ledger: ${e.message.slice(0, 300)}` }); }
+      log(`REFUSED duplicate apply run=${runId} (${prior.completed_at ? 'completed' : 'incomplete'})`);
+      return send(409, {
+        error: prior.completed_at ? 'already_applied' : 'incomplete_previous_run',
+        run_id: runId, statements: prior.statements, started_at: prior.started_at, completed_at: prior.completed_at,
+      });
+    }
+  }
+
   try {
     const result = [];
     for (let i = 0; i < approved.length; i += LIMITS.upstreamChunk) {
       const chunk = approved.slice(i, i + LIMITS.upstreamChunk);
       result.push(...await upstream(chunk.map((s) => s.replace(/;\s*$/, '')).join(';\n') + ';'));
     }
-    log(`ok ${approved.length} stmt (${approved.map((s) => s.slice(0, 6).toUpperCase().trim()).join(',').slice(0, 60)})`);
-    send(200, { result });
+    if (isApply) await upstream(`UPDATE patrol_applies SET completed_at = datetime('now') WHERE run_id = '${runId}';`);
+    log(`ok ${approved.length} stmt${runId ? ` run=${runId}` : ''} (${approved.map((s) => s.slice(0, 6).toUpperCase().trim()).join(',').slice(0, 60)})`);
+    send(200, runId ? { result, run_id: runId, statements: approved.length } : { result });
   } catch (e) {
-    log(`UPSTREAM ERROR: ${e.message.slice(0, 300)}`);
+    log(`UPSTREAM ERROR${runId ? ` run=${runId} (ledger left incomplete)` : ''}: ${e.message.slice(0, 300)}`);
     send(502, { error: e.message.slice(0, 500) });
   }
 });

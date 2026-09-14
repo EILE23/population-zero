@@ -223,7 +223,9 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
     setMoreFailed(false);
     const mine = gen.current; // 요청을 보낸 시점의 탭 세대
     try {
-      const r = await fetch(`/api/trends?kind=${kind}&anon=${encodeURIComponent(anonId())}&offset=${items.length}&limit=${PAGE}`);
+      // offset 이 아니라 '이미 가진 것' 을 보낸다 — 그새 순서가 바뀌어도 중복·누락 없이 다음 장을 받는다
+      const exclude = items.slice(-400).map((i) => i.id).join(',');
+      const r = await fetch(`/api/trends?kind=${kind}&anon=${encodeURIComponent(anonId())}&exclude=${exclude}&limit=${PAGE}`);
       if (!r.ok) throw new Error(String(r.status));
       const page = (await r.json()) as WirePage;
       if (gen.current !== mine) return; // 그새 탭이 바뀌었다 — 이 응답은 다른 목록의 것이다

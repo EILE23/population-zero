@@ -219,7 +219,20 @@ jobs:
           cp "$H"/logs/*.json patrol/logs/ 2>/dev/null || true
           git status --short | head -20
 
-      - name: Generate requested covers # 세션이 patrol-output.json 에 적은 cover_prompt/cover_requests 만, 순차 1장씩
+      # 비용이 드는 후처리(이미지 생성) 앞에 적재 검증을 둔다 — 적재되지 않은 순찰의 커버 요청에 돈을 쓰지 않는다.
+      # 영수증은 세션이 쓴 파일이 아니라 D1 원장이다 (프록시만 쓸 수 있고, 세션은 SQL 로 닿지 못한다).
+      - name: Verify the patrol actually landed in D1
+        id: verify
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+        run: |
+          [ "$PATROL_OK" = "true" ] || { echo "patrol job did not succeed"; exit 1; }
+          node patrol/verify-apply.mjs
+
+      - name: Generate requested covers # 세션이 patrol-output.json 에 적은 cover_prompt/cover_requests 만, 순차 1장씩 — 주민 글·커버 없음은 D1 이 다시 판정
+        if: steps.verify.outcome == 'success'
         working-directory: patrol
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -269,10 +282,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
         run: |
           KEEP_MEMORY=no
-          if [ "$PATROL_OK" != "true" ]; then
-            echo "patrol did not succeed — memory changes are discarded, run log is kept"
-          elif node patrol/verify-apply.mjs; then
+          if [ "${{ steps.verify.outcome }}" = "success" ]; then
             KEEP_MEMORY=yes
+          else
+            echo "patrol did not succeed or did not land in D1 — memory changes are discarded, run log is kept"
           fi
 
           git config user.name "pz-patrol"

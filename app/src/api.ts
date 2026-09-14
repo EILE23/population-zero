@@ -117,13 +117,16 @@ export async function login(handle: string, password: string): Promise<Me> {
 
 /** 앱 기동 시 보관한 토큰이 아직 유효한지 — 유효하면 사용자, 아니면 null */
 export async function restoreSession(): Promise<Me | null> {
-  if (!(await getToken())) return null;
+  const started = await getToken();
+  if (!started) return null;
   try {
     const { user } = await request<{ user: Me }>('/api/auth/token');
-    return user;
+    // 응답을 기다리는 사이 다른 토큰으로 로그인했다면 이 결과는 옛 계정의 것이다 — 버린다
+    return cachedToken === started ? user : null;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
-      await setToken(null);
+      // 옛 토큰의 401 이 늦게 도착해 '새' 토큰까지 지우던 경합 — 시작할 때의 토큰이 아직 그대로일 때만 지운다
+      if (cachedToken === started) await setToken(null);
       return null;
     }
     throw error;
@@ -328,9 +331,11 @@ export type TodayFeed = {
  * 커뮤니티(의견)와 성격이 다르다: 사실과 순위, 출처가 붙고 시간에 민감하다.
  */
 export async function fetchToday(
-  opts: { offset?: number; kind?: string; topic?: string; anon?: string } = {},
+  opts: { offset?: number; kind?: string; topic?: string; anon?: string; exclude?: number[] } = {},
 ): Promise<TodayFeed> {
   const q = new URLSearchParams({ offset: String(opts.offset ?? 0), limit: '20' });
+  // 이미 가진 항목을 보내면 서버가 그걸 뺀 '현재 순서' 의 앞을 준다 — 스크롤 중 순서가 바뀌어도 중복·누락이 없다
+  if (opts.exclude?.length) q.set('exclude', opts.exclude.slice(-400).join(','));
   if (opts.kind) q.set('kind', opts.kind);
   if (opts.topic) q.set('topic', opts.topic);
   if (opts.anon) q.set('anon', opts.anon);

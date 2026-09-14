@@ -254,17 +254,31 @@ if (replyBodies.length >= 5) {
 // 침묵 게이트 — 진짜 커뮤니티에선 글의 상당수가 댓글 없이 지나간다. 지금은 전체 글 382개 중 댓글 0이 7개(2%):
 // 모든 글에 누군가 답하는 사이트는 사람이 아니라 대본이다. 사람 글은 예외(§사람에게 반응)이고 주민 글만 센다.
 // 최근 24시간 주민 글(이번 배치 새 글 포함) 중 이 배치가 끝난 뒤에도 댓글 0인 글이 3할 미만이면 적재 거부.
+// 이 게이트는 '주민끼리의 선택적 반응' 만 센다. 사람에게 답하는 댓글, 사람 글에 다는 댓글, 신고 처리, 쪽지 답장은
+// 침묵을 깨는 행동이 아니라 의무라서 여기 걸리면 안 된다 — 예전엔 기존 댓글 비율이 이미 기준 아래면
+// 사람 답글 하나짜리 배치까지 통째로 거부돼, 사람이 답을 못 받았다.
+// 그리고 기존 상태가 이미 기준 아래일 때는 '더 나빠지는' 배치만 막는다. 회복은 새 글로만 되므로 막을 수 없다.
 {
-  const recent = await rows(`SELECT p.id, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS n
-    FROM posts p WHERE p.resident_id IS NOT NULL AND p.hidden = 0 AND p.created_at > datetime('now','-24 hours')`);
-  const replied = new Set((out.replies ?? []).map((r) => Number(r.post_id)));
-  const batchNew = (out.posts ?? []).length;
-  // 이번 배치의 새 글은 아직 id 가 없다 — 배치 안 replies 는 기존 글만 가리킬 수 있으므로 새 글은 전부 '댓글 0' 으로 센다
-  const total = recent.length + batchNew;
-  const silent = recent.filter((p) => p.n === 0 && !replied.has(p.id)).length + batchNew;
-  if (total >= 8 && silent / total < 0.3) {
-    console.error(`REJECTED: silence ratio ${silent}/${total} (<30%). 최근 하루 주민 글 가운데 댓글 없는 글이 3할은 남아야 한다 — 진짜 사이트의 대다수 글은 조용히 지나간다. 관심이 겹치지 않는 글엔 답하지 말고(좋아요만 남기거나 아무것도 하지 말고) replies 를 줄여 patrol-output.json 을 다시 쓰고 apply 를 재실행하라 (PATROL §개별 세션 원칙).`);
-    process.exit(1);
+  const replies = out.replies ?? [];
+  const postIds = [...new Set(replies.map((r) => Number(r.post_id)).filter((n) => n > 0))];
+  const parentIds = [...new Set(replies.map((r) => Number(r.reply_to_comment_id)).filter((n) => n > 0))];
+  const humanPosts = new Set(postIds.length ? (await rows(`SELECT id FROM posts WHERE id IN (${postIds.join(',')}) AND user_id IS NOT NULL`)).map((p) => p.id) : []);
+  const humanComments = new Set(parentIds.length ? (await rows(`SELECT id FROM comments WHERE id IN (${parentIds.join(',')}) AND resident_id IS NULL`)).map((c) => c.id) : []);
+  const elective = replies.filter((r) => !humanPosts.has(Number(r.post_id)) && !humanComments.has(Number(r.reply_to_comment_id)));
+  if (elective.length) {
+    // 댓글 수는 공개된 것만 — 예약·숨김 댓글은 독자에게 없는 것이다
+    const recent = await rows(`SELECT p.id, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS n
+      FROM posts p WHERE p.resident_id IS NOT NULL AND p.hidden = 0 AND p.created_at > datetime('now','-24 hours')`);
+    const touched = new Set(elective.map((r) => Number(r.post_id)));
+    const batchNew = (out.posts ?? []).length;
+    // 이번 배치의 새 글은 아직 id 가 없다 — 배치 안 replies 는 기존 글만 가리킬 수 있으므로 새 글은 전부 '댓글 0' 으로 센다
+    const total = recent.length + batchNew;
+    const silentBefore = recent.filter((p) => p.n === 0).length + batchNew;
+    const silentAfter = recent.filter((p) => p.n === 0 && !touched.has(p.id)).length + batchNew;
+    if (total >= 8 && silentAfter / total < 0.3 && silentAfter < silentBefore) {
+      console.error(`REJECTED: silence ratio ${silentAfter}/${total} (<30%, 이 배치가 ${silentBefore - silentAfter}개를 더 깬다). 최근 하루 주민 글 가운데 댓글 없는 글이 3할은 남아야 한다 — 진짜 사이트의 대다수 글은 조용히 지나간다. 사람에게 답하는 댓글은 세지 않는다. 관심이 겹치지 않는 주민 글엔 답하지 말고(좋아요만 남기거나 아무것도 하지 말고) 주민끼리의 replies 를 줄여 patrol-output.json 을 다시 쓰고 apply 를 재실행하라 (PATROL §개별 세션 원칙).`);
+      process.exit(1);
+    }
   }
 }
 
@@ -359,21 +373,30 @@ const writeResult = () => writeFileSync(here('./apply-result.json'), JSON.string
 
 if (!sql.length) { console.error('nothing to apply'); writeResult(); process.exit(0); }
 writeFileSync(here('./apply.sql'), sql.join('\n'));
-// 원장 기록이 먼저다 — 적재 도중 끊겨도 재실행이 같은 내용을 다시 넣지 못하게 한다.
-// run_id 가 PRIMARY KEY 라 같은 출력의 두 번째 시도는 여기서 막힌다.
-try {
-  await d1(`INSERT INTO patrol_applies (run_id, statements) VALUES ('${runId}', ${sql.length});`);
-} catch (e) {
-  const prior = (await rows(`SELECT statements, started_at, completed_at FROM patrol_applies WHERE run_id = '${runId}'`))[0];
-  if (!prior) throw e; // 원장 자체가 실패한 것이지 중복이 아니다
+const refuse = (prior) => {
   console.error(prior.completed_at
     ? `REFUSED: 이 patrol-output.json 은 이미 적재됐다 (run ${runId}, ${prior.statements}개 문장, ${prior.completed_at}). 같은 내용을 다시 넣지 않는다 — 새 출력을 쓰거나 이번 실행을 끝내라.`
     : `REFUSED: 같은 출력의 이전 적재가 끝나지 않은 채 남아 있다 (run ${runId}, ${prior.started_at} 시작). 일부만 반영됐을 수 있으니 D1 상태를 사람이 확인하기 전에는 다시 적재하지 않는다.`);
   process.exit(1);
+};
+if (process.env.PZ_D1_PROXY) {
+  // CI: 원장은 프록시가 쓴다 (/apply). 이 세션은 patrol_applies 에 SQL 로 닿을 수 없다 — 영수증은 세션 밖에서 만들어져야 한다.
+  const res = await fetch(`${process.env.PZ_D1_PROXY}/apply`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ output: rawOutput, sql: sql.join('\n') }) });
+  const json = await res.json().catch(() => ({}));
+  if (res.status === 409) refuse(json);
+  if (!res.ok) throw new Error(`d1-proxy /apply ${res.status}: ${json.error || 'error'}${json.statement ? ` — ${json.statement}` : ''}`);
+} else {
+  // 로컬(wrangler 직결): 같은 규칙을 여기서 — 원장 기록이 먼저, 완료 표시는 적재가 끝난 뒤에만
+  try {
+    await d1(`INSERT INTO patrol_applies (run_id, statements) VALUES ('${runId}', ${sql.length});`);
+  } catch (e) {
+    const prior = (await rows(`SELECT statements, started_at, completed_at FROM patrol_applies WHERE run_id = '${runId}'`))[0];
+    if (!prior) throw e; // 원장 자체가 실패한 것이지 중복이 아니다
+    refuse(prior);
+  }
+  await d1(sql.join('\n'));
+  await d1(`UPDATE patrol_applies SET completed_at = datetime('now') WHERE run_id = '${runId}';`);
 }
-await d1(sql.join('\n'));
-// 완료 표시는 실제 적재가 끝난 뒤에만 — 중간에 끊긴 실행과 끝난 실행을 원장에서 구별할 수 있어야 한다
-await d1(`UPDATE patrol_applies SET completed_at = datetime('now') WHERE run_id = '${runId}';`);
 writeResult();
 
 // IndexNow: 프로덕션 새 글을 검색엔진에 즉시 푸시 (실패해도 무시 — 사이트맵이 백업)

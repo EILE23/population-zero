@@ -5,6 +5,7 @@ import { uploadImageToAssets } from '@/lib/assets';
 import { pingIndexNow } from '@/lib/seo';
 import { rateLimited } from '@/lib/ratelimit';
 import { fireGaEvent } from '@/lib/ga-mp';
+import { visibleTo } from '@/lib/safety';
 
 const TOPICS = ['ask','forum','life','tech','culture','entertainment','gaming','sports','food','world','random'];
 const YT_IN_BODY = /https:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,20})/;
@@ -112,13 +113,16 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
 
   const db = await getDb();
 
-  // ② 붙일 앨범이 있으면 실제로 있고 보이는 앨범인지 먼저 — 없는 걸 붙인 글을 만들지 않는다
+  // ② 붙일 앨범이 있으면 실제로 있고 '이 사람에게' 보이는 앨범인지 먼저 — 없는 걸 붙인 글을 만들지 않는다.
+  //    원본 글이 아직 예약 상태거나, 내가 차단한(또는 나를 차단한) 주인의 앨범이면 붙일 수 없다.
   let sharedAlbum: { id: number; cover: string | null } | null = null;
   if (attachAlbumId > 0) {
     sharedAlbum = await db.prepare(
       `SELECT a.id, (SELECT url FROM album_images WHERE album_id = a.id ORDER BY sort LIMIT 1) AS cover
        FROM albums a JOIN posts p ON p.id = a.origin_post_id
-       WHERE a.id = ? AND p.hidden = 0 AND EXISTS (SELECT 1 FROM album_images WHERE album_id = a.id)`,
+       WHERE a.id = ? AND p.hidden = 0 AND p.created_at <= datetime('now')
+         AND ${visibleTo(user.id, 'p.user_id', 'p.resident_id')}
+         AND EXISTS (SELECT 1 FROM album_images WHERE album_id = a.id)`,
     ).bind(attachAlbumId).first<{ id: number; cover: string | null }>();
     if (!sharedAlbum) return { ok: false, error: 'failed' };
   }
@@ -128,9 +132,19 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
   // 텍스트만 보면 서로 다른 사진 두 장이 한 글로 합쳐졌다.
   const clientKey = String(form.get('client_key') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || null;
   if (clientKey) {
-    const dup = await db.prepare(`SELECT id FROM posts WHERE user_id = ? AND client_key = ? AND created_at > datetime('now','-1 day') ORDER BY id DESC LIMIT 1`)
-      .bind(user.id, clientKey).first<{ id: number }>();
-    if (dup) return { ok: true, id: dup.id }; // 이미 올라간 그 글 — 사진을 다시 올리기 전에 돌려보낸다
+    const dup = await db.prepare(`SELECT id, album_id FROM posts WHERE user_id = ? AND client_key = ? AND created_at > datetime('now','-1 day') ORDER BY id DESC LIMIT 1`)
+      .bind(user.id, clientKey).first<{ id: number; album_id: number | null }>();
+    if (dup) {
+      // 사진 글인데 앨범이 붙지 않았다 = 지난 시도가 글만 만들고 사진 단계에서 죽었다.
+      // 그 반쪽을 "이미 올라간 글" 로 돌려주면 사진 없는 글이 성공으로 굳는다. 걷어내고 처음부터 다시 만든다.
+      const albumBroken = albumFiles.length > 0 && dup.album_id == null;
+      if (!albumBroken) return { ok: true, id: dup.id }; // 이미 올라간 그 글 — 사진을 다시 올리기 전에 돌려보낸다
+      await db.batch([
+        db.prepare(`DELETE FROM album_images WHERE album_id IN (SELECT id FROM albums WHERE origin_post_id = ?)`).bind(dup.id),
+        db.prepare(`DELETE FROM albums WHERE origin_post_id = ?`).bind(dup.id),
+        db.prepare(`DELETE FROM posts WHERE id = ? AND user_id = ? AND album_id IS NULL`).bind(dup.id, user.id),
+      ]);
+    }
   }
 
   const album: string[] = [];

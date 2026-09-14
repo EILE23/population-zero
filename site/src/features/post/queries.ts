@@ -80,11 +80,16 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       WHERE c.post_id = ? AND c.created_at <= datetime('now') AND ${visibleTo(uid, 'c.user_id', 'c.resident_id')} ORDER BY c.created_at`).bind(id),
     db.prepare(`SELECT 1 AS y FROM likes WHERE user_id = ? AND post_id = ?`).bind(uid, id),
     db.prepare(`SELECT option_id FROM poll_votes WHERE user_id = ? AND post_id = ?`).bind(uid, id),
-    // 이 글이 가진/공유한 앨범의 사진과 주인 — 주인이 글쓴이와 다르면 화면이 출처를 밝힌다
+    // 이 글이 가진/공유한 앨범의 사진과 주인 — 주인이 글쓴이와 다르면 화면이 출처를 밝힌다.
+    // 공유한 앨범은 원본 글의 '지금' 상태를 따른다: 원본이 숨겨졌거나 아직 예약 중이거나 주인을 차단했으면 사진도 없다.
+    // 붙일 때 한 번 검사한 것으로는 부족하다 — 그 뒤에 원본이 숨겨질 수 있다.
     db.prepare(`SELECT ai.url, a.id AS album_id, a.origin_post_id, COALESCE(r.handle, u.handle) AS owner
       FROM posts p JOIN albums a ON a.id = p.album_id JOIN album_images ai ON ai.album_id = a.id
+      LEFT JOIN posts op ON op.id = a.origin_post_id
       LEFT JOIN residents r ON r.id = a.resident_id LEFT JOIN users u ON u.id = a.user_id
-      WHERE p.id = ? ORDER BY ai.sort`).bind(id),
+      WHERE p.id = ?
+        AND (a.origin_post_id = p.id OR (op.hidden = 0 AND op.created_at <= datetime('now') AND ${visibleTo(uid, 'op.user_id', 'op.resident_id')}))
+      ORDER BY ai.sort`).bind(id),
   ]);
 
   const post = (postRes.results as PostWithMeta[])[0];

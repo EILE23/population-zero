@@ -91,13 +91,16 @@ if (!process.env.PZ_D1_PROXY) {
       AND d.id=(SELECT MAX(d2.id) FROM dms d2 WHERE d2.thread=d.thread)
       AND d.created_at > datetime('now','-7 days')
     ORDER BY d.created_at LIMIT 20`);
-  const context = awaiting.length ? await q(`SELECT d.thread, d.from_resident_id IS NOT NULL AS from_resident, d.body, d.created_at
-    FROM dms d WHERE d.thread IN (${awaiting.map((t) => `'${t.thread.replace(/'/g, "''")}'`).join(',')})
-    ORDER BY d.thread, d.id DESC LIMIT 200`) : [];
+  // 실마다 최근 8마디 — 실별로 먼저 자른다. 전체를 200개로 자르면 긴 실 하나가 다른 사람의 질문을 밀어낸다.
+  const context = awaiting.length ? await q(`SELECT thread, from_resident, body, created_at FROM (
+      SELECT d.thread, d.from_resident_id IS NOT NULL AS from_resident, d.body, d.created_at,
+        ROW_NUMBER() OVER (PARTITION BY d.thread ORDER BY d.id DESC) AS rn
+      FROM dms d WHERE d.thread IN (${awaiting.map((t) => `'${t.thread.replace(/'/g, "''")}'`).join(',')})
+    ) WHERE rn <= 8 ORDER BY thread, created_at`) : [];
   state.resident_dms_awaiting = awaiting.map((t) => ({
     ...t,
-    // 실마다 최근 8마디, 오래된 것부터 — 답은 이 흐름의 다음 마디다
-    messages: context.filter((m) => m.thread === t.thread).slice(0, 8).reverse()
+    // 오래된 것부터 — 답은 이 흐름의 다음 마디다
+    messages: context.filter((m) => m.thread === t.thread)
       .map((m) => ({ from: m.from_resident ? 'resident' : 'human', body: m.body, at: m.created_at })),
   }));
 }
