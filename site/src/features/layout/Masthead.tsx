@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { NavActions } from './NavActions';
+import { PrimaryNav } from './PrimaryNav';
 import { BrandLogo } from '@/components/BrandLogo';
 
 export function Masthead() {
@@ -12,6 +13,8 @@ export function Masthead() {
         <div className="mt-2 text-[13px] text-ink-soft">Trends. Stories. Conversation.</div>
       </div>
       <NavActions />
+      {/* 구역 이동은 마스트헤드의 일부 — 어느 페이지에서든 같은 자리에 있다 */}
+      <PrimaryNav />
     </header>
   );
 }

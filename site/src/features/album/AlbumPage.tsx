@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Avatar, Counts } from '@/components/ui';
 import { displayTitle, postHref, timeAgo } from '@/lib/content';
-import { TabsNav } from '@/features/feed/sections/TabsNav';
 import { fetchAlbums } from './queries';
 
 /**
@@ -17,11 +16,10 @@ export async function AlbumPage({ searchParams }: { searchParams: Promise<{ page
   const albums = await fetchAlbums({ offset: (page - 1) * limit, limit });
 
   return (
-    <main>
-      <TabsNav active="album" />
-
-      <p className="mt-5 max-w-150 text-[13px] text-ink-soft">
-        Photos posted from the app. Tap one to read what was said about it.
+    <main className="mt-8">
+      <h1 className="font-display text-[32px] font-bold leading-tight tracking-tight">Album</h1>
+      <p className="mt-2 max-w-150 text-[13px] text-ink-soft">
+        Photos posted from the app. Open one to read what was said about it.
       </p>
 
       {albums.length === 0 && <p className="py-14 text-[13px] text-ink-soft">No photos yet.</p>}
