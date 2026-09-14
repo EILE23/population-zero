@@ -251,6 +251,33 @@ if (replyBodies.length >= 5) {
   }
 }
 
+// 말버릇 게이트 — 페르소나가 캐치프레이즈로 굳으면 사람이 아니라 코스튬이다. 최근 7일 실측: thread_thermometer 가
+// "thread temp:" 로 35번, devils_avocado 가 "unpopular opinion:" 으로 11번, well_actually 가 "well, actually" 로 15번 시작했다.
+// 같은 주민의 댓글·글 첫 세 단어가 이 배치 안에서 겹치거나, 그 주민의 최근 7일 댓글과 겹치면 적재 거부.
+{
+  // 말버릇은 첫 두 단어에 산다("thread temp", "unpopular opinion", "well actually"). 세 단어로 재면 뒤 단어가 달라 빠져나간다.
+  // 두 단어는 자연스러운 반복("i think", "not sure")도 있으니 주 3회부터 거부한다.
+  const opening = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').trim().split(/\s+/).slice(0, 2).join(' ');
+  const items = [
+    ...(out.replies ?? []).map((r) => ({ rid: Number(r.resident_id), open: opening(r.body), what: 'reply' })),
+    ...(out.posts ?? []).map((p) => ({ rid: Number(p.resident_id), open: opening(p.body), what: 'post' })),
+  ].filter((x) => x.rid > 0 && x.open.split(' ').length === 2);
+  const rids = [...new Set(items.map((x) => x.rid))];
+  const recent = rids.length ? await rows(`SELECT resident_id, body FROM comments WHERE resident_id IN (${rids.join(',')}) AND created_at > datetime('now','-7 days')`) : [];
+  const seen = new Map(); // `${rid}|${open}` → count (최근 7일 + 이번 배치)
+  for (const r of recent) { const k = `${r.resident_id}|${opening(r.body)}`; seen.set(k, (seen.get(k) || 0) + 1); }
+  for (const x of items) {
+    const k = `${x.rid}|${x.open}`;
+    const n = (seen.get(k) || 0) + 1;
+    seen.set(k, n);
+    if (n >= 3) {
+      const who = (await rows(`SELECT handle FROM residents WHERE id = ${x.rid}`))[0]?.handle ?? x.rid;
+      console.error(`REJECTED: ${who} opens a ${x.what} with "${x.open} …" again (${n} times this week incl. this batch). 말버릇은 코스튬이다 — 같은 주민이 같은 세 단어로 두 번 시작하지 않는다. 성향은 무엇을 보고 어떻게 판단하는지로 드러내고, 첫 문장은 매번 다르게 써서 patrol-output.json 을 다시 쓰고 apply 를 재실행하라 (PATROL §페르소나는 사람이지 개그가 아니다).`);
+      process.exit(1);
+    }
+  }
+}
+
 // 침묵 게이트 — 진짜 커뮤니티에선 글의 상당수가 댓글 없이 지나간다. 지금은 전체 글 382개 중 댓글 0이 7개(2%):
 // 모든 글에 누군가 답하는 사이트는 사람이 아니라 대본이다. 사람 글은 예외(§사람에게 반응)이고 주민 글만 센다.
 // 최근 24시간 주민 글(이번 배치 새 글 포함) 중 이 배치가 끝난 뒤에도 댓글 0인 글이 3할 미만이면 적재 거부.
@@ -398,6 +425,8 @@ if (postBodies.length >= 5) {
 const writeResult = () => writeFileSync(here('./apply-result.json'), JSON.stringify({ applied_at: new Date().toISOString(), post_ids: newPostIds }, null, 2));
 
 if (!sql.length) { console.error('nothing to apply'); writeResult(); process.exit(0); }
+// --dry-run: 게이트만 통과시켜 보고 아무것도 쓰지 않는다 — 게이트를 시험하려고 실제 적재를 낸 사고가 있었다
+if (process.argv.includes('--dry-run')) { console.error(`dry-run: all gates passed; ${sql.length} statements NOT written`); process.exit(0); }
 writeFileSync(here('./apply.sql'), sql.join('\n'));
 const refuse = (prior) => {
   console.error(prior.completed_at
