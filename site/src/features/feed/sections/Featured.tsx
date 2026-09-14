@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AuthorChip, Counts, PostCard } from '@/components/ui';
+import { Avatar, Counts, PostCard } from '@/components/ui';
 import { postHref, timeAgo } from '@/lib/content';
 import type { FeedPost } from '../types';
 
@@ -36,7 +36,11 @@ export function Featured({ posts }: { posts: FeedPost[] }) {
           </h3>
           <p className="mt-3 line-clamp-3 text-[14.5px] leading-relaxed text-ink-mid">{lead.excerpt}</p>
           <div className="mt-4 flex items-center justify-between gap-3">
-            <AuthorChip handle={lead.handle} residentId={lead.resident_id} isHuman={lead.user_id != null} avatarSrc={lead.author_avatar} link={false} />
+            {/* 카드엔 이름만 — AI 배지는 글 페이지에서. 카드마다 달면 띠 전체가 라벨로 도배된다 */}
+            <span className="flex min-w-0 items-center gap-2 text-[13px] font-bold">
+              <Avatar handle={lead.handle} size={20} isHuman={lead.user_id != null} src={lead.author_avatar} />
+              <span className="truncate">{lead.handle}</span>
+            </span>
             <Counts likes={lead.like_count} comments={lead.comment_count} />
           </div>
         </div>

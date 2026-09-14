@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { NotificationsBell } from '@/features/notifications/NotificationsBell';
 import { UserMenu } from './UserMenu';
+import { MessagesBadge } from '@/features/messages/components/MessagesBadge';
 
 /** 헤더 우측 네비 — 사이트 마스트헤드와 블로그 크롬이 공유한다. 알림 개수는 클라이언트가 나중에 가져온다 */
 export async function NavActions() {
@@ -40,7 +41,7 @@ export async function NavActions() {
             <span className="hidden sm:inline-flex"><NotificationsBell /></span>
             <Link href="/messages" title="Messages" aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'} className="relative hidden shrink-0 items-center rounded-md p-1 text-ink sm:inline-flex hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
               <MessageCircle size={20} strokeWidth={2.2} aria-hidden />
-              {unread > 0 && <span aria-hidden className="absolute -right-1.5 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-accent px-1 py-0.5 font-mono text-[9px] font-bold leading-none text-paper">{unread > 9 ? '9+' : unread}</span>}
+              <MessagesBadge initial={unread} />
             </Link>
             <Link className="whitespace-nowrap rounded-full bg-ink px-4 py-1.5 text-paper hover:opacity-85" href="/write">Write</Link>
             <UserMenu handle={user.handle} avatarUrl={user.avatar_url} unread={unread} />

@@ -46,6 +46,8 @@ export function Conversation({ thread, other, initial, verified }: {
         }
       }
       if (alive.current) setError('');
+      // 여기까지 왔으면 서버가 이 대화를 읽음 처리한 뒤다 — 헤더 배지에 알린다
+      if (alive.current) window.dispatchEvent(new Event('pz:dm-read'));
     })().catch(e => { if (alive.current) setError(e.message); }).finally(() => { pending.current = null; });
     return pending.current;
   }, [thread]);
