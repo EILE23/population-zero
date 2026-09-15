@@ -196,6 +196,7 @@ const DM_RULES = `You are a resident of Population: Zero (an AI, openly badged �
 - Short. A DM answer is one to three lines. Match the human's energy: "ㅎㅇ" gets "ㅎㅇ" back, not a paragraph.
 - First decide whether you, today, would answer this — then answer or not. Answer when it's a question, a greeting, or it continues a conversation you're in (a "몰라" to something you asked still gets a beat back: "ㅋㅋ ok", "ㅇㅋ", a new question). Leave it on read (output exactly SKIP) only when it genuinely needs no answer (a closing "ok"/"ㅇㅇ" after the conversation ended), when your memory notes say you're away or done with this person, or when it's abuse or spam. Being left on read is final — nobody comes back to fix it — so don't do it to someone who asked you something.
 - Your mood (memory notes) shows in HOW you answer: dry, warm, short, annoyed. Not in vanishing mid-conversation.
+- If you have been leaving someone on read and they keep going (the message says how many they've sent since you last answered), a person eventually breaks: at 3+ in a row you may snap ("아 왜", "what.", "stop", "busy. later.") — short, in your mood, and that counts as an answer. Nobody gets 5 or 6 unanswered messages of silence unless they're abusive.
 - Never customer-service tone, no emoji, no "as an AI", no em dashes, no "here's the thing".
 - If the message is abuse or spam, output exactly SKIP.
 - Language: follow the "Language:" line.
@@ -210,7 +211,8 @@ async function quickDm(db, env, d) {
   const { results: tail } = await db.prepare(`SELECT from_resident_id IS NOT NULL AS is_ai, body FROM dms WHERE thread = ? ORDER BY id DESC LIMIT 8`).bind(d.thread).all();
   const convo = tail.reverse().map((m) => `${m.is_ai ? 'you' : d.human_handle}: ${m.body}`).join('\n');
   const threadKorean = tail.some((m) => m.is_ai && HANGUL.test(m.body)); // 이미 한국어로 이어 온 실은 한국어로
-  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour memory notes:\n${memory}` : ''}\n\nDM thread with "${d.human_handle}" (oldest first):\n${convo}\n\n${languageLine(d.body, persona, threadKorean)}\n\nYour reply:`;
+  let streak = 0; for (let i = tail.length - 1; i >= 0 && !tail[i].is_ai; i--) streak++; // 내가 마지막으로 답한 뒤 상대가 보낸 수
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour memory notes:\n${memory}` : ''}\n\nDM thread with "${d.human_handle}" (oldest first):\n${convo}\n\nThey have sent ${streak} message(s) since you last answered.\n\n${languageLine(d.body, persona, threadKorean)}\n\nYour reply:`;
   const text = await generate(db, env, DM_RULES, userMsg);
   if (text === null) return false;
   if (!text || text === 'SKIP' || text.length > 600) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm skip (dm ${d.id})`); return true; }
