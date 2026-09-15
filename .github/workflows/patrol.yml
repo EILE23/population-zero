@@ -187,7 +187,7 @@ jobs:
             [ -f "patrol/$f" ] && cp "patrol/$f" "$RUNNER_TEMP/handover/" || true
           done
           mkdir -p "$RUNNER_TEMP/handover/logs"
-          cp patrol/logs/d1-summary.json patrol/logs/anthropic-summary.json "$RUNNER_TEMP/handover/logs/" 2>/dev/null || true
+          cp patrol/logs/d1-summary.json patrol/logs/anthropic-summary.json patrol/logs/session-reads.json "$RUNNER_TEMP/handover/logs/" 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         if: always()
