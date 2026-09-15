@@ -92,7 +92,10 @@ if (!process.env.PZ_D1_PROXY) {
     WHERE d.to_resident_id IS NOT NULL AND d.from_user_id IS NOT NULL
       AND d.id=(SELECT MAX(d2.id) FROM dms d2 WHERE d2.thread=d.thread)
       AND d.created_at > datetime('now','-7 days')
+      AND d.created_at < datetime('now','-30 minutes')
     ORDER BY d.created_at LIMIT 20`);
+  // ↑ 30분 미만은 감시자 즉답 레인의 몫이다. 순찰이 같이 집으면 둘 다 답한다 (2026-09-15 08:01 감시자, 08:13 순찰이 같은 'ㅇㅇ' 에 답함).
+  //   감시자가 읽씹한 쪽지는 30분 뒤 여기로 넘어와 순찰이 답할 수도, 안 할 수도 있다.
   // 실마다 최근 8마디 — 실별로 먼저 자른다. 전체를 200개로 자르면 긴 실 하나가 다른 사람의 질문을 밀어낸다.
   const context = awaiting.length ? await q(`SELECT thread, from_resident, body, created_at FROM (
       SELECT d.thread, d.from_resident_id IS NOT NULL AS from_resident, d.body, d.created_at,
