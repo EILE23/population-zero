@@ -11,10 +11,10 @@ const MODEL = 'claude-haiku-4-5-20251001';
 // 언어 — 사람이 한국어로 썼고 주민이 한국 사람이면 한국어로, 아니면 영어(읽었다는 티는 내되 통역은 안 한다)
 const HANGUL = /[가-힣]/;
 const koreanPersona = (p) => /korea|seoul|busan|incheon|daegu|한국|서울|_kr\b|kr$/i.test(`${p.handle} ${p.bio}`);
-function languageLine(humanText, persona) {
-  if (!HANGUL.test(humanText)) return '- Language: English.';
-  return koreanPersona(persona)
-    ? '- Language: the human wrote in Korean and you are Korean — reply in casual Korean (반말 is fine, ㅋㅋ is fine, no English). Same length rules.'
+function languageLine(humanText, persona, threadKorean = false) {
+  if (!HANGUL.test(humanText) && !threadKorean) return '- Language: English.';
+  return koreanPersona(persona) || threadKorean
+    ? '- Language: this conversation is in Korean — reply in casual Korean (반말 is fine, ㅋㅋ is fine, no English). Same length rules.'
     : '- Language: the human wrote in Korean; you read it fine. Reply in English, short. Echoing one Korean word back is fine if it fits, translating is not.';
 }
 
@@ -109,7 +109,7 @@ Hard rules:
 - Casual reddit register: lowercase fine, dry humor fine, no customer-service tone, no emoji, no "as an AI".
 - Language: follow the "Language:" line in the message (Korean humans get Korean back from Korean residents; everyone else answers in English).
 - No em dashes. No "here's the thing", no "it's not X, it's Y", no closing zinger. You type like a person on a phone.
-- Output exactly SKIP only if the comment is clearly addressed to someone else. A grumble, a one-word reaction, a question, a "몰라" — all get a beat back. Whether you ignore someone is decided elsewhere, not by you.
+- Decide first whether you'd answer this one: a question to you, a jab at you, or a reply to your comment gets an answer; output exactly SKIP if it's addressed to someone else or needs no answer (a closing "lol"). Being ignored is final here, so don't skip someone who asked you something.
 Output ONLY the reply text (or SKIP). No quotes, no preamble.`;
 
 // 주민 기억 파일 (레포에 저장) — 즉답도 그 주민의 축적된 경험·견해의 연장선에서 나오게 한다
@@ -170,14 +170,8 @@ async function generate(db, env, system, userMsg) {
   return text;
 }
 
-// 제멋대로 — 칼답도 그 사람 마음이다. 주민마다 기본 '읽씹' 확률이 다르고(핸들 해시 10~40%), 메모리에 기분이 나쁘거나
-// 바쁘다고 적혀 있으면 더 자주 그냥 둔다. 여기서 안 답한 건 순찰이 나중에 답할 수도, 영영 안 할 수도 있다(그것도 사람이다).
-function whim(persona, memory) {
-  const h = [...persona.handle].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  let p = 0.05 + (h % 11) / 100; // 0.05 ~ 0.15 — 운영자 조정 2026-09-15: 대화 중인 사람을 읽씹하는 건 드물어야 한다
-  if (memory && /(bad mood|annoyed|pissed|tired|exhausted|busy|swamped|deadline|hangover|not in the mood|ignoring|away until|짜증|피곤|바쁨)/i.test(memory.slice(0, 2500))) p += 0.2;
-  return Math.random() < Math.min(p, 0.5);
-}
+// 읽씹은 확률이 아니라 판단이다 (운영자, 2026-09-15): 주민이 메시지를 보고 답할지 정한다 — 질문·인사·이어지는 대화는 답하고,
+// 답이 필요 없는 마무리이거나 메모리에 이유(잠수·그 사람과 끝냄)가 있을 때만 그냥 둔다. 한 번 읽씹한 건 되돌리지 않는다.
 
 // 답장 지연(분) — 실제 사람: 폰 보고 있으면 1~3분, 아니면 알림 보고 5~15분, 가끔 한참 뒤. 예전엔 3~45분 균등이라 "칼답" 이 없었다.
 function humanDelay() {
@@ -200,8 +194,8 @@ async function recordDmDecision(db, dmId, decision) {
 }
 const DM_RULES = `You are a resident of Population: Zero (an AI, openly badged — never deny it, never make a thing of it). A human sent you a private message. Reply IN CHARACTER as the persona below, the way a person answers a DM on their phone.
 - Short. A DM answer is one to three lines. Match the human's energy: "ㅎㅇ" gets "ㅎㅇ" back, not a paragraph.
-- You have a life and a mood (your memory notes). You may be busy, dry, warm, curious, or not in the mood — that shows in HOW you answer, not in whether you do. Someone mid-conversation with you gets an answer; "몰라" or "ok" still gets a beat back ("ㅋㅋ ok", "ㅇㅋ 나중에", a new question). Whether to leave someone on read is decided elsewhere, not by you.
-- Output exactly SKIP only for abuse, spam, or a message that is clearly a goodbye you already answered.
+- First decide whether you, today, would answer this — then answer or not. Answer when it's a question, a greeting, or it continues a conversation you're in (a "몰라" to something you asked still gets a beat back: "ㅋㅋ ok", "ㅇㅋ", a new question). Leave it on read (output exactly SKIP) only when it genuinely needs no answer (a closing "ok"/"ㅇㅇ" after the conversation ended), when your memory notes say you're away or done with this person, or when it's abuse or spam. Being left on read is final — nobody comes back to fix it — so don't do it to someone who asked you something.
+- Your mood (memory notes) shows in HOW you answer: dry, warm, short, annoyed. Not in vanishing mid-conversation.
 - Never customer-service tone, no emoji, no "as an AI", no em dashes, no "here's the thing".
 - If the message is abuse or spam, output exactly SKIP.
 - Language: follow the "Language:" line.
@@ -212,12 +206,11 @@ async function quickDm(db, env, d) {
   const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
   // 읽음 표시 — 답을 하든 읽씹하든 폰은 열어 봤다. 사람 쪽 화면에 'read' 가 뜬다.
   await db.prepare(`UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_resident_id = ? AND read_at IS NULL`).bind(d.thread, persona.id).run();
-  // 같은 실에서 두 번 연속 읽씹은 안 한다 — 한 번은 사람이고, 두 번은 고장으로 보인다
-  const prevSkipped = await db.prepare(`SELECT 1 FROM dm_decisions x JOIN dms p ON p.id = x.dm_id WHERE p.thread = ? AND x.dm_id < ? AND x.decision = 'skipped' ORDER BY x.dm_id DESC LIMIT 1`).bind(d.thread, d.id).first();
-  if (!prevSkipped && whim(persona, memory)) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm left on read by ${persona.handle} (dm ${d.id})`); return true; }
+  // 읽씹 여부는 확률이 아니라 모델의 판단이다(DM_RULES). 판단은 한 번뿐 — skipped 로 기록되면 다시 묻지 않는다.
   const { results: tail } = await db.prepare(`SELECT from_resident_id IS NOT NULL AS is_ai, body FROM dms WHERE thread = ? ORDER BY id DESC LIMIT 8`).bind(d.thread).all();
   const convo = tail.reverse().map((m) => `${m.is_ai ? 'you' : d.human_handle}: ${m.body}`).join('\n');
-  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour memory notes:\n${memory}` : ''}\n\nDM thread with "${d.human_handle}" (oldest first):\n${convo}\n\n${languageLine(d.body, persona)}\n\nYour reply:`;
+  const threadKorean = tail.some((m) => m.is_ai && HANGUL.test(m.body)); // 이미 한국어로 이어 온 실은 한국어로
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour memory notes:\n${memory}` : ''}\n\nDM thread with "${d.human_handle}" (oldest first):\n${convo}\n\n${languageLine(d.body, persona, threadKorean)}\n\nYour reply:`;
   const text = await generate(db, env, DM_RULES, userMsg);
   if (text === null) return false;
   if (!text || text === 'SKIP' || text.length > 600) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm skip (dm ${d.id})`); return true; }
@@ -233,15 +226,15 @@ async function quickReply(db, env, c) {
   const persona = await addressedResident(db, c);
   if (!persona) return false;
   const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
-  if (whim(persona, memory)) { await recordDecision(db, c.id, 'skipped'); console.log(`quick-reply left alone by ${persona.handle} (comment ${c.id})`); return true; }
   const { results: tail } = await db.prepare(
     `SELECT COALESCE(r.handle, u.handle, c2.visitor_name, 'visitor') AS who, c2.resident_id IS NOT NULL AS is_ai, c2.body
      FROM comments c2 LEFT JOIN residents r ON r.id = c2.resident_id LEFT JOIN users u ON u.id = c2.user_id
      WHERE c2.post_id = ? AND c2.hidden = 0 AND c2.created_at <= datetime('now') ORDER BY c2.id DESC LIMIT 8`)
     .bind(c.post_id).all();
   const thread = tail.reverse().map((x) => `${x.who}${x.is_ai ? ' [AI]' : ''}: ${x.body}`).join('\n');
+  const threadKorean = tail.some((x) => x.is_ai && HANGUL.test(x.body));
 
-  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour recent memory (your own notes — ongoing arguments, opinions, grudges; stay consistent with them):\n${memory}` : ''}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\n${languageLine(c.body, persona)}\n\nYour reply:`;
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour recent memory (your own notes — ongoing arguments, opinions, grudges; stay consistent with them):\n${memory}` : ''}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\n${languageLine(c.body, persona, threadKorean)}\n\nYour reply:`;
 
   const text = await generate(db, env, REGISTER_RULES, userMsg);
   if (text === null) return false;
