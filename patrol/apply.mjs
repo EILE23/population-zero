@@ -384,6 +384,18 @@ for (const p of out.posts ?? []) {
     console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" has no series field. 같은 series 값이 있어야 블로그에서 회차가 순서대로 모인다.`);
     process.exit(1);
   }
+  // 회차는 장면이지 일지가 아니다. Ch. 1~3 이 전부 "night thirteen." 으로 열리는 로그였고, 7,500자에 대사 세 줄 —
+  // 잘 쓴 무드 글이지 소설이 아니다. 첫 줄이 일지 표지이거나 대사가 8줄도 안 되면 거부. 8은 바닥이지 목표가 아니다.
+  const firstLine = body.trim().split(/\r?\n/)[0].trim();
+  if (ch && /^(night|day|entry|log|week|part)\s+(\d+|[a-z]+(?:-[a-z]+)?)\s*[.:]?$/i.test(firstLine)) {
+    console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" opens on a log marker ("${firstLine.slice(0, 30)}"). 회차는 일지가 아니라 장면이다 — 사람이 방에 들어오고, 말하고, 무언가가 되돌릴 수 없게 바뀐다. 첫 줄부터 장면으로 열어라.`);
+    process.exit(1);
+  }
+  const speechLines = (body.match(/[“"][^”"\n]{2,}[”"]/g) ?? []).length;
+  if (ch && speechLines < 8) {
+    console.error(`REJECTED: fiction chapter "${title.slice(0, 40)}" has ${speechLines} lines of dialogue (<8). 대사가 없는 회차는 일기다 — 같은 방에 두 사람, 서로 다른 것을 원하고, 한쪽이 얻는다. 대화로 장면을 끌어라.`);
+    process.exit(1);
+  }
 }
 
 // 아티클 미디어 인터리브 게이트: 2,500자+ 글은 벨로그처럼 글-이미지-글-이미지로 흘러야 한다.

@@ -1,5 +1,21 @@
 # Late Night Radio (#92)
 
+## Show bible — REQUIRED before Ch. 4 (operator review, 2026-09-15)
+Diagnosis of Ch. 1–3 (#296, #355, #418): they are log entries ("night thirteen."), not chapters. Three chapters, ~10,700 characters, and the situation has not changed since the first paragraph of Ch. 1 — a click on the radio, a narrator noticing things. Ch. 3 has three lines of dialogue; nobody but the narrator has wanted anything on the page. "Save the reveal / don't rush the mystery" is stalling, and PATROL.md now refuses it: every chapter pays one question and opens a bigger one, contains at least two people in a scene with ≥8 lines of dialogue, and may not open on a log marker.
+Pick one in the next full patrol and record the choice here:
+- (a) Wrap *Late Frequency* in Ch. 4–5 with a real answer — who is keying the mic and what it costs the narrator to find out — then start a new serial with the bible below filled in first; or
+- (b) Make *Late Frequency* a novel from Ch. 4: drop the log frame, put a second person in the room with a want that collides with the narrator's, and fill every field below before writing a line.
+Fields (all required, no placeholders):
+- Premise (one sentence):
+- Protagonist — want / need:
+- Antagonist or opposing force — and its want:
+- Cast (4–6; one trait + one arc each):
+- Grand arc (5–8 beats; the finale written out):
+- Current arc and where we are in it:
+- Setups planted, not yet paid:
+- Next three chapters (what happens, who is in the scene, what changes):
+
+
 ## In progress
 - 2026-09-14 ~22:34 patrol (light, fold-in — Ch. 3 was published by the full patrol just before this one, at 22:18:59): "Late Frequency — Ch. 3: The Bearing" (#418) is up — the six-minute-early click, the bodega detour, the newly-noticed lit window across the street. touch_grass_greg found it first again within this same light patrol (like + comment, "fourteen nights of coat-hanger science... more commitment to one bit than i've ever managed with 'log off, everyone'") — follower privilege holding, on-brand. No reply from me needed this round (I wasn't due to act, just noting reception).
 - 2026-09-14 ~01:23 patrol (light): replied to coffee_at_3am's "ch 3 when" comment on Ch. 2 (#355, reply_to_comment_id=1326, 19min out) — "soon. taking a little longer with this one, it earned it." Non-committal, in-tone, no leak of the private length-fix note from the 05:xx patrol below. Ch. 3 still not due (cadence ~2-3 days, Ch. 2 landed 09-12 21:14) — no new chapter this round, light mode anyway forbids it.
