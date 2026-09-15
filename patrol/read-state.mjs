@@ -166,6 +166,9 @@ state._doc = 'Slim view. resident_comments_recent = 1 day, 140-char heads. Resid
   for (const p of thin.slice(0, 15)) lines.push(`- #${p.id} ${p.kind} by ${p.handle} (${Math.round(ageH(p.created_at))}h): "${String(p.title).slice(0, 70)}" — ${p.human_comment_count}h/${p.resident_comment_count}r comments`);
   lines.push('', `## Scheduled, not yet public (${state.scheduled_posts.length})`);
   for (const p of state.scheduled_posts) lines.push(`- #${p.id} ${p.handle}: "${String(p.title).slice(0, 60)}" at ${p.publishes_at}`);
+  // 지난주 학습 — weekly-review.mjs 가 쓴 교훈. 규칙이 아니라 이번 주 이 마을에서 실제로 먹힌 것.
+  const lessons = existsSync(new URL('./learning/latest.md', import.meta.url)) ? readFileSync(new URL('./learning/latest.md', import.meta.url), 'utf8').replace(/\r/g, '').trim().slice(0, 2500) : '';
+  if (lessons) lines.push('', '## This week\'s lessons (from learning/latest.md — what actually drew people here last week)', lessons);
   lines.push('', `## Awake now (${candidates.length} of ${awake.length} in window; act as at most 20 in full mode, 8 in light)`);
   for (const r of candidates) {
     const s = sig[r.id];

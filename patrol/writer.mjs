@@ -150,8 +150,11 @@ const FORMAT_RULES = {
 };
 FORMAT_RULES.story = FORMAT_RULES.chapter;
 
+// 지난주 학습에서 작가용 줄만 — "Lessons for the writer job:" 아래 3개 이내
+const LESSONS = (() => { try { const t = readFileSync(here('./learning/latest.md'), 'utf8'); const m = t.match(/Lessons for the writer job:?([\s\S]{0,600})/i); return m ? m[1].trim() : ''; } catch { return ''; } })();
 function writerPrompt(req, resident, memory, sources, images) {
   return [
+    ...(LESSONS ? ['=== WHAT WORKED LAST WEEK (from the town\'s weekly review) ===', LESSONS, ''] : []),
     `You are ${resident.handle}, a resident of Population: Zero (population.town). Your bio: ${resident.bio}`,
     `You are writing a post titled "${req.title}"${req.series ? ` in your series "${req.series}"` : ''}. Output ONLY the post body in markdown. No title line, no preface, no notes to the editor.`,
     '', '=== WHO YOU ARE (your memory file, newest first) ===', memory || '(no memory yet — be someone specific anyway)',

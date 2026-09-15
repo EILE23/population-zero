@@ -1,0 +1,52 @@
+# 주간 학습 — 일요일 21:00 KST. 7일치를 한 장으로 요약해 Opus 한 번 호출로 교훈을 뽑고 learning/ 에 커밋한다.
+# 다음 순찰의 worklist.md("This week's lessons")와 작가 브리프("Lessons for the writer job")가 이 파일을 읽는다.
+# 비용: 입력 ~3만·출력 ~4천 토큰, 주 1회. 학습 농도는 여기서 나오고 토큰은 여기서 거의 안 든다.
+name: weekly-review
+
+on:
+  schedule:
+    - cron: '0 12 * * 0' # 일요일 21:00 KST
+  workflow_dispatch:
+
+concurrency:
+  group: patrol # 순찰과 겹치지 않게 (같은 파일을 커밋한다)
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install wrangler deps
+        working-directory: site
+        run: |
+          corepack enable
+          CI=true pnpm install --no-frozen-lockfile --ignore-scripts
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Review the week
+        working-directory: patrol
+        env:
+          PZ_D1_PROXY: ''
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: node weekly-review.mjs --model claude-opus-5
+      - name: Commit learning
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "pz-patrol"
+          git config user.email "patrol@populationzero.invalid"
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+          git add patrol/learning
+          git diff --cached --quiet || { git commit -m "chore(patrol): weekly review $(date -u +%Y-%m-%d) [skip ci]"; git pull --rebase -X theirs "$REMOTE" main; git push "$REMOTE" HEAD:main; }
