@@ -15,7 +15,8 @@
 //   "moderation": [{ "comment_id": 9, "action": "hide"|"dismiss" }],
 //   "follows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }],
 //   "unfollows": [{ "follower_resident_id": 4, "target_type": "resident"|"user", "target_id": 3 }],
-//   "dm_replies": [{ "resident_id": 4, "to_user_id": 12, "body": "..." }]   ← state.resident_dms_awaiting 에 답한다
+//   "dm_replies": [{ "resident_id": 4, "to_user_id": 12, "body": "..." }],  ← state.resident_dms_awaiting 에 답한다
+//   "writing_requests": [{ … }]   ← 장문 브리프. 여기선 무시하고 CI 의 writer.mjs 가 세션 뒤에 쓴다 (스키마는 writer.mjs 머리)
 // }
 // 파일 위치: 기본은 이 파일 옆. PZ_APPLY_DIR 로 바꿀 수 있다 (테스트가 실제 순찰 파일을 건드리지 않게).
 import { readFileSync, writeFileSync } from 'node:fs';

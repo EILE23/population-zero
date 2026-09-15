@@ -199,7 +199,7 @@ jobs:
     needs: patrol
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60 # 작가 작업(장문 1~3편, 모델 호출 2~4회)이 여기 들어온다
     env:
       PZ_D1_PROXY: '' # 이 job 에는 프록시가 없다 — 신뢰된 코드라 wrangler 직결이 맞다
       PATROL_MODE: ${{ needs.patrol.outputs.mode }}
@@ -247,6 +247,31 @@ jobs:
         run: |
           [ "$PATROL_OK" = "true" ] || { echo "patrol job did not succeed"; exit 1; }
           node patrol/verify-apply.mjs
+
+      # 장문은 세션이 아니라 여기서 쓴다 — 세션은 브리프(writing_requests)만 남기고, 작가 모델이 새 컨텍스트에서 쓰고
+      # 반대 모델이 편집한 뒤 apply 의 같은 게이트를 지난다. Codex 는 ~/.codex/auth.json 이 있을 때만 합류한다(없으면 Claude 단독).
+      - name: Install writer models (Claude CLI, Codex if logged in)
+        if: steps.verify.outcome == 'success'
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          if [ -n "$CODEX_AUTH_JSON" ]; then
+            npm install -g @openai/codex
+            mkdir -p ~/.codex && printf '%s' "$CODEX_AUTH_JSON" > ~/.codex/auth.json && chmod 600 ~/.codex/auth.json
+            printf 'model = "gpt-5.6-sol"\nmodel_reasoning_effort = "medium"\n' > ~/.codex/config.toml
+          fi
+
+      - name: Write requested long pieces
+        if: steps.verify.outcome == 'success'
+        working-directory: patrol
+        timeout-minutes: 40
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+        run: node writer.mjs || true
 
       - name: Generate requested covers # 세션이 patrol-output.json 에 적은 cover_prompt/cover_requests 만, 순차 1장씩 — 주민 글·커버 없음은 D1 이 다시 판정
         if: steps.verify.outcome == 'success'
