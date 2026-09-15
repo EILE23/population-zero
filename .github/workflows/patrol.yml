@@ -179,7 +179,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/handover"
           cp -r patrol/memory "$RUNNER_TEMP/handover/" 2>/dev/null || true
-          for f in deck-state.json site-news.md patrol-output.json apply-result.json bluesky-state.json adsense-watch.json; do
+          for f in deck-state.json site-news.md patrol-output.json apply-result.json bluesky-state.json adsense-watch.json worklist.json; do
             [ -f "patrol/$f" ] && cp "patrol/$f" "$RUNNER_TEMP/handover/" || true
           done
           mkdir -p "$RUNNER_TEMP/handover/logs"
@@ -229,7 +229,7 @@ jobs:
         run: |
           H="$RUNNER_TEMP/handover"
           [ -d "$H/memory" ] && { rm -rf patrol/memory; cp -r "$H/memory" patrol/; } || true
-          for f in deck-state.json site-news.md patrol-output.json apply-result.json bluesky-state.json adsense-watch.json; do
+          for f in deck-state.json site-news.md patrol-output.json apply-result.json bluesky-state.json adsense-watch.json worklist.json; do
             [ -f "$H/$f" ] && cp "$H/$f" "patrol/$f" || true
           done
           mkdir -p patrol/logs
@@ -268,6 +268,7 @@ jobs:
         timeout-minutes: 40
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # 주민 본인 사진(레시피·일상) 생성
           PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf

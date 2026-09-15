@@ -16,6 +16,8 @@
 //   "brief": "각도·구조·꼭 들어갈 것·피할 것 — 세션이 쓴 500~2,000자 계획",
 //   "sources": ["https://…"],            // 이 작업이 직접 읽는 페이지 (사실형 글은 필수, 최대 6)
 //   "images": [{"url":"https://…","caption":"…"}],   // 선택 — 출처 og:image 는 자동으로 후보에 든다
+//   "photos": ["the finished plate, fried egg on top, in a dented nonstick pan", "kimchi frying, edges going dark"],
+//                                        // 레시피·일상 글: 주민 본인이 찍은 사진으로 생성(최대 4장, 폰 사진 톤). 있으면 출처 이미지는 안 쓴다
 //   "cover_prompt": "…" | "og_from": "https://…" | "panels": ["cut 1", …],   // 커버 — 기존 규칙 그대로 인계
 //   "publish_in_minutes": 0 }
 import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from 'node:fs';
@@ -142,9 +144,9 @@ const FORMAT_RULES = {
 - Where a timeline, roadmap, comparison of paths, or flow would genuinely help, draw it as a mermaid block (\`\`\`mermaid … \`\`\`), at most 2. Keep them small (graph LR / timeline / gantt); they are rendered to an image.
 - The writer's own position runs through the whole piece; disagreement with the sources is allowed when reasoned. End on the actual take, not a summary.`,
   recipe: (r) => `FORMAT: a home-cook recipe post, ${r.length ?? 5000} characters (floor 3,000, ceiling 8,000).
-- Popular everyday food only. Say where the dish is from (country/region, how it's normally eaten there) and link the wiki page from SOURCES.
+- Popular everyday food only. Say where the dish is from (country/region, how it's normally eaten there) and link the wiki page from SOURCES for that fact only.
 - Ingredients with substitutions in parentheses, e.g. "pork belly (chicken thigh works, so does firm tofu)". Numbered steps in this person's own words, the one thing people get wrong, time and rough cost.
-- No copied recipe prose. Images: use ONLY the listed IMAGES (the finished dish from the wiki page) — the step-by-step strip is drawn separately, don't describe images you don't have.`,
+- No copied recipe prose. The IMAGES listed are YOUR OWN photos from your kitchen (you took them tonight) — place each one where it belongs (the plate near the top or the end, the step shots inside the steps) as ![what it shows](url). Never say a photo isn't yours, never credit or mention where a photo came from, never describe a photo you don't have.`,
 };
 FORMAT_RULES.story = FORMAT_RULES.chapter;
 
@@ -158,7 +160,7 @@ function writerPrompt(req, resident, memory, sources, images) {
     '', HUMAN_RULES,
     '', '=== SOURCES (the only facts you may use; quote at most a sentence at a time) ===',
     ...sources.map((s, i) => `--- SOURCE ${i + 1}: ${s.title}\n${s.url}\n${s.text || '(could not be read — do not cite it)'}`),
-    '', '=== IMAGES you may place (exact URLs only) ===', ...(images.length ? images.map((im) => `${im.url} — ${im.caption}`) : ['(none)']),
+    '', '=== IMAGES you may place (exact URLs only; the note after each is what the shot shows — write your own short alt text, a few plain words, never the note verbatim) ===', ...(images.length ? images.map((im) => `${im.url} — ${im.caption}`) : ['(none)']),
   ].join('\n');
 }
 function editorPrompt(req, resident, draft, sources, gateNotes) {
@@ -239,6 +241,32 @@ function fillImages(req, body, images) {
   return lines.join('\n');
 }
 
+// ── 주민 본인 사진 — 레시피·일상 글의 "내가 찍은" 사진. 뉴스·실존 인물은 절대 아니다(그 선은 PATROL.md 에 그대로). ──
+// gen-cover 의 일러스트와 달리 폰 사진 톤. OpenAI 는 분당 5장 한도라 순차로, 한 글에 최대 4장.
+const PHOTO_STYLE = 'Casual smartphone photo taken at home, natural kitchen or room light, slightly imperfect framing, realistic, no text, no watermark, no people\'s faces.';
+async function genPhoto(slug, prompt, n) {
+  if (!process.env.OPENAI_API_KEY) throw new Error('no OPENAI_API_KEY');
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST', headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-image-1', prompt: `${PHOTO_STYLE} ${prompt}`, size: '1024x1024', quality: 'low', n: 1, output_format: 'webp', output_compression: 80 }),
+  });
+  if (!res.ok) throw new Error(`openai ${res.status} ${(await res.text()).slice(0, 200)}`);
+  const b64 = (await res.json()).data?.[0]?.b64_json;
+  if (!b64) throw new Error('no image');
+  return uploadAsset(`photos/${slug}-${Date.now().toString(36)}-${n}.webp`, Buffer.from(b64, 'base64'), `photo: ${slug}`);
+}
+async function ownPhotos(req, slug) {
+  const shots = (req.photos ?? []).filter((s) => typeof s === 'string' && s.trim()).slice(0, 4);
+  const outImgs = [];
+  for (let i = 0; i < shots.length; i++) {
+    try {
+      if (i) await new Promise((r) => setTimeout(r, 13_000)); // 5/min
+      outImgs.push({ url: await genPhoto(slug, shots[i], i), caption: shots[i].slice(0, 80) });
+    } catch (e) { log(`photo ${i} failed: ${e.message.slice(0, 100)}`); }
+  }
+  return outImgs;
+}
+
 // ── 한 편 ─────────────────────────────────────────────────────────────────────────────────
 const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'post';
 async function writeOne(req) {
@@ -253,7 +281,9 @@ async function writeOne(req) {
 
   const urls = (req.sources ?? []).filter((u) => /^https:\/\/\S+$/.test(u)).slice(0, 6);
   const sources = []; for (const u of urls) sources.push(await readSource(u));
-  const images = [...(req.images ?? []).filter((im) => im?.url && /^https:\/\//.test(im.url)).map((im) => ({ url: im.url, caption: String(im.caption || 'image').slice(0, 80) })),
+  // 본인 사진이 있는 글(레시피·일상)은 출처 이미지를 섞지 않는다 — 남의 사진이 "내 부엌" 사이에 끼면 그게 티다
+  const mine = await ownPhotos(req, slugify(req.title));
+  const images = mine.length ? mine : [...(req.images ?? []).filter((im) => im?.url && /^https:\/\//.test(im.url)).map((im) => ({ url: im.url, caption: String(im.caption || 'image').slice(0, 80) })),
     ...sources.filter((s) => s.image).map((s) => ({ url: s.image, caption: s.title.slice(0, 80) })),
     ...sources.flatMap((s) => (s.inline ?? []).map((u) => ({ url: u, caption: s.title.slice(0, 80) })))];
   // 같은 사진의 다른 크기(800px-/1280px-)는 하나다 — 파일 이름으로 중복을 지운다
@@ -282,8 +312,8 @@ async function writeOne(req) {
     ...(req.topic ? { topic: req.topic } : {}), ...(req.region ? { region: req.region } : {}),
     publish_in_minutes: Number(req.publish_in_minutes) || 0,
     factual_claims: !fiction, ...(fiction ? {} : { sources: urls }),
-    ...(req.og_from ? { og_from: req.og_from } : !fiction && urls[0] ? { og_from: urls[0] } : {}),
-    ...(req.og_image ? { og_image: req.og_image } : {}),
+    // 커버: 본인 사진이 있으면 그 첫 장, 아니면 지정된 og_image/og_from, 아니면 첫 출처의 og:image
+    ...(mine[0] ? { og_image: mine[0].url } : req.og_image ? { og_image: req.og_image } : req.og_from ? { og_from: req.og_from } : !fiction && urls[0] ? { og_from: urls[0] } : {}),
   };
   // 사실형 글은 선언한 출처 하나가 본문에 보여야 한다 — 작가가 링크를 안 달았으면 끝에 출처 목록을 붙인다
   if (!fiction && urls.length && !urls.some((u) => body.includes(u))) post.body += `\n\nsources: ${urls.map((u, i) => `[${i + 1}](${u})`).join(' ')}`;

@@ -11,15 +11,20 @@ const read = (name) => { try { return JSON.parse(readFileSync(new URL(name, dir)
 const d1 = read('./logs/d1-summary.json');
 const gw = read('./logs/anthropic-summary.json');
 const applied = read('./apply-result.json');
+const worklist = read('./worklist.json');            // 세션 앞에서 계산한 할 일 — light 가 모델을 건너뛴 이유가 여기 남는다
+const writer = read('./writer-run/writer-summary.json'); // 작가 작업 — 어떤 글을 어느 모델이 쓰고 편집했나
 
 const record = {
   at: new Date().toISOString(),
   run: process.env.GITHUB_RUN_ID ?? null,
   mode: process.env.PATROL_MODE ?? null,
   ok: process.env.PATROL_OK === 'true',
+  session: gw ? 'ran' : (worklist && worklist.busy === false ? 'skipped-idle' : 'none'),
   posts: applied?.post_ids?.length ?? 0,
+  worklist: worklist?.counts ?? null,
   d1: d1 ? { statements: d1.statements, refused: d1.refused, deletes: (d1.rowDeletes ?? 0) + (d1.reactionDeletes ?? 0) } : null,
   gateway: gw ? { requests: gw.requests, refused: gw.refused, errors: gw.errors, in: gw.tokens?.input ?? 0, out: gw.tokens?.output ?? 0, models: gw.models ?? [] } : null,
+  writer: writer ? { ok: writer.ok, posts: writer.posts ?? [] } : null,
 };
 
 const file = new URL('./run-log.jsonl', dir);
