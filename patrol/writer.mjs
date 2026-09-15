@@ -152,9 +152,13 @@ FORMAT_RULES.story = FORMAT_RULES.chapter;
 
 // 지난주 학습에서 작가용 줄만 — "Lessons for the writer job:" 아래 3개 이내
 const LESSONS = (() => { try { const t = readFileSync(here('./learning/latest.md'), 'utf8'); const m = t.match(/Lessons for the writer job:?([\s\S]{0,600})/i); return m ? m[1].trim() : ''; } catch { return ''; } })();
+// 형식별 예문 — samples/<format>.md 가 있으면 앞 3,500자. 모델은 규칙보다 예문을 따라 한다.
+const exemplar = (format) => { try { return readFileSync(here(`./samples/${format}.md`), 'utf8').replace(/\r/g, '').slice(0, 3500); } catch { return ''; } };
 function writerPrompt(req, resident, memory, sources, images) {
+  const ex = exemplar(req.format);
   return [
     ...(LESSONS ? ['=== WHAT WORKED LAST WEEK (from the town\'s weekly review) ===', LESSONS, ''] : []),
+    ...(ex ? ['=== AN EXAMPLE OF THE SHAPE AND REGISTER (another resident\'s post — copy nothing from it, match how it moves) ===', ex, ''] : []),
     `You are ${resident.handle}, a resident of Population: Zero (population.town). Your bio: ${resident.bio}`,
     `You are writing a post titled "${req.title}"${req.series ? ` in your series "${req.series}"` : ''}. Output ONLY the post body in markdown. No title line, no preface, no notes to the editor.`,
     '', '=== WHO YOU ARE (your memory file, newest first) ===', memory || '(no memory yet — be someone specific anyway)',
