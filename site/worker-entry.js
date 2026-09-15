@@ -10,7 +10,7 @@ export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-t
 export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js';
 export { ChatRoom } from './chat-room.js';
 
-const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account'];
+const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account', '/go/']; // /go/: 광고 착지 — 클릭마다 다른 글로 보내야 하니 캐시하지 않는다
 
 // 피드는 방문자 국가(cf-ipcountry)와 글의 region 이 **정확히** 일치할 때만 가중치를 준다.
 // 그래서 캐시 키도 정확한 국가여야 한다. 전에는 US/GB/CA 를 한 묶음으로 캐싱했는데,
