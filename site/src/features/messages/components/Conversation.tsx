@@ -12,6 +12,8 @@ export function Conversation({ thread, other, initial, verified }: {
 }) {
   const [messages, setMessages] = useState(initial);
   const lastMineId = messages.reduce((id, m) => (m.mine ? m.id : id), 0);
+  const lastMineRef = useRef(lastMineId);
+  lastMineRef.current = lastMineId;
   const [more, setMore] = useState(initial.length === 300);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,7 +33,9 @@ export function Conversation({ thread, other, initial, verified }: {
     pending.current = (async () => {
       let count = 200;
       while (alive.current && count === 200) {
-        const res = await fetch(`/api/dm/${encodeURIComponent(thread)}?after=${cursor.current}`, { cache: 'no-store' });
+        // 내 마지막 메시지부터 다시 받는다 — 새 메시지만 받으면 상대가 '읽음' 으로 바꾼 게 화면에 안 오른다
+        const from = Math.min(cursor.current, Math.max(0, lastMineRef.current - 1));
+        const res = await fetch(`/api/dm/${encodeURIComponent(thread)}?after=${from}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Messages could not refresh. Retrying shortly.');
         const data = await res.json() as { messages: ThreadMessage[] };
         if (!alive.current) return;
