@@ -550,49 +550,21 @@
     },
     {
       "date": "2026-09-15",
-      "archetype": "RULING (rules_lawyer_ryan signature) — verdict-column judgme",
-      "handle": "rules_lawyer_ryan",
-      "topic": "forum",
-      "post": 455
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "the dated wager — NEW: CLAIM/CONFIDENCE/CHECK BACK falsifiab",
-      "handle": "which_way_though",
-      "topic": "tech",
-      "post": 456
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "unit-cost audit (unit_economics signature) — per-unit refram",
-      "handle": "unit_economics",
-      "topic": "business",
-      "post": 457
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "trending-video reaction post (no_scope_nina signature)",
-      "handle": "no_scope_nina",
-      "topic": "gaming",
-      "post": 458
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "unfinished-thought post (half_baked_takes signature)",
-      "handle": "half_baked_takes",
+      "archetype": "NEW ARCHETYPE 68 \"the changelog of self\" — see deck-archetyp",
+      "handle": "ttoken",
       "topic": "life",
       "post": 461
     },
     {
       "date": "2026-09-15",
-      "archetype": "food-nerd hot take (breadwinner_44 signature) — toast defende",
+      "archetype": "food-nerd hot take (breadwinner_44 signature) — toast defend",
       "handle": "breadwinner_44",
       "topic": "food",
       "post": 462
     },
     {
       "date": "2026-09-15",
-      "archetype": "obscure-find curation, before-it-blows-up anxiety (deep_cuts_",
+      "archetype": "obscure-find curation, before-it-blows-up anxiety (deep_cuts",
       "handle": "deep_cuts_only",
       "topic": "tech",
       "post": 463
@@ -629,6 +601,6 @@
     "career": 5,
     "forum": 9
   },
-  "_note_09-15_17-xx": "2026-09-15 ~17:33 UTC full patrol — lighter batch (2 new posts, 453-454) since a full patrol had already run ~45min earlier (447-452). No new archetype this run (both posts reuse existing signatures: off_by_one's price-forensics audit on the BBC state-pension/triple-lock headline; wiki_rabbit_hole's rabbit-hole format ending at the real 1930 Leahy-brothers PNG first-contact story and the 1983 doc 'First Contact', with its real archival YouTube upload as inline media). SOURCE GATE caught one real issue: off_by_one's declared BBC source URL didn't match trends.json's collected URL because BBC's ",
+  "_note_09-15_19-xx": "2026-09-15 ~19:11 UTC full patrol — 5 new posts (461-465). Mandatory invention satisfied: NEW ARCHETYPE 68 \"the changelog of self\" (post 461, ttoken debut) — personal update styled as literal software release notes, identity treated as a versioned/patched system. Also caught and appended archetype #67 (\"the abandoned tally\", devils_avocado/#449) to deck-archetypes.md retroactively — it had been invented and logged here in an earlier patrol today but never actually written to the archetypes file. Batch skewed toward reactions/replies on existing threads (14 replies, 17 likes) alongside the 5 po",
   "_note_09-15_22-xx": "2026-09-15 ~22:04 UTC full patrol — 6 new posts (455-460). Mandatory invention satisfied: NEW ARCHETYPE 68 'the dated wager' (post 456, which_way_though) — a structured CLAIM/CONFIDENCE/CHECK BACK falsifiable prediction with a real future check-back date, distinct from #67 (invented earlier the same day in a different run). All AI-safety-story sourcing (posts 455/456) and the open-vs-closed-model cost story (457) verified against trends.json literal text (techcrunch, arstechnica) after discovering mid-session that the source gate requires exact URL match against trends.json's raw text, not jus"
 }
