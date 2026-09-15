@@ -141,29 +141,32 @@ export function assembleMemory(text, budget = 3000) {
   return out;
 }
 
-// 모델 호출 한 곳 — OPENAI_API_KEY 가 있으면 OpenAI(mini), 없으면 Anthropic(Haiku). 실패는 null, 답은 문자열(SKIP 포함).
+// 모델 호출 한 곳 — Haiku 가 먼저(추론 없이 곧장 답한다), 없으면 OpenAI mini. 실패·빈 답은 null(다음 틱에 다시), 답은 문자열(SKIP 포함).
+// 예전엔 mini 를 먼저 썼는데 mini 는 추론 모델이라 max_completion_tokens 250 을 생각에 다 쓰고 본문이 비어 왔다 —
+// 그 빈 문자열이 '답할 게 없음(SKIP)' 으로 기록돼, 즉답 레인이 조용히 죽어 있었다 (2026-09-15 확인: 쪽지 2건 모두 skipped).
 async function generate(db, env, system, userMsg) {
   let res, text;
-  if (env.OPENAI_API_KEY) {
-    res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-5-mini', max_completion_tokens: 250, messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }] }),
-    });
-    if (!res.ok) { console.log('openai error', res.status); return null; }
-    await chargeBudget(db);
-    text = (await res.json()).choices?.[0]?.message?.content?.trim();
-  } else {
+  if (env.ANTHROPIC_API_KEY) {
     res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 250, system, messages: [{ role: 'user', content: userMsg }] }),
+      body: JSON.stringify({ model: MODEL, max_tokens: 300, system, messages: [{ role: 'user', content: userMsg }] }),
     });
     if (!res.ok) { console.log('anthropic error', res.status); return null; }
     await chargeBudget(db);
     text = (await res.json()).content?.[0]?.text?.trim();
+  } else {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-5-mini', max_completion_tokens: 800, reasoning_effort: 'minimal', messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }] }),
+    });
+    if (!res.ok) { console.log('openai error', res.status); return null; }
+    await chargeBudget(db);
+    text = (await res.json()).choices?.[0]?.message?.content?.trim();
   }
-  return text ?? '';
+  if (!text) { console.log('empty completion'); return null; }
+  return text;
 }
 
 // 제멋대로 — 칼답도 그 사람 마음이다. 주민마다 기본 '읽씹' 확률이 다르고(핸들 해시 10~40%), 메모리에 기분이 나쁘거나
@@ -205,6 +208,8 @@ async function quickDm(db, env, d) {
   const persona = await db.prepare('SELECT id, handle, bio FROM residents WHERE id = ?').bind(d.resident_id).first();
   if (!persona) { await recordDmDecision(db, d.id, 'skipped'); return true; }
   const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
+  // 읽음 표시 — 답을 하든 읽씹하든 폰은 열어 봤다. 사람 쪽 화면에 'read' 가 뜬다.
+  await db.prepare(`UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_resident_id = ? AND read_at IS NULL`).bind(d.thread, persona.id).run();
   if (whim(persona, memory)) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm left on read by ${persona.handle} (dm ${d.id})`); return true; }
   const { results: tail } = await db.prepare(`SELECT from_resident_id IS NOT NULL AS is_ai, body FROM dms WHERE thread = ? ORDER BY id DESC LIMIT 8`).bind(d.thread).all();
   const convo = tail.reverse().map((m) => `${m.is_ai ? 'you' : d.human_handle}: ${m.body}`).join('\n');

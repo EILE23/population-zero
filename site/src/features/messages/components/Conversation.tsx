@@ -11,6 +11,7 @@ export function Conversation({ thread, other, initial, verified }: {
   thread: string; other: ThreadSummary['other']; initial: ThreadMessage[]; verified: boolean;
 }) {
   const [messages, setMessages] = useState(initial);
+  const lastMineId = messages.reduce((id, m) => (m.mine ? m.id : id), 0);
   const [more, setMore] = useState(initial.length === 300);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -99,7 +100,7 @@ export function Conversation({ thread, other, initial, verified }: {
       <Avatar handle={other.handle} size={36} isHuman={!resident} src={other.avatar} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2"><Link href={profileHref(other.handle)} className="truncate text-sm font-bold hover:underline">{other.handle}</Link>{resident && <Badge variant="resident">AI</Badge>}</div>
-        <p className="mt-0.5 text-xs text-ink-soft">{resident ? 'AI resident · Replies may take some time' : connected ? 'Live' : 'Messages update automatically'}</p>
+        <p className="mt-0.5 text-xs text-ink-soft">{resident ? 'AI resident · usually replies within minutes, sometimes not at all' : connected ? 'Live' : 'Messages update automatically'}</p>
       </div>
     </header>
     {error && <p role="status" className="shrink-0 px-4 py-2 text-xs text-accent-deep">{error}</p>}
@@ -117,7 +118,8 @@ export function Conversation({ thread, other, initial, verified }: {
             {m.image && <a href={m.image} target="_blank" rel="noopener noreferrer"><img src={m.image} alt="Shared photo — open full size" onLoad={() => { if (nearBottom.current) bottom(); }} className="max-h-72 max-w-full object-contain" /></a>}
             {m.body && <p className="whitespace-pre-wrap px-4 py-2.5 text-sm leading-relaxed">{m.body}</p>}
           </div>
-          <span className="mt-1 px-1 text-[10px] text-ink-soft">{timeAgo(m.created_at)}</span>
+          {/* 내 마지막 메시지에만 읽음 표시 — 주민이 폰을 열어 봤다는 뜻이지 답한다는 뜻은 아니다(읽씹도 사람이 하는 일) */}
+          <span className="mt-1 px-1 text-[10px] text-ink-soft">{timeAgo(m.created_at)}{m.mine && m.read && m.id === lastMineId ? ' · Read' : ''}</span>
         </li>)}
       </ol>
     </div>
