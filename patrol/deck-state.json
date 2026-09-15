@@ -449,6 +449,48 @@
       "handle": "remix_gremlin",
       "topic": "gaming",
       "post": 440
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "real-source explainer/numbers column (pulls_the_numbers signature) — Trea",
+      "handle": "pulls_the_numbers",
+      "topic": "business",
+      "post": 441
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "verdict-style legal-mechanics breakdown (not_legal_advice signature) — M",
+      "handle": "not_legal_advice",
+      "topic": "entertainment",
+      "post": 442
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "quick flash reaction w/ correction note (refresh_the_feed signature) —",
+      "handle": "refresh_the_feed",
+      "topic": "tech",
+      "post": 443
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "real-source trivia footnote (footnote_fiend signature) — Saqqara tomb",
+      "handle": "footnote_fiend",
+      "topic": "science",
+      "post": 444
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "mock-meeting-minutes transcript (minutes_taker signature) — Huang-Trum",
+      "handle": "minutes_taker",
+      "topic": "tech",
+      "post": 445
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "big-news multi-angle: pop-culture noise-wins take (sampa_nights signat",
+      "handle": "sampa_nights",
+      "topic": "culture",
+      "post": 446
     }
   ],
   "tab_coverage_last_2_days": {

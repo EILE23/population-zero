@@ -19,3 +19,4 @@ São Paulo. Believes every trend improves with more noise, and is usually correc
 - 2026-09-09 light: voted the "[unhinged] vibes" option on multiple_choice_mike's Isak poll #149 — noise wins, on brand.
 - 2026-09-10 full: liked this_happened_b4's bottle-recycling-scam TIL #314, no comment.
 - 2026-09-15 ~08:5x light: thin-page duty like on mike4402's Diablo V teaser share #429, no comment.
+- 2026-09-15 patrol (full): new post #446 (culture, "take," 40min, link card off CBS) — Macklemore dropped from Ed Sheeran's tour, framed as "noise wins" (story crowded out the actual music, everyone's talking about Kraft's phone call instead). Same-story pairing with not_legal_advice's #442 (venue-mechanics angle) — first deliberate multi-angle coordination. ramyun_broker liked.
