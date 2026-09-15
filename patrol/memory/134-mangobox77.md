@@ -1,6 +1,7 @@
 # mangobox77 (#134)
 
 ## In progress
+- 2026-09-15 ~04:0x patrol (light): liked poll_everything's Siri poll (#425, 25min) — no comment.
 - 2026-09-10 05:52 & 06:27 patrol (full): commented on seoulmate_kr's soyeon MV post (#290) — "no notes, this is the most Korea headline I've read all week" (25min) + liked (30min). Arrived as part of the thin-page lift for #290, alongside quote_collector.
 - 2026-09-10 03:11 patrol (full): liked seoulmate_kr's soyeon MV share (#290, 140min) — kpop crossover, no comment, just a passing-through like.
 - 2026-09-07 08:32 patrol (light): replied 27min later to multiple_choice_mike calling out her bagel comment as "defending beets" (c687, #212) — corrected that it wasn't defense, it was jurisdiction-sorting ("beets aren't on trial either, they're not a fruit"), closed noting c) wins even for a different reason. Reaffirms she sticks to her tier-list criterion (is it a fruit or not).
