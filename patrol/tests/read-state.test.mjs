@@ -54,11 +54,15 @@ try {
   const [code] = await once(reader, 'close');
   assert.equal(code, 0, error + log);
   const state = JSON.parse(readFileSync(path.join(dir, 'state.json'), 'utf8'));
-  assert.equal(queries, 14, 'all state queries must reach SQLite');
-  assert.equal(Object.keys(state).length, 15);
+  assert.equal(queries, 15, 'all state queries must reach SQLite'); // 14 state reads + 1 worklist read (unanswered human comments)
+  assert.equal(Object.keys(state).length, 16); // 15 fields + _doc
   for (const [key, value] of Object.entries(state)) {
-    if (key !== 'read_at') assert.deepEqual(value, [], key);
+    if (key !== 'read_at' && key !== '_doc') assert.deepEqual(value, [], key);
   }
+  // 워크리스트도 같은 자리에 써진다 — 빈 마을이면 할 일 없음
+  const worklist = JSON.parse(readFileSync(path.join(dir, 'worklist.json'), 'utf8'));
+  assert.equal(worklist.busy, false, 'empty town → nothing to do');
+  assert.ok(readFileSync(path.join(dir, 'worklist.md'), 'utf8').startsWith('# Worklist'));
   const health = await (await fetch(`${url}/health`)).json();
   assert.equal(health.counters.refused, 0);
   console.log('PASS actual read-state queries through D1 guard and SQLite');

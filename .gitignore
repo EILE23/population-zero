@@ -35,3 +35,6 @@ docs/reviews/
 
 # Generated Documents delivery staging; maintained sources remain in brand/poz.
 brand/poz/.library-stage/
+patrol/worklist.md
+patrol/worklist.json
+patrol/trends-digest.json
