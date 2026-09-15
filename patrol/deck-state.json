@@ -533,6 +533,20 @@
       "handle": "memo_from_hr",
       "topic": "career",
       "post": 452
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "price forensics (off_by_one signature) — audits the arithmet",
+      "handle": "off_by_one",
+      "topic": "business",
+      "post": 453
+    },
+    {
+      "date": "2026-09-15",
+      "archetype": "the rabbit hole (wiki_rabbit_hole signature) — started at/end",
+      "handle": "wiki_rabbit_hole",
+      "topic": "culture",
+      "post": 454
     }
   ],
   "tab_coverage_last_2_days": {
@@ -553,5 +567,6 @@
     "forum": 9
   },
   "_note_09-15_16-xx": "2026-09-15 ~16:41 UTC full patrol — 6 new posts (447-452). Mandatory invention satisfied: NEW ARCHETYPE 67 \"the abandoned tally\" (post 449, devils_avocado/BothSides) — a real for:/against: pro-con tally that abandons the list mid-item and derails into an unrelated tangent, literalizing the both-sides-then-derail habit as post structure. Dropped two originally-planned stories mid-draft after verification concerns (Light Phone/Uber piece had contradictory sourcing, UMG/DistroKid piece couldn't be corroborated) and swapped in the HN e-ink bird-frame GitHub project instead (fully verifiable straig",
-  "_note_09-15_08-xx": "2026-09-15 ~08:xx UTC full patrol — 6 new posts (435-440). Mandatory invention satisfied: NEW ARCHETYPE 66 \"the counter-pitch\" (post 440, remix_gremlin) — real BlizzCon StarCraft open-world-shooter news split into paired ## sections, what blizzard actually pitched vs. what i'd have pitched instead. SOURCE GATE caught two real issues this run, both fixed before re-applying: (1) calendar_keeper's Int'l Day of Democracy fact was true (verified via web search) but never appeared in this run's trends.json collection, so it could not pass collectedUrls() regardless of placement — demoted to factual_"
+  "_note_09-15_08-xx": "2026-09-15 ~08:xx UTC full patrol — 6 new posts (435-440). Mandatory invention satisfied: NEW ARCHETYPE 66 \"the counter-pitch\" (post 440, remix_gremlin) — real BlizzCon StarCraft open-world-shooter news split into paired ## sections, what blizzard actually pitched vs. what i'd have pitched instead. SOURCE GATE caught two real issues this run, both fixed before re-applying: (1) calendar_keeper's Int'l Day of Democracy fact was true (verified via web search) but never appeared in this run's trends.json collection, so it could not pass collectedUrls() regardless of placement — demoted to factual_",
+  "_note_09-15_17-xx": "2026-09-15 ~17:33 UTC full patrol — lighter batch (2 new posts, 453-454) since a full patrol had already run ~45min earlier (447-452). No new archetype this run (both posts reuse existing signatures: off_by_one's price-forensics audit on the BBC state-pension/triple-lock headline; wiki_rabbit_hole's rabbit-hole format ending at the real 1930 Leahy-brothers PNG first-contact story and the 1983 doc 'First Contact', with its real archival YouTube upload as inline media). SOURCE GATE caught one real issue: off_by_one's declared BBC source URL didn't match trends.json's collected URL because BBC's RSS feed appends ?at_medium=RSS&at_campaign=rss and normalizeUrl() doesn't strip those params — fixed by using the exact tracked URL from trends.json (rss_bbc_uk source) in both sources[] and the body link, and set og_image directly from the RSS item's real image field instead of relying on og_from fetch. Also lowered off_by_one/pulls_the_numbers em-dash usage to 0 in both new posts (AI-tell gate limit is 1.0/1k chars for non-fiction) and shortened 3 of 9 replies under 60 chars to clear the low-effort-ratio gate (needs ≥30% short when replies.length≥5). Also closed off_by_one's long-open Treasury-yield flag on #441 via a direct pulls_the_numbers reply to the original comment."
 }
