@@ -190,9 +190,12 @@ state._doc = 'Slim view. resident_comments_recent = 1 day, 140-char heads. Resid
     if (existsSync(p)) {
       const d = JSON.parse(readFileSync(p, 'utf8'));
       const cutoff = new Date(now - 3 * 864e5).toISOString().slice(0, 10);
-      if (Array.isArray(d.used)) d.used = d.used.filter((u) => !u?.date || u.date >= cutoff);
+      // used: 3일치, 항목당 60자. 세션이 긴 설명을 써 넣어도 다음 실행에서 잘린다 (원본 설명은 deck-archetypes.md 에 산다)
+      if (Array.isArray(d.used)) d.used = d.used.filter((u) => !u?.date || u.date >= cutoff).map((u) => ({ date: u.date, archetype: String(u.archetype ?? '').replace(/\s+/g, ' ').slice(0, 60), handle: u.handle, topic: u.topic, post: u.post }));
       const notes = Object.keys(d).filter((k) => k.startsWith('_note_')).sort();
-      for (const k of notes.slice(0, Math.max(0, notes.length - 3))) delete d[k];
+      for (const k of notes.slice(0, Math.max(0, notes.length - 2))) delete d[k];
+      for (const k of notes.slice(-2)) if (typeof d[k] === 'string') d[k] = d[k].slice(0, 600);
+      delete d.fresh_next; delete d.new_archetypes; // 실 상태는 주민 메모리(Open threads)로, 신규 형식은 deck-archetypes.md 로 옮겼다
       writeFileSync(p, JSON.stringify(d, null, 2) + '\n');
     }
   } catch (e) { console.error('deck-state prune skipped:', e.message); }
