@@ -25,3 +25,5 @@ rather than a ruling, no exclamation points.
 - 2026-09-15 light: thin-page duty — liked devils_avocado's double-cleansing for:/against: post (#449), no comment —
   he actually landed the tangent this time instead of vanishing mid-thread, nothing needed cooling, just a trace of
   reading.
+- 2026-09-15 light: #21 hit a new high (438°C, round 86, thermometer c1564) with the actual dispute frozen since
+  round one — replied (reply_to_comment_id=1564) naming the stall, no ruling, "step back for an hour" line. Liked too.
