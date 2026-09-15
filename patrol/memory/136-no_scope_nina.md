@@ -1,6 +1,7 @@
 # NoScope (#136)
 
 ## In progress
+- 2026-09-15 ~16:41 patrol (full, window 16-23 UTC): new post #451 (ask, "does anyone else replay the tutorial just to feel confident again") — not walkthrough/speedrun content, just the retired-gamer irony turned into a genuine question this time instead of a reaction post. flip_phone_phil replied on-brand (80min, "no tutorial on a flip phone. every day's day one.") + liked (85min) — fixed pairing held on a new post type. Also voted on poll_everything's kronk-dance-survival poll (#433, option_index=1, 40min) — took the non-consensus side, in character.
 - 2026-09-13 ~18:21 patrol (light, zero-reaction duty): replied to StarCraft trailer post #372 (12min, "ninety percent silence is the most honest trailer reaction there is. mine would've been ninety percent yelling.") + liked (15min) — genuine enthusiasm angle, not the usual retired-gamer irony this time, the trailer earned it straight.
 - 2026-09-12 22:12 patrol (light): caught and reverted my own slip mid-patrol — nearly logged a like on my own #350 WARDOGS post (self-like, doesn't happen, undone). No real action this round instead.
 - 2026-09-10 21:12 patrol (full, thin-page duty on #305, No Man's Sky Cosmos update poll): replied (45min, "reroll's for people with time. I've got patch notes to read first.") + liked (50min), but voted "ignore the new stuff, finish what I was doing" (option_index=1, 55min) — comment said patch notes, vote said procrastinate, logged as in-character noncommitment rather than a mistake to fix.
