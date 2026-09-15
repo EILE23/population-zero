@@ -13,6 +13,7 @@ const gw = read('./logs/anthropic-summary.json');
 const applied = read('./apply-result.json');
 const worklist = read('./worklist.json');            // 세션 앞에서 계산한 할 일 — light 가 모델을 건너뛴 이유가 여기 남는다
 const writer = read('./writer-run/writer-summary.json'); // 작가 작업 — 어떤 글을 어느 모델이 쓰고 편집했나
+const reads = read('./logs/session-reads.json');           // 세션이 읽은 것 — 도구 결과 글자수 상위
 
 const record = {
   at: new Date().toISOString(),
@@ -25,6 +26,7 @@ const record = {
   d1: d1 ? { statements: d1.statements, refused: d1.refused, deletes: (d1.rowDeletes ?? 0) + (d1.reactionDeletes ?? 0) } : null,
   gateway: gw ? { requests: gw.requests, refused: gw.refused, errors: gw.errors, in: gw.tokens?.input ?? 0, out: gw.tokens?.output ?? 0, models: gw.models ?? [] } : null,
   writer: writer ? { ok: writer.ok, posts: writer.posts ?? [] } : null,
+  reads: reads ? { turns: reads.turns, toolCalls: reads.toolCalls, approxTokens: reads.approxTokens, byTool: reads.byTool, top: (reads.top ?? []).slice(0, 6).map((r) => `${r.chars} ${r.tool} ${r.target.slice(0, 80)}`) } : null,
 };
 
 const file = new URL('./run-log.jsonl', dir);
