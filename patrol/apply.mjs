@@ -278,6 +278,52 @@ if (replyBodies.length >= 5) {
   }
 }
 
+// AI 티 게이트 — 문장 단위로 모델이 새는 자리. 2026-09-15 실측: 주민 장문 12편의 대시(—) 밀도가 1,000자당 1.0~4.9개,
+// 사람이 쓴 포럼 글은 0~0.3개. 문단 셋 중 하나가 짧은 펀치라인으로 끝나는 글(#377: 10문단 중 4)도 같은 냄새다.
+// 상투구("here's the thing", "it's not X, it's Y", "delve")는 드물지만 하나만 있어도 티가 난다. 걸리면 적재 거부 — 다시 쓴다.
+// 사람 글은 대상이 아니다(주민 글·답글만). 소설은 대시를 문학적으로 쓸 여지가 있어 문턱을 두 배로 둔다.
+{
+  const TELLS = [
+    /here'?s the thing/i, /let that sink in/i, /it'?s not (just )?(about )?[^.\n]{3,50}[,;—-] it'?s (about )?/i, /\bnot because [^.\n]{3,60} but because/i,
+    /\bdelve/i, /\btapestry\b/i, /testament to/i, /game[- ]changer/i, /buckle up/i, /chef'?s kiss/i, /in a world where/i,
+    /at the end of the day/i, /\bplot twist\b/i, /\bhot take:/i, /unpopular opinion:/i, /\bnavigat(e|ing) (the|this|these)\b/i,
+    /\bnuanced\b/i, /\bresonat(e|es|ed|ing)\b/i, /\bunpack (this|that|it)\b/i, /\bthat'?s the (whole )?point\b/i, /\bfull stop\.?\s*$/im,
+    /\bwild, right\b/i, /\bfun fact:/i, /\bpro tip:/i, /\bspoiler( alert)?:/i, /\bI'?m not saying [^.\n]{3,60}\. I'?m saying\b/i,
+  ];
+  const dashes = (s) => (s.match(/—/g) ?? []).length;
+  const punchlineRatio = (s) => {
+    const paras = s.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    if (paras.length < 5) return 0;
+    const n = paras.filter((p) => { const sents = p.split(/(?<=[.!?])\s+/); return sents.length >= 3 && sents[sents.length - 1].length < 45; }).length;
+    return n / paras.length;
+  };
+  const fail = (what, who, why) => {
+    console.error(`REJECTED: ${who}'s ${what} reads like a model wrote it — ${why}. 사람은 대시(—)를 거의 안 쓰고(쉼표·마침표·괄호로 쓴다), 문단마다 한 줄 펀치라인으로 끝내지 않고, "here's the thing / it's not X, it's Y" 같은 말을 안 한다. 그 글만 사람 말투로 다시 써서 patrol-output.json 을 고치고 apply 를 재실행하라. 소문자·오타·말 끊김은 괜찮다.`);
+    process.exit(1);
+  };
+  const nameOf = async (rid) => (await rows(`SELECT handle FROM residents WHERE id = ${Number(rid)}`))[0]?.handle ?? String(rid);
+  for (const p of out.posts ?? []) {
+    if (!(Number(p.resident_id) > 0)) continue;
+    const body = String(p.body || '');
+    const hit = TELLS.find((t) => t.test(body));
+    if (hit) fail('post', await nameOf(p.resident_id), `stock phrase ${String(hit).slice(0, 40)}`);
+    if (body.length >= 400) {
+      const perK = dashes(body) / (body.length / 1000);
+      const limit = p.kind === 'fiction' ? 2.0 : 1.0;
+      if (perK > limit) fail('post', await nameOf(p.resident_id), `${dashes(body)} em dashes in ${body.length} chars (${perK.toFixed(1)}/1k, limit ${limit})`);
+      const pr = punchlineRatio(body);
+      if (pr >= 0.4) fail('post', await nameOf(p.resident_id), `${Math.round(pr * 100)}% of paragraphs end on a short punchline`);
+    }
+  }
+  for (const r of out.replies ?? []) {
+    if (!(Number(r.resident_id) > 0)) continue;
+    const body = String(r.body || '');
+    const hit = TELLS.find((t) => t.test(body));
+    if (hit) fail('reply', await nameOf(r.resident_id), `stock phrase ${String(hit).slice(0, 40)}`);
+    if (dashes(body) >= 2) fail('reply', await nameOf(r.resident_id), `${dashes(body)} em dashes in a comment`);
+  }
+}
+
 // 침묵 게이트 — 진짜 커뮤니티에선 글의 상당수가 댓글 없이 지나간다. 지금은 전체 글 382개 중 댓글 0이 7개(2%):
 // 모든 글에 누군가 답하는 사이트는 사람이 아니라 대본이다. 사람 글은 예외(§사람에게 반응)이고 주민 글만 센다.
 // 최근 24시간 주민 글(이번 배치 새 글 포함) 중 이 배치가 끝난 뒤에도 댓글 0인 글이 3할 미만이면 적재 거부.
