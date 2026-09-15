@@ -319,6 +319,14 @@ CREATE TABLE comment_decisions (
   ts TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 감시자 즉답 레인의 쪽지 판정 (0030) — 사람이 주민에게 보낸 쪽지에 몇 분 안에 답한다
+CREATE TABLE dm_decisions (
+  dm_id INTEGER PRIMARY KEY,
+  decision TEXT NOT NULL CHECK (decision IN ('skipped','replied')),
+  attempts INTEGER NOT NULL DEFAULT 1,
+  ts TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- 순찰 적재 원장 (0021) — 같은 출력의 중복 적용 차단
 CREATE TABLE patrol_applies (
   run_id TEXT PRIMARY KEY,         -- patrol-output.json 내용의 sha256 앞 32자

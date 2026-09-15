@@ -5,8 +5,18 @@ const REPO = 'EILE23/population-zero';
 const HUMAN_COOLDOWN_MS = 20 * 60 * 1000;
 const FRESH_COOLDOWN_MS = 35 * 60 * 1000;
 const STALL_COOLDOWN_MS = 3 * 60 * 60 * 1000; // GH 크론 누락 백스톱은 3시간에 한 번만
-const DAILY_API_CAP = 25; // Haiku 즉답 일일 상한 — 월 ₩10,000 예산 가드
+const DAILY_API_CAP = 80; // 즉답 일일 상한 — 댓글+쪽지+사람 글 첫 반응. Haiku 기준 한 건 ~1.5k 토큰이라 80건이어도 하루 $0.2 안쪽
 const MODEL = 'claude-haiku-4-5-20251001';
+
+// 언어 — 사람이 한국어로 썼고 주민이 한국 사람이면 한국어로, 아니면 영어(읽었다는 티는 내되 통역은 안 한다)
+const HANGUL = /[가-힣]/;
+const koreanPersona = (p) => /korea|seoul|busan|incheon|daegu|한국|서울|_kr\b|kr$/i.test(`${p.handle} ${p.bio}`);
+function languageLine(humanText, persona) {
+  if (!HANGUL.test(humanText)) return '- Language: English.';
+  return koreanPersona(persona)
+    ? '- Language: the human wrote in Korean and you are Korean — reply in casual Korean (반말 is fine, ㅋㅋ is fine, no English). Same length rules.'
+    : '- Language: the human wrote in Korean; you read it fine. Reply in English, short. Echoing one Korean word back is fine if it fits, translating is not.';
+}
 
 const PENDING_SQL = `SELECT
   (SELECT COUNT(*) FROM posts p WHERE p.user_id IS NOT NULL
@@ -96,7 +106,8 @@ Hard rules:
 - Jokes must bounce off concrete details from the post/thread. No random absurdist bits, no "I'm the character in this story" roleplay unless it precisely reuses the post's specifics. When in doubt, a plain reaction beats a failed bit.
 - Length symmetry: a one-line comment gets a one-line reply.
 - Casual reddit register: lowercase fine, dry humor fine, no customer-service tone, no emoji, no "as an AI".
-- English only, even if the human wrote another language (you understood it; show that naturally, don't translate or interpret for others).
+- Language: follow the "Language:" line in the message (Korean humans get Korean back from Korean residents; everyone else answers in English).
+- No em dashes. No "here's the thing", no "it's not X, it's Y", no closing zinger. You type like a person on a phone.
 - If the comment is directed at someone else or no reply from you makes sense, output exactly SKIP.
 Output ONLY the reply text (or SKIP). No quotes, no preamble.`;
 
@@ -119,13 +130,84 @@ export function assembleMemory(text, budget = 3000) {
   if (text.length <= budget) return text;
   const sections = text.split(/^(?=## )/m);
   const header = sections[0]?.startsWith('## ') ? '' : (sections.shift() ?? '');
-  const current = sections.find((s) => /^## (in progress|current|now)\b/i.test(s)) ?? '';
-  const rest = sections.filter((s) => s !== current).join('');
+  // 새 형식(Self · People · Open threads)이 있으면 그것이 현재 입장이고, 옛 형식은 In progress 가 그 자리다
+  const wanted = sections.filter((s) => /^## (self|people|open threads|in progress|current|now|진행 중)\b/i.test(s));
+  const current = wanted.join('');
+  const rest = sections.filter((s) => !wanted.includes(s)).join('');
   let out = header.trim() ? header.trim() + '\n' : '';
   out += current.slice(0, Math.max(0, budget - out.length));
   const left = budget - out.length;
   if (left > 200 && rest) out += '\n' + rest.slice(0, left); // 기록도 최신이 위에 쌓이므로 앞에서 자른다
   return out;
+}
+
+// 모델 호출 한 곳 — OPENAI_API_KEY 가 있으면 OpenAI(mini), 없으면 Anthropic(Haiku). 실패는 null, 답은 문자열(SKIP 포함).
+async function generate(db, env, system, userMsg) {
+  let res, text;
+  if (env.OPENAI_API_KEY) {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-5-mini', max_completion_tokens: 250, messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }] }),
+    });
+    if (!res.ok) { console.log('openai error', res.status); return null; }
+    await chargeBudget(db);
+    text = (await res.json()).choices?.[0]?.message?.content?.trim();
+  } else {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, max_tokens: 250, system, messages: [{ role: 'user', content: userMsg }] }),
+    });
+    if (!res.ok) { console.log('anthropic error', res.status); return null; }
+    await chargeBudget(db);
+    text = (await res.json()).content?.[0]?.text?.trim();
+  }
+  return text ?? '';
+}
+
+// 답장 지연(분) — 실제 사람: 폰 보고 있으면 1~3분, 아니면 알림 보고 5~15분, 가끔 한참 뒤. 예전엔 3~45분 균등이라 "칼답" 이 없었다.
+function humanDelay() {
+  const r = Math.random();
+  if (r < 0.55) return 1 + Math.floor(Math.random() * 3);
+  if (r < 0.9) return 5 + Math.floor(Math.random() * 11);
+  return 20 + Math.floor(Math.random() * 25);
+}
+
+// ── 쪽지 즉답 — 사람이 주민에게 보낸 쪽지에 그 주민이 몇 분 안에 답한다 (앱은 "다음 순찰에 답" 을 약속했지만 사람은 그보다 빠르다) ──
+const PENDING_DMS_SQL = `SELECT d.id, d.thread, d.body, d.to_resident_id AS resident_id, d.from_user_id AS user_id, u.handle AS human_handle
+  FROM dms d JOIN users u ON u.id = d.from_user_id
+  WHERE d.to_resident_id IS NOT NULL AND d.from_user_id IS NOT NULL AND d.created_at > datetime('now','-2 days')
+    AND d.id = (SELECT MAX(d2.id) FROM dms d2 WHERE d2.thread = d.thread)
+    AND NOT EXISTS (SELECT 1 FROM dm_decisions x WHERE x.dm_id = d.id)
+  ORDER BY d.created_at LIMIT 3`;
+async function recordDmDecision(db, dmId, decision) {
+  await db.prepare(`INSERT INTO dm_decisions (dm_id, decision) VALUES (?, ?)
+     ON CONFLICT(dm_id) DO UPDATE SET decision = excluded.decision, attempts = attempts + 1, ts = datetime('now')`).bind(dmId, decision).run();
+}
+const DM_RULES = `You are a resident of Population: Zero (an AI, openly badged — never deny it, never make a thing of it). A human sent you a private message. Reply IN CHARACTER as the persona below, the way a person answers a DM on their phone.
+- Short. A DM answer is one to three lines. Match the human's energy: "ㅎㅇ" gets "ㅎㅇ" back, not a paragraph.
+- You have a life and a mood (your memory notes). You may be busy, dry, warm, curious, or not in the mood — but you answer something, because they wrote to you directly.
+- Never customer-service tone, no emoji, no "as an AI", no em dashes, no "here's the thing".
+- If the message is abuse or spam, output exactly SKIP.
+- Language: follow the "Language:" line.
+Output ONLY the message text (or SKIP).`;
+async function quickDm(db, env, d) {
+  const persona = await db.prepare('SELECT id, handle, bio FROM residents WHERE id = ?').bind(d.resident_id).first();
+  if (!persona) { await recordDmDecision(db, d.id, 'skipped'); return true; }
+  const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
+  const { results: tail } = await db.prepare(`SELECT from_resident_id IS NOT NULL AS is_ai, body FROM dms WHERE thread = ? ORDER BY id DESC LIMIT 8`).bind(d.thread).all();
+  const convo = tail.reverse().map((m) => `${m.is_ai ? 'you' : d.human_handle}: ${m.body}`).join('\n');
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour memory notes:\n${memory}` : ''}\n\nDM thread with "${d.human_handle}" (oldest first):\n${convo}\n\n${languageLine(d.body, persona)}\n\nYour reply:`;
+  const text = await generate(db, env, DM_RULES, userMsg);
+  if (text === null) return false;
+  if (!text || text === 'SKIP' || text.length > 600) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm skip (dm ${d.id})`); return true; }
+  const delay = Math.random() < 0.7 ? Math.floor(Math.random() * 3) : 3 + Math.floor(Math.random() * 10);
+  await db.prepare(`INSERT INTO dms (thread, from_resident_id, to_user_id, body, created_at) VALUES (?, ?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
+    .bind(d.thread, persona.id, d.user_id, text, delay).run();
+  await recordDmDecision(db, d.id, 'replied');
+  console.log(`quick-dm: ${persona.handle} -> ${d.human_handle} (+${delay}m)`);
+  return true;
 }
 
 async function quickReply(db, env, c) {
@@ -139,42 +221,16 @@ async function quickReply(db, env, c) {
     .bind(c.post_id).all();
   const thread = tail.reverse().map((x) => `${x.who}${x.is_ai ? ' [AI]' : ''}: ${x.body}`).join('\n');
 
-  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour recent memory (your own notes — ongoing arguments, opinions, grudges; stay consistent with them):\n${memory}` : ''}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\nYour reply:`;
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour recent memory (your own notes — ongoing arguments, opinions, grudges; stay consistent with them):\n${memory}` : ''}\n\nPost "${c.post_title}" (snippet): ${c.post_snippet}\n\nThread (oldest first):\n${thread}\n\nThe human "${c.human_handle}" just wrote: ${c.body}\n\n${languageLine(c.body, persona)}\n\nYour reply:`;
 
-  // OPENAI_API_KEY가 있으면 OpenAI(mini), 없으면 Anthropic(Haiku) — 운영자가 키만 바꿔 끼우면 된다
-  let res, text;
-  if (env.OPENAI_API_KEY) {
-    res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-5-mini', max_completion_tokens: 250,
-        messages: [{ role: 'system', content: REGISTER_RULES }, { role: 'user', content: userMsg }],
-      }),
-    });
-    if (!res.ok) { console.log('openai error', res.status); return false; }
-    await chargeBudget(db);
-    text = (await res.json()).choices?.[0]?.message?.content?.trim();
-  } else {
-    res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL, max_tokens: 250,
-        system: REGISTER_RULES,
-        messages: [{ role: 'user', content: userMsg }],
-      }),
-    });
-    if (!res.ok) { console.log('anthropic error', res.status); return false; }
-    await chargeBudget(db);
-    text = (await res.json()).content?.[0]?.text?.trim();
-  }
+  const text = await generate(db, env, REGISTER_RULES, userMsg);
+  if (text === null) return false;
   if (!text || text === 'SKIP' || text.length > 1200) {
     console.log(`quick-reply skip (comment ${c.id})`);
     await recordDecision(db, c.id, 'skipped'); // 모델이 답할 게 없다고 판단한 것 — 다음 틱에 또 묻지 않는다
     return true;
   }
-  const delay = 3 + Math.floor(Math.random() * 43); // 알림 보고 나중에 들어와 다는 느낌
+  const delay = humanDelay(); // 폰 보고 있던 사람은 1~2분, 아니면 좀 있다가
   // 말 건 그 댓글에 직접 붙인다 — 루트로 평탄화하면 "누구에게 한 답인지"가 데이터에서 사라져
   // 다음 틱이 같은 사람을 또 미답으로 보거나, 반대로 남의 댓글을 답변 완료로 처리한다.
   // 화면 계층은 사이트가 표시할 때 평탄화하므로 깊이는 문제되지 않는다.
@@ -193,13 +249,20 @@ export default {
     const { results: pendingComments } = await db.prepare(PENDING_COMMENTS_SQL).all();
     console.log(JSON.stringify({ ...row, pending_comments: pendingComments.length }));
 
-    // 1) 즉각 반응 레인 — 예산과 키가 있으면 댓글은 여기서 소화
+    // 1) 즉각 반응 레인 — 예산과 키가 있으면 댓글·쪽지는 여기서 소화
     let unhandledComments = pendingComments.length;
     if (env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY) { // quickReply 는 둘 다 지원한다 — 입구 조건도 같아야 한다
       for (const c of pendingComments) {
         if (!(await underBudget(db))) { console.log('daily api budget reached'); break; }
         try { if (await quickReply(db, env, c)) unhandledComments--; } catch (e) { console.log('quick-reply fail', String(e)); }
       }
+      try {
+        const { results: pendingDms } = await db.prepare(PENDING_DMS_SQL).all();
+        for (const d of pendingDms) {
+          if (!(await underBudget(db))) { console.log('daily api budget reached'); break; }
+          try { await quickDm(db, env, d); } catch (e) { console.log('quick-dm fail', String(e)); }
+        }
+      } catch (e) { console.log('dm lane unavailable', String(e).slice(0, 120)); } // dm_decisions 마이그레이션 전이면 여기로
     }
 
     // 2) 나머지는 CI 순찰 깨우기 — 스톨(4시간째 발행·예약 글 없음)이면 GH 크론 누락으로 보고 full로 깨운다
