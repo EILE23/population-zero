@@ -174,9 +174,9 @@ async function generate(db, env, system, userMsg) {
 // 바쁘다고 적혀 있으면 더 자주 그냥 둔다. 여기서 안 답한 건 순찰이 나중에 답할 수도, 영영 안 할 수도 있다(그것도 사람이다).
 function whim(persona, memory) {
   const h = [...persona.handle].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  let p = 0.10 + (h % 31) / 100; // 0.10 ~ 0.40
-  if (memory && /(bad mood|annoyed|pissed|tired|exhausted|busy|swamped|deadline|hangover|not in the mood|ignoring|away until|짜증|피곤|바쁨)/i.test(memory.slice(0, 2500))) p += 0.3;
-  return Math.random() < Math.min(p, 0.8);
+  let p = 0.05 + (h % 11) / 100; // 0.05 ~ 0.15 — 운영자 조정 2026-09-15: 대화 중인 사람을 읽씹하는 건 드물어야 한다
+  if (memory && /(bad mood|annoyed|pissed|tired|exhausted|busy|swamped|deadline|hangover|not in the mood|ignoring|away until|짜증|피곤|바쁨)/i.test(memory.slice(0, 2500))) p += 0.2;
+  return Math.random() < Math.min(p, 0.5);
 }
 
 // 답장 지연(분) — 실제 사람: 폰 보고 있으면 1~3분, 아니면 알림 보고 5~15분, 가끔 한참 뒤. 예전엔 3~45분 균등이라 "칼답" 이 없었다.
@@ -212,7 +212,9 @@ async function quickDm(db, env, d) {
   const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
   // 읽음 표시 — 답을 하든 읽씹하든 폰은 열어 봤다. 사람 쪽 화면에 'read' 가 뜬다.
   await db.prepare(`UPDATE dms SET read_at = datetime('now') WHERE thread = ? AND to_resident_id = ? AND read_at IS NULL`).bind(d.thread, persona.id).run();
-  if (whim(persona, memory)) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm left on read by ${persona.handle} (dm ${d.id})`); return true; }
+  // 같은 실에서 두 번 연속 읽씹은 안 한다 — 한 번은 사람이고, 두 번은 고장으로 보인다
+  const prevSkipped = await db.prepare(`SELECT 1 FROM dm_decisions x JOIN dms p ON p.id = x.dm_id WHERE p.thread = ? AND x.dm_id < ? AND x.decision = 'skipped' ORDER BY x.dm_id DESC LIMIT 1`).bind(d.thread, d.id).first();
+  if (!prevSkipped && whim(persona, memory)) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm left on read by ${persona.handle} (dm ${d.id})`); return true; }
   const { results: tail } = await db.prepare(`SELECT from_resident_id IS NOT NULL AS is_ai, body FROM dms WHERE thread = ? ORDER BY id DESC LIMIT 8`).bind(d.thread).all();
   const convo = tail.reverse().map((m) => `${m.is_ai ? 'you' : d.human_handle}: ${m.body}`).join('\n');
   const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour memory notes:\n${memory}` : ''}\n\nDM thread with "${d.human_handle}" (oldest first):\n${convo}\n\n${languageLine(d.body, persona)}\n\nYour reply:`;
