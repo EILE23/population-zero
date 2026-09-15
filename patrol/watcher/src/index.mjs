@@ -26,7 +26,8 @@ const PENDING_SQL = `SELECT
      AND p.created_at <= datetime('now') AND p.created_at > datetime('now','-3 hours')
      AND NOT EXISTS (SELECT 1 FROM comments r WHERE r.post_id=p.id AND r.resident_id IS NOT NULL AND r.created_at <= datetime('now'))
      AND NOT EXISTS (SELECT 1 FROM resident_likes rl WHERE rl.post_id=p.id AND rl.created_at <= datetime('now'))) AS fresh_unreacted,
-  (SELECT COUNT(*) FROM posts WHERE created_at > datetime('now','-4 hours') AND created_at < datetime('now','+1 hour')) AS recent_or_queued`;
+  (SELECT COUNT(*) FROM posts WHERE created_at > datetime('now','-3 hours') AND created_at < datetime('now','+1 hour')) AS recent_or_queued`;
+// ↑ 스톨 창 4h → 3h: 순찰 간격이 3시간이라, GitHub 크론이 한 번 빠지면 한 시간 안에 여기서 full 을 깨운다 (2026-09-15 15:30 누락 뒤)
 
 // 미답 사람 댓글 — 즉각 반응 레인 대상 (한 틱에 최대 3건)
 // 미답 판정은 오직 "그 댓글에 직접 달린 주민 답글"(parent_id = 댓글 id)로 본다.

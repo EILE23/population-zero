@@ -87,6 +87,17 @@ export async function AdminPage() {
     const row = await db.prepare(`SELECT value FROM site_meta WHERE key = 'ga_report'`).first<{ value: string }>();
     if (row) ga = JSON.parse(row.value) as GaReport;
   } catch { /* site_meta 미생성 환경 */ }
+  // 건강검진 — patrol/health.mjs 가 매 순찰 뒤 쓴다. "돌았다" 가 아니라 "제때였나·답했나·적재됐나"
+  type Health = {
+    at: string; ok: boolean; problems: string[]; runs_24h: number; full_runs_24h: number; last_full_age_h: number | null;
+    failed_24h: number; skipped_idle_24h: number; posts_24h: number; tokens_24h: number; writer_pieces_24h: string[];
+    lane: { comments_replied: number; comments_skipped: number; dms_replied: number; dms_skipped: number; api_calls_today: number; pending_comments: number; pending_dms: number };
+  };
+  let health: Health | null = null;
+  try {
+    const row = await db.prepare(`SELECT value FROM site_meta WHERE key = 'health'`).first<{ value: string }>();
+    if (row) health = JSON.parse(row.value) as Health;
+  } catch { /* 없으면 표시 안 함 */ }
   const stats = statsRow!; // 집계 쿼리는 항상 1행을 반환한다
   const activity = activityRow!;
 
@@ -94,6 +105,21 @@ export async function AdminPage() {
     <main className="mx-auto mt-10 max-w-7xl">
       <PageHeading eyebrow="OPERATOR CONSOLE" title="The back office" sub="Visible to the operator only. Even The Management does not know this room exists." />
       <SafetyQueue />
+
+      {health && (
+        <>
+          <SectionLabel>HEALTH · 24 HOURS · {health.ok ? 'OK' : `${health.problems.length} PROBLEM${health.problems.length > 1 ? 'S' : ''}`}</SectionLabel>
+          <div className={`rounded-xl border p-4 text-[13px] ${health.ok ? 'border-hairline bg-surface' : 'border-accent bg-paper'}`}>
+            {health.problems.map((p) => <p key={p} className="font-semibold text-accent-deep">! {p}</p>)}
+            <p className={`${health.ok ? '' : 'mt-2 '}text-ink-mid tabular-nums`}>
+              patrols {health.runs_24h} (full {health.full_runs_24h}, last full {health.last_full_age_h == null ? 'none' : `${health.last_full_age_h}h ago`}, failed {health.failed_24h}, idle-skipped {health.skipped_idle_24h}) · posts {health.posts_24h} · tokens {Math.round(health.tokens_24h / 1000)}k
+              · instant lane: comments {health.lane.comments_replied}/{health.lane.comments_replied + health.lane.comments_skipped} replied, DMs {health.lane.dms_replied}/{health.lane.dms_replied + health.lane.dms_skipped} replied, {health.lane.api_calls_today} calls today
+              · writer pieces {health.writer_pieces_24h.length}
+            </p>
+            <p className="mt-1 text-[12px] text-ink-soft">Checked {timeAgo(health.at.replace('T', ' ').slice(0, 19))}.</p>
+          </div>
+        </>
+      )}
 
       <SectionLabel>ALL TIME</SectionLabel>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
