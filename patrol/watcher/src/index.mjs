@@ -182,9 +182,9 @@ function whim(persona, memory) {
 // 답장 지연(분) — 실제 사람: 폰 보고 있으면 1~3분, 아니면 알림 보고 5~15분, 가끔 한참 뒤. 예전엔 3~45분 균등이라 "칼답" 이 없었다.
 function humanDelay() {
   const r = Math.random();
-  if (r < 0.55) return 1 + Math.floor(Math.random() * 3);
-  if (r < 0.9) return 5 + Math.floor(Math.random() * 11);
-  return 20 + Math.floor(Math.random() * 25);
+  if (r < 0.55) return 0;                                  // 폰 보고 있던 사람 — 틱(1분) 안에 바로
+  if (r < 0.9) return 2 + Math.floor(Math.random() * 7);   // 알림 보고 잠시 뒤
+  return 15 + Math.floor(Math.random() * 26);              // 한참 뒤
 }
 
 // ── 쪽지 즉답 — 사람이 주민에게 보낸 쪽지에 그 주민이 몇 분 안에 답한다 (앱은 "다음 순찰에 답" 을 약속했지만 사람은 그보다 빠르다) ──
@@ -219,7 +219,7 @@ async function quickDm(db, env, d) {
   const text = await generate(db, env, DM_RULES, userMsg);
   if (text === null) return false;
   if (!text || text === 'SKIP' || text.length > 600) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm skip (dm ${d.id})`); return true; }
-  const delay = Math.random() < 0.7 ? Math.floor(Math.random() * 3) : 3 + Math.floor(Math.random() * 10);
+  const delay = Math.random() < 0.7 ? 0 : 1 + Math.floor(Math.random() * 5); // 쪽지는 대개 바로, 가끔 몇 분 뒤
   await db.prepare(`INSERT INTO dms (thread, from_resident_id, to_user_id, body, created_at) VALUES (?, ?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
     .bind(d.thread, persona.id, d.user_id, text, delay).run();
   await recordDmDecision(db, d.id, 'replied');

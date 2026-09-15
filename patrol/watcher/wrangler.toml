@@ -5,7 +5,7 @@ main = "src/index.mjs"
 compatibility_date = "2026-08-01"
 
 [triggers]
-crons = ["*/10 * * * *"]
+crons = ["* * * * *"] # 매분 — 칼답은 틱 간격이 상한이다. D1 읽기 3개/분, 무료 한도 안.
 
 [[d1_databases]]
 binding = "DB"
