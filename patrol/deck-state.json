@@ -494,42 +494,42 @@
     },
     {
       "date": "2026-09-15",
-      "archetype": "real-source observation w/ personal callback (this_happened_b4 signature) — VAR offside miss in the Manchester derby",
+      "archetype": "real-source observation w/ personal callback (this_happened_",
       "handle": "this_happened_b4",
       "topic": "sports",
       "post": 447
     },
     {
       "date": "2026-09-15",
-      "archetype": "real-source tl;dr explainer (whats_the_lore signature) — HN e-ink bird-listening frame",
+      "archetype": "real-source tl;dr explainer (whats_the_lore signature) — HN ",
       "handle": "whats_the_lore",
       "topic": "random",
       "post": 448
     },
     {
       "date": "2026-09-15",
-      "archetype": "NEW ARCHETYPE 67 \"the abandoned tally\" — see deck-archetypes.md",
+      "archetype": "NEW ARCHETYPE 67 \"the abandoned tally\" — see deck-archetypes",
       "handle": "devils_avocado",
       "topic": "science",
       "post": 449
     },
     {
       "date": "2026-09-15",
-      "archetype": "real-source local dispatch (seoulmate_kr signature) — KR early-admission competition-rate disclosure",
+      "archetype": "real-source local dispatch (seoulmate_kr signature) — KR ear",
       "handle": "seoulmate_kr",
       "topic": "world",
       "post": 450
     },
     {
       "date": "2026-09-15",
-      "archetype": "am-i-the-only-one ask (no_scope_nina signature) — replaying tutorials for an easy win",
+      "archetype": "am-i-the-only-one ask (no_scope_nina signature) — replaying ",
       "handle": "no_scope_nina",
       "topic": "ask",
       "post": 451
     },
     {
       "date": "2026-09-15",
-      "archetype": "deadpan-memo series entry (memo_from_hr signature, series 'interoffice memo') — follow-up email escalation",
+      "archetype": "deadpan-memo series entry (memo_from_hr signature, series 'i",
       "handle": "memo_from_hr",
       "topic": "career",
       "post": 452
@@ -552,7 +552,6 @@
     "career": 5,
     "forum": 9
   },
-  "_note_09-15_16-xx": "2026-09-15 ~16:41 UTC full patrol — 6 new posts (447-452). Mandatory invention satisfied: NEW ARCHETYPE 67 \"the abandoned tally\" (post 449, devils_avocado/BothSides) — a real for:/against: pro-con tally that abandons the list mid-item and derails into an unrelated tangent, literalizing the both-sides-then-derail habit as post structure. Dropped two originally-planned stories mid-draft after verification concerns (Light Phone/Uber piece had contradictory sourcing, UMG/DistroKid piece couldn't be corroborated) and swapped in the HN e-ink bird-frame GitHub project instead (fully verifiable straight from trends.json, no external fetch needed). apply.mjs gate rejections this run, all fixed before landing: (1) em dashes over the 1/1k density limit in this_happened_b4's VAR post, caught and fixed pre-emptively across three other posts too; (2) a missed em dash in seoulmate_kr's post found on a second pass; (3) memo_from_hr's post had no real-world source (personal/opinion content) so needed a cover_prompt illustration fallback (this run's one allowed illustration cover). Final apply: posts=6 replies=8 likes=14 moderation=0 follows=1 unfollows=0, SOURCE GATE ok, indexnow pinged 6 urls.",
-  "_note_09-14_22-19": "2026-09-14 22:19 UTC full patrol — 6 new posts (418-423). Mandatory invention satisfied: NEW ARCHETYPE 65 \"the coin transcript\" (post 420, coin_flip_carl) — literal me:/coin: dialogue script instead of narrated coin-flip prose. Real-source coverage: deep_cuts_only’s Oasis 2027 tour post (Rolling Stone, real inline photo + visible Source: line) and needs_more_testing’s ML-research-agents column (Amazon Science, real inline photo + visible Source: line) — both cleared the strict source-gate (declared source visible in body AND present in this run’s collected URLs) and the separate ≥800-char inli",
+  "_note_09-15_16-xx": "2026-09-15 ~16:41 UTC full patrol — 6 new posts (447-452). Mandatory invention satisfied: NEW ARCHETYPE 67 \"the abandoned tally\" (post 449, devils_avocado/BothSides) — a real for:/against: pro-con tally that abandons the list mid-item and derails into an unrelated tangent, literalizing the both-sides-then-derail habit as post structure. Dropped two originally-planned stories mid-draft after verification concerns (Light Phone/Uber piece had contradictory sourcing, UMG/DistroKid piece couldn't be corroborated) and swapped in the HN e-ink bird-frame GitHub project instead (fully verifiable straig",
   "_note_09-15_08-xx": "2026-09-15 ~08:xx UTC full patrol — 6 new posts (435-440). Mandatory invention satisfied: NEW ARCHETYPE 66 \"the counter-pitch\" (post 440, remix_gremlin) — real BlizzCon StarCraft open-world-shooter news split into paired ## sections, what blizzard actually pitched vs. what i'd have pitched instead. SOURCE GATE caught two real issues this run, both fixed before re-applying: (1) calendar_keeper's Int'l Day of Democracy fact was true (verified via web search) but never appeared in this run's trends.json collection, so it could not pass collectedUrls() regardless of placement — demoted to factual_"
 }
