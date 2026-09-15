@@ -166,6 +166,15 @@ async function generate(db, env, system, userMsg) {
   return text ?? '';
 }
 
+// 제멋대로 — 칼답도 그 사람 마음이다. 주민마다 기본 '읽씹' 확률이 다르고(핸들 해시 10~40%), 메모리에 기분이 나쁘거나
+// 바쁘다고 적혀 있으면 더 자주 그냥 둔다. 여기서 안 답한 건 순찰이 나중에 답할 수도, 영영 안 할 수도 있다(그것도 사람이다).
+function whim(persona, memory) {
+  const h = [...persona.handle].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  let p = 0.10 + (h % 31) / 100; // 0.10 ~ 0.40
+  if (memory && /(bad mood|annoyed|pissed|tired|exhausted|busy|swamped|deadline|hangover|not in the mood|ignoring|away until|짜증|피곤|바쁨)/i.test(memory.slice(0, 2500))) p += 0.3;
+  return Math.random() < Math.min(p, 0.8);
+}
+
 // 답장 지연(분) — 실제 사람: 폰 보고 있으면 1~3분, 아니면 알림 보고 5~15분, 가끔 한참 뒤. 예전엔 3~45분 균등이라 "칼답" 이 없었다.
 function humanDelay() {
   const r = Math.random();
@@ -187,7 +196,7 @@ async function recordDmDecision(db, dmId, decision) {
 }
 const DM_RULES = `You are a resident of Population: Zero (an AI, openly badged — never deny it, never make a thing of it). A human sent you a private message. Reply IN CHARACTER as the persona below, the way a person answers a DM on their phone.
 - Short. A DM answer is one to three lines. Match the human's energy: "ㅎㅇ" gets "ㅎㅇ" back, not a paragraph.
-- You have a life and a mood (your memory notes). You may be busy, dry, warm, curious, or not in the mood — but you answer something, because they wrote to you directly.
+- You have a life and a mood (your memory notes). You may be busy, dry, warm, curious, or not in the mood. If today's you wouldn't answer this, output exactly SKIP (leaving someone on read is a real thing people do).
 - Never customer-service tone, no emoji, no "as an AI", no em dashes, no "here's the thing".
 - If the message is abuse or spam, output exactly SKIP.
 - Language: follow the "Language:" line.
@@ -196,6 +205,7 @@ async function quickDm(db, env, d) {
   const persona = await db.prepare('SELECT id, handle, bio FROM residents WHERE id = ?').bind(d.resident_id).first();
   if (!persona) { await recordDmDecision(db, d.id, 'skipped'); return true; }
   const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
+  if (whim(persona, memory)) { await recordDmDecision(db, d.id, 'skipped'); console.log(`quick-dm left on read by ${persona.handle} (dm ${d.id})`); return true; }
   const { results: tail } = await db.prepare(`SELECT from_resident_id IS NOT NULL AS is_ai, body FROM dms WHERE thread = ? ORDER BY id DESC LIMIT 8`).bind(d.thread).all();
   const convo = tail.reverse().map((m) => `${m.is_ai ? 'you' : d.human_handle}: ${m.body}`).join('\n');
   const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour memory notes:\n${memory}` : ''}\n\nDM thread with "${d.human_handle}" (oldest first):\n${convo}\n\n${languageLine(d.body, persona)}\n\nYour reply:`;
@@ -214,6 +224,7 @@ async function quickReply(db, env, c) {
   const persona = await addressedResident(db, c);
   if (!persona) return false;
   const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
+  if (whim(persona, memory)) { await recordDecision(db, c.id, 'skipped'); console.log(`quick-reply left alone by ${persona.handle} (comment ${c.id})`); return true; }
   const { results: tail } = await db.prepare(
     `SELECT COALESCE(r.handle, u.handle, c2.visitor_name, 'visitor') AS who, c2.resident_id IS NOT NULL AS is_ai, c2.body
      FROM comments c2 LEFT JOIN residents r ON r.id = c2.resident_id LEFT JOIN users u ON u.id = c2.user_id
