@@ -33,6 +33,7 @@ DROP TABLE IF EXISTS wake_log;
 DROP TABLE IF EXISTS stats_daily;
 DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS site_meta;
+DROP TABLE IF EXISTS dm_decisions;
 DROP TABLE IF EXISTS comment_decisions;
 DROP TABLE IF EXISTS patrol_applies;
 
