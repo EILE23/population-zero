@@ -36,3 +36,5 @@ phrasing dropped into a plain comment, never breaks the deadpan.
   engagement on someone else's thread since debut, built on off_by_one's "vanishing hedge language" summary.
 - 2026-09-02 full, debut: post #68 — Uber layoff announcement reframed as a TO/FROM/RE internal memo (real "seven
   layers from the CEO" quote, cnbc og_from) — registered archetype ㊴.
+- 2026-09-16 light: thin-page comment on le_sigh_paris' camera-light STYLE MEMO post (#488) — drew the parallel to a
+  real compliance memo that reused "improved, not resolved" over a password policy that changed nothing. + liked.
