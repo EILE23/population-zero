@@ -306,13 +306,22 @@ async function answerHumanPost(db, env, p) {
      FROM comments c LEFT JOIN residents r ON r.id = c.resident_id LEFT JOIN users u ON u.id = c.user_id
      WHERE c.post_id = ? AND c.hidden = 0 AND c.created_at <= datetime('now') ORDER BY c.id LIMIT 6`).bind(p.id).all();
   const answers = prior.map((c) => `${c.who}${c.is_ai ? ' [AI]' : ''}: ${c.body}`).join('\n') || '(nobody has answered yet)';
+  const { results: opts } = await db.prepare('SELECT id, label FROM poll_options WHERE post_id = ? ORDER BY id').bind(p.id).all();
   const threadKorean = HANGUL.test(`${p.title} ${p.body}`);
-  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour notes:\n${memory}` : ''}\n\n"${p.human_handle}" posted${p.topic ? ` in ${p.topic}` : ''}:\nTitle: ${p.title}\n${p.body}\n\nAnswers so far:\n${answers}\n\n${languageLine(`${p.title} ${p.body}`, persona, threadKorean)}\n\nYour answer:`;
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour notes:\n${memory}` : ''}\n\n"${p.human_handle}" posted${p.topic ? ` in ${p.topic}` : ''}:\nTitle: ${p.title}\n${p.body}\n\nAnswers so far:\n${answers}\n\n${opts.length ? `They are deciding between these options: ${opts.map((o) => o.label).join(' | ')}\nStart your reply with a line [PICK: <the exact option you would choose>] and then answer normally. Choose the one you actually believe in, even when it is the unpopular one.\n\n` : ''}${languageLine(`${p.title} ${p.body}`, persona, threadKorean)}\n\nYour answer:`;
 
   const raw = await generate(db, env, ANSWER_RULES, userMsg, 800); // 답변은 리액션보다 길다 — 300 이면 문장 중간에 잘린다
   if (raw === null) return false;
   if (!raw || raw === 'SKIP' || raw.length > 2000) { console.log(`answer skip (post ${p.id})`); return false; }
-  const text = humanize(raw);
+  let picked = null;
+  let stripped = raw;
+  const pick = /^\s*\[PICK:\s*([^\]]{1,60})\]\s*/i.exec(raw);
+  if (pick) {
+    stripped = raw.slice(pick[0].length);
+    const want = pick[1].trim().toLowerCase();
+    picked = opts.find((o) => o.label.trim().toLowerCase() === want) ?? opts.find((o) => want.includes(o.label.trim().toLowerCase())) ?? null;
+  }
+  const text = humanize(stripped);
   // 출처 없는 법·규정 단언은 싣지 않는다 — 없는 사실을 쓰지 않는다는 선이 여기서 제일 쉽게 무너진다
   // (2026-09-16: 한 주민이 링크 없이 "임대차법은 보증금을 한 달치로 제한한다"고 단언했다. 사실이 아니었다.)
   const claimsLaw = /\b(the law|statute|regulation|legally required|illegal|act of \d{4}|[A-Z][a-z]+ Act)\b|법(은|이|에|상)|법률|시행령|규정상|의무(이다|입니다)/.test(text);
@@ -323,6 +332,7 @@ async function answerHumanPost(db, env, p) {
   const delay = p.answers === 0 ? 0 : Math.floor(Math.random() * 4); // 첫 답은 즉시, 그 뒤는 몇 분에 걸쳐
   await db.prepare(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
     .bind(p.id, persona.id, text, delay).run();
+  if (picked) await db.prepare('INSERT OR IGNORE INTO resident_poll_votes (resident_id, post_id, option_id) VALUES (?, ?, ?)').bind(persona.id, p.id, picked.id).run();
   console.log(`answer: ${persona.handle} -> post ${p.id} (${p.answers + 1}/${ANSWER_TARGET}, +${delay}m)`);
   return true;
 }

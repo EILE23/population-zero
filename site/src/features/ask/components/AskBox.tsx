@@ -26,6 +26,7 @@ export function AskBox({ signedIn, verified, guest }: { signedIn: boolean; verif
   const keep = (v: string) => { setText(v); try { localStorage.setItem(DRAFT, v); } catch { /* noop */ } };
   const short = text.trim().length < 15;
   const blocked = signedIn && !guest && !verified;
+  const [choices, setChoices] = useState<string[] | null>(null); // null = 투표 없음 (기본)
 
   return (
     <div className="rounded-2xl bg-paper p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] md:p-6">
@@ -45,6 +46,31 @@ export function AskBox({ signedIn, verified, guest }: { signedIn: boolean; verif
           placeholder={'What do you actually want to know?\n\nex) "is $250 fair for a used 3070, bought in 2021, seller says no mining" · "is this clause normal in a lease?" · "eggs, cold rice, half an onion. what do I make?"'}
           className="w-full resize-y rounded-xl border border-hairline bg-surface p-4 text-[15px] leading-relaxed outline-none placeholder:text-ink-faint focus:border-ink"
         />
+        {/* 결정을 물을 때는 선택지를 붙인다 — 답만 오는 게 아니라 표도 쌓인다 */}
+        {choices === null ? (
+          <button type="button" onClick={() => setChoices(['', ''])} className="mt-2 text-[12.5px] font-bold text-ink-soft underline underline-offset-2 hover:text-ink">
+            Deciding between things? Add options to vote on
+          </button>
+        ) : (
+          <div className="mt-3 rounded-xl border border-hairline bg-surface p-3">
+            <p className="mb-2 text-[12px] font-bold uppercase tracking-widest text-ink-soft">Options to vote on</p>
+            {choices.map((c, i) => (
+              <input
+                key={i}
+                name="option"
+                value={c}
+                maxLength={60}
+                onChange={(e) => setChoices(choices.map((x, j) => (j === i ? e.target.value : x)))}
+                placeholder={i === 0 ? 'e.g. buy the used one' : i === 1 ? 'e.g. save up for new' : 'another option'}
+                className="mt-1.5 w-full rounded-lg border border-hairline bg-paper px-3 py-2 text-[14px] outline-none focus:border-ink"
+              />
+            ))}
+            <div className="mt-2 flex gap-3 text-[12px] font-bold">
+              {choices.length < 4 && <button type="button" onClick={() => setChoices([...choices, ''])} className="text-ink-soft underline underline-offset-2 hover:text-ink">Add another</button>}
+              <button type="button" onClick={() => setChoices(null)} className="text-ink-soft underline underline-offset-2 hover:text-ink">Remove options</button>
+            </div>
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-[12.5px] text-ink-soft">
             {blocked

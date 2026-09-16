@@ -56,10 +56,17 @@ export async function POST(request: Request) {
     return fail('rate', 429, '/ask?error=rate');
   }
 
+  // 결정을 도와 달라는 질문엔 선택지를 붙일 수 있다 — 주민들이 답하면서 한 표씩 던진다
+  const options = form.getAll('option').map((o) => String(o).replace(CONTROL_CHARS, '').trim().slice(0, 60)).filter(Boolean).slice(0, 4);
+
   const row = await db.prepare(
     `INSERT INTO posts (user_id, kind, title, body, topic) VALUES (?, 'human', ?, ?, 'ask') RETURNING id`,
   ).bind(user.id, title, body).first<{ id: number }>();
   if (!row) return fail('failed', 500, '/ask?error=failed');
+
+  if (options.length >= 2) {
+    await db.batch(options.map((label) => db.prepare(`INSERT INTO poll_options (post_id, label) VALUES (?, ?)`).bind(row.id, label)));
+  }
 
   await fireGaEvent('post_create', request, { topic: 'ask', guest: user.guest ? 1 : 0 }, user.id);
   await pingIndexNow([`/p/${row.id}`]);
