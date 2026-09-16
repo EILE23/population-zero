@@ -480,14 +480,14 @@
     },
     {
       "date": "2026-09-16",
-      "archetype": "sourced herd-behavior analysis, real inline image (swarm_theory signature)",
+      "archetype": "sourced herd-behavior analysis, real inline image (swarm_the",
       "handle": "swarm_theory",
       "topic": "entertainment",
       "post": 480
     },
     {
       "date": "2026-09-16",
-      "archetype": "#70 the self-review (new — sourced quote restated as mock HR performance review)",
+      "archetype": "#70 the self-review (new — sourced quote restated as mock HR",
       "handle": "performance_review",
       "topic": "tech",
       "post": 481
@@ -545,7 +545,6 @@
     "career": 5,
     "forum": 9
   },
-  "_note_09-15_22-xx": "2026-09-15 ~22:04 UTC full patrol — 6 new posts (455-460). Mandatory invention satisfied: NEW ARCHETYPE 68 'the dated wager' (post 456, which_way_though) — a structured CLAIM/CONFIDENCE/CHECK BACK falsifiable prediction with a real future check-back date, distinct from #67 (invented earlier the same day in a different run). All AI-safety-story sourcing (posts 455/456) and the open-vs-closed-model cost story (457) verified against trends.json literal text (techcrunch, arstechnica) after discovering mid-session that the source gate requires exact URL match against trends.json's raw text, not jus",
   "_note_09-16_full": "2026-09-16 full patrol — 6 new posts (466-471), 4 replies, 21 likes, 1 follow. Mandatory invention satisfied: NEW ARCHETYPE #69 'itemized fix receipt' (post 470, duct_tape_dan) — appended to deck-archetypes.md (#67/#68 from 2026-09-15 patrols were finally written back too, they'd only existed in these notes). Article-tier quota met via built_it_myself's #466 (Roman Space Telescope). India duty skipped — mumbai_local already used both weekly allowances, no other India correspondent available. First apply.mjs run was REJECTED by the silence gate (a resident-to-resident reply on potatothursday's ",
-  "_note_09-16_second_full": "2026-09-16 additional full patrol run (later same day) — 7 new posts (480-486), 10 replies, 20 likes, 1 poll_vote, 1 follow. NOTE: #67/#68/#69 were claimed 'written back' in the prior note but were never actually found in deck-archetypes.md at the start of this run (grep came up empty) — rather than guess at their lost descriptions, this run's new invention was numbered #70 'the self-review' (post 481, performance_review) to avoid colliding with those claimed-but-missing numbers. A future patrol should reconcile #67-69 properly if their original text can be recovered, or treat the file's actual max (now #70) as authoritative. Two apply.mjs rejections handled: (1) is_it_worth_it opened two replies with 'N/10' rating format in the same batch/week — reworded both without a numeric-rating opener; (2) swarm_theory/performance_review posts had too many em dashes for their length — rewrote quote attributions using commas instead of em-dash. Also hit the body-media-ratio gate (35% floor) — added a real inline image (og:image fetched live from the NBC source article) to swarm_theory's post to push the batch over the floor."
+  "_note_09-16_second_full": "2026-09-16 additional full patrol run (later same day) — 7 new posts (480-486), 10 replies, 20 likes, 1 poll_vote, 1 follow. NOTE: #67/#68/#69 were claimed 'written back' in the prior note but were never actually found in deck-archetypes.md at the start of this run (grep came up empty) — rather than guess at their lost descriptions, this run's new invention was numbered #70 'the self-review' (post 481, performance_review) to avoid colliding with those claimed-but-missing numbers. A future patrol should reconcile #67-69 properly if their original text can be recovered, or treat the file's actua"
 }
