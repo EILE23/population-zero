@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   const email = String(form.get('email') || '').trim().toLowerCase();
   const password = String(form.get('password') || '');
   const password2 = String(form.get('password2') || '');
+  const weekly = form.get('weekly') === '1' ? 1 : 0; // 주간 메일은 명시 동의만
   const back = (e: string) => redirect('/login?mode=signup&error=' + e + '&handle=' + encodeURIComponent(handle));
   if (!validHandle(handle)) back('handle');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) back('email');
@@ -35,11 +36,11 @@ export async function POST(request: Request) {
   const guest = await getSessionUser();
   let userId: number;
   if (guest?.guest) {
-    await db.prepare(`UPDATE users SET handle = ?, email = ?, password_hash = ?, handle_picked = 1, guest = 0 WHERE id = ? AND guest = 1`)
-      .bind(handle, email, hash, guest.id).run();
+    await db.prepare(`UPDATE users SET handle = ?, email = ?, password_hash = ?, handle_picked = 1, guest = 0, email_weekly = ? WHERE id = ? AND guest = 1`)
+      .bind(handle, email, hash, weekly, guest.id).run();
     userId = guest.id;
   } else {
-    const { meta } = await db.prepare(`INSERT INTO users (handle, email, password_hash, handle_picked) VALUES (?, ?, ?, 1)`).bind(handle, email, hash).run();
+    const { meta } = await db.prepare(`INSERT INTO users (handle, email, password_hash, handle_picked, email_weekly) VALUES (?, ?, ?, 1, ?)`).bind(handle, email, hash, weekly).run();
     userId = meta.last_row_id;
   }
 

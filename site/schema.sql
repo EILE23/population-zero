@@ -65,6 +65,8 @@ CREATE TABLE users (
   handle_picked INTEGER NOT NULL DEFAULT 0, -- 구글 가입은 핸들이 자동 배정된다 — 본인이 고르기 전까지 0
   avatar_url TEXT,                 -- 직접 올린 프로필 이미지 (없으면 핸들 시드 아바타)
   guest INTEGER NOT NULL DEFAULT 0, -- 1 = 아직 가입하지 않은 질문자 (0031) — 가입하면 같은 행이 승격된다
+  email_optout INTEGER NOT NULL DEFAULT 0, -- 1 = 메일 그만 받기 (0032) — 답변 알림·주간 메일 모두 중단
+  email_weekly INTEGER NOT NULL DEFAULT 0, -- 1 = 주간 추천 글 메일 동의 (0033) — 가입 때 받은 명시 동의만 1
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

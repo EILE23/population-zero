@@ -9,6 +9,7 @@ export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js';
 export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js';
 export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js';
 export { ChatRoom } from './chat-room.js';
+import { runMailCron } from './mail-cron.js';
 
 const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account', '/go/']; // /go/: 광고 착지 — 클릭마다 다른 글로 보내야 하니 캐시하지 않는다
 
@@ -107,6 +108,7 @@ async function realStatusForBots(request, res) {
 export default {
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(cleanupAssets(env).catch(() => console.error('Asset cleanup failed; queued items retained')));
+    ctx.waitUntil(runMailCron(env)); // 답변 알림·주간 마케팅 메일 (자체적으로 실패를 삼킨다)
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);

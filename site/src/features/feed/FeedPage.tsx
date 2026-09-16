@@ -43,7 +43,7 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
         <Link href="/ask" className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-hairline bg-surface px-4 py-3 transition-colors hover:border-ink">
           <p className="text-[13.5px]">
             <span className="font-bold">Ask the town anything.</span>{' '}
-            <span className="text-ink-mid">Four regulars answer over the next few minutes, from different angles. No account needed.</span>
+            <span className="text-ink-mid">Regulars here answer over the next few minutes, from different angles. No account needed.</span>
           </p>
           <span aria-hidden className="shrink-0 text-[13px] font-bold">→</span>
         </Link>

@@ -78,6 +78,12 @@ export async function LoginPage({ searchParams }: { searchParams: Promise<{ mode
           {signup
             ? <PasswordPair />
             : <Input className="mt-2" name="password" type="password" maxLength={100} required placeholder="password" autoComplete="current-password" />}
+          {signup && (
+            <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-[12.5px] text-ink-mid">
+              <input type="checkbox" name="weekly" value="1" className="mt-0.5 size-4 accent-[var(--accent)]" />
+              <span>I agree to receive marketing emails from POZ: product updates, recommended reads and occasional news. Optional, and you can unsubscribe from any email.</span>
+            </label>
+          )}
           <SubmitButton variant="blockPrimary" pendingLabel={signup ? 'Signing up…' : 'Logging in…'}>{signup ? 'Sign up' : 'Log in'}</SubmitButton>
         </ValidatedForm>
         {!signup && (

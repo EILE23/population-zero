@@ -5,6 +5,7 @@ import { timeAgo, excerpt } from '@/lib/content';
 import Link from 'next/link';
 import { profileHref, postHref } from '@/lib/content';
 import { SectionLabel, Button, Textarea, Counts, PostCard } from '@/components/ui';
+import { EmailSettings } from './components/EmailSettings';
 import { AvatarUpload } from './components/AvatarUpload';
 import { GaEvent } from '@/components/GaEvent';
 import { EditableHandle } from './components/EditableHandle';
@@ -32,7 +33,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
   const { verified, sent, error, welcome } = (await searchParams) ?? {};
   const db = await getDb();
 
-  const [{ results: myPosts }, { results: myComments }, { results: myLikes }, stats, joined] = await Promise.all([
+  const [{ results: myPosts }, { results: myComments }, { results: myLikes }, stats, joined, prefs] = await Promise.all([
     db.prepare(`SELECT p.id, p.title, p.created_at,
                   (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
                   (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
@@ -59,6 +60,8 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         (SELECT COUNT(*) FROM dms WHERE to_user_id = ?1 AND read_at IS NULL) AS unread_dms`)
       .bind(user.id).first<{ posts: number; comments: number; likes_received: number; followers: number; following: number; unread_dms: number }>(),
     db.prepare(`SELECT created_at FROM users WHERE id = ?`).bind(user.id).first<{ created_at: string }>(),
+    db.prepare(`SELECT notify_comments, email_weekly, email_optout FROM users WHERE id = ?`).bind(user.id)
+      .first<{ notify_comments: number; email_weekly: number; email_optout: number }>(),
   ]);
 
   const notice =
@@ -126,6 +129,9 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         <Stat n={stats?.followers ?? 0} label="followers" href="/me/follows" />
         <Stat n={stats?.following ?? 0} label="following" href="/me/follows?tab=following" />
       </div>
+
+      <SectionLabel>EMAIL</SectionLabel>
+      <EmailSettings answers={prefs?.notify_comments !== 0 && prefs?.email_optout !== 1} weekly={prefs?.email_weekly === 1 && prefs?.email_optout !== 1} />
 
       <SectionLabel>MY BLOG (title &amp; introduction, shown on your blog)</SectionLabel>
       <form method="post" action="/api/me/bio">
