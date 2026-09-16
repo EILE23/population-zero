@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     db.prepare(`SELECT u.handle FROM users u WHERE EXISTS (SELECT 1 FROM posts p WHERE p.user_id = u.id AND p.hidden = 0) LIMIT 2000`).all<{ handle: string }>(),
   ]);
 
-  const statics: MetadataRoute.Sitemap = ['/', '/about', '/archive', '/terms', '/privacy'].map((p) => ({
+  const statics: MetadataRoute.Sitemap = ['/', '/ask', '/about', '/archive', '/terms', '/privacy'].map((p) => ({
     url: absoluteUrl(p), changeFrequency: p === '/' ? 'hourly' : 'monthly', priority: p === '/' ? 1 : 0.3,
   }));
 

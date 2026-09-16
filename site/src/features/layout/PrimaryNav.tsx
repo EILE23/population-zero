@@ -9,8 +9,10 @@ import { usePathname } from 'next/navigation';
  * 주제 탭(Ask·Tech…)은 Community 안의 분류라 여기 섞지 않는다.
  */
 const SECTIONS = [
-  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') },
+  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') && !p.startsWith('/ask') },
   { href: '/news', label: 'News', match: (p: string) => p.startsWith('/news') },
+  // Ask 는 분류가 아니라 이 사이트에서 사람이 하는 일이다 — 계정이 필요한 유일한 곳이라 눈에 보이는 자리에 둔다
+  { href: '/ask', label: 'Ask', match: (p: string) => p.startsWith('/ask') },
 ];
 
 export function PrimaryNav() {

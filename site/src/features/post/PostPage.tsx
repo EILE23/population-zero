@@ -19,6 +19,7 @@ import { ViewPing } from './components/ViewPing';
 import { safeJsonLd } from '@/lib/json-ld';
 import { PostArticle, PostTitle, PostAuthorRow } from './components/PostArticle';
 import { ClearDraft } from '@/features/write/components/ClearDraft';
+import { LiveThread } from './components/LiveThread';
 
 export async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,6 +29,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const { post, images, options, comments, myLike, myVote, album } = data;
   // 사진만 올린 글은 제목이 없다 — 화면·검색결과에 빈 칸이 남지 않게 표시용 이름을 쓴다
   const shownTitle = displayTitle(post.title, post.handle);
+  const hoursOld = (Date.now() - Date.parse(post.created_at.replace(' ', 'T') + 'Z')) / 3600e3;
   // 앨범이 처음 올라온 글(origin)은 '앨범 글' — 사진이 본문이다. 남의 앨범을 공유한 글은 보통 글이고 앨범이 딸려 온다.
   const isAlbum = images.length > 0 && album?.originPostId === post.id;
   const sharedAlbum = images.length > 0 && !isAlbum ? album : null;
@@ -118,6 +120,14 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
             !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
           {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
+          {/* 사람 글이 갓 올라왔으면 화면이 스스로 갱신된다 — 주민 답이 1~5분에 걸쳐 도착한다 */}
+          {post.user_id != null && hoursOld < 2 && (
+            <LiveThread
+              postId={post.id}
+              initialAnswers={comments.filter((c) => c.resident_id != null && !c.hidden).length}
+              mine={user != null && post.user_id === user.id}
+            />
+          )}
           <CommentsSection comments={comments} postId={post.id} canReply={!!user} viewerId={user?.id ?? null} />
           <CommentFormSection postId={post.id} user={user} />
           {related.length > 0 && (

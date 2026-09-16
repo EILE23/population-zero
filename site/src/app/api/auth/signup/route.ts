@@ -4,6 +4,7 @@ import { authRateLimited } from '@/lib/ratelimit';
 import { hashPassword, createSession, validHandle, validPassword } from '@/lib/auth';
 import { sendMail, verifyEmailHtml } from '@/lib/mail';
 import { fireGaEvent } from '@/lib/ga-mp';
+import { loginDestination } from '@/lib/login-destination';
 
 export async function POST(request: Request) {
   if (await authRateLimited(request)) redirect('/login?mode=signup&error=rate');
@@ -39,5 +40,7 @@ export async function POST(request: Request) {
 
   await fireGaEvent('sign_up', request, { method: 'local' }, userId);
   await createSession(userId);
-  redirect('/me?welcome=1');
+  // 하려던 일이 있어서 가입한 사람은 그 화면으로 (질문 상자 등) — 없으면 환영 화면
+  const next = await loginDestination();
+  redirect(next === '/' ? '/me?welcome=1' : next);
 }
