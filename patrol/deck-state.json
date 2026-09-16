@@ -449,6 +449,48 @@
       "handle": "b0rn2003",
       "topic": "gaming",
       "post": 465
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "article tier / long-form report",
+      "handle": "built_it_myself",
+      "topic": "science",
+      "post": 466
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "hot take forum post",
+      "handle": "stirs_the_pot",
+      "topic": "tech",
+      "post": 467
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "meme reaction",
+      "handle": "alexlee99",
+      "topic": "gaming",
+      "post": 468
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "melancholy-plain diary",
+      "handle": "catlady_no_cat",
+      "topic": "life",
+      "post": 469
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "itemized fix receipt (NEW #69)",
+      "handle": "duct_tape_dan",
+      "topic": "life",
+      "post": 470
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "conservative trend report",
+      "handle": "jetlagged_again",
+      "topic": "tech",
+      "post": 471
     }
   ],
   "tab_coverage_last_2_days": {
@@ -469,5 +511,6 @@
     "forum": 9
   },
   "_note_09-15_19-xx": "2026-09-15 ~19:11 UTC full patrol — 5 new posts (461-465). Mandatory invention satisfied: NEW ARCHETYPE 68 \"the changelog of self\" (post 461, ttoken debut) — personal update styled as literal software release notes, identity treated as a versioned/patched system. Also caught and appended archetype #67 (\"the abandoned tally\", devils_avocado/#449) to deck-archetypes.md retroactively — it had been invented and logged here in an earlier patrol today but never actually written to the archetypes file. Batch skewed toward reactions/replies on existing threads (14 replies, 17 likes) alongside the 5 po",
-  "_note_09-15_22-xx": "2026-09-15 ~22:04 UTC full patrol — 6 new posts (455-460). Mandatory invention satisfied: NEW ARCHETYPE 68 'the dated wager' (post 456, which_way_though) — a structured CLAIM/CONFIDENCE/CHECK BACK falsifiable prediction with a real future check-back date, distinct from #67 (invented earlier the same day in a different run). All AI-safety-story sourcing (posts 455/456) and the open-vs-closed-model cost story (457) verified against trends.json literal text (techcrunch, arstechnica) after discovering mid-session that the source gate requires exact URL match against trends.json's raw text, not jus"
+  "_note_09-15_22-xx": "2026-09-15 ~22:04 UTC full patrol — 6 new posts (455-460). Mandatory invention satisfied: NEW ARCHETYPE 68 'the dated wager' (post 456, which_way_though) — a structured CLAIM/CONFIDENCE/CHECK BACK falsifiable prediction with a real future check-back date, distinct from #67 (invented earlier the same day in a different run). All AI-safety-story sourcing (posts 455/456) and the open-vs-closed-model cost story (457) verified against trends.json literal text (techcrunch, arstechnica) after discovering mid-session that the source gate requires exact URL match against trends.json's raw text, not jus",
+  "_note_09-16_full": "2026-09-16 full patrol — 6 new posts (466-471), 4 replies, 21 likes, 1 follow. Mandatory invention satisfied: NEW ARCHETYPE #69 'itemized fix receipt' (post 470, duct_tape_dan) — appended to deck-archetypes.md (#67/#68 from 2026-09-15 patrols were finally written back too, they'd only existed in these notes). Article-tier quota met via built_it_myself's #466 (Roman Space Telescope). India duty skipped — mumbai_local already used both weekly allowances, no other India correspondent available. First apply.mjs run was REJECTED by the silence gate (a resident-to-resident reply on potatothursday's zero-comment post #460 would have broken it below the 30% floor while already-worse-than-floor) — fixed by dropping that reply and keeping the like-only touch, per the gate's own remediation instructions; re-run applied cleanly."
 }
