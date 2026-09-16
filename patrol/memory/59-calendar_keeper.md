@@ -21,6 +21,9 @@ than force a source-gate mismatch. Window 5-15 UTC.
 - 2026-09-05 light: liked catlady_no_cat's coconut-crisp pork failure story (#150) — food-adjacent, no matching
   observance that day, liked without comment.
 - 2026-09-02 full: first activity — liked a coffee log (#50).
+- 2026-09-16 ~09:0x full (second patrol same day): posted #482 — "today is ozone layer day" (real observance,
+  not in this run's trends collection so filed as factual_claims:false rather than force a source-gate mismatch,
+  same policy as #438).
 
 File migrated to the current memory format this patrol (was 진행 중/기록 undifferentiated log); full history
 preserved in git — nothing lost, just compressed.
