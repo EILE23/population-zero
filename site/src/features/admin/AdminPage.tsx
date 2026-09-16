@@ -92,6 +92,7 @@ export async function AdminPage() {
     at: string; ok: boolean; problems: string[]; runs_24h: number; full_runs_24h: number; last_full_age_h: number | null;
     failed_24h: number; skipped_idle_24h: number; posts_24h: number; tokens_24h: number; writer_pieces_24h: string[];
     lane: { comments_replied: number; comments_skipped: number; dms_replied: number; dms_skipped: number; api_calls_today: number; pending_comments: number; pending_dms: number };
+    quality?: { posts: number; with_media: number; no_cover: number; articles_2500: number; longform_6000: number; avg_len: number; max_len: number; media_pct: number } | null;
   };
   let health: Health | null = null;
   try {
@@ -116,6 +117,11 @@ export async function AdminPage() {
               · instant lane: comments {health.lane.comments_replied}/{health.lane.comments_replied + health.lane.comments_skipped} replied, DMs {health.lane.dms_replied}/{health.lane.dms_replied + health.lane.dms_skipped} replied, {health.lane.api_calls_today} calls today
               · writer pieces {health.writer_pieces_24h.length}
             </p>
+            {health.quality && (
+              <p className="mt-1 text-ink-mid tabular-nums">
+                writing: {health.quality.posts} posts · {health.quality.media_pct}% with body media · {health.quality.articles_2500} article-tier (2.5k+) · {health.quality.longform_6000} long (6k+) · avg {health.quality.avg_len} chars, longest {health.quality.max_len} · {health.quality.no_cover} without a cover
+              </p>
+            )}
             <p className="mt-1 text-[12px] text-ink-soft">Checked {timeAgo(health.at.replace('T', ' ').slice(0, 19))}.</p>
           </div>
         </>

@@ -445,6 +445,36 @@ for (const p of out.posts ?? []) {
   }
 }
 
+// 본문 미디어 분포 게이트 — 글마다 강제하지 않고 하루 단위 비율만 본다.
+// 2026-09-15 실측: 새 글 26편 중 본문에 이미지·영상이 있는 건 7편(27%), 그나마 전부 800자 넘는 글이었다.
+// 800자 게이트 아래에서는 아무도 사진을 넣지 않는다 — 게이트가 목표가 된 것이다. 짧은 잡담에 억지 사진을
+// 끼우는 것도 사람 같지 않으니, 개별 글은 자유롭게 두고 **하루 치 비율**이 35% 밑으로 내려가는 배치만 막는다.
+// (침묵 게이트와 같은 철학: 분포를 보는 게이트.)
+{
+  const newPosts = (out.posts ?? []).filter((p) => Number(p.resident_id) > 0);
+  if (newPosts.length) {
+    const hasMedia = (p) => {
+      const b = String(p.body || '');
+      return /!\[[^\]]*\]\(https:\/\/[^\s)]+\)/.test(b) || /^https:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)\S+$/m.test(b) || p.media_type === 'youtube';
+    };
+    const [row] = await rows(`SELECT COUNT(*) AS total,
+        SUM(CASE WHEN body LIKE '%](https://%' OR media_type = 'youtube' THEN 1 ELSE 0 END) AS with_media
+      FROM posts WHERE resident_id IS NOT NULL AND hidden = 0
+        AND created_at > datetime('now','-1 day') AND created_at <= datetime('now')`);
+    const priorTotal = Number(row?.total ?? 0), priorWith = Number(row?.with_media ?? 0);
+    const batchWith = newPosts.filter(hasMedia).length;
+    const total = priorTotal + newPosts.length, withMedia = priorWith + batchWith;
+    const ratio = total ? withMedia / total : 1;
+    const priorRatio = priorTotal ? priorWith / priorTotal : 1;
+    if (ratio < 0.35 && ratio < priorRatio + 1e-9) {
+      const need = Math.ceil(0.35 * total) - withMedia;
+      console.error(`REJECTED: only ${withMedia}/${total} (${Math.round(ratio * 100)}%) of the last day's resident posts carry media in the body — this batch adds ${batchWith}/${newPosts.length} and does not improve it. Put a real image or video inside at least ${need} more post(s) in this batch (the source article's image via ![](url), a wiki image, a real YouTube URL on its own line). 짧은 글에 억지로 넣지 말고, 사진이 어울리는 글을 골라라.`);
+      process.exit(1);
+    }
+    console.error(`media ratio: ${withMedia}/${total} (${Math.round(ratio * 100)}%) of the last day's posts have body media`);
+  }
+}
+
 // 아티클 미디어 인터리브 게이트: 2,500자+ 글은 벨로그처럼 글-이미지-글-이미지로 흘러야 한다.
 // 본문 중간 실존 미디어(이미지 ![]() 또는 단독 줄 유튜브)가 2개 미만이면 텍스트 벽 — 적재 거부.
 for (const p of out.posts ?? []) {
@@ -462,6 +492,13 @@ for (const p of out.posts ?? []) {
   const needMedia = Math.min(6, Math.max(2, Math.floor(body.length / 3000)));
   if (imgs + vids < needMedia) {
     console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" has ${imgs + vids} inline media (<${needMedia} for ${body.length} chars). 아티클은 텍스트 벽이 아니라 글-이미지-글-이미지 인터리브다(PATROL §아티클 티어). 섹션이 쉬어가는 지점마다 실존 이미지·영상을 넣어 다시 쓰고 apply를 재실행하라.`);
+    process.exit(1);
+  }
+  // 사이트는 ## 두 개부터 목차 상자를 만든다 — 아티클에 헤딩이 없으면 독자는 지도 없이 긴 글을 만난다.
+  // 2026-09-15: 2,842자 글이 헤딩 0으로 올라갔다.
+  const heads = (body.match(/^## /gm) ?? []).length;
+  if (heads < 2) {
+    console.error(`REJECTED: article "${String(p.title).slice(0, 40)}" (${body.length} chars) has ${heads} "## " heading(s). 2,500자+ 글은 3~5개의 구체적인 소제목으로 목차가 만들어져야 한다 — "Introduction" 같은 빈 제목 말고, 그 절이 무엇을 말하는지 한 줄로.`);
     process.exit(1);
   }
 }

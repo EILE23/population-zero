@@ -37,8 +37,32 @@ try {
   lane = { comments_replied: c?.replied ?? 0, comments_skipped: c?.skipped ?? 0, dms_replied: d?.replied ?? 0, dms_skipped: d?.skipped ?? 0, api_calls_today: b?.calls ?? 0, pending_comments: p?.pc ?? 0, pending_dms: p?.pd ?? 0 };
 } catch (e) { console.error('health: lane query failed', e.message?.slice(0, 120)); }
 
+// ── 글 품질 (24시간) — 길이·본문 미디어·커버·소제목. "돌았다" 가 아니라 "읽을 만한가" 를 센다.
+let quality = null;
+try {
+  const [row] = await q(`SELECT COUNT(*) AS posts,
+      SUM(CASE WHEN body LIKE '%](https://%' OR media_type = 'youtube' THEN 1 ELSE 0 END) AS with_media,
+      SUM(CASE WHEN og_image IS NULL THEN 1 ELSE 0 END) AS no_cover,
+      SUM(CASE WHEN length(body) >= 2500 THEN 1 ELSE 0 END) AS articles,
+      SUM(CASE WHEN length(body) >= 6000 THEN 1 ELSE 0 END) AS longform,
+      CAST(AVG(length(body)) AS INTEGER) AS avg_len, MAX(length(body)) AS max_len
+    FROM posts WHERE resident_id IS NOT NULL AND hidden = 0
+      AND created_at > datetime('now','-1 day') AND created_at <= datetime('now')`);
+  quality = {
+    posts: row?.posts ?? 0, with_media: row?.with_media ?? 0, no_cover: row?.no_cover ?? 0,
+    articles_2500: row?.articles ?? 0, longform_6000: row?.longform ?? 0,
+    avg_len: row?.avg_len ?? 0, max_len: row?.max_len ?? 0,
+    media_pct: row?.posts ? Math.round((row.with_media / row.posts) * 100) : 0,
+  };
+} catch (e) { console.error('health: quality query failed', e.message?.slice(0, 120)); }
+
 // ── 판정 ──
 const problems = [];
+if (quality && quality.posts >= 5) {
+  if (quality.media_pct < 35) problems.push(`only ${quality.media_pct}% of the day's posts have media in the body (floor 35%)`);
+  if (quality.articles_2500 < 2) problems.push(`${quality.articles_2500} article-tier posts (2,500+ chars) in 24h — the floor is 2/day`);
+  if (quality.longform_6000 === 0) problems.push('no long piece (6,000+ chars) in 24h — the writer job had nothing briefed');
+}
 if (lastFullAgeH > 7) problems.push(`no full patrol for ${lastFullAgeH === Infinity ? '24h+' : lastFullAgeH.toFixed(1) + 'h'} (schedule is every 6h; GitHub cron may be skipping)`);
 if (failed.length) problems.push(`${failed.length} failed/cancelled run(s) in 24h`);
 if (lane.comments_skipped + lane.dms_skipped >= 3 && lane.comments_replied + lane.dms_replied === 0) problems.push(`instant lane skipped ${lane.comments_skipped + lane.dms_skipped} and replied 0 — model returning empty?`);
@@ -53,7 +77,7 @@ const health = {
   at: new Date().toISOString(), ok: problems.length === 0, problems,
   runs_24h: runs.length, full_runs_24h: fulls.length, last_full_age_h: lastFullAgeH === Infinity ? null : +lastFullAgeH.toFixed(1),
   failed_24h: failed.length, skipped_idle_24h: skippedIdle, posts_24h: posts, tokens_24h: tokens,
-  writer_pieces_24h: writerPieces.map((p) => p.title), lane,
+  writer_pieces_24h: writerPieces.map((p) => p.title), lane, quality,
 };
 writeFileSync(here('./health.json'), JSON.stringify(health, null, 2));
 console.error(`health: ${health.ok ? 'OK' : 'PROBLEMS'} ${problems.join(' | ')}`);
