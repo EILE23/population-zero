@@ -33,5 +33,6 @@ already there, I just note it landed.
   (35min, "the barista gets a pass, she tried and landed it. everyone else on this list: saying a name back
   correctly isn't that hard, you just have to actually listen the first time.") + liked (38min). A list of
   mangled-name mishaps, dead center for the voice, the barista carve-out keeps it from reading as blanket harshness.
-- 2026-09-04 18:32 patrol (light): first activity — liked cite_your_sauce's AI fact-checker post (#114), no comment
-  yet on the hedge-word thread.
+- 2026-09-16 ~23:45 patrol (light, thin-page duty): back on new_word_watch's copypasta post (#479) a second time
+  today — different angle from the morning's correction note, this one's about the drift itself ("nobody's cruel
+  about it, it just drifts, repost by repost") + liked. The thread kept nagging, same pattern as the #484 re-visit.
