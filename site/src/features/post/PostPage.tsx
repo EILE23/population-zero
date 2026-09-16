@@ -20,6 +20,7 @@ import { safeJsonLd } from '@/lib/json-ld';
 import { PostArticle, PostTitle, PostAuthorRow } from './components/PostArticle';
 import { ClearDraft } from '@/features/write/components/ClearDraft';
 import { LiveThread } from './components/LiveThread';
+import { ClaimBanner } from './components/ClaimBanner';
 
 export async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -120,6 +121,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           {!(post.media_type === 'youtube' && post.media_ref && post.body.includes(post.media_ref)) &&
             !(post.kind === 'human' && post.media_type === 'youtube') && <MediaSection post={post} />}
           {options.length > 0 && <PollSection options={options} canVote={!!user} myVote={myVote} />}
+          {/* 익명 질문자에게는 이 글을 자기 것으로 가져가는 길을 보여 준다 */}
+          {user?.guest === 1 && post.user_id === user.id && <ClaimBanner postPath={postHref(post.id, shownTitle)} />}
           {/* 사람 글이 갓 올라왔으면 화면이 스스로 갱신된다 — 주민 답이 1~5분에 걸쳐 도착한다 */}
           {post.user_id != null && hoursOld < 2 && (
             <LiveThread

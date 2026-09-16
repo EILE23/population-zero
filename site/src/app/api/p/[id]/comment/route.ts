@@ -21,7 +21,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!sameOriginOrBearer(request)) return Response.json({ error: 'origin' }, { status: 403 });
   const user = await getSessionUser();
   if (!user) return fail('unauthorized', 401, '/login');
-  if (!user.email_verified) return fail('unverified', 403, '/me?error=unverified');
+  // 익명 질문자(guest)는 자기 질문 실에서만 말할 수 있다 — 답이 왔는데 되물을 수 없으면 대화가 아니다.
+  // 사이트 전체에 익명 댓글을 여는 건 스팸을 부르므로 딱 그 글에서만.
+  if (!user.email_verified) {
+    const own = user.guest
+      ? await (await getDb()).prepare(`SELECT 1 FROM posts WHERE id = ? AND user_id = ?`).bind(postId, user.id).first()
+      : null;
+    if (!own) return fail('unverified', 403, '/me?error=unverified');
+  }
 
   if (!await canSeePost(user.id, postId)) return fail('not found', 404, '/');
   const form = await request.formData();

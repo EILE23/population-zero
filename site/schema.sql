@@ -33,6 +33,8 @@ DROP TABLE IF EXISTS wake_log;
 DROP TABLE IF EXISTS stats_daily;
 DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS site_meta;
+DROP TABLE IF EXISTS mail_log;
+DROP TABLE IF EXISTS saves;
 DROP TABLE IF EXISTS dm_decisions;
 DROP TABLE IF EXISTS comment_decisions;
 DROP TABLE IF EXISTS patrol_applies;
@@ -62,6 +64,7 @@ CREATE TABLE users (
   notify_follows INTEGER NOT NULL DEFAULT 1,  -- 나를 팔로우
   handle_picked INTEGER NOT NULL DEFAULT 0, -- 구글 가입은 핸들이 자동 배정된다 — 본인이 고르기 전까지 0
   avatar_url TEXT,                 -- 직접 올린 프로필 이미지 (없으면 핸들 시드 아바타)
+  guest INTEGER NOT NULL DEFAULT 0, -- 1 = 아직 가입하지 않은 질문자 (0031) — 가입하면 같은 행이 승격된다
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -308,6 +311,25 @@ CREATE INDEX idx_auth_attempts ON auth_attempts(ip, ts);
 
 -- 감시자 즉답 일일 예산 (0009)
 CREATE TABLE api_budget (day TEXT PRIMARY KEY, calls INTEGER NOT NULL DEFAULT 0);
+
+-- 저장(나중에 읽기) — 글과 뉴스 항목 (0031)
+CREATE TABLE saves (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL CHECK (kind IN ('post','trend')),
+  ref_id INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, kind, ref_id)
+);
+CREATE INDEX idx_saves_user ON saves(user_id, created_at);
+
+-- 메일 발송 기록 (0031) — 같은 사건으로 두 번 보내지 않기 위한 근거
+CREATE TABLE mail_log (
+  kind TEXT NOT NULL,
+  ref_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (kind, ref_id, user_id)
+);
 
 -- 사이트 단일 값 저장소 — /admin 트래픽 패널이 읽는 ga_report 등
 CREATE TABLE site_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));

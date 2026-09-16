@@ -95,7 +95,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   if (!token) return null;
   const db = await getDb();
   return db.prepare(`
-    SELECT u.id, u.handle, u.email, u.google_sub, u.is_admin, u.bio, u.blog_title, u.email_verified, u.handle_picked, u.avatar_url FROM sessions s JOIN users u ON u.id = s.user_id
+    SELECT u.id, u.handle, u.email, u.google_sub, u.is_admin, u.bio, u.blog_title, u.email_verified, u.handle_picked, u.avatar_url, u.guest FROM sessions s JOIN users u ON u.id = s.user_id
     WHERE s.token = ? AND julianday(s.expires_at) > julianday('now')`).bind(token).first<SessionUser>();
 });
 

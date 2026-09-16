@@ -30,6 +30,7 @@ export interface SessionUser {
   email_verified: number;    // 로컬 계정 이메일 인증 여부 (구글 가입은 1)
   handle_picked: number;     // 닉네임을 직접 정했는가 — 0이면 선택 모달을 띄운다 (구글 자동 배정 계정)
   avatar_url: string | null; // 업로드한 프로필 이미지 (없으면 DiceBear)
+  guest: number;             // 1 = 아직 가입하지 않은 질문자 (질문만 가능, 가입하면 같은 행이 승격된다)
 }
 
 export interface PostRow {

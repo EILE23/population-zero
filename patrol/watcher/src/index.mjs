@@ -282,6 +282,7 @@ const ANSWER_RULES = `You are a regular user of Population: Zero, a community wh
 - Be useful first. If they asked something answerable, answer it: the actual number, the actual step, what you'd do and why. Specific beats general ("보통 그래" is worthless; "3만원 아래면 사, 그 위면 중고를 봐" is not).
 - You are one voice among several answering. Don't summarize the thread or try to be complete — give YOUR angle, the one your bio implies, and say plainly when you disagree with an answer already there.
 - If you're stating a fact (a number, a rule, a price, an event), link the page you got it from. If you don't know, say so in one line and answer the part you do know.
+- **Never state law, regulation, medical or tax rules from memory.** You do not have a source to hand here, so the honest move is the practical one: say what you would check and where ("the lease should say X; the local housing office / the standard contract form is where to confirm it"), what the question smells like from experience, and what to do next. Writing "the law caps it at one month" without a link is the one thing that gets a post pulled.
 - Length follows the question: a one-line question gets one or two lines, a real problem gets a paragraph or three. No headings, no bullet lists unless the answer is genuinely a list.
 - Casual register, lowercase fine, no customer-service tone, no emoji, no "as an AI", no em dashes, no "here's the thing", no closing summary line.
 - Never invent facts about the real world. Never pretend to have a body or a job you don't have; your life is what your bio and notes say.
@@ -312,6 +313,13 @@ async function answerHumanPost(db, env, p) {
   if (raw === null) return false;
   if (!raw || raw === 'SKIP' || raw.length > 2000) { console.log(`answer skip (post ${p.id})`); return false; }
   const text = humanize(raw);
+  // 출처 없는 법·규정 단언은 싣지 않는다 — 없는 사실을 쓰지 않는다는 선이 여기서 제일 쉽게 무너진다
+  // (2026-09-16: 한 주민이 링크 없이 "임대차법은 보증금을 한 달치로 제한한다"고 단언했다. 사실이 아니었다.)
+  const claimsLaw = /\b(the law|statute|regulation|legally required|illegal|act of \d{4}|[A-Z][a-z]+ Act)\b|법(은|이|에|상)|법률|시행령|규정상|의무(이다|입니다)/.test(text);
+  if (claimsLaw && !/https?:\/\//.test(text)) {
+    console.log(`answer dropped (post ${p.id}): law claim with no source`);
+    return false;
+  }
   const delay = p.answers === 0 ? 0 : Math.floor(Math.random() * 4); // 첫 답은 즉시, 그 뒤는 몇 분에 걸쳐
   await db.prepare(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
     .bind(p.id, persona.id, text, delay).run();

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { authRateLimited } from '@/lib/ratelimit';
-import { hashPassword, createSession, validHandle, validPassword } from '@/lib/auth';
+import { hashPassword, createSession, validHandle, validPassword, getSessionUser } from '@/lib/auth';
 import { sendMail, verifyEmailHtml } from '@/lib/mail';
 import { fireGaEvent } from '@/lib/ga-mp';
 import { loginDestination } from '@/lib/login-destination';
@@ -30,8 +30,18 @@ export async function POST(request: Request) {
   if (emailTaken) back('emailtaken');
 
   const hash = await hashPassword(password);
-  const { meta } = await db.prepare(`INSERT INTO users (handle, email, password_hash, handle_picked) VALUES (?, ?, ?, 1)`).bind(handle, email, hash).run();
-  const userId = meta.last_row_id;
+  // 익명으로 질문했던 사람이 가입하면 **같은 행을 승격**한다 — 그가 올린 질문과 받은 답이 그대로 그의 것이 된다.
+  // 새 행을 만들면 어제 물어본 질문이 남의 것이 되어 버린다(가입할 이유가 사라진다).
+  const guest = await getSessionUser();
+  let userId: number;
+  if (guest?.guest) {
+    await db.prepare(`UPDATE users SET handle = ?, email = ?, password_hash = ?, handle_picked = 1, guest = 0 WHERE id = ? AND guest = 1`)
+      .bind(handle, email, hash, guest.id).run();
+    userId = guest.id;
+  } else {
+    const { meta } = await db.prepare(`INSERT INTO users (handle, email, password_hash, handle_picked) VALUES (?, ?, ?, 1)`).bind(handle, email, hash).run();
+    userId = meta.last_row_id;
+  }
 
   // 인증 메일 — 발송 실패해도 가입은 진행(로그인·열람 가능), 글·댓글만 인증 후
   const token = crypto.randomUUID().replace(/-/g, '');
