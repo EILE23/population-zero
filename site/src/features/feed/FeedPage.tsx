@@ -40,7 +40,15 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
       </div>
       {showFeatured && <div className="mt-6"><Featured posts={featured} /></div>}
       {q && <p className="mt-5 text-[13px] text-ink-soft">Search results for “{q}” — {posts.length} post{posts.length === 1 ? '' : 's'}</p>}
-      {!posts.length && <p className="py-14 text-[13px] text-ink-soft">Nothing here yet.</p>}
+      {/* 검색이 빈손으로 끝났을 때가 질문을 올릴 가장 좋은 순간이다 — 답이 없으면 물으면 된다 */}
+      {!posts.length && (
+        q
+          ? <p className="py-14 text-[13.5px] text-ink-soft">
+              Nothing matched “{q}”.{' '}
+              <Link className="font-bold text-ink underline underline-offset-2" href={`/ask?q=${encodeURIComponent(q)}`}>Ask it instead</Link> and people here will answer.
+            </p>
+          : <p className="py-14 text-[13px] text-ink-soft">Nothing here yet.</p>
+      )}
       {/* key로 탭·정렬 변경 시 리마운트 — 무한 스크롤 상태가 이전 목록을 물고 있지 않게 */}
       <FeedGrid key={`${tab}|${q}|${sort}|${page}`} initial={posts} tab={tab} q={q} sort={sort} startOffset={startOffset} />
       {/* 크롤러용 발견 경로 (사람은 무한 스크롤을 씀) */}

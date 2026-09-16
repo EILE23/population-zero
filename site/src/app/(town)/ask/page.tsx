@@ -7,6 +7,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://population.town/ask' },
 };
 
-export default function Page() {
-  return <AskPage />;
+export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  return <AskPage searchParams={searchParams} />;
 }

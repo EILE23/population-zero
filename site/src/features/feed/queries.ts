@@ -36,10 +36,12 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
   else if (media === 'none') { where.push(`(p.og_image IS NULL AND p.media_type IS NULL)`); }
   if (tab === 'humans') { where.push(`p.kind = 'human'`); }
   else if (tab !== 'all') { where.push(`p.topic = ?`); binds.push(tab); }
-  // 제목·본문 + 작성자 핸들까지 검색 (예: "cant" → cant_sleep_chat 글이 잡힌다). 공백은 핸들 구분자에도 매칭되게 완화
-  if (q) {
-    const like = `%${q}%`;
-    const handleLike = `%${q.replace(/\s+/g, '_')}%`;
+  // 검색: 낱말 단위로 끊어 **모두** 들어간 글을 찾는다 (제목·본문·작성자 핸들).
+  // 예전엔 입력 전체를 하나의 LIKE 로 던져서 "used gpu price" 처럼 두 단어 이상이면 그 구절이 통째로 있는 글만 잡혔다.
+  const terms = q.trim().split(/\s+/).filter(Boolean).slice(0, 6);
+  for (const term of terms) {
+    const like = `%${term}%`;
+    const handleLike = `%${term.replace(/\s+/g, '_')}%`;
     where.push(`(p.title LIKE ? OR p.body LIKE ? OR r.handle LIKE ? OR u.handle LIKE ?)`);
     binds.push(like, like, handleLike, handleLike);
   }
@@ -54,15 +56,34 @@ export async function fetchFeed({ tab = 'all', q = '', sort = 'hot', country = n
     LEFT JOIN residents r ON r.id = p.resident_id
     LEFT JOIN users u ON u.id = p.user_id
     WHERE p.created_at <= datetime('now') AND p.hidden = 0 ${where.length ? 'AND ' + where.join(' AND ') : ''}
-    ORDER BY p.created_at DESC, p.id DESC LIMIT 160`).bind(...binds).all<FeedRow>();
+    ORDER BY p.created_at DESC, p.id DESC LIMIT ${q ? 320 : 160}`).bind(...binds).all<FeedRow>();
 
   // Featured 는 전체 기간에서 고른다 — 반응은 세게, 시간은 약하게 봐서 옛 명작도 다시 올라온다
   const featuredScore = (p: FeedRow) => (p.like_count * 3 + p.comment_count * 2 + 1) / Math.pow(hoursSince(p.created_at) / 24 + 7, 0.7);
+  // 검색 결과는 날짜가 아니라 관련도 순 — 제목에 있으면 본문에 스친 것보다 위로, 구절이 그대로 있으면 더 위로.
+  // 같은 점수면 새 글이 먼저(약한 가중치). 예전엔 검색도 그냥 최신순이라 제목이 딱 맞는 글이 아래에 묻혔다.
+  const lowered = terms.map((t) => t.toLowerCase());
+  const phrase = q.trim().toLowerCase();
+  const searchScore = (p: FeedRow) => {
+    const title = String(p.title).toLowerCase();
+    const body = String(p.body ?? '').toLowerCase(); // SELECT 가 앞 600자만 담아 온다 — 본문 깊은 곳의 언급은 약하게 본다
+    const handle = String(p.handle).toLowerCase();
+    let s = 0;
+    for (const t of lowered) {
+      if (title.includes(t)) s += 3;
+      if (handle.includes(t)) s += 2;
+      if (body.includes(t)) s += 1;
+    }
+    if (lowered.length > 1) { if (title.includes(phrase)) s += 4; else if (body.includes(phrase)) s += 2; }
+    return s + 1 / (1 + hoursSince(p.created_at) / 168);
+  };
   const ranked = featured
     ? [...results].sort((a, b) => featuredScore(b) - featuredScore(a))
-    : sort === 'latest' || q
-      ? results
-      : [...results].sort((a, b) => hotScore(b, country) - hotScore(a, country));
+    : q
+      ? [...results].sort((a, b) => searchScore(b) - searchScore(a))
+      : sort === 'latest'
+        ? results
+        : [...results].sort((a, b) => hotScore(b, country) - hotScore(a, country));
 
   return ranked.slice(offset, offset + limit).map((p) => ({ ...p, excerpt: excerpt(p.body) }));
 }

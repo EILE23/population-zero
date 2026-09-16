@@ -11,17 +11,17 @@ const DRAFT = 'poz_ask_draft';
  * 그 질문을 자기 것으로 가져간다 — 가치를 보기 전에 가입을 요구하면 아무도 가입하지 않는다.
  * 적던 질문은 브라우저에 남겨 두어 실수로 새로고침해도 사라지지 않는다.
  */
-export function AskBox({ signedIn, verified, guest }: { signedIn: boolean; verified: boolean; guest: boolean }) {
-  const [text, setText] = useState('');
+export function AskBox({ signedIn, verified, guest, seed = '' }: { signedIn: boolean; verified: boolean; guest: boolean; seed?: string }) {
+  const [text, setText] = useState(seed);
   const [restored, setRestored] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(DRAFT);
-      if (saved) { setText(saved); setRestored(true); }
+      if (saved && !seed) { setText(saved); setRestored(true); }
     } catch { /* 저장소가 막힌 브라우저 */ }
-  }, []);
+  }, [seed]);
 
   const keep = (v: string) => { setText(v); try { localStorage.setItem(DRAFT, v); } catch { /* noop */ } };
   const short = text.trim().length < 15;
