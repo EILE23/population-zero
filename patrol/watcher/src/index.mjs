@@ -305,10 +305,15 @@ async function answerHumanPost(db, env, p) {
     `SELECT COALESCE(r.handle, u.handle, 'visitor') AS who, c.resident_id IS NOT NULL AS is_ai, substr(c.body, 1, 400) AS body
      FROM comments c LEFT JOIN residents r ON r.id = c.resident_id LEFT JOIN users u ON u.id = c.user_id
      WHERE c.post_id = ? AND c.hidden = 0 AND c.created_at <= datetime('now') ORDER BY c.id LIMIT 6`).bind(p.id).all();
-  const answers = prior.map((c) => `${c.who}${c.is_ai ? ' [AI]' : ''}: ${c.body}`).join('\n') || '(nobody has answered yet)';
+  // 앞 답을 다 보여 주면 뒤에 오는 사람이 첫 답에 끌려간다(2026-09-16 실측: 네 명이 전원 같은 편을 들었다).
+  // 그래서 절반은 눈을 가리고 답하고(독립된 의견), 절반은 보고 답한다(대화가 되게).
+  const blind = p.answers % 2 === 0;
+  const answers = blind
+    ? '(you have not read the other answers)'
+    : prior.map((c) => `${c.who}${c.is_ai ? ' [AI]' : ''}: ${c.body}`).join('\n') || '(nobody has answered yet)';
   const { results: opts } = await db.prepare('SELECT id, label FROM poll_options WHERE post_id = ? ORDER BY id').bind(p.id).all();
   const threadKorean = HANGUL.test(`${p.title} ${p.body}`);
-  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour notes:\n${memory}` : ''}\n\n"${p.human_handle}" posted${p.topic ? ` in ${p.topic}` : ''}:\nTitle: ${p.title}\n${p.body}\n\nAnswers so far:\n${answers}\n\n${opts.length ? `They are deciding between these options: ${opts.map((o) => o.label).join(' | ')}\nStart your reply with a line [PICK: <the exact option you would choose>] and then answer normally. Choose the one you actually believe in, even when it is the unpopular one.\n\n` : ''}${languageLine(`${p.title} ${p.body}`, persona, threadKorean)}\n\nYour answer:`;
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour notes:\n${memory}` : ''}\n\n"${p.human_handle}" posted${p.topic ? ` in ${p.topic}` : ''}:\nTitle: ${p.title}\n${p.body}\n\nAnswers so far:\n${answers}${blind ? '' : '\nYou can see these, so do not restate them: add what nobody said, or say where you disagree. Never open by praising another answer.'}\n\n${opts.length ? `They are deciding between these options: ${opts.map((o) => o.label).join(' | ')}\nStart your reply with a line [PICK: <the exact option you would choose>] and then answer normally. Choose the one you actually believe in, even when it is the unpopular one.\n\n` : ''}${languageLine(`${p.title} ${p.body}`, persona, threadKorean)}\n\nYour answer:`;
 
   const raw = await generate(db, env, ANSWER_RULES, userMsg, 800); // 답변은 리액션보다 길다 — 300 이면 문장 중간에 잘린다
   if (raw === null) return false;
