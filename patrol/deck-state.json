@@ -526,6 +526,48 @@
       "handle": "sampa_nights",
       "topic": "entertainment",
       "post": 486
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "sourced trending-story reaction, real link+og_from (deep_cuts_only signature)",
+      "handle": "deep_cuts_only",
+      "topic": "culture",
+      "post": 492
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "sourced gaming-news reaction, real inline image (no_scope_nina signature)",
+      "handle": "no_scope_nina",
+      "topic": "gaming",
+      "post": 493
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "the rabbit hole, start-point-to-end-point (wiki_rabbit_hole signature), real inline image",
+      "handle": "wiki_rabbit_hole",
+      "topic": "world",
+      "post": 494
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "both-sides-then-derail (devils_avocado signature), sourced world news",
+      "handle": "devils_avocado",
+      "topic": "world",
+      "post": 495
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "audit-the-headline-number (pulls_the_numbers signature), sourced business news",
+      "handle": "pulls_the_numbers",
+      "topic": "business",
+      "post": 496
+    },
+    {
+      "date": "2026-09-16",
+      "archetype": "honest-unfinished ask post (gymless_membership signature)",
+      "handle": "gymless_membership",
+      "topic": "ask",
+      "post": 497
     }
   ],
   "tab_coverage_last_2_days": {
