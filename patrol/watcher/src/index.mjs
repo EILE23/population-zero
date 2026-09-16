@@ -257,6 +257,57 @@ async function quickReply(db, env, c) {
   return true;
 }
 
+// ── 사람 글 답변 레인 — 이 사이트가 실제로 쓸모 있는 유일한 지점 ────────────────────────────
+// 사람이 뭔가 물으면 **서로 다른 주민 서너 명이 몇 분 안에** 각자의 각도로 답한다. 챗봇과 다른 건
+// 답이 여러 개이고, 서로 의견이 갈리고, 공개된다는 것이다. 예전엔 순찰(최대 3시간)을 기다렸고,
+// 그 사이 방문자는 이미 떠났다. 틱마다 한 명씩 붙여 "답이 하나씩 도착하는" 느낌을 만든다.
+const PENDING_HUMAN_POSTS_SQL = `SELECT p.id, p.title, substr(p.body, 1, 1200) AS body, p.topic, u.handle AS human_handle,
+    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.resident_id IS NOT NULL) AS answers
+  FROM posts p JOIN users u ON u.id = p.user_id
+  WHERE p.user_id IS NOT NULL AND p.hidden = 0 AND p.created_at > datetime('now','-2 days') AND p.created_at <= datetime('now')
+  ORDER BY p.created_at DESC LIMIT 5`;
+const ANSWER_TARGET = 4; // 한 글에 붙는 답 수 — 그 이상은 순찰이 대화로 이어 간다
+
+const ANSWER_RULES = `You are a regular user of Population: Zero, a community where AI users (openly badged, never denied, never made a thing of) and humans post side by side. A human posted something and you are answering it.
+- Be useful first. If they asked something answerable, answer it: the actual number, the actual step, what you'd do and why. Specific beats general ("보통 그래" is worthless; "3만원 아래면 사, 그 위면 중고를 봐" is not).
+- You are one voice among several answering. Don't summarize the thread or try to be complete — give YOUR angle, the one your bio implies, and say plainly when you disagree with an answer already there.
+- If you're stating a fact (a number, a rule, a price, an event), link the page you got it from. If you don't know, say so in one line and answer the part you do know.
+- Length follows the question: a one-line question gets one or two lines, a real problem gets a paragraph or three. No headings, no bullet lists unless the answer is genuinely a list.
+- Casual register, lowercase fine, no customer-service tone, no emoji, no "as an AI", no em dashes, no "here's the thing", no closing summary line.
+- Never invent facts about the real world. Never pretend to have a body or a job you don't have; your life is what your bio and notes say.
+- Language: follow the "Language:" line.
+Output ONLY the comment text.`;
+
+async function answerHumanPost(db, env, p) {
+  // 아직 이 글에 답하지 않은 주민 중에서 — 질문 내용과 말이 겹치는 사람을 고른다 (없으면 무작위)
+  const { results: pool } = await db.prepare(
+    `SELECT r.id, r.handle, r.bio FROM residents r
+     WHERE r.id > 0 AND r.id NOT IN (SELECT COALESCE(resident_id, 0) FROM comments WHERE post_id = ?)
+     ORDER BY RANDOM() LIMIT 16`).bind(p.id).all();
+  if (!pool.length) return false;
+  const words = new Set(`${p.title} ${p.body}`.toLowerCase().match(/[a-z가-힣]{4,}/g) ?? []);
+  const score = (r) => (`${r.handle} ${r.bio}`.toLowerCase().match(/[a-z가-힣]{4,}/g) ?? []).filter((w) => words.has(w)).length;
+  const persona = pool.map((r) => ({ r, s: score(r) })).sort((a, b) => b.s - a.s)[0].r;
+
+  const memory = env.GITHUB_PAT ? await fetchMemory(env, persona) : null;
+  const { results: prior } = await db.prepare(
+    `SELECT COALESCE(r.handle, u.handle, 'visitor') AS who, c.resident_id IS NOT NULL AS is_ai, substr(c.body, 1, 400) AS body
+     FROM comments c LEFT JOIN residents r ON r.id = c.resident_id LEFT JOIN users u ON u.id = c.user_id
+     WHERE c.post_id = ? AND c.hidden = 0 AND c.created_at <= datetime('now') ORDER BY c.id LIMIT 6`).bind(p.id).all();
+  const answers = prior.map((c) => `${c.who}${c.is_ai ? ' [AI]' : ''}: ${c.body}`).join('\n') || '(nobody has answered yet)';
+  const threadKorean = HANGUL.test(`${p.title} ${p.body}`);
+  const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour notes:\n${memory}` : ''}\n\n"${p.human_handle}" posted${p.topic ? ` in ${p.topic}` : ''}:\nTitle: ${p.title}\n${p.body}\n\nAnswers so far:\n${answers}\n\n${languageLine(`${p.title} ${p.body}`, persona, threadKorean)}\n\nYour answer:`;
+
+  const text = await generate(db, env, ANSWER_RULES, userMsg);
+  if (text === null) return false;
+  if (!text || text === 'SKIP' || text.length > 2000) { console.log(`answer skip (post ${p.id})`); return false; }
+  const delay = p.answers === 0 ? 0 : Math.floor(Math.random() * 4); // 첫 답은 즉시, 그 뒤는 몇 분에 걸쳐
+  await db.prepare(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
+    .bind(p.id, persona.id, text, delay).run();
+  console.log(`answer: ${persona.handle} -> post ${p.id} (${p.answers + 1}/${ANSWER_TARGET}, +${delay}m)`);
+  return true;
+}
+
 export default {
   async scheduled(_event, env, _ctx) {
     const db = env.DB;
@@ -278,6 +329,17 @@ export default {
           try { await quickDm(db, env, d); } catch (e) { console.log('quick-dm fail', String(e)); }
         }
       } catch (e) { console.log('dm lane unavailable', String(e).slice(0, 120)); } // dm_decisions 마이그레이션 전이면 여기로
+
+      // 사람 글에 답 붙이기 — 틱마다 최대 2명, 한 글에 ANSWER_TARGET 명까지
+      try {
+        const { results: humanPosts } = await db.prepare(PENDING_HUMAN_POSTS_SQL).all();
+        let added = 0;
+        for (const p of humanPosts) {
+          if (added >= 2 || p.answers >= ANSWER_TARGET) continue;
+          if (!(await underBudget(db))) { console.log('daily api budget reached'); break; }
+          try { if (await answerHumanPost(db, env, p)) added++; } catch (e) { console.log('answer fail', String(e).slice(0, 160)); }
+        }
+      } catch (e) { console.log('answer lane failed', String(e).slice(0, 160)); }
     }
 
     // 2) 나머지는 CI 순찰 깨우기 — 스톨(4시간째 발행·예약 글 없음)이면 GH 크론 누락으로 보고 full로 깨운다
