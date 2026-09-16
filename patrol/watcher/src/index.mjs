@@ -145,13 +145,13 @@ export function assembleMemory(text, budget = 3000) {
 // 모델 호출 한 곳 — Haiku 가 먼저(추론 없이 곧장 답한다), 없으면 OpenAI mini. 실패·빈 답은 null(다음 틱에 다시), 답은 문자열(SKIP 포함).
 // 예전엔 mini 를 먼저 썼는데 mini 는 추론 모델이라 max_completion_tokens 250 을 생각에 다 쓰고 본문이 비어 왔다 —
 // 그 빈 문자열이 '답할 게 없음(SKIP)' 으로 기록돼, 즉답 레인이 조용히 죽어 있었다 (2026-09-15 확인: 쪽지 2건 모두 skipped).
-async function generate(db, env, system, userMsg) {
+async function generate(db, env, system, userMsg, maxTokens = 300) {
   let res, text;
   if (env.ANTHROPIC_API_KEY) {
     res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 300, system, messages: [{ role: 'user', content: userMsg }] }),
+      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: 'user', content: userMsg }] }),
     });
     if (!res.ok) { console.log('anthropic error', res.status); return null; }
     await chargeBudget(db);
@@ -160,7 +160,7 @@ async function generate(db, env, system, userMsg) {
     res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-5-mini', max_completion_tokens: 800, reasoning_effort: 'minimal', messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }] }),
+      body: JSON.stringify({ model: 'gpt-5-mini', max_completion_tokens: maxTokens + 500, reasoning_effort: 'minimal', messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }] }),
     });
     if (!res.ok) { console.log('openai error', res.status); return null; }
     await chargeBudget(db);
@@ -172,6 +172,16 @@ async function generate(db, env, system, userMsg) {
 
 // 읽씹은 확률이 아니라 판단이다 (운영자, 2026-09-15): 주민이 메시지를 보고 답할지 정한다 — 질문·인사·이어지는 대화는 답하고,
 // 답이 필요 없는 마무리이거나 메모리에 이유(잠수·그 사람과 끝냄)가 있을 때만 그냥 둔다. 한 번 읽씹한 건 되돌리지 않는다.
+
+// 모델이 남기는 자국을 기계적으로 지운다 — 규칙으로 금지해도 한 번씩 새어 나온다(2026-09-16 첫 답변에 대시가 들어갔다).
+// 사람은 대시(—)를 거의 쓰지 않는다: 쉼표나 마침표로 바꾼다. 앞뒤 따옴표·머리말도 떼어 낸다.
+function humanize(s) {
+  return String(s)
+    .replace(/\s+—\s+/g, ', ').replace(/—/g, ', ')
+    .replace(/^["'“”]|["'“”]$/g, '')
+    .replace(/^(here'?s the thing[,.]?\s*|honestly[,]?\s*)/i, '')
+    .trim();
+}
 
 // 답장 지연(분) — 실제 사람: 폰 보고 있으면 1~3분, 아니면 알림 보고 5~15분, 가끔 한참 뒤. 예전엔 3~45분 균등이라 "칼답" 이 없었다.
 function humanDelay() {
@@ -298,9 +308,10 @@ async function answerHumanPost(db, env, p) {
   const threadKorean = HANGUL.test(`${p.title} ${p.body}`);
   const userMsg = `Your persona — handle: ${persona.handle}\nbio: ${persona.bio}${memory ? `\n\nYour notes:\n${memory}` : ''}\n\n"${p.human_handle}" posted${p.topic ? ` in ${p.topic}` : ''}:\nTitle: ${p.title}\n${p.body}\n\nAnswers so far:\n${answers}\n\n${languageLine(`${p.title} ${p.body}`, persona, threadKorean)}\n\nYour answer:`;
 
-  const text = await generate(db, env, ANSWER_RULES, userMsg);
-  if (text === null) return false;
-  if (!text || text === 'SKIP' || text.length > 2000) { console.log(`answer skip (post ${p.id})`); return false; }
+  const raw = await generate(db, env, ANSWER_RULES, userMsg, 800); // 답변은 리액션보다 길다 — 300 이면 문장 중간에 잘린다
+  if (raw === null) return false;
+  if (!raw || raw === 'SKIP' || raw.length > 2000) { console.log(`answer skip (post ${p.id})`); return false; }
+  const text = humanize(raw);
   const delay = p.answers === 0 ? 0 : Math.floor(Math.random() * 4); // 첫 답은 즉시, 그 뒤는 몇 분에 걸쳐
   await db.prepare(`INSERT INTO comments (post_id, resident_id, body, created_at) VALUES (?, ?, ?, datetime('now', '+' || ? || ' minutes'))`)
     .bind(p.id, persona.id, text, delay).run();
