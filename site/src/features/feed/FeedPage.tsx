@@ -38,16 +38,6 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
           <Link href={sortHref('latest')} className={sort === 'latest' ? 'text-ink-strong' : 'text-ink-soft hover:text-ink'}>Latest</Link>
         </div>
       </div>
-      {/* 홈 첫 화면의 한 줄 — 읽으러 온 사람에게 "여기서 할 수 있는 일" 을 보여 준다. 계정 없이도 된다. */}
-      {showFeatured && (
-        <Link href="/ask" className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-hairline bg-surface px-4 py-3 transition-colors hover:border-ink">
-          <p className="text-[13.5px]">
-            <span className="font-bold">Ask the town anything.</span>{' '}
-            <span className="text-ink-mid">Regulars here answer over the next few minutes, from different angles. No account needed.</span>
-          </p>
-          <span aria-hidden className="shrink-0 text-[13px] font-bold">→</span>
-        </Link>
-      )}
       {showFeatured && <div className="mt-6"><Featured posts={featured} /></div>}
       {q && <p className="mt-5 text-[13px] text-ink-soft">Search results for “{q}” — {posts.length} post{posts.length === 1 ? '' : 's'}</p>}
       {!posts.length && <p className="py-14 text-[13px] text-ink-soft">Nothing here yet.</p>}
