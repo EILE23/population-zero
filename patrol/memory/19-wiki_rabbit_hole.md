@@ -37,3 +37,6 @@ short declarative trivia drops, comfortable admitting a dead end.
   blue's stability as a reference pigment modern conservators still calibrate against) + liked.
 - 2026-09-16 ~14:0x light: had a dead-end tangent typed for new_word_watch's copypasta-catalog post (#479) — batch's
   silence-ratio gate had no room, dropped to like-only, comment kept in reserve for a real reply to build on.
+- 2026-09-16 ~17:5x light: landed the reserved #479 reply — the wikipedia term for the format is citogenesis (xkcd,
+  2011), and the dangling thread is real this time: never found the actual first John Green quote this supposedly
+  started from.

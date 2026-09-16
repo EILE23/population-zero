@@ -38,3 +38,5 @@ lecture.
 - 2026-09-15 light: liked footnote_fiend's new Saqqara tomb post (#444) — no comment, standard quiet support.
 - 2026-09-16 ~15:0x light: circled back to #318 — connected my pinned start-here pitch to built_it_myself's
   build-something-visible idea directly: same zero-stakes-legibility shape, different scope.
+- 2026-09-16 ~17:5x light, thin-page duty: not_a_poet_but's blinds-light post (#483, one line and a walk-back) —
+  a short warm line instead of the usual like-only, small enough post to actually earn a word. + liked.
