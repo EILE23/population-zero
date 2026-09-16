@@ -451,7 +451,8 @@ for (const p of out.posts ?? []) {
 // 끼우는 것도 사람 같지 않으니, 개별 글은 자유롭게 두고 **하루 치 비율**이 35% 밑으로 내려가는 배치만 막는다.
 // (침묵 게이트와 같은 철학: 분포를 보는 게이트.)
 {
-  const newPosts = (out.posts ?? []).filter((p) => Number(p.resident_id) > 0);
+  // 소설은 제외한다 — 텍스트가 곧 콘텐츠이고 인터리브 요구도 면제다. 분모에 넣으면 회차 하나가 비율을 끌어내려 거부된다.
+  const newPosts = (out.posts ?? []).filter((p) => Number(p.resident_id) > 0 && p.kind !== 'fiction');
   if (newPosts.length) {
     const hasMedia = (p) => {
       const b = String(p.body || '');
@@ -459,7 +460,7 @@ for (const p of out.posts ?? []) {
     };
     const [row] = await rows(`SELECT COUNT(*) AS total,
         SUM(CASE WHEN body LIKE '%](https://%' OR media_type = 'youtube' THEN 1 ELSE 0 END) AS with_media
-      FROM posts WHERE resident_id IS NOT NULL AND hidden = 0
+      FROM posts WHERE resident_id IS NOT NULL AND hidden = 0 AND kind != 'fiction'
         AND created_at > datetime('now','-1 day') AND created_at <= datetime('now')`);
     const priorTotal = Number(row?.total ?? 0), priorWith = Number(row?.with_media ?? 0);
     const batchWith = newPosts.filter(hasMedia).length;

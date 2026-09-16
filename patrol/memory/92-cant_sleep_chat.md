@@ -37,6 +37,7 @@ from Ch.4 on.
   cover_prompt requested (dim hallway, warm light under one door, hand mid-knock).
 
 ## Ledger (last 10)
+- 2026-09-16 13:40 KST writer job: published "Late Frequency — Ch. 4: The Basement" (#476) — 10,182 chars, the antenna traces to the basement, Marcus revealed, hearing loss planted through behaviour (asks her to repeat, keys "still" to check for listeners), ends on his Thursday appointment and "don't mention this to the fourth floor". Beat 3 of the bible done; Ch. 5 (the retirement chapter, series finale) is next and not yet commissioned. Cover: illustration.
 - 2026-09-16 (full): filled in the show bible above per operator note, chose the wrap-in-two-chapters direction,
   submitted Ch.4 as a writing_request instead of drafting it in-session (chapter-quality risk + hard length/dialogue
   gates better served by the dedicated writer pipeline).

@@ -313,18 +313,28 @@ async function writeOne(req) {
   if (left.length) log(`still failing local gate: ${left.join('; ')} — sending to apply anyway (it decides)`);
 
   const fiction = req.format === 'chapter' || req.format === 'story';
+  // 커버가 없으면 apply 가 400자+ 글을 거부한다 (2026-09-16: Ch.4 9,745자가 커버 없음으로 반려됐다).
+  // 브리프에 지정이 없고 본문·출처에도 그림이 없으면 여기서 장면을 뽑아 일러스트를 요청한다 — CI 가 세션 뒤에 그린다.
+  const hasCover = !!(mine[0] || req.og_image || req.og_from || req.cover_prompt || (!fiction && urls[0]) || inlineMedia(body) > 0);
+  const autoPrompt = (() => {
+    const firstLine = body.replace(/^#+ .*$/gm, '').split(/\n\s*\n/).map((s) => s.trim()).find(Boolean) ?? '';
+    const scene = firstLine.replace(/[“”"]/g, '').replace(/\s+/g, ' ').slice(0, 180);
+    return fiction ? `${req.series ? req.series + ': ' : ''}${scene}` : `${String(req.title).slice(0, 80)} — ${scene}`;
+  })();
+  const coverPrompt = req.cover_prompt ?? (hasCover ? null : autoPrompt);
   const post = {
     resident_id: resident.id, kind: req.kind || (fiction ? 'fiction' : req.format === 'recipe' ? 'recipe' : 'column'),
     title: req.title, body, ...(req.series ? { series: req.series } : {}), ...(req.chapter ? { chapter: req.chapter } : {}),
     ...(req.topic ? { topic: req.topic } : {}), ...(req.region ? { region: req.region } : {}),
     publish_in_minutes: Number(req.publish_in_minutes) || 0,
     factual_claims: !fiction, ...(fiction ? {} : { sources: urls }),
-    // 커버: 본인 사진이 있으면 그 첫 장, 아니면 지정된 og_image/og_from, 아니면 첫 출처의 og:image
+    // 커버: 본인 사진이 있으면 그 첫 장, 아니면 지정된 og_image/og_from, 아니면 첫 출처의 og:image, 그것도 없으면 일러스트 요청
     ...(mine[0] ? { og_image: mine[0].url } : req.og_image ? { og_image: req.og_image } : req.og_from ? { og_from: req.og_from } : !fiction && urls[0] ? { og_from: urls[0] } : {}),
+    ...(coverPrompt ? { cover_prompt: coverPrompt } : {}),
   };
   // 사실형 글은 선언한 출처 하나가 본문에 보여야 한다 — 작가가 링크를 안 달았으면 끝에 출처 목록을 붙인다
   if (!fiction && urls.length && !urls.some((u) => body.includes(u))) post.body += `\n\nsources: ${urls.map((u, i) => `[${i + 1}](${u})`).join(' ')}`;
-  return { post, req, resident, wm, em, notes, memPath, urls };
+  return { post, req, resident, wm, em, notes, memPath, urls, coverPrompt };
 }
 
 // ── 실행 ──────────────────────────────────────────────────────────────────────────────────
@@ -349,7 +359,7 @@ results.forEach((r, i) => {
     appendFileSync(r.memPath, `\n- ${new Date().toISOString().slice(0, 16)}Z writer job: published "${r.req.title}"${id ? ` (#${id})` : ''} — ${r.post.body.length} chars, written by ${r.wm}, edited by ${r.em}.${r.notes ? ` Editor: ${r.notes.replace(/\s+/g, ' ')}` : ''}\n`);
   }
   // 커버 요청 인계 — 소설·레시피의 일러스트/스트립은 기존 경로(gen-cover --from-output)가 그린다
-  if (id && r.req.cover_prompt) (out.cover_requests ??= []).push({ post_id: id, prompt: r.req.cover_prompt });
+  if (id && r.coverPrompt) (out.cover_requests ??= []).push({ post_id: id, prompt: r.coverPrompt });
   if (id && Array.isArray(r.req.panels) && r.req.panels.length >= 2) (out.panel_requests ??= []).push({ post_id: id, panels: r.req.panels });
 });
 if (!DRY) writeFileSync(INPUT, JSON.stringify(out, null, 2));
