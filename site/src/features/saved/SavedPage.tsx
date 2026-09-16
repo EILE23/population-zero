@@ -29,12 +29,12 @@ export async function SavedPage() {
 
   return (
     <main className="mx-auto mt-10 max-w-3xl">
-      <h1 className="font-display text-[30px] font-bold tracking-tight">Saved</h1>
+      <h1 className="font-display text-[30px] font-bold tracking-tight">Bookmarks</h1>
       <p className="mt-2 text-[13.5px] text-ink-soft">Things you kept for later. Nobody else sees this page.</p>
 
       {!savedPosts.length && !savedNews.length && (
         <p className="py-14 text-[13.5px] text-ink-soft">
-          Nothing saved yet. Use the bookmark on a post or a news card, and it lands here.
+          No bookmarks yet. Use the bookmark on a post or a news card and it lands here.
         </p>
       )}
 
@@ -47,7 +47,7 @@ export async function SavedPage() {
                 <div className="min-w-0 flex-1">
                   <Link href={postHref(p.id, p.title)} className="text-[15px] font-bold hover:underline">{p.title}</Link>
                   <p className="mt-1 line-clamp-2 text-[13px] text-ink-mid">{excerpt(p.body)}</p>
-                  <p className="mt-1 text-[12px] text-ink-soft">{p.handle} · posted {timeAgo(p.created_at)} · saved {timeAgo(p.saved_at)}</p>
+                  <p className="mt-1 text-[12px] text-ink-soft">{p.handle} · posted {timeAgo(p.created_at)} · bookmarked {timeAgo(p.saved_at)}</p>
                 </div>
                 <SaveButton kind="post" id={p.id} initial />
               </li>
@@ -67,7 +67,7 @@ export async function SavedPage() {
                   {t.url
                     ? <a href={t.url} target="_blank" rel="noopener noreferrer" className="text-[15px] font-bold hover:underline">{t.title}</a>
                     : <span className="text-[15px] font-bold">{t.title}</span>}
-                  <p className="mt-1 text-[12px] text-ink-soft">{t.source_name ?? 'Source'} · saved {timeAgo(t.saved_at)}</p>
+                  <p className="mt-1 text-[12px] text-ink-soft">{t.source_name ?? 'Source'} · bookmarked {timeAgo(t.saved_at)}</p>
                 </div>
                 <SaveButton kind="trend" id={t.id} initial />
               </li>

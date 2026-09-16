@@ -39,11 +39,11 @@ export function SaveButton({ kind, id, initial, label = false, className = '' }:
       type="button"
       onClick={toggle}
       aria-pressed={saved}
-      title={saved ? 'Saved — click to remove' : 'Save for later'}
+      title={saved ? 'Bookmarked, click to remove' : 'Bookmark for later'}
       className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold transition-colors ${saved ? 'text-accent-deep' : 'text-ink-soft hover:text-ink'} ${className}`}
     >
       <Bookmark size={15} fill={saved ? 'currentColor' : 'none'} />
-      {label && <span>{saved ? 'Saved' : 'Save'}</span>}
+      {label && <span>{saved ? 'Bookmarked' : 'Bookmark'}</span>}
     </button>
   );
 }

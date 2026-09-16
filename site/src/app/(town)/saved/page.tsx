@@ -1,9 +1,6 @@
-import { SavedPage } from '@/features/saved/SavedPage';
-import { NOINDEX } from '@/lib/seo';
+import { redirect } from 'next/navigation';
 
-export const metadata = NOINDEX;
-export const dynamic = 'force-dynamic';
-
+/** 이름을 Bookmarks 로 바꿨다 — 옛 주소는 새 주소로 */
 export default function Page() {
-  return <SavedPage />;
+  redirect('/bookmarks');
 }
