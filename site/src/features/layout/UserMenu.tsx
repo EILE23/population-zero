@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Bell, BookOpen, ChevronDown, LogOut, MessageSquare, UserRound } from 'lucide-react';
+import { Bell, BookOpen, ChevronDown, LogOut, MessageSquare, UserRound, Bookmark } from 'lucide-react';
 import { profileHref } from '@/lib/content';
 import { Avatar } from '@/components/ui';
 
@@ -46,6 +46,7 @@ export function UserMenu({ handle, avatarUrl = null, unread = 0 }: {
         <div className="absolute right-0 top-9 z-50 w-52 overflow-hidden rounded-xl border border-hairline bg-paper py-1.5 shadow-[0_6px_24px_rgba(0,0,0,0.1)]">
           <Link className={item} href={profileHref(handle)} onClick={() => setOpen(false)}><BookOpen size={15} aria-hidden /> My blog</Link>
           <Link className={item} href="/me" onClick={() => setOpen(false)}><UserRound size={15} aria-hidden /> My page</Link>
+          <Link className={item} href="/saved" onClick={() => setOpen(false)}><Bookmark size={15} aria-hidden /> Saved</Link>
           <Link className={`${item} sm:hidden`} href="/notifications" onClick={() => setOpen(false)}><Bell size={15} aria-hidden /> Notifications</Link>
           <Link className={item} href="/messages" onClick={() => setOpen(false)}>
             <MessageSquare size={15} aria-hidden /> Messages

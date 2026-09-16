@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { timeAgo } from '@/lib/content';
+import { SaveButton } from '@/components/SaveButton';
 import type { WireItem, WireKind, WirePage } from '../types';
 
 const PAGE = 18;
@@ -98,7 +99,7 @@ const SPAN: Record<Shape, string> = {
 };
 
 /** 카드 전체가 링크 — 기사는 여기서 읽는 게 아니라 원문에서 읽는다 */
-function Card({ item, shape }: { item: WireItem; shape: Shape }) {
+function Card({ item, shape, saved }: { item: WireItem; shape: Shape; saved: boolean }) {
   const href = item.url && /^https?:\/\//.test(item.url) ? item.url : null;
   const Tag = href ? 'a' : 'div';
   const ref = useRef<HTMLElement>(null);
@@ -119,15 +120,24 @@ function Card({ item, shape }: { item: WireItem; shape: Shape }) {
     return () => io.disconnect();
   }, [item]);
 
-  const shell = `group overflow-hidden rounded-2xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)] ${SPAN[shape]}`;
+  const shell = `group h-full overflow-hidden rounded-2xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]`;
   // 매체가 링크 미리보기 이미지를 핫링크로 막는 경우가 있다 — referrer 를 보내지 않고, 깨지면 글자 카드로 내려간다
   const img = (cls: string, eager = false) => image && (
     <img src={image} alt="" loading={eager ? 'eager' : 'lazy'} referrerPolicy="no-referrer" onError={() => setBroken(true)}
       className={`${cls} object-cover transition-transform duration-500 group-hover:scale-[1.03]`} />
   );
 
+  const wrap = (node: React.ReactNode) => (
+    <div className={`relative ${SPAN[shape]}`}>
+      {node}
+      <div className="absolute right-2.5 top-2.5 rounded-full bg-paper/90 px-2 py-1 shadow-[0_1px_4px_rgba(0,0,0,0.12)] backdrop-blur">
+        <SaveButton kind="trend" id={item.id} initial={saved} />
+      </div>
+    </div>
+  );
+
   if (shape === 'row' && image) {
-    return (
+    return wrap(
       <Tag ref={ref as never} {...linkProps} className={`${shell} grid gap-0 md:grid-cols-[1.2fr_1fr]`}>
         <div className="aspect-video overflow-hidden bg-surface-deep md:aspect-auto md:min-h-65">{img('size-full', true)}</div>
         <div className="flex min-w-0 flex-col justify-center p-5 md:p-7">
@@ -140,13 +150,13 @@ function Card({ item, shape }: { item: WireItem; shape: Shape }) {
             </span>
           )}
         </div>
-      </Tag>
+      </Tag>,
     );
   }
 
   // 사진이 있으면 위에, 없으면 제목이 카드의 전부 — 맨 위 자리(row)에 사진 없이 오면 글자를 더 키운다
   const big = shape === 'row';
-  return (
+  return wrap(
     <Tag ref={ref as never} {...linkProps} className={`${shell} flex flex-col`}>
       {image && (
         <div className={`overflow-hidden bg-surface-deep ${shape === 'wide' ? 'aspect-video' : 'aspect-4/3'}`}>{img('size-full')}</div>
@@ -163,7 +173,7 @@ function Card({ item, shape }: { item: WireItem; shape: Shape }) {
           </span>
         )}
       </div>
-    </Tag>
+    </Tag>,
   );
 }
 
@@ -176,6 +186,7 @@ function Card({ item, shape }: { item: WireItem; shape: Shape }) {
 export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
   const [kind, setKind] = useState<WireKind>(initialKind);
   const [items, setItems] = useState<WireItem[]>([]);
+  const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -184,6 +195,16 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
   const sentinel = useRef<HTMLDivElement>(null);
   // 요청 세대 — 탭이 바뀌면 올라간다. 늦게 도착한 이전 탭의 응답은 세대가 달라서 버려진다.
   const gen = useRef(0);
+
+  // 내가 저장해 둔 뉴스 — 로그인 상태면 한 번만 읽어 카드에 표시한다 (로그아웃이면 빈 목록)
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/saves?kind=trend', { cache: 'no-store' })
+      .then(async (r) => (r.ok ? ((await r.json()) as { ids: number[] }) : { ids: [] }))
+      .then((d) => { if (alive) setSavedIds(new Set(d.ids ?? [])); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   // 탭을 닫거나 떠날 때 모아 둔 신호를 흘리지 않는다
   useEffect(() => {
@@ -288,7 +309,7 @@ export function NewsFeed({ initialKind = 'news' }: { initialKind?: WireKind }) {
 
       {/* 6칸 격자: 위에 한 장 크게, 아래는 3열 — 가끔 2열 한 쌍 */}
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
-        {items.map((item, i) => <Card key={item.id} item={item} shape={shapeFor(kind, i)} />)}
+        {items.map((item, i) => <Card key={item.id} item={item} shape={shapeFor(kind, i)} saved={savedIds.has(item.id)} />)}
         {loading && Array.from({ length: 6 }, (_, i) => (
           <div key={`s${i}`} className={`h-56 animate-pulse rounded-2xl bg-surface-deep/60 ${SPAN[i === 0 ? 'row' : 'tile']}`} />
         ))}

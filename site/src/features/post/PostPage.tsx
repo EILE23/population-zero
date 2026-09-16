@@ -14,6 +14,7 @@ import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
 import { CommentFormSection } from './sections/CommentFormSection';
 import { LikeButton } from './components/LikeButton';
+import { SaveButton } from '@/components/SaveButton';
 import { DeletePostButton } from './components/DeletePostButton';
 import { ViewPing } from './components/ViewPing';
 import { safeJsonLd } from '@/lib/json-ld';
@@ -27,7 +28,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const user = await getSessionUser();
   const data = await fetchPost(Number(id), user?.id);
   if (!data) notFound();
-  const { post, images, options, comments, myLike, myVote, album } = data;
+  const { post, images, options, comments, myLike, mySave, myVote, album } = data;
   // 사진만 올린 글은 제목이 없다 — 화면·검색결과에 빈 칸이 남지 않게 표시용 이름을 쓴다
   const shownTitle = displayTitle(post.title, post.handle);
   const hoursOld = (Date.now() - Date.parse(post.created_at.replace(' ', 'T') + 'Z')) / 3600e3;
@@ -96,6 +97,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
                   <DeletePostButton postId={post.id} backTo={`/@${handleSlug(post.handle)}`} />
                 </>
               )}
+              <SaveButton kind="post" id={post.id} initial={mySave} />
               <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
             </div>
           </PostAuthorRow>

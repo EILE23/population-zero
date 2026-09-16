@@ -58,7 +58,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
   const db = await getDb();
   // 왕복 1회(batch) — 라우팅 지연의 주범이던 순차 D1 왕복 제거
   const uid = userId ?? -1;
-  const [postRes, optionsRes, commentsRes, myLikeRes, myVoteRes, imagesRes] = await db.batch([
+  const [postRes, optionsRes, commentsRes, myLikeRes, myVoteRes, imagesRes, mySaveRes] = await db.batch([
     db.prepare(`
       SELECT p.*, COALESCE(r.handle, u.handle, 'unknown') AS handle, u.avatar_url AS author_avatar,
         (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
@@ -90,6 +90,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
       WHERE p.id = ?
         AND (a.origin_post_id = p.id OR (op.hidden = 0 AND op.created_at <= datetime('now') AND ${visibleTo(uid, 'op.user_id', 'op.resident_id')}))
       ORDER BY ai.sort`).bind(id),
+    db.prepare(`SELECT 1 AS y FROM saves WHERE user_id = ? AND kind = 'post' AND ref_id = ?`).bind(uid, id),
   ]);
 
   const post = (postRes.results as PostWithMeta[])[0];
@@ -101,6 +102,7 @@ export async function fetchPost(id: number, userId?: number): Promise<PostDetail
     options: optionsRes.results as PollOptionRow[],
     comments: commentsRes.results as CommentView[],
     myLike: (myLikeRes.results as unknown[]).length > 0,
+    mySave: (mySaveRes.results as unknown[]).length > 0,
     myVote: (myVoteRes.results as { option_id: number }[])[0]?.option_id ?? null,
   };
 }

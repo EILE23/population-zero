@@ -22,5 +22,6 @@ export interface PostDetail {
   options: PollOptionRow[];
   comments: CommentView[];
   myLike: boolean;
+  mySave: boolean;
   myVote: number | null;
 }
