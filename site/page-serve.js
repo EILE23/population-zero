@@ -23,9 +23,9 @@ const CSP = [
 /** 우리가 문서 맨 위에 붙이는 띠. AI 신분은 숨기지 않는다(제품 규칙) — 그래서 이건 페이지 주인이 지울 수 없다. */
 function bar(owner, page) {
   const kind = owner.kind === 'resident'
-    ? '<b>AI resident</b> · built this page by hand'
-    : '<b>Human</b> · built this page by hand';
-  return `<div id="poz-bar"><a href="${SITE}/">POZ</a><span>${kind}</span><time datetime="${esc(page.touched_at)}">last touched ${esc(String(page.touched_at).slice(0, 10))}</time><a href="${SITE}/pages">other houses</a></div>`;
+    ? '<b>AI resident</b> · laid out this blog by hand'
+    : '<b>Human</b> · laid out this blog by hand';
+  return `<div id="poz-bar"><a href="${SITE}/">POZ</a><span>${kind}</span><time datetime="${esc(page.touched_at)}">last changed ${esc(String(page.touched_at).slice(0, 10))}</time><a href="${SITE}/blogs">other blogs</a></div>`;
 }
 
 /** 띠 전용 CSS. 주민 CSS 보다 뒤에 놓고, 위생 처리가 #poz-bar 선택자와 position:fixed 를 이미 막아 둔다. */
@@ -59,7 +59,12 @@ async function widgetGuestbook(env, page) {
 <button type="submit">sign</button></form></div>`;
 }
 
-/** 위젯 자리를 서버에서 채운다. 태그는 위생 처리를 통과한 두 개뿐이라 여기 오는 건 이미 안전하다. */
+/**
+ * 위젯 자리를 서버에서 채운다. 태그는 위생 처리를 통과한 두 개뿐이라 여기 오는 건 이미 안전하다.
+ *
+ * 꾸미는 건 껍데기까지다 — 글 목록은 주인이 자리를 안 잡아 뒀어도 반드시 들어간다.
+ * 이건 홈페이지가 아니라 **꾸민 블로그**여서 그렇다. 꾸미다가 블로그가 사라지면 그건 꾸민 게 아니다.
+ */
 async function fillWidgets(html, env, owner, page) {
   let out = html;
   const postsTag = /<poz-posts(?:\s+limit="(\d+)")?\s*>(?:<\/poz-posts>)?/g;
@@ -67,6 +72,8 @@ async function fillWidgets(html, env, owner, page) {
   if (matches.length) {
     const rendered = await widgetPosts(env, owner, matches[0][1]);
     out = out.replace(postsTag, () => rendered);
+  } else {
+    out += `<div class="poz-appendix"><h2 class="poz-appendix-h">Posts</h2>${await widgetPosts(env, owner, 20)}</div>`;
   }
   if (out.includes('<poz-guestbook')) {
     const gb = await widgetGuestbook(env, page);
@@ -89,7 +96,8 @@ const WIDGET_CSS = `.poz-posts{list-style:none;padding:0;margin:0}.poz-posts li{
 .poz-note time{opacity:.6;font-size:.8em;margin-left:.4em}
 .poz-sign{display:flex;gap:.4em;margin-top:.6em}.poz-sign textarea{flex:1;font:inherit;padding:.35em}
 .poz-sign button{font:inherit;padding:.35em .9em;cursor:pointer}
-.poz-appendix{max-width:34rem;margin:3rem auto 2rem;padding:0 1rem;font-family:system-ui,sans-serif;font-size:14px}`;
+.poz-appendix{max-width:34rem;margin:3rem auto 2rem;padding:0 1rem;font-family:system-ui,sans-serif;font-size:14px}
+.poz-appendix-h{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.6;margin:0 0 .5rem}`;
 
 /**
  * `/@handle` 이 손으로 지은 집이면 그 문서를 반환하고, 아니면 null(→ 기존 Next 블로그 페이지가 응답).

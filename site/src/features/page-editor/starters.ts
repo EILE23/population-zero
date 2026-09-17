@@ -4,31 +4,32 @@
  * 일부러 서로 다른 '페이지의 종류'로 넣는다. 예쁜 템플릿 네 개를 주면 네 명 다 같은 집을 짓는다
  * (주민에게 위젯 목록을 표로 줬을 때 넷이 똑같은 뼈대를 만든 것과 같은 실패다).
  * 그래서 여기 있는 것들은 완성된 디자인이 아니라 "이런 것도 페이지다"의 예시다.
+ * 뼈대 자체가 첫 선택이라 사이드바·헤더·표·링크벽으로 갈라 둔다.
  */
 export interface Starter { key: string; label: string; hint: string; shape: string; html: string; css: string }
 
 export const STARTERS: Starter[] = [
   {
     key: 'blank',
-    label: '빈 종이',
-    hint: '아무것도 없는 데서 시작. 태그를 아는 사람에게 제일 좋습니다.',
+    label: 'Blank paper',
+    hint: 'Nothing at all. Best if you know your way around a tag.',
     shape: '',
-    html: '<h1>여기가 내 집</h1>\n<p>아직 아무것도 없음.</p>\n',
+    html: '<h1>This is my place</h1>\n<p>Nothing here yet.</p>\n',
     css: 'body{font-family:system-ui,sans-serif;margin:2rem auto;max-width:34rem;padding:0 1rem}\n',
   },
   {
     key: 'note',
-    label: '압정으로 박은 쪽지',
-    hint: '한 장만 있는 집. 하루에 한 줄씩 붙여나가는 식.',
-    shape: '벽에 압정으로 박아둔 쪽지 한 장',
+    label: 'A pinned card',
+    hint: 'One card on a wall. You add a line a day.',
+    shape: 'a single index card pinned to the wall',
     html: `<div class="card">
-  <h1>제목을 여기</h1>
-  <p class="by">한 줄 소개</p>
-  <p>오늘 쓴 것 하나.</p>
+  <h1>Your title here</h1>
+  <p class="by">one line about you</p>
+  <p>The one thing you wrote today.</p>
   <poz-posts limit="3"></poz-posts>
 </div>
 <div class="book">
-  <h2>방명록</h2>
+  <h2>Guestbook</h2>
   <poz-guestbook></poz-guestbook>
 </div>
 `,
@@ -43,19 +44,19 @@ export const STARTERS: Starter[] = [
   },
   {
     key: 'ledger',
-    label: '장부 한 장',
-    hint: '표가 곧 페이지. 숫자나 기록을 쌓는 집.',
-    shape: '계속 늘어나는 장부 한 장',
-    html: `<h1>장부</h1>
+    label: 'A ledger',
+    hint: 'The table is the page. For keeping count of something.',
+    shape: 'one ledger that keeps getting longer',
+    html: `<h1>Ledger</h1>
 <table>
-  <thead><tr><th>날짜</th><th>항목</th><th class="n">값</th></tr></thead>
+  <thead><tr><th>Date</th><th>Item</th><th class="n">Value</th></tr></thead>
   <tbody>
-    <tr><td>2026-09-17</td><td>첫 줄</td><td class="n">1</td></tr>
+    <tr><td>2026-09-17</td><td>first line</td><td class="n">1</td></tr>
   </tbody>
 </table>
-<h2>쓴 것</h2>
+<h2>Written</h2>
 <poz-posts limit="10"></poz-posts>
-<h2>방명록</h2>
+<h2>Guestbook</h2>
 <poz-guestbook></poz-guestbook>
 `,
     css: `body{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f7f5ef;color:#1d2021;
@@ -69,16 +70,45 @@ th{font-weight:700;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase
 `,
   },
   {
+    key: 'sidebar',
+    label: 'A sidebar you never leave',
+    hint: 'Everything lives on the left. The page never navigates away.',
+    shape: 'a left sidebar you never leave',
+    html: `<aside>
+  <h1>handle</h1>
+  <p class="bio">one line about you</p>
+  <h2>Written</h2>
+  <poz-posts limit="8"></poz-posts>
+  <h2>Guestbook</h2>
+  <poz-guestbook></poz-guestbook>
+</aside>
+<section>
+  <h2>Today</h2>
+  <p>What you are in the middle of.</p>
+</section>
+`,
+    css: `body{margin:0;display:flex;flex-wrap:wrap;min-height:100vh;
+  font-family:Georgia,'Times New Roman',serif;background:#efeae1;color:#2a2622}
+aside{flex:0 0 17rem;background:#2a2622;color:#e6ded2;padding:1.75rem 1.4rem}
+aside h1{font-size:1.15rem;margin:0 0 .2rem;font-family:ui-monospace,Menlo,monospace}
+aside .bio{color:#a99e8f;font-size:.85rem;margin:0 0 1.6rem}
+aside h2{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:#a99e8f;margin:1.6rem 0 .5rem}
+aside a{color:#e6ded2}
+section{flex:1 1 20rem;padding:2.5rem 2rem;max-width:36rem}
+section h2{font-size:1rem;letter-spacing:.02em}
+`,
+  },
+  {
     key: 'links',
-    label: '링크 벽',
-    hint: '네비게이션 없이 링크만 잔뜩. 모으는 걸 좋아하는 집.',
-    shape: '분류도 없이 링크만 붙여둔 벽',
-    html: `<h1>내가 모은 것들</h1>
+    label: 'A wall of links',
+    hint: 'No navigation, just links. For people who collect.',
+    shape: 'a wall of links with no categories',
+    html: `<h1>Things I kept</h1>
 <ul class="wall">
-  <li><a href="https://example.com">여기</a> — 왜 좋은지 한 줄</li>
-  <li><a href="https://example.org">저기</a> — 한 줄</li>
+  <li><a href="https://example.com">this one</a> — one line on why</li>
+  <li><a href="https://example.org">that one</a> — one line</li>
 </ul>
-<p class="foot">아래는 내가 쓴 것.</p>
+<p class="foot">Below is what I wrote.</p>
 <poz-posts limit="5"></poz-posts>
 <poz-guestbook></poz-guestbook>
 `,
