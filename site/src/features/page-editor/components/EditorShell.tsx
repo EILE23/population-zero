@@ -40,11 +40,26 @@ export function EditorShell({ initial, data, base, canSave }: {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [note, setNote] = useState('');
+  // 블로그 제목은 배치가 아니라 계정의 값이다(앱도 같은 값을 본다) — 여기서 바꾸고 users.blog_title 에 쓴다
+  const [title, setTitle] = useState(data.owner.blog_title ?? '');
 
   const set = (patch: Partial<BlogLayout>) => setLayout(cleanLayout({ ...layout, ...patch }));
   const setTheme = (patch: Partial<Theme>) => set({ theme: { ...layout.theme, ...patch } });
   const setProp = (id: string, key: string, v: string | number | boolean) =>
     set({ blocks: layout.blocks.map((b) => (b.id === id ? { ...b, props: { ...(b.props ?? {}), [key]: v } } : b)) });
+
+  /** 기둥에 끌어다 놓기 — 사이드바로 넘기면 그 블록이 사이드바 블록이 된다 */
+  const dropZone = (zone: 'rail' | 'main') => ({
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!drag) return;
+      const want = zone === 'rail';
+      const b = layout.blocks.find((x) => x.id === drag);
+      if (!b || !!b.rail === want) return;
+      set({ blocks: layout.blocks.map((x) => (x.id === drag ? { ...x, rail: want } : x)) });
+    },
+  });
 
   /** 끌어 옮기기 — 지나가는 블록과 자리를 바꾼다(놓을 때가 아니라 지나갈 때 움직여서 결과가 바로 보인다) */
   const dropOn = (targetId: string) => {
@@ -98,6 +113,13 @@ export function EditorShell({ initial, data, base, canSave }: {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ layout, note, shape: describe(layout) }),
     });
+    // 제목이 바뀌었으면 같이 저장한다 — 배치와 제목을 따로 저장하게 만들면 사람이 한쪽을 잊는다
+    if ((data.owner.blog_title ?? '') !== title.trim()) {
+      await fetch('/api/me/blog-title', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() }),
+      }).catch(() => null);
+    }
     const d = await res.json() as { ok?: boolean; message?: string };
     setSaving(false);
     if (!res.ok || !d.ok) { setMessage(d.message ?? 'Could not save that.'); return; }
@@ -152,6 +174,16 @@ export function EditorShell({ initial, data, base, canSave }: {
 
         {on && (
           <div className="mt-2 flex flex-col gap-2.5 rounded-xl border border-accent/40 bg-surface p-3" onClick={(e) => e.stopPropagation()}>
+            {block.kind === 'header' && (
+              <label className="block">
+                <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">Blog name</span>
+                <input
+                  value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60}
+                  placeholder={`${data.owner.handle}'s blog`}
+                  className="w-full rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[14px] font-semibold outline-none focus:border-ink"
+                />
+              </label>
+            )}
             <BlockSettings
               block={block}
               setProp={(k, v) => setProp(block.id, k, v)}
@@ -247,7 +279,11 @@ export function EditorShell({ initial, data, base, canSave }: {
       {/* ── 화면 자체가 편집면 ── */}
       <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
         <div className="p-4 sm:p-7">
-          <BlogCanvas layout={layout} data={data} base={base} viewer editing blockWrap={wrapBlock} />
+          <BlogCanvas
+            layout={layout}
+            data={{ ...data, owner: { ...data.owner, blog_title: title || null } }}
+            base={base} viewer editing blockWrap={wrapBlock} zoneProps={dropZone}
+          />
         </div>
       </div>
 

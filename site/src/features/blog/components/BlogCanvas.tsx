@@ -12,7 +12,7 @@ import type { ProfileData } from '../types';
  * (목업으로 미리보기를 만들면 반드시 갈라지고, 갈라진 미리보기는 없는 것보다 나쁘다).
  * 색·서체·모서리는 고른 값에서 만든 CSS 변수로만 들어간다 — 주인이 쓴 문자열이 스타일로 들어가는 일은 없다.
  */
-export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blockWrap }: {
+export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blockWrap, zoneProps }: {
   layout: BlogLayout;
   data: Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
   base: string;
@@ -23,6 +23,8 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   guestbook?: React.ReactNode;
   /** 편집기가 블록마다 손잡이와 설정을 덧입힌다. 공개 블로그에서는 비어 있다 */
   blockWrap?: (block: Block, node: React.ReactNode, index: number) => React.ReactNode;
+  /** 편집기가 기둥을 드롭 영역으로 쓴다 — 블록을 사이드바로 끌어다 놓으면 그 기둥으로 옮겨진다 */
+  zoneProps?: (zone: 'rail' | 'main') => React.HTMLAttributes<HTMLElement>;
 }) {
   const { theme, shell, width, blocks } = layout;
   const rail = shell !== 'stack';
@@ -44,10 +46,10 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
     <div data-pz="canvas" style={shellStyle} className="mx-auto w-full pz-canvas">
       {rail ? (
         <div className={`pz-rail-grid ${shell === 'rail-right' ? 'pz-rail-right' : ''}`}>
-          <aside data-pz="rail" className="pz-rail">
+          <aside data-pz="rail" className="pz-rail" {...(zoneProps?.('rail') ?? {})}>
             {railBlocks.length ? railBlocks.map(render) : editing ? <p className="pz-drop">Drag a block here</p> : null}
           </aside>
-          <div className="min-w-0">{mainBlocks.map(render)}</div>
+          <div className="min-w-0" {...(zoneProps?.('main') ?? {})}>{mainBlocks.map(render)}</div>
         </div>
       ) : (
         mainBlocks.map(render)
