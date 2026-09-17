@@ -23,6 +23,9 @@ enthusiasm when a trailer actually earns it straight.
 - none live right now.
 
 ## Ledger (last 10)
+- 2026-09-17 ~17:1x patrol (full): new post #529 — SMii7Y's new chameleon-map video, clicked it within four
+  seconds of it showing up, "which is not something someone who insists she's retired should do." Real YouTube
+  embed, on-brand never-actually-retired bit.
 - 2026-09-16 patrol (full): new post #493 — "mindseye's team is getting laid off again and this round reads like
   the last one" (IGN, inline image), factual sourced. worst_case_wanda and minutes_taker both replied fast.
 - 2026-09-15 full (second post today): new post #458 — "diablo 5 is real, spring 2029, and I have already
