@@ -11,6 +11,7 @@ const SITE = 'https://population.town';
 const FROM = 'POZ <noreply@population.town>';
 const PER_RUN = 40;          // Resend 무료 한도(일 100통) 안에서 — 시간당 상한
 const MARKETING_UTC_HOUR = 0; // 09:00 KST 월요일
+const DAILY_CAP = 90;        // Resend 무료 일 100통 — 답변 메일이 한도에 밀리지 않게 나머지 레인은 여기서 멈춘다
 const ALERT_PER_RUN = 25;    // 알림 메일은 시간당 이만큼까지
 const ALERT_MAX_STORIES = 8; // 한 통에 담는 기사 수 (나머지는 "and N more")
 
@@ -86,7 +87,8 @@ ${list}
 }
 
 /** ② 마케팅 메일 — 주 1회(월요일), 지난 7일 중 사람 반응이 가장 좋았던 글 하나 */
-async function marketingMails(env, now) {
+async function marketingMails(env, now, budget) {
+  if (budget <= 0) return 0;
   if (now.getUTCDay() !== 1 || now.getUTCHours() !== MARKETING_UTC_HOUR) return 0;
   const stamp = Number(now.toISOString().slice(0, 10).replace(/-/g, ''));
   const pick = await env.DB.prepare(`
@@ -104,7 +106,7 @@ async function marketingMails(env, now) {
     SELECT id, email FROM users
     WHERE email IS NOT NULL AND email_weekly = 1 AND email_optout = 0 AND guest = 0
       AND NOT EXISTS (SELECT 1 FROM mail_log m WHERE m.kind = 'weekly' AND m.ref_id = ? AND m.user_id = users.id)
-    LIMIT ?`).bind(stamp, PER_RUN).all();
+    LIMIT ?`).bind(stamp, Math.min(PER_RUN, budget)).all();
 
   const path = `/p/${pick.id}/${slug(pick.title)}`;
   const body = String(pick.body).replace(/[#*`>\[\]]/g, '').replace(/\s+/g, ' ').trim().slice(0, 260);
@@ -154,7 +156,9 @@ function storyList(rows) {
 }
 
 /** ③ 키워드 알림 — 한 사람에게 한 통, 걸린 단어를 한꺼번에 묶어서 */
-async function alertMails(env) {
+async function alertMails(env, now, budget) {
+  if (budget <= 0) return 0;
+  const hourStamp = Number(now.toISOString().slice(0, 13).replace(/[-T]/g, ''));
   const { results } = await env.DB.prepare(`
     SELECT a.id AS alert_id, a.keyword, a.user_id, u.email,
            t.id AS trend_id, t.title, t.summary, t.url, t.source_name, t.region
@@ -182,7 +186,7 @@ async function alertMails(env) {
 
   let sent = 0;
   for (const [userId, u] of byUser) {
-    if (sent >= ALERT_PER_RUN) break;
+    if (sent >= Math.min(ALERT_PER_RUN, budget)) break;
     const words = [...u.words];
     const shown = u.rows.slice(0, ALERT_MAX_STORIES);
     const rest = u.rows.length - shown.length;
@@ -199,15 +203,19 @@ ${rest > 0 ? `<p style="font-size:13px;color:#8b8289">and ${rest} more</p>` : ''
       : `${u.rows.length} stories on ${words.slice(0, 3).join(', ')}`;
     if (!(await send(env, u.email, subject, html))) continue;
     // 보낸 것만 아니라 이번에 걸린 전부를 표시한다 — 다음 시간에 같은 기사가 다시 오면 알림이 아니라 반복이다
-    await env.DB.batch(u.marks.map(([a, t]) =>
-      env.DB.prepare(`INSERT OR IGNORE INTO alert_sent (alert_id, trend_id) VALUES (?, ?)`).bind(a, t)));
+    await env.DB.batch([
+      ...u.marks.map(([a, t]) => env.DB.prepare(`INSERT OR IGNORE INTO alert_sent (alert_id, trend_id) VALUES (?, ?)`).bind(a, t)),
+      // 하루 한도 계산에 알림 메일도 들어가야 한다 — 거래성 답변 메일이 한도에 밀려 안 나가면 그게 더 나쁘다
+      env.DB.prepare(`INSERT OR IGNORE INTO mail_log (kind, ref_id, user_id) VALUES ('alert', ?, ?)`).bind(hourStamp, userId),
+    ]);
     sent++;
   }
   return sent;
 }
 
 /** ④ 아침 브리핑 — 받는 사람 나라의 아침 7시에 한 통 */
-async function briefMails(env, now) {
+async function briefMails(env, now, budget) {
+  if (budget <= 0) return 0;
   const hour = now.getUTCHours();
   const regions = Object.entries(BRIEF_HOUR).filter(([, h]) => h === hour).map(([r]) => r);
   if (!regions.length) return 0;
@@ -220,7 +228,7 @@ async function briefMails(env, now) {
       WHERE email IS NOT NULL AND email_brief = 1 AND email_optout = 0 AND guest = 0
         AND COALESCE(brief_region, '') = ?
         AND NOT EXISTS (SELECT 1 FROM mail_log m WHERE m.kind = 'brief' AND m.ref_id = ? AND m.user_id = users.id)
-      LIMIT ?`).bind(region, stamp, PER_RUN).all();
+      LIMIT ?`).bind(region, stamp, Math.max(0, Math.min(PER_RUN, budget - sent))).all();
     if (!users.length) continue;
 
     // 나라별 조건은 문장을 갈라 쓴다 — `(? = '' OR region = ?)` 로 묶으면 idx_trends_region 을 못 타고 전체를 읽는다
@@ -263,11 +271,17 @@ ${thread ? `
 export async function runMailCron(env, now = new Date()) {
   if (!env.RESEND_API_KEY) return;
   try {
+    // 답변 메일이 먼저다(사람이 기다리는 메일). 남은 하루 한도를 알림 → 브리핑 → 마케팅 순으로 나눠 쓴다.
     const a = await answerMails(env);
-    const m = await marketingMails(env, now);
-    const k = await alertMails(env);
-    const b = await briefMails(env, now);
-    if (a || m || k || b) console.log(`mail-cron: ${a} answer, ${m} marketing, ${k} alert, ${b} brief`);
+    const used = await env.DB.prepare(`SELECT COUNT(*) AS n FROM mail_log WHERE sent_at > datetime('now','-1 day')`)
+      .first().then((r) => r?.n ?? 0);
+    let left = Math.max(0, DAILY_CAP - used);
+    const k = await alertMails(env, now, left);
+    left -= k;
+    const b = await briefMails(env, now, left);
+    left -= b;
+    const m = await marketingMails(env, now, left);
+    if (a || m || k || b) console.log(`mail-cron: ${a} answer, ${k} alert, ${b} brief, ${m} marketing (cap ${used}/${DAILY_CAP})`);
   } catch (e) {
     console.error('mail-cron failed', e instanceof Error ? e.message : String(e));
   }
