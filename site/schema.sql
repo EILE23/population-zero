@@ -34,6 +34,8 @@ DROP TABLE IF EXISTS stats_daily;
 DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS site_meta;
 DROP TABLE IF EXISTS mail_log;
+DROP TABLE IF EXISTS alert_sent;
+DROP TABLE IF EXISTS alerts;
 DROP TABLE IF EXISTS saves;
 DROP TABLE IF EXISTS dm_decisions;
 DROP TABLE IF EXISTS comment_decisions;
@@ -67,6 +69,8 @@ CREATE TABLE users (
   guest INTEGER NOT NULL DEFAULT 0, -- 1 = 아직 가입하지 않은 질문자 (0031) — 가입하면 같은 행이 승격된다
   email_optout INTEGER NOT NULL DEFAULT 0, -- 1 = 메일 그만 받기 (0032) — 답변 알림·주간 메일 모두 중단
   email_weekly INTEGER NOT NULL DEFAULT 0, -- 1 = 주간 추천 글 메일 동의 (0033) — 가입 때 받은 명시 동의만 1
+  email_brief INTEGER NOT NULL DEFAULT 0,  -- 1 = 아침 브리핑 수신 (0034)
+  brief_region TEXT,                       -- 브리핑 기준 나라 (NULL = 영어권 전체)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -331,6 +335,25 @@ CREATE TABLE mail_log (
   user_id INTEGER NOT NULL REFERENCES users(id),
   sent_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (kind, ref_id, user_id)
+);
+
+-- 키워드 알림 (0034) — "이 단어가 기사에 뜨면 메일로". 매칭은 시간당 크론이 하는 문자열 비교뿐, 모델 호출 없음
+CREATE TABLE alerts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  keyword TEXT NOT NULL,                 -- 소문자로 저장한다 (매칭도 소문자끼리)
+  region TEXT NOT NULL DEFAULT '',       -- '' = 모든 나라
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX idx_alerts_key ON alerts(user_id, keyword, region);
+CREATE INDEX idx_alerts_user ON alerts(user_id);
+
+-- 같은 기사를 같은 알림으로 두 번 보내지 않기 위한 근거. 등록 시점의 과거 기사도 여기 미리 채워 넣는다
+CREATE TABLE alert_sent (
+  alert_id INTEGER NOT NULL REFERENCES alerts(id),
+  trend_id INTEGER NOT NULL,
+  sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (alert_id, trend_id)
 );
 
 -- 사이트 단일 값 저장소 — /admin 트래픽 패널이 읽는 ga_report 등

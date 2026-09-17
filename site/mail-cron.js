@@ -2,12 +2,20 @@
 //
 //  ① answers   : 내가 올린 질문에 주민들이 답했다. 창을 닫은 사람은 이 메일이 없으면 답을 영영 못 본다(거래성).
 //  ② marketing : 수신 동의한 사람에게 주 1회, 지난주 읽을 만한 글 하나(광고성 — 명시 동의 + 언제든 해지).
+//  ③ alerts    : 걸어 둔 단어가 12개국 기사에 떴다(거래성 — 본인이 그 단어를 직접 등록했다).
+//  ④ brief     : 하루 한 통, 자기 나라 아침 시간에 맞춰 밤새 기사와 여기 스레드 하나.
 //
-// 한 사건에 한 통만 나간다(mail_log). 게스트(이메일 없음)와 수신 거부는 애초에 후보에서 빠진다.
+// ③④ 는 모델을 부르지 않는다. 순찰이 이미 모아 둔 trends 를 문자열로 맞춰 보고 보내는 게 전부다.
+// 한 사건에 한 통만 나간다(mail_log / alert_sent). 게스트(이메일 없음)와 수신 거부는 애초에 후보에서 빠진다.
 const SITE = 'https://population.town';
 const FROM = 'POZ <noreply@population.town>';
 const PER_RUN = 40;          // Resend 무료 한도(일 100통) 안에서 — 시간당 상한
 const MARKETING_UTC_HOUR = 0; // 09:00 KST 월요일
+const ALERT_PER_RUN = 25;    // 알림 메일은 시간당 이만큼까지
+const ALERT_MAX_STORIES = 8; // 한 통에 담는 기사 수 (나머지는 "and N more")
+
+// 그 나라 아침 7시가 되는 UTC 시각. 브리핑은 받는 사람의 아침에 도착해야 브리핑이다.
+const BRIEF_HOUR = { KR: 22, JP: 22, AU: 21, ID: 0, IN: 1, DE: 5, FR: 5, GB: 6, NG: 6, BR: 10, US: 11, MX: 13, '': 11 };
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -118,12 +126,148 @@ async function marketingMails(env, now) {
   return sent;
 }
 
+/**
+ * 걸어 둔 단어가 실제로 그 기사 안에 있는지.
+ * SQL 의 LIKE 는 후보를 좁히는 용도일 뿐이다 — 'ai' 가 'said' 에 걸리면 알림이 아니라 소음이니
+ * 알파벳 키워드는 앞뒤가 글자·숫자가 아닐 때만 인정한다. 한글·일본어처럼 띄어쓰기가 다른 말은 그냥 포함이면 된다.
+ */
+function hits(haystack, keyword) {
+  const text = String(haystack ?? '').toLowerCase();
+  if (!/^[a-z0-9 .'&+-]+$/.test(keyword)) return text.includes(keyword);
+  let from = 0;
+  for (;;) {
+    const at = text.indexOf(keyword, from);
+    if (at < 0) return false;
+    const before = text[at - 1] ?? ' ';
+    const after = text[at + keyword.length] ?? ' ';
+    if (!/[a-z0-9]/.test(before) && !/[a-z0-9]/.test(after)) return true;
+    from = at + 1;
+  }
+}
+
+function storyList(rows) {
+  return rows.map((t) => `
+<div style="margin:0 0 14px">
+  <a href="${esc(t.url)}" style="color:#1B0C15;font-weight:700;text-decoration:none">${esc(t.title)}</a>
+  <div style="font-size:12px;color:#8b8289;margin-top:3px">${esc(t.source_name ?? 'press')}${t.region ? ` · ${esc(t.region)}` : ''}</div>
+</div>`).join('');
+}
+
+/** ③ 키워드 알림 — 한 사람에게 한 통, 걸린 단어를 한꺼번에 묶어서 */
+async function alertMails(env) {
+  const { results } = await env.DB.prepare(`
+    SELECT a.id AS alert_id, a.keyword, a.user_id, u.email,
+           t.id AS trend_id, t.title, t.summary, t.url, t.source_name, t.region
+    FROM alerts a
+    JOIN users u ON u.id = a.user_id
+    JOIN trends t ON t.kind = 'news' AND t.url IS NOT NULL
+      AND t.collected_at > datetime('now','-2 days')
+      AND (a.region = '' OR t.region = a.region)
+      AND (lower(t.title) LIKE '%' || a.keyword || '%' OR lower(COALESCE(t.summary,'')) LIKE '%' || a.keyword || '%')
+    WHERE u.email IS NOT NULL AND u.email_optout = 0 AND u.guest = 0
+      AND NOT EXISTS (SELECT 1 FROM alert_sent s WHERE s.alert_id = a.id AND s.trend_id = t.id)
+    ORDER BY a.user_id, t.collected_at DESC
+    LIMIT 500`).all();
+  if (!results.length) return 0;
+
+  const byUser = new Map();
+  for (const r of results) {
+    if (!hits(r.title, r.keyword) && !hits(r.summary, r.keyword)) continue; // LIKE 가 흘린 것들
+    const u = byUser.get(r.user_id) ?? { email: r.email, words: new Set(), rows: [], seen: new Set(), marks: [] };
+    u.marks.push([r.alert_id, r.trend_id]);
+    if (!u.seen.has(r.trend_id)) { u.seen.add(r.trend_id); u.rows.push(r); }
+    u.words.add(r.keyword);
+    byUser.set(r.user_id, u);
+  }
+
+  let sent = 0;
+  for (const [userId, u] of byUser) {
+    if (sent >= ALERT_PER_RUN) break;
+    const words = [...u.words];
+    const shown = u.rows.slice(0, ALERT_MAX_STORIES);
+    const rest = u.rows.length - shown.length;
+    const unsub = `${SITE}/api/mail/unsubscribe?u=${userId}&t=${await unsubToken(env.RESEND_API_KEY, userId)}`;
+    const html = shell(`
+<p style="font-size:13px;color:#8b8289;margin:0">You're watching ${esc(words.map((w) => `"${w}"`).join(', '))}</p>
+<h1 style="font-size:20px;margin:6px 0 16px">${u.rows.length === 1 ? 'One story came up' : `${u.rows.length} stories came up`}</h1>
+${storyList(shown)}
+${rest > 0 ? `<p style="font-size:13px;color:#8b8289">and ${rest} more</p>` : ''}
+<p style="margin-top:18px"><a href="${SITE}/alerts" style="display:inline-block;background:#1B0C15;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:700">Edit what you watch</a></p>`, unsub);
+
+    const subject = words.length === 1
+      ? `${words[0]}: ${String(shown[0].title).slice(0, 60)}`
+      : `${u.rows.length} stories on ${words.slice(0, 3).join(', ')}`;
+    if (!(await send(env, u.email, subject, html))) continue;
+    // 보낸 것만 아니라 이번에 걸린 전부를 표시한다 — 다음 시간에 같은 기사가 다시 오면 알림이 아니라 반복이다
+    await env.DB.batch(u.marks.map(([a, t]) =>
+      env.DB.prepare(`INSERT OR IGNORE INTO alert_sent (alert_id, trend_id) VALUES (?, ?)`).bind(a, t)));
+    sent++;
+  }
+  return sent;
+}
+
+/** ④ 아침 브리핑 — 받는 사람 나라의 아침 7시에 한 통 */
+async function briefMails(env, now) {
+  const hour = now.getUTCHours();
+  const regions = Object.entries(BRIEF_HOUR).filter(([, h]) => h === hour).map(([r]) => r);
+  if (!regions.length) return 0;
+  const stamp = Number(now.toISOString().slice(0, 10).replace(/-/g, ''));
+
+  let sent = 0;
+  for (const region of regions) {
+    const { results: users } = await env.DB.prepare(`
+      SELECT id, email FROM users
+      WHERE email IS NOT NULL AND email_brief = 1 AND email_optout = 0 AND guest = 0
+        AND COALESCE(brief_region, '') = ?
+        AND NOT EXISTS (SELECT 1 FROM mail_log m WHERE m.kind = 'brief' AND m.ref_id = ? AND m.user_id = users.id)
+      LIMIT ?`).bind(region, stamp, PER_RUN).all();
+    if (!users.length) continue;
+
+    // 나라별 조건은 문장을 갈라 쓴다 — `(? = '' OR region = ?)` 로 묶으면 idx_trends_region 을 못 타고 전체를 읽는다
+    const newsSql = `SELECT title, url, source_name, region FROM trends
+       WHERE kind = 'news' AND url IS NOT NULL AND collected_at > datetime('now','-1 day')
+         ${region ? 'AND region = ?' : ''}
+       ORDER BY rank ASC, score DESC LIMIT 6`;
+    const [{ results: news }, thread] = await Promise.all([
+      region ? env.DB.prepare(newsSql).bind(region).all() : env.DB.prepare(newsSql).all(),
+      env.DB.prepare(`
+        SELECT p.id, p.title, COALESCE(r.handle, u.handle) AS author,
+          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0) AS replies
+        FROM posts p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
+        WHERE p.hidden = 0 AND p.created_at > datetime('now','-1 day') AND p.created_at <= datetime('now')
+        ORDER BY replies DESC, length(p.body) DESC LIMIT 1`).first(),
+    ]);
+    if (!news.length) continue;
+
+    for (const u of users) {
+      const unsub = `${SITE}/api/mail/unsubscribe?u=${u.id}&t=${await unsubToken(env.RESEND_API_KEY, u.id)}`;
+      const html = shell(`
+<p style="font-size:13px;color:#8b8289;margin:0">${esc(now.toUTCString().slice(0, 11))} · overnight</p>
+<h1 style="font-size:20px;margin:6px 0 16px">What the press ran</h1>
+${storyList(news)}
+${thread ? `
+<div style="margin-top:22px;padding:14px;background:#f6f3f4;border-radius:12px">
+  <div style="font-size:12px;color:#8b8289">Being argued about on POZ</div>
+  <a href="${SITE}/p/${thread.id}/${slug(thread.title)}" style="display:block;margin-top:4px;color:#1B0C15;font-weight:700;text-decoration:none">${esc(thread.title)}</a>
+  <div style="font-size:12px;color:#8b8289;margin-top:3px">${esc(thread.author ?? 'a resident')} · ${thread.replies} replies</div>
+</div>` : ''}
+<p style="font-size:13px;color:#8b8289;margin-top:18px">Want a word watched instead? <a href="${SITE}/alerts" style="color:#7B526C">Set an alert</a>.</p>`, unsub);
+      if (!(await send(env, u.email, `Morning brief — ${String(news[0].title).slice(0, 60)}`, html))) continue;
+      await env.DB.prepare(`INSERT OR IGNORE INTO mail_log (kind, ref_id, user_id) VALUES ('brief', ?, ?)`).bind(stamp, u.id).run();
+      sent++;
+    }
+  }
+  return sent;
+}
+
 export async function runMailCron(env, now = new Date()) {
   if (!env.RESEND_API_KEY) return;
   try {
     const a = await answerMails(env);
     const m = await marketingMails(env, now);
-    if (a || m) console.log(`mail-cron: ${a} answer mail(s), ${m} marketing mail(s)`);
+    const k = await alertMails(env);
+    const b = await briefMails(env, now);
+    if (a || m || k || b) console.log(`mail-cron: ${a} answer, ${m} marketing, ${k} alert, ${b} brief`);
   } catch (e) {
     console.error('mail-cron failed', e instanceof Error ? e.message : String(e));
   }

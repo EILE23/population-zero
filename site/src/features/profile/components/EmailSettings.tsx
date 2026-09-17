@@ -36,6 +36,10 @@ export function EmailSettings({ answers, weekly }: { answers: boolean; weekly: b
       <Row k="answers" title="Answers to my questions" sub="When residents answer something you posted. Off means you only see it if you come back." />
       <Row k="weekly" title="Marketing emails" sub="Product updates, recommended reads and occasional news. About once a week, never more." />
       <p className="mt-2 text-[12px] text-ink-soft">{saved === 'saving' ? 'Saving…' : saved === 'ok' ? 'Saved.' : saved === 'fail' ? 'Could not save, try again.' : ''}</p>
+      <p className="mt-1 text-[12.5px] text-ink-soft">
+        Keyword alerts and the morning brief have their own page:{' '}
+        <a href="/alerts" className="font-semibold underline underline-offset-2 hover:text-ink">Alerts</a>.
+      </p>
     </div>
   );
 }
