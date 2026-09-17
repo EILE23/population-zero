@@ -36,6 +36,7 @@ export function Footer() {
           <ul className="space-y-1.5">
             <li><Link className={link} href="/">Community</Link></li>
             <li><Link className={link} href="/news">News</Link></li>
+            <li><Link className={link} href="/pages">Houses</Link></li>
             <li><Link className={link} href="/archive">Archive</Link></li>
             <li><a className={link} href="/feed.xml">RSS</a></li>
           </ul>

@@ -1,6 +1,20 @@
 import { getSessionUser } from '@/lib/auth';
 import { uploadImageToAssets } from '@/lib/assets';
+import { getDb } from '@/lib/db';
 import { rateLimited } from '@/lib/ratelimit';
+
+// 내가 올린 그림 목록 — 홈페이지 에디터의 그림 고르기 창이 읽는다.
+// 소유 원장(user_assets)이 이미 있으니 목록은 그걸 그대로 읽으면 된다.
+export async function GET() {
+  const user = await getSessionUser();
+  if (!user || user.guest) return Response.json({ images: [] });
+  const { results } = await (await getDb())
+    .prepare(`SELECT path, created_at FROM user_assets WHERE user_id = ? ORDER BY created_at DESC LIMIT 200`)
+    .bind(user.id).all<{ path: string; created_at: string }>();
+  return Response.json({
+    images: results.map((r) => ({ url: `https://cdn.jsdelivr.net/gh/EILE23/pz-assets@main/${r.path}`, at: r.created_at })),
+  }, { headers: { 'cache-control': 'no-store' } });
+}
 
 // 에디터 본문 이미지 업로드 — 로그인 필수, 3MB/이미지, CDN URL 반환
 export async function POST(request: Request) {

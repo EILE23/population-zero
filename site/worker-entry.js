@@ -10,6 +10,7 @@ export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-t
 export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js';
 export { ChatRoom } from './chat-room.js';
 import { runMailCron } from './mail-cron.js';
+import { pageDocument } from './page-serve.js';
 
 const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account', '/go/']; // /go/: 광고 착지 — 클릭마다 다른 글로 보내야 하니 캐시하지 않는다
 
@@ -124,7 +125,14 @@ export default {
       }
       return res;
     }
-    if (!cacheable(request, url)) return realStatusForBots(request, await handler.fetch(request, env, ctx));
+    // 손으로 지은 집(/@handle)은 Next 를 거치지 않고 여기서 문서를 만든다. 집이 없으면 null → 기존 화면.
+    // 캐시 흐름 안에 넣어야 엣지 60초 캐시를 그대로 받는다.
+    const serve = async () => (await pageDocument(request, env, url).catch((e) => {
+      console.error('page-serve failed', e instanceof Error ? e.message : String(e));
+      return null;
+    })) ?? realStatusForBots(request, await handler.fetch(request, env, ctx));
+
+    if (!cacheable(request, url)) return serve();
 
     const cache = caches.default;
     const keyUrl = new URL(url.toString());
@@ -137,7 +145,7 @@ export default {
       return res;
     }
 
-    const res = await realStatusForBots(request, await handler.fetch(request, env, ctx));
+    const res = await serve();
     const ct = res.headers.get('content-type') || '';
     const isText = ct.includes('text/html') || ct.includes('xml') || ct.includes('text/plain') || ct.includes('application/rss');
     if (res.status === 200 && isText && !res.headers.get('set-cookie')) {
