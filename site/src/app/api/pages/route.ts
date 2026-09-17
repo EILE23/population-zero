@@ -2,7 +2,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { rateLimited } from '@/lib/ratelimit';
 import { sameOriginOrBearer } from '@/lib/safety';
-import { sanitizePage } from '@/lib/page-html';
+import { cleanLayout } from '@/lib/blog-layout';
 
 /**
  * 블로그 스킨 저장 — 사람이 에디터에서 쓰는 문 하나. 주민도 같은 위생 처리를 지나 같은 표에 쓴다.
@@ -15,7 +15,7 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user || user.guest) return Response.json({ page: null });
   const page = await (await getDb())
-    .prepare(`SELECT id, shape, html, css, version, touched_at FROM pages WHERE user_id = ?`).bind(user.id).first();
+    .prepare(`SELECT id, shape, layout, version, touched_at FROM pages WHERE user_id = ?`).bind(user.id).first();
   return Response.json({ page }, { headers: { 'cache-control': 'no-store' } });
 }
 
@@ -32,13 +32,13 @@ export async function POST(request: Request) {
     return Response.json({ error: 'rate', message: 'Saving too often. Give it a minute.' }, { status: 429 });
   }
 
-  const b = (await request.json().catch(() => ({}))) as { html?: unknown; css?: unknown; shape?: unknown; note?: unknown };
-  const clean = sanitizePage(String(b.html ?? '').slice(0, 4096), String(b.css ?? ''));
-  if (!clean.html.trim() && !clean.css.trim()) {
-    return Response.json({ error: 'empty', message: 'Nothing to save yet.' }, { status: 400 });
-  }
+  const b = (await request.json().catch(() => ({}))) as { layout?: unknown; shape?: unknown; note?: unknown };
+  // 들어온 값은 전부 모르는 사람이 쓴 것으로 본다 — 목록에 없는 값은 기본값으로 접힌다(주입될 자리가 없다)
+  const layout = cleanLayout(b.layout);
+  const json = JSON.stringify(layout);
+  if (json.length > 32_000) return Response.json({ error: 'big', message: 'Too many blocks.' }, { status: 413 });
   const shape = String(b.shape ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
-  const note = String(b.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) || 'edited the page';
+  const note = String(b.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) || 'moved things around';
 
   const db = await getDb();
   // 방명록만 있던 빈 행이 이미 있을 수 있다(누가 먼저 방명록에 글을 남긴 경우) — 그 행을 이어 쓴다
@@ -48,23 +48,18 @@ export async function POST(request: Request) {
   if (existing) {
     version = existing.version + 1;
     pageId = existing.id;
-    await db.prepare(`UPDATE pages SET html = ?, css = ?, shape = ?, version = ?, touched_at = datetime('now') WHERE id = ?`)
-      .bind(clean.html, clean.css, shape, version, pageId).run();
+    await db.prepare(`UPDATE pages SET layout = ?, shape = ?, version = ?, touched_at = datetime('now') WHERE id = ?`)
+      .bind(json, shape, version, pageId).run();
   } else {
     version = 1;
     const row = await db.prepare(
-      `INSERT INTO pages (user_id, shape, html, css, version) VALUES (?, ?, ?, ?, 1) RETURNING id`)
-      .bind(user.id, shape, clean.html, clean.css).first<{ id: number }>();
+      `INSERT INTO pages (user_id, shape, layout, version) VALUES (?, ?, ?, 1) RETURNING id`)
+      .bind(user.id, shape, json).first<{ id: number }>();
     pageId = row!.id;
   }
-  await db.prepare(`INSERT OR REPLACE INTO page_versions (page_id, version, note, html, css) VALUES (?, ?, ?, ?, ?)`)
-    .bind(pageId, version, note, clean.html, clean.css).run();
+  // 손댄 기록에 배치를 그대로 남긴다 — 되돌리기의 근거이자 블로그 목록에 뜨는 "오늘 뭘 바꿨나"
+  await db.prepare(`INSERT OR REPLACE INTO page_versions (page_id, version, note, html, css) VALUES (?, ?, ?, '', ?)`)
+    .bind(pageId, version, note, json).run();
 
-  return Response.json({
-    ok: true,
-    version,
-    url: `/@${user.handle.toLowerCase().replace(/ /g, '-')}`,
-    // 무엇이 버려졌는지는 숨기지 않는다 — 스크립트를 넣었는데 조용히 사라지면 사람이 자기 실수를 못 찾는다
-    dropped: clean.dropped,
-  });
+  return Response.json({ ok: true, version, url: `/@${user.handle.toLowerCase().replace(/ /g, '-')}` });
 }

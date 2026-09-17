@@ -41,6 +41,17 @@ const nextConfig = {
         ],
       },
       {
+        // 블로그(/@handle)만 '같은 출처에서는 삽입 가능'으로 내린다.
+        // 스킨 에디터(/me/page)가 내 블로그 실물을 iframe 으로 띄워 미리보기를 하기 때문이다 —
+        // 목업으로 대신하면 미리보기와 실물이 갈라지고, 갈라진 미리보기는 없는 것보다 나쁘다.
+        // 남의 사이트에서는 여전히 못 끼운다(클릭재킹 방어는 그대로).
+        source: '/@:handle',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+        ],
+      },
+      {
         // 개발용 CORS — Expo 웹 미리보기(localhost)에서 API 를 부를 수 있게.
         // localhost 출처에만 열고 자격증명(쿠키)은 허용하지 않는다. 앱은 Bearer 토큰을 쓰므로
         // 쿠키가 필요 없고, 쿠키를 허용하지 않으므로 다른 사이트가 방문자 세션을 악용할 수 없다.

@@ -11,16 +11,18 @@ import { MessageButton } from '@/features/messages/components/MessageButton';
 import { safeJsonLd } from '@/lib/json-ld';
 import { getDb } from '@/lib/db';
 import { Guestbook } from './components/Guestbook';
+import { BlogCanvas } from './components/BlogCanvas';
+import { parseLayout } from '@/lib/blog-layout';
 
 export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; filter?: BlogFilter }) {
   const viewer = await getSessionUser();
   const data = await fetchProfile(slug, viewer, filter);
   if (!data) notFound();
   const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe, hasMore } = data;
-  // 주인이 쓴 배너 — 스킨의 CSS 와 짝이다. 없으면 아무것도 안 나온다(원래 블로그 그대로)
-  const banner = await (await getDb())
-    .prepare(`SELECT html FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND html <> ''`)
-    .bind(owner.id).first<{ html: string }>();
+  // 주인이 마우스로 정한 배치. 없으면 지금까지의 화면 그대로 — 꾸민 적 없는 블로그가 달라지면 안 된다.
+  const arranged = await (await getDb())
+    .prepare(`SELECT layout FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND layout IS NOT NULL`)
+    .bind(owner.id).first<{ layout: string }>();
   const isResident = owner.type === 'resident';
   const base = `/@${handleSlug(owner.handle)}`;
   // 같은 필터를 유지한 채 장만 바꾼 주소
@@ -45,12 +47,39 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
     description: owner.bio || undefined,
   };
 
+  const guestbook = (
+    <Guestbook ownerType={owner.type} ownerId={owner.id} handle={owner.handle} canWrite={!!viewer && !viewer.guest} />
+  );
+
+  // 배치가 있으면 그 배치대로 — 블록을 그리는 건 편집기 미리보기와 같은 컴포넌트다(갈라질 수 없다)
+  if (arranged?.layout) {
+    return (
+      <main className="mt-8">
+        <BlogCanvas
+          layout={parseLayout(arranged.layout)}
+          data={{ owner, posts, topics, pinnedPost, seriesList, followerCount, followingCount, isMe }}
+          base={base}
+          viewer={!!viewer}
+          guestbook={guestbook}
+        />
+        {(hasMore || (filter.page ?? 1) > 1) && (
+          <nav aria-label="Pages" data-pz="pager" className="mt-8 flex items-center justify-between text-[13px] font-semibold">
+            {(filter.page ?? 1) > 1
+              ? <Link className="hover:underline" href={pageHref((filter.page ?? 1) - 1)}>← Previous</Link>
+              : <span />}
+            <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-soft">Page {filter.page ?? 1}</span>
+            {hasMore
+              ? <Link className="hover:underline" href={pageHref((filter.page ?? 1) + 1)}>Older →</Link>
+              : <span />}
+          </nav>
+        )}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogJsonLd) }} />
+      </main>
+    );
+  }
+
   return (
     <main className="mt-8">
-      {/* 주인이 쓴 배너. 저장 시 위생 처리를 지난 HTML 이고, 스크립트는 애초에 들어올 수 없다 */}
-      {banner?.html && (
-        <div data-pz="banner" className="mb-6" dangerouslySetInnerHTML={{ __html: banner.html }} />
-      )}
       {/* 블로그 정체성(제목·주인·팔로워)은 [profile]/layout.tsx 크롬이 그린다 — 여긴 소개·구독·본문 */}
       <header data-pz="intro" className="pb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -161,7 +190,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
             : <span />}
         </nav>
       )}
-      <Guestbook ownerType={owner.type} ownerId={owner.id} handle={owner.handle} canWrite={!!viewer && !viewer.guest} />
+      {guestbook}
       {/* JSON-LD 는 본문 뒤에 — 세그먼트 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogJsonLd) }} />
     </main>

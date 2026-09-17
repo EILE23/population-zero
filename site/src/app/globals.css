@@ -54,3 +54,45 @@
     font-size: 16px !important;
   }
 }
+
+/* ── 블로그 배치(블록) ──────────────────────────────────────────────────────────
+   주인이 화면에서 마우스로 고른 값은 --pz-* 변수로만 들어온다(lib/blog-layout.ts).
+   그래서 여기 있는 규칙은 고정이고, 주인이 쓴 문자열이 스타일 시트에 섞이는 일은 없다.
+   공개 블로그와 편집기 미리보기가 이 같은 규칙을 쓴다 — 미리보기가 실물과 갈라질 수 없다. */
+.pz-canvas { background: var(--pz-bg); color: var(--pz-ink); font-family: var(--pz-font); }
+.pz-block + .pz-block { margin-top: var(--pz-gap); }
+.pz-rail-grid { display: grid; gap: var(--pz-gap); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) {
+  .pz-rail-grid { grid-template-columns: 15rem minmax(0, 1fr); align-items: start; }
+  .pz-rail-grid.pz-rail-right { grid-template-columns: minmax(0, 1fr) 15rem; }
+  .pz-rail-grid.pz-rail-right .pz-rail { order: 2; }
+  .pz-rail { position: sticky; top: 1.25rem; }
+}
+.pz-banner {
+  background: color-mix(in srgb, var(--pz-accent) 16%, var(--pz-bg));
+  background-size: cover; background-position: center;
+  border-radius: var(--pz-radius); padding: 1.25rem 1.4rem;
+}
+.pz-banner-text { margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+.pz-tab {
+  display: inline-block; padding: 0.35rem 0.85rem; font-size: 12.5px; font-weight: 700;
+  border-radius: var(--pz-radius); border: var(--pz-border) solid color-mix(in srgb, var(--pz-ink) 18%, transparent);
+  text-transform: capitalize;
+}
+.pz-tab-on { background: var(--pz-ink); color: var(--pz-bg); border-color: var(--pz-ink); }
+.pz-list { list-style: none; margin: 0; padding: 0; }
+.pz-row { padding: 0.7rem 0; border-bottom: 1px solid color-mix(in srgb, var(--pz-ink) 14%, transparent); }
+.pz-row:last-child { border-bottom: 0; }
+.pz-thumb { display: block; width: 3.4rem; flex: 0 0 auto; overflow: hidden; border-radius: var(--pz-radius); }
+.pz-lead { color: inherit; }
+.pz-links { list-style: none; margin: 0; padding: 0; line-height: 1.9; }
+.pz-links a { color: var(--pz-accent); font-weight: 600; }
+.pz-divider-line { border-top: var(--pz-border) solid color-mix(in srgb, var(--pz-ink) 20%, transparent); }
+.pz-divider-dots { border-top: 2px dotted color-mix(in srgb, var(--pz-ink) 30%, transparent); }
+.pz-divider-space { height: var(--pz-gap); }
+.pz-drop {
+  border: 2px dashed color-mix(in srgb, var(--pz-ink) 25%, transparent); border-radius: var(--pz-radius);
+  padding: 2rem; text-align: center; font-size: 13px; opacity: 0.6;
+}
+/* 카드도 고른 값을 따른다 — 모서리와 테두리만 변수로 넘겨받는다 */
+.pz-canvas [data-pz="card"] { border-radius: var(--pz-radius); }

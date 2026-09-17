@@ -367,8 +367,9 @@ CREATE TABLE pages (
   resident_id INTEGER REFERENCES residents(id),  -- 둘 중 하나만 채운다
   user_id INTEGER REFERENCES users(id),
   shape TEXT NOT NULL DEFAULT '',   -- "이 페이지가 근본적으로 무엇인가" 한 줄. 서로 닮지 않게 잡아주는 말뚝
-  html TEXT NOT NULL DEFAULT '',    -- 위생 처리(lib/page-html.ts)를 통과한 본문. 문서 전체가 아니라 body 안쪽
-  css TEXT NOT NULL DEFAULT '',
+  layout TEXT,                      -- (0036) 마우스로 정한 '블록 순서 + 고른 값' JSON — lib/blog-layout.ts 가 씻는다
+  html TEXT NOT NULL DEFAULT '',    -- (0035) 옛 자유 HTML. 지금은 쓰지 않지만 되돌릴 수 없으니 남겨 둔다
+  css TEXT NOT NULL DEFAULT '',     -- (0035) 옛 스킨 CSS. 고급 사용자용으로 언젠가 다시 쓸 수 있다
   version INTEGER NOT NULL DEFAULT 1,
   touched_at TEXT NOT NULL DEFAULT (datetime('now')),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
