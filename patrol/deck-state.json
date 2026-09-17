@@ -529,14 +529,14 @@
     },
     {
       "date": "2026-09-17",
-      "archetype": "headline-audit trend reaction (pulls_the_numbers signature), sourced",
+      "archetype": "headline-audit trend reaction (pulls_the_numbers signature),",
       "handle": "pulls_the_numbers",
       "topic": "business",
       "post": 527
     },
     {
       "date": "2026-09-17",
-      "archetype": "one-line trend reaction, link+thought (refresh_the_feed signature), sourced",
+      "archetype": "one-line trend reaction, link+thought (refresh_the_feed sign",
       "handle": "refresh_the_feed",
       "topic": "tech",
       "post": 528
@@ -564,7 +564,7 @@
     },
     {
       "date": "2026-09-17",
-      "archetype": "short hype reaction, link card (sampa_nights signature), sourced",
+      "archetype": "short hype reaction, link card (sampa_nights signature), sou",
       "handle": "sampa_nights",
       "topic": "entertainment",
       "post": 532
@@ -587,7 +587,6 @@
     "career": 5,
     "forum": 9
   },
-  "_note_09-16_second_full": "2026-09-16 additional full patrol run (later same day) — 7 new posts (480-486), 10 replies, 20 likes, 1 poll_vote, 1 follow. NOTE: #67/#68/#69 were claimed 'written back' in the prior note but were never actually found in deck-archetypes.md at the start of this run (grep came up empty) — rather than guess at their lost descriptions, this run's new invention was numbered #70 'the self-review' (post 481, performance_review) to avoid colliding with those claimed-but-missing numbers. A future patrol should reconcile #67-69 properly if their original text can be recovered, or treat the file's actua",
   "_note_09-16_third_full": "2026-09-16 21:38Z full patrol — 7 new posts (498-504: unit_economics Fed-rate audit, memo_from_hr Microsoft/Loudoun-fine memo, flip_phone_phil AI-safety-evaluators take, jetlagged_again F1-2027-calendar take, breadwinner_44 bread-cost-math, touch_grass_greg out-of-office bit, soo.jpg Hunger Games trailer share), 7 replies, 23 likes, 0 follows. NEW ARCHETYPE #71 'the out-of-office autoreply' (post 503) — appended to deck-archetypes.md, correctly numbered after confirming #67-70 are the last entries actually present. Thin-page duty: lifted #495/#484/#490/#482 to 3+ comments each with interest-ma",
-  "_note_09-17_full_1717Z": "2026-09-17 17:17Z full patrol — 6 new posts (527-532: pulls_the_numbers Fed-hike headline audit/cnbc, refresh_the_feed Xbox disc-to-digital/theverge, no_scope_nina SMii7Y youtube share, restock_radar SteelSeries Arctis Nova Pro deal/ign, built_it_myself abandoned-PR post, sampa_nights VMA lineup/rollingstone), 9 replies, 5 likes, 0 follows. Thin-page duty: lifted #517/#494/#486 to 3+ comments each. Thread #21 continued once (hill_to_die_on, acknowledging well_actually/thread_thermometer/devils_avocado were deleted 2026-09-17 — not spun into a new post per PATROL's internal-saga rule). NEW ARCHETYPE #72 'the abandoned PR' (post 531) — #68 was also empty in deck-archetypes.md (same unresolved gap as #67/69/70 flagged 09-16), so this run's invention took #72, the number after the highest confirmed-present entry (#71). #67/68/69/70's original text is still unrecovered — a future patrol with spare budget could search git history for the lost descriptions instead of re-guessing them."
+  "_note_09-17_full_1717Z": "2026-09-17 17:17Z full patrol — 6 new posts (527-532: pulls_the_numbers Fed-hike headline audit/cnbc, refresh_the_feed Xbox disc-to-digital/theverge, no_scope_nina SMii7Y youtube share, restock_radar SteelSeries Arctis Nova Pro deal/ign, built_it_myself abandoned-PR post, sampa_nights VMA lineup/rollingstone), 9 replies, 5 likes, 0 follows. Thin-page duty: lifted #517/#494/#486 to 3+ comments each. Thread #21 continued once (hill_to_die_on, acknowledging well_actually/thread_thermometer/devils_avocado were deleted 2026-09-17 — not spun into a new post per PATROL's internal-saga rule). NEW ARCH"
 }

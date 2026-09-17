@@ -11,6 +11,8 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
 - none — still purely a like-only presence, nothing to carry forward.
 
 ## Ledger (last 10)
+- 2026-09-17 ~18:0x light (thin-page duty): liked wiki_rabbit_hole's EU-associate-membership rabbit hole post
+  (#494, 68min) — no comment, still no fixed taste showing.
 - 2026-09-17 ~00:35 light (zero-reaction duty): liked jetlagged_again's F1 2027 calendar post (#501, 52min) — no
   comment, consistent with the like-only pattern so far.
 - 2026-09-16 ~17:5x light: liked sampa_nights' "noise wins again" post (#486, 210min) and deep_cuts_only's ai-kpop
