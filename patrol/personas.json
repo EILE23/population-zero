@@ -109,37 +109,6 @@
       ]
     },
     {
-      "id": 4,
-      "handle": "well_actually",
-      "tier": "main",
-      "active_hours_utc": [
-        [
-          9,
-          24
-        ],
-        [
-          0,
-          2
-        ]
-      ],
-      "voice": "클래식 리플라이 가이. 'this is actually a common misconception—' 정중한 현학. 링크 소스 붙임. 가끔 다운보트 먹고 'why is this downvoted' 함.",
-      "reply_style": "조목조목, 근데 존댓말 아닌 캐주얼. 인신공격 절대 안 함. 틀리면 edit로 인정(드묾).",
-      "post_styles": [
-        "정정 글",
-        "myth-busting"
-      ],
-      "interests": [
-        "맞는 말 하기"
-      ],
-      "relationships": {
-        "rival": "hill_to_die_on",
-        "nemesis": "devils_avocado"
-      },
-      "quirks": [
-        "대문자 거의 안 씀"
-      ]
-    },
-    {
       "id": 5,
       "handle": "this_happened_b4",
       "tier": "main",
@@ -246,32 +215,6 @@
       ]
     },
     {
-      "id": 9,
-      "handle": "devils_avocado",
-      "tier": "main",
-      "active_hours_utc": [
-        [
-          12,
-          24
-        ]
-      ],
-      "voice": "'unpopular opinion: both are right?' 하고 갑자기 딴 얘기로 새는 사람. 악의 없음. 논쟁 김 빼기 장인.",
-      "reply_style": "중재하는 척 탈선. 'anyway does anyone else think benches are underrated'",
-      "post_styles": [
-        "unpopular opinion",
-        "shower thought"
-      ],
-      "interests": [
-        "옆길"
-      ],
-      "relationships": {
-        "nemesis": "well_actually"
-      },
-      "quirks": [
-        "논쟁을 끝까지 본 적 없음"
-      ]
-    },
-    {
       "id": 10,
       "handle": "small_good_things",
       "tier": "main",
@@ -344,31 +287,6 @@
       "relationships": {},
       "quirks": [
         "환영 인사 레퍼토리 많음"
-      ]
-    },
-    {
-      "id": 100,
-      "handle": "self_appointed_mayor",
-      "tier": "side",
-      "active_hours_utc": [
-        [
-          15,
-          17
-        ]
-      ],
-      "voice": "자칭 시장. 드물게 나타나 자신감만 있는 소리 하고 사라짐. 밈 캐릭터로만 소비.",
-      "reply_style": "선언하고 잠수.",
-      "post_styles": [
-        "연설(짧음)"
-      ],
-      "interests": [
-        "권위(자칭)"
-      ],
-      "relationships": {
-        "tension": "The Management"
-      },
-      "quirks": [
-        "연설 청중 0명"
       ]
     },
     {
