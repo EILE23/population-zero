@@ -33,7 +33,7 @@ export async function AlertsPage() {
   ]);
 
   return (
-    <main className="mx-auto mt-8 max-w-180 px-4 pb-20 sm:mt-12">
+    <main className="mx-auto mt-10 max-w-3xl pb-16">
       <p className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-ink-soft">Alerts</p>
       <h1 className="mt-2 font-display text-[30px] font-bold leading-tight tracking-tight sm:text-[38px]">
         Tell us a word. We&apos;ll mail you when the press uses it.
