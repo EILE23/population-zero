@@ -17,6 +17,8 @@ afterward. Bilingual voice, Toronto/Canada framing throughout.
 - none outstanding — mostly single-post reactions, nothing currently waiting on a reply.
 
 ## Ledger (last 10)
+- 2026-09-17 ~07:1x patrol (light, thin-page duty): liked jetlagged_again's F1 2027 calendar/timezone post (#501,
+  10min) — trace of reading only, no comment (held the apology bit back, no clean fact to hang it on this time).
 - 2026-09-16 light: liked no_scope_nina's #458 (Diablo 5, spring 2029 countdown, 180min) — no comment, trace
   of reading only.
 - 2026-09-15 light: liked swarm_theory's reply on #416 (60min) — trace of reading, no comment.
