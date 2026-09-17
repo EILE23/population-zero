@@ -11,7 +11,7 @@
  * 들어오는 값은 전부 모르는 사람이 쓴 것으로 취급한다 — 목록에 없는 값은 조용히 기본값으로 접는다.
  */
 
-export type BlockKind = 'intro' | 'banner' | 'posts' | 'guestbook' | 'text' | 'image' | 'links' | 'divider';
+export type BlockKind = 'header' | 'intro' | 'banner' | 'posts' | 'toc' | 'guestbook' | 'text' | 'image' | 'links' | 'divider';
 export type PostsView = 'grid' | 'list' | 'magazine' | 'index';
 export type Columns = 1 | 2 | 3;
 
@@ -58,6 +58,7 @@ export const DEFAULT_LAYOUT: BlogLayout = {
   width: 'normal',
   theme: DEFAULT_THEME,
   blocks: [
+    { id: 'header', kind: 'header' },
     { id: 'intro', kind: 'intro' },
     { id: 'posts', kind: 'posts', props: { view: 'grid', columns: 3, cover: true, excerpt: true } },
     { id: 'guestbook', kind: 'guestbook' },
@@ -66,6 +67,17 @@ export const DEFAULT_LAYOUT: BlogLayout = {
 
 /** kind 마다 허용하는 설정과 기본값. 여기 없는 열쇠는 저장되지 않는다. */
 const PROP_SPEC: Record<BlockKind, Record<string, { type: 'bool' | 'int' | 'text' | 'enum'; values?: readonly string[]; def: string | number | boolean; max?: number }>> = {
+  // 블로그 머리 — 제목과 주인 줄. 사이트 띠(POZ·검색·계정)는 우리 것이라 여기 없다
+  header: {
+    size: { type: 'enum', values: ['sm', 'md', 'lg', 'xl'], def: 'lg' },
+    align: { type: 'enum', values: ['left', 'center'], def: 'left' },
+    fill: { type: 'enum', values: ['none', 'accent', 'ink', 'image'], def: 'none' },
+    image: { type: 'text', def: '', max: 400 },
+    rule: { type: 'enum', values: ['none', 'thin', 'thick'], def: 'thick' },
+    show_handle: { type: 'bool', def: true },
+    show_avatar: { type: 'bool', def: true },
+    show_follows: { type: 'bool', def: true },
+  },
   intro: {
     show_avatar: { type: 'bool', def: true },
     show_follows: { type: 'bool', def: true },
@@ -83,6 +95,13 @@ const PROP_SPEC: Record<BlockKind, Record<string, { type: 'bool' | 'int' | 'text
     cover: { type: 'bool', def: true },
     excerpt: { type: 'bool', def: true },
     topics: { type: 'bool', def: true },
+  },
+  // 목차 — 사이드바에 넣으면 왼쪽 목차 정리가 된다(주제·연재·최근 글)
+  toc: {
+    title: { type: 'text', def: 'Contents', max: 40 },
+    topics: { type: 'bool', def: true },
+    series: { type: 'bool', def: true },
+    recent: { type: 'int', def: 8, max: 20 },
   },
   guestbook: { title: { type: 'text', def: 'Guestbook', max: 60 } },
   text: { body: { type: 'text', def: '', max: 2000 }, align: { type: 'enum', values: ['left', 'center'], def: 'left' } },
@@ -121,12 +140,14 @@ export function cleanLayout(raw: unknown): BlogLayout {
     const kind = KINDS.includes(b?.kind as BlockKind) ? (b.kind as BlockKind) : null;
     if (!kind) continue;
     // 글 목록과 방명록은 블로그의 기능이라 두 번 놓을 수 없다 — 꾸미다가 기능이 겹쳐 보이면 안 된다
-    if ((kind === 'posts' || kind === 'guestbook' || kind === 'intro') && seen.has(kind)) continue;
+    if ((kind === 'posts' || kind === 'guestbook' || kind === 'intro' || kind === 'header') && seen.has(kind)) continue;
     seen.add(kind);
     const id = String(b.id ?? kind).replace(/[^\w-]/g, '').slice(0, 24) || kind;
     cleaned.push({ id: cleaned.some((x) => x.id === id) ? `${id}-${cleaned.length}` : id, kind, rail: b.rail === true, props: cleanProps(kind, b.props) });
   }
-  // 글 목록이 없으면 붙인다. 꾸미다가 글이 사라지면 그건 꾸민 게 아니다.
+  // 머리와 글 목록은 없으면 붙인다 — 배치를 정한 블로그는 사이트 마스트헤드가 제목을 안 그리므로,
+  // header 가 빠지면 제목 없는 블로그가 된다. 꾸미다가 기능이 사라지면 그건 꾸민 게 아니다.
+  if (!cleaned.some((b) => b.kind === 'header')) cleaned.unshift({ id: 'header', kind: 'header', props: cleanProps('header', {}) });
   if (!cleaned.some((b) => b.kind === 'posts')) cleaned.push({ id: 'posts', kind: 'posts', props: cleanProps('posts', { view: 'grid' }) });
 
   return {

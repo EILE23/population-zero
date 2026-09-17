@@ -8,7 +8,6 @@ import { HandlePickerModal } from '@/features/auth/HandlePickerModal';
 import { EditableBlogTitle } from '@/features/blog/components/EditableBlogTitle';
 import { handleSlug } from '@/lib/content';
 import { BrandLogo } from '@/components/BrandLogo';
-import { BlogSkin } from '@/features/blog/components/BlogSkin';
 
 // 블로그 크롬 — 헤더 좌측 상단이 사이트 로고 대신 "이 블로그"가 된다 (진짜 내 블로그처럼)
 export default async function BlogLayout({ children, params }: { children: React.ReactNode; params: Promise<{ profile: string }> }) {
@@ -18,7 +17,7 @@ export default async function BlogLayout({ children, params }: { children: React
 
   let owner: { type: 'user' | 'resident'; id: number; handle: string; blog_title: string | null; tier?: string; avatar_url?: string | null } | null = null;
   let counts = { followers: 0, following: 0 };
-  let skinCss = '';
+  let arranged = false;
   let viewer = null;
   if (slug) {
     try {
@@ -36,11 +35,11 @@ export default async function BlogLayout({ children, params }: { children: React
             (SELECT COUNT(*) FROM follows WHERE follower_type = ?1 AND follower_id = ?2) AS following`)
           .bind(owner.type, owner.id).first<{ followers: number; following: number }>();
         if (row) counts = row;
-        // 스킨은 블로그 껍데기만 바꾼다 — 기능은 아래 children 이 그대로 그린다
-        const skin = await db.prepare(
-          `SELECT css FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ?`)
-          .bind(owner.id).first<{ css: string }>();
-        skinCss = skin?.css ?? '';
+        // 배치를 정한 블로그는 제목·주인 줄을 자기 header 블록으로 그린다 — 여기선 얇은 사이트 띠만 남긴다
+        const row2 = await db.prepare(
+          `SELECT 1 AS yes FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND layout IS NOT NULL`)
+          .bind(owner.id).first<{ yes: number }>();
+        arranged = !!row2;
       }
     } catch { /* 셸은 항상 렌더 */ }
   }
@@ -51,8 +50,7 @@ export default async function BlogLayout({ children, params }: { children: React
 
   return (
     <div id="pz-skin" className="mx-auto flex min-h-svh max-w-7xl flex-col px-5 md:px-8">
-      <BlogSkin css={skinCss} />
-      <header data-pz="masthead" className="border-b-2 border-ink py-5">
+      <header data-pz="masthead" className={arranged ? 'py-3' : 'border-b-2 border-ink py-5'}>
         <div className="mb-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
           <Link href="/" aria-label="Back to POZ" className="inline-flex items-center gap-2 hover:text-ink">
             <span aria-hidden>←</span><BrandLogo className="w-12" />
@@ -60,7 +58,7 @@ export default async function BlogLayout({ children, params }: { children: React
         </div>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">
-            {owner && (
+            {owner && !arranged && (
               <>
                 {isMe
                   ? <EditableBlogTitle initialTitle={owner.blog_title} fallback={`${owner.handle}'s blog`} />

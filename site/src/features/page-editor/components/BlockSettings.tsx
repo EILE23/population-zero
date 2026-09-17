@@ -1,0 +1,160 @@
+'use client';
+import type { Block, BlockKind } from '@/lib/blog-layout';
+
+export const KIND_LABEL: Record<BlockKind, string> = {
+  header: 'Header', intro: 'About', banner: 'Banner', posts: 'Posts', toc: 'Contents',
+  guestbook: 'Guestbook', text: 'Text', image: 'Picture', links: 'Links', divider: 'Divider',
+};
+/** 한 번만 놓을 수 있는 것들 — 블로그의 기능이라 두 개가 되면 안 된다 */
+export const ONCE: BlockKind[] = ['header', 'intro', 'posts', 'guestbook'];
+
+const chip = (on: boolean) =>
+  `cursor-pointer rounded-full px-2.5 py-1 text-[12px] font-bold ${on ? 'bg-ink text-paper' : 'border border-hairline bg-paper text-ink-mid hover:bg-surface'}`;
+const field = 'w-full rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[13px] outline-none focus:border-ink';
+
+export function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+/** 고른 블록의 설정 — 그 블록 바로 아래에서 펼친다(화면에서 만지는 느낌이 끊기지 않게) */
+export function BlockSettings({ block, setProp, onPickImage }: {
+  block: Block;
+  setProp: (key: string, v: string | number | boolean) => void;
+  onPickImage: () => void;
+}) {
+  const p = block.props ?? {};
+  const pick = <T extends string>(key: string, opts: readonly (readonly [T, string])[], def: T) => (
+    opts.map(([v, l]) => (
+      <button key={v} onClick={() => setProp(key, v)} className={chip((p[key] ?? def) === v)}>{l}</button>
+    ))
+  );
+
+  switch (block.kind) {
+    case 'header':
+      return (
+        <>
+          <Row label="Size">{pick('size', [['sm', 'S'], ['md', 'M'], ['lg', 'L'], ['xl', 'XL']] as const, 'lg')}</Row>
+          <Row label="Align">{pick('align', [['left', 'Left'], ['center', 'Centre']] as const, 'left')}</Row>
+          <Row label="Fill">
+            {pick('fill', [['none', 'None'], ['accent', 'Accent'], ['ink', 'Dark']] as const, 'none')}
+            <button onClick={onPickImage} className={chip(p.fill === 'image')}>Picture</button>
+          </Row>
+          <Row label="Line under">{pick('rule', [['none', 'None'], ['thin', 'Thin'], ['thick', 'Thick']] as const, 'thick')}</Row>
+          <Row label="Show">
+            <button onClick={() => setProp('show_handle', p.show_handle === false)} className={chip(p.show_handle !== false)}>Handle</button>
+            <button onClick={() => setProp('show_avatar', p.show_avatar === false)} className={chip(p.show_avatar !== false)}>Avatar</button>
+            <button onClick={() => setProp('show_follows', p.show_follows === false)} className={chip(p.show_follows !== false)}>Followers</button>
+          </Row>
+        </>
+      );
+
+    case 'posts':
+      return (
+        <>
+          <Row label="How posts look">
+            {pick('view', [['grid', 'Cards'], ['magazine', 'Magazine'], ['list', 'List'], ['index', 'Titles only']] as const, 'grid')}
+          </Row>
+          {(p.view ?? 'grid') === 'grid' && (
+            <Row label="Columns">
+              {[1, 2, 3].map((n) => (
+                <button key={n} onClick={() => setProp('columns', n)} className={chip(Number(p.columns ?? 3) === n)}>{n}</button>
+              ))}
+            </Row>
+          )}
+          <Row label="Show">
+            <button onClick={() => setProp('cover', p.cover === false)} className={chip(p.cover !== false)}>Covers</button>
+            <button onClick={() => setProp('excerpt', p.excerpt === false)} className={chip(p.excerpt !== false)}>Excerpts</button>
+            <button onClick={() => setProp('topics', p.topics === false)} className={chip(p.topics !== false)}>Topic tabs</button>
+          </Row>
+        </>
+      );
+
+    case 'toc':
+      return (
+        <>
+          <input value={String(p.title ?? '')} onChange={(e) => setProp('title', e.target.value)} maxLength={40}
+            placeholder="Contents" className={field} />
+          <Row label="Include">
+            <button onClick={() => setProp('topics', p.topics === false)} className={chip(p.topics !== false)}>Topics</button>
+            <button onClick={() => setProp('series', p.series === false)} className={chip(p.series !== false)}>Series</button>
+          </Row>
+          <Row label="Latest posts">
+            {[0, 5, 8, 12, 20].map((n) => (
+              <button key={n} onClick={() => setProp('recent', n)} className={chip(Number(p.recent ?? 8) === n)}>{n || 'none'}</button>
+            ))}
+          </Row>
+        </>
+      );
+
+    case 'intro':
+      return (
+        <>
+          <Row label="Show">
+            <button onClick={() => setProp('show_avatar', p.show_avatar === false)} className={chip(p.show_avatar !== false)}>Avatar</button>
+            <button onClick={() => setProp('show_follows', p.show_follows === false)} className={chip(p.show_follows !== false)}>Followers</button>
+          </Row>
+          <Row label="Align">{pick('align', [['left', 'Left'], ['center', 'Centre']] as const, 'left')}</Row>
+        </>
+      );
+
+    case 'banner':
+      return (
+        <>
+          <input value={String(p.text ?? '')} onChange={(e) => setProp('text', e.target.value)} maxLength={400}
+            placeholder="One line across the top" className={field} />
+          <Row label="Height">{pick('height', [['sm', 'Short'], ['md', 'Medium'], ['lg', 'Tall']] as const, 'md')}</Row>
+          <Row label="Background">
+            <button onClick={onPickImage} className={chip(!!p.image)}>Pick a picture</button>
+            {p.image ? <button onClick={() => setProp('image', '')} className={chip(false)}>Remove</button> : null}
+          </Row>
+        </>
+      );
+
+    case 'text':
+      return (
+        <>
+          <textarea value={String(p.body ?? '')} onChange={(e) => setProp('body', e.target.value)} rows={3} maxLength={2000}
+            placeholder="Write something" className={field} />
+          <Row label="Align">{pick('align', [['left', 'Left'], ['center', 'Centre']] as const, 'left')}</Row>
+        </>
+      );
+
+    case 'image':
+      return (
+        <>
+          <Row label="Picture"><button onClick={onPickImage} className={chip(!!p.src)}>{p.src ? 'Change' : 'Pick one'}</button></Row>
+          <input value={String(p.caption ?? '')} onChange={(e) => setProp('caption', e.target.value)} maxLength={200}
+            placeholder="Caption (optional)" className={field} />
+          <Row label="Size">
+            <button onClick={() => setProp('full', p.full !== true)} className={chip(p.full === true)}>Full width</button>
+          </Row>
+        </>
+      );
+
+    case 'links':
+      return (
+        <>
+          <p className="text-[11.5px] text-ink-soft">One per line — name, then the address after a |</p>
+          <textarea value={String(p.items ?? '')} onChange={(e) => setProp('items', e.target.value)} rows={3} maxLength={1200}
+            placeholder="My other site|https://example.com" className={field} />
+        </>
+      );
+
+    case 'divider':
+      return <Row label="Style">{pick('style', [['line', 'Line'], ['dots', 'Dots'], ['space', 'Just space']] as const, 'line')}</Row>;
+
+    case 'guestbook':
+      return (
+        <input value={String(p.title ?? '')} onChange={(e) => setProp('title', e.target.value)} maxLength={60}
+          placeholder="Guestbook" className={field} />
+      );
+
+    default:
+      return null;
+  }
+}

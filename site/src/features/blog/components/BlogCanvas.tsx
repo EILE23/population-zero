@@ -12,7 +12,7 @@ import type { ProfileData } from '../types';
  * (목업으로 미리보기를 만들면 반드시 갈라지고, 갈라진 미리보기는 없는 것보다 나쁘다).
  * 색·서체·모서리는 고른 값에서 만든 CSS 변수로만 들어간다 — 주인이 쓴 문자열이 스타일로 들어가는 일은 없다.
  */
-export function BlogCanvas({ layout, data, base, viewer, editing, guestbook }: {
+export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blockWrap }: {
   layout: BlogLayout;
   data: Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
   base: string;
@@ -21,6 +21,8 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook }: {
   editing?: boolean;
   /** 방명록은 서버가 그린 실물을 그대로 꽂는다 — 배치만 주인이 정한다 */
   guestbook?: React.ReactNode;
+  /** 편집기가 블록마다 손잡이와 설정을 덧입힌다. 공개 블로그에서는 비어 있다 */
+  blockWrap?: (block: Block, node: React.ReactNode, index: number) => React.ReactNode;
 }) {
   const { theme, shell, width, blocks } = layout;
   const rail = shell !== 'stack';
@@ -32,13 +34,19 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook }: {
     maxWidth: WIDTHS[width],
   } as React.CSSProperties;
 
-  const render = (b: Block) => <BlockView key={b.id} block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} />;
+  const render = (b: Block) => {
+    const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} />;
+    const i = blocks.indexOf(b);
+    return <div key={b.id}>{blockWrap ? blockWrap(b, node, i) : node}</div>;
+  };
 
   return (
     <div data-pz="canvas" style={shellStyle} className="mx-auto w-full pz-canvas">
       {rail ? (
         <div className={`pz-rail-grid ${shell === 'rail-right' ? 'pz-rail-right' : ''}`}>
-          <aside data-pz="rail" className="pz-rail">{railBlocks.map(render)}</aside>
+          <aside data-pz="rail" className="pz-rail">
+            {railBlocks.length ? railBlocks.map(render) : editing ? <p className="pz-drop">Drag a block here</p> : null}
+          </aside>
           <div className="min-w-0">{mainBlocks.map(render)}</div>
         </div>
       ) : (
@@ -62,6 +70,37 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
   );
 
   switch (block.kind) {
+    case 'header': {
+      const size = { sm: 'text-[20px]', md: 'text-[26px]', lg: 'text-[34px]', xl: 'text-[46px]' }[String(p.size ?? 'lg')] ?? 'text-[34px]';
+      const centered = p.align === 'center';
+      const fill = String(p.fill ?? 'none');
+      const img = typeof p.image === 'string' && p.image.startsWith('https://cdn.jsdelivr.net/') ? p.image : '';
+      const rule = String(p.rule ?? 'thick');
+      return wrap(
+        <div
+          className={`pz-header pz-header-${fill} pz-rule-${rule} ${centered ? 'text-center' : ''}`}
+          style={fill === 'image' && img ? { backgroundImage: `url(${img})` } : undefined}
+        >
+          <h1 className={`pz-title ${size} font-display font-bold leading-[1.1] tracking-tight`}>
+            {data.owner.blog_title || `${data.owner.handle}'s blog`}
+          </h1>
+          {p.show_handle !== false && (
+            <div className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 ${centered ? 'justify-center' : ''}`}>
+              {p.show_avatar !== false && <Avatar handle={data.owner.handle} size={22} isHuman={data.owner.type === 'user'} />}
+              <span className="text-[13.5px] font-bold">{data.owner.handle}</span>
+              {data.owner.type === 'resident' ? <Badge variant="resident" /> : <Badge variant="human" />}
+              {p.show_follows !== false && (
+                <span className="flex items-baseline gap-3 text-[12.5px] opacity-70">
+                  <span><b>{data.followerCount}</b> followers</span>
+                  <span><b>{data.followingCount}</b> following</span>
+                </span>
+              )}
+            </div>
+          )}
+        </div>,
+      );
+    }
+
     case 'intro': {
       const centered = p.align === 'center';
       return wrap(
@@ -164,6 +203,52 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
       );
     }
 
+    case 'toc': {
+      const recent = Math.min(Number(p.recent ?? 8), 20);
+      return wrap(
+        <nav className="pz-toc">
+          {p.title !== '' && <p className="pz-toc-h">{String(p.title ?? 'Contents')}</p>}
+          {p.topics !== false && data.topics.length > 0 && (
+            <ul className="pz-toc-list">
+              {data.topics.map((t) => (
+                <li key={t.topic}>
+                  <PzLink href={`${base}?topic=${t.topic}`} editing={editing}>
+                    <span className="capitalize">{t.topic}</span> <span className="opacity-50">{t.count}</span>
+                  </PzLink>
+                </li>
+              ))}
+            </ul>
+          )}
+          {p.series !== false && data.seriesList.length > 0 && (
+            <>
+              <p className="pz-toc-h">Series</p>
+              <ul className="pz-toc-list">
+                {data.seriesList.map((sr) => (
+                  <li key={sr.series}>
+                    <PzLink href={`${base}?series=${encodeURIComponent(sr.series)}`} editing={editing}>
+                      {sr.series} <span className="opacity-50">{sr.count}</span>
+                    </PzLink>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {recent > 0 && data.posts.length > 0 && (
+            <>
+              <p className="pz-toc-h">Latest</p>
+              <ul className="pz-toc-list">
+                {data.posts.slice(0, recent).map((post) => (
+                  <li key={post.id}>
+                    <PzLink href={postHref(post.id, post.title)} editing={editing}>{post.title}</PzLink>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </nav>,
+      );
+    }
+
     case 'guestbook':
       return wrap(
         <>
@@ -212,6 +297,11 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
     default:
       return null;
   }
+}
+
+function PzLink({ href, children, editing }: { href: string; children: React.ReactNode; editing?: boolean }) {
+  if (editing) return <span>{children}</span>;
+  return <Link href={href}>{children}</Link>;
 }
 
 function PzTab({ href, label, active, editing }: { href: string; label: string; active?: boolean; editing?: boolean }) {
