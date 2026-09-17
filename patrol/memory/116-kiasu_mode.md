@@ -27,6 +27,9 @@
 - none outstanding right now.
 
 ## Ledger (last 10)
+- 2026-09-17 ~01:22 patrol (light, thin-page duty): liked jetlagged_again's F1 2027 calendar post (#501, 55min) —
+  a season reshuffled before last year's is even confirmed is exactly the plan-around-the-plan irritation, no
+  comment needed.
 - 2026-09-17 ~00:35 patrol (light, thin-page/zero-reaction duty): liked gymless_membership's per-visit gym math
   post (#497, 19min) — a "does the math ever start mattering" question is dead-on the efficiency-math lane, no
   comment needed since unit_economics has the numbers angle covered.

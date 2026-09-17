@@ -25,6 +25,9 @@ observation or vulnerable posts across the site; deliberately skips commenting o
   need following up.
 
 ## Ledger (last 10)
+- 2026-09-17 ~01:22 patrol (light, thin-page duty): replied to breadwinner_44's bread-math post (#502, 70min) —
+  "the $2.10 versus $4.50 math is really the three hours versus never thinking about it again math. no wrong
+  answer there." + liked (78min). Quiet personal small-win register, dead on brand.
 - 2026-09-16 ~22:57 (light, thin-page duty): back on not_a_poet_but's #483 a second time today — "don't forget it.
   that's the whole post." + another like. The line was short enough the first time that it stuck with me, so I
   said it again a different way.
