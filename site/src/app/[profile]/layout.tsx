@@ -8,7 +8,7 @@ import { HandlePickerModal } from '@/features/auth/HandlePickerModal';
 import { EditableBlogTitle } from '@/features/blog/components/EditableBlogTitle';
 import { handleSlug } from '@/lib/content';
 import { BrandLogo } from '@/components/BrandLogo';
-import { parseLayout, themeVars } from '@/lib/blog-layout';
+import { parseLayout, themeVars, DEFAULT_CHROME, type Chrome } from '@/lib/blog-layout';
 
 // 블로그 크롬 — 헤더 좌측 상단이 사이트 로고 대신 "이 블로그"가 된다 (진짜 내 블로그처럼)
 export default async function BlogLayout({ children, params }: { children: React.ReactNode; params: Promise<{ profile: string }> }) {
@@ -21,6 +21,7 @@ export default async function BlogLayout({ children, params }: { children: React
   let arranged = false;
   let pageStyle: React.CSSProperties | undefined;
   let pageBg = '';
+  let chrome: Chrome = DEFAULT_CHROME;
   let viewer = null;
   if (slug) {
     try {
@@ -48,6 +49,7 @@ export default async function BlogLayout({ children, params }: { children: React
           const theme = parseLayout(row2.layout).theme;
           pageStyle = themeVars(theme) as React.CSSProperties;
           pageBg = theme.bg;   // #hex 검증을 통과한 값만 들어온다(cleanLayout)
+          chrome = parseLayout(row2.layout).chrome;
         }
       }
     } catch { /* 셸은 항상 렌더 */ }
@@ -67,12 +69,18 @@ export default async function BlogLayout({ children, params }: { children: React
       style={pageStyle}
       className={`mx-auto flex min-h-svh flex-col px-5 md:px-8 ${arranged ? 'pz-page max-w-none' : 'max-w-7xl'}`}
     >
-      <header data-pz="masthead" className={arranged ? 'py-3' : 'border-b-2 border-ink py-5'}>
-        <div className="mb-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
-          <Link href="/" aria-label="Back to POZ" className="inline-flex items-center gap-2 hover:text-ink">
-            <span aria-hidden>←</span><BrandLogo className="w-12" />
-          </Link>
-        </div>
+      <header data-pz="masthead" className={arranged ? (chrome.nav === 'bottom' ? 'sr-only' : 'py-3') : 'border-b-2 border-ink py-5'}>
+        {/* 홈으로 가는 표시 — 주인이 로고·자기 글자·안 보이기 중에 고른다. 안 보이기여도 푸터에 길은 남는다 */}
+        {chrome.home !== 'none' && (
+          <div className="mb-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
+            <Link href="/" aria-label="Back to POZ" className="inline-flex items-center gap-2 hover:text-ink">
+              <span aria-hidden>←</span>
+              {chrome.home === 'label'
+                ? <span className="normal-case tracking-normal">{chrome.label || 'POZ'}</span>
+                : <BrandLogo className="w-12" />}
+            </Link>
+          </div>
+        )}
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">
             {owner && !arranged && (
@@ -108,6 +116,21 @@ export default async function BlogLayout({ children, params }: { children: React
         </div>
       </header>
       <div data-pz="body" className="flex-1 pb-16">{children}</div>
+      {arranged && chrome.nav === 'bottom' && (
+        <div data-pz="navbar" className="border-t border-hairline py-3">
+          {chrome.home !== 'none' && (
+            <div className="mb-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
+              <Link href="/" aria-label="Back to POZ" className="inline-flex items-center gap-2 hover:text-ink">
+                <span aria-hidden>←</span>
+                {chrome.home === 'label'
+                  ? <span className="normal-case tracking-normal">{chrome.label || 'POZ'}</span>
+                  : <BrandLogo className="w-12" />}
+              </Link>
+            </div>
+          )}
+          <NavActions />
+        </div>
+      )}
       <Footer />
       {viewer && !viewer.handle_picked && viewer.google_sub && <HandlePickerModal currentHandle={viewer.handle} />}
     </div>

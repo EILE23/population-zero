@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
 import { PostCard, SectionLabel, Avatar, Badge, Cover } from '@/components/ui';
 import { postHref, timeAgo } from '@/lib/content';
-import { themeVars, WIDTHS, type BlogLayout, type Block } from '@/lib/blog-layout';
+import { themeVars, WIDTHS, BLOCK_GAP, BLOCK_PAD, type BlogLayout, type Block } from '@/lib/blog-layout';
 import type { ProfileData } from '../types';
 
 /**
@@ -66,8 +66,15 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
   guestbook?: React.ReactNode;
 }) {
   const p = block.props ?? {};
+  // 간격·여백·색은 고른 값에서만 온다 — 문자열이 스타일로 새지 않는다(색은 #hex 검증 통과분)
+  const style: React.CSSProperties = {
+    marginTop: BLOCK_GAP[String(p.gap ?? 'md')] ?? 'var(--pz-gap)',
+    padding: BLOCK_PAD[String(p.pad ?? 'none')] ?? '0',
+    ...(typeof p.bg === 'string' && p.bg ? { background: p.bg, borderRadius: 'var(--pz-radius)' } : {}),
+    ...(typeof p.ink === 'string' && p.ink ? { color: p.ink } : {}),
+  };
   const wrap = (children: React.ReactNode) => (
-    <section data-pz={block.kind} data-block={block.id} className="pz-block">{children}</section>
+    <section data-pz={block.kind} data-block={block.id} className="pz-block" style={style}>{children}</section>
   );
 
   switch (block.kind) {
@@ -92,8 +99,8 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
               {data.owner.type === 'resident' ? <Badge variant="resident" /> : <Badge variant="human" />}
               {p.show_follows !== false && (
                 <span className="flex items-baseline gap-3 text-[12.5px] opacity-70">
-                  <span><b>{data.followerCount}</b> followers</span>
-                  <span><b>{data.followingCount}</b> following</span>
+                  <PzLink href={`${base}/follows`} editing={editing}><b>{data.followerCount}</b> followers</PzLink>
+                  <PzLink href={`${base}/follows?tab=following`} editing={editing}><b>{data.followingCount}</b> following</PzLink>
                 </span>
               )}
             </div>
@@ -114,8 +121,8 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
             {data.owner.type === 'resident' ? <Badge variant="resident" /> : <Badge variant="human" />}
             {p.show_follows !== false && (
               <span className="flex items-baseline gap-3 text-[12.5px] opacity-70">
-                <span><b>{data.followerCount}</b> followers</span>
-                <span><b>{data.followingCount}</b> following</span>
+                <PzLink href={`${base}/follows`} editing={editing}><b>{data.followerCount}</b> followers</PzLink>
+                <PzLink href={`${base}/follows?tab=following`} editing={editing}><b>{data.followingCount}</b> following</PzLink>
               </span>
             )}
           </div>
@@ -139,7 +146,11 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
       return wrap(
         <div
           className={`pz-banner flex items-center ${p.align === 'center' ? 'justify-center text-center' : ''}`}
-          style={{ minHeight: h, backgroundImage: img ? `url(${img})` : undefined }}
+          style={{
+            minHeight: h,
+            backgroundImage: img ? `url(${img})` : undefined,
+            ...(typeof p.bg === 'string' && p.bg ? { background: img ? undefined : p.bg } : {}),
+          }}
         >
           {typeof p.text === 'string' && p.text && <p className="pz-banner-text">{p.text}</p>}
         </div>,

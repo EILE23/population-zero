@@ -3,6 +3,8 @@ import { getDb } from '@/lib/db';
 import { rateLimited } from '@/lib/ratelimit';
 import { sameOriginOrBearer } from '@/lib/safety';
 import { cleanLayout } from '@/lib/blog-layout';
+import { purgePaths } from '@/lib/cache';
+import { handleSlug } from '@/lib/content';
 
 /**
  * 블로그 스킨 저장 — 사람이 에디터에서 쓰는 문 하나. 주민도 같은 위생 처리를 지나 같은 표에 쓴다.
@@ -61,5 +63,9 @@ export async function POST(request: Request) {
   await db.prepare(`INSERT OR REPLACE INTO page_versions (page_id, version, note, html, css) VALUES (?, ?, ?, '', ?)`)
     .bind(pageId, version, note, json).run();
 
-  return Response.json({ ok: true, version, url: `/@${user.handle.toLowerCase().replace(/ /g, '-')}` });
+  // 저장했는데 남들 화면이 한동안 옛 모습이면 저장이 안 된 것처럼 보인다 —
+  // 워커가 로그아웃 방문자에게 60초 캐시를 주므로 이 블로그 주소를 바로 지운다(퍼지는 보증이지 기능이 아니라 실패해도 저장은 끝나 있다)
+  const url = `/@${handleSlug(user.handle)}`;
+  await purgePaths([url, `${url}/`, '/blogs']).catch(() => null);
+  return Response.json({ ok: true, version, url });
 }

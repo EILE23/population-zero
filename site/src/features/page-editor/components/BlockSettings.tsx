@@ -21,6 +21,42 @@ export function Row({ label, children }: { label: string; children: React.ReactN
   );
 }
 
+/** 어느 블록에나 있는 것 — 위 간격, 안쪽 여백, 이 블록만의 색. 블록별 설정 아래에 붙는다 */
+export function CommonSettings({ block, setProp }: {
+  block: Block; setProp: (key: string, v: string | number | boolean) => void;
+}) {
+  const p = block.props ?? {};
+  return (
+    <div className="flex flex-col gap-2.5 border-t border-hairline pt-2.5">
+      <Row label="Space above">
+        {([['none', '0'], ['sm', 'S'], ['md', 'M'], ['lg', 'L'], ['xl', 'XL']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('gap', v)} className={chip((p.gap ?? 'md') === v)}>{l}</button>
+        ))}
+      </Row>
+      <Row label="Padding inside">
+        {([['none', '0'], ['sm', 'S'], ['md', 'M'], ['lg', 'L']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('pad', v)} className={chip((p.pad ?? 'none') === v)}>{l}</button>
+        ))}
+      </Row>
+      <Row label="This block's colours">
+        <label className="inline-flex items-center gap-1 text-[11.5px]">
+          <input type="color" value={String(p.bg || '#ffffff')} onChange={(e) => setProp('bg', e.target.value)}
+            className="size-6 cursor-pointer rounded border border-hairline bg-transparent p-0" />
+          Background
+        </label>
+        <label className="inline-flex items-center gap-1 text-[11.5px]">
+          <input type="color" value={String(p.ink || '#000000')} onChange={(e) => setProp('ink', e.target.value)}
+            className="size-6 cursor-pointer rounded border border-hairline bg-transparent p-0" />
+          Text
+        </label>
+        {(p.bg || p.ink) && (
+          <button onClick={() => { setProp('bg', ''); setProp('ink', ''); }} className={chip(false)}>Clear</button>
+        )}
+      </Row>
+    </div>
+  );
+}
+
 /** 고른 블록의 설정 — 그 블록 바로 아래에서 펼친다(화면에서 만지는 느낌이 끊기지 않게) */
 export function BlockSettings({ block, setProp, onPickImage }: {
   block: Block;

@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, X } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { BlogCanvas } from '@/features/blog/components/BlogCanvas';
 import { cleanLayout, DEFAULT_LAYOUT, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
 import type { ProfileData } from '@/features/blog/types';
-import { BlockSettings, KIND_LABEL, ONCE, Row } from './BlockSettings';
+import { BlockSettings, CommonSettings, KIND_LABEL, ONCE, Row } from './BlockSettings';
 
 type CanvasData = Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
 
@@ -33,12 +34,14 @@ export function EditorShell({ initial, data, base, canSave }: {
   const [layout, setLayout] = useState<BlogLayout>(initial);
   const [picked, setPicked] = useState<string | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
+  const [over, setOver] = useState<{ id: string; pos: 'before' | 'after' } | null>(null);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
   const [images, setImages] = useState<{ url: string }[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const router = useRouter();
   // 블로그 제목은 배치가 아니라 계정의 값이다(앱도 같은 값을 본다) — 여기서 바꾸고 users.blog_title 에 쓴다
   const [title, setTitle] = useState(data.owner.blog_title ?? '');
 
@@ -60,15 +63,21 @@ export function EditorShell({ initial, data, base, canSave }: {
     },
   });
 
-  /** 끌어 옮기기 — 지나가는 블록과 자리를 바꾼다(놓을 때가 아니라 지나갈 때 움직여서 결과가 바로 보인다) */
-  const dropOn = (targetId: string) => {
-    if (!drag || drag === targetId) return;
+  /**
+   * 끌어 옮기기 — 지나갈 때 바로 자리를 바꾸면 화면이 계속 튀어서 어디에 놓이는지 알 수 없다.
+   * 그래서 놓일 자리를 선으로 먼저 보여주고(over), 놓을 때 한 번 옮긴다.
+   */
+  const commitDrop = () => {
+    if (!drag || !over) { setDrag(null); setOver(null); return; }
     const from = layout.blocks.findIndex((b) => b.id === drag);
-    const to = layout.blocks.findIndex((b) => b.id === targetId);
-    if (from < 0 || to < 0) return;
+    let to = layout.blocks.findIndex((b) => b.id === over.id);
+    if (from < 0 || to < 0 || over.id === drag) { setDrag(null); setOver(null); return; }
+    if (over.pos === 'after') to += 1;
+    if (to > from) to -= 1;
     const next = layout.blocks.slice();
     next.splice(to, 0, ...next.splice(from, 1));
     set({ blocks: next });
+    setDrag(null); setOver(null);
   };
 
   const insert = (kind: BlockKind, at: number) => {
@@ -124,6 +133,8 @@ export function EditorShell({ initial, data, base, canSave }: {
     setSaving(false);
     if (!res.ok || !d.ok) { setMessage(d.message ?? 'Could not save that.'); return; }
     setSavedAt(new Date().toLocaleTimeString());
+    // 라우터 캐시를 버린다 — 저장 뒤 내 블로그로 넘어갔을 때 옛 화면이 나오지 않게
+    router.refresh();
   }
 
   const chip = (on: boolean) =>
@@ -143,11 +154,19 @@ export function EditorShell({ initial, data, base, canSave }: {
           kinds={canAdd}
           onPick={(k) => insert(k, index)}
         />
+        {/* 놓일 자리 — 끌고 있는 동안만 보이는 선 */}
+        {drag && over?.id === block.id && over.pos === 'before' && <DropLine />}
         <div
           draggable
           onDragStart={(e) => { setDrag(block.id); e.dataTransfer.effectAllowed = 'move'; }}
-          onDragOver={(e) => { e.preventDefault(); dropOn(block.id); }}
-          onDragEnd={() => setDrag(null)}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!drag || drag === block.id) return;
+            const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setOver({ id: block.id, pos: e.clientY < box.top + box.height / 2 ? 'before' : 'after' });
+          }}
+          onDrop={(e) => { e.preventDefault(); commitDrop(); }}
+          onDragEnd={commitDrop}
           onClick={(e) => { e.stopPropagation(); setPicked(on ? null : block.id); }}
           className={`group relative cursor-grab rounded-md outline-offset-2 transition-[outline-color] ${
             on ? 'outline outline-2 outline-accent' : 'outline outline-1 outline-transparent hover:outline-hairline'
@@ -171,6 +190,7 @@ export function EditorShell({ initial, data, base, canSave }: {
 
           <div className="pointer-events-none">{node}</div>
         </div>
+        {drag && over?.id === block.id && over.pos === 'after' && <DropLine />}
 
         {on && (
           <div className="mt-2 flex flex-col gap-2.5 rounded-xl border border-accent/40 bg-surface p-3" onClick={(e) => e.stopPropagation()}>
@@ -189,6 +209,7 @@ export function EditorShell({ initial, data, base, canSave }: {
               setProp={(k, v) => setProp(block.id, k, v)}
               onPickImage={() => { setPicking(block.id); void loadImages(); }}
             />
+            <CommonSettings block={block} setProp={(k, v) => setProp(block.id, k, v)} />
           </div>
         )}
 
@@ -260,6 +281,24 @@ export function EditorShell({ initial, data, base, canSave }: {
                 <button key={v} onClick={() => setTheme({ border: v })} className={chip(layout.theme.border === v)}>{l}</button>
               ))}
             </Row>
+            <Row label="Home link">
+              {([['logo', 'POZ logo'], ['label', 'My words'], ['none', 'Hide']] as const).map(([v, l]) => (
+                <button key={v} onClick={() => set({ chrome: { ...layout.chrome, home: v } })} className={chip(layout.chrome.home === v)}>{l}</button>
+              ))}
+            </Row>
+            {layout.chrome.home === 'label' && (
+              <input
+                value={layout.chrome.label}
+                onChange={(e) => set({ chrome: { ...layout.chrome, label: e.target.value } })}
+                maxLength={24} placeholder="back"
+                className="w-full rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[13px] outline-none focus:border-ink"
+              />
+            )}
+            <Row label="Search & buttons">
+              {([['top', 'At the top'], ['bottom', 'At the bottom']] as const).map(([v, l]) => (
+                <button key={v} onClick={() => set({ chrome: { ...layout.chrome, nav: v } })} className={chip(layout.chrome.nav === v)}>{l}</button>
+              ))}
+            </Row>
           </div>
         </details>
 
@@ -323,6 +362,11 @@ export function EditorShell({ initial, data, base, canSave }: {
       )}
     </div>
   );
+}
+
+/** 놓일 자리 표시선 */
+function DropLine() {
+  return <div aria-hidden className="my-1 h-[3px] rounded-full bg-accent" />;
 }
 
 function IconBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {

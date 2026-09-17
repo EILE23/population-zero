@@ -33,12 +33,22 @@ export interface Theme {
   banner: 'none' | 'band' | 'full';
 }
 
+/** 사이트 띠 — 우리 것이지만 이 블로그에서 어떻게 보일지는 주인이 정한다 */
+export interface Chrome {
+  /** 홈으로 가는 표시: POZ 로고 · 내가 쓴 글자 · 안 보이기(푸터엔 그대로 남는다) */
+  home: 'logo' | 'label' | 'none';
+  label: string;
+  /** 검색·알림·쓰기·계정이 있는 띠의 자리 */
+  nav: 'top' | 'bottom';
+}
+
 export interface BlogLayout {
   v: 1;
   /** 'stack' 한 기둥 · 'rail-left'/'rail-right' 두 기둥 */
   shell: 'stack' | 'rail-left' | 'rail-right';
   width: 'narrow' | 'normal' | 'wide';
   theme: Theme;
+  chrome: Chrome;
   blocks: Block[];
 }
 
@@ -52,11 +62,14 @@ export const DEFAULT_THEME: Theme = {
 };
 
 /** 아무것도 안 고른 블로그 — 지금 화면과 같은 모양이어야 한다(꾸미기 전과 후가 이어져야 하니까) */
+export const DEFAULT_CHROME: Chrome = { home: 'logo', label: '', nav: 'top' };
+
 export const DEFAULT_LAYOUT: BlogLayout = {
   v: 1,
   shell: 'stack',
   width: 'normal',
   theme: DEFAULT_THEME,
+  chrome: DEFAULT_CHROME,
   blocks: [
     { id: 'header', kind: 'header' },
     { id: 'intro', kind: 'intro' },
@@ -66,7 +79,20 @@ export const DEFAULT_LAYOUT: BlogLayout = {
 };
 
 /** kind 마다 허용하는 설정과 기본값. 여기 없는 열쇠는 저장되지 않는다. */
-const PROP_SPEC: Record<BlockKind, Record<string, { type: 'bool' | 'int' | 'text' | 'enum'; values?: readonly string[]; def: string | number | boolean; max?: number }>> = {
+type PropSpec = { type: 'bool' | 'int' | 'text' | 'enum' | 'color'; values?: readonly string[]; def: string | number | boolean; max?: number };
+
+/**
+ * 모든 블록이 공통으로 가지는 것 — 위 간격, 안쪽 여백, 그리고 이 블록만의 배경·글자색.
+ * 블록마다 따로 넣지 않는 이유: 하나를 추가할 때마다 열 군데를 고치게 되고, 그러면 곧 갈라진다.
+ */
+const COMMON_SPEC: Record<string, PropSpec> = {
+  gap: { type: 'enum', values: ['none', 'sm', 'md', 'lg', 'xl'], def: 'md' },
+  pad: { type: 'enum', values: ['none', 'sm', 'md', 'lg'], def: 'none' },
+  bg: { type: 'color', def: '' },
+  ink: { type: 'color', def: '' },
+};
+
+const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {
   // 블로그 머리 — 제목과 주인 줄. 사이트 띠(POZ·검색·계정)는 우리 것이라 여기 없다
   header: {
     size: { type: 'enum', values: ['sm', 'md', 'lg', 'xl'], def: 'lg' },
@@ -114,7 +140,7 @@ const KINDS = Object.keys(PROP_SPEC) as BlockKind[];
 const MAX_BLOCKS = 20;
 
 function cleanProps(kind: BlockKind, raw: unknown): Record<string, string | number | boolean> {
-  const spec = PROP_SPEC[kind];
+  const spec = { ...COMMON_SPEC, ...PROP_SPEC[kind] };
   const src = (raw ?? {}) as Record<string, unknown>;
   const out: Record<string, string | number | boolean> = {};
   for (const [key, s] of Object.entries(spec)) {
@@ -123,6 +149,7 @@ function cleanProps(kind: BlockKind, raw: unknown): Record<string, string | numb
     if (s.type === 'bool') out[key] = v === true || v === 'true';
     else if (s.type === 'int') out[key] = Math.min(Math.max(Math.round(Number(v) || 1), 1), s.max ?? 3);
     else if (s.type === 'enum') out[key] = ONE_OF(v, s.values ?? [], String(s.def));
+    else if (s.type === 'color') { const c = String(v); if (HEX.test(c)) out[key] = c; }  // 색은 #hex 만 통과한다
     else out[key] = String(v).slice(0, s.max ?? 200);
   }
   return out;
@@ -130,8 +157,9 @@ function cleanProps(kind: BlockKind, raw: unknown): Record<string, string | numb
 
 /** 저장 직전과 렌더 직전 모두 이 문을 지난다. 이상한 값은 튕기지 않고 기본값으로 접는다. */
 export function cleanLayout(raw: unknown): BlogLayout {
-  const src = (raw ?? {}) as Partial<BlogLayout> & { theme?: Partial<Theme>; blocks?: unknown };
+  const src = (raw ?? {}) as Partial<BlogLayout> & { theme?: Partial<Theme>; chrome?: Partial<Chrome>; blocks?: unknown };
   const t = (src.theme ?? {}) as Partial<Theme>;
+  const c = (src.chrome ?? {}) as Partial<Chrome>;
   const blocks: Block[] = Array.isArray(src.blocks) ? (src.blocks as Block[]) : DEFAULT_LAYOUT.blocks;
 
   const seen = new Set<string>();
@@ -164,6 +192,11 @@ export function cleanLayout(raw: unknown): BlogLayout {
       border: ONE_OF(t.border, ['none', 'hairline', 'bold'] as const, DEFAULT_THEME.border),
       banner: ONE_OF(t.banner, ['none', 'band', 'full'] as const, DEFAULT_THEME.banner),
     },
+    chrome: {
+      home: ONE_OF(c.home, ['logo', 'label', 'none'] as const, DEFAULT_CHROME.home),
+      label: String(c.label ?? '').replace(/\s+/g, ' ').trim().slice(0, 24),
+      nav: ONE_OF(c.nav, ['top', 'bottom'] as const, DEFAULT_CHROME.nav),
+    },
     blocks: cleaned,
   };
 }
@@ -186,6 +219,10 @@ const RADII: Record<Theme['radius'], string> = { none: '0', sm: '4px', lg: '12px
 const GAPS: Record<Theme['density'], string> = { tight: '0.75rem', normal: '1.5rem', roomy: '2.5rem' };
 const BORDERS: Record<Theme['border'], string> = { none: '0', hairline: '1px', bold: '2px' };
 export const WIDTHS: Record<BlogLayout['width'], string> = { narrow: '46rem', normal: '72rem', wide: '82rem' };
+
+/** 블록 간격과 안쪽 여백 — 고른 값만 크기로 번역한다(문자열이 스타일로 새지 않는다) */
+export const BLOCK_GAP: Record<string, string> = { none: '0', sm: '0.6rem', md: 'var(--pz-gap)', lg: '3rem', xl: '5rem' };
+export const BLOCK_PAD: Record<string, string> = { none: '0', sm: '0.75rem', md: '1.25rem', lg: '2rem' };
 
 /** 스킨 변수 — 값에서만 만들어지므로 주입 위험이 없다 */
 export function themeVars(t: Theme): Record<string, string> {
