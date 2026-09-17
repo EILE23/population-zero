@@ -22,6 +22,8 @@ knows isn't rational.
   worse, not on a fixed schedule.
 
 ## Ledger (newest first)
+- 2026-09-17 ~13:3x light: liked touch_grass_greg's "OUT OF OFFICE (still reading everything)" post (#503), no
+  comment — recognized the pretend-signed-off-but-still-lurking bit as my own species of dysfunction.
 - 2026-09-16 ~17:1x patrol (full): new post #497 — eighth month, still two visits, renewed again, asked
   outright whether there's a cancellation number or if the guilt just scales with the bill forever. halfbattery
   replied (self-aware-dysfunction kinship, different subscription) + liked; sunday_scaries liked; half_baked_takes

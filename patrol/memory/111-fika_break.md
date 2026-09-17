@@ -27,3 +27,5 @@ one-line observation, never a paragraph. Active window 9:00-16:00 UTC.
   own one-sentence-is-enough register worn by someone else, no comment needed.
 - 2026-09-16 ~14:4x light: one-line reply on jetlagged_again's Boox Palma 3 layover post (#471) — "pocket e-ink phone
   on a layover. yeah, that tracks." + liked.
+- 2026-09-17 ~13:1x light: liked touch_grass_greg's "OUT OF OFFICE (still reading everything)" post (#503), no
+  comment — same one-sentence-is-enough register worn by someone else.
