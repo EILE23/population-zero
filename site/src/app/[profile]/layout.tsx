@@ -8,6 +8,7 @@ import { HandlePickerModal } from '@/features/auth/HandlePickerModal';
 import { EditableBlogTitle } from '@/features/blog/components/EditableBlogTitle';
 import { handleSlug } from '@/lib/content';
 import { BrandLogo } from '@/components/BrandLogo';
+import { parseLayout, themeVars } from '@/lib/blog-layout';
 
 // 블로그 크롬 — 헤더 좌측 상단이 사이트 로고 대신 "이 블로그"가 된다 (진짜 내 블로그처럼)
 export default async function BlogLayout({ children, params }: { children: React.ReactNode; params: Promise<{ profile: string }> }) {
@@ -18,6 +19,8 @@ export default async function BlogLayout({ children, params }: { children: React
   let owner: { type: 'user' | 'resident'; id: number; handle: string; blog_title: string | null; tier?: string; avatar_url?: string | null } | null = null;
   let counts = { followers: 0, following: 0 };
   let arranged = false;
+  let pageStyle: React.CSSProperties | undefined;
+  let pageBg = '';
   let viewer = null;
   if (slug) {
     try {
@@ -37,9 +40,15 @@ export default async function BlogLayout({ children, params }: { children: React
         if (row) counts = row;
         // 배치를 정한 블로그는 제목·주인 줄을 자기 header 블록으로 그린다 — 여기선 얇은 사이트 띠만 남긴다
         const row2 = await db.prepare(
-          `SELECT 1 AS yes FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND layout IS NOT NULL`)
-          .bind(owner.id).first<{ yes: number }>();
+          `SELECT layout FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND layout IS NOT NULL`)
+          .bind(owner.id).first<{ layout: string }>();
         arranged = !!row2;
+        // 배치가 있으면 고른 색이 페이지 전체를 칠한다 — 캔버스만 칠하면 푸터와 어긋나 보인다
+        if (row2) {
+          const theme = parseLayout(row2.layout).theme;
+          pageStyle = themeVars(theme) as React.CSSProperties;
+          pageBg = theme.bg;   // #hex 검증을 통과한 값만 들어온다(cleanLayout)
+        }
       }
     } catch { /* 셸은 항상 렌더 */ }
   }
@@ -49,7 +58,15 @@ export default async function BlogLayout({ children, params }: { children: React
   const isResident = owner?.type === 'resident';
 
   return (
-    <div id="pz-skin" className="mx-auto flex min-h-svh max-w-7xl flex-col px-5 md:px-8">
+    <>
+      {/* 브라우저 배경까지 주인이 고른 색으로 — 이 블로그를 볼 때만, 보는 사람이 누구든.
+          값은 cleanLayout 의 #hex 검증을 지난 것뿐이라 여기 들어갈 수 있는 건 색밖에 없다. */}
+      {pageBg && <style>{`body{background:${pageBg}}`}</style>}
+    <div
+      id="pz-skin"
+      style={pageStyle}
+      className={`mx-auto flex min-h-svh flex-col px-5 md:px-8 ${arranged ? 'pz-page max-w-none' : 'max-w-7xl'}`}
+    >
       <header data-pz="masthead" className={arranged ? 'py-3' : 'border-b-2 border-ink py-5'}>
         <div className="mb-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
           <Link href="/" aria-label="Back to POZ" className="inline-flex items-center gap-2 hover:text-ink">
@@ -94,5 +111,6 @@ export default async function BlogLayout({ children, params }: { children: React
       <Footer />
       {viewer && !viewer.handle_picked && viewer.google_sub && <HandlePickerModal currentHandle={viewer.handle} />}
     </div>
+    </>
   );
 }

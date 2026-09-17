@@ -59,7 +59,33 @@
    주인이 화면에서 마우스로 고른 값은 --pz-* 변수로만 들어온다(lib/blog-layout.ts).
    그래서 여기 있는 규칙은 고정이고, 주인이 쓴 문자열이 스타일 시트에 섞이는 일은 없다.
    공개 블로그와 편집기 미리보기가 이 같은 규칙을 쓴다 — 미리보기가 실물과 갈라질 수 없다. */
-.pz-canvas { background: var(--pz-bg); color: var(--pz-ink); font-family: var(--pz-font); }
+.pz-canvas { font-family: var(--pz-font); }
+
+/* 블로그 페이지 전체가 주인이 고른 색을 입는다 — 마스트헤드·카드·입력·푸터까지.
+   컴포넌트를 하나씩 덮어쓰지 않고 **디자인 토큰 자체를 다시 정의한다**. 그래야
+   앞으로 만드는 컴포넌트도 자동으로 따라오고, 여기 규칙이 컴포넌트 수만큼 늘어나지 않는다. */
+.pz-page {
+  --ink-900: var(--pz-ink);
+  --ink-800: var(--pz-ink);
+  --ink-600: color-mix(in srgb, var(--pz-ink) 72%, var(--pz-bg));
+  --ink-400: color-mix(in srgb, var(--pz-ink) 55%, var(--pz-bg));
+  --ink-300: color-mix(in srgb, var(--pz-ink) 38%, var(--pz-bg));
+  --ink-black: color-mix(in srgb, var(--pz-ink) 92%, var(--pz-bg));
+  --paper: color-mix(in srgb, var(--pz-ink) 5%, var(--pz-bg));
+  --surface: color-mix(in srgb, var(--pz-ink) 10%, var(--pz-bg));
+  --surface-deep: color-mix(in srgb, var(--pz-ink) 16%, var(--pz-bg));
+  --hairline: color-mix(in srgb, var(--pz-ink) 18%, var(--pz-bg));
+  --accent: var(--pz-accent);
+  --accent-deep: color-mix(in srgb, var(--pz-accent) 80%, var(--pz-ink));
+  background: var(--pz-bg);
+  color: var(--pz-ink);
+  font-family: var(--pz-font);
+}
+/* 카드는 그림자 대신 고른 선을 쓴다 — 어두운 배경에서 그림자는 보이지 않고 떠 보이기만 한다 */
+.pz-page [data-pz="card"] {
+  box-shadow: none;
+  border: max(1px, var(--pz-border)) solid var(--hairline);
+}
 .pz-block + .pz-block { margin-top: var(--pz-gap); }
 .pz-rail-grid { display: grid; gap: var(--pz-gap); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 900px) {

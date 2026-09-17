@@ -31,10 +31,9 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   const railBlocks = rail ? blocks.filter((b) => b.rail) : [];
   const mainBlocks = blocks.filter((b) => !rail || !b.rail);
 
-  const shellStyle = {
-    ...themeVars(theme),
-    maxWidth: WIDTHS[width],
-  } as React.CSSProperties;
+  // 색·서체는 페이지 껍데기([profile]/layout.tsx)가 이미 입혔다 — 여기선 폭만 정한다.
+  // 편집기 미리보기는 자기 껍데기가 없으니 변수를 같이 넣어 준다.
+  const shellStyle = { ...(editing ? themeVars(theme) : {}), maxWidth: WIDTHS[width] } as React.CSSProperties;
 
   const render = (b: Block) => {
     const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} />;
@@ -252,12 +251,13 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
     }
 
     case 'guestbook':
-      return wrap(
+      // 제목·목록·폼은 Guestbook 컴포넌트가 다 그린다. 여기서 또 제목을 달면 두 번 나온다.
+      return wrap(editing ? (
         <>
           <SectionLabel>{String(p.title ?? 'Guestbook').toUpperCase()}</SectionLabel>
-          {editing ? <p className="text-[13px] opacity-60">Visitors leave notes here.</p> : guestbook}
-        </>,
-      );
+          <p className="text-[13px] opacity-60">Visitors leave notes here.</p>
+        </>
+      ) : guestbook);
 
     case 'text':
       return wrap(

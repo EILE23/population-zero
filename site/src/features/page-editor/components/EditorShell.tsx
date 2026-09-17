@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { ArrowLeftRight, GripVertical, ImagePlus, Plus, Save, Settings2, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, X } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { BlogCanvas } from '@/features/blog/components/BlogCanvas';
-import { cleanLayout, DEFAULT_LAYOUT, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
+import { cleanLayout, DEFAULT_LAYOUT, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
 import type { ProfileData } from '@/features/blog/types';
 import { BlockSettings, KIND_LABEL, ONCE, Row } from './BlockSettings';
 
@@ -39,7 +39,6 @@ export function EditorShell({ initial, data, base, canSave }: {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [note, setNote] = useState('');
   // 블로그 제목은 배치가 아니라 계정의 값이다(앱도 같은 값을 본다) — 여기서 바꾸고 users.blog_title 에 쓴다
   const [title, setTitle] = useState(data.owner.blog_title ?? '');
 
@@ -111,7 +110,8 @@ export function EditorShell({ initial, data, base, canSave }: {
     setSaving(true); setMessage('');
     const res = await fetch('/api/pages', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ layout, note, shape: describe(layout) }),
+      // 무엇을 바꿨는지는 고른 값에서 자동으로 적는다 — 사람에게 또 물어볼 일이 아니다
+      body: JSON.stringify({ layout, note: describe(layout), shape: describe(layout) }),
     });
     // 제목이 바뀌었으면 같이 저장한다 — 배치와 제목을 따로 저장하게 만들면 사람이 한쪽을 잊는다
     if ((data.owner.blog_title ?? '') !== title.trim()) {
@@ -123,7 +123,7 @@ export function EditorShell({ initial, data, base, canSave }: {
     const d = await res.json() as { ok?: boolean; message?: string };
     setSaving(false);
     if (!res.ok || !d.ok) { setMessage(d.message ?? 'Could not save that.'); return; }
-    setSavedAt(new Date().toLocaleTimeString()); setNote('');
+    setSavedAt(new Date().toLocaleTimeString());
   }
 
   const chip = (on: boolean) =>
@@ -208,6 +208,9 @@ export function EditorShell({ initial, data, base, canSave }: {
     <div className="mt-5" onClick={() => setPicked(null)}>
       {/* ── 블로그 전체에 걸리는 것 ── */}
       <div className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-hairline bg-paper/95 px-3 py-2.5 backdrop-blur">
+        <button onClick={() => set(DEFAULT_LAYOUT)} className={`${chip(false)} inline-flex items-center gap-1`} title="Back to the plain blog">
+          <RotateCcw size={12} aria-hidden /> Reset
+        </button>
         <div className="flex items-center gap-1.5">
           {([['stack', 'One column'], ['rail-left', 'Side left'], ['rail-right', 'Side right']] as const).map(([v, l]) => (
             <button key={v} onClick={() => set({ shell: v })} className={chip(layout.shell === v)}>{l}</button>
@@ -257,16 +260,10 @@ export function EditorShell({ initial, data, base, canSave }: {
                 <button key={v} onClick={() => setTheme({ border: v })} className={chip(layout.theme.border === v)}>{l}</button>
               ))}
             </Row>
-            <button onClick={() => set(DEFAULT_LAYOUT)} className={`${chip(false)} mt-1`}>Start over</button>
           </div>
         </details>
 
         <div className="ml-auto flex items-center gap-2">
-          <input
-            value={note} onChange={(e) => setNote(e.target.value)} maxLength={200}
-            placeholder="What you changed (optional)"
-            className="w-44 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-[12.5px] outline-none focus:border-ink"
-          />
           <button onClick={() => void save()} disabled={saving} className={`${BUTTON.primary} inline-flex items-center gap-1.5 !py-1.5 disabled:opacity-50`}>
             <Save size={13} aria-hidden /> {saving ? 'Saving…' : 'Save'}
           </button>
@@ -278,12 +275,26 @@ export function EditorShell({ initial, data, base, canSave }: {
 
       {/* ── 화면 자체가 편집면 ── */}
       <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
-        <div className="p-4 sm:p-7">
+        <div className="pz-page p-4 sm:p-7" style={themeVars(layout.theme) as React.CSSProperties}>
           <BlogCanvas
             layout={layout}
             data={{ ...data, owner: { ...data.owner, blog_title: title || null } }}
             base={base} viewer editing blockWrap={wrapBlock} zoneProps={dropZone}
           />
+        </div>
+        {/* 블록 사이의 + 는 마우스를 올려야 보인다 — 처음 오는 사람이 못 찾으니 늘 보이는 줄을 하나 둔다 */}
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-hairline bg-surface px-4 py-3">
+          <span className="mr-1 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">Add a block</span>
+          {canAdd.map((k) => (
+            <button
+              key={k}
+              onClick={() => insert(k, layout.blocks.length)}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-hairline bg-paper px-2.5 py-1 text-[12px] font-bold text-ink-mid hover:border-ink hover:text-ink"
+            >
+              <Plus size={11} aria-hidden /> {KIND_LABEL[k]}
+            </button>
+          ))}
+          {canAdd.length === 0 && <span className="text-[12px] text-ink-soft">Everything is already on the page.</span>}
         </div>
       </div>
 
