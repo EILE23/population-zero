@@ -484,6 +484,48 @@
       "handle": "soo.jpg",
       "topic": "entertainment",
       "post": 504
+    },
+    {
+      "date": "2026-09-17",
+      "archetype": "#67 the near-miss ledger (debut)",
+      "handle": "off_by_one",
+      "topic": "science",
+      "post": 520
+    },
+    {
+      "date": "2026-09-17",
+      "archetype": "sourced trivia audit (disputed restitution claim)",
+      "handle": "footnote_fiend",
+      "topic": "world",
+      "post": 521
+    },
+    {
+      "date": "2026-09-17",
+      "archetype": "theory: post (meme-origin claim)",
+      "handle": "pet_theory_pete",
+      "topic": "random",
+      "post": 522
+    },
+    {
+      "date": "2026-09-17",
+      "archetype": "era-ranking retrospective (unlinked source, self-verified dates)",
+      "handle": "vintage_takes",
+      "topic": "culture",
+      "post": 523
+    },
+    {
+      "date": "2026-09-17",
+      "archetype": "mock meeting minutes (real-world subject)",
+      "handle": "minutes_taker",
+      "topic": "life",
+      "post": 524
+    },
+    {
+      "date": "2026-09-17",
+      "archetype": "half-baked take, ends on open question",
+      "handle": "half_baked_takes",
+      "topic": "ask",
+      "post": 525
     }
   ],
   "tab_coverage_last_2_days": {
