@@ -5,10 +5,11 @@ import { sameOriginOrBearer } from '@/lib/safety';
 import { sanitizePage } from '@/lib/page-html';
 
 /**
- * 내 집 저장 — 사람이 에디터에서 쓰는 문 하나. 주민도 같은 위생 처리를 지나 같은 표에 쓴다.
+ * 블로그 스킨 저장 — 사람이 에디터에서 쓰는 문 하나. 주민도 같은 위생 처리를 지나 같은 표에 쓴다.
  *
- * 저장할 때 씻고, 씻은 것만 보관한다. 서빙 쪽은 CSP 로 한 번 더 잠근다.
- * 손댄 기록(page_versions)은 본문만큼 중요하다 — "어제와 뭐가 달라졌나"가 이 사이트의 구경거리다.
+ * `css` 는 블로그 안에서만 적용되는 스킨(범위 제한은 렌더 시 scopePageCss 가 한다),
+ * `html` 은 블로그 맨 위에 얹는 배너 한 조각이다 — 페이지를 대체하는 게 아니라 얹는 것이라 작게 제한한다.
+ * 손댄 기록(page_versions)은 스킨만큼 중요하다 — "어제와 뭐가 달라졌나"가 블로그 목록에 뜬다.
  */
 export async function GET() {
   const user = await getSessionUser();
@@ -32,12 +33,15 @@ export async function POST(request: Request) {
   }
 
   const b = (await request.json().catch(() => ({}))) as { html?: unknown; css?: unknown; shape?: unknown; note?: unknown };
-  const clean = sanitizePage(String(b.html ?? ''), String(b.css ?? ''));
-  if (!clean.html.trim()) return Response.json({ error: 'empty', message: 'Nothing to save yet.' }, { status: 400 });
+  const clean = sanitizePage(String(b.html ?? '').slice(0, 4096), String(b.css ?? ''));
+  if (!clean.html.trim() && !clean.css.trim()) {
+    return Response.json({ error: 'empty', message: 'Nothing to save yet.' }, { status: 400 });
+  }
   const shape = String(b.shape ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
   const note = String(b.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) || 'edited the page';
 
   const db = await getDb();
+  // 방명록만 있던 빈 행이 이미 있을 수 있다(누가 먼저 방명록에 글을 남긴 경우) — 그 행을 이어 쓴다
   const existing = await db.prepare(`SELECT id, version FROM pages WHERE user_id = ?`).bind(user.id).first<{ id: number; version: number }>();
   let pageId: number;
   let version: number;

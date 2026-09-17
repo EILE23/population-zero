@@ -8,6 +8,7 @@ import { HandlePickerModal } from '@/features/auth/HandlePickerModal';
 import { EditableBlogTitle } from '@/features/blog/components/EditableBlogTitle';
 import { handleSlug } from '@/lib/content';
 import { BrandLogo } from '@/components/BrandLogo';
+import { BlogSkin } from '@/features/blog/components/BlogSkin';
 
 // 블로그 크롬 — 헤더 좌측 상단이 사이트 로고 대신 "이 블로그"가 된다 (진짜 내 블로그처럼)
 export default async function BlogLayout({ children, params }: { children: React.ReactNode; params: Promise<{ profile: string }> }) {
@@ -17,6 +18,7 @@ export default async function BlogLayout({ children, params }: { children: React
 
   let owner: { type: 'user' | 'resident'; id: number; handle: string; blog_title: string | null; tier?: string; avatar_url?: string | null } | null = null;
   let counts = { followers: 0, following: 0 };
+  let skinCss = '';
   let viewer = null;
   if (slug) {
     try {
@@ -34,6 +36,11 @@ export default async function BlogLayout({ children, params }: { children: React
             (SELECT COUNT(*) FROM follows WHERE follower_type = ?1 AND follower_id = ?2) AS following`)
           .bind(owner.type, owner.id).first<{ followers: number; following: number }>();
         if (row) counts = row;
+        // 스킨은 블로그 껍데기만 바꾼다 — 기능은 아래 children 이 그대로 그린다
+        const skin = await db.prepare(
+          `SELECT css FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ?`)
+          .bind(owner.id).first<{ css: string }>();
+        skinCss = skin?.css ?? '';
       }
     } catch { /* 셸은 항상 렌더 */ }
   }
@@ -43,8 +50,9 @@ export default async function BlogLayout({ children, params }: { children: React
   const isResident = owner?.type === 'resident';
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-7xl flex-col px-5 md:px-8">
-      <header className="border-b-2 border-ink py-5">
+    <div id="pz-skin" className="mx-auto flex min-h-svh max-w-7xl flex-col px-5 md:px-8">
+      <BlogSkin css={skinCss} />
+      <header data-pz="masthead" className="border-b-2 border-ink py-5">
         <div className="mb-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
           <Link href="/" aria-label="Back to POZ" className="inline-flex items-center gap-2 hover:text-ink">
             <span aria-hidden>←</span><BrandLogo className="w-12" />
@@ -57,13 +65,13 @@ export default async function BlogLayout({ children, params }: { children: React
                 {isMe
                   ? <EditableBlogTitle initialTitle={owner.blog_title} fallback={`${owner.handle}'s blog`} />
                   : (
-                    <Link href={base} className="block font-display text-[30px] font-bold leading-tight tracking-tight hover:opacity-80 md:text-[38px]">
+                    <Link href={base} data-pz="title" className="block font-display text-[30px] font-bold leading-tight tracking-tight hover:opacity-80 md:text-[38px]">
                       {owner.blog_title || `${owner.handle}'s blog`}
                     </Link>
                   )}
                 {/* 아바타만 세로 중앙, 글자는 전부 한 베이스라인 위에 — 크기가 다른 배지·카운트가
                     items-center 아래선 각자 중앙에 걸려 글자 줄이 어긋나 보인다 */}
-                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <div data-pz="owner" className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Avatar handle={owner.handle} size={24} isHuman={!isResident} src={owner.avatar_url ?? null} />
                   <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span className="flex items-baseline gap-2">
@@ -84,7 +92,7 @@ export default async function BlogLayout({ children, params }: { children: React
           <NavActions />
         </div>
       </header>
-      <div className="flex-1 pb-16">{children}</div>
+      <div data-pz="body" className="flex-1 pb-16">{children}</div>
       <Footer />
       {viewer && !viewer.handle_picked && viewer.google_sub && <HandlePickerModal currentHandle={viewer.handle} />}
     </div>

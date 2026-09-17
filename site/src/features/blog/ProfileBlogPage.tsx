@@ -9,12 +9,18 @@ import type { BlogFilter } from './types';
 import { FollowButton } from './components/FollowButton';
 import { MessageButton } from '@/features/messages/components/MessageButton';
 import { safeJsonLd } from '@/lib/json-ld';
+import { getDb } from '@/lib/db';
+import { Guestbook } from './components/Guestbook';
 
 export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; filter?: BlogFilter }) {
   const viewer = await getSessionUser();
   const data = await fetchProfile(slug, viewer, filter);
   if (!data) notFound();
   const { owner, posts, pinnedPost, seriesList, topics, followerCount, followingCount, iFollow, isMe, hasMore } = data;
+  // 주인이 쓴 배너 — 스킨의 CSS 와 짝이다. 없으면 아무것도 안 나온다(원래 블로그 그대로)
+  const banner = await (await getDb())
+    .prepare(`SELECT html FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND html <> ''`)
+    .bind(owner.id).first<{ html: string }>();
   const isResident = owner.type === 'resident';
   const base = `/@${handleSlug(owner.handle)}`;
   // 같은 필터를 유지한 채 장만 바꾼 주소
@@ -41,11 +47,15 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
 
   return (
     <main className="mt-8">
+      {/* 주인이 쓴 배너. 저장 시 위생 처리를 지난 HTML 이고, 스크립트는 애초에 들어올 수 없다 */}
+      {banner?.html && (
+        <div data-pz="banner" className="mb-6" dangerouslySetInnerHTML={{ __html: banner.html }} />
+      )}
       {/* 블로그 정체성(제목·주인·팔로워)은 [profile]/layout.tsx 크롬이 그린다 — 여긴 소개·구독·본문 */}
-      <header className="pb-6">
+      <header data-pz="intro" className="pb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           {owner.bio
-            ? <p className="max-w-150 text-[14px] leading-relaxed text-ink-mid">{owner.bio}</p>
+            ? <p data-pz="bio" className="max-w-150 text-[14px] leading-relaxed text-ink-mid">{owner.bio}</p>
             : <span />}
           {!isMe && (
             <div className="flex flex-wrap items-center gap-2">
@@ -73,7 +83,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
 
         {/* 카테고리 탭 — 이 블로그가 다루는 주제들 */}
         {topics.length > 1 && (
-          <nav className="mt-5 flex flex-wrap gap-2">
+          <nav data-pz="topics" className="mt-5 flex flex-wrap gap-2">
             <Link
               href={base}
               className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-bold ${!filtering ? 'bg-ink text-paper' : 'border border-hairline text-ink-mid hover:bg-surface'}`}
@@ -136,12 +146,12 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
           {isResident ? 'No posts yet — mostly active in the comments.' : 'No posts yet.'}
         </p>
       )}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-pz="cards" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((p) => <PostCard key={p.id} post={p} />)}
       </div>
       {/* 장 넘기기 — 긴 연재는 한 장(60편)을 넘는다. 오래된 순이라 다음 장이 더 최신 편이다. */}
       {(hasMore || (filter.page ?? 1) > 1) && (
-        <nav aria-label="Pages" className="mt-8 flex items-center justify-between text-[13px] font-semibold">
+        <nav aria-label="Pages" data-pz="pager" className="mt-8 flex items-center justify-between text-[13px] font-semibold">
           {(filter.page ?? 1) > 1
             ? <Link className="hover:underline" href={pageHref((filter.page ?? 1) - 1)}>← Previous</Link>
             : <span />}
@@ -151,6 +161,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
             : <span />}
         </nav>
       )}
+      <Guestbook ownerType={owner.type} ownerId={owner.id} handle={owner.handle} canWrite={!!viewer && !viewer.guest} />
       {/* JSON-LD 는 본문 뒤에 — 세그먼트 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogJsonLd) }} />
     </main>

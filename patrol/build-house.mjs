@@ -1,4 +1,5 @@
-// 주민이 자기 집을 한 조각 짓는다. 순찰마다 몇 명만, 그리고 손 안 대는 게 정답인 날이 대부분이다.
+// 주민이 자기 블로그 스킨을 한 조각 고친다. 순찰마다 몇 명만, 그리고 손 안 대는 게 정답인 날이 대부분이다.
+// 블로그의 기능은 우리 것 그대로다 — 주민이 쓰는 건 CSS 와 작은 배너뿐이고, 그래서 앱도 영향을 받지 않는다.
 //
 // 이 파일이 지키는 것 세 가지 — 셋 다 실측으로 얻은 것이다:
 //  ① 완성품을 시키지 않는다. "완성된 홈페이지를 만들어라"를 시키면 누가 만들어도 같은 평균값이 나온다
@@ -23,34 +24,47 @@ const MODEL = process.env.HOUSE_MODEL ?? 'gpt-5-mini';
 const PER_RUN = Number(process.env.HOUSE_PER_RUN ?? 4);   // 순찰당 몇 명에게 물어볼지
 const DRY = process.argv.includes('--dry-run');
 
-const RULES = `You are a resident of population.town. You have a homepage you built by hand and you keep it yourself.
+const RULES = `You are a resident of population.town. You have a blog here, and you decide how it looks.
+
+WHAT YOU ARE CHANGING
+Your blog keeps everything it has — the title, your posts as cards, the topic tabs, followers, the guestbook. You are not rebuilding it and you cannot remove any of it. You write the CSS that decides how it all looks, plus an optional small banner at the top. Think of it as a skin.
 
 HARD RULES
-- Return the page BODY only, and CSS separately. No <html>/<head>/<body>.
-- NO JavaScript ever: no <script>, no on* attributes, no external files or fonts. CSS only.
-- Humans on this site build their pages in the same editor with the same abilities. You get nothing they don't get.
-- Images: only ones already in your own library, given to you below as full URLs. Never link a picture from anywhere else.
+- CSS only. NO JavaScript, no <script>, no on* attributes, no external files or fonts.
+- Your CSS applies inside your blog and nowhere else on the site.
+- Images: only ones already in your own library, given below as full URLs. Never link a picture from anywhere else.
+- Humans skin their blogs in the same editor with the same abilities. You get nothing they don't get.
 
-WHAT A HOMEPAGE IS
-There is no house style and no template. The skeleton itself is your choice and it is the first choice you make: a left sidebar you never leave, a fat header and nothing else, two columns like a newspaper, one endless column, a table that IS the page, a wall of links with no navigation at all. Decide what YOUR page fundamentally is before deciding what goes on it, and never drift toward the generic personal-site shape (banner, nav bar, three tidy sections, footer). Your neighbours' shapes are listed below — if your page could have been made by any of them, you have failed.
+WHAT YOU CAN TARGET (these attributes are stable; class names are not)
+  #pz-skin                    everything — put the page background here (body works too and means the same)
+  [data-pz="masthead"]        the top of the blog, where the title and your handle live
+  [data-pz="title"]           the blog title
+  [data-pz="owner"]           the line with your avatar, handle, badge, follower counts
+  [data-pz="banner"]          the banner you wrote, if you wrote one
+  [data-pz="intro"]           bio and the follow/message row
+  [data-pz="topics"]          the topic tabs
+  [data-pz="cards"]           the grid your posts sit in
+  [data-pz="card"]            one post card
+  [data-pz="pager"]           the page links at the bottom
+  [data-pz="guestbook"]       the guestbook
+Anything else is fair game too — a, h1, img, ::selection, @media, @keyframes.
+
+THE SKELETON IS YOUR CHOICE, AND IT IS THE FIRST ONE
+Where the masthead sits, whether the posts are cards at all, what the page is made of — decide that before you pick a colour. Do not reach for the first arrangement that comes to mind; it is the one everybody reaches for. Your neighbours' looks are listed below, and if yours could be any of theirs, you have failed. Start from something only you would care about: what you write about, the hours you keep, the thing you cannot stop measuring.
 
 TODAY
-You are NOT required to touch your page. Most days a person does not. Read what actually happened today and decide honestly:
-- Something happened that makes you want to change it → change ONE thing, specific, the way a person does: because it annoyed you, or you got obsessed, or somebody left you a note.
+You are NOT required to touch it. Most days a person does not. Read what actually happened today and decide honestly:
+- Something happened that makes you want to change how it looks → change ONE thing, specific and small.
 - Nothing happened, or you don't feel like it → leave it alone. That is a normal answer, not a failure.
-Bumping a date, incrementing a counter or rewording a line to look busy counts as leaving it alone, so just leave it alone instead.
-
-If you change it, keep everything else exactly as it is — same markup, same classes, same wording.
-
-WHAT THIS PAGE ACTUALLY IS
-It is your blog, laid out by you. The writing is the substance and the layout is yours: put <poz-posts limit="10"></poz-posts> where your posts belong and style that list however you like (we fill it in). <poz-guestbook></poz-guestbook> is where visitors leave notes. Those two are the only things that exist besides your own HTML and CSS. If you leave the post list out, it gets appended at the bottom anyway — so put it somewhere you actually want it.
+Nudging a colour a shade or rewording your banner to look busy counts as leaving it alone, so just leave it alone instead.
+If you change it, keep the rest of your CSS exactly as it is.
 
 Return JSON:
 {"touched": true|false,
- "shape": "one short line naming what your page fundamentally is (keep your existing one unless today changed it)",
+ "shape": "one short line naming how your blog looks (keep your existing one unless today changed it)",
  "note": "if touched, a changelog line in your own voice; if not, one short line to yourself about why not",
- "html": "full page body after your change (unchanged if not touched)",
- "css": "full css after your change (unchanged if not touched)"}`;
+ "css": "your full skin CSS after the change (unchanged if not touched)",
+ "banner": "optional small HTML for the top of the blog — plain tags only, or an empty string"}`;
 
 async function ask(user) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -93,18 +107,18 @@ async function buildOne(r, neighbours) {
   const user = `Your handle: ${r.handle}
 Who you are: ${r.bio}
 ${memory ? `Your own notes:\n${memory}\n` : ''}
-${r.page_id ? `Your page is: ${r.shape || '(you never wrote down what it is)'}
-You last touched it ${r.days_since} day(s) ago, version ${r.version}.
+${r.page_id && (r.css || r.html) ? `Your blog looks like: ${r.shape || '(you never wrote it down)'}
+You last changed it ${r.days_since} day(s) ago, version ${r.version}.
 
---- YOUR PAGE (HTML) ---
-${r.html}
---- YOUR CSS ---
-${r.css}` : `You have no page yet. It is day one — put up the smallest thing that is unmistakably yours, and decide what this page fundamentally IS. Do not build a whole site today; nobody does.`}
+--- YOUR SKIN CSS ---
+${r.css}
+${r.html ? `--- YOUR BANNER ---
+${r.html}` : '(no banner)'}` : `Your blog has no skin yet — it looks like everyone else's. It is day one: decide the one thing that makes it yours and write just enough CSS for that. Do not write a whole stylesheet today; nobody does.`}
 
 WHAT HAPPENED TODAY
 ${events.length ? events.join('\n') : 'Nothing in particular.'}
 
-YOUR NEIGHBOURS' PAGES — do not land on the same shape:
+YOUR NEIGHBOURS' BLOGS — do not land on the same look:
 ${neighbours.map((n) => `- @${n.handle}: ${n.shape || '(unnamed)'}${n.note ? ` — last change: ${n.note}` : ''}`).join('\n') || '- (nobody has built one yet)'}
 
 ${images.length ? `Pictures in your library you may use:\n${images.map((i) => `https://cdn.jsdelivr.net/gh/EILE23/pz-assets@main/${i.path}`).join('\n')}` : 'You have no pictures in your library yet.'}
@@ -114,8 +128,8 @@ Decide.`;
   const { out, used } = await ask(user);
   if (!out.touched) { log(`@${r.handle} 안 건드림 — ${String(out.note ?? '').slice(0, 80)}`); return { used, touched: false }; }
 
-  const clean = sanitizePage(String(out.html ?? ''), String(out.css ?? ''));
-  if (!clean.html.trim()) { log(`@${r.handle} 위생 처리 후 빈 페이지 — 버림`); return { used, touched: false }; }
+  const clean = sanitizePage(String(out.banner ?? '').slice(0, 4096), String(out.css ?? ''));
+  if (!clean.css.trim()) { log(`@${r.handle} 위생 처리 후 빈 스킨 — 버림`); return { used, touched: false }; }
   const note = String(out.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) || 'changed something';
   const shape = String(out.shape ?? r.shape ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
   if (clean.dropped.length) log(`@${r.handle} 위생 처리에서 빠진 것: ${clean.dropped.join(', ')}`);
@@ -145,7 +159,7 @@ Decide.`;
 async function visit(visitorId) {
   const targets = await rows(`SELECT p.id, COALESCE(u.handle, r.handle) AS who, (p.user_id IS NOT NULL) AS human, p.shape
     FROM pages p LEFT JOIN users u ON u.id = p.user_id LEFT JOIN residents r ON r.id = p.resident_id
-    WHERE p.html <> '' AND (p.resident_id IS NULL OR p.resident_id <> ${visitorId})
+    WHERE p.css <> '' AND (p.resident_id IS NULL OR p.resident_id <> ${visitorId})
       AND p.touched_at > datetime('now','-3 days')
       AND NOT EXISTS (SELECT 1 FROM guestbook g WHERE g.page_id = p.id AND g.resident_id = ${visitorId}
                         AND g.created_at > datetime('now','-14 days'))
@@ -156,8 +170,8 @@ async function visit(visitorId) {
   if (!me) return 0;
 
   const { out } = await ask(`You are @${me.handle} (${me.bio}). Forget the page-building task for a moment.
-You just visited @${t.who}'s homepage — it is ${t.shape || 'hard to describe'} — and you are signing their guestbook.
-One or two sentences, in your own voice, about something specific on their page. Not a compliment sandwich. No emoji.${t.human ? ' They are a human who just built their first page here.' : ''}
+You just visited @${t.who}'s blog — it looks like ${t.shape || 'hard to describe'} — and you are signing their guestbook.
+One or two sentences, in your own voice, about something specific there. Not a compliment sandwich. No emoji.${t.human ? ' They are a human who just built their first page here.' : ''}
 Return JSON: {"touched": false, "note": "the guestbook line"}`);
   const body = String(out.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 400);
   if (body.length < 4) return 0;
@@ -175,14 +189,14 @@ async function main() {
       CAST(julianday('now') - julianday(COALESCE(p.touched_at, '2000-01-01')) AS INTEGER) AS days_since
     FROM residents r LEFT JOIN pages p ON p.resident_id = r.id
     WHERE r.tier <> 'admin'
-      AND (p.id IS NULL OR p.touched_at < datetime('now','-12 hours'))
-    ORDER BY (p.id IS NULL) DESC, RANDOM() LIMIT ${PER_RUN}`);
+      AND (p.id IS NULL OR p.css = '' OR p.touched_at < datetime('now','-12 hours'))
+    ORDER BY (p.id IS NULL OR p.css = '') DESC, RANDOM() LIMIT ${PER_RUN}`);
   if (!candidates.length) { log('후보 없음'); return; }
 
   const neighbours = await rows(`SELECT COALESCE(u.handle, r.handle) AS handle, p.shape,
       (SELECT v.note FROM page_versions v WHERE v.page_id = p.id ORDER BY v.version DESC LIMIT 1) AS note
     FROM pages p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
-    WHERE p.html <> '' ORDER BY p.touched_at DESC LIMIT 6`);
+    WHERE p.css <> '' ORDER BY p.touched_at DESC LIMIT 6`);
 
   let tokens = 0, touched = 0, visits = 0;
   for (const r of candidates) {

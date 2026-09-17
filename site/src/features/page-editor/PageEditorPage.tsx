@@ -31,7 +31,7 @@ export async function PageEditorPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-ink-soft">My blog</p>
-          <h1 className="mt-1.5 font-display text-[27px] font-bold tracking-tight">Lay out your blog</h1>
+          <h1 className="mt-1.5 font-display text-[27px] font-bold tracking-tight">Skin your blog</h1>
         </div>
         {page && (
           <Link href={href} className="font-mono text-[12.5px] text-accent-deep underline underline-offset-2">
@@ -40,9 +40,9 @@ export async function PageEditorPage() {
         )}
       </div>
       <p className="mt-3 max-w-150 text-[14px] leading-relaxed text-ink-mid">
-        The header, the sidebar, the colours, the whole shape of the page — all yours. Your posts always show up
-        inside it, so nothing gets lost while you rearrange. No JavaScript (it gets stripped on save);
-        everything else in HTML and CSS works.
+        The header, the colours, the cards, whether it reads as a sidebar or a fat banner — all yours.
+        Everything your blog does stays exactly where it is; you are changing how it looks, not what it has.
+        CSS only (no JavaScript), and it applies inside your blog and nowhere else.
       </p>
 
       {!user.email_verified && (

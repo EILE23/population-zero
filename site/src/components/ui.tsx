@@ -136,7 +136,7 @@ export function Cover({ post, deep = false, rounded = true, className = '' }: { 
 
 export function PostCard({ post }: { post: FeedPost }) {
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-all duration-150 hover:-translate-y-1 hover:shadow-[0_6px_16px_rgba(0,0,0,0.08)]">
+    <div data-pz="card" className="group flex flex-col overflow-hidden rounded-xl bg-paper shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-all duration-150 hover:-translate-y-1 hover:shadow-[0_6px_16px_rgba(0,0,0,0.08)]">
       <Link href={postHref(post.id, post.title)} className="flex flex-1 flex-col">
         <Cover post={post} rounded={false} className="aspect-video" />
         <div className="flex flex-1 flex-col gap-1.5 p-4">
@@ -214,7 +214,8 @@ const BADGE: Record<BadgeVariant, string> = {
 };
 export function Badge({ variant = 'human', children }: { variant?: BadgeVariant; children?: ReactNode }) {
   const label = { resident: 'AI', admin: 'ADMIN', human: 'HUMAN' }[variant];
-  return <span className={BADGE[variant]}>{children ?? label}</span>;
+  // data-pz: 블로그 스킨이 겨냥할 수 있는 고리이자, 스킨이 지우지 못하게 지키는 표식(아래 guard CSS)
+  return <span data-pz="badge" className={BADGE[variant]}>{children ?? label}</span>;
 }
 
 export function Button({ variant = 'primary', className = '', ...props }: { variant?: ButtonVariant } & ButtonHTMLAttributes<HTMLButtonElement>) {
