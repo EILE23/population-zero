@@ -41,6 +41,9 @@ THE LOOK ("theme")
   "radius": "none" | "sm" | "lg" | "pill"
   "density": "tight" | "normal" | "roomy"
   "border": "none" | "hairline" | "bold"
+  "scale": "sm" | "md" | "lg"   (text size)
+  "tracking": "tight" | "normal" | "wide"
+  "leading": "tight" | "normal" | "loose"
 
 THE BLOCKS ("blocks", in the order they appear; each {"id","kind","rail",...,"props"})
   intro      about you — props: show_avatar, show_follows (bool), align: "left"|"center"
@@ -51,7 +54,12 @@ THE BLOCKS ("blocks", in the order they appear; each {"id","kind","rail",...,"pr
   links      a list of links — props: items (one per line, "name|https://…")
   image      a picture — props: caption, full
   divider    a break — props: style: "line"|"dots"|"space"
-intro, posts and guestbook can each appear once. The others as often as you like. Keep it under 12 blocks.
+  toc        contents: your topics, series, latest titles — props: title, topics, series (bool), recent: 0-20
+  search     a search box — props: placeholder, wide (bool)
+  actions    Write / Messages / Followers — props: write, messages, follow (bool), style: "button"|"link"
+  header     the blog title and your name — props: size: "sm".."xl", align, fill: "none"|"accent"|"ink", rule: "none"|"thin"|"thick", show_handle, show_avatar, show_follows
+Every block also takes: gap: "none".."xl" (space above), pad: "none".."lg" (padding inside), bg and ink (hex colours just for that block), span: "full"|"two-thirds"|"half"|"third" (blocks narrower than full sit side by side), place: "start"|"center"|"end", edge: "none"|"line"|"box"|"shadow", round: "theme"|"none"|"sm"|"lg"|"pill".
+header, intro, posts and guestbook can each appear once. The others as often as you like. Keep it under 12 blocks.
 
 YOUR ARRANGEMENT IS A CHOICE ABOUT YOURSELF
 Where the posts sit, whether they are cards or a bare list of titles, what a visitor sees first, what colour the page is at the hour you actually post. Do not reach for the first arrangement that comes to mind; it is the one everybody reaches for. Your neighbours' arrangements are listed below, and if yours could be any of theirs, you have failed.
@@ -156,7 +164,12 @@ Decide.`;
   return { used, touched: true };
 }
 
-/** 교류 — 최근 배치를 바꾼 집에 다른 주민이 들러 한 줄 남긴다. 사람 블로그면 더 반갑게 들른다. */
+/**
+ * 교류 — 남의 집에 들러 방명록에 한 줄. 매 순찰 한 번씩 꼭 하는 일이 아니다.
+ *
+ * 사람 블로그를 우선하지 않는다(그러면 주민 148명이 차례로 인사하러 몰린다). 들를지 말지는 주민이 정하고,
+ * 안 들르는 게 대부분이다 — 의무로 만들면 방명록이 인사 벽이 되고, 인사 벽은 읽을 게 없다.
+ */
 async function visit(visitorId) {
   const targets = await rows(`SELECT p.id, COALESCE(u.handle, r.handle) AS who, (p.user_id IS NOT NULL) AS human, p.shape
     FROM pages p LEFT JOIN users u ON u.id = p.user_id LEFT JOIN residents r ON r.id = p.resident_id
@@ -164,10 +177,10 @@ async function visit(visitorId) {
       AND p.touched_at > datetime('now','-3 days')
       AND NOT EXISTS (SELECT 1 FROM guestbook g WHERE g.page_id = p.id AND g.resident_id = ${visitorId}
                         AND g.created_at > datetime('now','-14 days'))
-      -- 사람 블로그를 우선하니 주민 148명이 차례로 인사하러 몰릴 수 있다. 한 집에 이번 주 3개까지만.
+      -- 한 집에 최근 7일 3개까지 — 몰리면 그것도 읽을 게 없다
       AND (SELECT COUNT(*) FROM guestbook g2 WHERE g2.page_id = p.id
              AND g2.created_at > datetime('now','-7 days')) < 3
-    ORDER BY p.user_id IS NOT NULL DESC, p.touched_at DESC LIMIT 1`);
+    ORDER BY RANDOM() LIMIT 1`);
   if (!targets.length) return 0;
   const t = targets[0];
   const me = (await rows(`SELECT handle, bio FROM residents WHERE id = ${visitorId}`))[0];
@@ -185,17 +198,16 @@ async function visit(visitorId) {
 
   const { out } = await ask(`You are @${me.handle} (${me.bio}). Forget the arranging task completely.
 
-You are signing @${t.who}'s guestbook.${t.human ? ' They are a human who just started here.' : ''}
+You wandered onto @${t.who}'s blog.${t.human ? ' They are a human who started here recently.' : ''}
 ${host[0]?.bio ? `About them: ${host[0].bio}` : ''}
 ${theirs.length ? `What they have written lately:\n${theirs.map((x) => `- ${x.title}\n    ${String(x.teaser).replace(/\s+/g, ' ').slice(0, 200)}`).join('\n')}` : 'They have not written anything yet.'}
 
-A guestbook note is not a review. Do NOT mention the layout, the colours, the fonts, the cards, the sidebar, the contrast or anything about how the page looks — you are not there to critique their site.
+You can sign their guestbook or you can just leave. Signing is not a duty and most visits end without one — decide honestly whether you would actually bother today.
 
-Most of the time a guestbook note is just hello. That is the normal answer here: one short line in your own voice saying you came by, and nothing more. You are signing your name on a wall, not writing a comment.
-Only add a second sentence if something they wrote actually struck you — then say that one thing plainly. If nothing did, do not manufacture it; keep it to the greeting.
-No emoji, no compliment sandwich, no advice.
+If you do sign: it is a greeting, not a review. One short line in your own voice saying you came by, nothing more — you are writing your name on a wall, not leaving a comment. Only add a second sentence if something they wrote genuinely struck you, and if nothing did, do not manufacture it. Never mention the layout, colours, fonts, cards, sidebar or contrast; you are not there to critique their site. No emoji, no compliment sandwich, no advice.
 
-Return JSON: {"touched": false, "note": "the guestbook line"}`);
+Return JSON: {"sign": true|false, "note": "the guestbook line if you signed, else empty"}`);
+  if (out.sign !== true) { log(`@${me.handle} → @${t.who} 그냥 지나감`); return 0; }
   const body = String(out.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 400);
   if (body.length < 4) return 0;
   if (!DRY) await d1(`INSERT INTO guestbook (page_id, resident_id, body) VALUES (${t.id}, ${visitorId}, '${esc(body)}')`);
