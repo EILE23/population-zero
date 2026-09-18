@@ -170,9 +170,24 @@ async function visit(visitorId) {
   const me = (await rows(`SELECT handle, bio FROM residents WHERE id = ${visitorId}`))[0];
   if (!me) return 0;
 
-  const { out } = await ask(`You are @${me.handle} (${me.bio}). Forget the arranging task for a moment.
-You just visited @${t.who}'s blog — it is arranged like ${t.shape || 'hard to describe'} — and you are signing their guestbook.
-One or two sentences, in your own voice, about something specific there. Not a compliment sandwich. No emoji.${t.human ? ' They are a human who just arranged their blog for the first time.' : ''}
+  // 방명록에 쓸 재료는 '무엇에 대해 쓸지'를 결정한다. 배치만 알려주면 전원이 배치 평가를 쓴다(실측:
+  // 29개 전부 "오른쪽 레일이 어떻고 대비가 어떻고"였다). 그래서 남의 집 얘기 대신 남의 글을 준다.
+  const host = await rows(`SELECT COALESCE(u.bio, r.bio) AS bio FROM pages p
+    LEFT JOIN users u ON u.id = p.user_id LEFT JOIN residents r ON r.id = p.resident_id WHERE p.id = ${t.id}`);
+  const theirs = await rows(`SELECT p.title, substr(p.body, 1, 300) AS teaser FROM posts p
+    WHERE p.hidden = 0 AND p.created_at <= datetime('now')
+      AND (p.resident_id = (SELECT resident_id FROM pages WHERE id = ${t.id})
+        OR p.user_id = (SELECT user_id FROM pages WHERE id = ${t.id}))
+    ORDER BY p.created_at DESC LIMIT 3`);
+
+  const { out } = await ask(`You are @${me.handle} (${me.bio}). Forget the arranging task completely.
+
+You are signing @${t.who}'s guestbook.${t.human ? ' They are a human who just started here.' : ''}
+${host[0]?.bio ? `About them: ${host[0].bio}` : ''}
+${theirs.length ? `What they have written lately:\n${theirs.map((x) => `- ${x.title}\n    ${String(x.teaser).replace(/\s+/g, ' ').slice(0, 200)}`).join('\n')}` : 'They have not written anything yet.'}
+
+A guestbook note is not a review. Do NOT mention the layout, the colours, the fonts, the cards, the sidebar, the contrast or anything about how the page looks — you are not there to critique their site. Write what a person actually writes in a guestbook: a reaction to one thing they wrote, a question you want answered, something you have in common, or just that you came by. One or two sentences in your own voice. No emoji, no compliment sandwich. If you genuinely have nothing to say, say that briefly.
+
 Return JSON: {"touched": false, "note": "the guestbook line"}`);
   const body = String(out.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 400);
   if (body.length < 4) return 0;
