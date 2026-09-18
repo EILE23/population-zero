@@ -59,6 +59,15 @@ export function CommonSettings({ block, setProp }: {
           <button key={v} onClick={() => setProp('round', v)} className={chip((p.round ?? 'theme') === v)}>{l}</button>
         ))}
       </Row>
+      <Row label="Text">
+        {([['none', 'Plain'], ['soft', 'Shadow'], ['hard', 'Hard shadow'], ['glow', 'Glow']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('shadow', v)} className={chip((p.shadow ?? 'none') === v)}>{l}</button>
+        ))}
+        {([['normal', 'Normal'], ['bold', 'Bold'], ['black', 'Heavy']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('weight', v)} className={chip((p.weight ?? 'normal') === v)}>{l}</button>
+        ))}
+        <button onClick={() => setProp('caps', p.caps !== true)} className={chip(p.caps === true)}>CAPS</button>
+      </Row>
       <Row label="This block's colours">
         <label className="inline-flex items-center gap-1 text-[11.5px]">
           <input type="color" value={String(p.bg || '#ffffff')} onChange={(e) => setProp('bg', e.target.value)}

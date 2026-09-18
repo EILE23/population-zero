@@ -155,3 +155,12 @@
 .pz-place-end { margin-inline-start: auto; text-align: right; }
 /* 글자 — 크기 배율·자간·행간 */
 .pz-page { font-size: calc(1rem * var(--pz-scale, 1)); letter-spacing: var(--pz-tracking, 0); line-height: var(--pz-leading, 1.6); }
+
+/* 글자 효과 — 고른 값만 들어온다 */
+.pz-shadow-soft { text-shadow: 0 1px 3px rgb(0 0 0 / 0.35); }
+.pz-shadow-hard { text-shadow: 2px 2px 0 currentColor; }
+.pz-shadow-hard, .pz-shadow-hard * { text-shadow: 2px 2px 0 color-mix(in srgb, currentColor 22%, transparent); }
+.pz-shadow-glow { text-shadow: 0 0 14px color-mix(in srgb, var(--pz-accent) 75%, transparent); }
+.pz-weight-bold, .pz-weight-bold * { font-weight: 700; }
+.pz-weight-black, .pz-weight-black * { font-weight: 900; }
+.pz-caps, .pz-caps * { text-transform: uppercase; letter-spacing: 0.06em; }

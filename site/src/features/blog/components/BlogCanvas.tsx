@@ -86,7 +86,8 @@ function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader, f
     <section
       data-pz={block.kind}
       data-block={block.id}
-      className={`pz-block pz-edge-${String(p.edge ?? 'none')} pz-place-${String(p.place ?? 'start')}`}
+      className={`pz-block pz-edge-${String(p.edge ?? 'none')} pz-place-${String(p.place ?? 'start')}`
+        + ` pz-shadow-${String(p.shadow ?? 'none')} pz-weight-${String(p.weight ?? 'normal')}${p.caps ? ' pz-caps' : ''}`}
       style={style}
     >
       {children}

@@ -106,6 +106,10 @@ const COMMON_SPEC: Record<string, PropSpec> = {
   place: { type: 'enum', values: ['start', 'center', 'end'], def: 'start' },
   edge: { type: 'enum', values: ['none', 'line', 'box', 'shadow'], def: 'none' },
   round: { type: 'enum', values: ['theme', 'none', 'sm', 'lg', 'pill'], def: 'theme' },
+  // 글자 효과 — 다른 편집기에서 흔히 쓰는 것들. 값으로만 받는다
+  shadow: { type: 'enum', values: ['none', 'soft', 'hard', 'glow'], def: 'none' },
+  caps: { type: 'bool', def: false },
+  weight: { type: 'enum', values: ['normal', 'bold', 'black'], def: 'normal' },
 };
 
 const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {

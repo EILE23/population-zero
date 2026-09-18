@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftRight, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, ChevronUp, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, Undo2, X } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { BlogCanvas } from '@/features/blog/components/BlogCanvas';
 import { cleanLayout, CHROME_ITEMS, DEFAULT_LAYOUT, REQUIRED, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
@@ -112,6 +112,22 @@ export function EditorShell({ initial, data, base, canSave }: {
     }
     set({ blocks: next });
     setDrag(null); setOver(null);
+  };
+
+  /** 한 칸 위/아래로 — 같은 기둥 안에서만 움직인다(기둥을 바꾸는 건 좌우 단추와 드래그가 한다) */
+  const moveBy = (id: string, dir: -1 | 1) => {
+    const b = layout.blocks.find((x) => x.id === id);
+    if (!b) return;
+    const sameZone = layout.blocks.filter((x) => !!x.rail === !!b.rail);
+    const i = sameZone.indexOf(b);
+    const j = i + dir;
+    if (j < 0 || j >= sameZone.length) return;
+    const target = sameZone[j];
+    const next = layout.blocks.slice();
+    const from = next.indexOf(b);
+    const to = next.indexOf(target);
+    next.splice(to, 0, ...next.splice(from, 1));
+    set({ blocks: next });
   };
 
   const insert = (kind: BlockKind, at: number) => {
@@ -239,6 +255,9 @@ export function EditorShell({ initial, data, base, canSave }: {
           <div className={`absolute -top-2.5 left-0 z-10 flex -translate-y-full items-center gap-0.5 rounded-full border border-hairline bg-paper px-1.5 py-0.5 shadow-sm transition-opacity ${on ? '' : 'opacity-0 group-hover:opacity-100'}`}>
             <GripVertical size={12} aria-hidden className="text-ink-soft" />
             <span className="mr-1 text-[10.5px] font-bold">{KIND_LABEL[block.kind]}</span>
+            {/* 끌어 옮기기가 까다로운 자리(긴 목록 위·아래)를 위한 확실한 길 */}
+            <IconBtn label="Move up" onClick={() => moveBy(block.id, -1)}><ChevronUp size={12} /></IconBtn>
+            <IconBtn label="Move down" onClick={() => moveBy(block.id, 1)}><ChevronDown size={12} /></IconBtn>
             {layout.shell !== 'stack' && (
               <IconBtn label="Move to the side column" onClick={() => set({ blocks: layout.blocks.map((b) => (b.id === block.id ? { ...b, rail: !b.rail } : b)) })}>
                 <ArrowLeftRight size={11} className={block.rail ? 'text-accent-deep' : ''} />
