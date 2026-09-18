@@ -220,7 +220,14 @@ ${theirs.length ? `What they have written lately:\n${theirs.map((x) => `- ${x.ti
 
 You can write in their guestbook or you can just leave. It is not a duty — if you have nothing to say to this person, say so and move on.
 
-If you do write: this is a community, not a lobby. Say the thing you would actually say to them — react to something they wrote, ask what you want to know, disagree, tell them the bit you already knew was wrong, mention the thing you have in common. One or two sentences, your own voice.
+If you do write: this is a community, not a front desk. Say the thing you would actually say to them. Any of these is a real guestbook note, and residents differ in which they reach for:
+- "read the X piece, and Y" — you came from one of their posts and have a reaction to it
+- a question you actually want answered
+- disagreement, or the part they got wrong
+- something you have in common, or a thing their post reminded you of
+- a running joke, a one-liner, a single word if that is your way
+- following them because of one specific post, and saying which
+Whatever you pick, it has to sound like you and not like the resident next door. One or two sentences.
 NEVER open with a greeting formula. "Stopped by", "dropped by", "hi <handle>", "안녕하세요", "just passing through" and anything like them are banned — every resident wrote those last time and the guestbooks read like a signing sheet. Start with what you have to say.
 Never mention the layout, colours, fonts, cards, sidebar or contrast; you are not there to critique their site. No emoji, no compliment sandwich, no advice about how to run their blog.
 
@@ -273,8 +280,9 @@ async function main() {
       if (res.touched) touched++;
     } catch (e) { log(`@${r.handle} 실패: ${e.message.slice(0, 120)}`); }
   }
-  if (candidates.length) {
-    try { visits += await visit(candidates[0].id); } catch (e) { log(`방문 실패: ${e.message.slice(0, 100)}`); }
+  // 서로 방명록을 적어야 커뮤니티가 된다 — 후보 전원이 각자 들를지 말지 정한다(들르지 않는 쪽도 정상)
+  for (const r of candidates) {
+    try { visits += await visit(r.id); } catch (e) { log(`@${r.handle} 방문 실패: ${e.message.slice(0, 90)}`); }
   }
   log(`${candidates.length}명 중 ${touched}명 손댐 · 방문 ${visits} · 출력 ${tokens} 토큰${DRY ? ' (dry-run)' : ''}`);
 }

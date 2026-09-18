@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, Undo2, X } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { BlogCanvas } from '@/features/blog/components/BlogCanvas';
-import { cleanLayout, DEFAULT_LAYOUT, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
+import { cleanLayout, DEFAULT_LAYOUT, REQUIRED, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
 import type { ProfileData } from '@/features/blog/types';
 import { BlockSettings, CommonSettings, KIND_LABEL, ONCE, Row } from './BlockSettings';
 
@@ -36,7 +36,7 @@ export function EditorShell({ initial, data, base, canSave }: {
   const [past, setPast] = useState<BlogLayout[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
-  const [over, setOver] = useState<{ id: string; pos: 'before' | 'after' } | null>(null);
+  const [over, setOver] = useState<{ id?: string; pos?: 'before' | 'after'; rail: boolean } | null>(null);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
   const [images, setImages] = useState<{ url: string }[] | null>(null);
@@ -74,32 +74,41 @@ export function EditorShell({ initial, data, base, canSave }: {
   const setProp = (id: string, key: string, v: string | number | boolean) =>
     set({ blocks: layout.blocks.map((b) => (b.id === id ? { ...b, props: { ...(b.props ?? {}), [key]: v } } : b)) });
 
-  /** 기둥에 끌어다 놓기 — 사이드바로 넘기면 그 블록이 사이드바 블록이 된다 */
+  /**
+   * 기둥(사이드바·본문)이 드롭 영역이다. 블록 위에서 dragover 가 여기까지 올라오면 더 정확한 목표를
+   * 덮어써 버리므로, 블록 쪽에서 stopPropagation 을 하고 여기는 '빈 자리에 놓을 때'만 잡는다.
+   */
   const dropZone = (zone: 'rail' | 'main') => ({
-    onDragOver: (e: React.DragEvent) => { e.preventDefault(); },
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      if (!drag) return;
-      const want = zone === 'rail';
-      const b = layout.blocks.find((x) => x.id === drag);
-      if (!b || !!b.rail === want) return;
-      set({ blocks: layout.blocks.map((x) => (x.id === drag ? { ...x, rail: want } : x)) });
-    },
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); if (drag) setOver({ rail: zone === 'rail' }); },
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); commitDrop(); },
   });
 
   /**
    * 끌어 옮기기 — 지나갈 때 바로 자리를 바꾸면 화면이 계속 튀어서 어디에 놓이는지 알 수 없다.
    * 그래서 놓일 자리를 선으로 먼저 보여주고(over), 놓을 때 한 번 옮긴다.
+   *
+   * 목표는 '어느 블록의 위/아래'거나 '어느 기둥'이고, 둘 다 **기둥 소속까지 같이 옮긴다** —
+   * 전에는 사이드바 안의 블록 위에 놓으면 순서만 바뀌고 기둥은 그대로여서 "어딘 되고 어딘 안 되고" 였다.
    */
   const commitDrop = () => {
     if (!drag || !over) { setDrag(null); setOver(null); return; }
     const from = layout.blocks.findIndex((b) => b.id === drag);
-    let to = layout.blocks.findIndex((b) => b.id === over.id);
-    if (from < 0 || to < 0 || over.id === drag) { setDrag(null); setOver(null); return; }
-    if (over.pos === 'after') to += 1;
-    if (to > from) to -= 1;
+    if (from < 0) { setDrag(null); setOver(null); return; }
+
     const next = layout.blocks.slice();
-    next.splice(to, 0, ...next.splice(from, 1));
+    const [moved] = next.splice(from, 1);
+    moved.rail = over.rail;                     // 놓은 기둥으로 소속을 옮긴다
+
+    if (over.id && over.id !== drag) {
+      let to = next.findIndex((b) => b.id === over.id);
+      if (to < 0) to = next.length;
+      else if (over.pos === 'after') to += 1;
+      next.splice(to, 0, moved);
+    } else {
+      // 기둥의 빈 자리에 놓았다 — 그 기둥의 마지막 블록 뒤로
+      const lastInZone = next.reduce((acc, b, i) => (!!b.rail === over.rail ? i : acc), -1);
+      next.splice(lastInZone + 1, 0, moved);
+    }
     set({ blocks: next });
     setDrag(null); setOver(null);
   };
@@ -185,11 +194,16 @@ export function EditorShell({ initial, data, base, canSave }: {
           onDragStart={(e) => { setDrag(block.id); e.dataTransfer.effectAllowed = 'move'; }}
           onDragOver={(e) => {
             e.preventDefault();
+            e.stopPropagation();   // 기둥 핸들러가 더 정확한 목표를 덮어쓰지 못하게
             if (!drag || drag === block.id) return;
             const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setOver({ id: block.id, pos: e.clientY < box.top + box.height / 2 ? 'before' : 'after' });
+            setOver({
+              id: block.id,
+              pos: e.clientY < box.top + box.height / 2 ? 'before' : 'after',
+              rail: !!block.rail,   // 사이드바 안의 블록 위에 놓으면 사이드바로 옮겨진다
+            });
           }}
-          onDrop={(e) => { e.preventDefault(); commitDrop(); }}
+          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); commitDrop(); }}
           onDragEnd={commitDrop}
           onClick={(e) => { e.stopPropagation(); setPicked(on ? null : block.id); }}
           className={`group relative cursor-grab rounded-md outline-offset-2 transition-[outline-color] ${
@@ -206,7 +220,8 @@ export function EditorShell({ initial, data, base, canSave }: {
               </IconBtn>
             )}
             <IconBtn label="Settings" onClick={() => setPicked(on ? null : block.id)}><Settings2 size={11} /></IconBtn>
-            {block.kind !== 'posts' && (
+            {/* 필수 블록엔 지우는 단추가 없다 — 눌러도 되돌아오는 단추는 거짓말이다 */}
+            {!REQUIRED.includes(block.kind) && (
               <IconBtn label="Remove" onClick={() => { set({ blocks: layout.blocks.filter((b) => b.id !== block.id) }); setPicked(null); }}>
                 <Trash2 size={11} />
               </IconBtn>

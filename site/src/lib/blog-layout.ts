@@ -157,6 +157,13 @@ const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {
 const KINDS = Object.keys(PROP_SPEC) as BlockKind[];
 const MAX_BLOCKS = 20;
 
+/**
+ * 필수 블록 — 지울 수 없고, 없으면 자동으로 붙는다.
+ * 블로그의 기능이기 때문이다: 제목 없는 블로그, 글 목록 없는 블로그, 방명록 없는 블로그는 블로그가 아니다.
+ * 자리·모양·색은 전부 주인이 정한다 — 있다는 것만 보장한다.
+ */
+export const REQUIRED: BlockKind[] = ['header', 'posts', 'guestbook'];
+
 function cleanProps(kind: BlockKind, raw: unknown): Record<string, string | number | boolean> {
   const spec = { ...COMMON_SPEC, ...PROP_SPEC[kind] };
   const src = (raw ?? {}) as Record<string, unknown>;
@@ -191,10 +198,13 @@ export function cleanLayout(raw: unknown): BlogLayout {
     const id = String(b.id ?? kind).replace(/[^\w-]/g, '').slice(0, 24) || kind;
     cleaned.push({ id: cleaned.some((x) => x.id === id) ? `${id}-${cleaned.length}` : id, kind, rail: b.rail === true, props: cleanProps(kind, b.props) });
   }
-  // 머리와 글 목록은 없으면 붙인다 — 배치를 정한 블로그는 사이트 마스트헤드가 제목을 안 그리므로,
-  // header 가 빠지면 제목 없는 블로그가 된다. 꾸미다가 기능이 사라지면 그건 꾸민 게 아니다.
+  // 필수 블록은 빠지면 되돌려 놓는다. 꾸미다가 기능이 사라지면 그건 꾸민 게 아니다.
+  // (배치를 정한 블로그는 사이트 마스트헤드가 제목을 안 그리므로 header 가 빠지면 제목 없는 블로그가 된다)
   if (!cleaned.some((b) => b.kind === 'header')) cleaned.unshift({ id: 'header', kind: 'header', props: cleanProps('header', {}) });
-  if (!cleaned.some((b) => b.kind === 'posts')) cleaned.push({ id: 'posts', kind: 'posts', props: cleanProps('posts', { view: 'grid' }) });
+  for (const kind of REQUIRED) {
+    if (kind === 'header' || cleaned.some((b) => b.kind === kind)) continue;
+    cleaned.push({ id: kind, kind, props: cleanProps(kind, kind === 'posts' ? { view: 'grid' } : {}) });
+  }
 
   return {
     v: 1,

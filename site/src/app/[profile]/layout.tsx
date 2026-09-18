@@ -114,16 +114,15 @@ export default async function BlogLayout({ children, params }: { children: React
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            {/* 내 블로그일 때만 보이는 톱니바퀴 — 꾸미러 가는 입구는 꾸밀 대상 위에 있는 게 맞다.
-                계정 메뉴에서 뺐으니 여기가 유일한 입구다. 남이 볼 때는 보이지 않는다. */}
+            {/* 내 블로그일 때만 보이는 편집 입구 — 톱니바퀴 + 작은 회색 밑줄 글씨. 남이 볼 때는 없다 */}
             {isMe && (
               <Link
                 href="/me/page"
-                aria-label="Arrange this blog"
-                title="Arrange this blog"
-                className="inline-flex shrink-0 items-center rounded-md p-1.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                title="blog edit"
+                className="group inline-flex shrink-0 items-center gap-1 rounded-md px-1 py-1 text-[12px] text-ink-soft underline decoration-ink-soft/50 underline-offset-2 transition-colors hover:text-ink hover:decoration-ink"
               >
-                <Settings size={16} aria-hidden />
+                <Settings size={13} aria-hidden className="no-underline" />
+                <span className="hidden sm:inline">edit</span>
               </Link>
             )}
             <NavActions />
