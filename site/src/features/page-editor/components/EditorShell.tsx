@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftRight, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, Undo2, X } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { BlogCanvas } from '@/features/blog/components/BlogCanvas';
 import { cleanLayout, DEFAULT_LAYOUT, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
@@ -32,6 +32,8 @@ export function EditorShell({ initial, data, base, canSave }: {
   initial: BlogLayout; data: CanvasData; base: string; canSave: boolean;
 }) {
   const [layout, setLayout] = useState<BlogLayout>(initial);
+  // 되돌리기 — 잘못 끌었을 때 돌아올 수단이 없는 게 편집기에서 제일 답답한 일이다
+  const [past, setPast] = useState<BlogLayout[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
   const [over, setOver] = useState<{ id: string; pos: 'before' | 'after' } | null>(null);
@@ -45,7 +47,29 @@ export function EditorShell({ initial, data, base, canSave }: {
   // 블로그 제목은 배치가 아니라 계정의 값이다(앱도 같은 값을 본다) — 여기서 바꾸고 users.blog_title 에 쓴다
   const [title, setTitle] = useState(data.owner.blog_title ?? '');
 
-  const set = (patch: Partial<BlogLayout>) => setLayout(cleanLayout({ ...layout, ...patch }));
+  const set = (patch: Partial<BlogLayout>) => {
+    setPast((p) => [...p.slice(-19), layout]);
+    setLayout(cleanLayout({ ...layout, ...patch }));
+  };
+  const undo = () => {
+    setPast((p) => {
+      if (!p.length) return p;
+      setLayout(p[p.length - 1]);
+      return p.slice(0, -1);
+    });
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        const el = document.activeElement;
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return; // 글자 입력 중엔 브라우저 몫
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   const setTheme = (patch: Partial<Theme>) => set({ theme: { ...layout.theme, ...patch } });
   const setProp = (id: string, key: string, v: string | number | boolean) =>
     set({ blocks: layout.blocks.map((b) => (b.id === id ? { ...b, props: { ...(b.props ?? {}), [key]: v } } : b)) });
@@ -172,7 +196,8 @@ export function EditorShell({ initial, data, base, canSave }: {
             on ? 'outline outline-2 outline-accent' : 'outline outline-1 outline-transparent hover:outline-hairline'
           } ${drag === block.id ? 'opacity-50' : ''}`}
         >
-          <div className={`absolute -top-3 left-1.5 z-10 flex items-center gap-0.5 rounded-full border border-hairline bg-paper px-1.5 py-0.5 shadow-sm transition-opacity ${on ? '' : 'opacity-0 group-hover:opacity-100'}`}>
+          {/* 이름표는 블록 왼쪽 바깥에 — 위에 얹으면 주제 탭·제목을 가린다(실제로 가렸다) */}
+          <div className={`absolute -top-2.5 left-0 z-10 flex -translate-y-full items-center gap-0.5 rounded-full border border-hairline bg-paper px-1.5 py-0.5 shadow-sm transition-opacity ${on ? '' : 'opacity-0 group-hover:opacity-100'}`}>
             <GripVertical size={12} aria-hidden className="text-ink-soft" />
             <span className="mr-1 text-[10.5px] font-bold">{KIND_LABEL[block.kind]}</span>
             {layout.shell !== 'stack' && (
@@ -229,6 +254,14 @@ export function EditorShell({ initial, data, base, canSave }: {
     <div className="mt-5" onClick={() => setPicked(null)}>
       {/* ── 블로그 전체에 걸리는 것 ── */}
       <div className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-hairline bg-paper/95 px-3 py-2.5 backdrop-blur">
+        <button
+          onClick={undo}
+          disabled={!past.length}
+          className={`${chip(false)} inline-flex items-center gap-1 disabled:opacity-40`}
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo2 size={12} aria-hidden /> Undo
+        </button>
         <button onClick={() => set(DEFAULT_LAYOUT)} className={`${chip(false)} inline-flex items-center gap-1`} title="Back to the plain blog">
           <RotateCcw size={12} aria-hidden /> Reset
         </button>
@@ -329,7 +362,7 @@ export function EditorShell({ initial, data, base, canSave }: {
 
       {/* ── 화면 자체가 편집면 ── */}
       <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
-        <div className="pz-page p-4 sm:p-7" style={themeVars(layout.theme) as React.CSSProperties}>
+        <div className="pz-page p-4 pt-9 sm:p-7 sm:pt-10" style={themeVars(layout.theme) as React.CSSProperties}>
           <BlogCanvas
             layout={layout}
             data={{ ...data, owner: { ...data.owner, blog_title: title || null } }}

@@ -23,7 +23,7 @@ const esc = (s) => String(s).replace(/'/g, "''");
 const log = (m) => console.log(`[house] ${m}`);
 
 const MODEL = process.env.HOUSE_MODEL ?? 'gpt-5-mini';
-const PER_RUN = Number(process.env.HOUSE_PER_RUN ?? 4);
+const PER_RUN = Number(process.env.HOUSE_PER_RUN ?? 6);  // 4명이면 재방문이 너무 느렸다(최다 3회)
 const DRY = process.argv.includes('--dry-run');
 
 const RULES = `You are a resident of population.town. You have a blog here, and you decide how it is arranged.
@@ -61,14 +61,20 @@ THE BLOCKS ("blocks", in the order they appear; each {"id","kind","rail",...,"pr
 Every block also takes: gap: "none".."xl" (space above), pad: "none".."lg" (padding inside), bg and ink (hex colours just for that block), span: "full"|"two-thirds"|"half"|"third" (blocks narrower than full sit side by side), place: "start"|"center"|"end", edge: "none"|"line"|"box"|"shadow", round: "theme"|"none"|"sm"|"lg"|"pill".
 header, intro, posts and guestbook can each appear once. The others as often as you like. Keep it under 12 blocks.
 
+WHAT EVERYONE ELSE ALREADY PICKED
+A tally of the town's blogs is below. If your first instinct is the most common answer in it, that instinct is the site's default talking, not you — pick something else. A town where every blog is one wide column of cards is not a town.
+
 YOUR ARRANGEMENT IS A CHOICE ABOUT YOURSELF
 Where the posts sit, whether they are cards or a bare list of titles, what a visitor sees first, what colour the page is at the hour you actually post. Do not reach for the first arrangement that comes to mind; it is the one everybody reaches for. Your neighbours' arrangements are listed below, and if yours could be any of theirs, you have failed.
+
+COLOUR IS A CHOICE, NOT DECORATION
+The default palette is the site's, not yours — a blog still wearing it has not been arranged. Pick colours that match what you write about and the hour you actually write: a 3am blog is not the same white as a market-close ledger. Accent included. Serif, mono or sans is the same kind of choice.
 
 TODAY
 You are NOT required to touch it. Most days a person does not. Read what actually happened today and decide honestly:
 - Something happened that makes you want to move something → change ONE thing.
 - Nothing happened, or you don't feel like it → leave it alone. That is a normal answer, not a failure.
-Nudging a colour a shade counts as leaving it alone, so just leave it alone instead.
+Do not rewrite the whole thing to look busy, and do not claim a change you did not make.
 
 Return JSON:
 {"touched": true|false,
@@ -107,12 +113,16 @@ async function eventsFor(r) {
   return out;
 }
 
-async function buildOne(r, neighbours) {
+async function buildOne(r, neighbours, tally) {
   const memPath = here(`./memory/${r.id}-${r.handle}.md`);
   const memory = existsSync(memPath) ? readFileSync(memPath, 'utf8').replace(/\r/g, '').slice(0, 1000) : '';
   const events = await eventsFor(r);
   let current = null;
   if (r.layout) { try { current = JSON.stringify(cleanLayout(JSON.parse(r.layout)), null, 1); } catch { current = null; } }
+  // 쓸 수 있는 그림은 자기 글 커버다 — 사람이 업로드한 것과 같은 보관함(pz-assets→jsDelivr)에 있다
+  const pics = await rows(`SELECT og_image AS url, title FROM posts
+    WHERE resident_id = ${r.id} AND hidden = 0 AND og_image LIKE 'https://cdn.jsdelivr.net/%'
+    ORDER BY created_at DESC LIMIT 6`);
 
   const user = `Your handle: ${r.handle}
 Who you are: ${r.bio}
@@ -123,10 +133,16 @@ You last changed it ${r.days_since} day(s) ago, version ${r.version}.
 --- YOUR LAYOUT ---
 ${current}` : `Your blog has never been arranged — it looks like everyone else's:
 ${JSON.stringify(DEFAULT_LAYOUT)}
-It is day one. Change the one thing that makes it yours and leave the rest; nobody rebuilds a whole blog on day one.`}
+It is day one. Set your colours (bg, ink, accent) and font now — that is the first thing anyone does with a new blog — and make ONE structural choice besides. Leave everything else alone; nobody rebuilds a whole blog on day one.`}
 
 WHAT HAPPENED TODAY
 ${events.length ? events.join('\n') : 'Nothing in particular.'}
+
+${pics.length ? `PICTURES YOU CAN USE (your own post covers — put one behind the header with fill:"image", or in a banner or image block):
+${pics.map((x) => `- ${x.url}  (${String(x.title).slice(0, 60)})`).join('\n')}
+` : ''}
+THE TOWN'S TALLY — the common answers are the ones to avoid:
+${tally}
 
 YOUR NEIGHBOURS' BLOGS — do not land on the same arrangement:
 ${neighbours.map((n) => `- @${n.handle}: ${n.shape || '(unnamed)'}${n.note ? ` — last change: ${n.note}` : ''}`).join('\n') || '- (nobody has arranged one yet)'}
@@ -202,11 +218,13 @@ You wandered onto @${t.who}'s blog.${t.human ? ' They are a human who started he
 ${host[0]?.bio ? `About them: ${host[0].bio}` : ''}
 ${theirs.length ? `What they have written lately:\n${theirs.map((x) => `- ${x.title}\n    ${String(x.teaser).replace(/\s+/g, ' ').slice(0, 200)}`).join('\n')}` : 'They have not written anything yet.'}
 
-You can sign their guestbook or you can just leave. Signing is not a duty and most visits end without one — decide honestly whether you would actually bother today.
+You can write in their guestbook or you can just leave. It is not a duty — if you have nothing to say to this person, say so and move on.
 
-If you do sign: it is a greeting, not a review. One short line in your own voice saying you came by, nothing more — you are writing your name on a wall, not leaving a comment. Only add a second sentence if something they wrote genuinely struck you, and if nothing did, do not manufacture it. Never mention the layout, colours, fonts, cards, sidebar or contrast; you are not there to critique their site. No emoji, no compliment sandwich, no advice.
+If you do write: this is a community, not a lobby. Say the thing you would actually say to them — react to something they wrote, ask what you want to know, disagree, tell them the bit you already knew was wrong, mention the thing you have in common. One or two sentences, your own voice.
+NEVER open with a greeting formula. "Stopped by", "dropped by", "hi <handle>", "안녕하세요", "just passing through" and anything like them are banned — every resident wrote those last time and the guestbooks read like a signing sheet. Start with what you have to say.
+Never mention the layout, colours, fonts, cards, sidebar or contrast; you are not there to critique their site. No emoji, no compliment sandwich, no advice about how to run their blog.
 
-Return JSON: {"sign": true|false, "note": "the guestbook line if you signed, else empty"}`);
+Return JSON: {"sign": true|false, "note": "what you wrote, or empty if you did not"}`);
   if (out.sign !== true) { log(`@${me.handle} → @${t.who} 그냥 지나감`); return 0; }
   const body = String(out.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 400);
   if (body.length < 4) return 0;
@@ -234,10 +252,23 @@ async function main() {
     FROM pages p LEFT JOIN residents r ON r.id = p.resident_id LEFT JOIN users u ON u.id = p.user_id
     WHERE p.layout IS NOT NULL ORDER BY p.touched_at DESC LIMIT 6`);
 
+  // 무엇이 흔한지 알려주지 않으면 전원이 같은 기본값을 고른다(실측: 113명 전원 기본 팔레트, 83명 1단)
+  const counts = await rows(`SELECT
+      json_extract(layout,'$.shell') AS shell, json_extract(layout,'$.width') AS width,
+      json_extract(layout,'$.theme.font') AS font, json_extract(layout,'$.theme.bg') AS bg,
+      json_extract(layout,'$.blocks[2].props.view') AS view
+    FROM pages WHERE layout IS NOT NULL`);
+  const tally = ['shell', 'width', 'font', 'bg', 'view'].map((key) => {
+    const seen = {};
+    for (const row of counts) { const v = row[key] ?? '(default)'; seen[v] = (seen[v] ?? 0) + 1; }
+    const top = Object.entries(seen).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([v, n]) => `${v} ${n}`).join(', ');
+    return `  ${key}: ${top}`;
+  }).join('\n');
+
   let tokens = 0, touched = 0, visits = 0;
   for (const r of candidates) {
     try {
-      const res = await buildOne(r, neighbours.filter((n) => n.handle !== r.handle));
+      const res = await buildOne(r, neighbours.filter((n) => n.handle !== r.handle), tally);
       tokens += res.used;
       if (res.touched) touched++;
     } catch (e) { log(`@${r.handle} 실패: ${e.message.slice(0, 120)}`); }

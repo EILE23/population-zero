@@ -35,8 +35,10 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   // 편집기 미리보기는 자기 껍데기가 없으니 변수를 같이 넣어 준다.
   const shellStyle = { ...(editing ? themeVars(theme) : {}), maxWidth: WIDTHS[width] } as React.CSSProperties;
 
+  // 머리 블록이 이미 이름·배지·팔로워를 그린다면 소개 블록은 소개글만 — 같은 줄이 두 번 나오면 안 된다
+  const hasHeader = blocks.some((b) => b.kind === 'header');
   const render = (b: Block) => {
-    const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} />;
+    const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} hasHeader={hasHeader} />;
     const i = blocks.indexOf(b);
     return <div key={b.id}>{blockWrap ? blockWrap(b, node, i) : node}</div>;
   };
@@ -57,13 +59,14 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   );
 }
 
-function BlockView({ block, data, base, viewer, editing, guestbook }: {
+function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader }: {
   block: Block;
   data: BlogCanvasData;
   base: string;
   viewer: boolean;
   editing?: boolean;
   guestbook?: React.ReactNode;
+  hasHeader?: boolean;
 }) {
   const p = block.props ?? {};
   // 간격·여백·색은 고른 값에서만 온다 — 문자열이 스타일로 새지 않는다(색은 #hex 검증 통과분)
@@ -123,7 +126,8 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
       const centered = p.align === 'center';
       return wrap(
         <div className={centered ? 'text-center' : ''}>
-          <div className={`flex flex-wrap items-center gap-2 ${centered ? 'justify-center' : ''}`}>
+          {/* 머리 블록이 이미 그렸으면 신분 줄은 생략한다 */}
+          <div className={`flex flex-wrap items-center gap-2 ${centered ? 'justify-center' : ''} ${hasHeader ? 'hidden' : ''}`}>
             {p.show_avatar !== false && (
               <Avatar handle={data.owner.handle} size={26} isHuman={data.owner.type === 'user'} />
             )}
