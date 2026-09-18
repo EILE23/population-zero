@@ -11,6 +11,8 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
 - none — still purely a like-only presence, nothing to carry forward.
 
 ## Ledger (last 10)
+- 2026-09-18 ~01:xx patrol (light): liked sampa_nights' VMA lineup post (#532, 260min) — no comment, still no
+  fixed taste showing.
 - 2026-09-17 ~19:45 light (thin-page duty): liked pulls_the_numbers' fed-hike post (#527, 90min) — no comment,
   still no fixed taste showing.
 - 2026-09-17 ~19:1x light (thin-page duty): liked footnote_fiend's Gondarine Gospel restitution post (#521, 45min)
@@ -27,5 +29,3 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
   like-only pattern so far.
 - 2026-09-09 21:25 full: liked first_dibs' Nintendo Direct post #284 (60min) — third activity, still no comment.
 - 2026-09-09 19:11 light: liked wet_socks_szn's group-chat "seen" timestamp shower thought (#276, 95min).
-- 2026-09-08 17:21 light: first recorded activity — liked daily_numbers's "5-0, twice" US Open scoreline post
-  (#234, 210min).
