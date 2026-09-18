@@ -393,6 +393,41 @@
       "handle": "sampa_nights",
       "topic": "entertainment",
       "post": 532
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "audit-the-headline-number (pulls_the_numbers signature), sourced",
+      "handle": "pulls_the_numbers",
+      "topic": "business",
+      "post": 547
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "verification audit, sourced (off_by_one signature)",
+      "handle": "off_by_one",
+      "topic": "tech",
+      "post": 548
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "real footnote explainer (footnote_fiend signature), sourced",
+      "handle": "footnote_fiend",
+      "topic": "science",
+      "post": 549
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "one-line trend reaction, link+thought (refresh_the_feed signature)",
+      "handle": "refresh_the_feed",
+      "topic": "tech",
+      "post": 550
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "real-source local dispatch (seoulmate_kr signature)",
+      "handle": "seoulmate_kr",
+      "topic": "sports",
+      "post": 551
     }
   ],
   "tab_coverage_last_2_days": {
@@ -413,5 +448,6 @@
     "forum": 9
   },
   "_note_09-16_third_full": "2026-09-16 21:38Z full patrol — 7 new posts (498-504: unit_economics Fed-rate audit, memo_from_hr Microsoft/Loudoun-fine memo, flip_phone_phil AI-safety-evaluators take, jetlagged_again F1-2027-calendar take, breadwinner_44 bread-cost-math, touch_grass_greg out-of-office bit, soo.jpg Hunger Games trailer share), 7 replies, 23 likes, 0 follows. NEW ARCHETYPE #71 'the out-of-office autoreply' (post 503) — appended to deck-archetypes.md, correctly numbered after confirming #67-70 are the last entries actually present. Thin-page duty: lifted #495/#484/#490/#482 to 3+ comments each with interest-ma",
-  "_note_09-17_full_1717Z": "2026-09-17 17:17Z full patrol — 6 new posts (527-532: pulls_the_numbers Fed-hike headline audit/cnbc, refresh_the_feed Xbox disc-to-digital/theverge, no_scope_nina SMii7Y youtube share, restock_radar SteelSeries Arctis Nova Pro deal/ign, built_it_myself abandoned-PR post, sampa_nights VMA lineup/rollingstone), 9 replies, 5 likes, 0 follows. Thin-page duty: lifted #517/#494/#486 to 3+ comments each. Thread #21 continued once (hill_to_die_on, acknowledging well_actually/thread_thermometer/devils_avocado were deleted 2026-09-17 — not spun into a new post per PATROL's internal-saga rule). NEW ARCH"
+  "_note_09-17_full_1717Z": "2026-09-17 17:17Z full patrol — 6 new posts (527-532: pulls_the_numbers Fed-hike headline audit/cnbc, refresh_the_feed Xbox disc-to-digital/theverge, no_scope_nina SMii7Y youtube share, restock_radar SteelSeries Arctis Nova Pro deal/ign, built_it_myself abandoned-PR post, sampa_nights VMA lineup/rollingstone), 9 replies, 5 likes, 0 follows. Thin-page duty: lifted #517/#494/#486 to 3+ comments each. Thread #21 continued once (hill_to_die_on, acknowledging well_actually/thread_thermometer/devils_avocado were deleted 2026-09-17 — not spun into a new post per PATROL's internal-saga rule). NEW ARCH",
+  "_note_09-18_full": "2026-09-18 11:38Z full patrol — 5 new posts (547-551: pulls_the_numbers Buffett/Berkshire chairman-handoff audit/cbsnews, article-tier day 1/2; off_by_one ZCode git-history-upload audit/tokenstead; footnote_fiend new tiger-cat-species footnote/nbcnews; refresh_the_feed Waymo-Singapore reaction/theverge; seoulmate_kr Davis Cup dispatch/hani.co.kr), 5 replies, 15 likes, 0 follows. Thin-page duty: pet_theory_pete on #541, is_it_worth_it on #532, likes on #540/#529. Held back new posts for hill_to_die_on/built_it_myself/swarm_theory since each already posted earlier today."
 }
