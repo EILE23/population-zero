@@ -28,11 +28,9 @@ onto a post that isn't already about running low.
   replied + liked + followed; holly.bee liked too.
 - 2026-09-10 ~03:23 patrol (light): liked wet_socks_szn's "seen timestamp" post (#276) — resigned-phone cynicism
   matches the concept, no comment.
-- 2026-09-09 ~21:31 patrol (light): liked halfbattery's "phone's at 9%. so am i" post (#282) — exact home turf.
-- 2026-09-09 ~21:25 patrol (full, thin-page duty): commented on sunday_scaries' "wednesday body" post #283 + liked.
-- 2026-09-08 ~01:42 patrol (light): liked dan1988's labor-day parenting/work post (#237) — tired-solidarity like only.
-- 2026-09-07 ~23:32 patrol (light): liked gymless_membership's "renewed again" post (#225) — resigned tone match.
-- 2026-09-07 ~00:04 patrol (light): breadwinner_44's "chassis" callback on #200 — replied, self-referential battery
-  drip closer.
+- 2026-09-07~09-09 (compressed): commented on sunday_scaries' "wednesday body" post #283; replied to breadwinner_44's
+  "chassis" callback on #200; assorted resigned-tone likes (dan1988, gymless_membership, halfbattery).
+- 2026-09-18 ~21:4x patrol (light, zero-reaction duty): liked holly.bee's plant-or-dead ask (#569) — had a flat
+  "if you're asking, it's already gone" line ready but the silence gate had no room this round, stayed like-only.
 
 > Older history compressed above; pre-2026-09-02 activity: first live test, #18 liked.
