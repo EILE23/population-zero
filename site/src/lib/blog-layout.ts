@@ -224,10 +224,8 @@ export function cleanLayout(raw: unknown): BlogLayout {
     cleaned.push({ id: kind, kind, props: cleanProps(kind, kind === 'posts' ? { view: 'grid' } : {}) });
   }
 
-  // 고정 띠를 껐는데 계정으로 가는 문이 아무 데도 없으면 사람이 로그아웃도 못 한다 — 그러면 띠를 되돌린다
-  const hasAccountBlock = cleaned.some((b) => b.kind === 'chrome' && b.props?.account !== false);
-  const navWanted = ONE_OF(c.nav, ['top', 'bottom', 'off'] as const, DEFAULT_CHROME.nav);
-  const nav = navWanted === 'off' && !hasAccountBlock ? 'top' : navWanted;
+  // 띠를 아예 꺼도 된다 — 로그아웃·내 자리로 가는 길은 푸터가 낸다
+  const nav = ONE_OF(c.nav, ['top', 'bottom', 'off'] as const, DEFAULT_CHROME.nav);
 
   return {
     v: 1,
@@ -256,7 +254,10 @@ export function cleanLayout(raw: unknown): BlogLayout {
   };
 }
 
-/** 목록 밖 값은 버리고 중복은 접는다. 계정 메뉴가 빠져 있으면 끝에 되돌려 놓는다. */
+/**
+ * 목록 밖 값은 버리고 중복은 접는다.
+ * 계정 메뉴는 빼도 된다 — 로그아웃과 내 자리로 가는 길은 푸터가 보장한다(features/layout/Footer.tsx).
+ */
 function cleanItems(raw: unknown): ChromeItem[] {
   const src = Array.isArray(raw) ? raw : DEFAULT_CHROME.items;
   const out: ChromeItem[] = [];
@@ -264,7 +265,6 @@ function cleanItems(raw: unknown): ChromeItem[] {
     const item = String(v) as ChromeItem;
     if ((CHROME_ITEMS as readonly string[]).includes(item) && !out.includes(item)) out.push(item);
   }
-  if (!out.includes('account')) out.push('account');
   return out;
 }
 

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BrandLogo } from '@/components/BrandLogo';
+import { getSessionUser } from '@/lib/auth';
 
 const link = 'hover:text-ink hover:underline underline-offset-2';
 
@@ -8,7 +9,10 @@ const link = 'hover:text-ink hover:underline underline-offset-2';
  * 링크 네 개짜리 한 줄로는 "이 사이트가 뭐지"에 답하지 못했다: 심사관이든 첫 방문자든
  * 바닥까지 내려온 사람은 소개·연락처·구역 지도를 찾는다.
  */
-export function Footer() {
+export async function Footer() {
+  // 로그인 상태면 로그아웃과 내 자리로 가는 길을 여기 둔다 — 헤더에서 계정 메뉴를 뺀 블로그에서도
+  // 사람이 갇히지 않아야 한다(그 보장이 있으니 헤더 쪽에서 계정 항목을 막을 이유가 없어졌다).
+  const me = await getSessionUser().catch(() => null);
   return (
     <footer className="mt-16 border-t border-hairline pt-8 pb-10 text-[13px] text-ink-soft">
       <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -45,8 +49,23 @@ export function Footer() {
         <nav aria-label="Account">
           <div className="mb-2 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-faint">Account</div>
           <ul className="space-y-1.5">
-            <li><Link className={link} href="/login">Log in</Link></li>
-            <li><Link className={link} href="/login?mode=signup">Sign up</Link></li>
+            {me
+              ? (
+                <>
+                  <li><Link className={link} href="/me">My page</Link></li>
+                  <li>
+                    <form method="post" action="/api/auth/logout">
+                      <button className={`${link} cursor-pointer`}>Log out</button>
+                    </form>
+                  </li>
+                </>
+              )
+              : (
+                <>
+                  <li><Link className={link} href="/login">Log in</Link></li>
+                  <li><Link className={link} href="/login?mode=signup">Sign up</Link></li>
+                </>
+              )}
             <li><Link className={link} href="/alerts">Keyword alerts</Link></li>
             <li><Link className={link} href="/write">Write a post</Link></li>
             <li><Link className={link} href="/messages">Messages</Link></li>

@@ -27,8 +27,8 @@ export async function NavActions({ items }: { items?: readonly string[] } = {}) 
     }
   } catch { /* DB 미초기화 시에도 셸은 렌더 */ }
 
-  const show = (k: string) => !items || items.includes(k) || k === 'account';
-  const order = items ? items.filter((k) => k !== 'account') : null;
+  const show = (k: string) => !items || items.includes(k);
+  const order = items ? [...items] : null;
 
   const pieces: Record<string, React.ReactNode> = {
     search: (
@@ -62,11 +62,10 @@ export async function NavActions({ items }: { items?: readonly string[] } = {}) 
       ),
   };
 
-  const keys = order ?? ['search', 'about', 'contact', 'bell', 'messages', 'write'];
+  const keys = order ?? ['search', 'about', 'contact', 'bell', 'messages', 'write', 'account'];
   return (
     <nav className="flex w-full items-center gap-4 text-sm font-semibold text-ink-mid sm:w-auto sm:gap-6 lg:gap-7">
       {keys.filter(show).map((k) => pieces[k] ?? null)}
-      {pieces.account}
     </nav>
   );
 }

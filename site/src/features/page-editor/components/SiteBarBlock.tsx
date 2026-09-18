@@ -45,7 +45,6 @@ export function SiteBarPreview({ chrome, handle }: { chrome: Chrome; handle: str
     }
   };
 
-  const keys = chrome.items.filter((k) => k !== 'account');
   return (
     <div data-pz="sitebar" className="flex flex-wrap items-center gap-x-4 gap-y-2">
       {chrome.home !== 'none' && (
@@ -54,8 +53,7 @@ export function SiteBarPreview({ chrome, handle }: { chrome: Chrome; handle: str
           {chrome.home === 'label' ? (chrome.label || 'POZ') : <BrandLogo className="w-10" />}
         </span>
       )}
-      {keys.map(piece)}
-      {piece('account')}
+      {chrome.items.map(piece)}
     </div>
   );
 }
@@ -68,18 +66,16 @@ export function SiteBarSettings({ chrome, onChange }: { chrome: Chrome; onChange
 
   const toggle = (k: ChromeItem) => {
     const on = chrome.items.includes(k);
-    const items = on
-      ? chrome.items.filter((x) => x !== k)
-      : [...chrome.items.filter((x) => x !== 'account'), k, 'account' as ChromeItem];
+    const items = on ? chrome.items.filter((x) => x !== k) : [...chrome.items, k];
     onChange({ ...chrome, items });
   };
   const move = (k: ChromeItem, dir: -1 | 1) => {
-    const list: ChromeItem[] = chrome.items.filter((x) => x !== 'account');
+    const list: ChromeItem[] = [...chrome.items];
     const i = list.indexOf(k);
     const j = i + dir;
     if (i < 0 || j < 0 || j >= list.length) return;
     [list[i], list[j]] = [list[j], list[i]];
-    onChange({ ...chrome, items: [...list, 'account' as ChromeItem] });
+    onChange({ ...chrome, items: list });
   };
 
   return (
@@ -119,7 +115,7 @@ export function SiteBarSettings({ chrome, onChange }: { chrome: Chrome; onChange
       <div>
         <p className={row}>What&apos;s in it, in order</p>
         <ul className="flex flex-col gap-1">
-          {CHROME_ITEMS.filter((k) => k !== 'account').map((k) => {
+          {CHROME_ITEMS.map((k) => {
             const on = chrome.items.includes(k);
             return (
               <li key={k} className="flex items-center gap-1.5">
@@ -133,7 +129,7 @@ export function SiteBarSettings({ chrome, onChange }: { chrome: Chrome; onChange
           })}
         </ul>
         <p className="mt-1 text-[11.5px] text-ink-soft">
-          My account stays — it is the only way out to log out and to your own page.
+          Take out anything, even My account — logging out and your own page stay reachable from the footer.
         </p>
       </div>
     </div>
