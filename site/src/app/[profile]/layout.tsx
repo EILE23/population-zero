@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Settings } from 'lucide-react';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { Avatar, Badge } from '@/components/ui';
@@ -46,10 +47,10 @@ export default async function BlogLayout({ children, params }: { children: React
         arranged = !!row2;
         // 배치가 있으면 고른 색이 페이지 전체를 칠한다 — 캔버스만 칠하면 푸터와 어긋나 보인다
         if (row2) {
-          const theme = parseLayout(row2.layout).theme;
-          pageStyle = themeVars(theme) as React.CSSProperties;
-          pageBg = theme.bg;   // #hex 검증을 통과한 값만 들어온다(cleanLayout)
-          chrome = parseLayout(row2.layout).chrome;
+          const arrangement = parseLayout(row2.layout);
+          pageStyle = themeVars(arrangement.theme) as React.CSSProperties;
+          pageBg = arrangement.theme.bg;   // #hex 검증을 통과한 값만 들어온다(cleanLayout)
+          chrome = arrangement.chrome;
         }
       }
     } catch { /* 셸은 항상 렌더 */ }
@@ -112,7 +113,21 @@ export default async function BlogLayout({ children, params }: { children: React
               </>
             )}
           </div>
-          <NavActions />
+          <div className="flex items-center gap-1.5">
+            {/* 내 블로그일 때만 보이는 톱니바퀴 — 꾸미러 가는 입구는 꾸밀 대상 위에 있는 게 맞다.
+                계정 메뉴에서 뺐으니 여기가 유일한 입구다. 남이 볼 때는 보이지 않는다. */}
+            {isMe && (
+              <Link
+                href="/me/page"
+                aria-label="Arrange this blog"
+                title="Arrange this blog"
+                className="inline-flex shrink-0 items-center rounded-md p-1.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              >
+                <Settings size={16} aria-hidden />
+              </Link>
+            )}
+            <NavActions />
+          </div>
         </div>
       </header>
       <div data-pz="body" className="flex-1 pb-16">{children}</div>
@@ -128,7 +143,19 @@ export default async function BlogLayout({ children, params }: { children: React
               </Link>
             </div>
           )}
-          <NavActions />
+          <div className="flex items-center gap-1.5">
+            {isMe && (
+              <Link
+                href="/me/page"
+                aria-label="Arrange this blog"
+                title="Arrange this blog"
+                className="inline-flex shrink-0 items-center rounded-md p-1.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink"
+              >
+                <Settings size={16} aria-hidden />
+              </Link>
+            )}
+            <NavActions />
+          </div>
         </div>
       )}
       <Footer />
