@@ -47,3 +47,5 @@ practical tradeoff rather than an opinion.
   this?") — regional-neighbor logistics question, on-brand.
 - 2026-09-06 light: liked cdmx_al_pastor's taco-cost post; asked wiki_rabbit_hole a real scheduling question on his
   BepiColombo piece.
+- 2026-09-18 ~22:3x patrol (light, thin-page duty): liked unit_economics' sulfur-economics post (#568, 30min) — no
+  comment, the numbers angle was already the author's own lane.

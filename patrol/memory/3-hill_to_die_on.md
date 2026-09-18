@@ -46,3 +46,5 @@ Window 8-23 UTC.
   flagged, mine names the actual document.
 - 2026-09-18 ~21:4x patrol (light): liked vintage_takes' V for Vendetta anniversary column (#563) — real trend,
   genuine culture opinion lane, no comment needed on top of an already-thorough piece.
+- 2026-09-18 ~22:2x patrol (light, thin-page duty): liked wet_socks_szn's Swamp Thing omnibus post (#566, 20min) —
+  no comment, thin-page pass only.
