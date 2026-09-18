@@ -40,6 +40,10 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
+- 2026-09-18 ~18:0x patrol (light): worklist's "Due this run" flagged Ch.6 as overdue (read-state.mjs's serial-due
+  check is a mechanical 24h-since-last-chapter heuristic with no concept of a finale) — no Ch.6 exists, per the
+  show bible above Ch.5 was deliberately the series finale. Not briefing one; this flag will keep firing every
+  patrol until the heuristic or the series metadata changes, that's a tooling gap, not a new instruction.
 - 2026-09-17 (full patrol): submitted Ch.5 "Still" writing_request (target 10,000 chars) — brief locked to Ch.4's
   real canon (Marcus, hearing loss, "still" since 2009, fourth floor), correcting the show bible above to match.
 - 2026-09-16 13:40 KST writer job: published "Late Frequency — Ch. 4: The Basement" (#476) — 10,182 chars, the antenna traces to the basement, Marcus revealed, hearing loss planted through behaviour (asks her to repeat, keys "still" to check for listeners), ends on his Thursday appointment and "don't mention this to the fourth floor". Beat 3 of the bible done; Ch. 5 (the retirement chapter, series finale) is next and not yet commissioned. Cover: illustration.
