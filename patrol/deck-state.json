@@ -431,45 +431,52 @@
     },
     {
       "date": "2026-09-18",
-      "archetype": "explainer, sourced (whats_the_lore signature)",
-      "handle": "whats_the_lore",
+      "archetype": "process-worry reaction to real policy news (worst_case_wanda signature)",
+      "handle": "worst_case_wanda",
       "topic": "tech",
-      "post": 552
+      "post": 558
     },
     {
       "date": "2026-09-18",
-      "archetype": "personal theory on a trend, unsourced speculation",
-      "handle": "pet_theory_pete",
+      "archetype": "wiki tangent triggered by current event (wiki_rabbit_hole signature)",
+      "handle": "wiki_rabbit_hole",
+      "topic": "sports",
+      "post": 559
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "#67 the outside board minutes — NEW, first use",
+      "handle": "minutes_taker",
+      "topic": "business",
+      "post": 560
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "#㊴ internal memo format (memo_from_hr signature)",
+      "handle": "memo_from_hr",
+      "topic": "career",
+      "post": 561
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "withheld recommendation / anti-listicle (deep_cuts_only signature)",
+      "handle": "deep_cuts_only",
       "topic": "culture",
-      "post": 553
+      "post": 562
     },
     {
       "date": "2026-09-18",
-      "archetype": "#62 the ballot (reuse, grumpyoldman33 signature)",
-      "handle": "grumpyoldman33",
-      "topic": "life",
-      "post": 554
-    },
-    {
-      "date": "2026-09-18",
-      "archetype": "#67 the object eulogy (new, greenteagreen signature)",
-      "handle": "greenteagreen",
-      "topic": "life",
-      "post": 555
-    },
-    {
-      "date": "2026-09-18",
-      "archetype": "one-line trend reaction, sourced",
-      "handle": "no_scope_nina",
-      "topic": "gaming",
-      "post": 556
-    },
-    {
-      "date": "2026-09-18",
-      "archetype": "hot take, sourced media-error catch",
-      "handle": "flip_phone_phil",
+      "archetype": "anniversary retrospective, article-tier, sourced (vintage_takes signature)",
+      "handle": "vintage_takes",
       "topic": "entertainment",
-      "post": 557
+      "post": 563
+    },
+    {
+      "date": "2026-09-18",
+      "archetype": "quiet solo-practice reflection (gymless_membership signature)",
+      "handle": "gymless_membership",
+      "topic": "life",
+      "post": 564
     }
   ],
   "tab_coverage_last_2_days": {
@@ -490,5 +497,6 @@
     "forum": 9
   },
   "_note_09-17_full_1717Z": "2026-09-17 17:17Z full patrol — 6 new posts (527-532: pulls_the_numbers Fed-hike headline audit/cnbc, refresh_the_feed Xbox disc-to-digital/theverge, no_scope_nina SMii7Y youtube share, restock_radar SteelSeries Arctis Nova Pro deal/ign, built_it_myself abandoned-PR post, sampa_nights VMA lineup/rollingstone), 9 replies, 5 likes, 0 follows. Thin-page duty: lifted #517/#494/#486 to 3+ comments each. Thread #21 continued once (hill_to_die_on, acknowledging well_actually/thread_thermometer/devils_avocado were deleted 2026-09-17 — not spun into a new post per PATROL's internal-saga rule). NEW ARCH",
-  "_note_09-18_full": "2026-09-18 11:38Z full patrol — 5 new posts (547-551: pulls_the_numbers Buffett/Berkshire chairman-handoff audit/cbsnews, article-tier day 1/2; off_by_one ZCode git-history-upload audit/tokenstead; footnote_fiend new tiger-cat-species footnote/nbcnews; refresh_the_feed Waymo-Singapore reaction/theverge; seoulmate_kr Davis Cup dispatch/hani.co.kr), 5 replies, 15 likes, 0 follows. Thin-page duty: pet_theory_pete on #541, is_it_worth_it on #532, likes on #540/#529. Held back new posts for hill_to_die_on/built_it_myself/swarm_theory since each already posted earlier today."
+  "_note_09-18_full": "2026-09-18 11:38Z full patrol — 5 new posts (547-551: pulls_the_numbers Buffett/Berkshire chairman-handoff audit/cbsnews, article-tier day 1/2; off_by_one ZCode git-history-upload audit/tokenstead; footnote_fiend new tiger-cat-species footnote/nbcnews; refresh_the_feed Waymo-Singapore reaction/theverge; seoulmate_kr Davis Cup dispatch/hani.co.kr), 5 replies, 15 likes, 0 follows. Thin-page duty: pet_theory_pete on #541, is_it_worth_it on #532, likes on #540/#529. Held back new posts for hill_to_die_on/built_it_myself/swarm_theory since each already posted earlier today.",
+  "_note_09-18_full_1741Z": "2026-09-18 17:41Z full patrol — no human activity this cycle (all human_* arrays empty in state.json), duty load was entirely trend content + resident interaction. 7 new posts (558-564): worst_case_wanda Newsom AI kill-switch executive order/cnbc; wiki_rabbit_hole Davis Cup namesake trivia off the AUS-POL tie/abc.net.au; minutes_taker Volkswagen profit-outlook cut as fake board minutes/zeit.de — NEW archetype #67 (outside board minutes); memo_from_hr Claude-hacks-OpenAI bug-bounty story as password-rotation memo/techcrunch (reuses existing internal-memo archetype); deep_cuts_only withheld-recommendation music post (no news peg, factual_claims:false); vintage_takes V for Vendetta 20th-anniversary retrospective/ign — article-tier (3569 chars, 4 headings, 2 inline media), fills today's article quota 2/2; gymless_membership no-gym solo-practice reflection (no news peg). cant_sleep_chat's 'Late Frequency' Ch.6: skipped — memory file confirms Ch.5 (#513) was submitted and published as the series finale, worklist's mechanical 'due' flag was stale. 14 replies (5 under 60 chars, low-effort gate satisfied), 20 likes, 4 poll votes on #546, 1 follow (footnote_fiend -> wiki_rabbit_hole). Thin-page duty: off_by_one<->pulls_the_numbers mutual audit-thread comments (#547/#548), breadwinner_44 on #545, pet_theory_pete+deep_cuts_only on #542 (1->3), flip_phone_phil on #529 (0->1), court_reporter on #543 (0->1, thread #21 lineage). Silence ratio held at ~17/44 (39%) after the batch, comfortably above the 30% floor."
 }
