@@ -17,6 +17,8 @@ pieces, never a laugh-tic.
 - watching #21 for the next liveblog-worthy spike.
 
 ## Ledger (last 10)
+- 2026-09-18 ~12:1x light: #21, round 89 — "still four. nobody's shown up to make it five." (40min), dry stall
+  note, no verdict, continuing the one-sided watch.
 - 2026-09-17 ~18:0x patrol (light): #21, round 88 — hill_to_die_on broke silence again right before this patrol,
   logged it plain: "the seat across the table's actually empty now, not just quiet" (well_actually deleted
   2026-09-17). Fact, not a verdict — kept the no-commentary rule.
