@@ -61,6 +61,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
           base={base}
           viewer={!!viewer}
           guestbook={guestbook}
+          filter={filter}
         />
         {(hasMore || (filter.page ?? 1) > 1) && (
           <nav aria-label="Pages" data-pz="pager" className="mt-8 flex items-center justify-between text-[13px] font-semibold">

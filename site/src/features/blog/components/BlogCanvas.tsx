@@ -3,7 +3,7 @@ import { MessageSquare } from 'lucide-react';
 import { PostCard, SectionLabel, Avatar, Badge, Cover } from '@/components/ui';
 import { postHref, timeAgo } from '@/lib/content';
 import { themeVars, WIDTHS, BLOCK_GAP, BLOCK_PAD, BLOCK_SPAN, type BlogLayout, type Block } from '@/lib/blog-layout';
-import type { ProfileData } from '../types';
+import type { BlogFilter, ProfileData } from '../types';
 
 /**
  * 블로그 본문 — 배치(JSON)대로 블록을 그린다.
@@ -12,7 +12,7 @@ import type { ProfileData } from '../types';
  * (목업으로 미리보기를 만들면 반드시 갈라지고, 갈라진 미리보기는 없는 것보다 나쁘다).
  * 색·서체·모서리는 고른 값에서 만든 CSS 변수로만 들어간다 — 주인이 쓴 문자열이 스타일로 들어가는 일은 없다.
  */
-export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blockWrap, zoneProps }: {
+export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blockWrap, zoneProps, filter }: {
   layout: BlogLayout;
   data: Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
   base: string;
@@ -25,6 +25,8 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   blockWrap?: (block: Block, node: React.ReactNode, index: number) => React.ReactNode;
   /** 편집기가 기둥을 드롭 영역으로 쓴다 — 블록을 사이드바로 끌어다 놓으면 그 기둥으로 옮겨진다 */
   zoneProps?: (zone: 'rail' | 'main') => React.HTMLAttributes<HTMLElement>;
+  /** 지금 걸린 주제·연재 필터. 없으면 전체 — 이게 없으면 탭이 눌려도 눌린 표시가 안 된다 */
+  filter?: BlogFilter;
 }) {
   const { theme, shell, width, blocks } = layout;
   const rail = shell !== 'stack';
@@ -38,7 +40,7 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   // 머리 블록이 이미 이름·배지·팔로워를 그린다면 소개 블록은 소개글만 — 같은 줄이 두 번 나오면 안 된다
   const hasHeader = blocks.some((b) => b.kind === 'header');
   const render = (b: Block) => {
-    const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} hasHeader={hasHeader} />;
+    const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} hasHeader={hasHeader} filter={filter} />;
     const i = blocks.indexOf(b);
     return <div key={b.id}>{blockWrap ? blockWrap(b, node, i) : node}</div>;
   };
@@ -59,7 +61,7 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   );
 }
 
-function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader }: {
+function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader, filter }: {
   block: Block;
   data: BlogCanvasData;
   base: string;
@@ -67,6 +69,7 @@ function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader }:
   editing?: boolean;
   guestbook?: React.ReactNode;
   hasHeader?: boolean;
+  filter?: BlogFilter;
 }) {
   const p = block.props ?? {};
   // 간격·여백·색은 고른 값에서만 온다 — 문자열이 스타일로 새지 않는다(색은 #hex 검증 통과분)
@@ -178,13 +181,21 @@ function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader }:
         <>
           {p.topics !== false && data.topics.length > 1 && (
             <nav data-pz="topics" className="mb-5 flex flex-wrap gap-2">
-              <PzTab href={base} active label="All" editing={editing} />
+              <PzTab href={base} active={!filter?.topic && !filter?.series} label="All" editing={editing} />
               {data.topics.map((t) => (
-                <PzTab key={t.topic} href={`${base}?topic=${t.topic}`} label={`${t.topic} ${t.count}`} editing={editing} />
+                <PzTab key={t.topic} href={`${base}?topic=${t.topic}`} label={`${t.topic} ${t.count}`}
+                  active={filter?.topic === t.topic} editing={editing} />
               ))}
             </nav>
           )}
-          <SectionLabel>POSTS · {data.posts.length}</SectionLabel>
+          <SectionLabel>
+            {filter?.series ? `SERIES · ${filter.series}` : filter?.topic ? `${filter.topic.toUpperCase()} · ${data.posts.length}` : `POSTS · ${data.posts.length}`}
+          </SectionLabel>
+          {(filter?.topic || filter?.series) && !editing && (
+            <p className="-mt-2 mb-3 text-[13px] opacity-65">
+              <Link className="underline underline-offset-2" href={base}>← all posts</Link>
+            </p>
+          )}
           {data.posts.length === 0 && <p className="text-[13px] opacity-60">No posts yet.</p>}
           {view === 'grid' && (
             <div data-pz="cards" className={`grid gap-[var(--pz-gap)] ${cols === 1 ? '' : cols === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>

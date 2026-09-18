@@ -7,6 +7,7 @@ import { BlogCanvas } from '@/features/blog/components/BlogCanvas';
 import { cleanLayout, CHROME_ITEMS, DEFAULT_LAYOUT, REQUIRED, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
 import type { ProfileData } from '@/features/blog/types';
 import { BlockSettings, CommonSettings, KIND_LABEL, ONCE, Row } from './BlockSettings';
+import { SiteBarPreview, SiteBarSettings } from './SiteBarBlock';
 
 type CanvasData = Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
 
@@ -176,6 +177,30 @@ export function EditorShell({ initial, data, base, canSave }: {
   const canAdd = (Object.keys(KIND_LABEL) as BlockKind[])
     .filter((k) => !(ONCE.includes(k) && layout.blocks.some((b) => b.kind === k)));
 
+  /** 사이트 띠도 화면에서 만진다 — 설정이 서랍 안에만 있으면 "헤더는 못 고치는 것"과 같다 */
+  const siteBar = (
+    <div className="mb-4">
+      <div
+        onClick={(e) => { e.stopPropagation(); setPicked(picked === 'sitebar' ? null : 'sitebar'); }}
+        className={`group relative cursor-pointer rounded-md outline-offset-2 ${
+          picked === 'sitebar' ? 'outline outline-2 outline-accent' : 'outline outline-1 outline-transparent hover:outline-hairline'
+        }`}
+      >
+        <div className={`absolute -top-2.5 left-0 z-10 flex -translate-y-full items-center gap-1 rounded-full border border-hairline bg-paper px-2 py-0.5 text-[10.5px] font-bold shadow-sm transition-opacity ${picked === 'sitebar' ? '' : 'opacity-0 group-hover:opacity-100'}`}>
+          <Settings2 size={11} aria-hidden className="text-ink-soft" /> Site bar
+        </div>
+        <div className="pointer-events-none">
+          <SiteBarPreview chrome={layout.chrome} handle={data.owner.handle} />
+        </div>
+      </div>
+      {picked === 'sitebar' && (
+        <div className="mt-2 rounded-xl border border-accent/40 bg-surface p-3" onClick={(e) => e.stopPropagation()}>
+          <SiteBarSettings chrome={layout.chrome} onChange={(chrome) => set({ chrome })} />
+        </div>
+      )}
+    </div>
+  );
+
   /** 블록 하나를 감싸는 편집 껍데기 — 손잡이, 단추, 그리고 고른 블록의 설정 */
   const wrapBlock = (block: Block, node: React.ReactNode, index: number) => {
     const on = picked === block.id;
@@ -344,47 +369,7 @@ export function EditorShell({ initial, data, base, canSave }: {
                 <button key={v} onClick={() => setTheme({ leading: v })} className={chip(layout.theme.leading === v)}>{l}</button>
               ))}
             </Row>
-            <Row label="Home link">
-              {([['logo', 'POZ logo'], ['label', 'My words'], ['none', 'Hide']] as const).map(([v, l]) => (
-                <button key={v} onClick={() => set({ chrome: { ...layout.chrome, home: v } })} className={chip(layout.chrome.home === v)}>{l}</button>
-              ))}
-            </Row>
-            {layout.chrome.home === 'label' && (
-              <input
-                value={layout.chrome.label}
-                onChange={(e) => set({ chrome: { ...layout.chrome, label: e.target.value } })}
-                maxLength={24} placeholder="back"
-                className="w-full rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[13px] outline-none focus:border-ink"
-              />
-            )}
-            <Row label="The site bar">
-              {([['top', 'Top'], ['bottom', 'Bottom'], ['off', 'Off']] as const).map(([v, l]) => (
-                <button key={v} onClick={() => set({ chrome: { ...layout.chrome, nav: v } })} className={chip(layout.chrome.nav === v)}>{l}</button>
-              ))}
-            </Row>
-            {layout.chrome.nav !== 'off' && (
-              <Row label="What's in it">
-                {CHROME_ITEMS.filter((k) => k !== 'account').map((k) => {
-                  const on = layout.chrome.items.includes(k);
-                  return (
-                    <button
-                      key={k}
-                      onClick={() => set({ chrome: { ...layout.chrome, items: on
-                        ? layout.chrome.items.filter((x) => x !== k)
-                        : [...layout.chrome.items.filter((x) => x !== 'account'), k, 'account'] } })}
-                      className={chip(on)}
-                    >
-                      {{ search: 'Search', about: 'About', contact: 'Contact', bell: 'Bell', messages: 'Messages', write: 'Write' }[k]}
-                    </button>
-                  );
-                })}
-              </Row>
-            )}
-            {layout.chrome.nav === 'off' && (
-              <p className="text-[11.5px] text-ink-soft">
-                Add a <b>Header bar</b> block below and put it where you like — that becomes your header.
-              </p>
-            )}
+            {/* 사이트 띠 설정은 여기 없다 — 미리보기의 그 띠를 눌러서 고친다(서랍 안에 있으면 못 찾는다) */}
           </div>
         </details>
 
@@ -401,11 +386,18 @@ export function EditorShell({ initial, data, base, canSave }: {
       {/* ── 화면 자체가 편집면 ── */}
       <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
         <div className="pz-page p-4 pt-9 sm:p-7 sm:pt-10" style={themeVars(layout.theme) as React.CSSProperties}>
+          {layout.chrome.nav !== 'off' && layout.chrome.nav !== 'bottom' && siteBar}
           <BlogCanvas
             layout={layout}
             data={{ ...data, owner: { ...data.owner, blog_title: title || null } }}
             base={base} viewer editing blockWrap={wrapBlock} zoneProps={dropZone}
           />
+          {layout.chrome.nav === 'bottom' && siteBar}
+          {layout.chrome.nav === 'off' && (
+            <p className="mt-6 rounded-lg border border-dashed border-current/25 px-3 py-2 text-[12px] opacity-60">
+              The site bar is off — add a <b>Header bar</b> block and put it where you like.
+            </p>
+          )}
         </div>
         {/* 블록 사이의 + 는 마우스를 올려야 보인다 — 처음 오는 사람이 못 찾으니 늘 보이는 줄을 하나 둔다 */}
         <div className="flex flex-wrap items-center gap-1.5 border-t border-hairline bg-surface px-4 py-3">
