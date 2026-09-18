@@ -11,7 +11,7 @@
  * 들어오는 값은 전부 모르는 사람이 쓴 것으로 취급한다 — 목록에 없는 값은 조용히 기본값으로 접는다.
  */
 
-export type BlockKind = 'header' | 'intro' | 'banner' | 'posts' | 'toc' | 'guestbook' | 'text' | 'image' | 'links' | 'divider' | 'search' | 'actions';
+export type BlockKind = 'header' | 'intro' | 'banner' | 'posts' | 'toc' | 'guestbook' | 'text' | 'image' | 'links' | 'divider' | 'search' | 'actions' | 'chrome';
 export type PostsView = 'grid' | 'list' | 'magazine' | 'index';
 export type Columns = 1 | 2 | 3;
 
@@ -37,13 +37,19 @@ export interface Theme {
   leading: 'tight' | 'normal' | 'loose';
 }
 
+/** 헤더 띠에 놓을 수 있는 것들. account 는 빼지 못한다 — 로그아웃·내 페이지로 가는 유일한 문이다 */
+export const CHROME_ITEMS = ['search', 'about', 'contact', 'bell', 'messages', 'write', 'account'] as const;
+export type ChromeItem = typeof CHROME_ITEMS[number];
+
 /** 사이트 띠 — 우리 것이지만 이 블로그에서 어떻게 보일지는 주인이 정한다 */
 export interface Chrome {
   /** 홈으로 가는 표시: POZ 로고 · 내가 쓴 글자 · 안 보이기(푸터엔 그대로 남는다) */
   home: 'logo' | 'label' | 'none';
   label: string;
-  /** 검색·알림·쓰기·계정이 있는 띠의 자리 */
-  nav: 'top' | 'bottom';
+  /** 검색·알림·쓰기·계정이 있는 고정 띠의 자리. 'off' 는 그 띠를 아예 없애고 chrome 블록으로 대신한다 */
+  nav: 'top' | 'bottom' | 'off';
+  /** 그 띠에 무엇을 어떤 순서로 둘지. account 는 항상 포함된다 */
+  items: ChromeItem[];
 }
 
 export interface BlogLayout {
@@ -67,7 +73,7 @@ export const DEFAULT_THEME: Theme = {
 };
 
 /** 아무것도 안 고른 블로그 — 지금 화면과 같은 모양이어야 한다(꾸미기 전과 후가 이어져야 하니까) */
-export const DEFAULT_CHROME: Chrome = { home: 'logo', label: '', nav: 'top' };
+export const DEFAULT_CHROME: Chrome = { home: 'logo', label: '', nav: 'top', items: [...CHROME_ITEMS] };
 
 export const DEFAULT_LAYOUT: BlogLayout = {
   v: 1,
@@ -146,6 +152,18 @@ const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {
   divider: { style: { type: 'enum', values: ['line', 'dots', 'space'], def: 'line' } },
   // 사이트 띠에서 꺼내 쓸 수 있는 조각들 — 요소를 분해하는 게 아니라 블록으로 내놓는다
   search: { placeholder: { type: 'text', def: 'Search', max: 40 }, wide: { type: 'bool', def: false } },
+  // 헤더 조각을 담는 블록 — 고정 띠를 끄고 이걸 원하는 자리(사이드바 포함)에 놓으면 그게 이 블로그의 헤더다
+  chrome: {
+    search: { type: 'bool', def: false },
+    about: { type: 'bool', def: true },
+    contact: { type: 'bool', def: true },
+    bell: { type: 'bool', def: false },
+    messages: { type: 'bool', def: true },
+    write: { type: 'bool', def: true },
+    account: { type: 'bool', def: true },
+    dir: { type: 'enum', values: ['row', 'column'], def: 'row' },
+    style: { type: 'enum', values: ['plain', 'buttons'], def: 'plain' },
+  },
   actions: {
     write: { type: 'bool', def: true },
     messages: { type: 'bool', def: true },
@@ -206,6 +224,11 @@ export function cleanLayout(raw: unknown): BlogLayout {
     cleaned.push({ id: kind, kind, props: cleanProps(kind, kind === 'posts' ? { view: 'grid' } : {}) });
   }
 
+  // 고정 띠를 껐는데 계정으로 가는 문이 아무 데도 없으면 사람이 로그아웃도 못 한다 — 그러면 띠를 되돌린다
+  const hasAccountBlock = cleaned.some((b) => b.kind === 'chrome' && b.props?.account !== false);
+  const navWanted = ONE_OF(c.nav, ['top', 'bottom', 'off'] as const, DEFAULT_CHROME.nav);
+  const nav = navWanted === 'off' && !hasAccountBlock ? 'top' : navWanted;
+
   return {
     v: 1,
     shell: ONE_OF(src.shell, ['stack', 'rail-left', 'rail-right'] as const, 'stack'),
@@ -226,10 +249,23 @@ export function cleanLayout(raw: unknown): BlogLayout {
     chrome: {
       home: ONE_OF(c.home, ['logo', 'label', 'none'] as const, DEFAULT_CHROME.home),
       label: String(c.label ?? '').replace(/\s+/g, ' ').trim().slice(0, 24),
-      nav: ONE_OF(c.nav, ['top', 'bottom'] as const, DEFAULT_CHROME.nav),
+      nav,
+      items: cleanItems(c.items),
     },
     blocks: cleaned,
   };
+}
+
+/** 목록 밖 값은 버리고 중복은 접는다. 계정 메뉴가 빠져 있으면 끝에 되돌려 놓는다. */
+function cleanItems(raw: unknown): ChromeItem[] {
+  const src = Array.isArray(raw) ? raw : DEFAULT_CHROME.items;
+  const out: ChromeItem[] = [];
+  for (const v of src) {
+    const item = String(v) as ChromeItem;
+    if ((CHROME_ITEMS as readonly string[]).includes(item) && !out.includes(item)) out.push(item);
+  }
+  if (!out.includes('account')) out.push('account');
+  return out;
 }
 
 export function parseLayout(json: string | null | undefined): BlogLayout {

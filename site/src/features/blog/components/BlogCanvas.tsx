@@ -346,6 +346,38 @@ function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader }:
       );
     }
 
+    case 'chrome': {
+      // 헤더 조각들. 계정 항목은 드롭다운이 아니라 내 자리로 가는 링크다 — 이 블록은 편집기 안에서도 그려지고,
+      // 세션을 읽는 드롭다운을 여기 넣으면 미리보기와 실물이 갈라진다.
+      const asBtn = p.style === 'buttons';
+      const cls = asBtn
+        ? 'inline-flex items-center rounded-[var(--pz-radius)] border border-current px-3 py-1 text-[12.5px] font-bold'
+        : 'text-[13px] font-semibold hover:underline';
+      const col = p.dir === 'column';
+      return wrap(
+        <nav className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${col ? 'flex-col items-start' : ''}`}>
+          {p.search === true && (
+            <form action="/" className="min-w-0" {...(editing ? { onSubmit: (e: React.FormEvent) => e.preventDefault() } : {})}>
+              <input name="q" aria-label="Search" placeholder="Search"
+                className="w-40 border-0 border-b border-current bg-transparent px-1 py-1 text-[13px] outline-none" />
+            </form>
+          )}
+          {p.about !== false && <PzLink href="/about" editing={editing}><span className={cls}>About</span></PzLink>}
+          {p.contact !== false && <PzLink href="/contact" editing={editing}><span className={cls}>Contact</span></PzLink>}
+          {p.bell === true && <PzLink href="/notifications" editing={editing}><span className={cls}>Notifications</span></PzLink>}
+          {p.messages !== false && <PzLink href="/messages" editing={editing}><span className={cls}>Messages</span></PzLink>}
+          {p.write !== false && <PzLink href="/write" editing={editing}><span className={cls}>Write</span></PzLink>}
+          {p.account !== false && (
+            <PzLink href="/me" editing={editing}>
+              <span className={`${cls} inline-flex items-center gap-1.5`}>
+                <Avatar handle={data.owner.handle} size={18} isHuman={data.owner.type === 'user'} /> My page
+              </span>
+            </PzLink>
+          )}
+        </nav>,
+      );
+    }
+
     case 'divider':
       return wrap(<div className={`pz-divider pz-divider-${String(p.style ?? 'line')}`} />);
 

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, GripVertical, ImagePlus, Plus, RotateCcw, Save, Settings2, Trash2, Undo2, X } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { BlogCanvas } from '@/features/blog/components/BlogCanvas';
-import { cleanLayout, DEFAULT_LAYOUT, REQUIRED, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
+import { cleanLayout, CHROME_ITEMS, DEFAULT_LAYOUT, REQUIRED, themeVars, type Block, type BlockKind, type BlogLayout, type Theme } from '@/lib/blog-layout';
 import type { ProfileData } from '@/features/blog/types';
 import { BlockSettings, CommonSettings, KIND_LABEL, ONCE, Row } from './BlockSettings';
 
@@ -357,11 +357,34 @@ export function EditorShell({ initial, data, base, canSave }: {
                 className="w-full rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[13px] outline-none focus:border-ink"
               />
             )}
-            <Row label="Search & buttons">
-              {([['top', 'At the top'], ['bottom', 'At the bottom']] as const).map(([v, l]) => (
+            <Row label="The site bar">
+              {([['top', 'Top'], ['bottom', 'Bottom'], ['off', 'Off']] as const).map(([v, l]) => (
                 <button key={v} onClick={() => set({ chrome: { ...layout.chrome, nav: v } })} className={chip(layout.chrome.nav === v)}>{l}</button>
               ))}
             </Row>
+            {layout.chrome.nav !== 'off' && (
+              <Row label="What's in it">
+                {CHROME_ITEMS.filter((k) => k !== 'account').map((k) => {
+                  const on = layout.chrome.items.includes(k);
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => set({ chrome: { ...layout.chrome, items: on
+                        ? layout.chrome.items.filter((x) => x !== k)
+                        : [...layout.chrome.items.filter((x) => x !== 'account'), k, 'account'] } })}
+                      className={chip(on)}
+                    >
+                      {{ search: 'Search', about: 'About', contact: 'Contact', bell: 'Bell', messages: 'Messages', write: 'Write' }[k]}
+                    </button>
+                  );
+                })}
+              </Row>
+            )}
+            {layout.chrome.nav === 'off' && (
+              <p className="text-[11.5px] text-ink-soft">
+                Add a <b>Header bar</b> block below and put it where you like — that becomes your header.
+              </p>
+            )}
           </div>
         </details>
 

@@ -4,7 +4,7 @@ import type { Block, BlockKind } from '@/lib/blog-layout';
 export const KIND_LABEL: Record<BlockKind, string> = {
   header: 'Header', intro: 'About', banner: 'Banner', posts: 'Posts', toc: 'Contents',
   guestbook: 'Guestbook', text: 'Text', image: 'Picture', links: 'Links', divider: 'Divider',
-  search: 'Search', actions: 'Buttons',
+  search: 'Search', actions: 'Buttons', chrome: 'Header bar',
 };
 /** 한 번만 놓을 수 있는 것들 — 블로그의 기능이라 두 개가 되면 안 된다 */
 export const ONCE: BlockKind[] = ['header', 'intro', 'posts', 'guestbook'];
@@ -204,6 +204,21 @@ export function BlockSettings({ block, setProp, onPickImage }: {
 
     case 'divider':
       return <Row label="Style">{pick('style', [['line', 'Line'], ['dots', 'Dots'], ['space', 'Just space']] as const, 'line')}</Row>;
+
+    case 'chrome':
+      return (
+        <>
+          <Row label="What it holds">
+            {([['search', 'Search'], ['about', 'About'], ['contact', 'Contact'], ['bell', 'Notifications'],
+               ['messages', 'Messages'], ['write', 'Write'], ['account', 'My page']] as const).map(([k, l]) => (
+              <button key={k} onClick={() => setProp(k, p[k] === false || p[k] === undefined ? true : false)}
+                className={chip(k === 'search' || k === 'bell' ? p[k] === true : p[k] !== false)}>{l}</button>
+            ))}
+          </Row>
+          <Row label="Direction">{pick('dir', [['row', 'Across'], ['column', 'Down']] as const, 'row')}</Row>
+          <Row label="Look">{pick('style', [['plain', 'Plain links'], ['buttons', 'Buttons']] as const, 'plain')}</Row>
+        </>
+      );
 
     case 'search':
       return (

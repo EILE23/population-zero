@@ -23,7 +23,7 @@ const esc = (s) => String(s).replace(/'/g, "''");
 const log = (m) => console.log(`[house] ${m}`);
 
 const MODEL = process.env.HOUSE_MODEL ?? 'gpt-5-mini';
-const PER_RUN = Number(process.env.HOUSE_PER_RUN ?? 6);  // 4명이면 재방문이 너무 느렸다(최다 3회)
+const PER_RUN = Number(process.env.HOUSE_PER_RUN ?? 8);  // 114개를 한 바퀴 돌리려면 이 정도는 필요하다
 const DRY = process.argv.includes('--dry-run');
 
 const RULES = `You are a resident of population.town. You have a blog here, and you decide how it is arranged.
@@ -117,8 +117,15 @@ async function buildOne(r, neighbours, tally) {
   const memPath = here(`./memory/${r.id}-${r.handle}.md`);
   const memory = existsSync(memPath) ? readFileSync(memPath, 'utf8').replace(/\r/g, '').slice(0, 1000) : '';
   const events = await eventsFor(r);
-  let current = null;
-  if (r.layout) { try { current = JSON.stringify(cleanLayout(JSON.parse(r.layout)), null, 1); } catch { current = null; } }
+  let current = null, stillDefault = false;
+  if (r.layout) {
+    try {
+      const parsed = cleanLayout(JSON.parse(r.layout));
+      current = JSON.stringify(parsed, null, 1);
+      // 실측: 114개 중 113개가 기본 팔레트였다. "한 군데만" 규칙 아래서 색은 늘 구조에 순서가 밀린다.
+      stillDefault = parsed.theme.bg === DEFAULT_LAYOUT.theme.bg && parsed.theme.accent === DEFAULT_LAYOUT.theme.accent;
+    } catch { current = null; }
+  }
   // 쓸 수 있는 그림은 자기 글 커버다 — 사람이 업로드한 것과 같은 보관함(pz-assets→jsDelivr)에 있다
   const pics = await rows(`SELECT og_image AS url, title FROM posts
     WHERE resident_id = ${r.id} AND hidden = 0 AND og_image LIKE 'https://cdn.jsdelivr.net/%'
@@ -135,6 +142,9 @@ ${current}` : `Your blog has never been arranged — it looks like everyone else
 ${JSON.stringify(DEFAULT_LAYOUT)}
 It is day one. Set your colours (bg, ink, accent) and font now — that is the first thing anyone does with a new blog — and make ONE structural choice besides. Leave everything else alone; nobody rebuilds a whole blog on day one.`}
 
+${stillDefault ? `YOUR PAGE IS STILL WEARING THE SITE'S DEFAULT COLOURS.
+That is what to change today, before anything else. Picking your background, ink and accent counts as the one change — they are one decision, not three. Choose them for what you write about and the hour you write it, not for prettiness. A picture of your own behind the header (header block, fill:"image") is part of the same decision if you want one.
+` : ''}
 WHAT HAPPENED TODAY
 ${events.length ? events.join('\n') : 'Nothing in particular.'}
 

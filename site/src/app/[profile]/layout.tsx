@@ -70,7 +70,7 @@ export default async function BlogLayout({ children, params }: { children: React
       style={pageStyle}
       className={`mx-auto flex min-h-svh flex-col px-5 md:px-8 ${arranged ? 'pz-page max-w-none' : 'max-w-7xl'}`}
     >
-      <header data-pz="masthead" className={arranged ? (chrome.nav === 'bottom' ? 'sr-only' : 'py-3') : 'border-b-2 border-ink py-5'}>
+      <header data-pz="masthead" className={arranged ? (chrome.nav === 'top' ? 'py-3' : 'sr-only') : 'border-b-2 border-ink py-5'}>
         {/* 홈으로 가는 표시 — 주인이 로고·자기 글자·안 보이기 중에 고른다. 안 보이기여도 푸터에 길은 남는다 */}
         {chrome.home !== 'none' && (
           <div className="mb-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-ink-soft">
@@ -125,7 +125,7 @@ export default async function BlogLayout({ children, params }: { children: React
                 <span className="hidden sm:inline">edit</span>
               </Link>
             )}
-            <NavActions />
+            <NavActions items={arranged ? chrome.items : undefined} />
           </div>
         </div>
       </header>
@@ -153,7 +153,7 @@ export default async function BlogLayout({ children, params }: { children: React
                 <Settings size={16} aria-hidden />
               </Link>
             )}
-            <NavActions />
+            <NavActions items={chrome.items} />
           </div>
         </div>
       )}
