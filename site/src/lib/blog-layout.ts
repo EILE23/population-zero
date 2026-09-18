@@ -11,7 +11,7 @@
  * 들어오는 값은 전부 모르는 사람이 쓴 것으로 취급한다 — 목록에 없는 값은 조용히 기본값으로 접는다.
  */
 
-export type BlockKind = 'header' | 'intro' | 'banner' | 'posts' | 'toc' | 'guestbook' | 'text' | 'image' | 'links' | 'divider';
+export type BlockKind = 'header' | 'intro' | 'banner' | 'posts' | 'toc' | 'guestbook' | 'text' | 'image' | 'links' | 'divider' | 'search' | 'actions';
 export type PostsView = 'grid' | 'list' | 'magazine' | 'index';
 export type Columns = 1 | 2 | 3;
 
@@ -31,6 +31,10 @@ export interface Theme {
   density: 'tight' | 'normal' | 'roomy';
   border: 'none' | 'hairline' | 'bold';
   banner: 'none' | 'band' | 'full';
+  /** 글자 — 크기 배율·자간·행간 */
+  scale: 'sm' | 'md' | 'lg';
+  tracking: 'tight' | 'normal' | 'wide';
+  leading: 'tight' | 'normal' | 'loose';
 }
 
 /** 사이트 띠 — 우리 것이지만 이 블로그에서 어떻게 보일지는 주인이 정한다 */
@@ -59,6 +63,7 @@ const ONE_OF = <T extends string>(v: unknown, allowed: readonly T[], fallback: T
 export const DEFAULT_THEME: Theme = {
   bg: '#f7f5f6', ink: '#1B0C15', accent: '#AD7096',
   font: 'sans', radius: 'lg', density: 'normal', border: 'hairline', banner: 'none',
+  scale: 'md', tracking: 'normal', leading: 'normal',
 };
 
 /** 아무것도 안 고른 블로그 — 지금 화면과 같은 모양이어야 한다(꾸미기 전과 후가 이어져야 하니까) */
@@ -90,6 +95,11 @@ const COMMON_SPEC: Record<string, PropSpec> = {
   pad: { type: 'enum', values: ['none', 'sm', 'md', 'lg'], def: 'none' },
   bg: { type: 'color', def: '' },
   ink: { type: 'color', def: '' },
+  // 한 줄에 여러 블록을 놓으려면 블록이 자기 폭을 알아야 한다 — 그룹 개념을 만들지 않고 폭으로 푼다
+  span: { type: 'enum', values: ['full', 'half', 'third', 'two-thirds'], def: 'full' },
+  place: { type: 'enum', values: ['start', 'center', 'end'], def: 'start' },
+  edge: { type: 'enum', values: ['none', 'line', 'box', 'shadow'], def: 'none' },
+  round: { type: 'enum', values: ['theme', 'none', 'sm', 'lg', 'pill'], def: 'theme' },
 };
 
 const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {
@@ -134,6 +144,14 @@ const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {
   image: { src: { type: 'text', def: '', max: 400 }, caption: { type: 'text', def: '', max: 200 }, full: { type: 'bool', def: false } },
   links: { items: { type: 'text', def: '', max: 1200 } },  // 한 줄에 "제목|주소"
   divider: { style: { type: 'enum', values: ['line', 'dots', 'space'], def: 'line' } },
+  // 사이트 띠에서 꺼내 쓸 수 있는 조각들 — 요소를 분해하는 게 아니라 블록으로 내놓는다
+  search: { placeholder: { type: 'text', def: 'Search', max: 40 }, wide: { type: 'bool', def: false } },
+  actions: {
+    write: { type: 'bool', def: true },
+    messages: { type: 'bool', def: true },
+    follow: { type: 'bool', def: true },
+    style: { type: 'enum', values: ['button', 'link'], def: 'button' },
+  },
 };
 
 const KINDS = Object.keys(PROP_SPEC) as BlockKind[];
@@ -191,6 +209,9 @@ export function cleanLayout(raw: unknown): BlogLayout {
       density: ONE_OF(t.density, ['tight', 'normal', 'roomy'] as const, DEFAULT_THEME.density),
       border: ONE_OF(t.border, ['none', 'hairline', 'bold'] as const, DEFAULT_THEME.border),
       banner: ONE_OF(t.banner, ['none', 'band', 'full'] as const, DEFAULT_THEME.banner),
+      scale: ONE_OF(t.scale, ['sm', 'md', 'lg'] as const, DEFAULT_THEME.scale),
+      tracking: ONE_OF(t.tracking, ['tight', 'normal', 'wide'] as const, DEFAULT_THEME.tracking),
+      leading: ONE_OF(t.leading, ['tight', 'normal', 'loose'] as const, DEFAULT_THEME.leading),
     },
     chrome: {
       home: ONE_OF(c.home, ['logo', 'label', 'none'] as const, DEFAULT_CHROME.home),
@@ -220,6 +241,9 @@ const GAPS: Record<Theme['density'], string> = { tight: '0.75rem', normal: '1.5r
 const BORDERS: Record<Theme['border'], string> = { none: '0', hairline: '1px', bold: '2px' };
 export const WIDTHS: Record<BlogLayout['width'], string> = { narrow: '46rem', normal: '72rem', wide: '82rem' };
 
+/** 한 줄에 여러 블록 — 폭 비율 */
+export const BLOCK_SPAN: Record<string, string> = { full: '100%', half: 'calc(50% - var(--pz-gap) / 2)', third: 'calc(33.333% - var(--pz-gap) * 2 / 3)', 'two-thirds': 'calc(66.666% - var(--pz-gap) / 3)' };
+
 /** 블록 간격과 안쪽 여백 — 고른 값만 크기로 번역한다(문자열이 스타일로 새지 않는다) */
 export const BLOCK_GAP: Record<string, string> = { none: '0', sm: '0.6rem', md: 'var(--pz-gap)', lg: '3rem', xl: '5rem' };
 export const BLOCK_PAD: Record<string, string> = { none: '0', sm: '0.75rem', md: '1.25rem', lg: '2rem' };
@@ -234,5 +258,8 @@ export function themeVars(t: Theme): Record<string, string> {
     '--pz-radius': RADII[t.radius],
     '--pz-gap': GAPS[t.density],
     '--pz-border': BORDERS[t.border],
+    '--pz-scale': { sm: '0.92', md: '1', lg: '1.12' }[t.scale],
+    '--pz-tracking': { tight: '-0.015em', normal: '0', wide: '0.04em' }[t.tracking],
+    '--pz-leading': { tight: '1.35', normal: '1.6', loose: '1.85' }[t.leading],
   };
 }

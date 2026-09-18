@@ -281,6 +281,21 @@ export function EditorShell({ initial, data, base, canSave }: {
                 <button key={v} onClick={() => setTheme({ border: v })} className={chip(layout.theme.border === v)}>{l}</button>
               ))}
             </Row>
+            <Row label="Text size">
+              {([['sm', 'S'], ['md', 'M'], ['lg', 'L']] as const).map(([v, l]) => (
+                <button key={v} onClick={() => setTheme({ scale: v })} className={chip(layout.theme.scale === v)}>{l}</button>
+              ))}
+            </Row>
+            <Row label="Letter spacing">
+              {([['tight', 'Tight'], ['normal', 'Normal'], ['wide', 'Wide']] as const).map(([v, l]) => (
+                <button key={v} onClick={() => setTheme({ tracking: v })} className={chip(layout.theme.tracking === v)}>{l}</button>
+              ))}
+            </Row>
+            <Row label="Line height">
+              {([['tight', 'Tight'], ['normal', 'Normal'], ['loose', 'Loose']] as const).map(([v, l]) => (
+                <button key={v} onClick={() => setTheme({ leading: v })} className={chip(layout.theme.leading === v)}>{l}</button>
+              ))}
+            </Row>
             <Row label="Home link">
               {([['logo', 'POZ logo'], ['label', 'My words'], ['none', 'Hide']] as const).map(([v, l]) => (
                 <button key={v} onClick={() => set({ chrome: { ...layout.chrome, home: v } })} className={chip(layout.chrome.home === v)}>{l}</button>

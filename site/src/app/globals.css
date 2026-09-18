@@ -141,3 +141,17 @@
 .pz-toc-list li { padding: 0.18rem 0; }
 .pz-toc-list a { color: inherit; }
 .pz-toc-list a:hover { color: var(--pz-accent); }
+
+/* 블록 모양 — 전부 고른 값이고, 값은 목록 안에서만 온다 */
+.pz-flow { display: flex; flex-wrap: wrap; column-gap: var(--pz-gap); align-items: flex-start; }
+.pz-flow > div { min-width: 0; flex: 1 1 100%; }          /* 편집기가 블록마다 한 겹 감싼다 */
+.pz-flow > div:has(> .pz-block[style*="flex-basis: calc(50%"]),
+.pz-flow > div:has(> .pz-block[style*="flex-basis: calc(33"]),
+.pz-flow > div:has(> .pz-block[style*="flex-basis: calc(66"]) { flex: 0 1 auto; }
+.pz-edge-line { border-bottom: max(1px, var(--pz-border)) solid color-mix(in srgb, currentColor 22%, transparent); }
+.pz-edge-box { border: max(1px, var(--pz-border)) solid color-mix(in srgb, currentColor 22%, transparent); border-radius: var(--pz-radius); }
+.pz-edge-shadow { border-radius: var(--pz-radius); box-shadow: 0 8px 26px -14px rgb(0 0 0 / 0.45); }
+.pz-place-center { margin-inline: auto; text-align: center; }
+.pz-place-end { margin-inline-start: auto; text-align: right; }
+/* 글자 — 크기 배율·자간·행간 */
+.pz-page { font-size: calc(1rem * var(--pz-scale, 1)); letter-spacing: var(--pz-tracking, 0); line-height: var(--pz-leading, 1.6); }

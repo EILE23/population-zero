@@ -4,6 +4,7 @@ import type { Block, BlockKind } from '@/lib/blog-layout';
 export const KIND_LABEL: Record<BlockKind, string> = {
   header: 'Header', intro: 'About', banner: 'Banner', posts: 'Posts', toc: 'Contents',
   guestbook: 'Guestbook', text: 'Text', image: 'Picture', links: 'Links', divider: 'Divider',
+  search: 'Search', actions: 'Buttons',
 };
 /** 한 번만 놓을 수 있는 것들 — 블로그의 기능이라 두 개가 되면 안 된다 */
 export const ONCE: BlockKind[] = ['header', 'intro', 'posts', 'guestbook'];
@@ -36,6 +37,26 @@ export function CommonSettings({ block, setProp }: {
       <Row label="Padding inside">
         {([['none', '0'], ['sm', 'S'], ['md', 'M'], ['lg', 'L']] as const).map(([v, l]) => (
           <button key={v} onClick={() => setProp('pad', v)} className={chip((p.pad ?? 'none') === v)}>{l}</button>
+        ))}
+      </Row>
+      <Row label="Width">
+        {([['full', 'Full'], ['two-thirds', '2/3'], ['half', '1/2'], ['third', '1/3']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('span', v)} className={chip((p.span ?? 'full') === v)}>{l}</button>
+        ))}
+      </Row>
+      <Row label="Place">
+        {([['start', 'Left'], ['center', 'Centre'], ['end', 'Right']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('place', v)} className={chip((p.place ?? 'start') === v)}>{l}</button>
+        ))}
+      </Row>
+      <Row label="Edge">
+        {([['none', 'None'], ['line', 'Under-line'], ['box', 'Box'], ['shadow', 'Lifted']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('edge', v)} className={chip((p.edge ?? 'none') === v)}>{l}</button>
+        ))}
+      </Row>
+      <Row label="Corners">
+        {([['theme', 'As set'], ['none', 'Sharp'], ['sm', 'Soft'], ['lg', 'Round'], ['pill', 'Pill']] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setProp('round', v)} className={chip((p.round ?? 'theme') === v)}>{l}</button>
         ))}
       </Row>
       <Row label="This block's colours">
@@ -183,6 +204,29 @@ export function BlockSettings({ block, setProp, onPickImage }: {
 
     case 'divider':
       return <Row label="Style">{pick('style', [['line', 'Line'], ['dots', 'Dots'], ['space', 'Just space']] as const, 'line')}</Row>;
+
+    case 'search':
+      return (
+        <>
+          <input value={String(p.placeholder ?? '')} onChange={(e) => setProp('placeholder', e.target.value)} maxLength={40}
+            placeholder="Search" className={field} />
+          <Row label="Size">
+            <button onClick={() => setProp('wide', p.wide !== true)} className={chip(p.wide === true)}>Full width</button>
+          </Row>
+        </>
+      );
+
+    case 'actions':
+      return (
+        <>
+          <Row label="Show">
+            <button onClick={() => setProp('write', p.write === false)} className={chip(p.write !== false)}>Write</button>
+            <button onClick={() => setProp('messages', p.messages === false)} className={chip(p.messages !== false)}>Messages</button>
+            <button onClick={() => setProp('follow', p.follow === false)} className={chip(p.follow !== false)}>Followers</button>
+          </Row>
+          <Row label="Look">{pick('style', [['button', 'Buttons'], ['link', 'Plain links']] as const, 'button')}</Row>
+        </>
+      );
 
     case 'guestbook':
       return (

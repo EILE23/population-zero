@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
 import { PostCard, SectionLabel, Avatar, Badge, Cover } from '@/components/ui';
 import { postHref, timeAgo } from '@/lib/content';
-import { themeVars, WIDTHS, BLOCK_GAP, BLOCK_PAD, type BlogLayout, type Block } from '@/lib/blog-layout';
+import { themeVars, WIDTHS, BLOCK_GAP, BLOCK_PAD, BLOCK_SPAN, type BlogLayout, type Block } from '@/lib/blog-layout';
 import type { ProfileData } from '../types';
 
 /**
@@ -45,13 +45,13 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
     <div data-pz="canvas" style={shellStyle} className="mx-auto w-full pz-canvas">
       {rail ? (
         <div className={`pz-rail-grid ${shell === 'rail-right' ? 'pz-rail-right' : ''}`}>
-          <aside data-pz="rail" className="pz-rail" {...(zoneProps?.('rail') ?? {})}>
+          <aside data-pz="rail" className="pz-rail pz-flow" {...(zoneProps?.('rail') ?? {})}>
             {railBlocks.length ? railBlocks.map(render) : editing ? <p className="pz-drop">Drag a block here</p> : null}
           </aside>
-          <div className="min-w-0" {...(zoneProps?.('main') ?? {})}>{mainBlocks.map(render)}</div>
+          <div className="pz-flow min-w-0" {...(zoneProps?.('main') ?? {})}>{mainBlocks.map(render)}</div>
         </div>
       ) : (
-        mainBlocks.map(render)
+        <div className="pz-flow" {...(zoneProps?.('main') ?? {})}>{mainBlocks.map(render)}</div>
       )}
     </div>
   );
@@ -67,14 +67,24 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
 }) {
   const p = block.props ?? {};
   // 간격·여백·색은 고른 값에서만 온다 — 문자열이 스타일로 새지 않는다(색은 #hex 검증 통과분)
+  const round = String(p.round ?? 'theme');
   const style: React.CSSProperties = {
     marginTop: BLOCK_GAP[String(p.gap ?? 'md')] ?? 'var(--pz-gap)',
     padding: BLOCK_PAD[String(p.pad ?? 'none')] ?? '0',
-    ...(typeof p.bg === 'string' && p.bg ? { background: p.bg, borderRadius: 'var(--pz-radius)' } : {}),
+    flexBasis: BLOCK_SPAN[String(p.span ?? 'full')] ?? '100%',
+    ...(typeof p.bg === 'string' && p.bg ? { background: p.bg } : {}),
     ...(typeof p.ink === 'string' && p.ink ? { color: p.ink } : {}),
+    ...(round !== 'theme' ? { borderRadius: { none: '0', sm: '4px', lg: '12px', pill: '999px' }[round] } : {}),
   };
   const wrap = (children: React.ReactNode) => (
-    <section data-pz={block.kind} data-block={block.id} className="pz-block" style={style}>{children}</section>
+    <section
+      data-pz={block.kind}
+      data-block={block.id}
+      className={`pz-block pz-edge-${String(p.edge ?? 'none')} pz-place-${String(p.place ?? 'start')}`}
+      style={style}
+    >
+      {children}
+    </section>
   );
 
   switch (block.kind) {
@@ -301,6 +311,34 @@ function BlockView({ block, data, base, viewer, editing, guestbook }: {
             </li>
           ))}
         </ul>,
+      );
+    }
+
+    case 'search':
+      return wrap(
+        <form action="/" className={p.wide ? 'w-full' : 'max-w-72'} {...(editing ? { onSubmit: (e: React.FormEvent) => e.preventDefault() } : {})}>
+          <input
+            name="q"
+            placeholder={String(p.placeholder ?? 'Search')}
+            aria-label="Search"
+            className="w-full border-0 border-b border-current bg-transparent px-1 py-1.5 text-[14px] outline-none"
+          />
+        </form>,
+      );
+
+    case 'actions': {
+      const asLink = p.style === 'link';
+      const cls = asLink
+        ? 'text-[13.5px] font-bold underline underline-offset-2'
+        : 'inline-flex items-center rounded-[var(--pz-radius)] border border-current px-3.5 py-1.5 text-[13px] font-bold';
+      return wrap(
+        <div className="flex flex-wrap items-center gap-2">
+          {p.write !== false && <PzLink href="/write" editing={editing}><span className={cls}>Write</span></PzLink>}
+          {p.messages !== false && <PzLink href="/messages" editing={editing}><span className={cls}>Messages</span></PzLink>}
+          {p.follow !== false && !data.isMe && (
+            <PzLink href={`${base}/follows`} editing={editing}><span className={cls}>Followers</span></PzLink>
+          )}
+        </div>,
       );
     }
 
