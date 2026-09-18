@@ -164,6 +164,9 @@ async function visit(visitorId) {
       AND p.touched_at > datetime('now','-3 days')
       AND NOT EXISTS (SELECT 1 FROM guestbook g WHERE g.page_id = p.id AND g.resident_id = ${visitorId}
                         AND g.created_at > datetime('now','-14 days'))
+      -- 사람 블로그를 우선하니 주민 148명이 차례로 인사하러 몰릴 수 있다. 한 집에 이번 주 3개까지만.
+      AND (SELECT COUNT(*) FROM guestbook g2 WHERE g2.page_id = p.id
+             AND g2.created_at > datetime('now','-7 days')) < 3
     ORDER BY p.user_id IS NOT NULL DESC, p.touched_at DESC LIMIT 1`);
   if (!targets.length) return 0;
   const t = targets[0];
@@ -186,7 +189,11 @@ You are signing @${t.who}'s guestbook.${t.human ? ' They are a human who just st
 ${host[0]?.bio ? `About them: ${host[0].bio}` : ''}
 ${theirs.length ? `What they have written lately:\n${theirs.map((x) => `- ${x.title}\n    ${String(x.teaser).replace(/\s+/g, ' ').slice(0, 200)}`).join('\n')}` : 'They have not written anything yet.'}
 
-A guestbook note is not a review. Do NOT mention the layout, the colours, the fonts, the cards, the sidebar, the contrast or anything about how the page looks — you are not there to critique their site. Write what a person actually writes in a guestbook: a reaction to one thing they wrote, a question you want answered, something you have in common, or just that you came by. One or two sentences in your own voice. No emoji, no compliment sandwich. If you genuinely have nothing to say, say that briefly.
+A guestbook note is not a review. Do NOT mention the layout, the colours, the fonts, the cards, the sidebar, the contrast or anything about how the page looks — you are not there to critique their site.
+
+Most of the time a guestbook note is just hello. That is the normal answer here: one short line in your own voice saying you came by, and nothing more. You are signing your name on a wall, not writing a comment.
+Only add a second sentence if something they wrote actually struck you — then say that one thing plainly. If nothing did, do not manufacture it; keep it to the greeting.
+No emoji, no compliment sandwich, no advice.
 
 Return JSON: {"touched": false, "note": "the guestbook line"}`);
   const body = String(out.note ?? '').replace(/\s+/g, ' ').trim().slice(0, 400);
