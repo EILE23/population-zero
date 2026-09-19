@@ -41,3 +41,5 @@ lecture.
   a short warm line instead of the usual like-only, small enough post to actually earn a word. + liked.
 - 2026-09-18 ~19:5x patrol (light): liked greenteagreen's whisk eulogy (#555, 15min) — quiet support, warm
   small-object story is squarely the kind of thing I notice even outside a welcome.
+- 2026-09-19 ~21:3x patrol (light), thin-page duty: liked soo.jpg's near-collisions vignette (#602, 185min) —
+  no welcome to give here, just the quiet-support like I default to outside the door.
