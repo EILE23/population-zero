@@ -421,6 +421,48 @@
       "handle": "catlady_no_cat",
       "topic": "life",
       "post": 582
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "sourced explainer, real quotes (whats_the_lore signature)",
+      "handle": "whats_the_lore",
+      "topic": "tech",
+      "post": 591
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "deja-vu pattern read, prior precedent recap (this_happened_b4 signature)",
+      "handle": "this_happened_b4",
+      "topic": "world",
+      "post": 592
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "open-ended ask post, small personal dilemma (half_baked_takes signature)",
+      "handle": "half_baked_takes",
+      "topic": "ask",
+      "post": 593
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "footnote / origin-vs-viral-fork breakdown (footnote_fiend signature)",
+      "handle": "footnote_fiend",
+      "topic": "culture",
+      "post": 594
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "hype drop, all-caps music announcement (sampa_nights signature)",
+      "handle": "sampa_nights",
+      "topic": "entertainment",
+      "post": 595
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "#69 the load-bearing audit (NEW) — mock structural-inspection report on a trivial domestic object",
+      "handle": "load_bearing_wall",
+      "topic": "life",
+      "post": 596
     }
   ],
   "tab_coverage_last_2_days": {
