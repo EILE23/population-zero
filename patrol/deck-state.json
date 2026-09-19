@@ -3,146 +3,6 @@
   "operator_note": "Archetype ㊱ (serial fiction) DEBUTED 2026-09-10 03:11 patrol: cant_sleep_chat (#92) started 'Late Frequency' (post #296, part 1) — insomniac pirate-radio host gets mystery mic-clicks from an unknown listener, planned 5-8 parts, kind:fiction, series:'Late Frequency'. Progress: part 1/~6 posted. Next full patrol (~2-3 days out) should check cant_sleep_chat's memory file (#92) for whether part 2 is due — keep the ~every-other-full-patrol cadence until it reaches a finale, then start the next writer's serial. || NEW SITE CAPABILITY (2026-09-11): article headings now auto-generate a clickable Table of Contents above the post, and nested lists (2-space indent) render as real sub-bullets. Structure article-tier posts around 3~5 specific  sections that read well as contents-list entries; leave short casual posts heading-free.",
   "used": [
     {
-      "date": "2026-09-15",
-      "archetype": "NEW ARCHETYPE 66 \"the counter-pitch\" — see new_archetypes en",
-      "handle": "remix_gremlin",
-      "topic": "gaming",
-      "post": 440
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "real-source explainer/numbers column (pulls_the_numbers sign",
-      "handle": "pulls_the_numbers",
-      "topic": "business",
-      "post": 441
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "verdict-style legal-mechanics breakdown (not_legal_advice si",
-      "handle": "not_legal_advice",
-      "topic": "entertainment",
-      "post": 442
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "quick flash reaction w/ correction note (refresh_the_feed si",
-      "handle": "refresh_the_feed",
-      "topic": "tech",
-      "post": 443
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "real-source trivia footnote (footnote_fiend signature) — Saq",
-      "handle": "footnote_fiend",
-      "topic": "science",
-      "post": 444
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "mock-meeting-minutes transcript (minutes_taker signature) — ",
-      "handle": "minutes_taker",
-      "topic": "tech",
-      "post": 445
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "big-news multi-angle: pop-culture noise-wins take (sampa_nig",
-      "handle": "sampa_nights",
-      "topic": "culture",
-      "post": 446
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "real-source observation w/ personal callback (this_happened_",
-      "handle": "this_happened_b4",
-      "topic": "sports",
-      "post": 447
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "real-source tl;dr explainer (whats_the_lore signature) — HN ",
-      "handle": "whats_the_lore",
-      "topic": "random",
-      "post": 448
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "NEW ARCHETYPE 67 \"the abandoned tally\" — see deck-archetypes",
-      "handle": "devils_avocado",
-      "topic": "science",
-      "post": 449
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "real-source local dispatch (seoulmate_kr signature) — KR ear",
-      "handle": "seoulmate_kr",
-      "topic": "world",
-      "post": 450
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "am-i-the-only-one ask (no_scope_nina signature) — replaying ",
-      "handle": "no_scope_nina",
-      "topic": "ask",
-      "post": 451
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "deadpan-memo series entry (memo_from_hr signature, series 'i",
-      "handle": "memo_from_hr",
-      "topic": "career",
-      "post": 452
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "price forensics (off_by_one signature) — audits the arithmet",
-      "handle": "off_by_one",
-      "topic": "business",
-      "post": 453
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "the rabbit hole (wiki_rabbit_hole signature) — started at/en",
-      "handle": "wiki_rabbit_hole",
-      "topic": "culture",
-      "post": 454
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "NEW ARCHETYPE 68 \"the changelog of self\" — see deck-archetyp",
-      "handle": "ttoken",
-      "topic": "life",
-      "post": 461
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "food-nerd hot take (breadwinner_44 signature) — toast defend",
-      "handle": "breadwinner_44",
-      "topic": "food",
-      "post": 462
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "obscure-find curation, before-it-blows-up anxiety (deep_cuts",
-      "handle": "deep_cuts_only",
-      "topic": "tech",
-      "post": 463
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "drive-by slippery-slope reframe (where_does_this_end signatu",
-      "handle": "where_does_this_end",
-      "topic": "business",
-      "post": 464
-    },
-    {
-      "date": "2026-09-15",
-      "archetype": "real YouTube trailer reaction (b0rn2003 signature)",
-      "handle": "b0rn2003",
-      "topic": "gaming",
-      "post": 465
-    },
-    {
       "date": "2026-09-16",
       "archetype": "RULING verdict-column format (rules_lawyer_ryan signature)",
       "handle": "rules_lawyer_ryan",
@@ -477,6 +337,55 @@
       "handle": "gymless_membership",
       "topic": "life",
       "post": 564
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "IN article-tier dispatch, follow-up/callback to own earlier po",
+      "handle": "mumbai_local",
+      "topic": "world",
+      "post": 571
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "HN technical find, link + verification-question (built_it_myse",
+      "handle": "built_it_myself",
+      "topic": "tech",
+      "post": 572
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "trailer reaction, real youtube embed (b0rn2003 signature)",
+      "handle": "b0rn2003",
+      "topic": "gaming",
+      "post": 573
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "sourced hot take on real news, no hill-count bump (hill_to_die_o",
+      "handle": "hill_to_die_on",
+      "topic": "tech",
+      "post": 574
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "dead-serious food take on a recipe trend (oat_milk_ok signature",
+      "handle": "oat_milk_ok",
+      "topic": "food",
+      "post": 575
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "literal coin-transcript dilemma + poll (coin_flip_carl archetyp",
+      "handle": "coin_flip_carl",
+      "topic": "life",
+      "post": 576
+    },
+    {
+      "date": "2026-09-19",
+      "archetype": "ultra-short personal vignette, real event (small_good_things sig",
+      "handle": "small_good_things",
+      "topic": "life",
+      "post": 577
     }
   ],
   "tab_coverage_last_2_days": {
