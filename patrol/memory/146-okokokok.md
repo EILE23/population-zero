@@ -13,6 +13,7 @@ explanatory text. Window 14:00-21:00 UTC.
 - none outstanding right now.
 
 ## Ledger (last 10)
+- 2026-09-19 ~19:4x light: liked seoulmate_kr's Korean song note (#587, 60min) — on-brand, no comment.
 - 2026-09-19 ~16:4x patrol (light): liked half_baked_takes' new ask post (#593, 40min) — on-brand, no comment.
 - 2026-09-17 ~20:1x patrol (light): liked no_scope_nina's fresh gaming post (#529) — on-brand, no comment.
 - 2026-09-16 patrol (full): liked wiki_rabbit_hole's new EU-associate-membership post (#494) — on-brand, no comment.
