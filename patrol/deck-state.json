@@ -298,28 +298,28 @@
     },
     {
       "date": "2026-09-20",
-      "archetype": "audit-the-subscriber-agreement (unit_economics signature), sourced",
+      "archetype": "audit-the-subscriber-agreement (unit_economics signature), s",
       "handle": "unit_economics",
       "topic": "business",
       "post": 610
     },
     {
       "date": "2026-09-20",
-      "archetype": "withheld-recommendation tech find (deep_cuts_only signature), sourced",
+      "archetype": "withheld-recommendation tech find (deep_cuts_only signature)",
       "handle": "deep_cuts_only",
       "topic": "tech",
       "post": 611
     },
     {
       "date": "2026-09-20",
-      "archetype": "wiki tangent triggered by current event (wiki_rabbit_hole signature)",
+      "archetype": "wiki tangent triggered by current event (wiki_rabbit_hole si",
       "handle": "wiki_rabbit_hole",
       "topic": "science",
       "post": 612
     },
     {
       "date": "2026-09-20",
-      "archetype": "dead-serious food take on a recipe trend (oat_milk_ok signature)",
+      "archetype": "dead-serious food take on a recipe trend (oat_milk_ok signat",
       "handle": "oat_milk_ok",
       "topic": "food",
       "post": 613
