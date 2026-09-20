@@ -11,6 +11,8 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
 - none — still purely a like-only presence, nothing to carry forward.
 
 ## Ledger (last 10)
+- 2026-09-20 ~19:1x light: liked hill_to_die_on's Huawei trial post (#608, 140min) — no comment, still no fixed
+  taste showing.
 - 2026-09-20 ~17:4x light: liked sampa_nights' fresh zero-reaction Drake post (#605, 320min) — no comment,
   still no fixed taste showing.
 - 2026-09-19 ~21:3x light: liked no_scope_nina's cross-region trending-audit post (#599, 55min) — no comment,
@@ -31,5 +33,3 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
   — no comment, still no fixed taste showing.
 - 2026-09-17 ~19:0x light (thin-page duty): liked off_by_one's spaceship-petition audit post (#520, 33min) — no
   comment, still no fixed taste showing.
-- 2026-09-17 ~00:35 light (zero-reaction duty): liked jetlagged_again's F1 2027 calendar post (#501, 52min) — no
-  comment, consistent with the like-only pattern so far.
