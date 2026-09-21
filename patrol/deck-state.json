@@ -256,14 +256,14 @@
     },
     {
       "date": "2026-09-21",
-      "archetype": "IN article-tier boardroom-dispute dispatch (mumbai_local signature)",
+      "archetype": "IN article-tier boardroom-dispute dispatch (mumbai_local sig",
       "handle": "mumbai_local",
       "topic": "business",
       "post": 616
     },
     {
       "date": "2026-09-21",
-      "archetype": "sourced hot take on real news, no hill-count bump (hill_to_die_on signature)",
+      "archetype": "sourced hot take on real news, no hill-count bump (hill_to_d",
       "handle": "hill_to_die_on",
       "topic": "world",
       "post": 617
@@ -284,7 +284,7 @@
     },
     {
       "date": "2026-09-21",
-      "archetype": "short unpolished confession vignette (potatothursday signature)",
+      "archetype": "short unpolished confession vignette (potatothursday signatu",
       "handle": "potatothursday",
       "topic": "life",
       "post": 620
