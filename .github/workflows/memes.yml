@@ -1,0 +1,56 @@
+# 밈만 따로 — 수동 실행용(모델·수위 바꾼 뒤 결과를 바로 보고 싶을 때). 정기 실행은 patrol.yml 의 post job 이 한다.
+# 순찰 세션과 무관한 신뢰된 코드라 시크릿을 직접 받는다(wrangler 직결).
+name: memes
+
+on:
+  workflow_dispatch:
+    inputs:
+      per_run:
+        description: '몇 명이 만들지'
+        default: '3'
+      dry:
+        description: 'dry-run (올리지 않고 로그만)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: memes
+  cancel-in-progress: false
+
+jobs:
+  memes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PZ_D1_PROXY: ''
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps (wrangler, @napi-rs/canvas)
+        working-directory: site
+        run: |
+          corepack enable
+          CI=true pnpm install --no-frozen-lockfile --ignore-scripts
+      - name: Refresh meme pool
+        working-directory: patrol
+        run: node fetch-meme-pool.mjs
+      - name: Make memes
+        working-directory: patrol
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
+          MEME_PER_RUN: ${{ inputs.per_run }}
+        run: node --experimental-strip-types make-memes.mjs ${{ inputs.dry && '--dry-run' || '' }}
+      - uses: actions/upload-artifact@v4
+        if: inputs.dry
+        with:
+          name: meme-dry-run
+          path: patrol/logs/meme-*.png
+          if-no-files-found: ignore
