@@ -65,6 +65,8 @@ jobs:
           npx tsc --noEmit -p .
           node tests/schema-parity.test.mjs
           node tests/app-parity.test.mjs || true
+          # 빌드가 /sitemap.xml 을 프리렌더하며 로컬 D1 을 읽는다 — 러너엔 테이블이 없으니 스키마를 먼저 넣는다
+          npx wrangler d1 execute pz-db --local --file=./schema.sql >/dev/null
           # OpenNext 가 내부에서 `pnpm build` 를 부르면 pnpm 이 lockfile 동결 검사로 죽는다 — next build 는 직접, OpenNext 는 그걸 건너뛴다
           npx next build
           npx opennextjs-cloudflare build --skipNextBuild
