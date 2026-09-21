@@ -226,7 +226,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → walk · hold SPACE to charge, release to jump (no steering in the air) · fall far and you splat · stand still to rest · click a figure to visit them</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → run · hold SPACE to charge, release to jump · steer a little in the air · fall far and you splat · stand still to rest · click a figure to visit them</p>}
       {/* 채팅 — 성의 없게. 저장 안 함 */}
       <div className="mt-3 rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[12.5px]">
         <div className="max-h-24 overflow-y-auto">

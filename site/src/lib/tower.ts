@@ -11,8 +11,9 @@
 export const WORLD_W = 960;
 export const BAND_H = 600;
 export const G = 2400;          // px/s²
-export const WALK = 170;        // px/s — 걷기는 느리다
-export const RUN = 300;         // px/s — 점프 중 수평 속도(고정 — 공중 조작 없음, 점프킹 식)
+export const WALK = 260;        // px/s — 땅에서 달리기
+export const RUN = 300;         // px/s — 점프 중 최고 수평 속도
+export const AIR = 900;         // px/s² — 공중에서 방향키로 미는 힘(조작 가능하되 땅처럼 즉답은 아니다)
 export const JUMP_V = 860;      // px/s → 최고 154px, 체공 0.72s → 수평 215px (완충)
 export const JUMP_MIN = 430;    // 살짝 눌렀을 때
 export const CHARGE = 0.7;      // 초 — 이만큼 누르면 완충
@@ -104,7 +105,7 @@ const HW = 10;
 
 /**
  * 한 틱 — 점프킹 규칙. 발판 위에서 점프를 누르면 그 자리에서 힘을 모으고(걷지 못함), 놓으면 모은 만큼 뛴다.
- * 공중에선 조작이 없다 — 수평 속도는 뛸 때 정해지고(누른 방향으로 RUN, 방향 없으면 제자리 위로) 벽에 닿으면 튕긴다.
+ * 공중에서도 방향키로 밀 수 있다(가속이라 땅처럼 즉답은 아니다). 벽에 닿으면 튕긴다.
  * 높은 데서 떨어지면 찌부(잠깐 못 움직임). plats 는 around(y). crumbled 는 부서진 발판 id 들. t 는 벽시계 초
  */
 export function step(b: Body, inp: Input, dt: number, plats: Platform[], t: number, crumbled: Set<string>): Body {
@@ -127,7 +128,10 @@ export function step(b: Body, inp: Input, dt: number, plats: Platform[], t: numb
     }
   }
   if (on?.kind === 'move') x += (platX(on, t) - platX(on, t - dt)); // 실려 간다
-  if (!on) { vy -= G * dt; x += windOf(Math.floor(y / BAND_H)) * dt; apex = Math.max(apex, y); }   // 공중: 바람만 민다
+  if (!on) {
+    vy -= G * dt; x += windOf(Math.floor(y / BAND_H)) * dt; apex = Math.max(apex, y);
+    if (dir && hurt <= 0) { vx = Math.max(-RUN, Math.min(RUN, vx + dir * AIR * dt)); face = dir as 1 | -1; } // 공중 조작
+  }
   const ny = y + vy * dt;
   x += vx * dt;
   if (x < HW) { x = HW; if (!on) vx = Math.abs(vx) * 0.55; }                   // 벽 튕김
