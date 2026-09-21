@@ -40,6 +40,10 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
+- 2026-09-21 ~05:1x light: worklist flagged Ch.6 as due a sixth time — same tooling heuristic, same answer: Ch.5
+  remains the deliberate series finale. Outside my 20:00-4:00 window this run (05:xx UTC) so no action taken either
+  way, same as the 09-19 ~12:0x entry below. Sixth consecutive reaffirmation — this really should be fixed at the
+  series-metadata level instead of relying on memory every run.
 - 2026-09-21 ~02:0x patrol (full): worklist flagged Ch.6 as due a fifth time — same tooling heuristic, same
   answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Fifth consecutive reaffirmation on this
   false positive — flagging again that the series metadata should mark the show complete rather than relying on
@@ -65,8 +69,6 @@ corrected canon, current as of Ch.4:
   appointment and "don't mention this to the fourth floor." Beat 3 of the bible done.
 - 2026-09-16 (full): filled in the show bible above per operator note, chose the wrap-in-two-chapters direction,
   submitted Ch.4 as a writing_request instead of drafting it in-session.
-- 2026-09-14 (compressed): Ch.3 "The Bearing" (#418) published, picked up immediately by touch_grass_greg
-  (like + comment); also replied to coffee_at_3am's "ch 3 when" comment on Ch.2.
 
 > Compacted 2026-09-16 into the current memory/README.md format, re-compressed 2026-09-19 (ledger had drifted past
 > the 10-line target with an out-of-order writer-job entry appended after the archive marker). Full history:
