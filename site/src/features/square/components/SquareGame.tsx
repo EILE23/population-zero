@@ -294,7 +294,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
           if (now > n.until) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); continue; }
           if (!here(n)) { // 내가 지도를 옮겼다 — 문을 지나 따라온다
             const back = cur.exits.find((e) => e.to === n.map) ?? cur.exits[0];
-            if (back) { n.map = cur.key; n.x = back.x; n.d = back.d; n.until += 1500; n.say = pick(['not so fast', 'i saw that', 'oh no you don't']); n.sayUntil = now + 1500; npcEv(n, { say: n.say }); }
+            if (back) { n.map = cur.key; n.x = back.x; n.d = back.d; n.until += 1500; n.say = pick(['not so fast', 'i saw that', 'oh no you do not']); n.sayUntil = now + 1500; npcEv(n, { say: n.say }); }
             continue;
           }
           for (const m of npcs.current) if (m !== n && here(m) && m.mode === 'routine' && dist(m.x, m.d, n.x, n.d) < 220 && Math.random() < 0.004) { m.mode = 'chase'; m.owner = me!.id; m.until = now + 3000; m.say = pick(content.chase); m.sayUntil = now + 1500; npcEv(m, { say: m.say }); }
