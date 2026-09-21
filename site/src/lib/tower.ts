@@ -11,8 +11,12 @@
 export const WORLD_W = 960;
 export const BAND_H = 600;
 export const G = 2400;          // px/s²
-export const RUN = 300;         // px/s
-export const JUMP_V = 860;      // px/s → 최고 154px, 체공 0.72s → 수평 215px
+export const WALK = 170;        // px/s — 걷기는 느리다
+export const RUN = 300;         // px/s — 점프 중 수평 속도(고정 — 공중 조작 없음, 점프킹 식)
+export const JUMP_V = 860;      // px/s → 최고 154px, 체공 0.72s → 수평 215px (완충)
+export const JUMP_MIN = 430;    // 살짝 눌렀을 때
+export const CHARGE = 0.7;      // 초 — 이만큼 누르면 완충
+export const SPLAT = 330;       // px — 이보다 높이서 떨어지면 찌부(잠깐 못 움직임)
 export const REST_EVERY = 5;
 export const HOPS = 6;
 export const SEED = 0x505a; // 영구 탑 — 바꾸면 모두의 탑이 바뀐다. 바꾸지 않는다
@@ -92,25 +96,42 @@ export function windOf(n: number): number {
 export const platX = (p: Platform, t: number) => (p.kind === 'move' ? p.x + (p.amp ?? 0) * Math.sin((p.freq ?? 0.3) * t * 6.2832 + (p.phase ?? 0)) : p.x);
 
 // ── 사람 물리 ──
-export type Pose = 'stand' | 'run' | 'jump' | 'sit' | 'fall' | 'hurt';
-export interface Body { x: number; y: number; vx: number; vy: number; on: Platform | null; face: 1 | -1; idle: number; hurt: number }
+export type Pose = 'stand' | 'run' | 'jump' | 'sit' | 'fall' | 'hurt' | 'charge';
+export interface Body { x: number; y: number; vx: number; vy: number; on: Platform | null; face: 1 | -1; idle: number; hurt: number; charge: number; apex: number }
+/** jump 는 '누르고 있는 중' — 놓는 순간 뛴다 */
 export interface Input { left: boolean; right: boolean; jump: boolean }
 const HW = 10;
 
-/** 한 틱 — plats 는 around(y). crumbled 는 이 클라이언트에서 부서진 발판 id 들. t 는 벽시계 초 */
+/**
+ * 한 틱 — 점프킹 규칙. 발판 위에서 점프를 누르면 그 자리에서 힘을 모으고(걷지 못함), 놓으면 모은 만큼 뛴다.
+ * 공중에선 조작이 없다 — 수평 속도는 뛸 때 정해지고(누른 방향으로 RUN, 방향 없으면 제자리 위로) 벽에 닿으면 튕긴다.
+ * 높은 데서 떨어지면 찌부(잠깐 못 움직임). plats 는 around(y). crumbled 는 부서진 발판 id 들. t 는 벽시계 초
+ */
 export function step(b: Body, inp: Input, dt: number, plats: Platform[], t: number, crumbled: Set<string>): Body {
-  let { x, y, vx, vy, on, face, idle, hurt } = b;
+  let { x, y, vx, vy, on, face, idle, hurt, charge, apex } = b;
   hurt = Math.max(0, hurt - dt);
-  const move = hurt > 0 ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
-  const ice = on?.kind === 'ice';
-  const target = move * RUN;
-  vx = ice ? vx + (target - vx) * Math.min(1, dt * 1.6) : (hurt > 0 ? vx * (1 - dt * 3) : target);
-  if (move) { face = move as 1 | -1; idle = 0; } else idle += dt;
-  if (inp.jump && on && hurt <= 0) { vy = JUMP_V; on = null; idle = 0; }
+  const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+  if (on) {
+    if (hurt > 0) { vx = 0; }
+    else if (inp.jump) { charge = Math.min(CHARGE, charge + dt); vx = 0; idle = 0; if (dir) face = dir as 1 | -1; }
+    else if (charge > 0) {
+      // 놓았다 — 뛴다
+      vy = JUMP_MIN + (JUMP_V - JUMP_MIN) * (charge / CHARGE);
+      vx = dir * RUN; if (dir) face = dir as 1 | -1;
+      on = null; charge = 0; idle = 0; apex = y;
+    } else {
+      const ice = on.kind === 'ice';
+      const target = dir * WALK;
+      vx = ice ? vx + (target - vx) * Math.min(1, dt * 1.6) : target;
+      if (dir) { face = dir as 1 | -1; idle = 0; } else idle += dt;
+    }
+  }
   if (on?.kind === 'move') x += (platX(on, t) - platX(on, t - dt)); // 실려 간다
-  if (!on) { vy -= G * dt; x += windOf(Math.floor(y / BAND_H)) * dt; }   // 공중에선 바람에 밀린다
+  if (!on) { vy -= G * dt; x += windOf(Math.floor(y / BAND_H)) * dt; apex = Math.max(apex, y); }   // 공중: 바람만 민다
   const ny = y + vy * dt;
-  x = Math.max(HW, Math.min(WORLD_W - HW, x + vx * dt));
+  x += vx * dt;
+  if (x < HW) { x = HW; if (!on) vx = Math.abs(vx) * 0.55; }                   // 벽 튕김
+  else if (x > WORLD_W - HW) { x = WORLD_W - HW; if (!on) vx = -Math.abs(vx) * 0.55; }
   let landed: Platform | null = null;
   if (vy <= 0) {
     for (const p of plats) {
@@ -121,15 +142,19 @@ export function step(b: Body, inp: Input, dt: number, plats: Platform[], t: numb
   }
   if (landed) {
     y = landed.y; on = landed;
-    vy = landed.kind === 'spring' ? JUMP_V * 1.55 : 0;
-    if (landed.kind === 'spring') { on = null; idle = 0; }
+    if (landed.kind === 'spring') { vy = JUMP_V * 1.5; on = null; idle = 0; apex = y; }
+    else {
+      vy = 0; vx = 0;
+      if (apex - y > SPLAT) { hurt = 1.1; idle = 0; } // 찌부
+      apex = y;
+    }
   } else {
     y = ny;
-    if (on) { const px = platX(on, t); if (x + HW <= px || x - HW >= px + on.w || crumbled.has(on.id)) on = null; }
+    if (on) { const px = platX(on, t); if (x + HW <= px || x - HW >= px + on.w || crumbled.has(on.id)) { on = null; apex = y; } }
   }
-  return { x, y, vx, vy, on, face, idle, hurt };
+  return { x, y, vx, vy, on, face, idle, hurt, charge, apex };
 }
-export const poseOf = (b: Body): Pose => (b.hurt > 0 ? 'hurt' : !b.on ? (b.vy > 0 ? 'jump' : 'fall') : b.idle > 2.5 ? 'sit' : Math.abs(b.vx) > 20 ? 'run' : 'stand');
+export const poseOf = (b: Body): Pose => (b.hurt > 0 ? 'hurt' : !b.on ? (b.vy > 0 ? 'jump' : 'fall') : b.charge > 0 ? 'charge' : b.idle > 2.5 ? 'sit' : Math.abs(b.vx) > 20 ? 'run' : 'stand');
 
 // ── 주민 NPC ──
 export type Role = 'shover' | 'blocker' | 'pacer' | 'rester';
@@ -180,6 +205,6 @@ export function npcAt(npc: Npc, t: number): { x: number; y: number; pose: Pose; 
 export function shoved(b: Body, n: { x: number; y: number; face: 1 | -1; shove: boolean }): Body | null {
   if (!n.shove || !b.on || Math.abs(b.y - n.y) > 4 || Math.abs(b.x - n.x) > 20 || b.hurt > 0) return null;
   const dir: 1 | -1 = b.x >= n.x ? 1 : -1;
-  return { ...b, vx: dir * 520, vy: 280, on: null, hurt: 0.9, idle: 0 };
+  return { ...b, vx: dir * 420, vy: 260, on: null, hurt: 0.9, idle: 0, charge: 0, apex: b.y };
 }
 export const metres = (y: number) => Math.round(y / 10);

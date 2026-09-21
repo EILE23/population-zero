@@ -20,9 +20,8 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const ws = useRef<WebSocket | null>(null);
-  const body = useRef<Body>({ x: 480, y: 0, vx: 0, vy: 0, on: null, face: 1, idle: 0, hurt: 0 });
+  const body = useRef<Body>({ x: 480, y: 0, vx: 0, vy: 0, on: null, face: 1, idle: 0, hurt: 0, charge: 0, apex: 0 });
   const input = useRef<Input>({ left: false, right: false, jump: false });
-  const jumpEdge = useRef(false);
   const crumbled = useRef(new Map<string, number>()); // id → 밟은 시각
   const others = useRef(new Map<number, Other>());
   const cam = useRef(0);
@@ -76,7 +75,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
       const k = e.key;
       if (k === 'ArrowLeft' || k === 'a' || k === 'A') { input.current.left = down; e.preventDefault(); }
       else if (k === 'ArrowRight' || k === 'd' || k === 'D') { input.current.right = down; e.preventDefault(); }
-      else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { if (down && !jumpEdge.current) input.current.jump = true; jumpEdge.current = down; e.preventDefault(); }
+      else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { input.current.jump = down; e.preventDefault(); } // 누르는 동안 힘을 모으고 놓으면 뛴다
     };
     const kd = key(true), ku = key(false);
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
@@ -109,7 +108,6 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
           const plats = around(body.current.y);
           const dead = new Set([...crumbled.current].filter(([, at]) => t - at > 0.7).map(([id]) => id));
           let b = step(body.current, input.current, DT, plats, t, dead);
-          input.current.jump = false;
           if (b.on?.kind === 'crumble' && !crumbled.current.has(b.on.id)) crumbled.current.set(b.on.id, t);
           // 주민이 민다
           const n0 = Math.floor(b.y / BAND_H);
@@ -224,11 +222,11 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
               <button {...hold('left')} className="size-14 rounded-full bg-ink/70 text-paper text-xl">←</button>
               <button {...hold('right')} className="size-14 rounded-full bg-ink/70 text-paper text-xl">→</button>
             </div>
-            <button onPointerDown={() => { input.current.jump = true; }} className="size-14 rounded-full bg-accent text-paper text-xl">↑</button>
+            <button onPointerDown={() => { input.current.jump = true; }} onPointerUp={() => { input.current.jump = false; }} onPointerLeave={() => { input.current.jump = false; }} className="size-14 rounded-full bg-accent text-paper text-xl">↑</button>
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → move · SPACE jump · stand still to rest · click a figure to visit them</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → walk · hold SPACE to charge, release to jump (no steering in the air) · fall far and you splat · stand still to rest · click a figure to visit them</p>}
       {/* 채팅 — 성의 없게. 저장 안 함 */}
       <div className="mt-3 rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[12.5px]">
         <div className="max-h-24 overflow-y-auto">
@@ -290,6 +288,12 @@ function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, 
       const hand = seg(elbow[0], elbow[1], FORE, a - 1.4);
       line(shoulder, elbow, hand);
     }
+  } else if (pose === 'charge') {
+    // 웅크리고 힘 모으는 중
+    hip = [0, -11]; shoulder = [3, -27]; head = [4, -35];
+    line(hip, shoulder);
+    line(hip, [7, -6], [5, 0]); line(hip, [-5, -6], [-6, 0]);
+    line(shoulder, [-2, -20], [-6, -12]); line(shoulder, [8, -21], [10, -13]);
   } else if (pose === 'jump') {
     // 웅크렸다 펴는 중: 무릎 당김, 팔 위로
     hip = [0, -18]; shoulder = [1, -36]; head = [2, -44];
