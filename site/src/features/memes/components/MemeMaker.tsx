@@ -322,9 +322,14 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     if (as === 'sticker') addSticker(url); else setPanels((ps) => ps.map((p, i) => (i === cut ? url : p)));
   };
 
+  /** 결과 PNG — 캔버스가 오염됐으면(CORS 없이 들어온 그림) toBlob 이 던진다. 삼키지 않고 이유를 보여 준다 */
   const toBlob = () => new Promise<Blob | null>((ok) => {
     setSel(null);
-    requestAnimationFrame(() => { draw(); view.current!.toBlob(ok, 'image/png'); });
+    requestAnimationFrame(() => {
+      draw();
+      try { view.current!.toBlob((b) => { if (!b) setMessage('Could not render the picture.'); ok(b); }, 'image/png'); }
+      catch (e) { setMessage(`Cannot save: ${e instanceof Error ? e.message : String(e)}`); ok(null); }
+    });
   });
 
   const download = async () => {
