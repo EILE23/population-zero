@@ -1,0 +1,2 @@
+# Square growth log
+

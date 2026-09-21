@@ -20,6 +20,7 @@ export interface ResidentLite { id: number; handle: string; line: string }
 export interface Content { shoved: string[]; chase: string[]; giveup: string[]; caught: string[]; angry: string[]; thrown: string[] }
 /** 마을이 지은 소품(순찰이 붙임) — 원래 지도에 얹힌다. 24시간 동안 'new' 표시 */
 export interface ExtraSpot { key: string; map: string; kind: PropKind; name: string; x: number; d: number; act: string; addedAt: string }
+export interface ExtraMap { key: string; name: string; w: number; outdoor: boolean; floor: [string, string]; connect: string; spots: ExtraSpot[]; addedAt: string }
 interface Me { id: number; handle: string }
 interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; z: number; tz: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1; stack: ItemKey[] }
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair';
@@ -35,12 +36,24 @@ const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
-export function SquareGame({ residents, me, tasks, done, content, extra = [] }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[] }) {
+export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [] }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const ws = useRef<WebSocket | null>(null);
-  const maps = useRef<GameMap[]>([...MAPS.map((m) => ({ ...m, spots: [...m.spots, ...extra.filter((e) => e.map === m.key).map((e) => ({ key: e.key, name: e.name, x: e.x, d: e.d, act: e.act as Spot['act'], kind: e.kind }))] })), ...houses(residents.length)]);
-  const fresh = useRef(new Set(extra.filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
+  const maps = useRef<GameMap[]>((() => {
+    // 원래 지도 + 마을이 지은 소품 + 마을이 지은 지도(연결된 지도의 오른쪽 끝 ↔ 새 지도의 왼쪽 끝)
+    const toSpot = (e: ExtraSpot): Spot => ({ key: e.key, name: e.name, x: e.x, d: e.d, act: e.act as Spot['act'], kind: e.kind });
+    const base: GameMap[] = MAPS.map((m) => ({ ...m, spots: [...m.spots, ...extra.filter((e) => e.map === m.key).map(toSpot)], exits: [...m.exits] }));
+    const grown: GameMap[] = extraMaps.map((em) => ({ key: em.key, name: em.name, w: em.w, indoor: !em.outdoor, floor: em.floor, spots: em.spots.map(toSpot), exits: [] }));
+    for (const em of extraMaps) {
+      const from = [...base, ...grown].find((m) => m.key === em.connect) ?? base[0]; const to = grown.find((m) => m.key === em.key)!;
+      const taken = from.exits.filter((e) => e.x > from.w - 40).length; // 같은 쪽에 여러 지도가 붙으면 깊이를 나눠 쓴다
+      from.exits.push({ x: from.w - 10, d: 0.25 + taken * 0.25, to: to.key, toX: 30, toD: 0.5, label: `${to.name} →` });
+      to.exits.push({ x: 10, d: 0.5, to: from.key, toX: from.w - 40, toD: 0.25 + taken * 0.25, label: `← ${from.name}` });
+    }
+    return [...base, ...grown, ...houses(residents.length)];
+  })());
+  const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
   const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });

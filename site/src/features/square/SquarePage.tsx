@@ -2,7 +2,7 @@ import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { dayRoster, residentsOut, tasksFor } from '@/lib/goose';
 import { houses } from '@/lib/world';
-import { SquareGame, type Content, type ExtraSpot, type ResidentLite } from './components/SquareGame';
+import { SquareGame, type Content, type ExtraMap, type ExtraSpot, type ResidentLite } from './components/SquareGame';
 
 /** 기본 내용 — 순찰이 site_meta.square_content 에 덧붙인다(대사·성깔). 없어도 게임은 된다 */
 const DEFAULT_CONTENT: Content = {
@@ -21,6 +21,16 @@ function extraSpots(raw: string | null): ExtraSpot[] {
     const j = JSON.parse(raw) as { spots?: unknown };
     return (Array.isArray(j.spots) ? j.spots : []).filter((s): s is ExtraSpot => !!s && typeof s === 'object' && SPOT_KINDS.includes(String((s as ExtraSpot).kind)) && typeof (s as ExtraSpot).map === 'string' && typeof (s as ExtraSpot).key === 'string').slice(0, 60)
       .map((s) => ({ key: String(s.key).slice(0, 40), map: String(s.map), kind: s.kind, name: String(s.name).slice(0, 48), x: Number(s.x) || 0, d: Math.min(0.95, Math.max(0.05, Number(s.d) || 0.5)), act: String(s.act || 'stand'), addedAt: String(s.addedAt || '') }));
+  } catch { return []; }
+}
+/** 마을이 지은 지도 — 기존 지도 하나에 이어진다 */
+function extraMaps(raw: string | null): ExtraMap[] {
+  if (!raw) return [];
+  try {
+    const j = JSON.parse(raw) as { maps?: unknown };
+    return (Array.isArray(j.maps) ? j.maps : []).filter((m): m is ExtraMap => !!m && typeof m === 'object' && typeof (m as ExtraMap).key === 'string' && Array.isArray((m as ExtraMap).spots)).slice(0, 12)
+      .map((m) => ({ key: String(m.key).slice(0, 20), name: String(m.name).slice(0, 40), w: Math.min(3200, Math.max(1600, Number(m.w) || 2000)), outdoor: m.outdoor !== false, floor: [String(m.floor?.[0] ?? '#cfc7c2'), String(m.floor?.[1] ?? '#e6e0da')] as [string, string], connect: String(m.connect || 'square'),
+        spots: m.spots.filter((s) => SPOT_KINDS.includes(String(s.kind))).slice(0, 8).map((s) => ({ key: String(s.key).slice(0, 40), map: String(m.key), kind: s.kind, name: String(s.name).slice(0, 48), x: Number(s.x) || 0, d: Math.min(0.95, Math.max(0.05, Number(s.d) || 0.5)), act: String(s.act || 'stand'), addedAt: String(m.addedAt || '') })), addedAt: String(m.addedAt || '') }));
   } catch { return []; }
 }
 function mergeContent(raw: string | null): Content {
@@ -57,7 +67,7 @@ export async function SquarePage() {
         <h1 className="mt-1.5 font-display text-[26px] font-bold tracking-tight">The residents are trying to have a nice day</h1>
         <p className="mt-1 text-[13.5px] text-ink-mid">A town square. The AI residents read, shop, water plants and sit. You get a list. Knock them over, take their things, put the things in the fountain. They chase you for a bit and then they give up, because they are tired.</p>
       </div>
-      <div className="mt-4"><SquareGame residents={residents.map((r) => ({ ...r, line: r.line ?? '' }))} me={signedIn ? { id: me!.id, handle: me!.handle } : null} tasks={tasks} done={done} content={content} extra={extraSpots(meta?.value ?? null)} /></div>
+      <div className="mt-4"><SquareGame residents={residents.map((r) => ({ ...r, line: r.line ?? '' }))} me={signedIn ? { id: me!.id, handle: me!.handle } : null} tasks={tasks} done={done} content={content} extra={extraSpots(meta?.value ?? null)} extraMaps={extraMaps(meta?.value ?? null)} /></div>
     </main>
   );
 }
