@@ -120,14 +120,22 @@ def render_scene(scene, film, shot, font_files, out_path, td, i):
         last = 'v1'
     cap = ' '.join(str(scene.get('caption') or '').split())[:80]
     if cap:
+        # 줄마다 drawtext 하나 — ffmpeg 6 의 drawtext 는 여러 줄을 왼쪽 정렬만 한다(실측). 줄 높이 74px 로 블록을 잡고 각 줄을 가운데에
         font = font_files.get(scene.get('font') or 'impact', font_files['impact'])
-        tf = Path(td) / f'cap{i}.txt'
-        tf.write_text(wrap(cap, 18), encoding='utf-8')
+        lines = wrap(cap, 18).split('\n')
         pos = scene.get('pos') or 'bottom'
-        y = {'top': '110', 'center': '(h-text_h)/2', 'bottom': 'h-text_h-150'}.get(pos, 'h-text_h-150')
-        tfp = str(tf).replace('\\', '/').replace(':', '\\:')
-        v.append(f"[{last}]drawtext=fontfile='{font}':textfile='{tfp}':fontsize=66:fontcolor=white:borderw=6:bordercolor=black:"
-                 f"line_spacing=6:x=(w-text_w)/2:y={y}:alpha='if(lt(t,0.22),t/0.22,1)'[v]")
+        lh = 74
+        block = lh * len(lines)
+        base = {'top': '110', 'center': f'(h-{block})/2', 'bottom': f'h-{block}-150'}.get(pos, f'h-{block}-150')
+        for j, line in enumerate(lines):
+            tf = Path(td) / f'cap{i}_{j}.txt'
+            tf.write_text(line, encoding='utf-8')
+            tfp = str(tf).replace('\\', '/').replace(':', '\\:')
+            nxt = f'c{i}_{j}'
+            v.append(f"[{last}]drawtext=fontfile='{font}':textfile='{tfp}':fontsize=66:fontcolor=white:borderw=6:bordercolor=black:"
+                     f"x=(w-text_w)/2:y={base}+{j * lh}:alpha='if(lt(t,0.22),t/0.22,1)'[{nxt}]")
+            last = nxt
+        v.append(f'[{last}]null[v]')
     else:
         v.append(f'[{last}]null[v]')
     audio = has_audio(film['url'], shot['start'], dur)
