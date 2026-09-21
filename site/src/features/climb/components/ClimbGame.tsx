@@ -264,36 +264,36 @@ function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, 
   const D = Math.PI / 2;
   const ph = t * 13; // 걸음 위상
   let hip: readonly number[] = [0, -16], shoulder: readonly number[] = [0, -34], head: readonly number[] = [0, -42], lean = 0;
-  const THIGH = 9, SHIN = 8, UPPER = 8, FORE = 8;
+  const THIGH = 11, SHIN = 10, UPPER = 9, FORE = 9;
   if (pose === 'sit') {
-    hip = [0, -10]; shoulder = [1, -28]; head = [1, -36];
+    hip = [0, -12]; shoulder = [-3, -30]; head = [-4, -38];
     line(hip, shoulder);
-    // 무릎 세우고 앉음
-    const kneeL = [8, -18], kneeR = [10, -16];
-    line(hip, kneeL, [12, -2]); line(hip, kneeR, [15, -1]);
-    line(shoulder, [7, -22], kneeL); line(shoulder, [9, -21], kneeR); // 팔은 무릎 위에
+    // 무릎 세우고 앉음 — 발은 바닥에
+    const kneeL = [9, -18], kneeR = [11, -16];
+    line(hip, kneeL, [10, 0]); line(hip, kneeR, [13, 0]);
+    line(shoulder, [6, -24], kneeL); line(shoulder, [8, -23], kneeR); // 팔은 무릎 위에
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
   if (pose === 'run') {
     const sw = Math.sin(ph), cw = Math.cos(ph);
-    const bob = Math.abs(cw) * 2.2;
-    lean = 0.22;
+    const bob = Math.abs(cw) * 2.6;
+    lean = 0.32;
     hip = [0, -16 - bob]; shoulder = seg(hip[0], hip[1], 18, -D + lean); head = seg(shoulder[0], shoulder[1], 8, -D + lean);
     line(hip, shoulder);
     // 다리: 허벅지 ±40°, 뒤로 간 다리는 무릎이 접힌다
     for (const side of [1, -1]) {
-      const a = D + side * sw * 0.7;
+      const a = D + side * sw * 0.9;
       const knee = seg(hip[0], hip[1], THIGH, a);
-      const bend = side * sw < 0 ? 1.1 : 0.15; // 뒤로 갈 때 접힘
+      const bend = side * sw < 0 ? 1.4 : 0.2; // 뒤로 갈 때 접힘
       const foot = seg(knee[0], knee[1], SHIN, a + bend);
       line(hip, knee, foot);
     }
     // 팔: 다리와 반대 위상, 팔꿈치 90°
     for (const side of [1, -1]) {
-      const a = D - side * sw * 0.8 + lean;
+      const a = D - side * sw * 1.05 + lean;
       const elbow = seg(shoulder[0], shoulder[1], UPPER, a);
-      const hand = seg(elbow[0], elbow[1], FORE, a - 1.4);
+      const hand = seg(elbow[0], elbow[1], FORE, a - 1.7);
       line(shoulder, elbow, hand);
     }
   } else if (pose === 'charge') {
