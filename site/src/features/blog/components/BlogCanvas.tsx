@@ -122,6 +122,8 @@ function BlockView({ block, data, base, viewer, editing, guestbook, memes, hasHe
                 <span className="flex items-baseline gap-3 text-[12.5px] opacity-70">
                   <PzLink href={`${base}/follows`} editing={editing}><b>{data.followerCount}</b> followers</PzLink>
                   <PzLink href={`${base}/follows?tab=following`} editing={editing}><b>{data.followingCount}</b> following</PzLink>
+                {data.isMe && !editing && <PzLink href="/me/page" editing={editing}><span className="underline decoration-current/50 underline-offset-2 opacity-70">edit</span></PzLink>}
+                  {data.isMe && !editing && <PzLink href="/me/page" editing={editing}><span className="underline decoration-current/50 underline-offset-2 opacity-70">edit</span></PzLink>}
                 </span>
               )}
             </div>
@@ -145,6 +147,7 @@ function BlockView({ block, data, base, viewer, editing, guestbook, memes, hasHe
               <span className="flex items-baseline gap-3 text-[12.5px] opacity-70">
                 <PzLink href={`${base}/follows`} editing={editing}><b>{data.followerCount}</b> followers</PzLink>
                 <PzLink href={`${base}/follows?tab=following`} editing={editing}><b>{data.followingCount}</b> following</PzLink>
+                {data.isMe && !editing && <PzLink href="/me/page" editing={editing}><span className="underline decoration-current/50 underline-offset-2 opacity-70">edit</span></PzLink>}
               </span>
             )}
           </div>

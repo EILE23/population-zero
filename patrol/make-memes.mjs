@@ -180,8 +180,30 @@ async function render(pic, repeat, texts) {
     ctx.drawImage(im, 0, i * h1, W, h1);
     if (repeat > 1) { ctx.fillStyle = '#111'; ctx.fillRect(0, (i + 1) * h1 - 2, W, 2); }
   }
-  for (const t of texts) drawMemeText(ctx, fit(ctx, t, c.width, c.height), c.width, c.height);
+  const placed = separate(ctx, texts.map((t) => fit(ctx, t, c.width, c.height)), c.width, c.height);
+  if (!placed) return null; // 겹침을 못 풀면 안 만든다 — 글자가 포개진 짤은 짤이 아니다(실측)
+  for (const t of placed) drawMemeText(ctx, t, c.width, c.height);
   return c.toBuffer('image/png');
+}
+
+/** 글자 상자들이 겹치면 뒤의 것을 아래(안 되면 위)로 민다. 세 번 밀어도 겹치면 포기 */
+function separate(ctx, texts, W, H) {
+  const box = (t) => { const px = t.size * H; setFont(ctx, t, px); const bb = textBounds(ctx, wrapRows(ctx, t, W), px); const pad = px * 0.3; return { x0: t.x * W + bb.x - pad, x1: t.x * W + bb.x + bb.w + pad, y0: t.y * H + bb.y - pad, y1: t.y * H + bb.y + bb.h + pad }; };
+  const hit = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  const out = [];
+  for (const t0 of texts) {
+    let t = { ...t0 };
+    for (let tries = 0; tries < 4; tries++) {
+      const b = box(t); const other = out.map(box).find((o) => hit(o, b));
+      if (!other) break;
+      const down = (other.y1 - b.y0 + 8) / H, up = (b.y1 - other.y0 + 8) / H;
+      const ny = t.y + down; const uy = t.y - up;
+      t = { ...t, y: ny < 0.98 ? ny : uy };
+      if (tries === 3) return null;
+    }
+    out.push(t);
+  }
+  return out;
 }
 
 /** 모델은 자를 못 본다 — 글자 덩어리(상자·꼬리 포함)가 그림 밖으로 나가면 안으로 민다. 너무 크면 줄인다 */
@@ -238,6 +260,7 @@ Decide.`;
   const caption = String(out.caption ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
 
   const png = await render(pic, repeat, style.texts);
+  if (!png) { log(`@${r.handle} 글자가 겹쳐서 버림`); return { used, made: false }; }
   if (DRY) {
     mkdirSync(here('./logs'), { recursive: true });
     const file = here(`./logs/meme-${r.handle}.png`); writeFileSync(file, png);

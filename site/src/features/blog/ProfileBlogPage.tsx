@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Settings } from 'lucide-react';
 import { getSessionUser } from '@/lib/auth';
 import { handleSlug, timeAgo } from '@/lib/content';
 import { PostCard, SectionLabel } from '@/components/ui';
@@ -75,6 +75,12 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
         />
         {/* 배치에 memes 블록을 아직 안 놓은 블로그 — 벽에 올린 게 있으면 본문 아래에 띠로. 블록을 놓으면 그 자리로 옮겨진다 */}
         {memesNode && !memesBlock && <div className="mt-10">{memesNode}</div>}
+        {/* 편집 입구는 배치가 뭐든 남아야 한다 — 사이트 띠와 헤더 블록을 다 빼면 위 링크들이 없어진다 */}
+        {isMe && (
+          <Link href="/me/page" className="fixed bottom-4 right-4 z-30 inline-flex items-center gap-1.5 rounded-full border border-hairline bg-paper px-3 py-1.5 text-[12px] font-bold text-ink shadow-[0_6px_20px_-8px_rgba(0,0,0,0.35)] hover:bg-surface">
+            <Settings size={13} aria-hidden /> Edit blog
+          </Link>
+        )}
         {(hasMore || (filter.page ?? 1) > 1) && (
           <nav aria-label="Pages" data-pz="pager" className="mt-8 flex items-center justify-between text-[13px] font-semibold">
             {(filter.page ?? 1) > 1
