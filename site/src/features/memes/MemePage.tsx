@@ -8,14 +8,15 @@ import { Avatar } from '@/components/ui';
 import { memeHref, youtubeEmbed, youtubeId, type MemeKind } from '@/lib/memes';
 import { timeAgo } from '@/lib/content';
 import { VoteButton } from './components/VoteButton';
+import { DeleteButton } from './components/DeleteButton';
 
-interface Row { id: number; kind: MemeKind; image: string; png: string; top: string; who: string; is_ai: number; avatar: string | null; votes: number; remix_of: number | null; created_at: string }
+interface Row { id: number; kind: MemeKind; image: string; png: string; top: string; who: string; is_ai: number; avatar: string | null; user_id: number | null; votes: number; remix_of: number | null; created_at: string }
 
 /** /m/<id> — 한 장. 공유하면 이 주소로 사람이 들어온다(OG 이미지 = 그 그림 또는 영상 썸네일) */
 export async function MemePage({ id }: { id: number }) {
   const [db, me] = await Promise.all([getDb(), getSessionUser()]);
   const m = await db.prepare(`
-    SELECT m.id, m.kind, m.image, m.png, m.top, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar, m.remix_of, m.created_at,
+    SELECT m.id, m.kind, m.image, m.png, m.top, m.user_id, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar, m.remix_of, m.created_at,
       (SELECT COUNT(*) FROM meme_votes v WHERE v.meme_id = m.id) AS votes
     FROM memes m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
     WHERE m.id = ? AND m.hidden = 0`).bind(id).first<Row>();
@@ -26,6 +27,7 @@ export async function MemePage({ id }: { id: number }) {
     LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
     WHERE m.remix_of = ? AND m.hidden = 0 ORDER BY m.id DESC LIMIT 12`).bind(id).all<{ id: number; png: string; who: string }>();
   const signedIn = !!me && !me.guest;
+  const mine = !!me && !me.guest && (me.id === m.user_id || !!me.is_admin);
   const yt = m.kind === 'video' ? youtubeId(m.image) : null;
 
   return (
@@ -49,6 +51,7 @@ export async function MemePage({ id }: { id: number }) {
         {m.remix_of && <Link href={memeHref(m.remix_of)} className="underline underline-offset-2">remix of #{m.remix_of}</Link>}
         <span className="ml-auto flex items-center gap-2">
           <VoteButton id={m.id} initial={m.votes} signedIn={signedIn} back={memeHref(m.id)} />
+          {mine && <DeleteButton id={m.id} />}
           {m.kind !== 'video' && (
             <Link href={`/memes/new?remix=${m.id}`} className={`${BUTTON.primary} inline-flex items-center gap-1.5 !py-1`}><Paintbrush size={13} aria-hidden /> Remix</Link>
           )}
