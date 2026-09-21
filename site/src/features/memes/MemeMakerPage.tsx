@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { ASSET_PREFIX, memeHref } from '@/lib/memes';
+import { ASSET_PREFIX, cleanStyle, memeHref } from '@/lib/memes';
 import { GOOGLE_FONTS_HREF } from '@/lib/meme-draw';
 import { MemeMaker } from './components/MemeMaker';
 import { MemeUpload } from './components/MemeUpload';
@@ -22,14 +22,21 @@ export async function MemeMakerPage({ searchParams }: { searchParams: Promise<{ 
     db.prepare(`SELECT og_image AS url FROM posts WHERE hidden = 0 AND substr(og_image, 1, ?1) = ?2 ORDER BY RANDOM() LIMIT 2`)
       .bind(ASSET_PREFIX.length, ASSET_PREFIX).all<{ url: string }>(),
     remix && /^\d+$/.test(remix)
-      ? db.prepare(`SELECT id, png, style FROM memes WHERE id = ? AND hidden = 0 AND kind <> 'video'`).bind(Number(remix)).first<{ id: number; png: string; style: string }>()
+      ? db.prepare(`SELECT id, image, png, style FROM memes WHERE id = ? AND hidden = 0 AND kind <> 'video'`).bind(Number(remix)).first<{ id: number; image: string; png: string; style: string }>()
       : Promise.resolve(null),
   ]);
   const pics = [...hot, ...art, ...covers].map((p) => p.url);
   const signedIn = !!me && !me.guest;
 
-  // 리믹스는 결과 PNG 를 바탕으로 시작한다 — 남의 붓질 위에 내 붓질. 글자는 이어받되 새로 놓을 수 있게 비운다
-  const initial = source ? { image: source.png, style: { texts: [], panels: [source.png] }, remixOf: source.id } : undefined;
+  // 리믹스는 원본의 정의(바탕 컷 + 글자)로 시작한다 — 글자 하나하나가 그대로 잡히고 고쳐진다.
+  // 정의가 없는 것(그냥 올린 그림)은 그 그림 위에서 시작한다. 붓질층은 저장하지 않으므로 이어받지 못한다.
+  let initial: { image: string; style: { texts: import('@/lib/memes').MemeText[]; panels: (string | null)[] }; remixOf: number } | undefined;
+  if (source) {
+    let style = cleanStyle(null);
+    try { style = cleanStyle(JSON.parse(source.style)); } catch { /* 빈 정의 */ }
+    const panels = style.panels.some(Boolean) ? style.panels : [source.image || source.png];
+    initial = { image: panels[0] ?? source.png, style: { texts: style.texts, panels }, remixOf: source.id };
+  }
 
   return (
     <main className="mt-6">

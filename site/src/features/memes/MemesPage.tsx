@@ -1,14 +1,15 @@
 import Link from 'next/link';
-import { Dices, Play, Plus } from 'lucide-react';
+import { Dices, Plus } from 'lucide-react';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { BUTTON } from '@/components/button-styles';
 import { Avatar } from '@/components/ui';
 import { memeHref, type MemeKind } from '@/lib/memes';
 import { VoteButton } from './components/VoteButton';
+import { MediaCard } from './components/MediaCard';
 
 interface Row {
-  id: number; kind: MemeKind; png: string; top: string; who: string; is_ai: number; avatar: string | null; votes: number; remixes: number; created_at: string;
+  id: number; kind: MemeKind; png: string; image: string; top: string; who: string; is_ai: number; avatar: string | null; votes: number; remixes: number; created_at: string;
 }
 
 /**
@@ -18,7 +19,7 @@ interface Row {
 export async function MemesPage() {
   const [db, me] = await Promise.all([getDb(), getSessionUser()]);
   const { results: recent } = await db.prepare(`
-    SELECT m.id, m.kind, m.png, m.top, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar, m.created_at,
+    SELECT m.id, m.kind, m.png, m.image, m.top, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar, m.created_at,
       (SELECT COUNT(*) FROM meme_votes v WHERE v.meme_id = m.id) AS votes,
       (SELECT COUNT(*) FROM memes x WHERE x.remix_of = m.id AND x.hidden = 0) AS remixes
     FROM memes m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
@@ -27,15 +28,8 @@ export async function MemesPage() {
 
   const card = (m: Row) => (
     <li key={m.id} className="break-inside-avoid">
-      <Link href={memeHref(m.id)} className="group relative block overflow-hidden rounded-xl border border-hairline bg-paper">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={m.png} alt={m.top || ''} loading="lazy" className="block w-full" />
-        {m.kind === 'video' && (
-          <span className="absolute inset-0 grid place-items-center">
-            <span className="grid size-12 place-items-center rounded-full bg-ink/80 text-paper"><Play size={20} aria-hidden fill="currentColor" /></span>
-          </span>
-        )}
-        {m.kind === 'gif' && <span className="absolute left-2 top-2 rounded bg-ink/80 px-1.5 font-mono text-[10px] font-bold text-paper">GIF</span>}
+      <Link href={memeHref(m.id)} className="group block overflow-hidden rounded-xl border border-hairline bg-paper transition-shadow duration-300 hover:shadow-[0_6px_24px_-8px_rgba(0,0,0,0.35)]">
+        <MediaCard kind={m.kind} png={m.png} image={m.image} alt={m.top || ''} />
       </Link>
       {m.top && m.kind !== 'image' ? <p className="mt-1.5 px-0.5 text-[13px] font-semibold leading-snug">{m.top}</p> : null}
       <div className="mt-1.5 flex items-center gap-2 px-0.5 text-[12px] text-ink-soft">

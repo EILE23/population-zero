@@ -65,9 +65,23 @@ Return JSON:
  "texts": [{"t": "...", "x": 0.5, "y": 0.1, "size": 0.08, "font": "impact"|"comic"|"hand"|"serif", "bg": "none"|"box"|"bubble"|"badge", "color": "#ffffff", "stroke": "#000000", "rot": 0}]}`;
 
 // 모델: GEMINI_API_KEY 가 있으면 Gemini(무료 티어, 안전 필터를 '높음만 차단'으로 내려 병맛이 살아남는다), 없으면 OpenAI.
-const GEMINI = process.env.GEMINI_API_KEY ? (process.env.MEME_MODEL ?? 'gemini-2.5-flash') : null;
+// 모델 이름은 박아 두지 않는다 — 'gemini-2.5-flash' 가 404 를 냈다(실측). 목록에서 제일 새 flash 를 고른다. MEME_MODEL 로 고정 가능.
+let GEMINI = process.env.GEMINI_API_KEY ? (process.env.MEME_MODEL ?? 'auto') : null;
+async function pickGemini() {
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY } });
+  if (!res.ok) throw new Error(`gemini models ${res.status}`);
+  const { models = [] } = await res.json();
+  const ver = (n) => Number((n.match(/gemini-(\d+(?:\.\d+)?)/) ?? [])[1] ?? 0);
+  const ok = models.map((m) => m.name.replace(/^models\//, ''))
+    .filter((n) => /^gemini-\d/.test(n) && /flash/.test(n) && !/lite|8b|image|tts|live|audio|preview|exp|thinking|robotics|embedding/.test(n))
+    .filter((n, i, a) => models.find((m) => m.name === `models/${n}`)?.supportedGenerationMethods?.includes('generateContent') && a.indexOf(n) === i)
+    .sort((a, b) => ver(b) - ver(a) || a.length - b.length);
+  if (!ok.length) throw new Error('no gemini flash model in list');
+  return ok[0];
+}
 async function ask(user) {
   if (GEMINI) {
+    if (GEMINI === 'auto') { GEMINI = await pickGemini(); log(`gemini 모델: ${GEMINI}`); }
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI}:generateContent`, {
       method: 'POST', headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({

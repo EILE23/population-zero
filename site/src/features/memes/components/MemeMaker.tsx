@@ -299,7 +299,8 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
         </div>
 
         {/* ── 캔버스 — 무대 높이는 고정, 그림은 그 안에 맞춰 넣는다. 그림을 바꿀 때마다 도화지가 늘었다 줄었다 하면 아래 단추들이 뛰어다닌다 ── */}
-        <div className="mt-3 grid h-[min(70vh,640px)] place-items-center overflow-hidden rounded-xl border border-hairline bg-[#e9e6e8]">
+        {/* flex 여야 한다 — grid 에선 max-h-full 이 행(내용 높이)에 대해 풀려 세로로 긴 그림이 잘렸다(실측) */}
+        <div className="mt-3 flex h-[min(70vh,640px)] items-center justify-center overflow-hidden rounded-xl border border-hairline bg-[#e9e6e8]">
           <canvas
             ref={view} width={size.w} height={size.h}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
