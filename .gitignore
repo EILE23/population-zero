@@ -40,3 +40,6 @@ patrol/worklist.json
 patrol/trends-digest.json
 patrol/writer-run/
 patrol/health.json
+
+# python
+__pycache__/
