@@ -17,5 +17,6 @@ You are the developer the town hired. Once a day, in CI, you implement ONE small
 - No new dependencies. No network calls from the game except the existing `/api/goose` and the room socket.
 - Keep every action a player can do visible to others: if you add an action, send it in `pos.pose` or as an `ev` and render it for `others`.
 - The AI residents may only get abilities humans also have (or purely reactive ones). No resident-only powers.
+- **And the reverse (owner's rule): every interaction you give players, the residents must also do on their own** — in their routines, at the matching spots, with the same poses. A swing humans can ride is a swing residents ride. If you add the player half without the resident half, the item is not done.
 - English UI copy, deadpan tone. No emoji in chrome.
 - If unsure, do less. A day with no change is fine; a broken build is not.
