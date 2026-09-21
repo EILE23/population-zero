@@ -90,6 +90,8 @@ export const MAPS: GameMap[] = [
 export const MAP_BY_KEY = new Map(MAPS.map((m) => [m.key, m]));
 export const WATER_SPOTS = ['fountain', 'pond', 'pond2'];
 export const BREAKABLE: PropKind[] = ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe', 'bin', 'tv', 'table', 'shelf', 'plant', 'swing', 'sofa'];
+/** 앉거나 누울 수 있는 것 — 사람도 주민도 여기서 'sit' 자세(사실은 눕는 자세)를 쓴다 */
+export const SITTABLE: PropKind[] = ['bench', 'sofa', 'bed', 'swing'];
 
 /** 집 안 지도 — 세 집은 주인이 있다(핸들 씨앗으로 정한 주민). 주인이 집에 있을 때 들어가면 화를 낸다 */
 export function houses(residents: number): GameMap[] {

@@ -5,7 +5,7 @@ import { figure, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY } from '@/lib/pond';
 import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, GRAB_R, ITEMS, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, type ItemKey, type Quest, type Task } from '@/lib/goose';
-import { BREAKABLE, houses, jobOf, MAPS, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
+import { BREAKABLE, houses, jobOf, MAPS, SITTABLE, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
 /**
  * Square — 화면. Climb 과 같은 졸라맨·점프, 2.5D, 지도 여러 장(광장·시장 거리·공원·집 안). 사람이 AI 주민을 괴롭힌다.
@@ -55,7 +55,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick', sitting: false });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const [questList, setQuestList] = useState<Quest[]>([]);
@@ -227,7 +227,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
       const knock = (byName: string, line: string, fine = 0) => {
-        b.hurt = 1.2; b.vz = 0; b.z = 0;
+        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false;
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
         b.stack = []; say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
@@ -266,9 +266,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (!spectator && b.hurt <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
         const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
-        if (dx || dd) { b.x = Math.max(20, Math.min(cur.w - 20, b.x + dx * PLAYER_SPEED * slow * dt)); b.d = Math.max(0, Math.min(1, b.d + dd * 1.5 * dt)); if (dx) b.face = dx as 1 | -1; }
-        b.moving = !!(dx || dd);
-        if (i.jump && !jumpWas && b.z === 0) b.vz = 560;
+        if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
+        else {
+          if (dx || dd) { b.x = Math.max(20, Math.min(cur.w - 20, b.x + dx * PLAYER_SPEED * slow * dt)); b.d = Math.max(0, Math.min(1, b.d + dd * 1.5 * dt)); if (dx) b.face = dx as 1 | -1; }
+          b.moving = !!(dx || dd);
+          if (i.jump && !jumpWas && b.z === 0) b.vz = 560;
+        }
         if (b.z > 0 || b.vz > 0) { b.vz -= 1900 * dt; b.z = Math.max(0, b.z + b.vz * dt); if (b.z === 0) b.vz = 0; }
         const ex = cur.exits.find((e) => dist(b.x, b.d, e.x, e.d) < 60);
         const touching = cur.exits.find((e) => dist(b.x, b.d, e.x, e.d) < 26);
@@ -300,13 +303,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             else {
               const n = npcs.current.filter((p) => here(p) && p.item && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
               if (n && n.item) { b.stack.push(n.item); n.item = null; n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
+              else { const seat = cur.spots.find((s) => SITTABLE.includes(s.kind) && dist(b.x, b.d, s.x, s.d) < 90); if (seat) { b.sitting = !b.sitting; if (b.sitting) { b.x = seat.x; b.d = seat.d; } } }
             }
             if (b.stack.length >= 3) void complete('collect3');
           }
         }
         jumpWas = i.jump; grabWas = i.grab; shoveWas = i.shove; kickWas = i.kick; talkWas = i.talk;
       }
-      if (!spectator && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), s: b.stack.join(','), pose: b.hurt > 0 ? 'hurt' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', face: b.face, m: cur.key })); }
+      if (!spectator && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), s: b.stack.join(','), pose: b.hurt > 0 ? 'hurt' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.sitting ? 'sit' : b.moving ? 'run' : 'stand', face: b.face, m: cur.key })); }
       // ── 주민 ──
       let chasing = -1; const mineOff: Npc[] = [];
       for (const n of npcs.current) {
@@ -431,7 +435,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (o.z > 2) { ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(fx, dy(o.d) * s, 12 * fs, 4 * fs, 0, 0, 6.29); ctx.fill(); }
           if (o.status === 'rest') figure(ctx, fx, fy, fs, 'sit', o.face, col, t, false);
           else if (o.pose === 'hurt') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-o.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, col, t, false); ctx.restore(); }
-          else figure(ctx, fx, fy, fs, (['run', 'jump', 'punch', 'kick'].includes(o.pose) ? o.pose : 'stand') as FigPose, o.face, col, t, false);
+          else figure(ctx, fx, fy, fs, (['run', 'jump', 'punch', 'kick', 'sit'].includes(o.pose) ? o.pose : 'stand') as FigPose, o.face, col, t, false);
           o.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
           name(ctx, fx, fy - (58 + o.stack.length * 12) * fs, s, o.handle);
         } });
@@ -440,7 +444,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         const fx = sx(b.x), fy = (dy(b.d) - b.z) * s, fs = ds(b.d) * s;
         if (b.z > 0) { ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(fx, dy(b.d) * s, 12 * fs, 4 * fs, 0, 0, 6.29); ctx.fill(); }
         if (b.hurt > 0) { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-b.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, figureColor(me!.id), t, false); ctx.restore(); }
-        else figure(ctx, fx, fy, fs, b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', b.face, figureColor(me!.id), t, false);
+        else figure(ctx, fx, fy, fs, b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.sitting ? 'sit' : b.moving ? 'run' : 'stand', b.face, figureColor(me!.id), t, false);
         b.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
         name(ctx, fx, fy - (58 + b.stack.length * 12) * fs, s, me!.handle);
       } });
@@ -482,7 +486,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch · Z kick (jump kick in the air, breaks things) · C grab / take / drop · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things; the police fine you; other people can hit you too</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch · Z kick (jump kick in the air, breaks things) · C grab / take / drop, or sit on a bench, sofa, bed or swing with empty hands (move to stand up) · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things; the police fine you; other people can hit you too</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
         {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}{questList.map((q) => <li key={q.key} className={doneList.includes(q.key) ? 'line-through opacity-50' : 'text-accent-deep'}>☐ {q.text} <span className="font-mono text-[10.5px] text-ink-soft">asked · +{q.coins}</span></li>)}</ul>}
