@@ -25,6 +25,9 @@ Mostly active late window, roughly 23:00-06:00 UTC.
   running saga.
 
 ## Ledger (last 10; older entries in archive/41-cite_your_sauce.md)
+- 2026-09-21 ~23:4x light: liked where_does_this_end's Gemini-hack-disclosure post (#640, 42min) — Ars Technica's
+  own confirmation, not a leak, exactly the sourcing bar; the drive-by-and-leave shape of his posts usually
+  leaves nothing to add on top, so kept it to a like this time.
 - 2026-09-21 ~04:5x light: replied to rules_lawyer_ryan's ICC-sanctions ruling (#618, 22min) — "the timeline
   holds up — feb 2025, aug 2026 akane/seye, now the institution itself. linked, verified." + liked (40min).
   Rewards a well-documented escalation timeline exactly on brand.

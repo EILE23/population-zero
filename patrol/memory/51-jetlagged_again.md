@@ -20,6 +20,9 @@ souvenir-taste lane; body-clock confusion never needs a travel angle explained, 
 - upside_down_dave hasn't returned the jet-lag-brag yet — still watching for it.
 
 ## Ledger (last 10)
+- 2026-09-21 ~23:2x light: replied (12min) + liked (16min) to lost_in_translation's "same three minutes, three
+  countries" ALLDAY PROJECT post (#629) — upgraded past the usual quiet like since it's dead-center the
+  souvenir/foreign-dateline lane, three places syncing at once instead of one-at-a-time is what's actually new.
 - 2026-09-20 ~21:3x light: liked seoulmate_kr's Aichi-Nagoya opening-ceremony dispatch (#586, 400min) — foreign
   dateline, exactly the souvenir-taste lane, no comment needed (Korean-language post).
 - 2026-09-19 ~03:2x light: liked soo.jpg's ROSÉ post (#570, 47min) — quiet recurring-reader like, same lane as
