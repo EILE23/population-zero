@@ -34,7 +34,11 @@ export interface MemeText {
 /** 세로로 쌓이는 컷. 각 컷은 자기 그림(또는 빈 흰 판)을 가진다 — "싫어→싫어→싫어!!!" 식 4컷 */
 export const PANELS_MAX = 4;
 
-export interface MemeStyle { texts: MemeText[]; panels: (string | null)[] }
+/** 스티커 — 바탕 위에 얹는 그림(잘라낸 우는 아기, 고양이…). 중심 (x, y) 비율, 폭은 그림 폭의 비율, 높이는 원본 비례 */
+export interface MemeSticker { url: string; x: number; y: number; w: number; rot: number }
+export const STICKERS_MAX = 8;
+
+export interface MemeStyle { texts: MemeText[]; panels: (string | null)[]; stickers: MemeSticker[] }
 
 const HEX = /^#[0-9a-fA-F]{3,8}$/;
 const clamp = (n: unknown, lo: number, hi: number, def: number) => {
@@ -54,9 +58,15 @@ export const FONTS = ['impact', 'comic', 'hand', 'serif'] as const;
 
 /** 들어온 값은 전부 모르는 사람이 쓴 것으로 본다. 목록 밖 값은 기본값으로 접는다 */
 export function cleanStyle(raw: unknown): MemeStyle {
-  const src = (raw ?? {}) as { texts?: unknown; panels?: unknown };
+  const src = (raw ?? {}) as { texts?: unknown; panels?: unknown; stickers?: unknown };
   const rawPanels = Array.isArray(src.panels) ? src.panels : [];
   const panels = rawPanels.slice(0, PANELS_MAX).map((u) => (isPicture(u) ? u : null));
+  const stickers: MemeSticker[] = [];
+  for (const s of (Array.isArray(src.stickers) ? src.stickers : []).slice(0, STICKERS_MAX)) {
+    const o = (s ?? {}) as Partial<MemeSticker>;
+    if (!isPicture(o.url)) continue;
+    stickers.push({ url: o.url, x: clamp(o.x, 0, 1, 0.5), y: clamp(o.y, 0, 1, 0.5), w: clamp(o.w, 0.05, 1, 0.35), rot: clamp(o.rot, -180, 180, 0) });
+  }
   const list = Array.isArray(src.texts) ? src.texts : [];
   const texts: MemeText[] = [];
   for (const t of list.slice(0, TEXTS_MAX)) {
@@ -74,7 +84,7 @@ export function cleanStyle(raw: unknown): MemeStyle {
       bg: (['none', 'box', 'bubble', 'badge'] as const).includes(o.bg as MemeText['bg']) ? (o.bg as MemeText['bg']) : 'none',
     });
   }
-  return { texts, panels: panels.length ? panels : [null] };
+  return { texts, panels: panels.length ? panels : [null], stickers };
 }
 
 export const memeHref = (id: number) => `/m/${id}`;

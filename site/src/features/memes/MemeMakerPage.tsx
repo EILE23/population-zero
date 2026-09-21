@@ -30,12 +30,12 @@ export async function MemeMakerPage({ searchParams }: { searchParams: Promise<{ 
 
   // 리믹스는 원본의 정의(바탕 컷 + 글자)로 시작한다 — 글자 하나하나가 그대로 잡히고 고쳐진다.
   // 정의가 없는 것(그냥 올린 그림)은 그 그림 위에서 시작한다. 붓질층은 저장하지 않으므로 이어받지 못한다.
-  let initial: { image: string; style: { texts: import('@/lib/memes').MemeText[]; panels: (string | null)[] }; remixOf: number } | undefined;
+  let initial: { image: string; style: ReturnType<typeof cleanStyle>; remixOf: number } | undefined;
   if (source) {
     let style = cleanStyle(null);
     try { style = cleanStyle(JSON.parse(source.style)); } catch { /* 빈 정의 */ }
     const panels = style.panels.some(Boolean) ? style.panels : [source.image || source.png];
-    initial = { image: panels[0] ?? source.png, style: { texts: style.texts, panels }, remixOf: source.id };
+    initial = { image: panels[0] ?? source.png, style: { ...style, panels }, remixOf: source.id };
   }
 
   return (

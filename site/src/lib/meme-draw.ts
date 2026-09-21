@@ -1,4 +1,4 @@
-import type { MemeText } from './memes';
+import type { MemeSticker, MemeText } from './memes';
 
 /**
  * 짤 글자 그리기 — 브라우저 캔버스와 순찰(@napi-rs/canvas)이 같은 코드로 찍는다.
@@ -115,6 +115,41 @@ export function drawMemeText(ctx: Ctx, t: MemeText, W: number, H: number, select
     ctx.setLineDash([]);
   }
   ctx.restore();
+}
+
+type Pic = CanvasImageSource & { width: number; height: number };
+export const HANDLE = 14; // 스티커 크기 손잡이(오른쪽 아래) 한 변, px
+
+/** 스티커 — 바탕 위, 붓질 아래. 선택 표시와 크기 손잡이는 편집기만 켠다 */
+export function drawSticker(ctx: Ctx, s: MemeSticker, im: Pic, W: number, H: number, selected = false) {
+  const w = s.w * W, h = w * im.height / im.width;
+  ctx.save();
+  ctx.translate(s.x * W, s.y * H); ctx.rotate((s.rot * Math.PI) / 180);
+  ctx.drawImage(im, -w / 2, -h / 2, w, h);
+  if (selected) {
+    ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.strokeStyle = '#ff2d55';
+    ctx.strokeRect(-w / 2, -h / 2, w, h); ctx.setLineDash([]);
+    ctx.fillStyle = '#ff2d55'; ctx.fillRect(w / 2 - HANDLE / 2, h / 2 - HANDLE / 2, HANDLE, HANDLE);
+  }
+  ctx.restore();
+}
+
+/** (x, y) 비율 좌표가 스티커의 어디인가 — 손잡이·몸통·바깥. 회전을 되돌려 스티커 좌표계에서 본다 */
+export function hitSticker(s: MemeSticker, im: Pic, W: number, H: number, x: number, y: number): 'handle' | 'body' | null {
+  const w = s.w * W, h = w * im.height / im.width;
+  const dx = (x - s.x) * W, dy = (y - s.y) * H;
+  const a = (-s.rot * Math.PI) / 180;
+  const rx = dx * Math.cos(a) - dy * Math.sin(a), ry = dx * Math.sin(a) + dy * Math.cos(a);
+  if (Math.abs(rx - w / 2) <= HANDLE && Math.abs(ry - h / 2) <= HANDLE) return 'handle';
+  return Math.abs(rx) <= w / 2 && Math.abs(ry) <= h / 2 ? 'body' : null;
+}
+
+/** 화살표 — 선 + 머리. 붓질층에 그린다(도형 도구의 하나) */
+export function arrowPath(ctx: Ctx, x0: number, y0: number, x1: number, y1: number, width: number) {
+  const a = Math.atan2(y1 - y0, x1 - x0), head = Math.max(14, width * 3);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+  ctx.moveTo(x1, y1); ctx.lineTo(x1 - head * Math.cos(a - Math.PI / 6), y1 - head * Math.sin(a - Math.PI / 6));
+  ctx.moveTo(x1, y1); ctx.lineTo(x1 - head * Math.cos(a + Math.PI / 6), y1 - head * Math.sin(a + Math.PI / 6));
 }
 
 /** (x, y) 는 비율 좌표 — 이 글자 위인가. 회전을 되돌려 글자 좌표계에서 본다 */

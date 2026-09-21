@@ -1,29 +1,34 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Brush, Circle, Dices, Download, Eraser, ImagePlus, Minus, Move, Redo2, Square, Trash2, Type, Undo2, Upload } from 'lucide-react';
+import { ArrowUpRight, Brush, Circle, Dices, Download, Eraser, ImagePlus, Minus, Move, Redo2, Square, Sticker, Trash2, Type, Undo2, Upload } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
-import { ASSET_PREFIX, cleanStyle, FONTS, PANELS_MAX, TEXTS_MAX, type MemeText } from '@/lib/memes';
-import { drawMemeText, FONT_CSS, FONT_LABEL, hitMemeText } from '@/lib/meme-draw';
+import { ASSET_PREFIX, cleanStyle, FONTS, PANELS_MAX, STICKERS_MAX, TEXTS_MAX, type MemeSticker, type MemeText } from '@/lib/memes';
+import { arrowPath, drawMemeText, drawSticker, FONT_CSS, FONT_LABEL, hitMemeText, hitSticker } from '@/lib/meme-draw';
 
 /**
- * 짤 만들기 — 그림판 + 글자.
+ * 짤 만들기 — 그림판 + 글자 + 스티커.
  *
  * 병맛은 잘 그려서 나오는 게 아니라 못 그려서 나온다. 그래서 MS 그림판 느낌으로 간다:
- * 붓·지우개·네모·동그라미·선, 글자는 여러 개를 아무 데나 끌어 놓고 돌린다. 되돌리기 있음.
+ * 붓·지우개·네모·동그라미·선·화살표, 글자는 여러 개를 아무 데나 끌어 놓고 돌린다, 그림도 스티커로 여러 장 얹는다
+ * (흰 바탕에 우는 아기 ↔ 고양이 비교표 같은 것). 되돌리기 있음.
  * 합성은 전부 이 브라우저의 캔버스가 한다 — 서버는 결과 PNG 와 정의만 받는다(서버비 0).
- * 글자를 찍는 코드는 lib/meme-draw 에 있고 순찰(주민)도 같은 걸 쓴다.
+ * 글자·스티커를 찍는 코드는 lib/meme-draw 에 있고 순찰(주민)도 같은 걸 쓴다.
  *
- * 그림층(붓질)은 오프스크린 캔버스에 쌓고, 글자는 값으로 들고 있다가 그릴 때 얹는다.
- * 리믹스는 결과 PNG 를 바탕으로 다시 시작한다 — 남의 붓질 위에 내 붓질이 올라간다.
+ * 층 순서: 바탕 컷 → 스티커 → 붓질 → 글자. 붓질은 오프스크린 캔버스, 나머지는 값.
+ * 리믹스는 원본의 정의(컷·스티커·글자)로 다시 시작한다 — 붓질층은 저장하지 않으므로 이어받지 못한다.
  */
-type Tool = 'brush' | 'eraser' | 'rect' | 'circle' | 'line' | 'text' | 'move';
+type Tool = 'brush' | 'eraser' | 'rect' | 'circle' | 'line' | 'arrow' | 'text' | 'move';
+type Sel = { kind: 'text' | 'sticker'; i: number } | null;
+type Snap = { paint: ImageData | null; texts: MemeText[]; stickers: MemeSticker[] };
 const PALETTE = ['#ffffff', '#000000', '#ff2d55', '#ffcc00', '#34c759', '#007aff', '#af52de', '#ff9500'];
 const W = 900; // 작업 캔버스 폭 — 결과 PNG 크기. 높이는 그림 비율을 따른다
 const NEW_TEXT = (t: string, x: number, y: number): MemeText => ({ t, x, y, size: 0.09, color: '#ffffff', stroke: '#000000', rot: 0, font: 'impact', bg: 'none' });
+// 바깥 출처(Met 등)는 우리 프록시로 — 브라우저의 cross-origin 이미지 요청을 막는 곳이 있다. 우리 보관함은 그대로
+const srcOf = (u: string) => (u.startsWith(ASSET_PREFIX) ? u : `/api/memes/img?u=${encodeURIComponent(u)}`);
 
 export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
-  initial?: { image: string; style: { texts: MemeText[]; panels?: (string | null)[] }; remixOf: number | null };
+  initial?: { image: string; style: { texts: MemeText[]; panels?: (string | null)[]; stickers?: MemeSticker[] }; remixOf: number | null };
   pics: string[];
   signedIn: boolean;
   autoRoll?: boolean;
@@ -32,6 +37,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
   const view = useRef<HTMLCanvasElement>(null);      // 보이는 캔버스
   const paint = useRef<HTMLCanvasElement | null>(null); // 붓질 층
   const imgs = useRef<(HTMLImageElement | null)[]>([]);
+  const stImgs = useRef<Map<string, HTMLImageElement>>(new Map());
   const [size, setSize] = useState({ w: W, h: Math.round(W * 0.75) });
   // 세로로 쌓이는 컷들. 한 장이면 그냥 짤, 네 장이면 "no → no → NO!!!"
   const [panels, setPanels] = useState<(string | null)[]>(
@@ -40,17 +46,20 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
   const base = panels[0] ?? null;
   const [cut, setCut] = useState(0); // 지금 그림을 바꿀 컷
   const [texts, setTexts] = useState<MemeText[]>(initial?.style.texts ?? []);
-  const [sel, setSel] = useState<number | null>(null);
+  const [stickers, setStickers] = useState<MemeSticker[]>(initial?.style.stickers ?? []);
+  const [sel, setSel] = useState<Sel>(null);
   const [tool, setTool] = useState<Tool>('text');
+  const [pick, setPick] = useState<'bg' | 'sticker'>('bg'); // 아래 그림 띠를 누르면 — 바탕으로 쓸지, 스티커로 얹을지
   const [color, setColor] = useState('#ff2d55');
   const [width, setWidth] = useState(14);
   const [busy, setBusy] = useState<'idle' | 'posting' | 'rolling'>('idle');
   const [message, setMessage] = useState('');
   const [lines, setLines] = useState<string[]>([]);
   const [shots, setShots] = useState<string[]>(pics);
-  const history = useRef<{ paint: ImageData | null; texts: MemeText[] }[]>([]);
-  const future = useRef<{ paint: ImageData | null; texts: MemeText[] }[]>([]);
-  const drag = useRef<{ kind: 'draw' | 'text'; idx?: number; x0: number; y0: number; snap?: ImageData; sx?: number; sy?: number } | null>(null);
+  const [, bump] = useState(0); // 스티커 그림이 늦게 오면 다시 그리기
+  const history = useRef<Snap[]>([]);
+  const future = useRef<Snap[]>([]);
+  const drag = useRef<{ kind: 'draw' | 'text' | 'sticker' | 'resize'; idx?: number; x0: number; y0: number; snap?: ImageData; sx?: number; sy?: number } | null>(null);
 
   /** 캔버스 좌표(0~1) — 화면 크기와 무관하게 같은 자리 */
   const at = (e: React.PointerEvent) => {
@@ -58,33 +67,22 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
   };
 
-  const snapshot = () => {
+  const grab = (): Snap => {
     const p = paint.current;
-    history.current = [...history.current.slice(-24), {
-      paint: p ? p.getContext('2d')!.getImageData(0, 0, p.width, p.height) : null,
-      texts: texts.map((t) => ({ ...t })),
-    }];
-    future.current = [];
+    return { paint: p ? p.getContext('2d')!.getImageData(0, 0, p.width, p.height) : null, texts: texts.map((t) => ({ ...t })), stickers: stickers.map((s) => ({ ...s })) };
   };
-  const restore = (s: { paint: ImageData | null; texts: MemeText[] }) => {
+  const snapshot = () => { history.current = [...history.current.slice(-24), grab()]; future.current = []; };
+  const restore = (s: Snap) => {
     if (paint.current && s.paint) paint.current.getContext('2d')!.putImageData(s.paint, 0, 0);
-    setTexts(s.texts);
+    setTexts(s.texts); setStickers(s.stickers); setSel(null);
   };
-  const undo = () => {
-    const s = history.current.pop(); if (!s) return;
-    const p = paint.current;
-    future.current.push({ paint: p ? p.getContext('2d')!.getImageData(0, 0, p.width, p.height) : null, texts });
-    restore(s); setSel(null);
-  };
-  const redo = () => {
-    const s = future.current.pop(); if (!s) return;
-    const p = paint.current;
-    history.current.push({ paint: p ? p.getContext('2d')!.getImageData(0, 0, p.width, p.height) : null, texts });
-    restore(s); setSel(null);
-  };
+  const undo = () => { const s = history.current.pop(); if (!s) return; future.current.push(grab()); restore(s); };
+  const redo = () => { const s = future.current.pop(); if (!s) return; history.current.push(grab()); restore(s); };
   const removeSel = () => {
-    if (sel === null) return;
-    snapshot(); setTexts(texts.filter((_, i) => i !== sel)); setSel(null);
+    if (!sel) return;
+    snapshot();
+    if (sel.kind === 'text') setTexts(texts.filter((_, i) => i !== sel.i)); else setStickers(stickers.filter((_, i) => i !== sel.i));
+    setSel(null);
   };
 
   // 컷 그림들 로드 — 컷 높이를 합쳐 캔버스 크기를 잡고, 크기가 바뀌면 붓질 층을 새로 만든다
@@ -96,8 +94,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
       im.crossOrigin = 'anonymous';         // CORS 로 받아야 toBlob 이 막히지 않는다
       im.onload = () => ok(im);
       im.onerror = () => { setMessage('That picture would not load.'); ok(null); };
-      // 우리 보관함은 그대로, 바깥 출처(Met 등)는 우리 프록시로 — 브라우저의 cross-origin 이미지 요청을 막는 곳이 있다
-      im.src = u.startsWith(ASSET_PREFIX) ? u : `/api/memes/img?u=${encodeURIComponent(u)}`;
+      im.src = srcOf(u);
     }))).then((loaded) => {
       if (!alive) return;
       imgs.current = loaded;
@@ -113,7 +110,18 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     return () => { alive = false; };
   }, [panels]);
 
-  /** 한 장 그리기 — 바탕 → 붓질 → 글자 */
+  // 스티커 그림 — 처음 보는 주소만 받는다
+  useEffect(() => {
+    for (const s of stickers) {
+      if (stImgs.current.has(s.url)) continue;
+      const im = new Image(); im.crossOrigin = 'anonymous';
+      im.onload = () => { stImgs.current.set(s.url, im); bump((n) => n + 1); };
+      im.onerror = () => setMessage('That sticker would not load.');
+      im.src = srcOf(s.url);
+    }
+  }, [stickers]);
+
+  /** 한 장 그리기 — 바탕 → 스티커 → 붓질 → 글자 */
   const draw = useCallback(() => {
     const c = view.current; if (!c) return;
     const ctx = c.getContext('2d')!;
@@ -127,46 +135,62 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
       if (i === cut && imgs.current.length > 1) { ctx.strokeStyle = '#ff2d55'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.strokeRect(2, top + 2, c.width - 4, h - 4); ctx.setLineDash([]); }
       top += h;
     });
+    stickers.forEach((s, i) => { const im = stImgs.current.get(s.url); if (im) drawSticker(ctx, s, im, c.width, c.height, sel?.kind === 'sticker' && sel.i === i); });
     if (paint.current) ctx.drawImage(paint.current, 0, 0);
-    texts.forEach((t, i) => drawMemeText(ctx, t, c.width, c.height, i === sel));
-  }, [texts, sel, cut]);
+    texts.forEach((t, i) => drawMemeText(ctx, t, c.width, c.height, sel?.kind === 'text' && sel.i === i));
+  }, [texts, stickers, sel, cut]);
 
   useEffect(() => {
     // 글꼴이 늦게 오면 첫 장이 기본 글꼴로 찍힌다 — 로드 뒤 한 번 더
     draw();
     document.fonts?.ready.then(draw).catch(() => null);
-  }, [draw, size]);
+  });
 
-  // Delete·Backspace 로 고른 글자 지우기, Ctrl+Z / Ctrl+Shift+Z 되돌리기 — 글자 입력 중엔 브라우저 몫
+  // Delete·Backspace 로 고른 것 지우기, Ctrl+Z / Ctrl+Shift+Z 되돌리기, Ctrl+V 로 그림 붙여넣기 — 글자 입력 중엔 브라우저 몫
   useEffect(() => {
+    const typing = () => { const el = document.activeElement; return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement; };
     const onKey = (e: KeyboardEvent) => {
-      const el = document.activeElement;
-      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
-      if ((e.key === 'Delete' || e.key === 'Backspace') && sel !== null) { e.preventDefault(); removeSel(); }
+      if (typing()) return;
+      if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); removeSel(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const onPaste = (e: ClipboardEvent) => {
+      if (typing()) return;
+      const f = [...(e.clipboardData?.files ?? [])].find((x) => x.type.startsWith('image/'));
+      if (f) { e.preventDefault(); void pickFile(f, 'sticker'); }
+    };
+    window.addEventListener('keydown', onKey); window.addEventListener('paste', onPaste);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('paste', onPaste); };
   });
 
-  /** 글자 맞히기 — 눌린 자리에 글자가 있나 (위에 그려진 것부터) */
-  const hit = (x: number, y: number) => {
+  /** 눌린 자리에 무엇이 있나 — 글자가 스티커보다 위, 나중 것이 먼저 */
+  const hit = (x: number, y: number): { sel: Sel; part?: 'handle' | 'body' } => {
     const c = view.current!; const ctx = c.getContext('2d')!;
-    for (let i = texts.length - 1; i >= 0; i--) if (hitMemeText(ctx, texts[i], c.width, c.height, x, y)) return i;
-    return -1;
+    for (let i = texts.length - 1; i >= 0; i--) if (hitMemeText(ctx, texts[i], c.width, c.height, x, y)) return { sel: { kind: 'text', i } };
+    for (let i = stickers.length - 1; i >= 0; i--) {
+      const im = stImgs.current.get(stickers[i].url); if (!im) continue;
+      const part = hitSticker(stickers[i], im, c.width, c.height, x, y);
+      if (part) return { sel: { kind: 'sticker', i }, part };
+    }
+    return { sel: null };
   };
 
   const onDown = (e: React.PointerEvent) => {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const { x, y } = at(e);
     if (tool === 'text' || tool === 'move') {
-      const i = hit(x, y);
-      if (i >= 0) { snapshot(); setSel(i); drag.current = { kind: 'text', idx: i, x0: x, y0: y, sx: texts[i].x, sy: texts[i].y }; return; }
+      const h = hit(x, y);
+      if (h.sel) {
+        snapshot(); setSel(h.sel);
+        const o = h.sel.kind === 'text' ? texts[h.sel.i] : stickers[h.sel.i];
+        drag.current = { kind: h.part === 'handle' ? 'resize' : h.sel.kind, idx: h.sel.i, x0: x, y0: y, sx: o.x, sy: o.y };
+        return;
+      }
       if (tool === 'text') {
         if (texts.length >= TEXTS_MAX) { setMessage(`${TEXTS_MAX} lines is plenty.`); return; }
         snapshot();
-        setTexts([...texts, NEW_TEXT('TEXT', x, y)]); setSel(texts.length);
+        setTexts([...texts, NEW_TEXT('TEXT', x, y)]); setSel({ kind: 'text', i: texts.length });
       } else setSel(null);
       return;
     }
@@ -185,8 +209,17 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current; if (!d) return;
     const { x, y } = at(e);
-    if (d.kind === 'text' && d.idx !== undefined) {
-      setTexts((ts) => ts.map((t, i) => (i === d.idx ? { ...t, x: Math.min(1, Math.max(0, d.sx! + x - d.x0)), y: Math.min(1, Math.max(0, d.sy! + y - d.y0)) } : t)));
+    const nx = Math.min(1, Math.max(0, d.sx! + x - d.x0)), ny = Math.min(1, Math.max(0, d.sy! + y - d.y0));
+    if (d.kind === 'text') { setTexts((ts) => ts.map((t, i) => (i === d.idx ? { ...t, x: nx, y: ny } : t))); return; }
+    if (d.kind === 'sticker') { setStickers((ss) => ss.map((s, i) => (i === d.idx ? { ...s, x: nx, y: ny } : s))); return; }
+    if (d.kind === 'resize') {
+      // 오른쪽 아래 손잡이 — 중심에서 포인터까지가 반폭이다(회전을 되돌려 잰다)
+      setStickers((ss) => ss.map((s, i) => {
+        if (i !== d.idx) return s;
+        const dx = (x - s.x) * size.w, dy = (y - s.y) * size.h; const a = (-s.rot * Math.PI) / 180;
+        const rx = dx * Math.cos(a) - dy * Math.sin(a);
+        return { ...s, w: Math.min(1, Math.max(0.05, (2 * rx) / size.w)) };
+      }));
       return;
     }
     const p = paint.current!; const ctx = p.getContext('2d')!;
@@ -196,11 +229,12 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
       // 도형은 시작점에서 지금까지 — 매번 시작 상태로 되돌리고 다시 그린다
       ctx.putImageData(d.snap!, 0, 0);
       ctx.globalCompositeOperation = 'source-over';
-      ctx.lineWidth = width; ctx.strokeStyle = color; ctx.lineCap = 'round';
+      ctx.lineWidth = width; ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       const x0 = d.x0 * p.width, y0 = d.y0 * p.height, x1 = x * p.width, y1 = y * p.height;
       ctx.beginPath();
       if (tool === 'rect') ctx.rect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
       else if (tool === 'circle') ctx.ellipse((x0 + x1) / 2, (y0 + y1) / 2, Math.abs(x1 - x0) / 2, Math.abs(y1 - y0) / 2, 0, 0, Math.PI * 2);
+      else if (tool === 'arrow') arrowPath(ctx, x0, y0, x1, y1, width);
       else { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); }
       ctx.stroke();
     }
@@ -209,9 +243,20 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
   const onUp = () => { drag.current = null; };
 
   const patch = (p: Partial<MemeText>) => {
-    if (sel === null) return;
-    setTexts((ts) => ts.map((t, i) => (i === sel ? { ...t, ...p } : t)));
+    if (sel?.kind !== 'text') return;
+    setTexts((ts) => ts.map((t, i) => (i === sel.i ? { ...t, ...p } : t)));
   };
+  const patchSt = (p: Partial<MemeSticker>) => {
+    if (sel?.kind !== 'sticker') return;
+    setStickers((ss) => ss.map((s, i) => (i === sel.i ? { ...s, ...p } : s)));
+  };
+  const addSticker = (url: string) => {
+    if (stickers.length >= STICKERS_MAX) { setMessage(`${STICKERS_MAX} stickers is plenty.`); return; }
+    snapshot();
+    setStickers([...stickers, { url, x: 0.5, y: 0.5, w: 0.35, rot: 0 }]); setSel({ kind: 'sticker', i: stickers.length }); setTool('move');
+  };
+  /** 아래 띠의 그림을 눌렀다 — 모드대로 바탕이 되거나 스티커로 얹힌다 */
+  const usePic = (u: string) => { if (pick === 'sticker') addSticker(u); else setPanels((ps) => ps.map((p, i) => (i === cut ? u : p))); };
 
   /** 🎲 맥락 없는 짤 — 아무 그림 + 아무 문장. 누를 때마다 다시 돌아간다 */
   const roll = useCallback(async () => {
@@ -236,10 +281,12 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     return d.url ?? null;
   };
 
-  const pickFile = async (file: File) => {
+  const pickFile = async (file: File, as: 'bg' | 'sticker' = pick) => {
     if (!signedIn) { setMessage('Log in to use your own picture.'); return; }
     const url = await upload(file, 'inline');
-    if (url) { setPanels((ps) => ps.map((p, i) => (i === cut ? url : p))); setShots([url, ...shots]); }
+    if (!url) return;
+    setShots((s) => [url, ...s]);
+    if (as === 'sticker') addSticker(url); else setPanels((ps) => ps.map((p, i) => (i === cut ? url : p)));
   };
 
   const toBlob = () => new Promise<Blob | null>((ok) => {
@@ -261,7 +308,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     if (!png) { setBusy('idle'); return; }
     const res = await fetch('/api/memes', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ image: base ?? png, png, style: cleanStyle({ texts, panels }), remix_of: initial?.remixOf ?? null }),
+      body: JSON.stringify({ image: base ?? png, png, style: cleanStyle({ texts, panels, stickers }), remix_of: initial?.remixOf ?? null }),
     });
     const d = await res.json() as { ok?: boolean; url?: string; message?: string };
     setBusy('idle');
@@ -269,7 +316,8 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     router.push(d.url!);
   };
 
-  const t = sel !== null ? texts[sel] : null;
+  const t = sel?.kind === 'text' ? texts[sel.i] : null;
+  const st = sel?.kind === 'sticker' ? stickers[sel.i] : null;
   const tb = (on: boolean) => `inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-[12px] font-bold ${on ? 'bg-ink text-paper' : 'text-ink-mid hover:bg-surface'}`;
 
   return (
@@ -278,13 +326,14 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
         {/* ── 도구 ── */}
         <div className="flex flex-wrap items-center gap-1 rounded-xl border border-hairline bg-paper px-2 py-1.5">
           <button onClick={() => setTool('text')} className={tb(tool === 'text')} title="Text — click to add, drag to move"><Type size={14} /> Text</button>
-          <button onClick={() => setTool('move')} className={tb(tool === 'move')} title="Move text"><Move size={14} /></button>
+          <button onClick={() => setTool('move')} className={tb(tool === 'move')} title="Move / resize"><Move size={14} /></button>
           <span className="mx-1 h-5 w-px bg-hairline" />
           <button onClick={() => setTool('brush')} className={tb(tool === 'brush')} title="Brush"><Brush size={14} /></button>
           <button onClick={() => setTool('eraser')} className={tb(tool === 'eraser')} title="Eraser"><Eraser size={14} /></button>
           <button onClick={() => setTool('rect')} className={tb(tool === 'rect')} title="Rectangle"><Square size={14} /></button>
           <button onClick={() => setTool('circle')} className={tb(tool === 'circle')} title="Circle"><Circle size={14} /></button>
           <button onClick={() => setTool('line')} className={tb(tool === 'line')} title="Line"><Minus size={14} /></button>
+          <button onClick={() => setTool('arrow')} className={tb(tool === 'arrow')} title="Arrow"><ArrowUpRight size={14} /></button>
           <span className="mx-1 h-5 w-px bg-hairline" />
           {PALETTE.map((c) => (
             <button key={c} onClick={() => { setColor(c); if (t) patch({ color: c }); }} aria-label={c}
@@ -298,8 +347,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
           <button onClick={redo} className={tb(false)} title="Redo (Ctrl+Shift+Z)"><Redo2 size={14} /></button>
         </div>
 
-        {/* ── 캔버스 — 무대 높이는 고정, 그림은 그 안에 맞춰 넣는다. 그림을 바꿀 때마다 도화지가 늘었다 줄었다 하면 아래 단추들이 뛰어다닌다 ── */}
-        {/* flex 여야 한다 — grid 에선 max-h-full 이 행(내용 높이)에 대해 풀려 세로로 긴 그림이 잘렸다(실측) */}
+        {/* ── 캔버스 — 무대 높이는 고정, 그림은 그 안에 맞춰 넣는다(flex 여야 max-h 가 무대 기준으로 풀린다) ── */}
         <div className="mt-3 flex h-[min(70vh,640px)] items-center justify-center overflow-hidden rounded-xl border border-hairline bg-[#e9e6e8]">
           <canvas
             ref={view} width={size.w} height={size.h}
@@ -309,7 +357,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
           />
         </div>
 
-        {/* ── 바탕 그림 ── */}
+        {/* ── 그림 ── */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button onClick={() => void roll()} disabled={busy === 'rolling'} className={`${BUTTON.primary} inline-flex items-center gap-1.5 disabled:opacity-50`}>
             <Dices size={15} aria-hidden /> No context
@@ -319,7 +367,13 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
             <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void pickFile(f); }} />
           </label>
-          <button onClick={() => setPanels((ps) => ps.map((p, i) => (i === cut ? null : p)))} className={BUTTON.ghost}>Blank</button>
+          <button onClick={() => setPanels((ps) => ps.map((p, i) => (i === cut ? null : p)))} className={BUTTON.ghost} title="White background">Blank</button>
+          <span className="mx-1 h-5 w-px bg-hairline" />
+          {/* 띠의 그림을 어디에 쓸지 — 바탕인지 스티커인지 */}
+          <span className="inline-flex rounded-md border border-hairline p-0.5">
+            <button onClick={() => setPick('bg')} className={tb(pick === 'bg')} title="Clicking a picture below sets the background">Background</button>
+            <button onClick={() => setPick('sticker')} className={tb(pick === 'sticker')} title="Clicking a picture below drops it on top as a sticker (paste works too)"><Sticker size={13} /> Sticker</button>
+          </span>
           <span className="mx-1 h-5 w-px bg-hairline" />
           <button onClick={() => { if (panels.length < PANELS_MAX) { setPanels([...panels, panels[cut]]); setCut(panels.length); } }} disabled={panels.length >= PANELS_MAX} className={`${BUTTON.ghost} disabled:opacity-40`} title="Stack another panel below">+ Panel</button>
           {panels.length > 1 && (
@@ -330,19 +384,20 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
               <button onClick={() => { setPanels(panels.filter((_, i) => i !== cut)); setCut(Math.max(0, cut - 1)); }} className={BUTTON.ghost} title="Remove this panel">− Panel</button>
             </>
           )}
-          <div className="flex gap-1.5 overflow-x-auto">
-            {shots.map((u) => (
-              <button key={u} onClick={() => setPanels((ps) => ps.map((p, i) => (i === cut ? u : p)))} className={`shrink-0 overflow-hidden rounded border-2 ${panels[cut] === u ? 'border-ink' : 'border-hairline'}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={u} alt="" className="h-12 w-16 object-cover" />
-              </button>
-            ))}
-          </div>
+        </div>
+        <div className="mt-2 flex gap-1.5 overflow-x-auto">
+          {shots.map((u) => (
+            <button key={u} onClick={() => usePic(u)} title={pick === 'sticker' ? 'Add as sticker' : 'Use as background'}
+              className={`shrink-0 overflow-hidden rounded border-2 ${panels[cut] === u ? 'border-ink' : 'border-hairline'}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={u} alt="" className="h-12 w-16 object-cover" />
+            </button>
+          ))}
         </div>
         {lines.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {lines.map((l) => (
-              <button key={l} onClick={() => { if (t) patch({ t: l }); else { snapshot(); setTexts([...texts, NEW_TEXT(l, 0.5, 0.5)]); setSel(texts.length); } }}
+              <button key={l} onClick={() => { if (t) patch({ t: l }); else { snapshot(); setTexts([...texts, NEW_TEXT(l, 0.5, 0.5)]); setSel({ kind: 'text', i: texts.length }); } }}
                 className="cursor-pointer rounded-full border border-hairline bg-paper px-2.5 py-1 text-[12px] hover:bg-surface">
                 {l}
               </button>
@@ -351,7 +406,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
         )}
       </div>
 
-      {/* ── 글자 설정 + 올리기 ── */}
+      {/* ── 고른 것의 설정 + 올리기 ── */}
       <div className="flex flex-col gap-3">
         <div className="rounded-xl border border-hairline bg-paper p-3">
           {t ? (
@@ -384,10 +439,26 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
                 <button onClick={removeSel} className="ml-auto cursor-pointer text-ink-soft hover:text-accent-deep" aria-label="Delete text" title="Delete (Del)"><Trash2 size={14} /></button>
               </div>
             </>
+          ) : st ? (
+            <>
+              <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Sticker</p>
+              <label className="mt-2 block text-[11px] text-ink-soft">Size
+                <input type="range" min={0.05} max={1} step={0.01} value={st.w} onChange={(e) => patchSt({ w: Number(e.target.value) })} className="w-full" />
+              </label>
+              <label className="block text-[11px] text-ink-soft">Rotate
+                <input type="range" min={-180} max={180} value={st.rot} onChange={(e) => patchSt({ rot: Number(e.target.value) })} className="w-full" />
+              </label>
+              <div className="mt-1 flex items-center gap-2 text-[11px]">
+                <button onClick={() => { if (sel?.kind !== 'sticker' || sel.i === 0) return; snapshot(); const ss = [...stickers]; const [s] = ss.splice(sel.i, 1); ss.unshift(s); setStickers(ss); setSel({ kind: 'sticker', i: 0 }); }} className={`${tb(false)} border border-hairline`}>Send back</button>
+                <button onClick={() => { if (sel?.kind !== 'sticker' || sel.i === stickers.length - 1) return; snapshot(); const ss = [...stickers]; const [s] = ss.splice(sel.i, 1); ss.push(s); setStickers(ss); setSel({ kind: 'sticker', i: ss.length - 1 }); }} className={`${tb(false)} border border-hairline`}>Bring front</button>
+                <button onClick={removeSel} className="ml-auto cursor-pointer text-ink-soft hover:text-accent-deep" aria-label="Delete sticker" title="Delete (Del)"><Trash2 size={14} /></button>
+              </div>
+              <p className="mt-2 text-[11.5px] text-ink-soft">Drag to move. Drag the pink corner to resize.</p>
+            </>
           ) : (
             <p className="text-[12.5px] text-ink-soft">
-              <b>Text</b> tool: click anywhere to drop words, drag to move, <b>Del</b> removes. <b>Brush</b>: draw badly on purpose.
-              <b> No context</b> rolls a random picture with random lines.
+              <b>Text</b>: click anywhere to drop words, drag to move, <b>Del</b> removes. <b>Sticker</b>: switch the row below to Sticker and click a picture, or paste one (Ctrl+V).
+              <b> Blank</b> gives you a white sheet for charts and arrows. <b>Brush</b>: draw badly on purpose.
             </p>
           )}
         </div>
