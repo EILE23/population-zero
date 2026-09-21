@@ -25,6 +25,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   const crumbled = useRef(new Map<string, number>()); // id → 밟은 시각
   const others = useRef(new Map<number, Other>());
   const cam = useRef(0);
+  const tour = useRef({ y: 0, manualUntil: 0 }); // 구경꾼 카메라: 바닥에서 천천히 올라가며 탑을 훑고, 휠·드래그로 직접 볼 수 있다
   const [chats, setChats] = useState<Chat[]>([]);
   const [line, setLine] = useState('');
   const [hud, setHud] = useState({ h: 0, best, online: 0, resting: 0, connected: false });
@@ -99,6 +100,13 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
       if (hit) location.href = hit.href;
     };
     c.addEventListener('click', onClick);
+    // 구경꾼: 휠·드래그로 탑을 훑는다
+    const onWheel = (e: WheelEvent) => { if (!spectator) return; e.preventDefault(); tour.current.y = Math.max(0, tour.current.y - e.deltaY * 1.5); tour.current.manualUntil = performance.now() + 8000; };
+    let dragY: number | null = null;
+    const onPD = (e: PointerEvent) => { if (spectator) dragY = e.clientY; };
+    const onPM = (e: PointerEvent) => { if (dragY === null) return; tour.current.y = Math.max(0, tour.current.y + (e.clientY - dragY) * 1.5); dragY = e.clientY; tour.current.manualUntil = performance.now() + 8000; };
+    const onPU = () => { dragY = null; };
+    c.addEventListener('wheel', onWheel, { passive: false }); c.addEventListener('pointerdown', onPD); c.addEventListener('pointermove', onPM); c.addEventListener('pointerup', onPU); c.addEventListener('pointerleave', onPU);
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
@@ -135,9 +143,14 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
       }
       // 다른 사람 보간
       for (const o of others.current.values()) { o.x += (o.tx - o.x) * Math.min(1, dt * 12); o.y += (o.ty - o.y) * Math.min(1, dt * 12); }
-      // 카메라: 구경꾼은 제일 높은 활동자를 따라간다
-      const focus = spectator ? [...others.current.values()].filter((o) => o.status === 'active').sort((a, b) => b.y - a.y)[0] : null;
-      const targetY = spectator ? (focus?.y ?? 0) : body.current.y;
+      // 카메라: 나는 나를 따라간다. 구경꾼은 바닥에서 출발해 천천히 올라가며(초당 70px) 사람들을 지나치고, 제일 높은 활동자에 닿으면 거기 머문다.
+      // 휠·드래그로 직접 보면 8초 동안 자동 이동이 멈춘다
+      let targetY = body.current.y;
+      if (spectator) {
+        const top = [...others.current.values()].filter((o) => o.status === 'active').sort((a, b) => b.y - a.y)[0]?.y ?? 0;
+        if (now < tour.current.manualUntil) targetY = tour.current.y;
+        else { tour.current.y = Math.min(Math.max(top, tour.current.y + 70 * dt), Math.max(tour.current.y, top)); if (tour.current.y < top) tour.current.y = Math.min(top, tour.current.y + 70 * dt); targetY = tour.current.y; }
+      }
       cam.current += (targetY - cam.current) * Math.min(1, dt * 6);
 
       // ── 그리기 ──
@@ -194,7 +207,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
       }
     };
     raf = requestAnimationFrame(frame);
-    return () => { cancelAnimationFrame(raf); c.removeEventListener('click', onClick); };
+    return () => { cancelAnimationFrame(raf); c.removeEventListener('click', onClick); c.removeEventListener('wheel', onWheel); c.removeEventListener('pointerdown', onPD); c.removeEventListener('pointermove', onPM); c.removeEventListener('pointerup', onPU); c.removeEventListener('pointerleave', onPU); };
   }, [residents, me, spectator]);
 
   // 캔버스 해상도 — 컨테이너 폭에 맞춘다
@@ -213,14 +226,14 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   return (
     <div ref={wrap} className="mx-auto w-full max-w-[960px]">
       <div className="flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
-        <span>{spectator ? 'Watching' : `${hud.h}m · best ${hud.best}m`}</span>
+        <span>{spectator ? `Watching · ${Math.round(cam.current / 10)}m` : `${hud.h}m · best ${hud.best}m`}</span>
         <span><span className={`mr-1 inline-block size-2 rounded-full ${hud.connected ? 'bg-[#34c759]' : 'bg-hairline'}`} />{hud.online} climbing · {hud.resting} resting</span>
       </div>
       <div className="relative mt-2 overflow-hidden rounded-xl border border-hairline bg-[#f4f1f2]">
         <canvas ref={canvas} className="block w-full touch-none" />
         {spectator && (
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-paper/90 px-3 py-2 text-[12.5px]">
-            <span>You are watching. Log in and your stick figure appears at the bottom.</span>
+            <span>You are watching — scroll or drag to look around. Log in and your stick figure appears at the bottom.</span>
             <a href="/login?mode=signup" className="font-bold underline underline-offset-2">Log in</a>
           </div>
         )}
