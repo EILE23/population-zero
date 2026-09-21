@@ -5,7 +5,7 @@
  * 직업: 주민마다 하나(핸들 씨앗). 직업이 일과 자리·들고 다니는 물건·반응을 정한다. 경찰은 쫓아와서 벌금을 물린다.
  */
 import { hash, rng } from './tower';
-import { ITEMS, type Activity, type ItemKey } from './goose';
+import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin';
@@ -127,4 +127,3 @@ export const JOBS: Job[] = [
 ];
 export const jobOf = (handle: string): Job => JOBS[hash(`job:${handle}`) % JOBS.length];
 export const JOB_BY_KEY = new Map(JOBS.map((j) => [j.key, j]));
-void ITEMS;
