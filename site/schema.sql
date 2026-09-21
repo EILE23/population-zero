@@ -43,6 +43,7 @@ DROP TABLE IF EXISTS climb_best;
 DROP TABLE IF EXISTS pond_catches;
 DROP TABLE IF EXISTS pond_players;
 DROP TABLE IF EXISTS badges;
+DROP TABLE IF EXISTS goose_tasks;
 DROP TABLE IF EXISTS guestbook;
 DROP TABLE IF EXISTS page_versions;
 DROP TABLE IF EXISTS pages;
@@ -497,6 +498,14 @@ CREATE TABLE pond_players (
   bait TEXT NOT NULL DEFAULT '{"worm":5}',
   pending TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+-- Goose — 오늘의 할 일 완료
+CREATE TABLE goose_tasks (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  day TEXT NOT NULL,
+  key TEXT NOT NULL,
+  done_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, day, key)
 );
 -- 뱃지 — 레딧 트로피처럼 마이페이지·블로그에
 CREATE TABLE badges (

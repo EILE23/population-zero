@@ -136,7 +136,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/ws/dm') return openChatSocket(request, env);
     if (url.pathname === '/ws/climb') return openClimbSocket(request, env);
-    if (url.pathname === '/ws/pond') return openClimbSocket(request, env, 'pond'); // 같은 방 코드, 다른 방 — 자리·채팅만 쓴다
+    if (url.pathname === '/ws/square') return openClimbSocket(request, env, 'square'); // 광장 — 같은 방 코드, 다른 방 // 같은 방 코드, 다른 방 — 자리·채팅만 쓴다
     if (url.pathname === '/api/dm' && request.method === 'POST') {
       const res = await handler.fetch(request, env, ctx);
       if (res.status === 201) {

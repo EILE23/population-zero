@@ -1,0 +1,94 @@
+/**
+ * Square — 마을 광장. 사람이 AI 주민을 괴롭힌다. 순수 규칙(DOM 없음). Climb 과 같은 졸라맨·물리, 2.5D.
+ *
+ * 광장은 2.5D(가로 3200, 앞뒤 깊이). 주민들은 각자 일과를 돌며 물건을 하나씩 들고 있다. 사람은 밀고(넘어뜨리고) 물건을 뺏고 물에 빠뜨린다.
+ * 주민의 기본 일과는 (씨앗, 시각) 의 함수라 모두 같은 걸 보지만, 사람에게 반응하는 것(넘어짐·추격)은 각자 화면에서 일어난다 —
+ * 남의 사람이 일으킨 소동까지 맞추려면 서버가 시뮬레이션해야 하고, 그건 이 사이트의 비용 규칙 밖이다.
+ * 오늘의 할 일은 (날짜, 사람) 씨앗으로 정해진다. 완료는 브라우저가 판정하고 서버는 기록·코인·뱃지만.
+ */
+import { hash, rng } from './tower';
+
+export const SQUARE_W = 3200;
+export const DEPTH_PX = 130;
+export const PLAYER_SPEED = 250, RESIDENT_SPEED = 150, CHASE_SPEED = 265;
+export const SHOVE_R = 40;      // 밀기가 닿는 거리
+export const GRAB_R = 36;       // 물건 뺏는/줍는 거리
+export const CHASE_SEC = 6;     // 추격 포기까지
+export const HONK_R = SHOVE_R;
+
+export type ItemKey = 'hat' | 'phone' | 'paper' | 'sandwich' | 'keys' | 'glasses' | 'broom' | 'umbrella' | 'cup' | 'basket';
+export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', paper: 'newspaper', sandwich: 'sandwich', keys: 'keys', glasses: 'glasses', broom: 'broom', umbrella: 'umbrella', cup: 'coffee', basket: 'shopping basket' };
+export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat';
+
+export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp' }
+/** 광장의 것들 — 주민의 일과가 이 사이를 오간다. 분수·연못은 물건을 빠뜨릴 곳 */
+export const SPOTS: Spot[] = [
+  { key: 'fountain', name: 'the fountain', x: 1600, d: 0.55, act: 'stand', kind: 'fountain' },
+  { key: 'bench1', name: 'the bench by the fountain', x: 1380, d: 0.8, act: 'sit', kind: 'bench' },
+  { key: 'bench2', name: 'the far bench', x: 2500, d: 0.75, act: 'sit', kind: 'bench' },
+  { key: 'cafe', name: 'the café', x: 2150, d: 0.45, act: 'eat', kind: 'cafe' },
+  { key: 'stall', name: 'the market stall', x: 700, d: 0.5, act: 'shop', kind: 'stall' },
+  { key: 'garden', name: 'the garden', x: 320, d: 0.7, act: 'water', kind: 'garden' },
+  { key: 'booth', name: 'the phone booth', x: 1900, d: 0.3, act: 'phone', kind: 'booth' },
+  { key: 'pond', name: 'the little pond', x: 2900, d: 0.85, act: 'stand', kind: 'pond' },
+  { key: 'house1', name: 'the blue house', x: 150, d: 0.1, act: 'sweep', kind: 'house' },
+  { key: 'house2', name: 'the narrow house', x: 1100, d: 0.1, act: 'read', kind: 'house' },
+  { key: 'house3', name: 'the corner house', x: 2700, d: 0.12, act: 'sweep', kind: 'house' },
+  { key: 'tree1', name: 'the big tree', x: 950, d: 0.35, act: 'read', kind: 'tree' },
+  { key: 'tree2', name: 'the other tree', x: 2350, d: 0.2, act: 'stand', kind: 'tree' },
+  { key: 'lamp1', name: 'the lamp', x: 1750, d: 0.85, act: 'stand', kind: 'lamp' },
+];
+export const spotOf = (key: string) => SPOTS.find((s) => s.key === key)!;
+export const WATER = ['fountain', 'pond'];
+
+export interface Routine { who: number; item: ItemKey; seed: number; stops: { spot: string; dur: number }[]; speed: number }
+/** 이 시간에 광장에 나온 주민 12명 — 시간마다 바뀐다. 각자 물건 하나, 들를 곳 3~4개 */
+export function residentsOut(hour: number, residents: number): Routine[] {
+  const r = rng(hash(`goose:${hour}`));
+  const used = new Set<number>(); const out: Routine[] = [];
+  const keys = Object.keys(ITEMS) as ItemKey[];
+  const spots = SPOTS.filter((s) => s.kind !== 'lamp');
+  for (let i = 0; i < 12 && i < residents; i++) {
+    let who = Math.floor(r() * residents); while (used.has(who)) who = (who + 1) % residents; used.add(who);
+    const n = 3 + Math.floor(r() * 2); const stops = [];
+    for (let k = 0; k < n; k++) stops.push({ spot: spots[Math.floor(r() * spots.length)].key, dur: 12 + r() * 25 });
+    out.push({ who, item: keys[Math.floor(r() * keys.length)], seed: hash(`goose:${hour}:${who}`), stops, speed: RESIDENT_SPEED * (0.8 + r() * 0.4) });
+  }
+  return out;
+}
+/** 기본 일과의 위치 — t 초에 어느 정거장 사이 어디쯤인가 (거위가 없을 때의 진실) */
+export function routineAt(rt: Routine, t: number): { x: number; d: number; act: Activity; moving: boolean; face: 1 | -1 } {
+  const legs = rt.stops.map((s, i) => { const a = spotOf(s.spot), b = spotOf(rt.stops[(i + 1) % rt.stops.length].spot); const walk = Math.hypot(b.x - a.x, (b.d - a.d) * 400) / rt.speed; return { a, b, stay: s.dur, walk }; });
+  const total = legs.reduce((s, l) => s + l.stay + l.walk, 0);
+  let u = (t + rt.seed % 1000) % total;
+  for (const l of legs) {
+    if (u < l.stay) return { x: l.a.x + ((rt.seed % 60) - 30), d: Math.min(1, Math.max(0.05, l.a.d + ((rt.seed % 20) - 10) / 100)), act: l.a.act, moving: false, face: rt.seed % 2 ? 1 : -1 };
+    u -= l.stay;
+    if (u < l.walk) { const k = u / l.walk; return { x: l.a.x + (l.b.x - l.a.x) * k, d: l.a.d + (l.b.d - l.a.d) * k, act: 'stand', moving: true, face: l.b.x >= l.a.x ? 1 : -1 }; }
+    u -= l.walk;
+  }
+  return { x: legs[0].a.x, d: legs[0].a.d, act: legs[0].a.act, moving: false, face: 1 };
+}
+
+// ── 오늘의 할 일 ──
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all';
+export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
+/** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
+export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
+  const r = rng(hash(`tasks:${day}:${uid}`));
+  const pick = () => out[Math.floor(r() * out.length)];
+  const items = Object.keys(ITEMS) as ItemKey[];
+  const tasks: Task[] = [];
+  const add = (t: Task) => { if (!tasks.some((x) => x.key === t.key)) tasks.push(t); };
+  while (tasks.length < 8) {
+    const v = r();
+    if (v < 0.25) { const p = pick(); add({ key: `steal:${p.who}`, kind: 'steal', who: p.who, item: p.item, text: `Steal ${handles[p.who]}'s ${ITEMS[p.item]}`, coins: 6 }); }
+    else if (v < 0.42) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)]; add({ key: `dunk:${it}:${w}`, kind: 'dunk', item: it, spot: w, text: `Drop a ${ITEMS[it]} in ${spotOf(w).name}`, coins: 10 }); }
+    else if (v < 0.55) add({ key: 'shove3', kind: 'honk3', n: 3, text: 'Knock over three different residents within ten seconds', coins: 5 });
+    else if (v < 0.66) add({ key: 'chased', kind: 'chased', n: 10, text: 'Get chased for ten seconds without being caught', coins: 8 });
+    else if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const s = SPOTS.filter((x) => x.kind === 'bench' || x.kind === 'cafe')[Math.floor(r() * 3)]; add({ key: `deliver:${it}:${s.key}`, kind: 'deliver', item: it, spot: s.key, text: `Bring a ${ITEMS[it]} to ${s.name}`, coins: 7 }); }
+    else if (v < 0.9) { const p = pick(); add({ key: `sit:${p.who}`, kind: 'sit', who: p.who, text: `Make ${handles[p.who]} give up chasing you`, coins: 6 }); }
+    else add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
+  }
+  return tasks;
+}

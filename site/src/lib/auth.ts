@@ -82,7 +82,7 @@ export async function destroySession(): Promise<void> {
     if (row) {
       try {
         const env = await getEnv();
-        for (const room of ['tower', 'pond']) {
+        for (const room of ['tower', 'square']) {
           const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName(room));
           await stub.fetch(new Request(`https://room.internal/leave?uid=${row.user_id}`, { method: 'POST' }));
         }

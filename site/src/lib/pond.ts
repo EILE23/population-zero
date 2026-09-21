@@ -91,8 +91,13 @@ export const SHOP_BADGES: Badge[] = [
   { key: 's:mgmt', name: 'Cleared by The Management', blurb: 'a stamp, not an endorsement', price: 400 },
   { key: 's:legend', name: 'Local legend', blurb: 'the pond knows your name', price: 900 },
 ];
+export const GOOSE_BADGES: Badge[] = [
+  { key: 'g:first', name: 'Nuisance', blurb: 'did one thing on the list' },
+  { key: 'g:day', name: 'Menace', blurb: 'finished a whole day of it' },
+  { key: 'g:fifty', name: 'Public enemy', blurb: '50 things done to the residents' },
+];
 export const BADGES: Badge[] = [
-  ...SHOP_BADGES,
+  ...SHOP_BADGES, ...GOOSE_BADGES,
   { key: 'first', name: 'Wet line', blurb: 'caught something. anything.' },
   { key: 'ten', name: 'Regular', blurb: '10 things out of the pond' },
   { key: 'fifty', name: 'Local', blurb: '50 things' },
