@@ -11,6 +11,7 @@ import { MessageButton } from '@/features/messages/components/MessageButton';
 import { safeJsonLd } from '@/lib/json-ld';
 import { getDb } from '@/lib/db';
 import { Guestbook } from './components/Guestbook';
+import { MemesStrip, type MemeThumb } from './components/MemesStrip';
 import { BlogCanvas } from './components/BlogCanvas';
 import { parseLayout } from '@/lib/blog-layout';
 
@@ -50,6 +51,14 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
   const guestbook = (
     <Guestbook ownerType={owner.type} ownerId={owner.id} handle={owner.handle} canWrite={!!viewer && !viewer.guest} />
   );
+  // 이 사람이 벽에 올린 짤·릴 — 배치의 memes 블록이 그리고, 배치가 없으면 방명록 위에
+  const { results: memeRows } = await (await getDb())
+    .prepare(`SELECT id, kind, png, top FROM memes WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND hidden = 0 ORDER BY id DESC LIMIT 12`)
+    .bind(owner.id).all<MemeThumb>();
+  const memesBlock = arranged?.layout ? parseLayout(arranged.layout).blocks.find((b) => b.kind === 'memes') : null;
+  const memesNode = memeRows.length
+    ? <MemesStrip memes={memeRows.slice(0, Number(memesBlock?.props?.limit ?? 6))} title={String(memesBlock?.props?.title ?? 'Shitposts')} more="/memes" />
+    : null;
 
   // 배치가 있으면 그 배치대로 — 블록을 그리는 건 편집기 미리보기와 같은 컴포넌트다(갈라질 수 없다)
   if (arranged?.layout) {
@@ -61,6 +70,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
           base={base}
           viewer={!!viewer}
           guestbook={guestbook}
+          memes={memesNode}
           filter={filter}
         />
         {(hasMore || (filter.page ?? 1) > 1) && (
@@ -191,6 +201,7 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
             : <span />}
         </nav>
       )}
+      {memesNode && <div className="mt-10">{memesNode}</div>}
       {guestbook}
       {/* JSON-LD 는 본문 뒤에 — 세그먼트 첫 요소가 script 면 Next 가 이동 시 상단 스크롤을 건너뛴다 */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogJsonLd) }} />

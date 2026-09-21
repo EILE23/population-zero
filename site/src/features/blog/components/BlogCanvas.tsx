@@ -12,7 +12,7 @@ import type { BlogFilter, ProfileData } from '../types';
  * (목업으로 미리보기를 만들면 반드시 갈라지고, 갈라진 미리보기는 없는 것보다 나쁘다).
  * 색·서체·모서리는 고른 값에서 만든 CSS 변수로만 들어간다 — 주인이 쓴 문자열이 스타일로 들어가는 일은 없다.
  */
-export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blockWrap, zoneProps, filter }: {
+export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, memes, blockWrap, zoneProps, filter }: {
   layout: BlogLayout;
   data: Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
   base: string;
@@ -21,6 +21,8 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   editing?: boolean;
   /** 방명록은 서버가 그린 실물을 그대로 꽂는다 — 배치만 주인이 정한다 */
   guestbook?: React.ReactNode;
+  /** 짤·릴 띠도 서버가 그린 실물 — 없으면 블록이 비어 보이지 않게 아예 그리지 않는다 */
+  memes?: React.ReactNode;
   /** 편집기가 블록마다 손잡이와 설정을 덧입힌다. 공개 블로그에서는 비어 있다 */
   blockWrap?: (block: Block, node: React.ReactNode, index: number) => React.ReactNode;
   /** 편집기가 기둥을 드롭 영역으로 쓴다 — 블록을 사이드바로 끌어다 놓으면 그 기둥으로 옮겨진다 */
@@ -40,7 +42,8 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   // 머리 블록이 이미 이름·배지·팔로워를 그린다면 소개 블록은 소개글만 — 같은 줄이 두 번 나오면 안 된다
   const hasHeader = blocks.some((b) => b.kind === 'header');
   const render = (b: Block) => {
-    const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} hasHeader={hasHeader} filter={filter} />;
+    if (b.kind === 'memes' && !editing && !memes) return null;
+    const node = <BlockView block={b} data={data} base={base} viewer={viewer} editing={editing} guestbook={guestbook} memes={memes} hasHeader={hasHeader} filter={filter} />;
     const i = blocks.indexOf(b);
     return <div key={b.id}>{blockWrap ? blockWrap(b, node, i) : node}</div>;
   };
@@ -61,13 +64,14 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, blo
   );
 }
 
-function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader, filter }: {
+function BlockView({ block, data, base, viewer, editing, guestbook, memes, hasHeader, filter }: {
   block: Block;
   data: BlogCanvasData;
   base: string;
   viewer: boolean;
   editing?: boolean;
   guestbook?: React.ReactNode;
+  memes?: React.ReactNode;
   hasHeader?: boolean;
   filter?: BlogFilter;
 }) {
@@ -295,6 +299,14 @@ function BlockView({ block, data, base, viewer, editing, guestbook, hasHeader, f
           <p className="text-[13px] opacity-60">Visitors leave notes here.</p>
         </>
       ) : guestbook);
+
+    case 'memes':
+      return wrap(editing ? (
+        <>
+          <SectionLabel>{String(p.title ?? 'Shitposts').toUpperCase()}</SectionLabel>
+          <p className="text-[13px] opacity-60">Your pictures and reels from the wall show here.</p>
+        </>
+      ) : memes);
 
     case 'text':
       return wrap(

@@ -3,11 +3,11 @@ import type { Block, BlockKind } from '@/lib/blog-layout';
 
 export const KIND_LABEL: Record<BlockKind, string> = {
   header: 'Header', intro: 'About', banner: 'Banner', posts: 'Posts', toc: 'Contents',
-  guestbook: 'Guestbook', text: 'Text', image: 'Picture', links: 'Links', divider: 'Divider',
+  guestbook: 'Guestbook', memes: 'Shitposts', text: 'Text', image: 'Picture', links: 'Links', divider: 'Divider',
   search: 'Search', actions: 'Buttons', chrome: 'Header bar',
 };
 /** 한 번만 놓을 수 있는 것들 — 블로그의 기능이라 두 개가 되면 안 된다 */
-export const ONCE: BlockKind[] = ['header', 'intro', 'posts', 'guestbook'];
+export const ONCE: BlockKind[] = ['header', 'intro', 'posts', 'guestbook', 'memes'];
 
 const chip = (on: boolean) =>
   `cursor-pointer rounded-full px-2.5 py-1 text-[12px] font-bold ${on ? 'bg-ink text-paper' : 'border border-hairline bg-paper text-ink-mid hover:bg-surface'}`;
@@ -256,6 +256,18 @@ export function BlockSettings({ block, setProp, onPickImage }: {
       return (
         <input value={String(p.title ?? '')} onChange={(e) => setProp('title', e.target.value)} maxLength={60}
           placeholder="Guestbook" className={field} />
+      );
+
+    case 'memes':
+      return (
+        <>
+          <input value={String(p.title ?? '')} onChange={(e) => setProp('title', e.target.value)} maxLength={40} placeholder="Shitposts" className={field} />
+          <Row label="How many">
+            {[3, 6, 12].map((n) => (
+              <button key={n} onClick={() => setProp('limit', n)} className={chip(Number(p.limit ?? 6) === n)}>{n}</button>
+            ))}
+          </Row>
+        </>
       );
 
     default:

@@ -11,7 +11,7 @@
  * 들어오는 값은 전부 모르는 사람이 쓴 것으로 취급한다 — 목록에 없는 값은 조용히 기본값으로 접는다.
  */
 
-export type BlockKind = 'header' | 'intro' | 'banner' | 'posts' | 'toc' | 'guestbook' | 'text' | 'image' | 'links' | 'divider' | 'search' | 'actions' | 'chrome';
+export type BlockKind = 'header' | 'intro' | 'banner' | 'posts' | 'toc' | 'guestbook' | 'memes' | 'text' | 'image' | 'links' | 'divider' | 'search' | 'actions' | 'chrome';
 export type PostsView = 'grid' | 'list' | 'magazine' | 'index';
 export type Columns = 1 | 2 | 3;
 
@@ -150,6 +150,8 @@ const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {
     recent: { type: 'int', def: 8, max: 20 },
   },
   guestbook: { title: { type: 'text', def: 'Guestbook', max: 60 } },
+  // 이 사람이 벽(/memes)에 올린 짤·릴 — 블로그에도 걸린다
+  memes: { title: { type: 'text', def: 'Shitposts', max: 40 }, limit: { type: 'int', def: 6, max: 12 } },
   text: { body: { type: 'text', def: '', max: 2000 }, align: { type: 'enum', values: ['left', 'center'], def: 'left' } },
   image: { src: { type: 'text', def: '', max: 400 }, caption: { type: 'text', def: '', max: 200 }, full: { type: 'bool', def: false } },
   links: { items: { type: 'text', def: '', max: 1200 } },  // 한 줄에 "제목|주소"
