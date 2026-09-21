@@ -58,15 +58,30 @@ Real meme text is dumb, flat and short. It is typed by a tired person, not writt
 - the test: if a copywriter could have written it, delete it. if a 14-year-old at 2am could have, keep it.
 
 THE PICTURES
-Some of the pictures below are famous templates: use their format, not just their surface. Others are old paintings: caption what is actually happening in them as if it were today.
+Some of the pictures below are famous templates. A template is a SENTENCE with blanks, and every blank has a fixed role. Fill the roles or do not use it:
+- Distracted Boyfriend: man = "me" (or a group), girlfriend = what I should be doing, red dress = the thing I turn to instead. Three labels, all nouns a stranger knows.
+- Drake: top = the thing rejected, bottom = the thing preferred. Same category, the second one dumber.
+- Two Buttons: two options that are both bad, sweating man = "me" (label optional).
+- Change My Mind: one opinion on the sign. Confident, slightly wrong.
+- Expanding Brain / Galaxy Brain: 3-4 steps, each dumber but presented as smarter.
+- Woman Yelling at Cat: left = the accusation, right = the calm wrong answer.
+- Always Has Been: astronaut 1 = "wait, it's all X?", astronaut 2 = "always has been".
+- Is This a Pigeon: the man = who, the butterfly = the thing, the caption = the wrong name he gives it.
+- Bernie "I am once again asking": one request, humble, absurd.
+- Hide the Pain Harold / This Is Fine / Surprised Pikachu / Panik-Kalm / Gru's Plan / Trade Offer / Buff Doge vs Cheems / Anakin-Padme / Epic Handshake / Left Exit 12 / Running Away Balloon / Mother Ignoring Kid Drowning: these all have fixed slots too — if you do not know the slots, pick another picture.
+Labels are nouns or short phrases the reader already knows (rent, the group chat, my ex, a fax machine). Never a rare word, never an in-joke, never a word you like this week.
+Use their format, not just their surface. Others are old paintings: caption what is actually happening in them as if it were today.
 Positions are fractions of the whole image (x, y from 0 to 1, size is text height as a fraction of image height, 0.05-0.12). Put text where that template puts it (Drake: right half, top and bottom; Two Buttons: on the two buttons; top/bottom bands for everything else). At most ${TEXTS_MAX} texts, usually 1-3, each under 70 characters.
 "repeat" stacks the same picture 2 or 3 times vertically — for escalation ("no" / "no" / "NO"). Usually 1.
 
 TODAY
 You are NOT required to post. If none of these pictures gives you a real one, say so — a forced meme is worse than none.
 
+Before you answer, write one sentence that a stranger would say after seeing it in one second ("oh it's the group chat picking a restaurant"). If you cannot write that sentence, set make to false.
+
 Return JSON:
 {"make": true|false,
+ "stranger": "the one sentence a stranger says after one second — required when make is true",
  "why": "one line to yourself",
  "picture": <index of the picture, 0-based>,
  "repeat": 1|2|3,
@@ -212,6 +227,9 @@ Decide.`;
 
   const { out, used } = await ask(user);
   if (!out.make) { log(`@${r.handle} 안 만듦 — ${String(out.why ?? '').slice(0, 80)}`); return { used, made: false }; }
+  // 자기 검증 — "모르는 사람이 1초 뒤에 하는 말" 이 없거나 짧으면 밈이 아니라 단어 나열이다(실측: "an earl / gaslighting / lying")
+  const stranger = String(out.stranger ?? '').trim();
+  if (stranger.split(/\s+/).length < 4) { log(`@${r.handle} 검증 실패(stranger 문장 없음) — 버림`); return { used, made: false }; }
   const pic = pics[Number(out.picture)] ?? pics[0];
   const repeat = Math.min(3, Math.max(1, Number(out.repeat) || 1));
   // 사람이 저장할 때와 같은 문 — 목록 밖 값은 기본값으로 접힌다
