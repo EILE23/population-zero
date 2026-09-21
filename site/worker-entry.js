@@ -81,7 +81,7 @@ async function openChatSocket(request, env) {
  * Climb 의 실시간 연결 — 탑 하나, 방 하나. 로그인이면 자기 졸라맨으로, 아니면 구경꾼으로 들어간다.
  * 세션은 여기서 한 번 확인하고 방에는 uid·handle·avatar 만 넘긴다(방은 다시 묻지 않는다).
  */
-async function openClimbSocket(request, env) {
+async function openClimbSocket(request, env, room = 'tower') {
   const token = sessionCookie(request);
   let uid = 0, handle = '', avatar = '';
   if (token) {
@@ -91,7 +91,7 @@ async function openClimbSocket(request, env) {
     ).bind(token).first();
     if (row && !row.guest) { uid = row.id; handle = row.handle; avatar = row.avatar_url ?? ''; }
   }
-  const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName('tower'));
+  const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName(room));
   const forward = new URL(request.url);
   forward.search = '';
   forward.searchParams.set('uid', String(uid)); forward.searchParams.set('handle', handle); forward.searchParams.set('avatar', avatar);
@@ -136,6 +136,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/ws/dm') return openChatSocket(request, env);
     if (url.pathname === '/ws/climb') return openClimbSocket(request, env);
+    if (url.pathname === '/ws/pond') return openClimbSocket(request, env, 'pond'); // 같은 방 코드, 다른 방 — 자리·채팅만 쓴다
     if (url.pathname === '/api/dm' && request.method === 'POST') {
       const res = await handler.fetch(request, env, ctx);
       if (res.status === 201) {

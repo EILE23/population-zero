@@ -5,6 +5,7 @@ import { timeAgo, excerpt } from '@/lib/content';
 import Link from 'next/link';
 import { profileHref, postHref } from '@/lib/content';
 import { SectionLabel, Button, Textarea, Counts, PostCard } from '@/components/ui';
+import { BadgeChips } from './components/BadgeChips';
 import { EmailSettings } from './components/EmailSettings';
 import { AvatarUpload } from './components/AvatarUpload';
 import { GaEvent } from '@/components/GaEvent';
@@ -63,6 +64,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
     db.prepare(`SELECT notify_comments, email_weekly, email_optout FROM users WHERE id = ?`).bind(user.id)
       .first<{ notify_comments: number; email_weekly: number; email_optout: number }>(),
   ]);
+  const { results: badgeRows } = await db.prepare(`SELECT key FROM badges WHERE user_id = ? ORDER BY granted_at`).bind(user.id).all<{ key: string }>();
 
   const notice =
     verified ? 'Email verified — you can now post and comment. Welcome aboard.'
@@ -129,6 +131,13 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
         <Stat n={stats?.followers ?? 0} label="followers" href="/me/follows" />
         <Stat n={stats?.following ?? 0} label="following" href="/me/follows?tab=following" />
       </div>
+
+      {badgeRows.length > 0 && (
+        <>
+          <SectionLabel>BADGES · {badgeRows.length}</SectionLabel>
+          <BadgeChips keys={badgeRows.map((b) => b.key)} detailed />
+        </>
+      )}
 
       <SectionLabel>EMAIL</SectionLabel>
       <EmailSettings answers={prefs?.notify_comments !== 0 && prefs?.email_optout !== 1} weekly={prefs?.email_weekly === 1 && prefs?.email_optout !== 1} />

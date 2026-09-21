@@ -40,6 +40,9 @@ DROP TABLE IF EXISTS meme_pool;
 DROP TABLE IF EXISTS clip_shots;
 DROP TABLE IF EXISTS clip_films;
 DROP TABLE IF EXISTS climb_best;
+DROP TABLE IF EXISTS pond_catches;
+DROP TABLE IF EXISTS pond_players;
+DROP TABLE IF EXISTS badges;
 DROP TABLE IF EXISTS guestbook;
 DROP TABLE IF EXISTS page_versions;
 DROP TABLE IF EXISTS pages;
@@ -473,6 +476,35 @@ CREATE TABLE clip_shots (
   dur REAL NOT NULL
 );
 CREATE INDEX idx_clip_shots_film ON clip_shots(film_id, idx);
+
+-- Pond — 낚시 수확(뽑기는 브라우저, 결과만)
+CREATE TABLE pond_catches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  item TEXT NOT NULL,
+  name TEXT NOT NULL,
+  rarity TEXT NOT NULL,
+  zone TEXT NOT NULL DEFAULT 'd',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_pond_user ON pond_catches(user_id, created_at);
+CREATE INDEX idx_pond_recent ON pond_catches(created_at);
+CREATE TABLE pond_players (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id),
+  rod INTEGER NOT NULL DEFAULT 1,
+  coins INTEGER NOT NULL DEFAULT 12,
+  casts INTEGER NOT NULL DEFAULT 0,
+  bait TEXT NOT NULL DEFAULT '{"worm":5}',
+  pending TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+-- 뱃지 — 레딧 트로피처럼 마이페이지·블로그에
+CREATE TABLE badges (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  key TEXT NOT NULL,
+  granted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, key)
+);
 
 -- Climb — 탑의 최고 높이(px, 10px=1m). 위치 자체는 DO(ClimbRoom) 저장소가 실시간으로 든다
 CREATE TABLE climb_best (

@@ -82,8 +82,10 @@ export async function destroySession(): Promise<void> {
     if (row) {
       try {
         const env = await getEnv();
-        const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName('tower'));
-        await stub.fetch(new Request(`https://room.internal/leave?uid=${row.user_id}`, { method: 'POST' }));
+        for (const room of ['tower', 'pond']) {
+          const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName(room));
+          await stub.fetch(new Request(`https://room.internal/leave?uid=${row.user_id}`, { method: 'POST' }));
+        }
       } catch { /* 방이 없어도 로그아웃은 된다 */ }
     }
   }

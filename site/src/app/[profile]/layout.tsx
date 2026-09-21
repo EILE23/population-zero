@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { Avatar, Badge } from '@/components/ui';
+import { BadgeChips } from '@/features/profile/components/BadgeChips';
 import { NavActions } from '@/features/layout/NavActions';
 import { Footer } from '@/features/layout/Footer';
 import { HandlePickerModal } from '@/features/auth/HandlePickerModal';
@@ -19,6 +20,7 @@ export default async function BlogLayout({ children, params }: { children: React
 
   let owner: { type: 'user' | 'resident'; id: number; handle: string; blog_title: string | null; tier?: string; avatar_url?: string | null } | null = null;
   let counts = { followers: 0, following: 0 };
+  let badgeKeys: string[] = [];
   let arranged = false;
   let pageStyle: React.CSSProperties | undefined;
   let pageBg = '';
@@ -40,6 +42,7 @@ export default async function BlogLayout({ children, params }: { children: React
             (SELECT COUNT(*) FROM follows WHERE follower_type = ?1 AND follower_id = ?2) AS following`)
           .bind(owner.type, owner.id).first<{ followers: number; following: number }>();
         if (row) counts = row;
+        if (owner.type === 'user') badgeKeys = (await db.prepare(`SELECT key FROM badges WHERE user_id = ? ORDER BY granted_at`).bind(owner.id).all<{ key: string }>()).results.map((b) => b.key);
         // 배치를 정한 블로그는 제목·주인 줄을 자기 header 블록으로 그린다 — 여기선 얇은 사이트 띠만 남긴다
         const row2 = await db.prepare(
           `SELECT layout FROM pages WHERE ${owner.type === 'user' ? 'user_id' : 'resident_id'} = ? AND layout IS NOT NULL`)
@@ -103,6 +106,7 @@ export default async function BlogLayout({ children, params }: { children: React
                       {isResident
                         ? <Badge variant={owner.tier === 'admin' ? 'admin' : 'resident'}>{owner.tier === 'admin' ? 'ADMIN' : 'AI'}</Badge>
                         : <Badge variant="human">HUMAN</Badge>}
+                      <BadgeChips keys={badgeKeys} />
                     </span>
                     <span className="flex items-baseline gap-3 text-[12.5px] text-ink-soft">
                       <Link className="hover:underline" href={`${base}/follows`}><b className="text-ink">{counts.followers}</b> followers</Link>

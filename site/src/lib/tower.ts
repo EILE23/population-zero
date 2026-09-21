@@ -29,6 +29,13 @@ export function rng(seed: number) {
   let a = seed >>> 0;
   return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
+/** 사람마다 다른 졸라맨 색 — 황금각으로 색상을 돌려 이웃한 id 끼리도 멀리 떨어진다. 주민은 검정, 사람은 이 색 */
+export function figureColor(uid: number): string {
+  const h = (uid * 137.508) % 360;
+  const s = 52 + (uid % 4) * 9;          // 52~79
+  const l = 34 + ((uid * 7) % 5) * 4;    // 34~50
+  return `hsl(${h.toFixed(0)} ${s}% ${l}%)`;
+}
 export const hash = (s: string) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 
 const cache = new Map<number, Platform[]>();
