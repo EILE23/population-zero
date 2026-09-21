@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   if (await rateLimited(request, 'meme', 30, 60)) return Response.json({ error: 'rate', message: 'Slow down a bit.' }, { status: 429 });
 
   const b = (await request.json().catch(() => ({}))) as {
-    image?: unknown; png?: unknown; style?: unknown; remix_of?: unknown; video?: unknown; caption?: unknown;
+    image?: unknown; png?: unknown; style?: unknown; remix_of?: unknown; video?: unknown; caption?: unknown; clip?: unknown;
   };
   const caption = clean(b.caption, TEXT_MAX);
   let kind: MemeKind, image: string, png: string, style = cleanStyle(null), top = caption, bottom = '';
@@ -47,6 +47,13 @@ export async function POST(request: Request) {
   }
   if (yt) {
     kind = 'video'; image = `https://www.youtube.com/watch?v=${yt}`; png = youtubeThumb(yt);
+  } else if (b.clip !== undefined) {
+    // 릴 — 브라우저가 녹화한 영상(우리 보관함) + 포스터 PNG. 정의(style)는 리믹스용으로 같이 둔다
+    if (!isAsset(b.clip) || !/\.(webm|mp4)$/.test(b.clip) || !isAsset(b.png)) {
+      return Response.json({ error: 'clip', message: 'The clip has to be one recorded here.' }, { status: 400 });
+    }
+    kind = 'clip'; image = b.clip; png = b.png; style = cleanStyle(b.style);
+    if (!caption) { top = style.texts[0]?.t ?? ''; bottom = style.texts[1]?.t ?? ''; }
   } else {
     // 결과 PNG(또는 올린 그림)는 우리가 올린 것이어야 한다. 바탕은 풀의 출처면 된다
     if (!isAsset(b.png)) return Response.json({ error: 'image', message: 'The picture has to be one you uploaded here.' }, { status: 400 });

@@ -15,6 +15,12 @@ export function MediaCard({ kind, png, image, alt }: { kind: MemeKind; png: stri
   const still = useRef<HTMLCanvasElement>(null);
   const [frozen, setFrozen] = useState(false);
   const yt = kind === 'video' ? youtubeId(image) : null;
+  const vid = useRef<HTMLVideoElement>(null);
+  // 릴: 올리면 재생, 떼면 처음으로
+  useEffect(() => {
+    const v = vid.current; if (!v) return;
+    if (hover) void v.play().catch(() => null); else { v.pause(); v.currentTime = 0; }
+  }, [hover]);
 
   // GIF 첫 프레임 — 이미지가 오면 캔버스에 한 번 찍고 그걸 보여 준다. 실패하면(캔버스 오염 등) 그냥 GIF 를 보여 준다
   useEffect(() => {
@@ -35,7 +41,11 @@ export function MediaCard({ kind, png, image, alt }: { kind: MemeKind; png: stri
         className={`block w-full transition-transform duration-300 ${kind === 'image' ? 'group-hover:scale-[1.03]' : ''} ${kind === 'gif' && frozen && !hover ? 'invisible' : ''}`} />
       {kind === 'gif' && <canvas ref={still} className={`absolute inset-0 h-full w-full ${frozen && !hover ? '' : 'hidden'}`} aria-hidden />}
       {kind === 'gif' && <span className="absolute left-2 top-2 rounded bg-ink/80 px-1.5 font-mono text-[10px] font-bold text-paper">GIF</span>}
-      {yt && !hover && (
+      {kind === 'clip' && (
+        <video ref={vid} src={image} poster={png} muted loop playsInline preload="none"
+          className={`absolute inset-0 h-full w-full object-cover ${hover ? '' : 'invisible'}`} />
+      )}
+      {(yt || kind === 'clip') && !hover && (
         <span className="absolute inset-0 grid place-items-center">
           <span className="grid size-12 place-items-center rounded-full bg-ink/80 text-paper"><Play size={20} aria-hidden fill="currentColor" /></span>
         </span>

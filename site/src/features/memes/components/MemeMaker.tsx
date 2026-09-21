@@ -1,10 +1,11 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, Brush, Circle, Dices, Download, Eraser, ImagePlus, Minus, Move, Redo2, Square, Sticker, Trash2, Type, Undo2, Upload } from 'lucide-react';
+import { ArrowUpRight, Brush, Circle, Clapperboard, Dices, Download, Eraser, ImagePlus, Minus, Move, Redo2, Square, Sticker, Trash2, Type, Undo2, Upload } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { ASSET_PREFIX, cleanStyle, FONTS, PANELS_MAX, STICKERS_MAX, TEXTS_MAX, type MemeSticker, type MemeText } from '@/lib/memes';
 import { arrowPath, drawMemeText, drawSticker, FONT_CSS, FONT_LABEL, hitMemeText, hitSticker } from '@/lib/meme-draw';
+import { record, storyboard } from './reel';
 
 /**
  * 짤 만들기 — 그림판 + 글자 + 스티커.
@@ -52,7 +53,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
   const [pick, setPick] = useState<'bg' | 'sticker'>('bg'); // 아래 그림 띠를 누르면 — 바탕으로 쓸지, 스티커로 얹을지
   const [color, setColor] = useState('#ff2d55');
   const [width, setWidth] = useState(14);
-  const [busy, setBusy] = useState<'idle' | 'posting' | 'rolling'>('idle');
+  const [busy, setBusy] = useState<'idle' | 'posting' | 'rolling' | 'reeling'>('idle');
   const [message, setMessage] = useState('');
   const [lines, setLines] = useState<string[]>([]);
   const [shots, setShots] = useState<string[]>(pics);
@@ -273,7 +274,39 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
   }, []);
   useEffect(() => { if (autoRoll) void roll(); }, [autoRoll, roll]);
 
-  const upload = async (file: File, kind: 'inline' | 'meme'): Promise<string | null> => {
+  /** ▶ 릴 — 스토리보드(컷·글자·스티커·붓질)를 세로 영상으로 녹화한다. 실시간이라 길이만큼 걸린다 */
+  const [reel, setReel] = useState<{ url: string; video: Blob; poster: Blob; mime: string } | null>(null);
+  const [progress, setProgress] = useState(0);
+  const makeReel = async () => {
+    setSel(null); setBusy('reeling'); setMessage(''); setReel(null);
+    try {
+      const heights = imgs.current.map((im) => Math.round(im ? W * im.height / im.width : W * 0.75));
+      const scenes = storyboard(imgs.current, heights, size.h, texts, stickers);
+      if (!scenes.length) throw new Error('Nothing to record.');
+      const out = await record(scenes, W, paint.current, stImgs.current, setProgress);
+      setReel({ ...out, url: URL.createObjectURL(out.video) });
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not record.'); }
+    setBusy('idle');
+  };
+  const postReel = async () => {
+    if (!reel) return;
+    if (!signedIn) { setMessage('Log in to post it. Downloading works without an account.'); return; }
+    setBusy('posting'); setMessage('');
+    const ext = reel.mime.includes('mp4') ? 'mp4' : 'webm';
+    const clip = await upload(new File([reel.video], `reel.${ext}`, { type: reel.mime }), 'clip');
+    const png = clip ? await upload(new File([reel.poster], 'poster.png', { type: 'image/png' }), 'meme') : null;
+    if (!clip || !png) { setBusy('idle'); return; }
+    const res = await fetch('/api/memes', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clip, png, style: cleanStyle({ texts, panels, stickers }), remix_of: initial?.remixOf ?? null }),
+    });
+    const d = await res.json() as { ok?: boolean; url?: string; message?: string };
+    setBusy('idle');
+    if (!res.ok || !d.ok) { setMessage(d.message ?? 'Could not post that.'); return; }
+    router.push(d.url!);
+  };
+
+  const upload = async (file: File, kind: 'inline' | 'meme' | 'clip'): Promise<string | null> => {
     const body = new FormData(); body.append('image', file); body.append('kind', kind);
     const res = await fetch('/api/upload', { method: 'POST', body });
     const d = await res.json() as { url?: string; error?: string };
@@ -472,6 +505,26 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
           </button>
           {message && <p role="alert" className="mt-2 text-[12.5px] font-semibold text-accent-deep">{message}</p>}
           {!signedIn && <p className="mt-2 text-[11.5px] text-ink-soft">Anyone can make and download. Posting to the wall needs an account.</p>}
+        </div>
+
+        {/* ── 릴 — 컷이 장면, 글자가 대사. 세로 영상으로 녹화한다 ── */}
+        <div className="rounded-xl border border-hairline bg-paper p-3">
+          <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Make it move</p>
+          <p className="mt-1 text-[11.5px] text-ink-soft">Each panel is a scene, each line comes in on its own. Vertical, like a short. Recording takes as long as the clip.</p>
+          <button onClick={() => void makeReel()} disabled={busy !== 'idle'} className={`${BUTTON.ghost} mt-2 inline-flex w-full items-center justify-center gap-1.5 disabled:opacity-50`}>
+            <Clapperboard size={14} aria-hidden /> {busy === 'reeling' ? `Recording… ${Math.round(progress * 100)}%` : reel ? 'Record again' : 'Record a reel'}
+          </button>
+          {reel && (
+            <>
+              <video src={reel.url} controls autoPlay muted loop playsInline className="mt-2 w-full rounded-lg border border-hairline bg-black" />
+              <button onClick={() => void postReel()} disabled={busy === 'posting'} className={`${BUTTON.primary} mt-2 inline-flex w-full items-center justify-center gap-1.5 disabled:opacity-50`}>
+                <Upload size={14} aria-hidden /> {busy === 'posting' ? 'Posting…' : 'Post the reel'}
+              </button>
+              <a href={reel.url} download={`poz-reel.${reel.mime.includes('mp4') ? 'mp4' : 'webm'}`} className={`${BUTTON.ghost} mt-2 inline-flex w-full items-center justify-center gap-1.5`}>
+                <Download size={14} aria-hidden /> Download
+              </a>
+            </>
+          )}
         </div>
       </div>
     </div>

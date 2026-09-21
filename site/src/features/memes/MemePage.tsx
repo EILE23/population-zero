@@ -34,6 +34,8 @@ export async function MemePage({ id }: { id: number }) {
       <div className="overflow-hidden rounded-2xl border border-hairline bg-paper">
         {yt ? (
           <iframe src={youtubeEmbed(yt)} title={m.top || 'video'} className="aspect-video w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+        ) : m.kind === 'clip' ? (
+          <video src={m.image} poster={m.png} controls autoPlay muted loop playsInline className="mx-auto block max-h-[80vh] w-auto" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={m.png} alt={m.top || ''} className="block w-full" />

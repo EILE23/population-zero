@@ -89,8 +89,8 @@ export function cleanStyle(raw: unknown): MemeStyle {
 
 export const memeHref = (id: number) => `/m/${id}`;
 
-/** 게시물 종류 — 만든/올린 그림, GIF, 유튜브 영상. 벽은 이 셋을 같은 카드로 보여 준다 */
-export type MemeKind = 'image' | 'gif' | 'video';
+/** 게시물 종류 — 만든/올린 그림, GIF, 유튜브 영상, 여기서 만든 릴(clip: image=영상 파일, png=포스터). 벽은 전부 같은 카드다 */
+export type MemeKind = 'image' | 'gif' | 'video' | 'clip';
 export const kindOf = (png: string): MemeKind => (/\.gif$/i.test(png) ? 'gif' : 'image');
 
 /** 유튜브 주소에서 영상 ID — watch?v= · youtu.be/ · shorts/ · embed/ 를 전부 받는다. 아니면 null */
