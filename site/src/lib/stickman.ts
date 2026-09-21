@@ -4,7 +4,7 @@ import type { Pose } from './tower';
  * 졸라맨 — 발끝 (x, y). 관절로 그린다: 엉덩이(0,-16) · 어깨(0,-34, 목 바로 아래) · 머리(0,-42).
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
-export type FigPose = Pose | 'fish';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick';
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
   ctx.save(); ctx.translate(x, y); ctx.scale(face * s, s);
   ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -23,6 +23,26 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line([-3, -30 - br], [8, -30 - br], [16, -32 - br]);  // 팔 하나 대 잡음
     ctx.lineWidth = 1.6; line([16, -32 - br], [58, -52 - br]); ctx.lineWidth = 2.4; // 낚싯대
     ctx.beginPath(); ctx.arc(-4, -38 - br, 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'punch') {
+    // 앞으로 내지르는 주먹 — 상체가 앞으로, 뒷팔은 당김, 다리는 벌림
+    hip = [0, -16]; shoulder = [4, -34]; head = [5, -42];
+    line(hip, shoulder);
+    line(hip, [-7, -8], [-9, 0]); line(hip, [8, -8], [10, 0]);
+    line(shoulder, [12, -34], [24, -35]);          // 뻗은 팔
+    line(shoulder, [-4, -28], [-8, -22]);          // 당긴 팔
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'kick') {
+    // 옆차기 — 디딤발 하나, 찬 발이 앞으로 쭉, 몸은 뒤로 기움
+    hip = [0, -16]; shoulder = [-5, -34]; head = [-6, -42];
+    line(hip, shoulder);
+    line(hip, [-4, -8], [-6, 0]);                  // 디딤발
+    line(hip, [10, -18], [24, -20]);               // 찬 발
+    line(shoulder, [-12, -30], [-16, -22]); line(shoulder, [3, -30], [8, -26]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
   if (pose === 'sit') {

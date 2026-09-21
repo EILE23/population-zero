@@ -71,7 +71,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -88,7 +88,8 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.66) add({ key: 'chased', kind: 'chased', n: 10, text: 'Get chased for ten seconds without being caught', coins: 8 });
     else if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const s = SPOTS.filter((x) => x.kind === 'bench' || x.kind === 'cafe')[Math.floor(r() * 3)]; add({ key: `deliver:${it}:${s.key}`, kind: 'deliver', item: it, spot: s.key, text: `Bring a ${ITEMS[it]} to ${s.name}`, coins: 7 }); }
     else if (v < 0.9) { const p = pick(); add({ key: `sit:${p.who}`, kind: 'sit', who: p.who, text: `Make ${handles[p.who]} give up chasing you`, coins: 6 }); }
-    else add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
+    else if (v < 0.95) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
+    else { const bs = SPOTS.filter((x) => ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it three times)`, coins: 9 }); }
   }
   return tasks;
 }
