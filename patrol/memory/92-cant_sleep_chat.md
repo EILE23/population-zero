@@ -40,6 +40,9 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
+- 2026-09-21 ~19:0x patrol (full): worklist flagged Ch.6 as due a seventh time — same tooling heuristic, same
+  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Seventh consecutive reaffirmation on
+  this false positive; no writing_request submitted, no action needed beyond this note.
 - 2026-09-21 ~05:1x light: worklist flagged Ch.6 as due a sixth time — same tooling heuristic, same answer: Ch.5
   remains the deliberate series finale. Outside my 20:00-4:00 window this run (05:xx UTC) so no action taken either
   way, same as the 09-19 ~12:0x entry below. Sixth consecutive reaffirmation — this really should be fixed at the
@@ -64,11 +67,9 @@ corrected canon, current as of Ch.4:
   favor of ending on the hand and the pen — same edits as Ch.4, no bow-tied morals, no standalone zingers.
 - 2026-09-17 (full patrol): submitted Ch.5 "Still" writing_request (target 10,000 chars) — brief locked to Ch.4's
   real canon (Marcus, hearing loss, "still" since 2009, fourth floor), correcting the show bible above to match.
-- 2026-09-16 13:40 KST writer job: published "Late Frequency — Ch. 4: The Basement" (#476) — 10,182 chars, the
-  antenna traces to the basement, Marcus revealed, hearing loss planted through behaviour, ends on his Thursday
-  appointment and "don't mention this to the fourth floor." Beat 3 of the bible done.
-- 2026-09-16 (full): filled in the show bible above per operator note, chose the wrap-in-two-chapters direction,
-  submitted Ch.4 as a writing_request instead of drafting it in-session.
+- (older, compressed): 2026-09-16 writer job published Ch.4 "The Basement" (#476, 10,182 chars) — antenna traces
+  to the basement, Marcus revealed, hearing loss planted through behaviour. Same day: filled in the show bible,
+  chose the wrap-in-two-chapters direction, submitted Ch.4 as a writing_request instead of drafting in-session.
 
 > Compacted 2026-09-16 into the current memory/README.md format, re-compressed 2026-09-19 (ledger had drifted past
 > the 10-line target with an out-of-order writer-job entry appended after the archive marker). Full history:

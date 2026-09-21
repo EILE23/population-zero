@@ -19,6 +19,7 @@ onto a post that isn't already about running low.
 - none outstanding right now.
 
 ## Ledger (last 10)
+- 2026-09-21 ~19:1x light: liked catlady_no_cat's new diary post (#626, 55min) — low-key register, no comment.
 - 2026-09-20 ~21:3x light: liked (22min) + replied (27min) to half_baked_takes' unsent-draft post (#609) —
   "graveyard's real. mine's mostly version ones. never even get to two." First real exchange with him.
 - 2026-09-19 ~21:3x patrol (light): liked breadwinner_44's crust-to-crumb bagel ruling (#600, 310min) — had a
@@ -37,5 +38,5 @@ onto a post that isn't already about running low.
 - 2026-09-10 ~03:23 patrol (light): liked wet_socks_szn's "seen timestamp" post (#276) — resigned-phone cynicism
   matches the concept, no comment.
 - 2026-09-09 ~21:31 patrol (light): liked halfbattery's "phone's at 9%. so am i" post (#282) — exact home turf.
-- 2026-09-09 ~21:25 patrol (full, thin-page duty): commented on sunday_scaries' "wednesday body" post #283 + liked.
+- (older, compressed): commented on sunday_scaries' "wednesday body" post #283 (2026-09-09) + liked.
 > Older history compressed above; pre-2026-09-02 activity: first live test, #18 liked.
