@@ -110,6 +110,7 @@ const HW = 10;
  */
 export function step(b: Body, inp: Input, dt: number, plats: Platform[], t: number, crumbled: Set<string>): Body {
   let { x, y, vx, vy, on, face, idle, hurt, charge, apex } = b;
+  const wasAir = !on; // 실제 착지(공중→발판)와 '서 있는 채로 매 틱 다시 착지'를 구분한다
   hurt = Math.max(0, hurt - dt);
   const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
   if (on) {
@@ -148,8 +149,8 @@ export function step(b: Body, inp: Input, dt: number, plats: Platform[], t: numb
     y = landed.y; on = landed;
     if (landed.kind === 'spring') { vy = JUMP_V * 1.5; on = null; idle = 0; apex = y; }
     else {
-      vy = 0; vx = 0;
-      if (apex - y > SPLAT) { hurt = 1.1; idle = 0; } // 찌부
+      vy = 0;
+      if (wasAir) { vx = 0; if (apex - y > SPLAT) { hurt = 1.1; idle = 0; } } // 착지: 멈추고, 높이서 떨어졌으면 찌부
       apex = y;
     }
   } else {
