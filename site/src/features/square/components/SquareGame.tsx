@@ -4,7 +4,7 @@ import { ListChecks, Upload } from 'lucide-react';
 import { figure, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY } from '@/lib/pond';
-import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, GRAB_R, ITEMS, PLAYER_SPEED, RESIDENT_SPEED, SHOVE_R, type ItemKey, type Task } from '@/lib/goose';
+import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, GRAB_R, ITEMS, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, type ItemKey, type Quest, type Task } from '@/lib/goose';
 import { BREAKABLE, houses, jobOf, MAPS, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
 /**
@@ -43,7 +43,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
   const fresh = useRef(new Set(extra.filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
   const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' });
-  const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false });
+  const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
+  const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
+  const [questList, setQuestList] = useState<Quest[]>([]);
   const npcs = useRef<Npc[]>([]);
   const loose = useRef<Map<string, Loose>>(new Map());
   const thrown = useRef<{ item: ItemKey; map: string; x: number; d: number; z: number; vx: number; vz: number; from: number }[]>([]);
@@ -113,9 +115,10 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
   }, [me]);
 
   const complete = async (key: string) => {
-    if (stats.current.doneKeys.has(key) || !tasks.some((t) => t.key === key)) return;
+    const q = key.startsWith('q:') ? [...quests.current.values()].find((x) => x.key === key) : undefined;
+    if (stats.current.doneKeys.has(key) || (!q && !tasks.some((t) => t.key === key))) return;
     stats.current.doneKeys.add(key); setDoneList([...stats.current.doneKeys]);
-    const t = tasks.find((x) => x.key === key)!; say(`Done: ${t.text} (+${t.coins})`, 3500);
+    const t = q ?? tasks.find((x) => x.key === key)!; say(`Done: ${t.text} (+${t.coins})`, 3500);
     if (!me) return;
     const res = await fetch('/api/goose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key }) });
     const d = await res.json().catch(() => ({})) as { ok?: boolean };
@@ -130,7 +133,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
       const i = input.current;
       if (k === 'ArrowLeft' || k === 'a') i.left = v; else if (k === 'ArrowRight' || k === 'd') i.right = v;
       else if (k === 'ArrowUp' || k === 'w') i.up = v; else if (k === 'ArrowDown' || k === 's') i.down = v;
-      else if (k === ' ') i.jump = v; else if (k === 'c' || k === 'C' || k === 'Enter') i.grab = v; else if (k === 'x' || k === 'X') i.shove = v; else if (k === 'z' || k === 'Z' || k === 'Shift') i.kick = v; else return;
+      else if (k === ' ') i.jump = v; else if (k === 'c' || k === 'C' || k === 'Enter') i.grab = v; else if (k === 'x' || k === 'X') i.shove = v; else if (k === 'z' || k === 'Z' || k === 'Shift') i.kick = v; else if (k === 'e' || k === 'E') i.talk = v; else return;
       e.preventDefault();
     };
     const kd = (e: KeyboardEvent) => { if (!typing()) set(e.key, true, e); }; const ku = (e: KeyboardEvent) => { if (!typing()) set(e.key, false, e); };
@@ -141,7 +144,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
   // ── 루프 ──
   useEffect(() => {
     const c = canvas.current!; const ctx = c.getContext('2d')!;
-    let raf = 0, last = performance.now(), sent = 0, npcSent = 0, hudAt = 0, jumpWas = false, grabWas = false, shoveWas = false, kickWas = false, upWas = false;
+    let raf = 0, last = performance.now(), sent = 0, npcSent = 0, hudAt = 0, jumpWas = false, grabWas = false, shoveWas = false, kickWas = false, upWas = false, talkWas = false, movedAt = 0;
+    const rosterIds = dayRoster(new Date().toISOString().slice(0, 10), residents.length, maps.current.map((m) => m.owner).filter((o): o is number => o !== undefined));
+    const questOf = (who: number) => questFor(new Date().toISOString().slice(0, 10), who, rosterIds, residents.map((r) => r.handle));
+    const finishQuest = (q: Quest, n: Npc) => { n.say = q.thanks; n.sayUntil = now0() + 2500; quests.current.delete(q.who); setQuestList([...quests.current.values()]); void complete(q.key); };
+    const now0 = () => performance.now();
     const hour = () => Math.floor(Date.now() / 3600000); let curHour = hour();
     const spotIndex = new Map<string, { map: string; spot: Spot }>();
     for (const m of maps.current) for (const sp of m.spots) spotIndex.set(sp.key, { map: m.key, spot: sp });
@@ -251,8 +258,19 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
         if (i.jump && !jumpWas && b.z === 0) b.vz = 560;
         if (b.z > 0 || b.vz > 0) { b.vz -= 1900 * dt; b.z = Math.max(0, b.z + b.vz * dt); if (b.z === 0) b.vz = 0; }
         const ex = cur.exits.find((e) => dist(b.x, b.d, e.x, e.d) < 60);
-        if (ex) { exitNear = ex.label; if (i.up && !upWas) { const to = mapOf(ex.to); if (to.owner !== undefined) { const owner = npcs.current.find((n) => n.who === to.owner); if (owner && owner.map === to.key && owner.mode === 'routine') { owner.mode = 'chase'; owner.owner = me!.id; owner.until = now + CHASE_SEC * 1500; owner.say = pick(['who let you in', 'get OUT', 'this is my house', 'shoes off. no, out.']); owner.sayUntil = now + 2500; npcEv(owner, { say: owner.say }); } } mapKey.current = ex.to; b.x = ex.toX; b.d = ex.toD; cam.current = b.x - VIEW_W / 2; say(`→ ${to.name}`, 1500); } }
+        const touching = cur.exits.find((e) => dist(b.x, b.d, e.x, e.d) < 26);
+        if (ex) { exitNear = ex.label; if ((i.up && !upWas) || (touching && b.moving && now - movedAt > 1500)) { movedAt = now; const to = mapOf(ex.to); if (to.owner !== undefined) { const owner = npcs.current.find((n) => n.who === to.owner); if (owner && owner.map === to.key && owner.mode === 'routine') { owner.mode = 'chase'; owner.owner = me!.id; owner.until = now + CHASE_SEC * 1500; owner.say = pick(['who let you in', 'get OUT', 'this is my house', 'shoes off. no, out.']); owner.sayUntil = now + 2500; npcEv(owner, { say: owner.say }); } } mapKey.current = ex.to; b.x = ex.toX; b.d = ex.toD; cam.current = b.x - VIEW_W / 2; say(`→ ${to.name}`, 1500); } }
         upWas = i.up;
+        if (i.talk && !talkWas && b.z === 0) {
+          const n = npcs.current.filter((p) => here(p) && p.mode === 'routine' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < 60).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+          if (n) {
+            const q = quests.current.get(n.who) ?? questOf(n.who);
+            if (st.doneKeys.has(q.key)) { n.say = pick(['we are done here.', 'nothing today.', 'go away.']); n.sayUntil = now + 2000; }
+            else if (q.kind === 'fetch' && b.stack.includes(q.item!)) { b.stack.splice(b.stack.indexOf(q.item!), 1); n.item = q.item!; finishQuest(q, n); }
+            else if (q.kind === 'revenge' && st.shoves.some((x) => x.who === q.target && now - x.at < 120000)) finishQuest(q, n);
+            else { quests.current.set(n.who, q); setQuestList([...quests.current.values()]); n.say = q.ask; n.sayUntil = now + 3500; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; }
+          }
+        }
         if (i.shove && !shoveWas && b.z === 0 && b.swing <= 0) hit('punch');
         if (i.kick && !kickWas && b.swing <= 0) hit('kick');
         if (i.grab && !grabWas && b.z === 0) {
@@ -261,7 +279,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
             const water = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
             const spotNear = cur.spots.find((s) => (s.kind === 'bench' || s.kind === 'cafe' || s.kind === 'table' || s.kind === 'bed') && dist(b.x, b.d, s.x, s.d) < 90);
             drop(it, b.x + b.face * 18, b.d, null, water?.key);
-            if (water) { void complete(`dunk:${it}:${water.key}`); say(`Splash. The ${ITEMS[it]} is in ${water.name}.`); }
+            if (water) { void complete(`dunk:${it}:${water.key}`); say(`Splash. The ${ITEMS[it]} is in ${water.name}.`); for (const q of quests.current.values()) if (q.kind === 'dunk' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); } }
             if (spotNear) void complete(`deliver:${it}:${spotNear.key}`);
           } else {
             const l = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
@@ -273,7 +291,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
             if (b.stack.length >= 3) void complete('collect3');
           }
         }
-        jumpWas = i.jump; grabWas = i.grab; shoveWas = i.shove; kickWas = i.kick;
+        jumpWas = i.jump; grabWas = i.grab; shoveWas = i.shove; kickWas = i.kick; talkWas = i.talk;
       }
       if (!spectator && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), pose: b.hurt > 0 ? 'hurt' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', face: b.face, m: cur.key })); }
       // ── 주민 ──
@@ -442,14 +460,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
         {!spectator && TOUCH && (
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
             <div className="grid grid-cols-3 gap-1"><span /><button {...hold('up')} className="size-12 rounded-full bg-ink/70 text-paper">↑</button><span /><button {...hold('left')} className="size-12 rounded-full bg-ink/70 text-paper">←</button><button {...hold('down')} className="size-12 rounded-full bg-ink/70 text-paper">↓</button><button {...hold('right')} className="size-12 rounded-full bg-ink/70 text-paper">→</button></div>
-            <div className="flex gap-2"><button {...hold('jump')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Jump</button><button {...hold('shove')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Punch</button><button {...hold('kick')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Kick</button><button {...hold('grab')} className="size-12 rounded-full bg-accent text-[11px] font-bold text-paper">Grab</button></div>
+            <div className="flex gap-2"><button {...hold('jump')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Jump</button><button {...hold('shove')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Punch</button><button {...hold('kick')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Kick</button><button {...hold('talk')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Talk</button><button {...hold('grab')} className="size-12 rounded-full bg-accent text-[11px] font-bold text-paper">Grab</button></div>
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch · Z kick (jump kick in the air, breaks things) · C grab / take / drop · ↑ at a door or road end to go through · they chase, throw, hit back and fix things; the police fine you; other people can hit you too</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch · Z kick (jump kick in the air, breaks things) · C grab / take / drop · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things; the police fine you; other people can hit you too</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
-        {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}</ul>}
+        {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}{questList.map((q) => <li key={q.key} className={doneList.includes(q.key) ? 'line-through opacity-50' : 'text-accent-deep'}>☐ {q.text} <span className="font-mono text-[10.5px] text-ink-soft">asked · +{q.coins}</span></li>)}</ul>}
         {doneList.length >= tasks.length && tasks.length > 0 && <p className="mt-2 text-[12.5px] font-semibold text-accent-deep">All done. Badge: {BADGE_BY_KEY.get('g:day')?.name}. Come back tomorrow; they will have forgotten.</p>}
       </div>
       <div className="mt-3 rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[12.5px]">

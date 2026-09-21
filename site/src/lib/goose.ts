@@ -102,3 +102,17 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
   }
   return tasks;
 }
+
+// ── 퀘스트 — 주민에게 말을 걸면(E) 부탁 하나. 날짜·주민으로 정해져 서버가 같은 걸 계산할 수 있다 ──
+export type QuestKind = 'fetch' | 'revenge' | 'dunk';
+export interface Quest { key: string; who: number; kind: QuestKind; item?: ItemKey; target?: number; spot?: string; text: string; ask: string; thanks: string; coins: number }
+export function questFor(day: string, who: number, roster: number[], handles: string[]): Quest {
+  const r = rng(hash(`quest:${day}:${who}`));
+  const items = Object.keys(ITEMS) as ItemKey[];
+  const v = r();
+  if (v < 0.55) { const it = items[Math.floor(r() * items.length)]; return { key: `q:${who}:fetch:${it}`, who, kind: 'fetch', item: it, text: `${handles[who]} wants a ${ITEMS[it]}`, ask: `get me a ${ITEMS[it]}. don't ask.`, thanks: pick2(r, ['finally.', 'you are alright.', 'i owe you nothing.', 'this will do.']), coins: 8 }; }
+  if (v < 0.85) { let t = roster[Math.floor(r() * roster.length)]; if (t === who) t = roster[(roster.indexOf(t) + 1) % roster.length]; return { key: `q:${who}:revenge:${t}`, who, kind: 'revenge', target: t, text: `${handles[who]} wants ${handles[t]} knocked over`, ask: `${handles[t]}. knock them over. i will pay.`, thanks: pick2(r, ['heh.', 'good.', 'we never spoke.', 'worth it.']), coins: 10 }; }
+  const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)];
+  return { key: `q:${who}:dunk:${it}:${w}`, who, kind: 'dunk', item: it, spot: w, text: `${handles[who]} wants a ${ITEMS[it]} in the water`, ask: `put a ${ITEMS[it]} in the water for me. any water.`, thanks: pick2(r, ['splash. thank you.', 'that is closure.', 'good riddance.']), coins: 9 };
+}
+const pick2 = <T,>(r: () => number, xs: T[]) => xs[Math.floor(r() * xs.length)];
