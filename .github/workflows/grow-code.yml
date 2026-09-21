@@ -83,4 +83,4 @@ jobs:
           git commit -q -m "feat(square): ${SUMMARY:-daily growth} [grow]"
           git pull -q --rebase origin main || true
           git push origin HEAD:main
-          cd site && npx opennextjs-cloudflare deploy # 위 게이트가 만든 .open-next 를 그대로 올린다
+          cd site && npx wrangler deploy # 위 게이트가 만든 .open-next 를 그대로 올린다 (opennextjs deploy 는 pnpm build 를 다시 불러 lockfile 검사로 죽는다)
