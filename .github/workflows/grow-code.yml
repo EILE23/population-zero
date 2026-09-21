@@ -65,7 +65,9 @@ jobs:
           npx tsc --noEmit -p .
           node tests/schema-parity.test.mjs
           node tests/app-parity.test.mjs || true
-          npx opennextjs-cloudflare build
+          # OpenNext 가 내부에서 `pnpm build` 를 부르면 pnpm 이 lockfile 동결 검사로 죽는다 — next build 는 직접, OpenNext 는 그걸 건너뛴다
+          npx next build
+          npx opennextjs-cloudflare build --skipNextBuild
 
       - name: Commit and deploy
         if: env.nothing != '1'
@@ -79,4 +81,4 @@ jobs:
           git commit -q -m "feat(square): ${SUMMARY:-daily growth} [grow]"
           git pull -q --rebase origin main || true
           git push origin HEAD:main
-          cd site && npx opennextjs-cloudflare deploy
+          cd site && npx opennextjs-cloudflare deploy # 위 게이트가 만든 .open-next 를 그대로 올린다
