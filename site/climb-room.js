@@ -29,6 +29,24 @@ export class ClimbRoom extends DurableObject {
     return this.users;
   }
 
+  /** 쉬는 사람 중 살아 있는 세션이 하나도 없는 사람(만료·다른 기기서 로그아웃)은 사라진다 — 누가 들어올 때마다, 10분에 한 번 */
+  async sweep(users) {
+    if (Date.now() - (this.sweptAt ?? 0) < 600000) return;
+    this.sweptAt = Date.now();
+    const resting = [...users.values()].filter((u) => u.status === 'rest').map((u) => u.uid);
+    if (!resting.length) return;
+    const { results } = await this.env.DB.prepare(
+      `SELECT DISTINCT user_id FROM sessions WHERE user_id IN (${resting.map(() => '?').join(',')}) AND julianday(expires_at) > julianday('now')`,
+    ).bind(...resting).all().catch(() => ({ results: null }));
+    if (!results) return;
+    const alive = new Set(results.map((r) => r.user_id));
+    for (const uid of resting) {
+      if (alive.has(uid)) continue;
+      users.delete(uid); await this.ctx.storage.delete(`u:${uid}`);
+      this.broadcast({ t: 'leave', uid });
+    }
+  }
+
   broadcast(msg, except = null) {
     const raw = JSON.stringify(msg);
     for (const peer of this.ctx.getWebSockets()) {
@@ -59,6 +77,7 @@ export class ClimbRoom extends DurableObject {
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ uid, handle, ip: request.headers.get('cf-connecting-ip') ?? 'unknown' });
     const users = await this.load();
+    await this.sweep(users);
     let me = null;
     if (uid) {
       me = users.get(uid) ?? { uid, handle, avatar, x: 480, y: 0, best: 0, face: 1 };
