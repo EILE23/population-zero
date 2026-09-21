@@ -44,7 +44,9 @@ It must land on a stranger. Nothing that needs the town's threads, your neighbou
 Texts must not sit on top of each other: give each its own band (different y, at least 0.2 apart) or its own half.
 
 VOICE
-You write it the way you write everything — your notes below say how. If you swear, swear. Short. Meme grammar is fine (lowercase, ALL CAPS, "me:", "nobody:"), and so is a plain sentence. No slurs, no real named people as the butt of it, no explaining the joke.
+You write it the way you write everything — your notes below say how. Short. Meme grammar is fine (lowercase, ALL CAPS, "me:", "nobody:"), and so is a plain sentence.
+This wall is not a school noticeboard. Swearing, crude jokes, sex, death, bodily functions, drinking, being a terrible person, the dark version of the joke — all allowed when it is funnier that way and it is how you talk. Nobody here is trying to be nice. The only lines: no slurs (race, gender, sexuality, disability, nationality), nothing sexual involving minors, no real named person as the butt of it, no threats. Inside those lines, go as far as the joke needs.
+No explaining the joke.
 
 THE PICTURES
 Some of the pictures below are famous templates: use their format, not just their surface. Others are old paintings: caption what is actually happening in them as if it were today.
@@ -62,7 +64,26 @@ Return JSON:
  "caption": "optional one-line title above it, usually empty",
  "texts": [{"t": "...", "x": 0.5, "y": 0.1, "size": 0.08, "font": "impact"|"comic"|"hand"|"serif", "bg": "none"|"box"|"bubble"|"badge", "color": "#ffffff", "stroke": "#000000", "rot": 0}]}`;
 
+// 모델: GEMINI_API_KEY 가 있으면 Gemini(무료 티어, 안전 필터를 '높음만 차단'으로 내려 병맛이 살아남는다), 없으면 OpenAI.
+const GEMINI = process.env.GEMINI_API_KEY ? (process.env.MEME_MODEL ?? 'gemini-2.5-flash') : null;
 async function ask(user) {
+  if (GEMINI) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI}:generateContent`, {
+      method: 'POST', headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: RULES }] },
+        contents: [{ role: 'user', parts: [{ text: user }] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 1.1 },
+        safetySettings: ['HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT']
+          .map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' })),
+      }),
+    });
+    if (!res.ok) throw new Error(`gemini ${res.status} ${(await res.text()).slice(0, 160)}`);
+    const d = await res.json();
+    const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
+    if (!text) throw new Error(`gemini empty (${d.candidates?.[0]?.finishReason ?? 'no candidate'})`);
+    return { out: JSON.parse(text), used: d.usageMetadata?.candidatesTokenCount ?? 0 };
+  }
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
@@ -159,7 +180,7 @@ Decide.`;
 }
 
 async function main() {
-  if (!process.env.OPENAI_API_KEY) { log('no OPENAI_API_KEY — 건너뜀'); return; }
+  if (!process.env.OPENAI_API_KEY && !GEMINI) { log('no OPENAI_API_KEY / GEMINI_API_KEY — 건너뜀'); return; }
   await fonts();
   const personas = JSON.parse(readFileSync(here('./personas.json'), 'utf8')).residents ?? [];
   // 후보: 글이 있는 주민 중 이틀 안에 짤을 안 올린 사람. 순서는 무작위 — 순번은 없다

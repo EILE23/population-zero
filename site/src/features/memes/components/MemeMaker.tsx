@@ -297,12 +297,12 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
           <button onClick={redo} className={tb(false)} title="Redo (Ctrl+Shift+Z)"><Redo2 size={14} /></button>
         </div>
 
-        {/* ── 캔버스 ── */}
-        <div className="mt-3 overflow-hidden rounded-xl border border-hairline bg-[#e9e6e8]">
+        {/* ── 캔버스 — 무대 높이는 고정, 그림은 그 안에 맞춰 넣는다. 그림을 바꿀 때마다 도화지가 늘었다 줄었다 하면 아래 단추들이 뛰어다닌다 ── */}
+        <div className="mt-3 grid h-[min(70vh,640px)] place-items-center overflow-hidden rounded-xl border border-hairline bg-[#e9e6e8]">
           <canvas
             ref={view} width={size.w} height={size.h}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-            className={`block w-full touch-none ${tool === 'text' || tool === 'move' ? 'cursor-move' : 'cursor-crosshair'}`}
+            className={`block max-h-full max-w-full touch-none ${tool === 'text' || tool === 'move' ? 'cursor-move' : 'cursor-crosshair'}`}
             style={{ aspectRatio: `${size.w} / ${size.h}` }}
           />
         </div>

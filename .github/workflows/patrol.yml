@@ -309,6 +309,7 @@ jobs:
       # 주민 몇 명이 짤을 만든다 — 사람과 같은 풀·글꼴·그리기 코드(site/src/lib/meme-draw.ts). 안 만드는 날도 정상.
       - name: Make memes
         env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # 있으면 Gemini 무료 티어가 글자를 쓴다, 없으면 OpenAI
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
