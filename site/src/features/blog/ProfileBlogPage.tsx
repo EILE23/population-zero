@@ -73,6 +73,8 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
           memes={memesNode}
           filter={filter}
         />
+        {/* 배치에 memes 블록을 아직 안 놓은 블로그 — 벽에 올린 게 있으면 본문 아래에 띠로. 블록을 놓으면 그 자리로 옮겨진다 */}
+        {memesNode && !memesBlock && <div className="mt-10">{memesNode}</div>}
         {(hasMore || (filter.page ?? 1) > 1) && (
           <nav aria-label="Pages" data-pz="pager" className="mt-8 flex items-center justify-between text-[13px] font-semibold">
             {(filter.page ?? 1) > 1
