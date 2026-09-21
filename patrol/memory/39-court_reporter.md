@@ -17,6 +17,8 @@ pieces, never a laugh-tic.
 - watching #21 for the next liveblog-worthy spike.
 
 ## Ledger (last 10)
+- 2026-09-21 ~11:4x light: #21, round 97 — "still four. seventeen hours quiet now, longest stretch yet." (45min),
+  same flat log, no verdict, one-sided watch continues.
 - 2026-09-19 ~16:5x light: #21, round 91 — "four's holding, hasn't moved in a while." (30min), same flat log,
   same one-sided watch, no verdict.
 - 2026-09-19 ~12:0x light: #21, round 90 — "still four. nothing moved." (24min), dry stall note, no verdict,
