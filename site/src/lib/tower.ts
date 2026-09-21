@@ -35,13 +35,28 @@ export function band(n: number): Platform[] {
   const base = n * BAND_H;
   if (n === 0) out.push({ id: 'ground', x: 0, y: 0, w: WORLD_W, kind: 'rest' });
   else if (n % REST_EVERY === 0) out.push({ id: `${n}r`, x: 180 + r() * 200, y: base, w: 400, kind: 'rest' });
-  let side = r() < 0.5 ? 1 : -1;
-  let y = base + 90 + r() * 30;
-  // 층이 높아질수록 성질 붙은 발판이 많아진다(하지만 첫 두 층은 정석만 — 조작을 익힐 자리)
+  // 발판은 '이전 발판에서 닿는 거리 안'에만 놓는다 — 점프 사거리는 수평 ~215px(같은 높이)·수직 154px.
+  // 층이 높을수록 간격이 벌어져 어려워지되 언제나 닿는다. 층 사이 연결도 같은 규칙(이전 층 마지막 발판에서 이어짐).
+  const prevLast = n > 0 ? band(n - 1).filter((p) => p.kind !== 'rest' && p.kind !== 'short').at(-1) : null;
+  let cx = prevLast ? prevLast.x + prevLast.w / 2 : WORLD_W / 2;   // 이전 발판 중심
+  let side: 1 | -1 = cx > WORLD_W / 2 ? -1 : 1;
+  let y = (prevLast ? prevLast.y : base) + 96 + r() * 28;
+  if (n % REST_EVERY === 0 && n > 0) y = base + 96 + r() * 28;
+  const stretch = Math.min(1, n / 60); // 0 → 1: 간격이 점점 벌어진다
   const spice = n < 2 ? 0 : Math.min(0.45, 0.12 + n * 0.006);
   for (let i = 0; i < HOPS; i++) {
-    const w = 120 + r() * 90;
-    const x = side > 0 ? 520 + r() * (WORLD_W - 520 - w) : r() * (440 - w);
+    const w = 200 - stretch * 70 - r() * 40;                       // 200~90px
+    const dy = 92 + stretch * 20 + r() * 26;                        // 수직 92~138px (최고점 154px)
+    // 이 높이차에서 수평으로 닿는 거리(내려오며 착지) 에서 40px 여유 — 위로 갈수록 그 한계에 가깝게
+    const reach = RUN * ((JUMP_V + Math.sqrt(JUMP_V * JUMP_V - 2 * G * dy)) / G) - 40;
+    const gap = Math.min(reach, 60 + stretch * 70 + r() * (reach - 60 - stretch * 70)); // 가장자리 간 수평 거리
+    // cx 는 이전 발판의 '가까운 가장자리'가 아니라 중심이라, 가장자리 간 거리 = gap 이 되도록 이전 반폭을 더한다
+    const prevHalf = i === 0 ? (prevLast ? prevLast.w / 2 : 0) : out[out.length - 1].w / 2;
+    let nx = cx + side * (prevHalf + gap + w / 2);
+    if (nx - w / 2 < 0 || nx + w / 2 > WORLD_W) { side = -side as 1 | -1; nx = cx + side * (prevHalf + gap + w / 2); }
+    nx = Math.max(w / 2, Math.min(WORLD_W - w / 2, nx));
+    const x = nx - w / 2;
+    cx = nx; side = r() < 0.7 ? -side as 1 | -1 : side; // 대개 지그재그, 가끔 같은 쪽으로 한 번 더
     let kind: Kind = 'std';
     const v = r();
     if (v < spice) {
@@ -51,11 +66,13 @@ export function band(n: number): Platform[] {
     const p: Platform = { id: `${n}.${i}`, x, y, w, kind };
     if (kind === 'move') { p.amp = 60 + r() * 80; p.freq = 0.25 + r() * 0.3; p.phase = r() * 6.28; }
     out.push(p);
-    y += 100 + r() * 38; side = -side;
+    y += dy;
   }
   if (r() < 0.6) {
-    const p3 = out[out.length - 3];
-    out.push({ id: `${n}s`, x: Math.min(WORLD_W - 60, Math.max(0, p3.x + (p3.x < WORLD_W / 2 ? 260 : -200))), y: p3.y + 150, w: 60, kind: 'short' });
+    // 지름길: 3번째 발판에서 한 번에 5번째 높이로 — 작고 높고 멀다(수직 148px, 완벽한 점프)
+    const p3 = out[out.length - 4], p5 = out[out.length - 2];
+    const sx = p3.x + p3.w / 2 + (p5.x + p5.w / 2 > p3.x + p3.w / 2 ? 150 : -150);
+    out.push({ id: `${n}s`, x: Math.max(0, Math.min(WORLD_W - 60, sx - 30)), y: p3.y + 148, w: 60, kind: 'short' });
   }
   cache.set(n, out);
   return out;
@@ -63,6 +80,13 @@ export function band(n: number): Platform[] {
 export function around(y: number): Platform[] {
   const n = Math.max(0, Math.floor(y / BAND_H));
   return [...(n > 0 ? band(n - 1) : []), ...band(n), ...band(n + 1), ...band(n + 2)];
+}
+/** 바람 — 40층 위부터 층마다 방향·세기가 정해진다(공중에서 밀린다). 0 이면 없음 */
+export function windOf(n: number): number {
+  if (n < 40) return 0;
+  const r = rng(SEED ^ Math.imul(n + 555, 1597334677));
+  const v = r();
+  return v < 0.45 ? 0 : (r() < 0.5 ? -1 : 1) * (60 + Math.min(120, (n - 40) * 1.5) * r());
 }
 /** 움직이는 발판의 지금 x — 벽시계 초 */
 export const platX = (p: Platform, t: number) => (p.kind === 'move' ? p.x + (p.amp ?? 0) * Math.sin((p.freq ?? 0.3) * t * 6.2832 + (p.phase ?? 0)) : p.x);
@@ -84,7 +108,7 @@ export function step(b: Body, inp: Input, dt: number, plats: Platform[], t: numb
   if (move) { face = move as 1 | -1; idle = 0; } else idle += dt;
   if (inp.jump && on && hurt <= 0) { vy = JUMP_V; on = null; idle = 0; }
   if (on?.kind === 'move') x += (platX(on, t) - platX(on, t - dt)); // 실려 간다
-  if (!on) vy -= G * dt;
+  if (!on) { vy -= G * dt; x += windOf(Math.floor(y / BAND_H)) * dt; }   // 공중에선 바람에 밀린다
   const ny = y + vy * dt;
   x = Math.max(HW, Math.min(WORLD_W - HW, x + vx * dt));
   let landed: Platform | null = null;
@@ -113,10 +137,13 @@ export interface Npc { who: number; role: Role; plat: Platform; k: number; speed
 
 /** 층 n 의 주민들 — 몇 명(0~3), 누구, 무슨 역할, 어느 발판. 방해꾼(shover·blocker)이 다수 — 이 탑에서 주민은 NPC 다 */
 export function npcsOf(n: number, residents: number): Npc[] {
-  if (n === 0 || residents === 0) return [];
+  if (n < 3 || residents === 0) return []; // 첫 세 층은 조용하다 — 조작을 익힐 자리
   const r = rng(SEED ^ Math.imul(n + 99, 3266489917));
   const ps = band(n); const std = ps.filter((p) => p.kind === 'std' || p.kind === 'ice');
-  const count = r() < 0.15 ? 0 : r() < 0.6 ? 1 : r() < 0.85 ? 2 : 3;
+  // 위로 갈수록 많아진다: 3~10층 0~1명, 30층쯤 1~2명, 80층 위 2~4명
+  const dens = Math.min(1, (n - 3) / 80);
+  const v0 = r();
+  const count = v0 < 0.35 - dens * 0.3 ? 0 : v0 < 0.75 - dens * 0.3 ? 1 : v0 < 0.95 - dens * 0.2 ? 2 : dens > 0.6 && r() < 0.5 ? 4 : 3;
   const out: Npc[] = [];
   const used = new Set<number>();
   for (let i = 0; i < count && std.length; i++) {
@@ -151,7 +178,7 @@ export function npcAt(npc: Npc, t: number): { x: number; y: number; pose: Pose; 
 }
 /** 밀림 — 같은 발판, 가까이, 미는 중이면 튕겨 낸다 */
 export function shoved(b: Body, n: { x: number; y: number; face: 1 | -1; shove: boolean }): Body | null {
-  if (!n.shove || !b.on || Math.abs(b.y - n.y) > 4 || Math.abs(b.x - n.x) > 26 || b.hurt > 0) return null;
+  if (!n.shove || !b.on || Math.abs(b.y - n.y) > 4 || Math.abs(b.x - n.x) > 20 || b.hurt > 0) return null;
   const dir: 1 | -1 = b.x >= n.x ? 1 : -1;
   return { ...b, vx: dir * 520, vy: 280, on: null, hurt: 0.9, idle: 0 };
 }

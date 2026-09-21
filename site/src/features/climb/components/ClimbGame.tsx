@@ -246,28 +246,74 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   );
 }
 
-/** 졸라맨 — 발끝 (x, y). 자세별 팔다리 */
+/**
+ * 졸라맨 — 발끝 (x, y). 관절로 그린다: 엉덩이(0,-16) · 어깨(0,-34, 목 바로 아래) · 머리(0,-42).
+ * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
+ */
 function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: Pose, face: 1 | -1, color: string, t: number, arms: boolean) {
   ctx.save(); ctx.translate(x, y); ctx.scale(face * s, s);
-  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  const swing = Math.sin(t * 14) * 8;
-  const P = (a: number[][]) => { ctx.beginPath(); a.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke(); };
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const seg = (x0: number, y0: number, len: number, ang: number) => [x0 + Math.cos(ang) * len, y0 + Math.sin(ang) * len] as const; // ang: 0 = 오른쪽, π/2 = 아래
+  const line = (a: readonly number[], b: readonly number[], c?: readonly number[]) => { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); if (c) ctx.lineTo(c[0], c[1]); ctx.stroke(); };
+  const D = Math.PI / 2;
+  const ph = t * 13; // 걸음 위상
+  let hip: readonly number[] = [0, -16], shoulder: readonly number[] = [0, -34], head: readonly number[] = [0, -42], lean = 0;
+  const THIGH = 9, SHIN = 8, UPPER = 8, FORE = 8;
   if (pose === 'sit') {
-    P([[0, -14], [0, -30]]);            // 몸
-    P([[-8, 0], [-8, -8], [0, -14]]);   // 다리 접음
-    P([[6, 0], [6, -8], [0, -14]]);
-    P([[0, -26], [8, -18], [12, -14]]); // 팔 무릎에
-    ctx.beginPath(); ctx.arc(0, -37, 7, 0, 6.29); ctx.fill();
+    hip = [0, -10]; shoulder = [1, -28]; head = [1, -36];
+    line(hip, shoulder);
+    // 무릎 세우고 앉음
+    const kneeL = [8, -18], kneeR = [10, -16];
+    line(hip, kneeL, [12, -2]); line(hip, kneeR, [15, -1]);
+    line(shoulder, [7, -22], kneeL); line(shoulder, [9, -21], kneeR); // 팔은 무릎 위에
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
-  const bob = pose === 'run' ? Math.abs(Math.sin(t * 14)) * 2 : 0;
-  P([[0, -14 - bob], [0, -34 - bob]]);
-  if (pose === 'run') { P([[0, -14 - bob], [-6 + swing, 0]]); P([[0, -14 - bob], [6 - swing, 0]]); P([[0, -28 - bob], [8 - swing, -20]]); P([[0, -28 - bob], [-8 + swing, -20]]); }
-  else if (pose === 'jump') { P([[0, -14], [-6, -4]]); P([[0, -14], [7, -6]]); P([[0, -28], [10, -40]]); P([[0, -28], [-9, -40]]); }
-  else if (pose === 'fall' || pose === 'hurt') { P([[0, -14], [-8, -2]]); P([[0, -14], [9, -3]]); P([[0, -28], [12, -34]]); P([[0, -28], [-12, -30]]); }
-  else { P([[0, -14], [-5, 0]]); P([[0, -14], [5, 0]]); if (arms) { P([[0, -28], [14, -26]]); P([[0, -28], [-6, -18]]); } else { P([[0, -28], [-7, -18], [-9, -12]]); P([[0, -28], [7, -18], [9, -12]]); } }
-  ctx.beginPath(); ctx.arc(0, -41 - bob, 7, 0, 6.29); ctx.fill();
-  if (pose === 'hurt') { ctx.beginPath(); ctx.arc(0, -41, 12, 0, 6.29); ctx.strokeStyle = '#ff2d55'; ctx.stroke(); }
+  if (pose === 'run') {
+    const sw = Math.sin(ph), cw = Math.cos(ph);
+    const bob = Math.abs(cw) * 2.2;
+    lean = 0.22;
+    hip = [0, -16 - bob]; shoulder = seg(hip[0], hip[1], 18, -D + lean); head = seg(shoulder[0], shoulder[1], 8, -D + lean);
+    line(hip, shoulder);
+    // 다리: 허벅지 ±40°, 뒤로 간 다리는 무릎이 접힌다
+    for (const side of [1, -1]) {
+      const a = D + side * sw * 0.7;
+      const knee = seg(hip[0], hip[1], THIGH, a);
+      const bend = side * sw < 0 ? 1.1 : 0.15; // 뒤로 갈 때 접힘
+      const foot = seg(knee[0], knee[1], SHIN, a + bend);
+      line(hip, knee, foot);
+    }
+    // 팔: 다리와 반대 위상, 팔꿈치 90°
+    for (const side of [1, -1]) {
+      const a = D - side * sw * 0.8 + lean;
+      const elbow = seg(shoulder[0], shoulder[1], UPPER, a);
+      const hand = seg(elbow[0], elbow[1], FORE, a - 1.4);
+      line(shoulder, elbow, hand);
+    }
+  } else if (pose === 'jump') {
+    // 웅크렸다 펴는 중: 무릎 당김, 팔 위로
+    hip = [0, -18]; shoulder = [1, -36]; head = [2, -44];
+    line(hip, shoulder);
+    line(hip, [7, -12], [4, -4]); line(hip, [-2, -10], [-6, -2]);
+    line(shoulder, [7, -44], [10, -52]); line(shoulder, [-6, -42], [-8, -50]);
+  } else if (pose === 'fall' || pose === 'hurt') {
+    const fl = Math.sin(t * 22) * 0.5;
+    hip = [0, -16]; shoulder = [-1, -34]; head = [-2, -42];
+    line(hip, shoulder);
+    line(hip, [8, -6], [10, 2]); line(hip, [-9, -8], [-12, 0]);
+    line(shoulder, seg(shoulder[0], shoulder[1], 8, -D - 0.6 + fl), seg(shoulder[0], shoulder[1], 15, -D - 0.9 + fl));
+    line(shoulder, seg(shoulder[0], shoulder[1], 8, -D + 0.9 - fl), seg(shoulder[0], shoulder[1], 15, -D + 1.3 - fl));
+  } else {
+    // 서 있음: 숨 쉬듯 미세하게, 팔짱(arms) 이면 앞으로
+    const br = Math.sin(t * 2) * 0.6;
+    hip = [0, -16]; shoulder = [0, -34 - br]; head = [0, -42 - br];
+    line(hip, shoulder);
+    line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    if (arms) { line(shoulder, [7, -28], [-3, -25]); line(shoulder, [-6, -28], [4, -26]); }
+    else { line(shoulder, [-5, -26], [-6, -18]); line(shoulder, [5, -26], [6, -18]); }
+  }
+  ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+  if (pose === 'hurt') { ctx.beginPath(); ctx.arc(head[0], head[1], 12, 0, 6.29); ctx.strokeStyle = '#ff2d55'; ctx.stroke(); }
   ctx.restore();
 }
 function label(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string, ai: boolean, clicks: { x: number; y: number; w: number; h: number; href: string }[], href: string) {
