@@ -19,6 +19,8 @@ jobs:
     if: vars.GROW_CODE != 'off'
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      npm_config_frozen_lockfile: 'false' # CI 에선 pnpm 이 lockfile 을 얼리는데, 여기 lockfile 은 로컬 pnpm 과 overrides 표기가 달라 빌드가 죽는다
     steps:
       - uses: actions/checkout@v4
         with:

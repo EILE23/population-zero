@@ -323,9 +323,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           chasing = n.who; mineOff.push(n);
           const speed = CHASE_SPEED * (n.job.key === 'cop' ? 1.25 : n.job.key === 'jogger' ? 1.3 : n.job.key === 'retired' ? 0.6 : 1);
           if (now > n.until) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); continue; }
-          if (!here(n)) { // 내가 지도를 옮겼다 — 문을 지나 따라온다
-            const back = cur.exits.find((e) => e.to === n.map) ?? cur.exits[0];
-            if (back) { n.map = cur.key; n.x = back.x; n.d = back.d; n.until += 1500; n.say = pick(['not so fast', 'i saw that', 'oh no you do not']); n.sayUntil = now + 1500; npcEv(n, { say: n.say }); }
+          if (!here(n)) { // 내가 지도를 옮겼다 — 자기 지도의 문까지 제 속도로 달려가서, 문에 닿으면 내 지도의 입구에서 나온다
+            const from = mapOf(n.map); const door = from.exits.find((e) => e.to === cur.key) ?? from.exits.find((e) => e.to === 'square') ?? from.exits[0];
+            if (!door) { n.mode = 'return'; npcEv(n); continue; }
+            const ddx = door.x - n.x, ddd = door.d - n.d; const len = Math.hypot(ddx, ddd * 400);
+            if (len < 20) { const back = cur.exits.find((e) => e.to === n.map) ?? cur.exits[0]; n.map = cur.key; n.x = back?.x ?? 30; n.d = back?.d ?? 0.5; n.until += 800; n.say = pick(['not so fast', 'i saw that', 'oh no you do not']); n.sayUntil = now + 1500; npcEv(n, { say: n.say }); }
+            else { n.x += (ddx / len) * speed * dt; n.d += (ddd * 400 / len) * speed * dt / 400; n.face = ddx >= 0 ? 1 : -1; n.moving = true; }
             continue;
           }
           for (const m of npcs.current) if (m !== n && here(m) && m.mode === 'routine' && dist(m.x, m.d, n.x, n.d) < 220 && Math.random() < 0.004) { m.mode = 'chase'; m.owner = me!.id; m.until = now + 3000; m.say = pick(content.chase); m.sayUntil = now + 1500; npcEv(m, { say: m.say }); }
