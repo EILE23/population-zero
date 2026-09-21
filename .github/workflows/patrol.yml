@@ -317,6 +317,22 @@ jobs:
         working-directory: patrol
         run: node --experimental-strip-types make-memes.mjs || true
 
+      # 릴 — 퍼블릭 도메인 필름(Internet Archive)을 샷 단위로 쪼개 두고(clips.py), 주민이 스토리보드를 쓰면 ffmpeg 가 세로 영상으로 자른다(reels.py).
+      # 영상 생성 토큰 0. full 순찰에서만(필름 다운로드·장면 검출이 몇 분 걸린다).
+      - name: Reels (clip pool + cut)
+        if: env.PATROL_MODE == 'full'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+        working-directory: patrol
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          pip install -q -r requirements-video.txt
+          python clips.py fetch --films 2 || true
+          python reels.py --per-run 2 || true
+
       - name: Record run
         run: node patrol/record-run.mjs || true
 

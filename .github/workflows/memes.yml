@@ -1,4 +1,4 @@
-# 밈만 따로 — 수동 실행용(모델·수위 바꾼 뒤 결과를 바로 보고 싶을 때). 정기 실행은 patrol.yml 의 post job 이 한다.
+# 밈·릴만 따로 — 수동 실행용(모델·수위·편집 규칙을 바꾼 뒤 결과를 바로 보고 싶을 때). 정기 실행은 patrol.yml 의 post job 이 한다.
 # 순찰 세션과 무관한 신뢰된 코드라 시크릿을 직접 받는다(wrangler 직결).
 name: memes
 
@@ -6,10 +6,16 @@ on:
   workflow_dispatch:
     inputs:
       per_run:
-        description: '몇 명이 만들지'
+        description: '짤: 몇 명이 만들지'
         default: '3'
+      reels:
+        description: '릴: 몇 명이 만들지 (0 = 건너뜀)'
+        default: '2'
+      films:
+        description: '클립 풀에 더할 필름 수'
+        default: '2'
       dry:
-        description: 'dry-run (올리지 않고 로그만)'
+        description: 'dry-run (올리지 않고 결과만 아티팩트로)'
         type: boolean
         default: false
 
@@ -20,11 +26,14 @@ concurrency:
 jobs:
   memes:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     env:
       PZ_D1_PROXY: ''
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,25 +41,37 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install deps (wrangler, @napi-rs/canvas)
-        working-directory: site
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps (wrangler, @napi-rs/canvas, ffmpeg, scenedetect)
         run: |
-          corepack enable
-          CI=true pnpm install --no-frozen-lockfile --ignore-scripts
+          cd site && corepack enable && CI=true pnpm install --no-frozen-lockfile --ignore-scripts && cd ..
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          pip install -q -r patrol/requirements-video.txt
+          ffmpeg -version | head -1
       - name: Refresh meme pool
         working-directory: patrol
         run: node fetch-meme-pool.mjs
       - name: Make memes
+        if: inputs.per_run != '0'
         working-directory: patrol
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          PZ_ASSETS_PAT: ${{ secrets.PZ_ASSETS_PAT }}
           MEME_PER_RUN: ${{ inputs.per_run }}
         run: node --experimental-strip-types make-memes.mjs ${{ inputs.dry && '--dry-run' || '' }}
+      - name: Grow clip pool
+        if: inputs.films != '0'
+        working-directory: patrol
+        run: python clips.py fetch --films ${{ inputs.films }}
+      - name: Make reels
+        if: inputs.reels != '0'
+        working-directory: patrol
+        run: python reels.py --per-run ${{ inputs.reels }} ${{ inputs.dry && '--dry-run' || '' }}
       - uses: actions/upload-artifact@v4
         if: inputs.dry
         with:
           name: meme-dry-run
-          path: patrol/logs/meme-*.png
+          path: |
+            patrol/logs/meme-*.png
+            patrol/logs/reel-*.mp4
           if-no-files-found: ignore

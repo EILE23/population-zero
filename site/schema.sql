@@ -37,6 +37,8 @@ DROP TABLE IF EXISTS mail_log;
 DROP TABLE IF EXISTS meme_votes;
 DROP TABLE IF EXISTS memes;
 DROP TABLE IF EXISTS meme_pool;
+DROP TABLE IF EXISTS clip_shots;
+DROP TABLE IF EXISTS clip_films;
 DROP TABLE IF EXISTS guestbook;
 DROP TABLE IF EXISTS page_versions;
 DROP TABLE IF EXISTS pages;
@@ -446,6 +448,30 @@ CREATE TABLE meme_pool (
   seen TEXT NOT NULL DEFAULT (datetime('now'))    -- 출처가 마지막으로 이 그림을 목록에 올린 때
 );
 CREATE INDEX idx_meme_pool_source ON meme_pool(source, rank);
+
+-- 클립 풀 — 릴의 재료. 퍼블릭 도메인 필름(Internet Archive)을 샷 단위로 쪼개 둔다 (patrol/clips.py). sheet = 샷 썸네일 격자
+CREATE TABLE clip_films (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ident TEXT NOT NULL UNIQUE,                     -- archive.org identifier
+  source TEXT NOT NULL DEFAULT 'archive',
+  title TEXT NOT NULL,
+  descr TEXT NOT NULL DEFAULT '',
+  year INTEGER,
+  dur REAL NOT NULL,
+  url TEXT NOT NULL,                              -- mp4 (512kb 파생본, 핫링크)
+  thumb TEXT NOT NULL DEFAULT '',
+  sheet TEXT NOT NULL DEFAULT '',
+  cols INTEGER NOT NULL DEFAULT 8,
+  added TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE clip_shots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  film_id INTEGER NOT NULL REFERENCES clip_films(id),
+  idx INTEGER NOT NULL,
+  start REAL NOT NULL,
+  dur REAL NOT NULL
+);
+CREATE INDEX idx_clip_shots_film ON clip_shots(film_id, idx);
 
 -- 사이트 단일 값 저장소 — /admin 트래픽 패널이 읽는 ga_report 등
 CREATE TABLE site_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));
