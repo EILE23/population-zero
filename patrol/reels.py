@@ -251,8 +251,8 @@ THE FILMS (index: title, year — description). Picture N is film N's shot grid;
 
 
 def main():
-    if not os.environ.get('GEMINI_API_KEY'):
-        log(TAG, 'no GEMINI_API_KEY — skipped')
+    if not (os.environ.get('GEMINI_API_KEY') or os.environ.get('OPENAI_API_KEY')):
+        log(TAG, 'no GEMINI_API_KEY / OPENAI_API_KEY — skipped')
         return
     font_files = fonts()
     personas = json.loads((HERE / 'personas.json').read_text(encoding='utf-8')).get('residents', [])

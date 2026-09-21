@@ -87,11 +87,11 @@ def run(cmd, timeout=900):
     return out
 
 
-def gemini_model():
-    """Newest non-lite flash model that can generateContent (names are not pinned — they rot)."""
+def gemini_models():
+    """Flash models that can generateContent, newest first (names are not pinned — they rot; the newest is also the busiest)."""
     fixed = os.environ.get('MEME_MODEL')
     if fixed and fixed != 'auto':
-        return fixed
+        return [fixed]
     d = http_json('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', headers={'x-goog-api-key': os.environ['GEMINI_API_KEY']})
     import re
     names = []
@@ -107,13 +107,11 @@ def gemini_model():
         names.append((-ver, len(n), n))
     if not names:
         raise RuntimeError('no gemini flash model')
-    return sorted(names)[0][2]
+    return [n for _, _, n in sorted(names)][:3]
 
 
-def gemini(system, user, images=(), temperature=1.0):
-    """One JSON-mode call. images: list of (mime, bytes). Retries once on 503 (free tier is busy)."""
+def _gemini_once(model, system, user, images, temperature):
     import time
-    model = gemini_model()
     parts = [{'text': user}] + [{'inline_data': {'mime_type': m, 'data': base64.b64encode(b).decode('ascii')}} for m, b in images]
     body = json.dumps({
         'systemInstruction': {'parts': [{'text': system}]},
@@ -122,8 +120,8 @@ def gemini(system, user, images=(), temperature=1.0):
         'safetySettings': [{'category': c, 'threshold': 'BLOCK_ONLY_HIGH'} for c in
                            ('HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT')],
     }).encode('utf-8')
-    # 503 = 무료 티어가 붐빈다(자주). 6·12·24초 쉬고 세 번 더
-    for attempt in range(4):
+    # 503 = 붐빔, 429 = 이 모델의 무료 한도 소진. 두 번 쉬어 보고 안 되면 다음 모델로
+    for attempt in range(3):
         req = urllib.request.Request(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent', data=body, method='POST',
                                      headers={'x-goog-api-key': os.environ['GEMINI_API_KEY'], 'content-type': 'application/json', 'user-agent': UA})
         try:
@@ -131,14 +129,44 @@ def gemini(system, user, images=(), temperature=1.0):
                 d = json.loads(r.read().decode('utf-8'))
             break
         except urllib.error.HTTPError as e:
-            if e.code in (503, 429) and attempt < 3:
-                time.sleep(6 * 2 ** attempt)
+            if e.code in (503, 429) and attempt < 2:
+                time.sleep(5 * 2 ** attempt)
                 continue
-            raise RuntimeError(f'gemini {e.code} {e.read()[:200]!r}')
+            raise RuntimeError(f'gemini {model} {e.code}')
     text = ''.join(p.get('text', '') for p in d.get('candidates', [{}])[0].get('content', {}).get('parts', []))
     if not text:
         raise RuntimeError(f"gemini empty ({d.get('candidates', [{}])[0].get('finishReason')})")
-    return json.loads(text), model
+    return json.loads(text)
+
+
+def _openai_once(system, user, images, temperature):
+    """Same call through OpenAI (gpt-5-mini reads images too) — the fallback when every Gemini model is busy or capped."""
+    content = [{'type': 'text', 'text': user}] + [
+        {'type': 'image_url', 'image_url': {'url': f'data:{m};base64,{base64.b64encode(b).decode("ascii")}'}} for m, b in images]
+    body = json.dumps({'model': os.environ.get('OPENAI_MEME_MODEL', 'gpt-5-mini'), 'response_format': {'type': 'json_object'},
+                       'messages': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}]}).encode('utf-8')
+    req = urllib.request.Request('https://api.openai.com/v1/chat/completions', data=body, method='POST',
+                                 headers={'authorization': f"Bearer {os.environ['OPENAI_API_KEY']}", 'content-type': 'application/json', 'user-agent': UA})
+    with urllib.request.urlopen(req, timeout=240) as r:
+        d = json.loads(r.read().decode('utf-8'))
+    return json.loads(d['choices'][0]['message']['content'])
+
+
+def gemini(system, user, images=(), temperature=1.0):
+    """One JSON-mode call: Gemini flash models newest→older (free tier), then OpenAI. Returns (json, model name)."""
+    errors = []
+    if os.environ.get('GEMINI_API_KEY'):
+        for model in gemini_models():
+            try:
+                return _gemini_once(model, system, user, images, temperature), model
+            except Exception as e:  # busy/capped/blocked — next model
+                errors.append(str(e)[:80])
+    if os.environ.get('OPENAI_API_KEY'):
+        try:
+            return _openai_once(system, user, images, temperature), 'openai'
+        except Exception as e:
+            errors.append(f'openai {str(e)[:80]}')
+    raise RuntimeError(' | '.join(errors) or 'no model key')
 
 
 if __name__ == '__main__':

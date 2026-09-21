@@ -86,12 +86,23 @@ async function pickGemini() {
     .filter((n, i, a) => models.find((m) => m.name === `models/${n}`)?.supportedGenerationMethods?.includes('generateContent') && a.indexOf(n) === i)
     .sort((a, b) => ver(b) - ver(a) || a.length - b.length);
   if (!ok.length) throw new Error('no gemini flash model in list');
-  return ok[0];
+  return ok.slice(0, 3);
 }
+// 제일 새 모델이 제일 붐빈다(503) 고 무료 한도도 먼저 찬다(429) — 실패하면 그다음 모델, 다 안 되면 OpenAI
+let GEMINI_LIST = null;
 async function ask(user) {
   if (GEMINI) {
-    if (GEMINI === 'auto') { GEMINI = await pickGemini(); log(`gemini 모델: ${GEMINI}`); }
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI}:generateContent`, {
+    if (!GEMINI_LIST) { GEMINI_LIST = GEMINI === 'auto' ? await pickGemini() : [GEMINI]; log(`gemini 모델: ${GEMINI_LIST.join(' → ')}`); }
+    for (const model of GEMINI_LIST) {
+      try { return await askGemini(model, user); } catch (e) { log(`${model}: ${e.message.slice(0, 60)} — 다음`); }
+    }
+    if (!process.env.OPENAI_API_KEY) throw new Error('every gemini model failed');
+  }
+  return askOpenAI(user);
+}
+async function askGemini(model, user) {
+  {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST', headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: RULES }] },
