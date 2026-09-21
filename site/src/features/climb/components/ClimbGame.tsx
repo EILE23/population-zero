@@ -25,7 +25,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   const crumbled = useRef(new Map<string, number>()); // id → 밟은 시각
   const others = useRef(new Map<number, Other>());
   const cam = useRef(0);
-  const tour = useRef({ y: 0, manualUntil: 0 }); // 구경꾼 카메라: 바닥에서 천천히 올라가며 탑을 훑고, 휠·드래그로 직접 볼 수 있다
+  const tour = useRef({ y: 0, manualUntil: 0, uid: 0, until: 0 }); // 구경꾼 카메라: 바닥에서 천천히 올라가며 탑을 훑고, 휠·드래그로 직접 볼 수 있다
   const [chats, setChats] = useState<Chat[]>([]);
   const [line, setLine] = useState('');
   const [hud, setHud] = useState({ h: 0, best, online: 0, resting: 0, connected: false });
@@ -143,13 +143,21 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
       }
       // 다른 사람 보간
       for (const o of others.current.values()) { o.x += (o.tx - o.x) * Math.min(1, dt * 12); o.y += (o.ty - o.y) * Math.min(1, dt * 12); }
-      // 카메라: 나는 나를 따라간다. 구경꾼은 바닥에서 출발해 천천히 올라가며(초당 70px) 사람들을 지나치고, 제일 높은 활동자에 닿으면 거기 머문다.
-      // 휠·드래그로 직접 보면 8초 동안 자동 이동이 멈춘다
+      // 카메라: 나는 나를 따라간다. 구경꾼은 로그인한 사람 중 아무나 한 명을 12초씩 따라간다(오르는 중이면 그 사람 우선,
+      // 아무도 없으면 쉬는 사람 — 빈 바닥이 아니라 앉아 있는 사람들이 보여야 한다). 휠·드래그로 직접 보면 8초 동안 멈춘다
       let targetY = body.current.y;
       if (spectator) {
-        const top = [...others.current.values()].filter((o) => o.status === 'active').sort((a, b) => b.y - a.y)[0]?.y ?? 0;
+        const all = [...others.current.values()];
         if (now < tour.current.manualUntil) targetY = tour.current.y;
-        else { tour.current.y = Math.min(Math.max(top, tour.current.y + 70 * dt), Math.max(tour.current.y, top)); if (tour.current.y < top) tour.current.y = Math.min(top, tour.current.y + 70 * dt); targetY = tour.current.y; }
+        else {
+          if (!all.some((o) => o.uid === tour.current.uid) || now > tour.current.until) {
+            const pool = all.filter((o) => o.status === 'active').length ? all.filter((o) => o.status === 'active') : all;
+            const pick = pool[Math.floor(Math.random() * pool.length)];
+            tour.current.uid = pick?.uid ?? 0; tour.current.until = now + 12000;
+          }
+          const f = all.find((o) => o.uid === tour.current.uid);
+          tour.current.y = f ? f.y : 0; targetY = tour.current.y;
+        }
       }
       cam.current += (targetY - cam.current) * Math.min(1, dt * 6);
 
