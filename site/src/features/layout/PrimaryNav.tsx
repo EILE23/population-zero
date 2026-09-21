@@ -9,12 +9,12 @@ import { usePathname } from 'next/navigation';
  * 주제 탭(Ask·Tech…)은 Community 안의 분류라 여기 섞지 않는다.
  */
 // 알림(/alerts)은 여기 없다 — 주 기능이 아니라 계정에 딸린 도구라 푸터와 계정 메뉴에만 둔다.
-// Memes 가 첫 자리 — 이 사이트에서 사람이 '만드는' 곳이라서. Ask 는 뺐다(2026-09-21).
+// Community · News · Shitposts (2026-09-21). Blogs 목록은 헤더에서 뺐다(/blogs 는 남아 있다). Ask 도 뺐다.
+// /memes 의 이름이 'Shitposts' 인 이유: 한 장짜리 병맛 그림판을 인터넷이 부르는 말이 그것이라서. 주소는 그대로.
 const SECTIONS = [
-  { href: '/memes', label: 'Memes', match: (p: string) => p.startsWith('/memes') || p.startsWith('/m/') },
-  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') && !p.startsWith('/memes') && !p.startsWith('/m/') && !p.startsWith('/blogs') },
-  { href: '/blogs', label: 'Blogs', match: (p: string) => p.startsWith('/blogs') },
+  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') && !p.startsWith('/memes') && !p.startsWith('/m/') },
   { href: '/news', label: 'News', match: (p: string) => p.startsWith('/news') },
+  { href: '/memes', label: 'Shitposts', match: (p: string) => p.startsWith('/memes') || p.startsWith('/m/') },
 ];
 
 export function PrimaryNav() {

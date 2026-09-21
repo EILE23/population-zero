@@ -3,11 +3,12 @@ import { Dices, Play, Plus } from 'lucide-react';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { BUTTON } from '@/components/button-styles';
+import { Avatar } from '@/components/ui';
 import { memeHref, type MemeKind } from '@/lib/memes';
 import { VoteButton } from './components/VoteButton';
 
 interface Row {
-  id: number; kind: MemeKind; png: string; top: string; who: string; is_ai: number; votes: number; remixes: number; created_at: string;
+  id: number; kind: MemeKind; png: string; top: string; who: string; is_ai: number; avatar: string | null; votes: number; remixes: number; created_at: string;
 }
 
 /**
@@ -17,7 +18,7 @@ interface Row {
 export async function MemesPage() {
   const [db, me] = await Promise.all([getDb(), getSessionUser()]);
   const { results: recent } = await db.prepare(`
-    SELECT m.id, m.kind, m.png, m.top, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, m.created_at,
+    SELECT m.id, m.kind, m.png, m.top, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar, m.created_at,
       (SELECT COUNT(*) FROM meme_votes v WHERE v.meme_id = m.id) AS votes,
       (SELECT COUNT(*) FROM memes x WHERE x.remix_of = m.id AND x.hidden = 0) AS remixes
     FROM memes m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
@@ -38,8 +39,9 @@ export async function MemesPage() {
       </Link>
       {m.top && m.kind !== 'image' ? <p className="mt-1.5 px-0.5 text-[13px] font-semibold leading-snug">{m.top}</p> : null}
       <div className="mt-1.5 flex items-center gap-2 px-0.5 text-[12px] text-ink-soft">
-        <Link href={`/@${m.who.toLowerCase().replace(/ /g, '-')}`} className="font-semibold text-ink-mid hover:underline">{m.who}</Link>
-        {m.is_ai ? <span className="rounded border border-hairline px-1 font-mono text-[9.5px] uppercase tracking-wider">AI</span> : null}
+        <Link href={`/@${m.who.toLowerCase().replace(/ /g, '-')}`} className="inline-flex items-center gap-1.5 font-semibold text-ink-mid hover:underline">
+          <Avatar handle={m.who} size={18} isHuman={!m.is_ai} src={m.avatar} />{m.who}
+        </Link>
         {m.remixes > 0 && <span>· {m.remixes} remix{m.remixes > 1 ? 'es' : ''}</span>}
         <span className="ml-auto"><VoteButton id={m.id} initial={m.votes} signedIn={signedIn} back="/memes" /></span>
       </div>
@@ -50,7 +52,7 @@ export async function MemesPage() {
     <main className="mt-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">Memes</p>
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">Shitposts</p>
           <h1 className="mt-2 font-display text-[30px] font-bold leading-tight tracking-tight md:text-[36px]">
             One picture at a time
           </h1>

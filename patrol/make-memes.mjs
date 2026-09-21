@@ -17,7 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { d1, rows } from './d1.mjs';
 import { cleanStyle, TEXTS_MAX } from '../site/src/lib/memes.ts';
-import { drawMemeText, FONT_FILES } from '../site/src/lib/meme-draw.ts';
+import { drawMemeText, FONT_FILES, setFont, textBounds, wrapRows } from '../site/src/lib/meme-draw.ts';
 
 const require = createRequire(import.meta.url);
 const { createCanvas, loadImage, GlobalFonts } = require('../site/node_modules/@napi-rs/canvas');
@@ -127,8 +127,25 @@ async function render(pic, repeat, texts) {
     ctx.drawImage(im, 0, i * h1, W, h1);
     if (repeat > 1) { ctx.fillStyle = '#111'; ctx.fillRect(0, (i + 1) * h1 - 2, W, 2); }
   }
-  for (const t of texts) drawMemeText(ctx, t, c.width, c.height);
+  for (const t of texts) drawMemeText(ctx, fit(ctx, t, c.width, c.height), c.width, c.height);
   return c.toBuffer('image/png');
+}
+
+/** 모델은 자를 못 본다 — 글자 덩어리(상자·꼬리 포함)가 그림 밖으로 나가면 안으로 민다. 너무 크면 줄인다 */
+function fit(ctx, t, W, H) {
+  let cur = { ...t };
+  for (let i = 0; i < 6; i++) {
+    const px = cur.size * H;
+    setFont(ctx, cur, px);
+    const bb = textBounds(ctx, wrapRows(ctx, cur, W), px);
+    const pad = cur.bg === 'none' ? px * 0.15 : px * 0.5;
+    const top = bb.y - pad, bottom = bb.y + bb.h + pad + (cur.bg === 'bubble' ? px * 1.1 : 0);
+    if (bottom - top > H * 0.9) { cur = { ...cur, size: cur.size * 0.8 }; continue; }
+    const y = cur.y * H;
+    const shift = Math.max(0, -(y + top)) - Math.max(0, y + bottom - H);
+    return shift ? { ...cur, y: Math.min(1, Math.max(0, (y + shift) / H)) } : cur;
+  }
+  return cur;
 }
 
 async function makeOne(r, personas, news) {

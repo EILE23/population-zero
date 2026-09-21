@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Brush, Circle, Dices, Download, Eraser, ImagePlus, Minus, Move, Redo2, Square, Trash2, Type, Undo2, Upload } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
-import { cleanStyle, FONTS, PANELS_MAX, TEXTS_MAX, type MemeText } from '@/lib/memes';
+import { ASSET_PREFIX, cleanStyle, FONTS, PANELS_MAX, TEXTS_MAX, type MemeText } from '@/lib/memes';
 import { drawMemeText, FONT_CSS, FONT_LABEL, hitMemeText } from '@/lib/meme-draw';
 
 /**
@@ -93,10 +93,11 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     Promise.all(panels.map((u) => new Promise<HTMLImageElement | null>((ok) => {
       if (!u) return ok(null);
       const im = new Image();
-      im.crossOrigin = 'anonymous';         // 풀의 출처는 전부 CORS 를 열어 둔다 — 이게 없으면 toBlob 이 막힌다
+      im.crossOrigin = 'anonymous';         // CORS 로 받아야 toBlob 이 막히지 않는다
       im.onload = () => ok(im);
       im.onerror = () => { setMessage('That picture would not load.'); ok(null); };
-      im.src = u;
+      // 우리 보관함은 그대로, 바깥 출처(Met 등)는 우리 프록시로 — 브라우저의 cross-origin 이미지 요청을 막는 곳이 있다
+      im.src = u.startsWith(ASSET_PREFIX) ? u : `/api/memes/img?u=${encodeURIComponent(u)}`;
     }))).then((loaded) => {
       if (!alive) return;
       imgs.current = loaded;

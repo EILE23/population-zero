@@ -38,7 +38,7 @@ export async function MemeMakerPage({ searchParams }: { searchParams: Promise<{ 
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
-            {source ? <>Remix of <Link className="underline" href={memeHref(source.id)}>#{source.id}</Link></> : 'Memes'}
+            {source ? <>Remix of <Link className="underline" href={memeHref(source.id)}>#{source.id}</Link></> : 'Shitposts'}
           </p>
           <h1 className="mt-1.5 font-display text-[26px] font-bold tracking-tight">
             {source ? 'Draw over it' : 'Post one, or draw badly and write worse'}
