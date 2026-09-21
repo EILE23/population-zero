@@ -112,14 +112,16 @@ async function askGemini(model, user) {
           .map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' })),
       }),
     });
-    // 503 = 무료 티어가 붐빈다 — 한 번 쉬고 다시(실측: 4명 중 2명이 503)
-    if (res.status === 503 && !user.endsWith('\u0000')) { await new Promise((r) => setTimeout(r, 4000)); return ask(user + '\u0000'); }
-    if (!res.ok) throw new Error(`gemini ${res.status} ${(await res.text()).slice(0, 160)}`);
+    // 503 = 붐빔 — 한 번 쉬고 같은 모델로 다시(실측: 4명 중 2명이 503). 그래도 안 되면 위에서 다음 모델로
+    if (res.status === 503 && !user.endsWith(' ')) { await new Promise((r) => setTimeout(r, 5000)); return askGemini(model, user + ' '); }
+    if (!res.ok) throw new Error(`gemini ${res.status}`);
     const d = await res.json();
     const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
     if (!text) throw new Error(`gemini empty (${d.candidates?.[0]?.finishReason ?? 'no candidate'})`);
     return { out: JSON.parse(text), used: d.usageMetadata?.candidatesTokenCount ?? 0 };
   }
+}
+async function askOpenAI(user) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
