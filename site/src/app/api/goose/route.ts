@@ -2,7 +2,8 @@ import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { rateLimited } from '@/lib/ratelimit';
 import { sameOriginOrBearer } from '@/lib/safety';
-import { residentsOut, tasksFor } from '@/lib/goose';
+import { dayRoster, residentsOut, tasksFor } from '@/lib/goose';
+import { houses } from '@/lib/world';
 
 /** 할 일 완료 — 오늘 그 사람의 목록에 있는 key 만. 코인은 연못 지갑(pond_players)에 쌓인다. 뱃지: 첫 완료·하루 8개 다·통산 50 */
 export async function POST(request: Request) {
@@ -16,7 +17,9 @@ export async function POST(request: Request) {
   const hour = Math.floor(Date.now() / 3600000);
   const { results: residents } = await db.prepare(`SELECT handle FROM residents WHERE tier <> 'admin' ORDER BY id`).all<{ handle: string }>();
   const handles = residents.map((r) => r.handle);
-  const task = tasksFor(day, user.id, residentsOut(hour - (hour % 24), handles.length), handles).find((t) => t.key === b.key);
+  const owners = houses(handles.length).map((h) => h.owner!).filter((o) => o !== undefined);
+  const roster = new Set(dayRoster(day, handles.length, owners));
+  const task = tasksFor(day, user.id, residentsOut(hour - (hour % 24), handles.length).filter((r) => roster.has(r.who)), handles).find((t) => t.key === b.key);
   if (!task) return Response.json({ error: 'task' }, { status: 400 });
   const ins = await db.prepare(`INSERT OR IGNORE INTO goose_tasks (user_id, day, key) VALUES (?, ?, ?)`).bind(user.id, day, task.key).run();
   if (!ins.meta.changes) return Response.json({ ok: true, already: true });

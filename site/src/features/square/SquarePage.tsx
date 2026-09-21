@@ -1,6 +1,7 @@
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { residentsOut, tasksFor } from '@/lib/goose';
+import { dayRoster, residentsOut, tasksFor } from '@/lib/goose';
+import { houses } from '@/lib/world';
 import { SquareGame, type Content, type ResidentLite } from './components/SquareGame';
 
 /** 기본 내용 — 순찰이 site_meta.square_content 에 덧붙인다(대사·성깔). 없어도 게임은 된다 */
@@ -31,7 +32,10 @@ export async function SquarePage() {
   const handles = residents.map((r) => r.handle);
   const day = new Date().toISOString().slice(0, 10);
   const hour = Math.floor(Date.now() / 3600000);
-  const tasks = signedIn ? tasksFor(day, me!.id, residentsOut(hour - (hour % 24), handles.length), handles) : [];
+  // 할 일의 주민은 오늘 명단(집 주인 포함) 안에서 — 명단은 모두에게 같다
+  const owners = houses(handles.length).map((h) => h.owner!).filter((o) => o !== undefined);
+  const roster = new Set(dayRoster(day, handles.length, owners));
+  const tasks = signedIn ? tasksFor(day, me!.id, residentsOut(hour - (hour % 24), handles.length).filter((r) => roster.has(r.who)), handles) : [];
   const done = signedIn ? (await db.prepare(`SELECT key FROM goose_tasks WHERE user_id = ? AND day = ?`).bind(me!.id, day).all<{ key: string }>()).results.map((r) => r.key) : [];
   const meta = await db.prepare(`SELECT value FROM site_meta WHERE key = 'square_content'`).first<{ value: string }>();
   const content = mergeContent(meta?.value ?? null);

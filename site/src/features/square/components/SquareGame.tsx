@@ -4,7 +4,7 @@ import { ListChecks, Upload } from 'lucide-react';
 import { figure, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY } from '@/lib/pond';
-import { CHASE_SEC, CHASE_SPEED, DEPTH_PX, GRAB_R, ITEMS, PLAYER_SPEED, RESIDENT_SPEED, SHOVE_R, type ItemKey, type Task } from '@/lib/goose';
+import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, GRAB_R, ITEMS, PLAYER_SPEED, RESIDENT_SPEED, SHOVE_R, type ItemKey, type Task } from '@/lib/goose';
 import { BREAKABLE, houses, jobOf, MAPS, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
 /**
@@ -21,7 +21,7 @@ export interface Content { shoved: string[]; chase: string[]; giveup: string[]; 
 interface Me { id: number; handle: string }
 interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1 }
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair';
-interface Npc { who: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
+interface Npc { who: number; tx: number; td: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string }
 interface Ev { k: string; [x: string]: unknown }
 type Prop = { key: string; name: string; kind: PropKind; x: number; d: number; seed: number };
@@ -65,8 +65,8 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
     else if (w.k === 'pick') loose.current.delete(String(w.id));
     else if (w.k === 'break') broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, Date.now() - Number(w.brokeAt)) : 0 });
     else if (w.k === 'fix') broken.current.delete(String(w.key));
-    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - Date.now()); n.x = Number(w.x); n.d = Number(w.d); n.item = (w.item as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
-    else if (w.k === 'npcpos' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n && n.owner !== me?.id) { n.x = Number(w.x); n.d = Number(w.d); n.face = w.face === -1 ? -1 : 1; n.moving = !!w.moving; n.map = String(w.m ?? n.map); } }
+    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - Date.now()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
+    else if (w.k === 'npcpos' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n && n.owner !== me?.id) { if (n.map !== String(w.m ?? n.map)) { n.x = Number(w.x); n.d = Number(w.d); } n.tx = Number(w.x); n.td = Number(w.d); n.face = w.face === -1 ? -1 : 1; n.moving = !!w.moving; n.map = String(w.m ?? n.map); if (w.swing) n.swing = 0.28; } }
     else if (w.k === 'hitp' && !mine && me && Number(w.uid) === me.id) { stats.current.pendingKnock = { by: String(w.byName ?? 'someone'), line: String(w.kind) === 'kick' ? 'kicked you' : 'punched you' }; }
   };
   const emit = (ev: Ev) => { apply(ev, true); if (ws.current?.readyState === 1 && me) ws.current.send(JSON.stringify({ t: 'ev', ev })); };
@@ -143,10 +143,9 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
     const spotIndex = new Map<string, { map: string; spot: Spot }>();
     for (const m of maps.current) for (const sp of m.spots) spotIndex.set(sp.key, { map: m.key, spot: sp });
     const spawn = () => {
-      const r = rng(hash(`square:${hour()}`)); const used = new Set<number>(); const chosen: number[] = [];
-      for (let i = 0; i < 24 && i < residents.length; i++) { let who = Math.floor(r() * residents.length); while (used.has(who)) who = (who + 1) % residents.length; used.add(who); chosen.push(who); }
-      for (const t of tasks) if (t.who !== undefined && !used.has(t.who)) { used.add(t.who); chosen.push(t.who); }
-      for (const hm of maps.current) if (hm.owner !== undefined && !used.has(hm.owner)) { used.add(hm.owner); chosen.push(hm.owner); }
+      // 오늘의 명단 — 모두에게 같다(날짜 씨앗 + 집 주인). 할 일의 주민도 이 안에서 뽑힌다
+      const owners = maps.current.map((m) => m.owner).filter((o): o is number => o !== undefined);
+      const chosen = dayRoster(new Date().toISOString().slice(0, 10), residents.length, owners);
       npcs.current = chosen.map((who) => {
         const handle = residents[who].handle; const job = jobOf(handle); const seed = hash(`square:${who}:${hour()}`); const rr = rng(seed);
         const home = maps.current.find((m) => m.owner === who);
@@ -156,7 +155,7 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
         for (let k = 0; k < n; k++) { const c0 = cand.length ? cand[Math.floor(rr() * cand.length)] : spotIndex.get('fountain')!; stops.push({ map: c0.map, spot: c0.spot, dur: 14 + rr() * 30 }); }
         if (home) { const hs = home.spots.filter((s) => s.kind !== 'door'); stops.splice(Math.floor(rr() * stops.length), 0, { map: home.key, spot: hs[Math.floor(rr() * hs.length)], dur: 30 + rr() * 60 }); }
         const angry = content.angry.includes(handle) || rr() < job.temper;
-        return { who, job, seed, stops, x: 0, d: 0.5, map: stops[0].map, face: 1 as const, item: job.item, mode: 'routine' as Mode, until: 0, say: '', sayUntil: 0, moving: false, act: 'stand', angry, threw: 0, swing: 0, target: null, owner: null };
+        return { who, tx: 0, td: 0.5, job, seed, stops, x: 0, d: 0.5, map: stops[0].map, face: 1 as const, item: job.item, mode: 'routine' as Mode, until: 0, say: '', sayUntil: 0, moving: false, act: 'stand', angry, threw: 0, swing: 0, target: null, owner: null };
       });
       thrown.current = [];
     };
@@ -264,7 +263,11 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
         const base = routine(n, t);
         if (n.swing > 0) n.swing -= dt;
         const owned = n.owner === me?.id && !spectator;
-        if (n.mode !== 'routine' && !owned) { if (n.mode !== 'down' && now > n.until + 8000) { n.mode = 'routine'; n.owner = null; } continue; }
+        if (n.mode !== 'routine' && !owned) { // 남이 일으킨 이탈 — 그 사람이 보내는 위치로 부드럽게
+          n.x += (n.tx - n.x) * Math.min(1, dt * 10); n.d += (n.td - n.d) * Math.min(1, dt * 10);
+          if (n.mode !== 'down' && now > n.until + 8000) { n.mode = 'routine'; n.owner = null; }
+          continue;
+        }
         if (n.mode === 'down') { if (now > n.until) { if (n.angry && !spectator) { n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); } else { n.mode = 'return'; npcEv(n); } } n.moving = false; mineOff.push(n); continue; }
         if (n.mode === 'chase') {
           chasing = n.who; mineOff.push(n);
@@ -318,7 +321,7 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
           }
         }
       }
-      if (!spectator && now - npcSent > 200 && ws.current?.readyState === 1) { npcSent = now; for (const n of mineOff) ws.current.send(JSON.stringify({ t: 'ev', ev: { k: 'npcpos', who: n.who, x: Math.round(n.x), d: Math.round(n.d * 100) / 100, face: n.face, moving: n.moving, m: n.map } })); }
+      if (!spectator && now - npcSent > 200 && ws.current?.readyState === 1) { npcSent = now; for (const n of mineOff) ws.current.send(JSON.stringify({ t: 'ev', ev: { k: 'npcpos', who: n.who, x: Math.round(n.x), d: Math.round(n.d * 100) / 100, face: n.face, moving: n.moving, m: n.map, swing: n.swing > 0.15 ? 1 : 0 } })); }
       for (const th of [...thrown.current]) {
         th.x += th.vx * dt; th.vz -= 700 * dt; th.z += th.vz * dt;
         if (!spectator && b.hurt <= 0 && th.map === cur.key && Math.abs(th.x - b.x) < 22 && Math.abs(th.d - b.d) < 0.12 && th.z < 50 + b.z && th.z > b.z - 10) { knock(residents[th.from].handle, pick(content.thrown)); thrown.current = thrown.current.filter((x) => x !== th); drop(th.item, th.x, th.d, th.from); continue; }

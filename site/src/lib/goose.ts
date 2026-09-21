@@ -45,6 +45,12 @@ export const WATER = WATER_SPOTS;
 const ALL_SPOTS = MAPS.flatMap((m) => m.spots);
 
 export interface Routine { who: number; item: ItemKey; seed: number; stops: { spot: string; dur: number }[]; speed: number }
+/** 오늘의 명단 — 날짜로 고정된 30명. 모두가 같은 명단을 봐야 남이 때린 주민이 내 화면에도 있다. 일과는 시간마다 바뀐다 */
+export function dayRoster(day: string, residents: number, extra: number[] = []): number[] {
+  const r = rng(hash(`roster:${day}`)); const used = new Set<number>(extra); const out = [...extra];
+  for (let i = 0; i < 30 && out.length < residents; i++) { let who = Math.floor(r() * residents); while (used.has(who)) who = (who + 1) % residents; used.add(who); out.push(who); }
+  return out;
+}
 /** 이 시간에 광장에 나온 주민 12명 — 시간마다 바뀐다. 각자 물건 하나, 들를 곳 3~4개 */
 export function residentsOut(hour: number, residents: number): Routine[] {
   const r = rng(hash(`goose:${hour}`));

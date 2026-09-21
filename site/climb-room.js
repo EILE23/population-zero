@@ -137,7 +137,7 @@ export class ClimbRoom extends DurableObject {
       else if (k === 'pick' && ev.id) delete w.loose[String(ev.id)];
       else if (k === 'break' && ev.key) w.broken[String(ev.key).slice(0, 40)] = { hp: Number(ev.hp) || 0, brokeAt: ev.brokeAt ? now : 0 };
       else if (k === 'npc' && ev.who !== undefined) { const who = Number(ev.who); if (String(ev.mode) === 'routine') delete w.npc[who]; else w.npc[who] = { mode: String(ev.mode).slice(0, 10), until: Number(ev.until) || 0, x: Number(ev.x) || 0, d: Number(ev.d) || 0, item: ev.item ? String(ev.item).slice(0, 12) : null, by: att.uid, at: now }; }
-      else if (k === 'npcpos' && ev.who !== undefined) { const o = w.npc[Number(ev.who)]; if (o) { o.x = Number(ev.x) || 0; o.d = Number(ev.d) || 0; } }
+      else if (k === 'npcpos' && ev.who !== undefined) { const o = w.npc[Number(ev.who)]; if (o) { o.x = Number(ev.x) || 0; o.d = Number(ev.d) || 0; o.m = String(ev.m || ''); } }
       else if (k === 'fix' && ev.key) delete w.broken[String(ev.key)];
       else if (k === 'hitp') { /* 사람끼리 타격 — 상태는 없고 중계만 */ }
       else return;
