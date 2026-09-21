@@ -2,7 +2,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { rateLimited } from '@/lib/ratelimit';
 import { sameOriginOrBearer } from '@/lib/safety';
-import { BADGES, BAITS, COINS, ITEM_BY_KEY, ITEM_LIST, RODS, roll, ZONES, type BaitKey, type ZoneKey } from '@/lib/pond';
+import { BADGES, BAITS, COINS, DIFFICULTY, ITEM_BY_KEY, ITEM_LIST, RODS, roll, SHOP_BADGES, ZONES, type BaitKey, type ZoneKey } from '@/lib/pond';
 
 /**
  * 연못 — 한 문으로 네 가지: cast(던지기: 서버가 뽑아 둔다) · land(챔질 성공: 기록·코인·뱃지) · miss · buy(낚싯대·미끼).
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user || user.guest) return Response.json({ error: 'unauthorized', message: 'Log in to keep what you catch.' }, { status: 401 });
   if (await rateLimited(request, 'pond', 60, 1)) return Response.json({ error: 'rate' }, { status: 429 });
-  const b = (await request.json().catch(() => ({}))) as { action?: string; zone?: unknown; bait?: unknown; what?: unknown };
+  const b = (await request.json().catch(() => ({}))) as { action?: string; zone?: unknown; bait?: unknown; what?: unknown; far?: unknown; near?: unknown };
   const db = await getDb();
   const p = await player(db, user.id);
   const rod = RODS[Math.min(RODS.length, Math.max(1, p.rod)) - 1];
@@ -49,7 +49,9 @@ export async function POST(request: Request) {
     const have = baitOf(p);
     if (bait && !(have[bait] ?? 0)) return Response.json({ error: 'bait', message: `No ${bait} left.` }, { status: 400 });
     // 뽑기 — 자리 표시자는 여기서 채운다
-    const item = roll(Math.random, zone.key, rod, bait);
+    // 멀리 던지면(0~1) 희귀 쪽으로, 그림자 근처면 아무것도 아닌 것(nothing·잡초) 이 줄어든다
+    const far = Math.min(1, Math.max(0, Number(b.far) || 0)), near = b.near === true;
+    const item = roll(Math.random, zone.key, rod, bait, { far, near });
     let name = item.name;
     if (name.includes('{resident}')) { const r = await db.prepare(`SELECT handle FROM residents WHERE tier <> 'admin' ORDER BY RANDOM() LIMIT 1`).first<{ handle: string }>(); name = name.replace('{resident}', r?.handle ?? 'a resident'); }
     if (name.includes('{film}')) { const f = await db.prepare(`SELECT title, year FROM clip_films ORDER BY RANDOM() LIMIT 1`).first<{ title: string; year: number | null }>(); name = name.replace('{film}', f ? `"${f.title}" (${f.year ?? '?'})` : 'an old film'); }
@@ -59,7 +61,9 @@ export async function POST(request: Request) {
     await db.prepare(`UPDATE pond_players SET casts = casts + 1, bait = ?, pending = ?, updated_at = datetime('now') WHERE user_id = ?`)
       .bind(JSON.stringify(have), JSON.stringify(pending), user.id).run();
     // 뭐가 물지는 안 알려준다 — 기다림과 챔질 창만
-    return Response.json({ ok: true, wait: Math.round(wait * 10) / 10, window: Math.round(zone.window * rod.window * 100) / 100, bait: have });
+    // 난이도는 알려준다(릴링 미니게임이 쓴다) — 뭔지는 안 알려준다
+    const difficulty = Math.min(1, DIFFICULTY[item.rarity] + (zone.key === 'e' || zone.key === 'i' ? 0.1 : 0) - (rod.level - 1) * 0.04);
+    return Response.json({ ok: true, wait: Math.round(wait * 10) / 10, window: Math.round(zone.window * rod.window * 100) / 100, difficulty: Math.round(difficulty * 100) / 100, bait: have });
   }
 
   if (b.action === 'land' || b.action === 'miss') {
@@ -96,6 +100,18 @@ export async function POST(request: Request) {
       if (p.coins < next.price) return Response.json({ error: 'coins', message: `${next.name} costs ${next.price}. You have ${p.coins}.` }, { status: 400 });
       await db.prepare(`UPDATE pond_players SET rod = ?, coins = coins - ? WHERE user_id = ?`).bind(next.level, next.price, user.id).run();
       if (next.level === RODS.length) await db.prepare(`INSERT OR IGNORE INTO badges (user_id, key) VALUES (?, 'the_rod')`).bind(user.id).run();
+      return Response.json({ ok: true, ...(await state(db, user.id)) });
+    }
+    if (what.startsWith('badge:')) {
+      const badge = SHOP_BADGES.find((x) => x.key === what.slice(6));
+      if (!badge || !badge.price) return Response.json({ error: 'what' }, { status: 400 });
+      const s0 = await state(db, user.id);
+      if (s0.badges.includes(badge.key)) return Response.json({ error: 'have', message: 'You already wear that one.' }, { status: 400 });
+      if (p.coins < badge.price) return Response.json({ error: 'coins', message: `${badge.name} costs ${badge.price}. You have ${p.coins}.` }, { status: 400 });
+      await db.batch([
+        db.prepare(`UPDATE pond_players SET coins = coins - ? WHERE user_id = ?`).bind(badge.price, user.id),
+        db.prepare(`INSERT OR IGNORE INTO badges (user_id, key) VALUES (?, ?)`).bind(user.id, badge.key),
+      ]);
       return Response.json({ ok: true, ...(await state(db, user.id)) });
     }
     const bait = BAITS.find((x) => x.key === what);

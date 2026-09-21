@@ -49,7 +49,8 @@ export const ITEM_LIST: Item[] = ITEMS.map((r: Row) => ({ key: r[0], name: r[1],
 export const ITEM_BY_KEY = new Map(ITEM_LIST.map((i) => [i.key, i]));
 
 /** 구역·낚싯대·미끼에 맞춘 가중치 — 흔한 것 1, 드묾 0.45, 희귀 0.12, 전설 0.02 에 luck 이 곱해진다. 맞는 미끼면 그 구역 것이 두 배 */
-export function weights(zone: ZoneKey, rod: Rod, bait: BaitKey | null): { item: Item; w: number }[] {
+export const DIFFICULTY: Record<R, number> = { c: 0.25, u: 0.45, r: 0.7, l: 0.9 };
+export function weights(zone: ZoneKey, rod: Rod, bait: BaitKey | null, cast: { far: number; near: boolean } = { far: 0, near: false }): { item: Item; w: number }[] {
   const base: Record<R, number> = { c: 1, u: 0.45, r: 0.12 * rod.luck, l: 0.02 * rod.luck };
   const zone0 = ZONES.find((z) => z.key === zone)!;
   const out: { item: Item; w: number }[] = [];
@@ -61,12 +62,15 @@ export function weights(zone: ZoneKey, rod: Rod, bait: BaitKey | null): { item: 
     if (bait && zone0.bait === bait && item.zones !== '*') w *= 1.8; // 맞는 미끼
     if (bait === 'lure' && (item.rarity === 'r' || item.rarity === 'l')) w *= 1.5;
     if (bait === 'bread' && item.rarity === 'c' && item.zones === 'p') w *= 1.5;
+    if (cast.far > 0.6 && (item.rarity === 'r' || item.rarity === 'l')) w *= 1 + cast.far;   // 멀리 던질수록 희귀
+    if (cast.near && (item.key.startsWith('nothing') || item.glyph === 'weed')) w *= 0.3;   // 그림자 옆이면 헛탕이 준다
+    if (!cast.near && item.glyph === 'weed') w *= 1.4;
     out.push({ item, w });
   }
   return out;
 }
-export function roll(r: () => number, zone: ZoneKey, rod: Rod, bait: BaitKey | null): Item {
-  const ws = weights(zone, rod, bait);
+export function roll(r: () => number, zone: ZoneKey, rod: Rod, bait: BaitKey | null, cast?: { far: number; near: boolean }): Item {
+  const ws = weights(zone, rod, bait, cast);
   const total = ws.reduce((a, x) => a + x.w, 0);
   let v = r() * total;
   for (const x of ws) { v -= x.w; if (v <= 0) return x.item; }
@@ -74,8 +78,21 @@ export function roll(r: () => number, zone: ZoneKey, rod: Rod, bait: BaitKey | n
 }
 
 /** 뱃지 — 레딧 트로피처럼 마이페이지·블로그에 붙는다. 전설은 하나마다, 나머진 이정표 */
-export interface Badge { key: string; name: string; blurb: string }
+export interface Badge { key: string; name: string; blurb: string; price?: number }
+/** 상점 뱃지 — 코인으로 산다. 실력이 아니라 취향의 표시라 값이 싸지 않다 */
+export const SHOP_BADGES: Badge[] = [
+  { key: 's:fisher', name: 'Fisher', blurb: 'bought the title. fair.', price: 30 },
+  { key: 's:pondscum', name: 'Pond scum', blurb: 'self-described', price: 45 },
+  { key: 's:duckfriend', name: 'Duck friend', blurb: 'the ducks tolerate you', price: 60 },
+  { key: 's:pipe', name: 'Pipe enjoyer', blurb: 'spends time at the drainage pipe on purpose', price: 80 },
+  { key: 's:deep', name: 'Deep end', blurb: 'has opinions about the deep end', price: 120 },
+  { key: 's:frozen', name: 'Frozen', blurb: 'sat at the ice hole too long', price: 150 },
+  { key: 's:ghost', name: 'Ghost-adjacent', blurb: 'has seen the 8-foot ghost. probably.', price: 250 },
+  { key: 's:mgmt', name: 'Cleared by The Management', blurb: 'a stamp, not an endorsement', price: 400 },
+  { key: 's:legend', name: 'Local legend', blurb: 'the pond knows your name', price: 900 },
+];
 export const BADGES: Badge[] = [
+  ...SHOP_BADGES,
   { key: 'first', name: 'Wet line', blurb: 'caught something. anything.' },
   { key: 'ten', name: 'Regular', blurb: '10 things out of the pond' },
   { key: 'fifty', name: 'Local', blurb: '50 things' },
@@ -111,4 +128,19 @@ export function residentState(seed: number, zone: ZoneKey, t: number): { phase: 
   const r = rng(seed ^ cycle);
   if (u > 1 - 3 / period && r() < 0.6) return { phase: 'catch', item: roll(r, zone, RODS[1 + (seed % 3)], null) };
   return { phase: 'wait', item: null };
+}
+
+// ── 2.5D ──
+export const DEPTH_PX = 110;     // 물가의 앞뒤 깊이(화면 px, 뒤 0 → 물가 1)
+/** 물속 그림자 — 구역마다 3~5마리가 (씨앗, 시각) 대로 돌아다닌다. 찌를 그 근처에 넣으면 헛탕이 준다 */
+export function shadows(zone: Zone, t: number): { x: number; d: number; size: number }[] {
+  const r = rng(hash(`shadow:${zone.key}`));
+  const n = 3 + Math.floor(r() * 3);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const cx = zone.x0 + 80 + r() * (ZONE_W - 160), amp = 60 + r() * 120, sp = 0.05 + r() * 0.08, ph = r() * 6.28;
+    const d0 = 0.2 + r() * 0.7, size = 14 + r() * 18;
+    out.push({ x: cx + Math.sin(t * sp * 6.28 + ph) * amp, d: d0 + Math.sin(t * sp * 3.1 + ph * 2) * 0.15, size });
+  }
+  return out;
 }
