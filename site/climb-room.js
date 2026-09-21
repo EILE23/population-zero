@@ -4,7 +4,7 @@
  * 저장의 규칙(운영자):
  *   게임 화면에 있는 사람 → 서 있고 움직인다 (10Hz 로 위치를 보낸다)
  *   로그인은 했지만 화면을 떠난 사람 → 그 자리에 앉아 쉰다 (소켓이 닫히면 status=rest, 자리는 남는다)
- *   로그아웃한 사람 → 사라진다 (로그아웃이 /leave 로 알린다)
+ *   로그아웃한 사람 → 화면에서 사라진다. 자리는 남는다 — 다시 로그인하면 거기서 이어서 한다 (로그아웃이 /leave 로 알린다)
  * 위치는 DO 저장소에 실시간으로(5초 간격) 남고, 최고 높이는 D1 climb_best 에도 쓴다(순위표·SSR 이 읽는다).
  * 로그아웃 방문자는 구경만 한다(spectator). 채팅은 저장하지 않는다 — 성의 없이 흘러가는 게 맞다.
  * Hibernation API: 아무도 움직이지 않으면 잠들고 요금이 붙지 않는다.
@@ -42,7 +42,7 @@ export class ClimbRoom extends DurableObject {
     const alive = new Set(results.map((r) => r.user_id));
     for (const uid of resting) {
       if (alive.has(uid)) continue;
-      users.delete(uid); await this.ctx.storage.delete(`u:${uid}`);
+      const u = users.get(uid); u.status = 'gone'; await this.ctx.storage.put(`u:${uid}`, u);
       this.broadcast({ t: 'leave', uid });
     }
   }
@@ -62,7 +62,7 @@ export class ClimbRoom extends DurableObject {
       const uid = Number(url.searchParams.get('uid')) || 0;
       const users = await this.load();
       if (uid && users.has(uid)) {
-        users.delete(uid); await this.ctx.storage.delete(`u:${uid}`);
+        const u = users.get(uid); u.status = 'gone'; u.at = Date.now(); await this.ctx.storage.put(`u:${uid}`, u);
         this.broadcast({ t: 'leave', uid });
         for (const peer of this.ctx.getWebSockets()) { if (peer.deserializeAttachment()?.uid === uid) { try { peer.close(1000, 'logged out'); } catch {} } }
       }
@@ -87,7 +87,8 @@ export class ClimbRoom extends DurableObject {
       this.broadcast({ t: 'user', u: me }, server);
     }
     // 처음 한 번: 탑에 있는 모두 (활동 중이든 쉬는 중이든)
-    try { server.send(JSON.stringify({ t: 'init', me: uid, users: [...users.values()] })); } catch {}
+    // 로그아웃한 사람(gone)은 남에게 보이지 않는다 — 자리만 저장돼 있다
+    try { server.send(JSON.stringify({ t: 'init', me: uid, users: [...users.values()].filter((u) => u.status !== 'gone' || u.uid === uid) })); } catch {}
     return new Response(null, { status: 101, webSocket: client });
   }
 
