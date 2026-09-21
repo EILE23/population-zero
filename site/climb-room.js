@@ -19,6 +19,20 @@ export class ClimbRoom extends DurableObject {
     this.users = null;      // uid → state (lazy from storage)
     this.lastSave = new Map();
     this.chatCount = new Map();
+    this.world = null;      // { loose: {id: item}, broken: {key: {hp, brokeAt}}, npc: {who: override} } — 광장의 공유 상태
+    this.worldSavedAt = 0;
+  }
+
+  async loadWorld() {
+    if (this.world) return this.world;
+    this.world = (await this.ctx.storage.get('world')) ?? { loose: {}, broken: {}, npc: {} };
+    return this.world;
+  }
+  /** 낡은 것 정리 — 부서진 소품은 2분, 주민 이탈은 until 지나면, 바닥 물건은 1시간 */
+  tidy(w, now) {
+    for (const [k, v] of Object.entries(w.broken)) if (v.brokeAt && now - v.brokeAt > 120000) delete w.broken[k];
+    for (const [k, v] of Object.entries(w.npc)) if (v.until && now > v.until + 8000) delete w.npc[k];
+    for (const [k, v] of Object.entries(w.loose)) if (now - (v.at ?? now) > 3600000) delete w.loose[k];
   }
 
   async load() {
@@ -88,7 +102,8 @@ export class ClimbRoom extends DurableObject {
     }
     // 처음 한 번: 탑에 있는 모두 (활동 중이든 쉬는 중이든)
     // 로그아웃한 사람(gone)은 남에게 보이지 않는다 — 자리만 저장돼 있다
-    try { server.send(JSON.stringify({ t: 'init', me: uid, users: [...users.values()].filter((u) => u.status !== 'gone' || u.uid === uid) })); } catch {}
+    const world = await this.loadWorld(); this.tidy(world, Date.now());
+    try { server.send(JSON.stringify({ t: 'init', me: uid, users: [...users.values()].filter((u) => u.status !== 'gone' || u.uid === uid), world })); } catch {}
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -99,10 +114,10 @@ export class ClimbRoom extends DurableObject {
     if (m.t === 'pos' && att.uid) {
       const u = users.get(att.uid); if (!u) return;
       const x = Math.max(0, Math.min(960, Number(m.x) || 0)), y = Math.max(0, Math.min(1e7, Number(m.y) || 0));
-      Object.assign(u, { x, y, pose: String(m.pose || 'stand').slice(0, 6), face: m.face === -1 ? -1 : 1, status: 'active', at: Date.now() });
+      Object.assign(u, { x, y, pose: String(m.pose || 'stand').slice(0, 6), face: m.face === -1 ? -1 : 1, map: String(m.m || '').slice(0, 20), status: 'active', at: Date.now() });
       let bestUp = false;
       if (y > u.best + 1) { u.best = y; bestUp = true; }
-      this.broadcast({ t: 'pos', uid: att.uid, x, y, pose: u.pose, face: u.face }, ws);
+      this.broadcast({ t: 'pos', uid: att.uid, x, y, pose: u.pose, face: u.face, m: u.map }, ws);
       const last = this.lastSave.get(att.uid) ?? 0;
       if (Date.now() - last > 5000) {
         this.lastSave.set(att.uid, Date.now());
@@ -112,6 +127,23 @@ export class ClimbRoom extends DurableObject {
             ON CONFLICT(user_id) DO UPDATE SET best = MAX(best, excluded.best), updated_at = datetime('now')`).bind(att.uid, Math.round(u.best)).run().catch(() => null);
         }
       }
+      return;
+    }
+    if (m.t === 'ev' && att.uid) {
+      // 세계 이벤트 — 보낸 사람 화면엔 이미 적용됐다. 상태를 갱신하고 나머지에게 중계
+      const w = await this.loadWorld(); const now = Date.now(); const ev = m.ev ?? {};
+      const k = String(ev.k || '');
+      if (k === 'drop' && ev.id) w.loose[String(ev.id).slice(0, 40)] = { item: String(ev.item).slice(0, 12), m: String(ev.m).slice(0, 20), x: Number(ev.x) || 0, d: Number(ev.d) || 0, from: ev.from === null ? null : Number(ev.from), dunked: ev.dunked ? String(ev.dunked).slice(0, 20) : undefined, at: now };
+      else if (k === 'pick' && ev.id) delete w.loose[String(ev.id)];
+      else if (k === 'break' && ev.key) w.broken[String(ev.key).slice(0, 40)] = { hp: Number(ev.hp) || 0, brokeAt: ev.brokeAt ? now : 0 };
+      else if (k === 'npc' && ev.who !== undefined) { const who = Number(ev.who); if (String(ev.mode) === 'routine') delete w.npc[who]; else w.npc[who] = { mode: String(ev.mode).slice(0, 10), until: Number(ev.until) || 0, x: Number(ev.x) || 0, d: Number(ev.d) || 0, item: ev.item ? String(ev.item).slice(0, 12) : null, by: att.uid, at: now }; }
+      else if (k === 'npcpos' && ev.who !== undefined) { const o = w.npc[Number(ev.who)]; if (o) { o.x = Number(ev.x) || 0; o.d = Number(ev.d) || 0; } }
+      else if (k === 'fix' && ev.key) delete w.broken[String(ev.key)];
+      else if (k === 'hitp') { /* 사람끼리 타격 — 상태는 없고 중계만 */ }
+      else return;
+      this.tidy(w, now);
+      this.broadcast({ t: 'ev', ev, by: att.uid }, ws);
+      if (now - this.worldSavedAt > 4000) { this.worldSavedAt = now; await this.ctx.storage.put('world', w); }
       return;
     }
     if (m.t === 'chat') {

@@ -1,51 +1,77 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ListChecks, Upload } from 'lucide-react';
-import { BUTTON } from '@/components/button-styles';
-import { figure } from '@/lib/stickman';
+import { figure, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY } from '@/lib/pond';
-import { CHASE_SEC, CHASE_SPEED, DEPTH_PX, GRAB_R, ITEMS, PLAYER_SPEED, RESIDENT_SPEED, routineAt, residentsOut, SHOVE_R, SPOTS, SQUARE_W, spotOf, WATER, type Activity, type ItemKey, type Routine, type Task } from '@/lib/goose';
+import { CHASE_SEC, CHASE_SPEED, DEPTH_PX, GRAB_R, ITEMS, PLAYER_SPEED, RESIDENT_SPEED, SHOVE_R, type ItemKey, type Task } from '@/lib/goose';
+import { BREAKABLE, houses, jobOf, MAPS, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
 /**
- * Square — 화면. Climb 과 같은 졸라맨·점프·밀기, 다만 2.5D 광장이다. 사람이 AI 주민을 괴롭힌다.
- * ←→↑↓ 걷기 · SPACE 점프 · X 밀기(닿은 주민이 넘어지고 물건을 떨어뜨린다) · C 물건 줍기/뺏기/놓기.
- * 주민은 일과를 돌다가(씨앗·시각) 맞으면 넘어지고, 물건을 뺏기면 몇 초 쫓아오고(잡히면 되찾아 감), 포기하면 일과로 돌아간다.
- * 오늘의 할 일 8개 — 완료 판정은 여기서, 기록·코인·뱃지는 /api/goose.
+ * Square — 화면. Climb 과 같은 졸라맨·점프, 2.5D, 지도 여러 장(광장·시장 거리·공원·집 안). 사람이 AI 주민을 괴롭힌다.
+ * ←→↑↓ 걷기 · SPACE 점프 · X 주먹 · Z 발차기(공중이면 점프킥, 소품도 부순다) · C 줍기/뺏기/놓기 · 문·길 끝에서 ↑ 로 지도 이동.
+ * 주민은 직업(핸들 씨앗)대로 지도들을 오가며 일과를 돌고, 맞으면 넘어지고, 뺏기면 쫓고(성깔 있으면 되갚고, 경찰은 벌금), 물건을 던지고,
+ * 어질러진 걸 치우고, 부서진 소품을 고치러 다닌다(gardener·sweeper·grocer 가 수리공 노릇). 사람끼리도 때리고 넘어뜨린다.
+ *
+ * 공유: 바닥의 물건·부서진 소품·주민의 이탈·사람끼리의 타격은 방(DO)을 거쳐 모두에게 반영된다. 기본 일과는 결정적이라 보낼 게 없고,
+ * 이탈은 일으킨 사람의 화면이 '주인' 이 되어 위치를 5Hz 로 보낸다. 같은 주민을 둘이 건드리면 나중 것이 이긴다.
  */
 export interface ResidentLite { id: number; handle: string; line: string }
+export interface Content { shoved: string[]; chase: string[]; giveup: string[]; caught: string[]; angry: string[]; thrown: string[] }
 interface Me { id: number; handle: string }
-interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; pose: string; status: 'active' | 'rest' }
-interface Npc { rt: Routine; x: number; d: number; face: 1 | -1; item: ItemKey | null; mode: 'routine' | 'down' | 'chase' | 'return' | 'flee' | 'fetch'; until: number; target: Loose | null; say: string; sayUntil: number; act: Activity; moving: boolean; angry: boolean; threw: number; swing: number }
-interface Loose { item: ItemKey; x: number; d: number; from: number | null; dunked?: string }
+interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1 }
+type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair';
+interface Npc { who: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
+interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string }
+interface Ev { k: string; [x: string]: unknown }
+type Prop = { key: string; name: string; kind: PropKind; x: number; d: number; seed: number };
 
 const VIEW_W = 960, VIEW_H = 470, GROUND = 330, TOP = GROUND - DEPTH_PX;
 const TOUCH = typeof window !== 'undefined' && 'ontouchstart' in window;
+const REPAIRERS = ['gardener', 'sweeper', 'grocer', 'courier'];
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
+const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
-export interface Content { shoved: string[]; chase: string[]; giveup: string[]; caught: string[]; angry: string[]; thrown: string[] }
 export function SquareGame({ residents, me, tasks, done, content }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const ws = useRef<WebSocket | null>(null);
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, carry: null as ItemKey | null, carryFrom: null as number | null, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' });
-  const thrown = useRef<{ item: ItemKey; x: number; d: number; z: number; vx: number; vz: number; from: number }[]>([]);
-  const broken = useRef(new Map<string, { hp: number; brokeAt: number }>()); // 소품 내구도 — 세 대면 부서지고 2분 뒤 돌아온다
+  const maps = useRef<GameMap[]>([...MAPS, ...houses(residents.length)]);
+  const mapKey = useRef('square');
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false });
   const npcs = useRef<Npc[]>([]);
-  const loose = useRef<Loose[]>([]);
+  const loose = useRef<Map<string, Loose>>(new Map());
+  const thrown = useRef<{ item: ItemKey; map: string; x: number; d: number; z: number; vx: number; vz: number; from: number }[]>([]);
+  const broken = useRef(new Map<string, { hp: number; brokeAt: number }>());
   const others = useRef(new Map<number, Other>());
   const cam = useRef(0);
   const tour = useRef({ uid: 0, until: 0 });
-  const stats = useRef({ shoves: [] as { who: number; at: number }[], chasedSince: 0, chasedBy: -1, doneKeys: new Set(done) });
+  const stats = useRef({ shoves: [] as { who: number; at: number }[], chasedSince: 0, chasedBy: -1, doneKeys: new Set(done), seq: 0, pendingKnock: null as { by: string; line: string } | null });
   const [doneList, setDoneList] = useState<string[]>(done);
   const [toast, setToast] = useState('');
   const [chats, setChats] = useState<{ who: string; body: string }[]>([]);
   const [line, setLine] = useState('');
-  const [hud, setHud] = useState({ online: 0, carry: '' });
+  const [hud, setHud] = useState({ online: 0, carry: '', map: 'The square', exit: '' });
   const [showTasks, setShowTasks] = useState(!TOUCH);
   const spectator = !me;
+  const say = (msg: string, ms = 2500) => { setToast(msg); setTimeout(() => setToast(''), ms); };
+  const mapOf = (k: string) => maps.current.find((m) => m.key === k) ?? maps.current[0];
+
+  // ── 이벤트: 내 화면에 적용하고 방에 보낸다 / 남의 것을 받아 적용한다 ──
+  const apply = (w: Ev, mine: boolean) => {
+    if (w.k === 'drop') loose.current.set(String(w.id), { id: String(w.id), item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), from: w.from === null ? null : Number(w.from), dunked: w.dunked ? String(w.dunked) : undefined });
+    else if (w.k === 'pick') loose.current.delete(String(w.id));
+    else if (w.k === 'break') broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, Date.now() - Number(w.brokeAt)) : 0 });
+    else if (w.k === 'fix') broken.current.delete(String(w.key));
+    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - Date.now()); n.x = Number(w.x); n.d = Number(w.d); n.item = (w.item as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
+    else if (w.k === 'npcpos' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n && n.owner !== me?.id) { n.x = Number(w.x); n.d = Number(w.d); n.face = w.face === -1 ? -1 : 1; n.moving = !!w.moving; n.map = String(w.m ?? n.map); } }
+    else if (w.k === 'hitp' && !mine && me && Number(w.uid) === me.id) { stats.current.pendingKnock = { by: String(w.byName ?? 'someone'), line: String(w.kind) === 'kick' ? 'kicked you' : 'punched you' }; }
+  };
+  const emit = (ev: Ev) => { apply(ev, true); if (ws.current?.readyState === 1 && me) ws.current.send(JSON.stringify({ t: 'ev', ev })); };
+  const npcEv = (n: Npc, extra: Record<string, unknown> = {}) => emit({ k: 'npc', who: n.who, mode: n.mode, until: Date.now() + Math.max(0, n.until - performance.now()), x: n.x, d: n.d, item: n.item, by: me?.id, ...extra });
+  const drop = (item: ItemKey, x: number, d: number, from: number | null, dunked?: string) => { const id = `${me?.id ?? 0}-${Date.now().toString(36)}-${stats.current.seq++}`; emit({ k: 'drop', id, item, m: mapKey.current, x, d, from, dunked }); return id; };
 
   // ── 방 ──
   useEffect(() => {
@@ -59,15 +85,22 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
         const map = others.current;
         const put = (u: Record<string, unknown>) => {
           const uid = Number(u.uid); const d = Math.min(1, Math.max(0, (Number(u.y) || 700) / 1000));
-          if (me && uid === me.id) { if (m.t === 'init') { body.current.x = Number(u.x) || 1500; body.current.d = d; cam.current = body.current.x - VIEW_W / 2; } return; }
+          if (me && uid === me.id) { if (m.t === 'init') { body.current.x = Number(u.x) || 1500; body.current.d = d; if (typeof u.map === 'string' && maps.current.some((mm) => mm.key === u.map)) mapKey.current = u.map; cam.current = body.current.x - VIEW_W / 2; } return; }
           const prev = map.get(uid);
-          map.set(uid, { uid, handle: String(u.handle ?? ''), x: prev?.x ?? (Number(u.x) || 0), tx: Number(u.x) || 0, d: prev?.d ?? d, td: d, pose: String(u.pose ?? 'stand'), status: u.status === 'rest' ? 'rest' : 'active' });
+          map.set(uid, { uid, handle: String(u.handle ?? ''), x: prev?.x ?? (Number(u.x) || 0), tx: Number(u.x) || 0, d: prev?.d ?? d, td: d, pose: String(u.pose ?? 'stand'), status: u.status === 'rest' ? 'rest' : 'active', map: String(u.map || 'square'), face: u.face === -1 ? -1 : 1 });
         };
-        if (m.t === 'init') { map.clear(); for (const u of m.users as Record<string, unknown>[]) put(u); }
+        if (m.t === 'init') {
+          map.clear(); for (const u of m.users as Record<string, unknown>[]) put(u);
+          const w = (m.world ?? {}) as { loose?: Record<string, Record<string, unknown>>; broken?: Record<string, { hp: number; brokeAt: number }>; npc?: Record<string, Record<string, unknown>> };
+          loose.current.clear(); for (const [id, l] of Object.entries(w.loose ?? {})) loose.current.set(id, { id, item: l.item as ItemKey, map: String(l.m), x: Number(l.x), d: Number(l.d), from: l.from === null ? null : Number(l.from), dunked: l.dunked ? String(l.dunked) : undefined });
+          broken.current.clear(); for (const [k, v] of Object.entries(w.broken ?? {})) broken.current.set(k, { hp: v.hp, brokeAt: v.brokeAt ? performance.now() - Math.max(0, Date.now() - v.brokeAt) : 0 });
+          for (const [who, o] of Object.entries(w.npc ?? {})) apply({ k: 'npc', who: Number(who), ...o }, false);
+        }
         else if (m.t === 'user') put(m.u as Record<string, unknown>);
-        else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { o.tx = Number(m.x); o.td = Math.min(1, Math.max(0, Number(m.y) / 1000)); o.pose = String(m.pose); o.status = 'active'; } }
+        else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { o.tx = Number(m.x); o.td = Math.min(1, Math.max(0, Number(m.y) / 1000)); o.pose = String(m.pose); o.status = 'active'; o.face = m.face === -1 ? -1 : 1; if (typeof m.m === 'string' && m.m) o.map = m.m; } }
         else if (m.t === 'rest') { const o = map.get(Number(m.uid)); if (o) { o.status = 'rest'; o.pose = 'sit'; } }
         else if (m.t === 'leave') map.delete(Number(m.uid));
+        else if (m.t === 'ev') apply({ ...(m.ev as Ev), by: m.by }, false);
         else if (m.t === 'chat') setChats((c) => [...c.slice(-7), { who: String(m.handle), body: String(m.body) }]);
       };
       sock.onclose = () => { if (alive) setTimeout(connect, Math.min(15000, 1000 * 2 ** retry++)); };
@@ -79,8 +112,7 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
   const complete = async (key: string) => {
     if (stats.current.doneKeys.has(key) || !tasks.some((t) => t.key === key)) return;
     stats.current.doneKeys.add(key); setDoneList([...stats.current.doneKeys]);
-    const t = tasks.find((x) => x.key === key)!;
-    setToast(`Done: ${t.text} (+${t.coins})`); setTimeout(() => setToast(''), 3500);
+    const t = tasks.find((x) => x.key === key)!; say(`Done: ${t.text} (+${t.coins})`, 3500);
     if (!me) return;
     const res = await fetch('/api/goose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key }) });
     const d = await res.json().catch(() => ({})) as { ok?: boolean };
@@ -106,37 +138,77 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
   // ── 루프 ──
   useEffect(() => {
     const c = canvas.current!; const ctx = c.getContext('2d')!;
-    let raf = 0, last = performance.now(), sent = 0, hudAt = 0, jumpWas = false, grabWas = false, shoveWas = false, kickWas = false;
+    let raf = 0, last = performance.now(), sent = 0, npcSent = 0, hudAt = 0, jumpWas = false, grabWas = false, shoveWas = false, kickWas = false, upWas = false;
     const hour = () => Math.floor(Date.now() / 3600000); let curHour = hour();
-    // 이 시간의 주민 + 오늘의 할 일에 이름이 오른 주민(그 사람은 하루 종일 광장에 있어야 할 일이 가능하다)
-    const spawn = () => { const h = hour(); const base = residentsOut(h, residents.length); const dayset = residentsOut(h - (h % 24), residents.length);
-      for (const t of tasks) { if (t.who !== undefined && !base.some((r) => r.who === t.who)) { const rt = dayset.find((r) => r.who === t.who); if (rt) base.push(rt); } }
-      // 성깔 있는 주민(순찰이 정한 목록 + 씨앗 30%) 은 맞으면 되갚고, 쫓을 때 물건을 던진다
-      npcs.current = base.map((rt) => { const p = routineAt(rt, Date.now() / 1000); const angry = content.angry.includes(residents[rt.who].handle) || rt.seed % 10 < 3; return { rt, x: p.x, d: p.d, face: p.face, item: rt.item, mode: 'routine' as const, until: 0, say: '', sayUntil: 0, act: p.act, moving: p.moving, angry, threw: 0, swing: 0, target: null }; }); loose.current = []; thrown.current = []; };
+    const spotIndex = new Map<string, { map: string; spot: Spot }>();
+    for (const m of maps.current) for (const sp of m.spots) spotIndex.set(sp.key, { map: m.key, spot: sp });
+    const spawn = () => {
+      const r = rng(hash(`square:${hour()}`)); const used = new Set<number>(); const chosen: number[] = [];
+      for (let i = 0; i < 24 && i < residents.length; i++) { let who = Math.floor(r() * residents.length); while (used.has(who)) who = (who + 1) % residents.length; used.add(who); chosen.push(who); }
+      for (const t of tasks) if (t.who !== undefined && !used.has(t.who)) { used.add(t.who); chosen.push(t.who); }
+      for (const hm of maps.current) if (hm.owner !== undefined && !used.has(hm.owner)) { used.add(hm.owner); chosen.push(hm.owner); }
+      npcs.current = chosen.map((who) => {
+        const handle = residents[who].handle; const job = jobOf(handle); const seed = hash(`square:${who}:${hour()}`); const rr = rng(seed);
+        const home = maps.current.find((m) => m.owner === who);
+        const cand = job.spots.map((k) => spotIndex.get(k)).filter((x): x is { map: string; spot: Spot } => !!x);
+        const stops: Npc['stops'] = [];
+        const n = 3 + Math.floor(rr() * 2);
+        for (let k = 0; k < n; k++) { const c0 = cand.length ? cand[Math.floor(rr() * cand.length)] : spotIndex.get('fountain')!; stops.push({ map: c0.map, spot: c0.spot, dur: 14 + rr() * 30 }); }
+        if (home) { const hs = home.spots.filter((s) => s.kind !== 'door'); stops.splice(Math.floor(rr() * stops.length), 0, { map: home.key, spot: hs[Math.floor(rr() * hs.length)], dur: 30 + rr() * 60 }); }
+        const angry = content.angry.includes(handle) || rr() < job.temper;
+        return { who, job, seed, stops, x: 0, d: 0.5, map: stops[0].map, face: 1 as const, item: job.item, mode: 'routine' as Mode, until: 0, say: '', sayUntil: 0, moving: false, act: 'stand', angry, threw: 0, swing: 0, target: null, owner: null };
+      });
+      thrown.current = [];
+    };
+    const routine = (n: Npc, t: number) => {
+      const legs = n.stops.map((s, i) => { const b = n.stops[(i + 1) % n.stops.length]; const walk = s.map === b.map ? Math.hypot(b.spot.x - s.spot.x, (b.spot.d - s.spot.d) * 400) / (RESIDENT_SPEED * n.job.speed) : 8; return { a: s, b, walk }; });
+      const total = legs.reduce((s, l) => s + l.a.dur + l.walk, 0);
+      let u = (t + n.seed % 1000) % total;
+      for (const l of legs) {
+        if (u < l.a.dur) return { map: l.a.map, x: l.a.spot.x + ((n.seed % 60) - 30), d: Math.min(1, Math.max(0.05, l.a.spot.d + ((n.seed % 20) - 10) / 100)), act: l.a.spot.act as string, moving: false, face: (n.seed % 2 ? 1 : -1) as 1 | -1, away: false };
+        u -= l.a.dur;
+        if (u < l.walk) { const k = u / l.walk; if (l.a.map !== l.b.map) return { map: l.a.map, x: l.a.spot.x, d: l.a.spot.d, act: 'stand', moving: true, face: 1 as const, away: true }; return { map: l.a.map, x: l.a.spot.x + (l.b.spot.x - l.a.spot.x) * k, d: l.a.spot.d + (l.b.spot.d - l.a.spot.d) * k, act: 'stand', moving: true, face: (l.b.spot.x >= l.a.spot.x ? 1 : -1) as 1 | -1, away: false }; }
+        u -= l.walk;
+      }
+      const f = n.stops[0]; return { map: f.map, x: f.spot.x, d: f.spot.d, act: f.spot.act as string, moving: false, face: 1 as const, away: false };
+    };
     spawn();
-    const props = PROPS();
+    const propsOf = new Map<string, Prop[]>();
+    for (const m of maps.current) {
+      const r = rng(hash(`props:${m.key}`));
+      const list: Prop[] = m.spots.map((s) => ({ key: s.key, name: s.name, kind: s.kind, x: s.x, d: s.d, seed: Math.floor(r() * 1e6) }));
+      if (!m.indoor) { for (let k = 0; k < Math.floor(m.w / 320); k++) list.push({ key: `${m.key}:tree${k}`, name: 'a tree', kind: 'tree', x: 80 + r() * (m.w - 160), d: r() * 0.12, seed: Math.floor(r() * 1e6) }); for (let k = 0; k < Math.floor(m.w / 520); k++) list.push({ key: `${m.key}:lamp${k}`, name: 'a lamp', kind: 'lamp', x: 200 + k * 520, d: 0.95, seed: k }); }
+      propsOf.set(m.key, list);
+    }
+    const propByKey = new Map<string, { map: string; p: Prop }>(); for (const [mk, list] of propsOf) for (const p of list) propByKey.set(p.key, { map: mk, p });
+
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(0.1, (now - last) / 1000); last = now; const t = Date.now() / 1000;
       if (hour() !== curHour) { curHour = hour(); spawn(); }
-      const b = body.current, i = input.current, st = stats.current;
-      const knock = (who: number, line: string) => { // 반격 — 나는 넘어지고 들고 있던 걸 다 흘린다
+      const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
+      const here = (n: Npc) => n.map === cur.key;
+      const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0;
-        for (const it of b.stack) loose.current.push({ item: it, x: b.x + (Math.random() - 0.5) * 80, d: Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), from: null });
-        b.stack = []; setToast(`${residents[who].handle}: ${line}`); setTimeout(() => setToast(''), 2500); st.chasedSince = 0;
+        for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
+        b.stack = []; say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
-      /** 때리기/차기 — 앞의 주민은 넘어지고 물건을 놓친다, 앞의 소품은 내구도가 깎인다(차기는 두 배) */
+      if (st.pendingKnock && !spectator) { const k = st.pendingKnock; st.pendingKnock = null; knock(k.by, k.line); }
       const hit = (kind: 'punch' | 'kick') => {
         b.swing = 0.28; b.swingKind = kind;
-        const air = kind === 'kick' && b.z > 0; // 점프킥 — 더 멀리 날리고 더 오래 눕힌다
+        const air = kind === 'kick' && b.z > 0;
         const reach = kind === 'kick' ? SHOVE_R + (air ? 36 : 24) : SHOVE_R + 10;
-        const n = npcs.current.filter((p) => p.mode !== 'down' && dist(b.x, b.d, p.x, p.d) < reach && Math.sign(p.x - b.x) === b.face).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+        // 사람 먼저 — 같은 지도의 다른 사람도 맞는다(그 사람 화면이 넘어짐을 처리한다)
+        const o = [...others.current.values()].filter((p) => p.map === cur.key && p.status === 'active' && dist(b.x, b.d, p.x, p.d) < reach && Math.sign(p.x - b.x) === b.face).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+        if (o) { emit({ k: 'hitp', uid: o.uid, byName: me!.handle, kind }); say(`You ${kind === 'kick' ? 'kicked' : 'punched'} ${o.handle}.`, 1500); return; }
+        const n = npcs.current.filter((p) => here(p) && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < reach && Math.sign(p.x - b.x) === b.face).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
         if (n) {
-          n.mode = 'down'; n.until = now + (air ? 2600 : kind === 'kick' ? 1900 : 1400); n.face = (-b.face) as 1 | -1; n.x += b.face * (air ? 80 : kind === 'kick' ? 44 : 22);
-          if (air) { setToast('Jump kick.'); setTimeout(() => setToast(''), 1200); }
+          n.mode = 'down'; n.owner = me!.id; n.until = now + (air ? 2600 : kind === 'kick' ? 1900 : 1400); n.face = (-b.face) as 1 | -1; n.x += b.face * (air ? 80 : kind === 'kick' ? 44 : 22);
           n.say = pick(content.shoved); n.sayUntil = now + 2000;
-          if (n.item) { loose.current.push({ item: n.item, x: n.x + b.face * 26, d: n.d, from: n.rt.who }); n.item = null; }
-          st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.rt.who, at: now }];
+          if (n.item) { drop(n.item, n.x + b.face * 26, n.d, n.who); n.item = null; }
+          npcEv(n, { say: n.say });
+          if (air) say('Jump kick.', 1200);
+          st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }];
           if (new Set(st.shoves.map((x) => x.who)).size >= 3) void complete('shove3');
           return;
         }
@@ -145,154 +217,171 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
           const st2 = broken.current.get(pr.key) ?? { hp: 3, brokeAt: 0 };
           if (st2.brokeAt) return;
           st2.hp -= air ? 3 : kind === 'kick' ? 2 : 1;
-          if (st2.hp <= 0) { st2.brokeAt = now; setToast(`You broke ${pr.name}.`); setTimeout(() => setToast(''), 2500); void complete(`break:${pr.key}`); for (const m of npcs.current) if (m.mode === 'routine' && dist(m.x, m.d, pr.x, pr.d) < 260) { m.say = pick(content.shoved); m.sayUntil = now + 2000; if (m.angry) { m.mode = 'chase'; m.until = now + CHASE_SEC * 1000; } } }
-          broken.current.set(pr.key, st2);
+          if (st2.hp <= 0) { st2.brokeAt = now; say(`You broke ${pr.name}.`); void complete(`break:${pr.key}`); for (const m of npcs.current) if (here(m) && m.mode === 'routine' && dist(m.x, m.d, pr.x, pr.d) < 260) { m.say = pick(content.shoved); m.sayUntil = now + 2000; if (m.angry || m.job.key === 'cop') { m.mode = 'chase'; m.owner = me!.id; m.until = now + CHASE_SEC * 1000; npcEv(m, { say: m.say }); } } }
+          emit({ k: 'break', key: pr.key, hp: st2.hp, brokeAt: st2.brokeAt ? Date.now() : 0 });
         }
       };
       // ── 나 ──
+      let exitNear = '';
       if (!spectator && b.hurt > 0) { b.hurt = Math.max(0, b.hurt - dt); b.moving = false; }
       if (b.swing > 0) b.swing = Math.max(0, b.swing - dt);
       if (!spectator && b.hurt <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
-        const slow = 1 - Math.min(0.5, b.stack.length * 0.12); // 물건 많이 들면 느리다
-        if (dx || dd) { b.x = Math.max(20, Math.min(SQUARE_W - 20, b.x + dx * PLAYER_SPEED * slow * dt)); b.d = Math.max(0, Math.min(1, b.d + dd * 1.5 * dt)); if (dx) b.face = dx as 1 | -1; }
+        const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
+        if (dx || dd) { b.x = Math.max(20, Math.min(cur.w - 20, b.x + dx * PLAYER_SPEED * slow * dt)); b.d = Math.max(0, Math.min(1, b.d + dd * 1.5 * dt)); if (dx) b.face = dx as 1 | -1; }
         b.moving = !!(dx || dd);
         if (i.jump && !jumpWas && b.z === 0) b.vz = 560;
         if (b.z > 0 || b.vz > 0) { b.vz -= 1900 * dt; b.z = Math.max(0, b.z + b.vz * dt); if (b.z === 0) b.vz = 0; }
-        // 때리기(X)·차기(Z) — 주민은 넘어지고, 소품은 부서진다
+        const ex = cur.exits.find((e) => dist(b.x, b.d, e.x, e.d) < 60);
+        if (ex) { exitNear = ex.label; if (i.up && !upWas) { const to = mapOf(ex.to); if (to.owner !== undefined) { const owner = npcs.current.find((n) => n.who === to.owner); if (owner && owner.map === to.key && owner.mode === 'routine') { owner.mode = 'chase'; owner.owner = me!.id; owner.until = now + CHASE_SEC * 1500; owner.say = pick(['who let you in', 'get OUT', 'this is my house', 'shoes off. no, out.']); owner.sayUntil = now + 2500; npcEv(owner, { say: owner.say }); } } mapKey.current = ex.to; b.x = ex.toX; b.d = ex.toD; cam.current = b.x - VIEW_W / 2; say(`→ ${to.name}`, 1500); } }
+        upWas = i.up;
         if (i.shove && !shoveWas && b.z === 0 && b.swing <= 0) hit('punch');
-        if (i.kick && !kickWas && b.swing <= 0) hit('kick'); // 공중이면 점프킥
-        // 줍기/뺏기/놓기 — 손에 있으면 놓고, 없으면 바닥 것 → 주민 것 순
+        if (i.kick && !kickWas && b.swing <= 0) hit('kick');
         if (i.grab && !grabWas && b.z === 0) {
           if (b.stack.length) {
             const it = b.stack.pop()!;
-            const water = SPOTS.find((s) => WATER.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
-            const spotNear = SPOTS.find((s) => (s.kind === 'bench' || s.kind === 'cafe') && dist(b.x, b.d, s.x, s.d) < 90);
-            loose.current.push({ item: it, x: b.x + b.face * 18, d: b.d, from: null, dunked: water?.key });
-            if (water) { void complete(`dunk:${it}:${water.key}`); setToast(`Splash. The ${ITEMS[it]} is in ${water.name}.`); setTimeout(() => setToast(''), 2500); }
+            const water = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
+            const spotNear = cur.spots.find((s) => (s.kind === 'bench' || s.kind === 'cafe' || s.kind === 'table' || s.kind === 'bed') && dist(b.x, b.d, s.x, s.d) < 90);
+            drop(it, b.x + b.face * 18, b.d, null, water?.key);
+            if (water) { void complete(`dunk:${it}:${water.key}`); say(`Splash. The ${ITEMS[it]} is in ${water.name}.`); }
             if (spotNear) void complete(`deliver:${it}:${spotNear.key}`);
           } else {
-            const l = loose.current.filter((x) => !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
-            if (l) { loose.current = loose.current.filter((x) => x !== l); b.stack.push(l.item); if (l.from !== null) { const n = npcs.current.find((p) => p.rt.who === l.from); if (n && n.mode !== 'down') { n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; } if (n) { void complete(`steal:${n.rt.who}`); } } }
+            const l = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+            if (l) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); if (l.from !== null) { const n = npcs.current.find((p) => p.who === l.from); if (n && n.mode !== 'down' && here(n)) { n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; npcEv(n); } if (n) void complete(`steal:${n.who}`); } }
             else {
-              const n = npcs.current.filter((p) => p.item && p.mode !== 'down' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
-              if (n && n.item) { b.stack.push(n.item); n.item = null; n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; void complete(`steal:${n.rt.who}`); }
+              const n = npcs.current.filter((p) => here(p) && p.item && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+              if (n && n.item) { b.stack.push(n.item); n.item = null; n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
             }
             if (b.stack.length >= 3) void complete('collect3');
           }
         }
         jumpWas = i.jump; grabWas = i.grab; shoveWas = i.shove; kickWas = i.kick;
-        if (ws.current?.readyState === 1 && now - sent > 150) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), pose: b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', face: b.face })); }
       }
+      if (!spectator && ws.current?.readyState === 1 && now - sent > 150) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), pose: b.hurt > 0 ? 'hurt' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', face: b.face, m: cur.key })); }
       // ── 주민 ──
-      let chasing = -1;
+      let chasing = -1; const mineOff: Npc[] = [];
       for (const n of npcs.current) {
-        const base = routineAt(n.rt, t);
+        const base = routine(n, t);
         if (n.swing > 0) n.swing -= dt;
-        if (n.mode === 'down') { if (now > n.until) { if (n.angry && !spectator) { n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2000; } else n.mode = 'return'; } n.moving = false; continue; }
+        const owned = n.owner === me?.id && !spectator;
+        if (n.mode !== 'routine' && !owned) { if (n.mode !== 'down' && now > n.until + 8000) { n.mode = 'routine'; n.owner = null; } continue; }
+        if (n.mode === 'down') { if (now > n.until) { if (n.angry && !spectator) { n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); } else { n.mode = 'return'; npcEv(n); } } n.moving = false; mineOff.push(n); continue; }
         if (n.mode === 'chase') {
-          chasing = n.rt.who;
-          if (now > n.until || spectator) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; void complete(`sit:${n.rt.who}`); continue; }
-          // 옆 주민이 합류한다(가끔, 3초) — 떼로 몰려오면 도망갈 맛이 난다
-          for (const m of npcs.current) if (m !== n && m.mode === 'routine' && dist(m.x, m.d, n.x, n.d) < 220 && Math.random() < 0.004) { m.mode = 'chase'; m.until = now + 3000; m.say = pick(content.chase); m.sayUntil = now + 1500; }
-          // 들고 있는 게 있고 거리가 애매하면 던진다(4초에 한 번)
+          chasing = n.who; mineOff.push(n);
+          const speed = CHASE_SPEED * (n.job.key === 'cop' ? 1.25 : n.job.key === 'jogger' ? 1.3 : n.job.key === 'retired' ? 0.6 : 1);
+          if (now > n.until || !here(n)) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); continue; }
+          for (const m of npcs.current) if (m !== n && here(m) && m.mode === 'routine' && dist(m.x, m.d, n.x, n.d) < 220 && Math.random() < 0.004) { m.mode = 'chase'; m.owner = me!.id; m.until = now + 3000; m.say = pick(content.chase); m.sayUntil = now + 1500; npcEv(m, { say: m.say }); }
           const far = dist(n.x, n.d, b.x, b.d);
-          if (n.item && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.25; thrown.current.push({ item: n.item, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.rt.who }); n.item = null; n.say = pick(content.thrown); n.sayUntil = now + 1500; }
+          if (n.item && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.25; thrown.current.push({ item: n.item, map: cur.key, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.who }); n.item = null; n.say = pick(content.thrown); n.sayUntil = now + 1500; }
           const ddx = b.x - n.x, ddd = b.d - n.d; const len = Math.hypot(ddx, ddd * 400) || 1;
-          n.x += (ddx / len) * CHASE_SPEED * dt; n.d = Math.max(0, Math.min(1, n.d + (ddd * 400 / len) * CHASE_SPEED * dt / 400)); n.face = ddx >= 0 ? 1 : -1; n.moving = true;
-          if (dist(n.x, n.d, b.x, b.d) < 26 && b.z === 0 && b.hurt <= 0) { // 잡았다 — 한 대 치고(넘어짐, 물건 다 흘림) 자기 것을 챙긴다
-            n.swing = 0.28; const mine = b.stack.find((it) => it === n.rt.item);
-            knock(n.rt.who, pick(content.caught));
-            const back = loose.current.find((l) => l.item === (mine ?? n.rt.item) && !l.dunked); if (back) { loose.current = loose.current.filter((l) => l !== back); n.item = back.item; }
-            n.mode = 'return';
+          n.x += (ddx / len) * speed * dt; n.d = Math.max(0, Math.min(1, n.d + (ddd * 400 / len) * speed * dt / 400)); n.face = ddx >= 0 ? 1 : -1; n.moving = true;
+          if (far < 26 && b.z === 0 && b.hurt <= 0) {
+            n.swing = 0.28; const mine = b.stack.find((it) => it === n.job.item);
+            knock(residents[n.who].handle, n.job.key === 'cop' ? n.job.line : pick(content.caught), n.job.key === 'cop' ? 10 : 0);
+            const back = [...loose.current.values()].find((l) => l.map === cur.key && l.item === (mine ?? n.job.item) && !l.dunked); if (back) { emit({ k: 'pick', id: back.id }); n.item = back.item; }
+            n.mode = 'return'; npcEv(n);
           }
           continue;
         }
-        if (n.mode === 'return') { // 일과 자리로 돌아간다 — 도착하면 routine
+        if (n.mode === 'fetch' || n.mode === 'repair') {
+          mineOff.push(n);
+          const tgL = n.mode === 'fetch' && n.target ? loose.current.get(n.target) : null;
+          const tgP = n.mode === 'repair' && n.target ? propByKey.get(n.target) : null;
+          const tx = tgL?.x ?? tgP?.p.x, td = tgL?.d ?? tgP?.p.d;
+          const ok = n.mode === 'fetch' ? !!tgL && tgL.map === n.map : !!tgP && tgP.map === n.map && !!broken.current.get(n.target!)?.brokeAt;
+          if (!ok || tx === undefined || td === undefined) { n.mode = 'return'; n.target = null; npcEv(n); continue; }
+          const ddx = tx - n.x, ddd = td - n.d; const len = Math.hypot(ddx, ddd * 400);
+          if (len < 18) {
+            if (n.mode === 'fetch' && tgL) { emit({ k: 'pick', id: tgL.id }); if (!n.item) n.item = tgL.item; n.say = pick(['there.', 'honestly', 'who does this', 'picked it up. again.', 'this is mine now']); }
+            else if (tgP) { if (now - n.until > 0) { emit({ k: 'fix', key: n.target! }); n.say = pick(['fixed. again.', 'there.', 'this is the third time', 'who keeps doing this', 'good as new. sort of.']); } else { n.moving = false; n.act = 'sweep'; continue; } } // 수리엔 몇 초가 걸린다(until 이 그 시각)
+            n.target = null; n.sayUntil = now + 2000; n.mode = 'return'; npcEv(n, { say: n.say });
+          } else { n.x += (ddx / len) * RESIDENT_SPEED * dt; n.d += (ddd * 400 / len) * RESIDENT_SPEED * dt / 400; n.face = ddx >= 0 ? 1 : -1; n.moving = true; if (n.mode === 'repair') n.until = now + 4000; }
+          continue;
+        }
+        if (n.mode === 'return') {
+          mineOff.push(n);
           const ddx = base.x - n.x, ddd = base.d - n.d; const len = Math.hypot(ddx, ddd * 400);
-          if (len < 12) { n.mode = 'routine'; } else { n.x += (ddx / len) * RESIDENT_SPEED * dt; n.d += (ddd * 400 / len) * RESIDENT_SPEED * dt / 400; n.face = ddx >= 0 ? 1 : -1; n.moving = true; }
+          if (len < 12 || base.map !== n.map) { n.mode = 'routine'; n.owner = null; npcEv(n); } else { n.x += (ddx / len) * RESIDENT_SPEED * dt; n.d += (ddd * 400 / len) * RESIDENT_SPEED * dt / 400; n.face = ddx >= 0 ? 1 : -1; n.moving = true; }
           continue;
         }
-        if (n.mode === 'fetch') { // 어질러진 물건을 주우러 간다 — 도착하면 줍고, 자기 게 아니면 주인에게 돌려주러 간다
-          const tg = n.target;
-          if (!tg || !loose.current.includes(tg)) { n.mode = 'return'; n.target = null; continue; }
-          const ddx = tg.x - n.x, ddd = tg.d - n.d; const len = Math.hypot(ddx, ddd * 400);
-          if (len < 16) {
-            loose.current = loose.current.filter((l) => l !== tg); n.target = null;
-            if (tg.from === n.rt.who || tg.from === null || !n.item) { n.item = tg.item; n.mode = 'return'; n.say = pick(['there.', 'honestly', 'who does this', 'picked it up. again.', 'this is mine now']); n.sayUntil = now + 2000; }
-            else { const owner = npcs.current.find((m) => m.rt.who === tg.from); if (owner && !owner.item) owner.item = tg.item; n.mode = 'return'; }
-          } else { n.x += (ddx / len) * RESIDENT_SPEED * dt; n.d += (ddd * 400 / len) * RESIDENT_SPEED * dt / 400; n.face = ddx >= 0 ? 1 : -1; n.moving = true; }
-          continue;
-        }
-        n.x = base.x; n.d = base.d; n.face = base.face; n.act = base.act; n.moving = base.moving;
-        // 어질러진 것에 반응: 자기 물건은 어디 있든 가지러 간다, 남의 것도 가까우면(성깔 있는 주민은 더 멀리서) 주워서 정리한다
-        if (b.hurt <= 0 || spectator) {
-          const mine = loose.current.find((l) => l.from === n.rt.who && !l.dunked);
-          const near = loose.current.find((l) => !l.dunked && dist(n.x, n.d, l.x, l.d) < (n.angry ? 420 : 200));
+        n.map = base.map; n.x = base.x; n.d = base.d; n.face = base.face; n.act = base.away ? 'away' : base.act; n.moving = base.moving;
+        if (!spectator && here(n) && b.hurt <= 0 && !base.away) {
+          const ls = [...loose.current.values()].filter((l) => l.map === cur.key && !l.dunked);
+          const mine = ls.find((l) => l.from === n.who);
+          const near = ls.find((l) => dist(n.x, n.d, l.x, l.d) < (n.angry ? 420 : 200));
           const tg = (!n.item && mine) || (Math.random() < 0.01 ? near : null);
-          if (tg && !npcs.current.some((m) => m.target === tg)) { n.mode = 'fetch'; n.target = tg; if (tg === near && tg !== mine) { n.say = pick(['ugh', 'someone left this', 'not mine but ok', 'i will just', 'the state of this square']); n.sayUntil = now + 1800; } }
+          if (tg && !npcs.current.some((m) => m.target === tg.id)) { n.mode = 'fetch'; n.owner = me!.id; n.target = tg.id; if (tg !== mine) { n.say = pick(['ugh', 'someone left this', 'not mine but ok', 'the state of this square']); n.sayUntil = now + 1800; } npcEv(n, { say: n.say }); continue; }
+          // 수리공은 부서진 소품을 고치러 간다(지도 안, 가까운 것부터)
+          if (REPAIRERS.includes(n.job.key) && Math.random() < 0.02) {
+            const cand = props.filter((p) => broken.current.get(p.key)?.brokeAt && !npcs.current.some((m) => m.target === p.key)).sort((p, q) => dist(n.x, n.d, p.x, p.d) - dist(n.x, n.d, q.x, q.d))[0];
+            if (cand) { n.mode = 'repair'; n.owner = me!.id; n.target = cand.key; n.until = now + 4000; n.say = pick(['not again', 'i will fix it', 'sigh', 'who did this', 'on it']); n.sayUntil = now + 1800; npcEv(n, { say: n.say }); }
+          }
         }
       }
-      // 던져진 물건 — 포물선, 맞으면 넘어짐, 땅에 떨어지면 바닥에
+      if (!spectator && now - npcSent > 200 && ws.current?.readyState === 1) { npcSent = now; for (const n of mineOff) ws.current.send(JSON.stringify({ t: 'ev', ev: { k: 'npcpos', who: n.who, x: Math.round(n.x), d: Math.round(n.d * 100) / 100, face: n.face, moving: n.moving, m: n.map } })); }
       for (const th of [...thrown.current]) {
         th.x += th.vx * dt; th.vz -= 700 * dt; th.z += th.vz * dt;
-        if (!spectator && b.hurt <= 0 && Math.abs(th.x - b.x) < 22 && Math.abs(th.d - b.d) < 0.12 && th.z < 50 + b.z && th.z > b.z - 10) { knock(th.from, pick(content.thrown)); thrown.current = thrown.current.filter((x) => x !== th); loose.current.push({ item: th.item, x: th.x, d: th.d, from: th.from }); continue; }
-        if (th.z <= 0) { thrown.current = thrown.current.filter((x) => x !== th); loose.current.push({ item: th.item, x: th.x, d: th.d, from: th.from }); }
+        if (!spectator && b.hurt <= 0 && th.map === cur.key && Math.abs(th.x - b.x) < 22 && Math.abs(th.d - b.d) < 0.12 && th.z < 50 + b.z && th.z > b.z - 10) { knock(residents[th.from].handle, pick(content.thrown)); thrown.current = thrown.current.filter((x) => x !== th); drop(th.item, th.x, th.d, th.from); continue; }
+        if (th.z <= 0) { thrown.current = thrown.current.filter((x) => x !== th); drop(th.item, th.x, th.d, th.from); }
       }
-      // 부서진 소품은 2분 뒤 돌아온다
-      for (const [k, v] of broken.current) if (v.brokeAt && now - v.brokeAt > 120000) broken.current.delete(k);
-      // 쫓기는 시간 재기
+      for (const [k, v] of broken.current) if (v.brokeAt && now - v.brokeAt > 300000) broken.current.delete(k); // 아무도 안 고치면 5분 뒤 저절로
       if (chasing >= 0) { if (st.chasedBy !== chasing) { st.chasedBy = chasing; st.chasedSince = now; } else if (now - st.chasedSince > 10000) void complete('chased'); } else { st.chasedBy = -1; st.chasedSince = 0; }
-      // 카메라·다른 사람
+      // 카메라
       let target = b.x;
       if (spectator) {
         const all = [...others.current.values()];
         if (!all.some((o) => o.uid === tour.current.uid) || now > tour.current.until) { const pool = all.filter((o) => o.status === 'active').length ? all.filter((o) => o.status === 'active') : all; const p = pool[Math.floor(Math.random() * pool.length)]; tour.current = { uid: p?.uid ?? 0, until: now + 12000 }; }
-        const f = all.find((o) => o.uid === tour.current.uid); target = f ? f.x : 1600;
+        const f = all.find((o) => o.uid === tour.current.uid); if (f) { target = f.x; if (f.map !== mapKey.current && maps.current.some((m) => m.key === f.map)) { mapKey.current = f.map; cam.current = f.x - VIEW_W / 2; } } else target = 1600;
       }
-      cam.current += (Math.max(0, Math.min(SQUARE_W - VIEW_W, target - VIEW_W / 2)) - cam.current) * Math.min(1, dt * 6);
+      cam.current += (Math.max(0, Math.min(cur.w - VIEW_W, target - VIEW_W / 2)) - cam.current) * Math.min(1, dt * 6);
       for (const o of others.current.values()) { o.x += (o.tx - o.x) * Math.min(1, dt * 10); o.d += (o.td - o.d) * Math.min(1, dt * 10); }
 
       // ── 그리기 ──
       const W = c.width, H = c.height, s = W / VIEW_W; const sx = (wx: number) => (wx - cam.current) * s;
-      ctx.fillStyle = '#eef0f2'; ctx.fillRect(0, 0, W, H);
-      // 뒤 건물 실루엣(시차)
-      ctx.fillStyle = '#dcd8db'; for (let k = 0; k < 40; k++) { const bx = ((k * 173 - cam.current * 0.4) % (SQUARE_W + 400) + SQUARE_W + 400) % (SQUARE_W + 400) - 200; const bh = 40 + (k * 37) % 60; ctx.fillRect(bx * s, (TOP - bh) * s, 90 * s, bh * s); }
-      // 광장 바닥: 뒤 어둡고 앞 밝게 + 돌 무늬
-      const g = ctx.createLinearGradient(0, TOP * s, 0, (GROUND + 40) * s); g.addColorStop(0, '#cfc7c2'); g.addColorStop(1, '#e6e0da'); ctx.fillStyle = g; ctx.fillRect(0, TOP * s, W, (GROUND + 40 - TOP) * s);
-      ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 1; for (let k = 0; k < 6; k++) { const yy = dy(k / 5) * s; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); } for (let px = -((cam.current * s) % (80 * s)); px < W; px += 80 * s) { ctx.beginPath(); ctx.moveTo(px, TOP * s); ctx.lineTo(px, (GROUND + 40) * s); ctx.stroke(); }
+      ctx.fillStyle = cur.indoor ? '#efe9e2' : '#eef0f2'; ctx.fillRect(0, 0, W, H);
+      if (cur.indoor) { ctx.fillStyle = '#e3d9cd'; ctx.fillRect(0, 0, W, TOP * s); ctx.strokeStyle = 'rgba(0,0,0,0.06)'; for (let px = 0; px < W; px += 60 * s) { ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, TOP * s); ctx.stroke(); } }
+      else { ctx.fillStyle = '#dcd8db'; for (let k = 0; k < 40; k++) { const bx = ((k * 173 - cam.current * 0.4) % (cur.w + 400) + cur.w + 400) % (cur.w + 400) - 200; const bh = 40 + (k * 37) % 60; ctx.fillRect(bx * s, (TOP - bh) * s, 90 * s, bh * s); } }
+      const g = ctx.createLinearGradient(0, TOP * s, 0, (GROUND + 40) * s); g.addColorStop(0, cur.floor[0]); g.addColorStop(1, cur.floor[1]); ctx.fillStyle = g; ctx.fillRect(0, TOP * s, W, (GROUND + 40 - TOP) * s);
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 1; for (let k = 0; k < 6; k++) { const yy = dy(k / 5) * s; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
+      for (const e of cur.exits) { const ex = sx(e.x); if (ex < -80 || ex > W + 80) continue; ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`↑ ${e.label}`, ex, (dy(e.d) - 64) * s); }
       type Draw = { d: number; f: () => void }; const layer: Draw[] = [];
-      for (const p of props) { const fx = sx(p.x); if (fx < -200 || fx > W + 200) continue; const bs = broken.current.get(p.key); layer.push({ d: p.d, f: () => prop(ctx, p.kind, fx, dy(p.d) * s, ds(p.d) * s, p.seed, t, loose.current.filter((l) => l.dunked === p.key), bs ? (bs.brokeAt ? 'broken' : bs.hp < 3 ? 'cracked' : 'ok') : 'ok') }); }
-      for (const th of thrown.current) { const fx = sx(th.x); layer.push({ d: th.d, f: () => item(ctx, th.item, fx, (dy(th.d) - th.z) * s - 6 * s, ds(th.d) * s) }); }
-      for (const l of loose.current) { if (l.dunked) continue; const fx = sx(l.x); if (fx < -50 || fx > W + 50) continue; layer.push({ d: l.d - 0.001, f: () => item(ctx, l.item, fx, dy(l.d) * s - 6 * s, ds(l.d) * s) }); }
+      for (const p of props) { const fx = sx(p.x); if (fx < -200 || fx > W + 200) continue; const bs = broken.current.get(p.key); layer.push({ d: p.d, f: () => prop(ctx, p.kind, fx, dy(p.d) * s, ds(p.d) * s, p.seed, t, [...loose.current.values()].filter((l) => l.dunked === p.key), bs ? (bs.brokeAt ? 'broken' : bs.hp < 3 ? 'cracked' : 'ok') : 'ok') }); }
+      for (const l of loose.current.values()) { if (l.dunked || l.map !== cur.key) continue; const fx = sx(l.x); if (fx < -50 || fx > W + 50) continue; layer.push({ d: l.d - 0.001, f: () => item(ctx, l.item, fx, dy(l.d) * s - 6 * s, ds(l.d) * s) }); }
+      for (const th of thrown.current) { if (th.map !== cur.key) continue; const fx = sx(th.x); layer.push({ d: th.d, f: () => item(ctx, th.item, fx, (dy(th.d) - th.z) * s - 6 * s, ds(th.d) * s) }); }
       for (const n of npcs.current) {
+        if (!here(n) || n.act === 'away') continue;
         const fx = sx(n.x); if (fx < -100 || fx > W + 100) continue;
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
-          const pose = n.mode === 'down' ? 'hurt' : n.moving ? 'run' : n.act === 'sit' || n.act === 'eat' ? 'sit' : 'stand';
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.swing > 0 ? 'punch' : n.moving ? 'run' : n.act === 'sit' || n.act === 'eat' ? 'sit' : 'stand';
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
-          else if (n.swing > 0) figure(ctx, fx, fy, fs, 'punch', n.face, '#3a2f36', t, false);
-          else figure(ctx, fx, fy, fs, pose, n.face, '#3a2f36', t + n.rt.seed % 5, n.act === 'read' || n.act === 'phone');
+          else figure(ctx, fx, fy, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', t + n.seed % 5, n.act === 'read' || n.act === 'phone');
           if (n.item && n.mode !== 'down') item(ctx, n.item, fx + n.face * 14 * fs, fy - (n.item === 'hat' ? 50 : 26) * fs, fs * 0.8);
-          if (n.act !== 'stand' && n.mode === 'routine' && !n.moving) actIcon(ctx, n.act, fx + 18 * fs, fy - 46 * fs, fs);
-          name(ctx, fx, fy - 58 * fs, s, `${residents[n.rt.who].handle} ᴬᴵ`);
+          if (n.act !== 'stand' && (n.mode === 'routine' || n.mode === 'repair') && !n.moving) actIcon(ctx, n.mode === 'repair' ? 'repair' : n.act, fx + 18 * fs, fy - 46 * fs, fs);
+          name(ctx, fx, fy - 58 * fs, s, `${residents[n.who].handle} ᴬᴵ · ${n.job.name}`);
           if (now < n.sayUntil) bubble(ctx, fx, fy - 70 * fs, s, n.say);
         } });
       }
       for (const o of others.current.values()) {
-        const fx = sx(o.x); if (fx < -100 || fx > W + 100) continue;
-        layer.push({ d: o.d, f: () => { const fy = dy(o.d) * s, fs = ds(o.d) * s; figure(ctx, fx, fy, fs, (o.status === 'rest' ? 'sit' : o.pose === 'run' ? 'run' : o.pose === 'jump' ? 'jump' : 'stand'), 1, figureColor(o.uid), t, false); name(ctx, fx, fy - 58 * fs, s, o.handle); } });
+        if (o.map !== cur.key) continue; const fx = sx(o.x); if (fx < -100 || fx > W + 100) continue;
+        layer.push({ d: o.d, f: () => {
+          const fy = dy(o.d) * s, fs = ds(o.d) * s; const col = figureColor(o.uid);
+          if (o.status === 'rest') figure(ctx, fx, fy, fs, 'sit', o.face, col, t, false);
+          else if (o.pose === 'hurt') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-o.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, col, t, false); ctx.restore(); }
+          else figure(ctx, fx, fy, fs, (['run', 'jump', 'punch', 'kick'].includes(o.pose) ? o.pose : 'stand') as FigPose, o.face, col, t, false);
+          name(ctx, fx, fy - 58 * fs, s, o.handle);
+        } });
       }
       if (!spectator) layer.push({ d: b.d, f: () => {
         const fx = sx(b.x), fy = (dy(b.d) - b.z) * s, fs = ds(b.d) * s;
         if (b.z > 0) { ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(fx, dy(b.d) * s, 12 * fs, 4 * fs, 0, 0, 6.29); ctx.fill(); }
         if (b.hurt > 0) { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-b.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, figureColor(me!.id), t, false); ctx.restore(); }
         else figure(ctx, fx, fy, fs, b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', b.face, figureColor(me!.id), t, false);
-        b.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8)); // 머리 위로 쌓인다
+        b.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
         name(ctx, fx, fy - (58 + b.stack.length * 12) * fs, s, me!.handle);
       } });
       layer.sort((a, bb) => a.d - bb.d).forEach((l) => l.f());
-      if (now - hudAt > 250) { hudAt = now; setHud({ online: [...others.current.values()].filter((o) => o.status === 'active').length + (spectator ? 0 : 1), carry: b.stack.map((x) => ITEMS[x]).join(', ') }); }
+      if (now - hudAt > 250) { hudAt = now; setHud({ online: [...others.current.values()].filter((o) => o.status === 'active').length + (spectator ? 0 : 1), carry: b.stack.map((x) => ITEMS[x]).join(', '), map: cur.name, exit: exitNear }); }
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -304,13 +393,13 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
     fit(); const ro = new ResizeObserver(fit); ro.observe(w); return () => ro.disconnect();
   }, []);
 
-  const say = () => { const b = line.trim(); if (!b || ws.current?.readyState !== 1) return; ws.current.send(JSON.stringify({ t: 'chat', body: b })); setLine(''); };
+  const send = () => { const b = line.trim(); if (!b || ws.current?.readyState !== 1) return; ws.current.send(JSON.stringify({ t: 'chat', body: b })); setLine(''); };
   const hold = (k: keyof typeof input.current) => ({ onPointerDown: () => { input.current[k] = true; }, onPointerUp: () => { input.current[k] = false; }, onPointerLeave: () => { input.current[k] = false; } });
 
   return (
     <div ref={wrap} className="mx-auto w-full max-w-[960px]">
       <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
-        <span>{spectator ? 'Watching the square' : hud.carry ? `carrying: ${hud.carry}` : 'The square'}</span>
+        <span>{hud.map}{hud.carry ? <span className="font-normal normal-case tracking-normal"> — carrying {hud.carry}</span> : ''}{hud.exit ? <span className="font-normal normal-case tracking-normal"> — ↑ {hud.exit}</span> : ''}</span>
         <span>{hud.online} here · {doneList.length}/{tasks.length} done today</span>
       </div>
       <div className="relative mt-2 overflow-hidden rounded-xl border border-hairline bg-[#eef0f2]">
@@ -329,56 +418,55 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch · Z kick (breaks things) · C grab / take / drop · drop things in the fountain or the pond · they chase, throw and hit back</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch · Z kick (jump kick in the air, breaks things) · C grab / take / drop · ↑ at a door or road end to go through · they chase, throw, hit back and fix things; the police fine you; other people can hit you too</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
-        {showTasks && (
-          <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">
-            {tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}
-          </ul>
-        )}
+        {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}</ul>}
         {doneList.length >= tasks.length && tasks.length > 0 && <p className="mt-2 text-[12.5px] font-semibold text-accent-deep">All done. Badge: {BADGE_BY_KEY.get('g:day')?.name}. Come back tomorrow; they will have forgotten.</p>}
       </div>
       <div className="mt-3 rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[12.5px]">
         <div className="max-h-24 overflow-y-auto">{chats.length === 0 ? <span className="text-ink-soft">…</span> : chats.map((c, i) => <div key={i}><b>{c.who}</b> {c.body}</div>)}</div>
-        {!spectator && <div className="mt-1 flex gap-1.5"><input value={line} onChange={(e) => setLine(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') say(); }} maxLength={140} placeholder="say something" className="min-w-0 flex-1 rounded border border-hairline bg-surface px-2 py-1 outline-none focus:border-ink" /><button onClick={say} className="rounded border border-hairline px-2 font-bold"><Upload size={12} /></button></div>}
+        {!spectator && <div className="mt-1 flex gap-1.5"><input value={line} onChange={(e) => setLine(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(); }} maxLength={140} placeholder="say something" className="min-w-0 flex-1 rounded border border-hairline bg-surface px-2 py-1 outline-none focus:border-ink" /><button onClick={send} className="rounded border border-hairline px-2 font-bold"><Upload size={12} /></button></div>}
       </div>
     </div>
   );
 }
 
-const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
-function PROPS() {
-  const r = rng(hash('square:props'));
-  const out = SPOTS.map((s) => ({ key: s.key, name: s.name, kind: s.kind as string, x: s.x, d: s.d, seed: Math.floor(r() * 1e6) }));
-  for (let k = 0; k < 10; k++) out.push({ key: `tree${k}`, name: 'a tree', kind: 'tree', x: 80 + r() * (SQUARE_W - 160), d: r() * 0.12, seed: Math.floor(r() * 1e6) });
-  for (let k = 0; k < 6; k++) out.push({ key: `lamp${k}`, name: 'a lamp', kind: 'lamp', x: 200 + k * 520, d: 0.95, seed: k });
-  return out;
-}
-const BREAKABLE = ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe'];
-function prop(ctx: CanvasRenderingContext2D, kind: string, x: number, y: number, s: number, seed: number, t: number, dunked: Loose[], state: 'ok' | 'cracked' | 'broken' = 'ok') {
+function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: number, s: number, seed: number, t: number, dunked: Loose[], state: 'ok' | 'cracked' | 'broken' = 'ok') {
   const r = rng(seed); ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1.5 * s; ctx.strokeStyle = '#3a2f36'; ctx.lineJoin = 'round';
-  if (state === 'broken') { // 부서짐: 기울고 조각이 흩어진다
-    ctx.rotate(0.35); ctx.globalAlpha = 0.75;
-    ctx.fillStyle = '#8a8087'; for (let k = 0; k < 5; k++) ctx.fillRect((-40 + k * 18) * s, (-4 + (k % 2) * 3) * s, 8 * s, 4 * s);
-  }
-  if (state === 'cracked') { ctx.strokeStyle = '#1b0c15'; ctx.beginPath(); ctx.moveTo(-6 * s, -30 * s); ctx.lineTo(2 * s, -18 * s); ctx.lineTo(-4 * s, -8 * s); ctx.stroke(); ctx.strokeStyle = '#3a2f36'; }
   const F = (c: string) => { ctx.fillStyle = c; ctx.fill(); ctx.stroke(); };
+  if (state === 'broken') { ctx.rotate(0.35); ctx.globalAlpha = 0.75; ctx.fillStyle = '#8a8087'; for (let k = 0; k < 5; k++) ctx.fillRect((-40 + k * 18) * s, (-4 + (k % 2) * 3) * s, 8 * s, 4 * s); }
+  if (state === 'cracked') { ctx.strokeStyle = '#1b0c15'; ctx.beginPath(); ctx.moveTo(-6 * s, -30 * s); ctx.lineTo(2 * s, -18 * s); ctx.lineTo(-4 * s, -8 * s); ctx.stroke(); ctx.strokeStyle = '#3a2f36'; }
+  const box = (w: number, h: number, c: string) => { ctx.beginPath(); ctx.rect(-w / 2 * s, -h * s, w * s, h * s); F(c); };
   switch (kind) {
-    case 'house': { const w = 120 * s, h = 90 * s; ctx.beginPath(); ctx.rect(-w / 2, -h, w, h); F(['#c9d6e6', '#e6d3a5', '#d9c2b2'][seed % 3]); ctx.beginPath(); ctx.moveTo(-w / 2 - 8 * s, -h); ctx.lineTo(0, -h - 40 * s); ctx.lineTo(w / 2 + 8 * s, -h); ctx.closePath(); F('#8b5a3a'); ctx.beginPath(); ctx.rect(-12 * s, -40 * s, 24 * s, 40 * s); F('#5b4f56'); for (const wx of [-40, 28]) { ctx.beginPath(); ctx.rect(wx * s, -70 * s, 18 * s, 18 * s); F('#f2e7a8'); } break; }
+    case 'house': { box(120, 90, ['#c9d6e6', '#e6d3a5', '#d9c2b2'][seed % 3]); ctx.beginPath(); ctx.moveTo(-68 * s, -90 * s); ctx.lineTo(0, -130 * s); ctx.lineTo(68 * s, -90 * s); ctx.closePath(); F('#8b5a3a'); ctx.beginPath(); ctx.rect(-12 * s, -40 * s, 24 * s, 40 * s); F('#5b4f56'); for (const wx of [-40, 28]) { ctx.beginPath(); ctx.rect(wx * s, -70 * s, 18 * s, 18 * s); F('#f2e7a8'); } break; }
+    case 'bakery': { box(140, 90, '#e6d3a5'); box(150, 12, '#c96a4a'); ctx.fillStyle = '#1b0c15'; ctx.font = `bold ${10 * s}px ui-monospace`; ctx.textAlign = 'center'; ctx.fillText('BAKERY', 0, -62 * s); ctx.beginPath(); ctx.rect(-12 * s, -40 * s, 24 * s, 40 * s); F('#5b4f56'); break; }
+    case 'post': { box(140, 90, '#c9c2bd'); ctx.fillStyle = '#1b0c15'; ctx.font = `bold ${10 * s}px ui-monospace`; ctx.textAlign = 'center'; ctx.fillText('POST', 0, -62 * s); ctx.beginPath(); ctx.rect(-12 * s, -40 * s, 24 * s, 40 * s); F('#5b4f56'); ctx.beginPath(); ctx.rect(40 * s, -30 * s, 14 * s, 30 * s); F('#c94a4a'); break; }
+    case 'station': { box(160, 100, '#c9d0d9'); ctx.fillStyle = '#1b0c15'; ctx.font = `bold ${10 * s}px ui-monospace`; ctx.textAlign = 'center'; ctx.fillText('POLICE', 0, -70 * s); ctx.beginPath(); ctx.rect(-14 * s, -44 * s, 28 * s, 44 * s); F('#5b4f56'); ctx.beginPath(); ctx.arc(0, -86 * s, 6 * s, 0, 6.29); F(Math.sin(t * 6) > 0 ? '#3a6ad0' : '#c94a4a'); break; }
+    case 'church': { box(120, 110, '#e6e0da'); ctx.beginPath(); ctx.moveTo(-68 * s, -110 * s); ctx.lineTo(0, -170 * s); ctx.lineTo(68 * s, -110 * s); ctx.closePath(); F('#8a8087'); ctx.fillStyle = '#3a2f36'; ctx.fillRect(-2 * s, -195 * s, 4 * s, 26 * s); ctx.fillRect(-8 * s, -188 * s, 16 * s, 3 * s); ctx.beginPath(); ctx.rect(-12 * s, -44 * s, 24 * s, 44 * s); F('#5b4f56'); break; }
+    case 'gate': { ctx.fillStyle = '#5b4f56'; ctx.fillRect(-40 * s, -80 * s, 8 * s, 80 * s); ctx.fillRect(32 * s, -80 * s, 8 * s, 80 * s); ctx.fillRect(-40 * s, -84 * s, 80 * s, 6 * s); break; }
+    case 'swing': { ctx.strokeStyle = '#8b6b4a'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(-40 * s, 0); ctx.lineTo(-20 * s, -70 * s); ctx.lineTo(20 * s, -70 * s); ctx.lineTo(40 * s, 0); ctx.stroke(); ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.5 * s; const sw = Math.sin(t * 1.5) * 10 * s; ctx.beginPath(); ctx.moveTo(-8 * s, -70 * s); ctx.lineTo(-8 * s + sw, -20 * s); ctx.moveTo(8 * s, -70 * s); ctx.lineTo(8 * s + sw, -20 * s); ctx.stroke(); ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-12 * s + sw, -22 * s, 24 * s, 4 * s); break; }
+    case 'bin': { box(22, 30, '#6b6166'); ctx.beginPath(); ctx.rect(-13 * s, -34 * s, 26 * s, 5 * s); F('#5b4f56'); break; }
     case 'fountain': { ctx.beginPath(); ctx.ellipse(0, 0, 70 * s, 22 * s, 0, 0, 6.29); F('#b9b1b6'); ctx.beginPath(); ctx.ellipse(0, -2 * s, 58 * s, 16 * s, 0, 0, 6.29); F('#c9dde6'); ctx.fillStyle = '#b9b1b6'; ctx.fillRect(-5 * s, -44 * s, 10 * s, 44 * s); ctx.beginPath(); ctx.ellipse(0, -44 * s, 18 * s, 6 * s, 0, 0, 6.29); F('#b9b1b6'); ctx.strokeStyle = '#8fb8cc'; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.moveTo(0, -46 * s); ctx.quadraticCurveTo((k - 2) * 14 * s, (-70 + Math.sin(t * 3 + k) * 4) * s, (k - 2) * 20 * s, -6 * s); ctx.stroke(); } dunked.forEach((l, k) => item(ctx, l.item, (k - 1) * 22 * s, -4 * s, s * 0.7)); break; }
     case 'pond': { ctx.beginPath(); ctx.ellipse(0, 0, 90 * s, 26 * s, 0, 0, 6.29); F('#c9dde6'); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(-20 * s, -4 * s, 30 * s, 6 * s, 0, 0, 6.29); ctx.stroke(); dunked.forEach((l, k) => item(ctx, l.item, (k - 1) * 24 * s, -2 * s, s * 0.7)); break; }
     case 'bench': { ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-26 * s, -16 * s, 52 * s, 5 * s); ctx.fillRect(-26 * s, -28 * s, 52 * s, 4 * s); ctx.fillRect(-22 * s, -11 * s, 4 * s, 11 * s); ctx.fillRect(18 * s, -11 * s, 4 * s, 11 * s); break; }
-    case 'cafe': { ctx.beginPath(); ctx.rect(-70 * s, -60 * s, 140 * s, 8 * s); F('#c96a4a'); ctx.fillStyle = '#5b4f56'; ctx.fillRect(-66 * s, -52 * s, 3 * s, 52 * s); ctx.fillRect(63 * s, -52 * s, 3 * s, 52 * s); for (const tx of [-30, 30]) { ctx.beginPath(); ctx.ellipse(tx * s, -18 * s, 16 * s, 6 * s, 0, 0, 6.29); F('#ffffff'); ctx.fillStyle = '#5b4f56'; ctx.fillRect((tx - 1) * s, -18 * s, 2 * s, 18 * s); } break; }
-    case 'stall': { ctx.beginPath(); ctx.rect(-50 * s, -34 * s, 100 * s, 34 * s); F('#c9b48a'); ctx.beginPath(); ctx.rect(-56 * s, -62 * s, 112 * s, 10 * s); F('#c96a4a'); ctx.fillStyle = '#5b4f56'; ctx.fillRect(-52 * s, -52 * s, 3 * s, 18 * s); ctx.fillRect(49 * s, -52 * s, 3 * s, 18 * s); for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.arc((-36 + k * 14) * s, -38 * s, 5 * s, 0, 6.29); F(['#e0602a', '#7cc47c', '#f2e7a8'][k % 3]); } break; }
-    case 'garden': { ctx.beginPath(); ctx.rect(-60 * s, -14 * s, 120 * s, 14 * s); F('#8b6b4a'); for (let k = 0; k < 7; k++) { ctx.strokeStyle = '#6b8f5a'; ctx.beginPath(); ctx.moveTo((-50 + k * 16) * s, -14 * s); ctx.lineTo((-50 + k * 16) * s, -32 * s); ctx.stroke(); ctx.beginPath(); ctx.arc((-50 + k * 16) * s, -34 * s, 4 * s, 0, 6.29); F(['#ff2d55', '#ffcc00', '#af52de'][k % 3]); ctx.strokeStyle = '#3a2f36'; } break; }
-    case 'booth': { ctx.beginPath(); ctx.rect(-16 * s, -70 * s, 32 * s, 70 * s); F('#c94a4a'); ctx.beginPath(); ctx.rect(-10 * s, -60 * s, 20 * s, 30 * s); F('#dfe9ee'); break; }
+    case 'cafe': { box(140, 8, '#c96a4a'); ctx.translate(0, -52 * s); ctx.fillStyle = '#5b4f56'; ctx.fillRect(-66 * s, 0, 3 * s, 52 * s); ctx.fillRect(63 * s, 0, 3 * s, 52 * s); for (const tx of [-30, 30]) { ctx.beginPath(); ctx.ellipse(tx * s, 34 * s, 16 * s, 6 * s, 0, 0, 6.29); F('#ffffff'); ctx.fillStyle = '#5b4f56'; ctx.fillRect((tx - 1) * s, 34 * s, 2 * s, 18 * s); } break; }
+    case 'stall': { box(100, 34, '#c9b48a'); ctx.beginPath(); ctx.rect(-56 * s, -62 * s, 112 * s, 10 * s); F(['#c96a4a', '#3a6ad0', '#7cc47c'][seed % 3]); ctx.fillStyle = '#5b4f56'; ctx.fillRect(-52 * s, -52 * s, 3 * s, 18 * s); ctx.fillRect(49 * s, -52 * s, 3 * s, 18 * s); for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.arc((-36 + k * 14) * s, -38 * s, 5 * s, 0, 6.29); F(['#e0602a', '#7cc47c', '#f2e7a8'][(k + seed) % 3]); } break; }
+    case 'garden': { box(120, 14, '#8b6b4a'); for (let k = 0; k < 7; k++) { ctx.strokeStyle = '#6b8f5a'; ctx.beginPath(); ctx.moveTo((-50 + k * 16) * s, -14 * s); ctx.lineTo((-50 + k * 16) * s, -32 * s); ctx.stroke(); ctx.beginPath(); ctx.arc((-50 + k * 16) * s, -34 * s, 4 * s, 0, 6.29); F(['#ff2d55', '#ffcc00', '#af52de'][k % 3]); ctx.strokeStyle = '#3a2f36'; } break; }
+    case 'booth': { box(32, 70, '#c94a4a'); ctx.beginPath(); ctx.rect(-10 * s, -60 * s, 20 * s, 30 * s); F('#dfe9ee'); break; }
     case 'tree': { const h = (70 + r() * 30) * s; ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-4 * s, -h * 0.5, 8 * s, h * 0.5); ctx.beginPath(); ctx.ellipse(0, -h * 0.68, (30 + r() * 12) * s, h * 0.4, 0, 0, 6.29); F(`hsl(${95 + r() * 30} 35% ${38 + r() * 12}%)`); break; }
     case 'lamp': { ctx.fillStyle = '#3a2f36'; ctx.fillRect(-1.5 * s, -60 * s, 3 * s, 60 * s); ctx.beginPath(); ctx.rect(-6 * s, -70 * s, 12 * s, 12 * s); F('#f2e7a8'); break; }
+    case 'bed': { box(90, 22, '#dfe9ee'); ctx.beginPath(); ctx.rect(-45 * s, -46 * s, 90 * s, 24 * s); F('#c9a0b8'); ctx.beginPath(); ctx.rect(-40 * s, -42 * s, 26 * s, 14 * s); F('#ffffff'); break; }
+    case 'table': { ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-40 * s, -30 * s, 80 * s, 5 * s); ctx.fillRect(-36 * s, -25 * s, 4 * s, 25 * s); ctx.fillRect(32 * s, -25 * s, 4 * s, 25 * s); ctx.beginPath(); ctx.ellipse(0, -32 * s, 10 * s, 4 * s, 0, 0, 6.29); F('#ffffff'); break; }
+    case 'tv': { box(60, 40, '#2b2b2b'); ctx.fillStyle = Math.sin(t * 5) > 0 ? '#8fb8cc' : '#6a9aaa'; ctx.fillRect(-26 * s, -36 * s, 52 * s, 30 * s); ctx.fillStyle = '#5b4f56'; ctx.fillRect(-30 * s, -4 * s, 60 * s, 4 * s); break; }
+    case 'fridge': { box(40, 80, '#eef0f2'); ctx.beginPath(); ctx.moveTo(-20 * s, -50 * s); ctx.lineTo(20 * s, -50 * s); ctx.stroke(); ctx.fillStyle = '#5b4f56'; ctx.fillRect(12 * s, -70 * s, 3 * s, 12 * s); ctx.fillRect(12 * s, -40 * s, 3 * s, 16 * s); break; }
+    case 'plant': { ctx.beginPath(); ctx.moveTo(-12 * s, 0); ctx.lineTo(12 * s, 0); ctx.lineTo(9 * s, -18 * s); ctx.lineTo(-9 * s, -18 * s); ctx.closePath(); F('#c96a4a'); ctx.strokeStyle = '#6b8f5a'; ctx.lineWidth = 2 * s; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.moveTo(0, -18 * s); ctx.quadraticCurveTo((k - 2) * 8 * s, -40 * s, (k - 2) * 12 * s, -46 * s); ctx.stroke(); } break; }
+    case 'shelf': { box(50, 90, '#c9b48a'); for (let k = 0; k < 3; k++) { ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-25 * s, (-30 - k * 28) * s, 50 * s, 3 * s); for (let j = 0; j < 5; j++) { ctx.fillStyle = ['#c94a4a', '#3a6ad0', '#7cc47c', '#f2e7a8', '#af52de'][(j + k) % 5]; ctx.fillRect((-22 + j * 9) * s, (-52 - k * 28) * s, 7 * s, 22 * s); } } break; }
+    case 'sofa': { box(80, 26, '#7b526c'); ctx.beginPath(); ctx.rect(-40 * s, -44 * s, 80 * s, 18 * s); F('#8f6a80'); ctx.beginPath(); ctx.rect(-46 * s, -40 * s, 8 * s, 40 * s); F('#8f6a80'); ctx.beginPath(); ctx.rect(38 * s, -40 * s, 8 * s, 40 * s); F('#8f6a80'); break; }
+    case 'door': { box(36, 70, '#8b5a3a'); ctx.fillStyle = '#f2e7a8'; ctx.beginPath(); ctx.arc(10 * s, -34 * s, 2.5 * s, 0, 6.29); ctx.fill(); break; }
   }
   ctx.restore();
 }
-/** 물건 낙서 */
 function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, s: number) {
   ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1.4 * s; ctx.strokeStyle = '#3a2f36'; ctx.lineJoin = 'round';
   const F = (c: string) => { ctx.fillStyle = c; ctx.fill(); ctx.stroke(); };
@@ -396,9 +484,9 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
   }
   ctx.restore();
 }
-function actIcon(ctx: CanvasRenderingContext2D, act: Activity, x: number, y: number, s: number) {
+function actIcon(ctx: CanvasRenderingContext2D, act: string, x: number, y: number, s: number) {
   ctx.fillStyle = '#5b4f56'; ctx.font = `${10 * s}px ui-monospace, monospace`; ctx.textAlign = 'left';
-  ctx.fillText({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', stand: '' }[act], x, y);
+  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it' } as Record<string, string>)[act] ?? '', x, y);
 }
 function name(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) { ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
 function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) {
@@ -407,4 +495,3 @@ function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, 
   ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(bx, by, w, h, 6 * s); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#1b0c15'; ctx.fillText(text, bx + 7 * s, by + 14 * s);
 }
-void spotOf;

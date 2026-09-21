@@ -7,6 +7,7 @@
  * 오늘의 할 일은 (날짜, 사람) 씨앗으로 정해진다. 완료는 브라우저가 판정하고 서버는 기록·코인·뱃지만.
  */
 import { hash, rng } from './tower';
+import { MAPS, WATER_SPOTS } from './world';
 
 export const SQUARE_W = 3200;
 export const DEPTH_PX = 130;
@@ -39,7 +40,9 @@ export const SPOTS: Spot[] = [
   { key: 'lamp1', name: 'the lamp', x: 1750, d: 0.85, act: 'stand', kind: 'lamp' },
 ];
 export const spotOf = (key: string) => SPOTS.find((s) => s.key === key)!;
-export const WATER = ['fountain', 'pond'];
+export const WATER = WATER_SPOTS;
+/** 모든 지도의 자리(집 안 제외) — 할 일이 가리킬 수 있는 곳 */
+const ALL_SPOTS = MAPS.flatMap((m) => m.spots);
 
 export interface Routine { who: number; item: ItemKey; seed: number; stops: { spot: string; dur: number }[]; speed: number }
 /** 이 시간에 광장에 나온 주민 12명 — 시간마다 바뀐다. 각자 물건 하나, 들를 곳 3~4개 */
@@ -83,13 +86,13 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
   while (tasks.length < 8) {
     const v = r();
     if (v < 0.25) { const p = pick(); add({ key: `steal:${p.who}`, kind: 'steal', who: p.who, item: p.item, text: `Steal ${handles[p.who]}'s ${ITEMS[p.item]}`, coins: 6 }); }
-    else if (v < 0.42) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)]; add({ key: `dunk:${it}:${w}`, kind: 'dunk', item: it, spot: w, text: `Drop a ${ITEMS[it]} in ${spotOf(w).name}`, coins: 10 }); }
+    else if (v < 0.42) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)]; const ws = ALL_SPOTS.find((x) => x.key === w); add({ key: `dunk:${it}:${w}`, kind: 'dunk', item: it, spot: w, text: `Drop a ${ITEMS[it]} in ${ws?.name ?? w}`, coins: 10 }); }
     else if (v < 0.55) add({ key: 'shove3', kind: 'honk3', n: 3, text: 'Knock over three different residents within ten seconds', coins: 5 });
     else if (v < 0.66) add({ key: 'chased', kind: 'chased', n: 10, text: 'Get chased for ten seconds without being caught', coins: 8 });
-    else if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const s = SPOTS.filter((x) => x.kind === 'bench' || x.kind === 'cafe')[Math.floor(r() * 3)]; add({ key: `deliver:${it}:${s.key}`, kind: 'deliver', item: it, spot: s.key, text: `Bring a ${ITEMS[it]} to ${s.name}`, coins: 7 }); }
+    else if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const bs = ALL_SPOTS.filter((x) => x.kind === 'bench' || x.kind === 'cafe'); const s = bs[Math.floor(r() * bs.length)]; add({ key: `deliver:${it}:${s.key}`, kind: 'deliver', item: it, spot: s.key, text: `Bring a ${ITEMS[it]} to ${s.name}`, coins: 7 }); }
     else if (v < 0.9) { const p = pick(); add({ key: `sit:${p.who}`, kind: 'sit', who: p.who, text: `Make ${handles[p.who]} give up chasing you`, coins: 6 }); }
     else if (v < 0.95) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
-    else { const bs = SPOTS.filter((x) => ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it three times)`, coins: 9 }); }
+    else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
 }
