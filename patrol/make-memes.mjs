@@ -101,6 +101,8 @@ async function ask(user) {
           .map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' })),
       }),
     });
+    // 503 = 무료 티어가 붐빈다 — 한 번 쉬고 다시(실측: 4명 중 2명이 503)
+    if (res.status === 503 && !user.endsWith('\u0000')) { await new Promise((r) => setTimeout(r, 4000)); return ask(user + '\u0000'); }
     if (!res.ok) throw new Error(`gemini ${res.status} ${(await res.text()).slice(0, 160)}`);
     const d = await res.json();
     const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
