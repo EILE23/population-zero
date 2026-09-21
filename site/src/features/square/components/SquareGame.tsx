@@ -18,6 +18,8 @@ import { BREAKABLE, houses, jobOf, MAPS, WATER_SPOTS, type GameMap, type PropKin
  */
 export interface ResidentLite { id: number; handle: string; line: string }
 export interface Content { shoved: string[]; chase: string[]; giveup: string[]; caught: string[]; angry: string[]; thrown: string[] }
+/** 마을이 지은 소품(순찰이 붙임) — 원래 지도에 얹힌다. 24시간 동안 'new' 표시 */
+export interface ExtraSpot { key: string; map: string; kind: PropKind; name: string; x: number; d: number; act: string; addedAt: string }
 interface Me { id: number; handle: string }
 interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1 }
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair';
@@ -33,11 +35,12 @@ const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
-export function SquareGame({ residents, me, tasks, done, content }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content }) {
+export function SquareGame({ residents, me, tasks, done, content, extra = [] }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const ws = useRef<WebSocket | null>(null);
-  const maps = useRef<GameMap[]>([...MAPS, ...houses(residents.length)]);
+  const maps = useRef<GameMap[]>([...MAPS.map((m) => ({ ...m, spots: [...m.spots, ...extra.filter((e) => e.map === m.key).map((e) => ({ key: e.key, name: e.name, x: e.x, d: e.d, act: e.act as Spot['act'], kind: e.kind }))] })), ...houses(residents.length)]);
+  const fresh = useRef(new Set(extra.filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
   const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false });
@@ -159,15 +162,31 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
       });
       thrown.current = [];
     };
+    /** 지도 a → b 로 가는 문: a 의 출구 중 b 로 가는 것, 없으면 광장으로 가는 것(집→공원처럼 두 번 건너는 경우) */
+    const doorTo = (from: string, to: string) => { const m = mapOf(from); return m.exits.find((e) => e.to === to) ?? m.exits.find((e) => e.to === 'square') ?? m.exits[0]; };
     const routine = (n: Npc, t: number) => {
-      const legs = n.stops.map((s, i) => { const b = n.stops[(i + 1) % n.stops.length]; const walk = s.map === b.map ? Math.hypot(b.spot.x - s.spot.x, (b.spot.d - s.spot.d) * 400) / (RESIDENT_SPEED * n.job.speed) : 8; return { a: s, b, walk }; });
-      const total = legs.reduce((s, l) => s + l.a.dur + l.walk, 0);
+      type Seg = { map: string; x0: number; d0: number; x1: number; d1: number; dur: number; act: string; away?: boolean };
+      const segs: Seg[] = [];
+      const sp = RESIDENT_SPEED * n.job.speed;
+      for (let i = 0; i < n.stops.length; i++) {
+        const a = n.stops[i], b = n.stops[(i + 1) % n.stops.length];
+        const ax = a.spot.x + ((n.seed % 60) - 30), ad = Math.min(1, Math.max(0.05, a.spot.d + ((n.seed % 20) - 10) / 100));
+        const bx = b.spot.x + ((n.seed % 60) - 30), bd = Math.min(1, Math.max(0.05, b.spot.d + ((n.seed % 20) - 10) / 100));
+        segs.push({ map: a.map, x0: ax, d0: ad, x1: ax, d1: ad, dur: a.dur, act: a.spot.act });
+        if (a.map === b.map) segs.push({ map: a.map, x0: ax, d0: ad, x1: bx, d1: bd, dur: Math.hypot(bx - ax, (bd - ad) * 400) / sp, act: 'stand' });
+        else {
+          const out = doorTo(a.map, b.map); const back = mapOf(b.map).exits.find((e) => e.to === a.map) ?? mapOf(b.map).exits[0];
+          segs.push({ map: a.map, x0: ax, d0: ad, x1: out.x, d1: out.d, dur: Math.hypot(out.x - ax, (out.d - ad) * 400) / sp, act: 'stand' });
+          segs.push({ map: a.map, x0: out.x, d0: out.d, x1: out.x, d1: out.d, dur: out.to === b.map ? 2 : 6, act: 'stand', away: true }); // 문 너머(다른 지도를 지나가는 중)
+          const ex = back?.x ?? 480, ed = back?.d ?? 0.9;
+          segs.push({ map: b.map, x0: ex, d0: ed, x1: bx, d1: bd, dur: Math.hypot(bx - ex, (bd - ed) * 400) / sp, act: 'stand' });
+        }
+      }
+      const total = segs.reduce((s0, g) => s0 + g.dur, 0);
       let u = (t + n.seed % 1000) % total;
-      for (const l of legs) {
-        if (u < l.a.dur) return { map: l.a.map, x: l.a.spot.x + ((n.seed % 60) - 30), d: Math.min(1, Math.max(0.05, l.a.spot.d + ((n.seed % 20) - 10) / 100)), act: l.a.spot.act as string, moving: false, face: (n.seed % 2 ? 1 : -1) as 1 | -1, away: false };
-        u -= l.a.dur;
-        if (u < l.walk) { const k = u / l.walk; if (l.a.map !== l.b.map) return { map: l.a.map, x: l.a.spot.x, d: l.a.spot.d, act: 'stand', moving: true, face: 1 as const, away: true }; return { map: l.a.map, x: l.a.spot.x + (l.b.spot.x - l.a.spot.x) * k, d: l.a.spot.d + (l.b.spot.d - l.a.spot.d) * k, act: 'stand', moving: true, face: (l.b.spot.x >= l.a.spot.x ? 1 : -1) as 1 | -1, away: false }; }
-        u -= l.walk;
+      for (const g of segs) {
+        if (u < g.dur) { const k = g.dur ? u / g.dur : 1; const moving = g.x0 !== g.x1 || g.d0 !== g.d1; return { map: g.map, x: g.x0 + (g.x1 - g.x0) * k, d: g.d0 + (g.d1 - g.d0) * k, act: g.act, moving, face: (moving ? (g.x1 >= g.x0 ? 1 : -1) : (n.seed % 2 ? 1 : -1)) as 1 | -1, away: !!g.away }; }
+        u -= g.dur;
       }
       const f = n.stops[0]; return { map: f.map, x: f.spot.x, d: f.spot.d, act: f.spot.act as string, moving: false, face: 1 as const, away: false };
     };
@@ -348,7 +367,7 @@ export function SquareGame({ residents, me, tasks, done, content }: { residents:
       ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 1; for (let k = 0; k < 6; k++) { const yy = dy(k / 5) * s; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
       for (const e of cur.exits) { const ex = sx(e.x); if (ex < -80 || ex > W + 80) continue; ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`↑ ${e.label}`, ex, (dy(e.d) - 64) * s); }
       type Draw = { d: number; f: () => void }; const layer: Draw[] = [];
-      for (const p of props) { const fx = sx(p.x); if (fx < -200 || fx > W + 200) continue; const bs = broken.current.get(p.key); layer.push({ d: p.d, f: () => prop(ctx, p.kind, fx, dy(p.d) * s, ds(p.d) * s, p.seed, t, [...loose.current.values()].filter((l) => l.dunked === p.key), bs ? (bs.brokeAt ? 'broken' : bs.hp < 3 ? 'cracked' : 'ok') : 'ok') }); }
+      for (const p of props) { const fx = sx(p.x); if (fx < -200 || fx > W + 200) continue; const bs = broken.current.get(p.key); layer.push({ d: p.d, f: () => { prop(ctx, p.kind, fx, dy(p.d) * s, ds(p.d) * s, p.seed, t, [...loose.current.values()].filter((l) => l.dunked === p.key), bs ? (bs.brokeAt ? 'broken' : bs.hp < 3 ? 'cracked' : 'ok') : 'ok'); if (fresh.current.has(p.key)) { ctx.fillStyle = '#7b526c'; ctx.font = `bold ${9.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`new · ${p.name}`, fx, (dy(p.d) + 14) * s); } } }); }
       for (const l of loose.current.values()) { if (l.dunked || l.map !== cur.key) continue; const fx = sx(l.x); if (fx < -50 || fx > W + 50) continue; layer.push({ d: l.d - 0.001, f: () => item(ctx, l.item, fx, dy(l.d) * s - 6 * s, ds(l.d) * s) }); }
       for (const th of thrown.current) { if (th.map !== cur.key) continue; const fx = sx(th.x); layer.push({ d: th.d, f: () => item(ctx, th.item, fx, (dy(th.d) - th.z) * s - 6 * s, ds(th.d) * s) }); }
       for (const n of npcs.current) {

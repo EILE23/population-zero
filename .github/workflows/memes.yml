@@ -59,6 +59,9 @@ jobs:
         env:
           MEME_PER_RUN: ${{ inputs.per_run }}
         run: node --experimental-strip-types make-memes.mjs ${{ inputs.dry && '--dry-run' || '' }}
+      - name: Grow the square
+        working-directory: patrol
+        run: node square-grow.mjs
       - name: Grow clip pool
         if: inputs.films != '0'
         working-directory: patrol
