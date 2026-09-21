@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { around, band, BAND_H, metres, npcAt, npcsOf, platX, poseOf, shoved, step, WORLD_W, type Body, type Input, type Npc, type Pose } from '@/lib/tower';
+import { around, band, BAND_H, collide, figPlats, metres, npcAt, npcsOf, platX, poseOf, shoved, step, WORLD_W, type Body, type Figure, type Input, type Npc, type Pose } from '@/lib/tower';
 
 /**
  * Climb — 화면. 물리·지형·NPC 는 lib/tower 가 정하고 여기는 그리고 입력을 받고 서버(DO)와 위치를 주고받는다.
@@ -29,6 +29,8 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   const [line, setLine] = useState('');
   const [hud, setHud] = useState({ h: 0, best, online: 0, resting: 0, connected: false });
   const bestRef = useRef(best);
+  const ready = useRef(!me); // 서버가 내 저장된 자리를 줄 때까지 나를 그리지 않는다(새로고침 때 바닥에서 깜빡이지 않게)
+  const prevFig = useRef(new Map<string, number>());
   const spectator = !me;
 
   // ── 서버 ──
@@ -46,14 +48,14 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
         const put = (u: Record<string, unknown>) => {
           const uid = Number(u.uid);
           if (me && uid === me.id) { // 내 저장된 자리 — 거기서 다시 시작
-            if (m.t === 'init') { body.current = { ...body.current, x: Number(u.x) || 480, y: Number(u.y) || 0, vx: 0, vy: 0, on: null }; bestRef.current = Math.max(bestRef.current, Number(u.best) || 0); }
+            if (m.t === 'init') { body.current = { ...body.current, x: Number(u.x) || 480, y: Number(u.y) || 0, vx: 0, vy: 0, on: null, apex: Number(u.y) || 0 }; cam.current = body.current.y; bestRef.current = Math.max(bestRef.current, Number(u.best) || 0); ready.current = true; }
             return;
           }
           const prev = map.get(uid);
           map.set(uid, { uid, handle: String(u.handle ?? ''), avatar: String(u.avatar ?? ''), x: prev?.x ?? (Number(u.x) || 0), y: prev?.y ?? (Number(u.y) || 0),
             tx: Number(u.x) || 0, ty: Number(u.y) || 0, pose: (u.pose as Pose) ?? 'stand', face: u.face === -1 ? -1 : 1, status: u.status === 'rest' ? 'rest' : 'active' });
         };
-        if (m.t === 'init') { map.clear(); for (const u of m.users as Record<string, unknown>[]) put(u); }
+        if (m.t === 'init') { map.clear(); for (const u of m.users as Record<string, unknown>[]) put(u); ready.current = true; }
         else if (m.t === 'user') put(m.u as Record<string, unknown>);
         else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { o.tx = Number(m.x); o.ty = Number(m.y); o.pose = m.pose as Pose; o.face = m.face === -1 ? -1 : 1; o.status = 'active'; } }
         else if (m.t === 'rest') { const o = map.get(Number(m.uid)); if (o) { o.status = 'rest'; o.pose = 'sit'; } }
@@ -103,11 +105,17 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
       const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt;
       const t = Date.now() / 1000;
       // 물리 (고정 틱)
-      if (!spectator) {
+      if (!spectator && ready.current) {
+        // 근처 졸라맨들(주민 NPC + 다른 사람) — 머리 위는 발판, 옆은 벽
+        const near: Figure[] = [];
+        const by = body.current.y; const nb = Math.floor(by / BAND_H);
+        for (const n of [nb - 1, nb, nb + 1]) if (n >= 0) for (const npc of npcs(n)) { const a = npcAt(npc, t); const id = `n${n}.${npc.who}`; const px = prevFig.current.get(id) ?? a.x; prevFig.current.set(id, a.x); near.push({ id, x: a.x, y: a.y, dx: a.x - px }); }
+        for (const o of others.current.values()) if (Math.abs(o.y - by) < 400) { const id = `u${o.uid}`; const px = prevFig.current.get(id) ?? o.x; prevFig.current.set(id, o.x); near.push({ id, x: o.x, y: o.y, dx: o.x - px }); }
+        const figs = figPlats(near);
         while (acc >= DT) {
-          const plats = around(body.current.y);
+          const plats = [...figs, ...around(body.current.y)];
           const dead = new Set([...crumbled.current].filter(([, at]) => t - at > 0.7).map(([id]) => id));
-          let b = step(body.current, input.current, DT, plats, t, dead);
+          let b = collide(step(body.current, input.current, DT, plats, t, dead), near);
           if (b.on?.kind === 'crumble' && !crumbled.current.has(b.on.id)) crumbled.current.set(b.on.id, t);
           // 주민이 민다
           const n0 = Math.floor(b.y / BAND_H);
@@ -173,7 +181,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
         label(ctx, fx, fy, scale, o.handle, false, clicks, `/@${o.handle.toLowerCase().replace(/ /g, '-')}`);
       }
       // 나
-      if (!spectator) {
+      if (!spectator && ready.current) {
         const b = body.current; const fx = sx(b.x), fy = sy(b.y);
         figure(ctx, fx, fy, scale, poseOf(b), b.face, '#ad7096', t, false);
         label(ctx, fx, fy, scale, me!.handle, false, clicks, '');

@@ -13,7 +13,7 @@ export const BAND_H = 600;
 export const G = 2400;          // px/s²
 export const WALK = 260;        // px/s — 땅에서 달리기
 export const RUN = 300;         // px/s — 점프 중 최고 수평 속도
-export const AIR = 900;         // px/s² — 공중에서 방향키로 미는 힘(조작 가능하되 땅처럼 즉답은 아니다)
+export const AIR = 1500;        // px/s² — 공중에서 방향키로 미는 힘(조작 가능하되 땅처럼 즉답은 아니다)
 export const JUMP_V = 860;      // px/s → 최고 154px, 체공 0.72s → 수평 215px (완충)
 export const JUMP_MIN = 430;    // 살짝 눌렀을 때
 export const CHARGE = 0.7;      // 초 — 이만큼 누르면 완충
@@ -212,3 +212,22 @@ export function shoved(b: Body, n: { x: number; y: number; face: 1 | -1; shove: 
   return { ...b, vx: dir * 420, vy: 260, on: null, hurt: 0.9, idle: 0, charge: 0, apex: b.y };
 }
 export const metres = (y: number) => Math.round(y / 10);
+
+/** 졸라맨 하나의 몸 — 발끝 (x, y), 폭 22, 키 44. 머리 위는 발판이고 옆은 벽이다 */
+export interface Figure { id: string; x: number; y: number; dx: number }
+export const FIG_W = 22, FIG_H = 44;
+/** 다른 졸라맨들을 발판으로 — step() 의 plats 에 섞는다 */
+export const figPlats = (figs: Figure[]): Platform[] => figs.map((f) => ({ id: `fig:${f.id}`, x: f.x - FIG_W / 2, y: f.y + FIG_H, w: FIG_W, kind: 'std' as const }));
+/** 옆으로 막힘 — 몸통이 겹치면 가까운 쪽으로 밀어낸다(머리 위에 서 있으면 예외). 타고 있으면 그 사람의 이동(dx)에 실려 간다 */
+export function collide(b: Body, figs: Figure[]): Body {
+  let { x, vx } = b; const { y, on } = b;
+  for (const f of figs) {
+    if (on?.id === `fig:${f.id}`) { x += f.dx; continue; }
+    const dxr = x - f.x;
+    if (Math.abs(dxr) < FIG_W && y < f.y + FIG_H - 6 && y + FIG_H > f.y + 6) {
+      x = f.x + (dxr >= 0 ? FIG_W : -FIG_W);
+      if ((dxr >= 0 && vx < 0) || (dxr < 0 && vx > 0)) vx = 0;
+    }
+  }
+  return { ...b, x: Math.max(10, Math.min(WORLD_W - 10, x)), vx };
+}
