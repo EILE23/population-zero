@@ -21,7 +21,7 @@ export interface Content { shoved: string[]; chase: string[]; giveup: string[]; 
 /** 마을이 지은 소품(순찰이 붙임) — 원래 지도에 얹힌다. 24시간 동안 'new' 표시 */
 export interface ExtraSpot { key: string; map: string; kind: PropKind; name: string; x: number; d: number; act: string; addedAt: string }
 interface Me { id: number; handle: string }
-interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1 }
+interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; z: number; tz: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1 }
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair';
 interface Npc { who: number; tx: number; td: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string }
@@ -90,7 +90,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
           const uid = Number(u.uid); const d = Math.min(1, Math.max(0, (Number(u.y) || 700) / 1000));
           if (me && uid === me.id) { if (m.t === 'init') { body.current.x = Number(u.x) || 1500; body.current.d = d; if (typeof u.map === 'string' && maps.current.some((mm) => mm.key === u.map)) mapKey.current = u.map; cam.current = body.current.x - VIEW_W / 2; } return; }
           const prev = map.get(uid);
-          map.set(uid, { uid, handle: String(u.handle ?? ''), x: prev?.x ?? (Number(u.x) || 0), tx: Number(u.x) || 0, d: prev?.d ?? d, td: d, pose: String(u.pose ?? 'stand'), status: u.status === 'rest' ? 'rest' : 'active', map: String(u.map || 'square'), face: u.face === -1 ? -1 : 1 });
+          map.set(uid, { uid, handle: String(u.handle ?? ''), x: prev?.x ?? (Number(u.x) || 0), tx: Number(u.x) || 0, d: prev?.d ?? d, td: d, z: 0, tz: 0, pose: String(u.pose ?? 'stand'), status: u.status === 'rest' ? 'rest' : 'active', map: String(u.map || 'square'), face: u.face === -1 ? -1 : 1 });
         };
         if (m.t === 'init') {
           map.clear(); for (const u of m.users as Record<string, unknown>[]) put(u);
@@ -100,7 +100,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
           for (const [who, o] of Object.entries(w.npc ?? {})) apply({ k: 'npc', who: Number(who), ...o }, false);
         }
         else if (m.t === 'user') put(m.u as Record<string, unknown>);
-        else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { o.tx = Number(m.x); o.td = Math.min(1, Math.max(0, Number(m.y) / 1000)); o.pose = String(m.pose); o.status = 'active'; o.face = m.face === -1 ? -1 : 1; if (typeof m.m === 'string' && m.m) o.map = m.m; } }
+        else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { if (typeof m.m === 'string' && m.m && m.m !== o.map) { o.map = m.m; o.x = Number(m.x); o.d = Math.min(1, Math.max(0, Number(m.y) / 1000)); } o.tx = Number(m.x); o.td = Math.min(1, Math.max(0, Number(m.y) / 1000)); o.tz = Number(m.z) || 0; o.pose = String(m.pose); o.status = 'active'; o.face = m.face === -1 ? -1 : 1; } }
         else if (m.t === 'rest') { const o = map.get(Number(m.uid)); if (o) { o.status = 'rest'; o.pose = 'sit'; } }
         else if (m.t === 'leave') map.delete(Number(m.uid));
         else if (m.t === 'ev') apply({ ...(m.ev as Ev), by: m.by }, false);
@@ -275,7 +275,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
         }
         jumpWas = i.jump; grabWas = i.grab; shoveWas = i.shove; kickWas = i.kick;
       }
-      if (!spectator && ws.current?.readyState === 1 && now - sent > 150) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), pose: b.hurt > 0 ? 'hurt' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', face: b.face, m: cur.key })); }
+      if (!spectator && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), pose: b.hurt > 0 ? 'hurt' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.moving ? 'run' : 'stand', face: b.face, m: cur.key })); }
       // ── 주민 ──
       let chasing = -1; const mineOff: Npc[] = [];
       for (const n of npcs.current) {
@@ -291,7 +291,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
         if (n.mode === 'chase') {
           chasing = n.who; mineOff.push(n);
           const speed = CHASE_SPEED * (n.job.key === 'cop' ? 1.25 : n.job.key === 'jogger' ? 1.3 : n.job.key === 'retired' ? 0.6 : 1);
-          if (now > n.until || !here(n)) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); continue; }
+          if (now > n.until) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); continue; }
+          if (!here(n)) { // 내가 지도를 옮겼다 — 문을 지나 따라온다
+            const back = cur.exits.find((e) => e.to === n.map) ?? cur.exits[0];
+            if (back) { n.map = cur.key; n.x = back.x; n.d = back.d; n.until += 1500; n.say = pick(['not so fast', 'i saw that', 'oh no you don't']); n.sayUntil = now + 1500; npcEv(n, { say: n.say }); }
+            continue;
+          }
           for (const m of npcs.current) if (m !== n && here(m) && m.mode === 'routine' && dist(m.x, m.d, n.x, n.d) < 220 && Math.random() < 0.004) { m.mode = 'chase'; m.owner = me!.id; m.until = now + 3000; m.say = pick(content.chase); m.sayUntil = now + 1500; npcEv(m, { say: m.say }); }
           const far = dist(n.x, n.d, b.x, b.d);
           if (n.item && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.25; thrown.current.push({ item: n.item, map: cur.key, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.who }); n.item = null; n.say = pick(content.thrown); n.sayUntil = now + 1500; }
@@ -356,7 +361,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
         const f = all.find((o) => o.uid === tour.current.uid); if (f) { target = f.x; if (f.map !== mapKey.current && maps.current.some((m) => m.key === f.map)) { mapKey.current = f.map; cam.current = f.x - VIEW_W / 2; } } else target = 1600;
       }
       cam.current += (Math.max(0, Math.min(cur.w - VIEW_W, target - VIEW_W / 2)) - cam.current) * Math.min(1, dt * 6);
-      for (const o of others.current.values()) { o.x += (o.tx - o.x) * Math.min(1, dt * 10); o.d += (o.td - o.d) * Math.min(1, dt * 10); }
+      for (const o of others.current.values()) { o.x += (o.tx - o.x) * Math.min(1, dt * 14); o.d += (o.td - o.d) * Math.min(1, dt * 14); o.z += (o.tz - o.z) * Math.min(1, dt * 14); }
 
       // ── 그리기 ──
       const W = c.width, H = c.height, s = W / VIEW_W; const sx = (wx: number) => (wx - cam.current) * s;
@@ -387,7 +392,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [] }: 
       for (const o of others.current.values()) {
         if (o.map !== cur.key) continue; const fx = sx(o.x); if (fx < -100 || fx > W + 100) continue;
         layer.push({ d: o.d, f: () => {
-          const fy = dy(o.d) * s, fs = ds(o.d) * s; const col = figureColor(o.uid);
+          const fy = (dy(o.d) - o.z) * s, fs = ds(o.d) * s; const col = figureColor(o.uid);
+          if (o.z > 2) { ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(fx, dy(o.d) * s, 12 * fs, 4 * fs, 0, 0, 6.29); ctx.fill(); }
           if (o.status === 'rest') figure(ctx, fx, fy, fs, 'sit', o.face, col, t, false);
           else if (o.pose === 'hurt') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-o.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, col, t, false); ctx.restore(); }
           else figure(ctx, fx, fy, fs, (['run', 'jump', 'punch', 'kick'].includes(o.pose) ? o.pose : 'stand') as FigPose, o.face, col, t, false);

@@ -114,10 +114,10 @@ export class ClimbRoom extends DurableObject {
     if (m.t === 'pos' && att.uid) {
       const u = users.get(att.uid); if (!u) return;
       const x = Math.max(0, Math.min(960, Number(m.x) || 0)), y = Math.max(0, Math.min(1e7, Number(m.y) || 0));
-      Object.assign(u, { x, y, pose: String(m.pose || 'stand').slice(0, 6), face: m.face === -1 ? -1 : 1, map: String(m.m || '').slice(0, 20), status: 'active', at: Date.now() });
+      Object.assign(u, { x, y, z: Math.max(0, Math.min(400, Number(m.z) || 0)), pose: String(m.pose || 'stand').slice(0, 6), face: m.face === -1 ? -1 : 1, map: String(m.m || '').slice(0, 20), status: 'active', at: Date.now() });
       let bestUp = false;
       if (y > u.best + 1) { u.best = y; bestUp = true; }
-      this.broadcast({ t: 'pos', uid: att.uid, x, y, pose: u.pose, face: u.face, m: u.map }, ws);
+      this.broadcast({ t: 'pos', uid: att.uid, x, y, z: u.z, pose: u.pose, face: u.face, m: u.map }, ws);
       const last = this.lastSave.get(att.uid) ?? 0;
       if (Date.now() - last > 5000) {
         this.lastSave.set(att.uid, Date.now());
