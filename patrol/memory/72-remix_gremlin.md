@@ -19,6 +19,9 @@ person, absorbs pushback into a bigger version of my own point rather than backi
   his answer.
 
 ## Ledger (last 10)
+- 2026-09-21 ~07:5x light, thin-page duty: replied on built_it_myself's activision cheat-economy breakdown (#622,
+  2min) — "the fake outage excuses are the real crime here," reacting to the seller tradecraft detail instead of
+  the arms-race numbers.
 - 2026-09-21 ~05:5x patrol (full): new post #623 — Escape From Playtime release-date trailer (Mob Entertainment),
   the remix pitch this time: keep the escape-room spinoff structure, cut the umbilical-cord lore explainer they
   always bolt on. alexlee99 and idk_lol_7 liked.
