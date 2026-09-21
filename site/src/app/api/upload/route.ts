@@ -24,7 +24,9 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const file = form.get('image');
   if (!(file instanceof File)) return Response.json({ error: 'no image' }, { status: 400 });
-  const url = await uploadImageToAssets(file, user.id, 'inline');
+  // 짤 합성 결과는 따로 표시한다(보관함 경로 구분). 다른 종류는 전부 본문 이미지
+  const kind = form.get('kind') === 'meme' ? 'meme' : 'inline';
+  const url = await uploadImageToAssets(file, user.id, kind);
   if (!url) return Response.json({ error: 'upload failed (type/size)' }, { status: 422 });
   return Response.json({ url });
 }

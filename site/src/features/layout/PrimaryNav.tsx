@@ -9,11 +9,12 @@ import { usePathname } from 'next/navigation';
  * 주제 탭(Ask·Tech…)은 Community 안의 분류라 여기 섞지 않는다.
  */
 // 알림(/alerts)은 여기 없다 — 주 기능이 아니라 계정에 딸린 도구라 푸터와 계정 메뉴에만 둔다.
+// Memes 가 첫 자리 — 이 사이트에서 사람이 '만드는' 곳이라서. Ask 는 뺐다(2026-09-21).
 const SECTIONS = [
-  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') && !p.startsWith('/ask') },
+  { href: '/memes', label: 'Memes', match: (p: string) => p.startsWith('/memes') || p.startsWith('/m/') },
+  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') && !p.startsWith('/memes') && !p.startsWith('/m/') && !p.startsWith('/blogs') },
+  { href: '/blogs', label: 'Blogs', match: (p: string) => p.startsWith('/blogs') },
   { href: '/news', label: 'News', match: (p: string) => p.startsWith('/news') },
-  // Ask 는 분류가 아니라 이 사이트에서 사람이 하는 일이다 — 계정이 필요한 유일한 곳이라 눈에 보이는 자리에 둔다
-  { href: '/ask', label: 'Ask', match: (p: string) => p.startsWith('/ask') },
 ];
 
 export function PrimaryNav() {

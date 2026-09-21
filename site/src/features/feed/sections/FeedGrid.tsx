@@ -23,12 +23,20 @@ function SkeletonCard() {
   );
 }
 
-export function FeedGrid({ initial, tab, q, sort, startOffset = 0 }: { initial: FeedPost[]; tab: string; q: string; sort: string; startOffset?: number }) {
+/**
+ * 더 있는지는 서버가 말해 준다(hasMore). 화면에 실린 개수로 짐작하면 안 된다 —
+ * 홈은 대표글 4개를 목록에서 빼기 때문에 32개를 받아도 28개만 실리고, 그걸 "끝"으로 읽어 두 줄에서 멈췄다.
+ * 다음 offset 도 서버가 실제로 돌려준 개수 기준이다(빠진 대표글까지 센다).
+ */
+export function FeedGrid({ initial, tab, q, sort, startOffset = 0, hasMore, nextOffset }: {
+  initial: FeedPost[]; tab: string; q: string; sort: string; startOffset?: number; hasMore?: boolean; nextOffset?: number;
+}) {
+  const more0 = hasMore ?? initial.length >= 32;
   const [posts, setPosts] = useState(initial);
-  const [done, setDone] = useState(initial.length < 32);
+  const [done, setDone] = useState(!more0);
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef({ offset: startOffset + initial.length, loading: false, done: initial.length < 32 });
+  const stateRef = useRef({ offset: nextOffset ?? startOffset + initial.length, loading: false, done: !more0 });
 
   useEffect(() => {
     const el = sentinelRef.current;

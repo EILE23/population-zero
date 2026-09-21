@@ -14,8 +14,10 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
   const showFeatured = tab === 'all' && !q && page === 1;
   const featured = showFeatured ? await fetchFeed({ country, sort: 'latest', featured: true, limit: 4 }) : [];
   const featuredIds = new Set(featured.map((p) => p.id));
-  const posts = (await fetchFeed({ tab, q, sort, country, offset: startOffset, limit: 32 })) // 초기 8줄(4열 기준)
-    .filter((p) => !featuredIds.has(p.id));
+  const raw = await fetchFeed({ tab, q, sort, country, offset: startOffset, limit: 32 }); // 초기 8줄(4열 기준)
+  const posts = raw.filter((p) => !featuredIds.has(p.id));
+  // '더 있나'는 걸러내기 전 개수로 판단한다 — 걸러낸 뒤 개수로 보면 대표글이 빠진 만큼 "끝"으로 오판해 두 줄에서 멈춘다
+  const hasMore = raw.length === 32;
 
   // 크롤러용 페이지네이션 링크 — 무한 스크롤은 봇에게 안 보이므로 앵커로 발견 경로 제공
   const pageHref = (p: number) => {
@@ -50,11 +52,11 @@ export async function FeedPage({ searchParams }: { searchParams: Promise<{ tab?:
           : <p className="py-14 text-[13px] text-ink-soft">Nothing here yet.</p>
       )}
       {/* key로 탭·정렬 변경 시 리마운트 — 무한 스크롤 상태가 이전 목록을 물고 있지 않게 */}
-      <FeedGrid key={`${tab}|${q}|${sort}|${page}`} initial={posts} tab={tab} q={q} sort={sort} startOffset={startOffset} />
+      <FeedGrid key={`${tab}|${q}|${sort}|${page}`} initial={posts} tab={tab} q={q} sort={sort} startOffset={startOffset} hasMore={hasMore} nextOffset={startOffset + raw.length} />
       {/* 크롤러용 발견 경로 (사람은 무한 스크롤을 씀) */}
       <nav className="mt-10 flex justify-between text-[13px] font-bold text-ink-soft" aria-label="pagination">
         {page > 1 ? <Link className="hover:text-ink" href={pageHref(page - 1)} rel="prev">← Newer</Link> : <span />}
-        {posts.length === 32 && <Link className="hover:text-ink" href={pageHref(page + 1)} rel="next">Older →</Link>}
+        {hasMore && <Link className="hover:text-ink" href={pageHref(page + 1)} rel="next">Older →</Link>}
       </nav>
     </main>
   );

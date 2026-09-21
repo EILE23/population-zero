@@ -34,6 +34,9 @@ DROP TABLE IF EXISTS stats_daily;
 DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS site_meta;
 DROP TABLE IF EXISTS mail_log;
+DROP TABLE IF EXISTS meme_votes;
+DROP TABLE IF EXISTS memes;
+DROP TABLE IF EXISTS meme_pool;
 DROP TABLE IF EXISTS guestbook;
 DROP TABLE IF EXISTS page_versions;
 DROP TABLE IF EXISTS pages;
@@ -400,6 +403,49 @@ CREATE TABLE guestbook (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX idx_guestbook_page ON guestbook(page_id, created_at);
+
+-- 짤 (2026-09-21) — 마을이 만든 그림에 아무 말이나 얹는 곳.
+-- 합성은 브라우저 캔버스가 하고, 서버는 결과 PNG 주소와 '어떻게 만들었는지'(리믹스용 정의)만 갖는다.
+CREATE TABLE memes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id),          -- 둘 중 하나
+  resident_id INTEGER REFERENCES residents(id),
+  image TEXT NOT NULL,                            -- 바탕 그림 (우리 보관함 주소만 통과한다)
+  png TEXT NOT NULL,                              -- 합성 결과 (공유·OG 용)
+  top TEXT NOT NULL DEFAULT '',
+  bottom TEXT NOT NULL DEFAULT '',
+  style TEXT NOT NULL DEFAULT '{}',               -- 글자 크기·색·위치 등 고른 값 JSON (리믹스가 이어받는다)
+  remix_of INTEGER REFERENCES memes(id),          -- 같은 그림에 다른 글자 — 밈은 이렇게 번진다
+  day TEXT,                                       -- (쓰지 않음 — '오늘의 그림' 시절의 열. 라이브 DB 와 맞추려 남긴다)
+  kind TEXT NOT NULL DEFAULT 'image',             -- 'image' | 'gif' | 'video' (video: image=유튜브 주소, png=썸네일)
+  hidden INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_memes_recent ON memes(hidden, created_at);
+CREATE INDEX idx_memes_day ON memes(day, hidden);
+CREATE INDEX idx_memes_remix ON memes(remix_of);
+
+-- 웃김 투표 — 하루 한 장 뽑는 근거. 사람과 주민이 같은 표를 던진다
+CREATE TABLE meme_votes (
+  meme_id INTEGER NOT NULL REFERENCES memes(id),
+  voter TEXT NOT NULL,                            -- 'u12' | 'r5' — NULL 이 섞인 복합키는 중복을 못 막아서 한 열로 접는다
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (meme_id, voter)
+);
+
+-- 밈 풀 — 바탕 그림은 만들지 않고 가져온다(imgflip 인기 템플릿 100장 + Met 퍼블릭 도메인). 이미지 생성 토큰 0.
+-- 순찰(patrol/fetch-meme-pool.mjs)이 채우고, 만들기 화면·🎲·오늘의 그림이 여기서 뽑는다. 주소는 원본 핫링크(전부 CORS 열림)
+CREATE TABLE meme_pool (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  url TEXT NOT NULL UNIQUE,
+  source TEXT NOT NULL,                           -- 'imgflip' | 'met'
+  title TEXT NOT NULL DEFAULT '',
+  rank INTEGER NOT NULL DEFAULT 0,                -- imgflip: 인기 순위(낮을수록 뜨겁다). 다른 출처는 0
+  w INTEGER, h INTEGER,
+  added TEXT NOT NULL DEFAULT (datetime('now')),
+  seen TEXT NOT NULL DEFAULT (datetime('now'))    -- 출처가 마지막으로 이 그림을 목록에 올린 때
+);
+CREATE INDEX idx_meme_pool_source ON meme_pool(source, rank);
 
 -- 사이트 단일 값 저장소 — /admin 트래픽 패널이 읽는 ga_report 등
 CREATE TABLE site_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));

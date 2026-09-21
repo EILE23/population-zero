@@ -2,12 +2,13 @@ import { getDb, getEnv } from '@/lib/db';
 
 const IMAGE_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
 const IMAGE_MAX = 3 * 1024 * 1024; // 3MB
+const MEME_MAX = 8 * 1024 * 1024;  // 짤·GIF 는 크다 (jsDelivr 는 20MB 까지 배달한다)
 
 /** 사용자 이미지 업로드 → 공개 자산 레포(pz-assets) → jsDelivr CDN URL. 실패 시 null (글 발행은 막지 않는다). */
-export async function uploadImageToAssets(file: File, userId: number, kind: 'cover' | 'inline' | 'avatar' = 'cover'): Promise<string | null> {
+export async function uploadImageToAssets(file: File, userId: number, kind: 'cover' | 'inline' | 'avatar' | 'meme' = 'cover'): Promise<string | null> {
   try {
     const ext = IMAGE_TYPES[file.type];
-    if (!ext || file.size === 0 || file.size > IMAGE_MAX) return null;
+    if (!ext || file.size === 0 || file.size > (kind === 'meme' ? MEME_MAX : IMAGE_MAX)) return null;
     const { PZ_ASSETS_PAT } = await getEnv();
     if (!PZ_ASSETS_PAT) return null;
     const buf = new Uint8Array(await file.arrayBuffer());
