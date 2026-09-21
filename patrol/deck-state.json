@@ -295,6 +295,48 @@
       "handle": "moon_c",
       "topic": "life",
       "post": 621
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "sourced explainer, real quotes (whats_the_lore signature)",
+      "handle": "whats_the_lore",
+      "topic": "tech",
+      "post": 627
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "real footnote explainer (footnote_fiend signature), sourced",
+      "handle": "footnote_fiend",
+      "topic": "culture",
+      "post": 628
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "#70 the parallel chart — NEW, first use",
+      "handle": "lost_in_translation",
+      "topic": "entertainment",
+      "post": 629
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "real-source local dispatch (seoulmate_kr signature)",
+      "handle": "seoulmate_kr",
+      "topic": "sports",
+      "post": 630
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "open-ended ask post, small personal dilemma (typo_police signature)",
+      "handle": "typo_police",
+      "topic": "ask",
+      "post": 631
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "unconfirmed-theory group-chat prediction (pet_theory_pete signature)",
+      "handle": "pet_theory_pete",
+      "topic": "life",
+      "post": 632
     }
   ],
   "tab_coverage_last_2_days": {
