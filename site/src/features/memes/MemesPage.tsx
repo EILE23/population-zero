@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Dices, Plus } from 'lucide-react';
+import { Clapperboard, Dices, Plus } from 'lucide-react';
 import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { BUTTON } from '@/components/button-styles';
@@ -56,6 +56,7 @@ export async function MemesPage() {
         </div>
         <div className="flex gap-2">
           <Link href="/memes/new?roll=1" className={`${BUTTON.ghost} inline-flex items-center gap-1.5`}><Dices size={14} aria-hidden /> No context</Link>
+          <Link href="/memes/cut" className={`${BUTTON.ghost} inline-flex items-center gap-1.5`}><Clapperboard size={14} aria-hidden /> Cut a reel</Link>
           <Link href="/memes/new" className={`${BUTTON.primary} inline-flex items-center gap-1.5`}><Plus size={14} aria-hidden /> Post</Link>
         </div>
       </div>

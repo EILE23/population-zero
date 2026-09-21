@@ -287,13 +287,14 @@ function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, 
   let hip: readonly number[] = [0, -16], shoulder: readonly number[] = [0, -34], head: readonly number[] = [0, -42], lean = 0;
   const THIGH = 11, SHIN = 10, UPPER = 9, FORE = 9;
   if (pose === 'sit') {
-    hip = [0, -12]; shoulder = [-3, -30]; head = [-4, -38];
-    line(hip, shoulder);
-    // 무릎 세우고 앉음 — 발은 바닥에
-    const kneeL = [9, -18], kneeR = [11, -16];
-    line(hip, kneeL, [10, 0]); line(hip, kneeR, [13, 0]);
-    line(shoulder, [6, -24], kneeL); line(shoulder, [8, -23], kneeR); // 팔은 무릎 위에
-    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    // 누워서 쉼 — 머리는 뒤(face 반대쪽), 다리는 앞으로 쭉, 한 팔은 머리 뒤에, 다른 팔은 배 위에. 발끝이 (0,0) 이라 발판 위에 눕는다
+    const br = Math.sin(t * 1.6) * 0.8; // 숨
+    line([-2, -4], [-24, -5 - br]);                   // 몸통 (엉덩이 → 어깨)
+    line([-2, -4], [8, -5], [18, -3]);                // 다리 하나 쭉
+    line([-2, -4], [6, -9], [14, -3]);                // 다리 하나 무릎 세움
+    line([-24, -5 - br], [-18, -11 - br], [-30, -12 - br]); // 팔 머리 뒤
+    line([-24, -5 - br], [-14, -7 - br]);             // 팔 배 위
+    ctx.beginPath(); ctx.arc(-33, -9 - br, 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
   if (pose === 'run') {

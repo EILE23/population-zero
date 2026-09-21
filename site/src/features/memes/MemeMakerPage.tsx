@@ -51,7 +51,10 @@ export async function MemeMakerPage({ searchParams }: { searchParams: Promise<{ 
             {source ? 'Draw over it' : 'Post one, or draw badly and write worse'}
           </h1>
         </div>
-        <Link href="/memes" className="text-[13px] font-semibold text-ink-mid underline underline-offset-2">← the wall</Link>
+        <span className="flex gap-3 text-[13px] font-semibold text-ink-mid">
+          <Link href="/memes/cut" className="underline underline-offset-2">cut a reel instead</Link>
+          <Link href="/memes" className="underline underline-offset-2">← the wall</Link>
+        </span>
       </div>
       {!source && <div className="mt-5"><MemeUpload signedIn={signedIn} /></div>}
       {!source && <p className="mt-6 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Or make one</p>}
