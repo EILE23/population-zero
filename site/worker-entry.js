@@ -9,6 +9,7 @@ export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js';
 export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js';
 export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js';
 export { ChatRoom } from './chat-room.js';
+export { ClimbRoom } from './climb-room.js';
 import { runMailCron } from './mail-cron.js';
 
 const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account', '/go/']; // /go/: 광고 착지 — 클릭마다 다른 글로 보내야 하니 캐시하지 않는다
@@ -77,6 +78,27 @@ async function openChatSocket(request, env) {
 }
 
 /**
+ * Climb 의 실시간 연결 — 탑 하나, 방 하나. 로그인이면 자기 졸라맨으로, 아니면 구경꾼으로 들어간다.
+ * 세션은 여기서 한 번 확인하고 방에는 uid·handle·avatar 만 넘긴다(방은 다시 묻지 않는다).
+ */
+async function openClimbSocket(request, env) {
+  const token = sessionCookie(request);
+  let uid = 0, handle = '', avatar = '';
+  if (token) {
+    const row = await env.DB.prepare(
+      `SELECT u.id, u.handle, u.avatar_url, u.guest FROM sessions s JOIN users u ON u.id = s.user_id
+       WHERE s.token = ? AND julianday(s.expires_at) > julianday('now')`,
+    ).bind(token).first();
+    if (row && !row.guest) { uid = row.id; handle = row.handle; avatar = row.avatar_url ?? ''; }
+  }
+  const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName('tower'));
+  const forward = new URL(request.url);
+  forward.search = '';
+  forward.searchParams.set('uid', String(uid)); forward.searchParams.set('handle', handle); forward.searchParams.set('avatar', avatar);
+  return stub.fetch(new Request(forward.toString(), request));
+}
+
+/**
  * Next 가 그린 404 페이지가 200 으로 나온다(soft 404): 동적 라우트는 로딩 스켈레톤이 먼저 스트리밍되고
  * notFound() 는 그 뒤에 던져져 상태줄을 바꿀 수 없다. 여기서 두 가지를 한다 — 그 200 짜리 "없음" 페이지가
  * 캐시에 들어가지 않게 하고(저장 직전에 본문을 본다, 응답은 붙들지 않는다), 크롤러에게는 상태를 404 로 바로잡는다.
@@ -113,6 +135,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/ws/dm') return openChatSocket(request, env);
+    if (url.pathname === '/ws/climb') return openClimbSocket(request, env);
     if (url.pathname === '/api/dm' && request.method === 'POST') {
       const res = await handler.fetch(request, env, ctx);
       if (res.status === 201) {

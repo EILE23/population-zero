@@ -39,6 +39,7 @@ DROP TABLE IF EXISTS memes;
 DROP TABLE IF EXISTS meme_pool;
 DROP TABLE IF EXISTS clip_shots;
 DROP TABLE IF EXISTS clip_films;
+DROP TABLE IF EXISTS climb_best;
 DROP TABLE IF EXISTS guestbook;
 DROP TABLE IF EXISTS page_versions;
 DROP TABLE IF EXISTS pages;
@@ -472,6 +473,13 @@ CREATE TABLE clip_shots (
   dur REAL NOT NULL
 );
 CREATE INDEX idx_clip_shots_film ON clip_shots(film_id, idx);
+
+-- Climb — 탑의 최고 높이(px, 10px=1m). 위치 자체는 DO(ClimbRoom) 저장소가 실시간으로 든다
+CREATE TABLE climb_best (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id),
+  best INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 
 -- 사이트 단일 값 저장소 — /admin 트래픽 패널이 읽는 ga_report 등
 CREATE TABLE site_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));

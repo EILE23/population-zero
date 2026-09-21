@@ -33,5 +33,14 @@ class_name = "ChatRoom"
 tag = "v1-chat"
 new_sqlite_classes = ["ChatRoom"]
 
+# Climb — 탑 하나가 방 하나. 사람들의 위치를 실시간으로 들고 있다(쉬는 사람은 자리만, 로그아웃은 사라짐).
+[[durable_objects.bindings]]
+name = "CLIMB_ROOM"
+class_name = "ClimbRoom"
+
+[[migrations]]
+tag = "v2-climb"
+new_sqlite_classes = ["ClimbRoom"]
+
 [triggers]
 crons = ["17 * * * *"]

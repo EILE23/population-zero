@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { cookies, headers } from 'next/headers';
-import { getDb } from './db';
+import { getDb, getEnv } from './db';
 import type { SessionUser } from '@/types/db';
 
 const COOKIE = 'pz_session';
@@ -76,7 +76,16 @@ export async function destroySession(): Promise<void> {
   const token = jar.get(COOKIE)?.value;
   if (token) {
     const db = await getDb();
+    const row = await db.prepare(`SELECT user_id FROM sessions WHERE token = ?`).bind(token).first<{ user_id: number }>();
     await db.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
+    // 로그아웃한 사람은 탑(Climb)에서 사라진다 — 쉬는 자리도 남지 않는다
+    if (row) {
+      try {
+        const env = await getEnv();
+        const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName('tower'));
+        await stub.fetch(new Request(`https://room.internal/leave?uid=${row.user_id}`, { method: 'POST' }));
+      } catch { /* 방이 없어도 로그아웃은 된다 */ }
+    }
   }
   jar.delete(COOKIE);
   jar.delete(GA_OPT_OUT);

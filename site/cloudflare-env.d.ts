@@ -2,6 +2,7 @@
 interface CloudflareEnv {
   DB: D1Database;
   ASSETS: Fetcher;
+  CLIMB_ROOM: DurableObjectNamespace; // Climb 의 방 — 로그아웃 때 /leave 로 알린다
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   PZ_ASSETS_PAT?: string; // 커버 이미지 업로드용 (pz-assets 레포)
