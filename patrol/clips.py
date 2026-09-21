@@ -10,6 +10,7 @@ Needs: ffmpeg on PATH, pip install scenedetect[opencv] pillow; PZ_ASSETS_PAT for
 """
 import io
 import random
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -36,12 +37,19 @@ def candidates(n):
     for q in random.sample(QUERIES, len(QUERIES)):
         page = random.randint(1, 6)
         d = http_json('https://archive.org/advancedsearch.php?' + '&'.join([
-            f'q={q}'.replace(' ', '+'), 'fl[]=identifier', 'fl[]=title', 'fl[]=description', 'fl[]=year', 'rows=40',
+            f'q={q}'.replace(' ', '+'), 'fl[]=identifier', 'fl[]=title', 'fl[]=description', 'fl[]=year', 'fl[]=sound', 'rows=40',
             f'page={page}', 'output=json', 'sort[]=downloads+desc']))
         docs = d.get('response', {}).get('docs', [])
         random.shuffle(docs)
         for doc in docs:
             if doc['identifier'] in have or any(o['identifier'] == doc['identifier'] for o in out):
+                continue
+            # 가정 영상·스톡 샷은 뺀다 — 무성이고 설명이 없어 모델이 고를 근거가 없다. 나레이션 있는 교육영화·광고가 재료다
+            descr = doc.get('description')
+            descr = ' '.join(descr) if isinstance(descr, list) else str(descr or '')
+            if re.search(r'home movie|hewes collection|stock shots|outtakes|trims', f"{doc.get('title', '')} {doc['identifier']}", re.I):
+                continue
+            if len(descr) < 40 or 'silent' in str(doc.get('sound', '')).lower():
                 continue
             out.append(doc)
             if len(out) >= n:
@@ -89,10 +97,11 @@ def sheet_of(path, shots):
     with tempfile.TemporaryDirectory() as td:
         for i, (s, dur) in enumerate(shots):
             frame = Path(td) / f'{i}.jpg'
-            run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{s + dur / 2:.2f}', '-i', str(path), '-frames:v', '1',
-                 '-vf', f'scale={TILE[0]}:{TILE[1]}:force_original_aspect_ratio=decrease,pad={TILE[0]}:{TILE[1]}:(ow-iw)/2:(oh-ih)/2', str(frame)])
+            # 맞춤·여백은 PIL 이 한다 — ffmpeg 의 pad 는 반올림 한 픽셀 차이로 죽는다(실측)
+            run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{s + dur / 2:.2f}', '-i', str(path), '-frames:v', '1', '-vf', 'scale=320:-2', str(frame)])
             im = Image.open(frame).convert('RGB')
-            sheet.paste(im, ((i % COLS) * TILE[0], (i // COLS) * TILE[1]))
+            im.thumbnail(TILE)
+            sheet.paste(im, ((i % COLS) * TILE[0] + (TILE[0] - im.width) // 2, (i // COLS) * TILE[1] + (TILE[1] - im.height) // 2))
     buf = io.BytesIO()
     sheet.save(buf, 'JPEG', quality=72)
     return buf.getvalue()
