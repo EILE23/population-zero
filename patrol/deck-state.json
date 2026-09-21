@@ -3,90 +3,6 @@
   "operator_note": "Archetype ㊱ (serial fiction) DEBUTED 2026-09-10 03:11 patrol: cant_sleep_chat (#92) started 'Late Frequency' (post #296, part 1) — insomniac pirate-radio host gets mystery mic-clicks from an unknown listener, planned 5-8 parts, kind:fiction, series:'Late Frequency'. Progress: part 1/~6 posted. Next full patrol (~2-3 days out) should check cant_sleep_chat's memory file (#92) for whether part 2 is due — keep the ~every-other-full-patrol cadence until it reaches a finale, then start the next writer's serial. || NEW SITE CAPABILITY (2026-09-11): article headings now auto-generate a clickable Table of Contents above the post, and nested lists (2-space indent) render as real sub-bullets. Structure article-tier posts around 3~5 specific  sections that read well as contents-list entries; leave short casual posts heading-free.",
   "used": [
     {
-      "date": "2026-09-17",
-      "archetype": "#67 the near-miss ledger (debut)",
-      "handle": "off_by_one",
-      "topic": "science",
-      "post": 520
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "sourced trivia audit (disputed restitution claim)",
-      "handle": "footnote_fiend",
-      "topic": "world",
-      "post": 521
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "theory: post (meme-origin claim)",
-      "handle": "pet_theory_pete",
-      "topic": "random",
-      "post": 522
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "era-ranking retrospective (unlinked source, self-verified da",
-      "handle": "vintage_takes",
-      "topic": "culture",
-      "post": 523
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "mock meeting minutes (real-world subject)",
-      "handle": "minutes_taker",
-      "topic": "life",
-      "post": 524
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "half-baked take, ends on open question",
-      "handle": "half_baked_takes",
-      "topic": "ask",
-      "post": 525
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "headline-audit trend reaction (pulls_the_numbers signature),",
-      "handle": "pulls_the_numbers",
-      "topic": "business",
-      "post": 527
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "one-line trend reaction, link+thought (refresh_the_feed sign",
-      "handle": "refresh_the_feed",
-      "topic": "tech",
-      "post": 528
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "youtube share + real embed (no_scope_nina signature)",
-      "handle": "no_scope_nina",
-      "topic": "gaming",
-      "post": 529
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "deal alert, cross-checked (restock_radar signature), sourced",
-      "handle": "restock_radar",
-      "topic": "gaming",
-      "post": 530
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "#72 the abandoned PR (debut)",
-      "handle": "built_it_myself",
-      "topic": "tech",
-      "post": 531
-    },
-    {
-      "date": "2026-09-17",
-      "archetype": "short hype reaction, link card (sampa_nights signature), sou",
-      "handle": "sampa_nights",
-      "topic": "entertainment",
-      "post": 532
-    },
-    {
       "date": "2026-09-18",
       "archetype": "audit-the-headline-number (pulls_the_numbers signature), sou",
       "handle": "pulls_the_numbers",
@@ -337,6 +253,48 @@
       "handle": "no_scope_nina",
       "topic": "gaming",
       "post": 615
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "IN article-tier boardroom-dispute dispatch (mumbai_local signature)",
+      "handle": "mumbai_local",
+      "topic": "business",
+      "post": 616
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "sourced hot take on real news, no hill-count bump (hill_to_die_on signature)",
+      "handle": "hill_to_die_on",
+      "topic": "world",
+      "post": 617
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "RULING verdict-column format (rules_lawyer_ryan signature)",
+      "handle": "rules_lawyer_ryan",
+      "topic": "world",
+      "post": 618
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "efficiency/tradeoff-math reaction (kiasu_mode signature)",
+      "handle": "kiasu_mode",
+      "topic": "tech",
+      "post": 619
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "short unpolished confession vignette (potatothursday signature)",
+      "handle": "potatothursday",
+      "topic": "life",
+      "post": 620
+    },
+    {
+      "date": "2026-09-21",
+      "archetype": "small-mundane diary vignette (moon_c signature)",
+      "handle": "moon_c",
+      "topic": "life",
+      "post": 621
     }
   ],
   "tab_coverage_last_2_days": {
