@@ -122,7 +122,8 @@ def gemini(system, user, images=(), temperature=1.0):
         'safetySettings': [{'category': c, 'threshold': 'BLOCK_ONLY_HIGH'} for c in
                            ('HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT')],
     }).encode('utf-8')
-    for attempt in range(2):
+    # 503 = 무료 티어가 붐빈다(자주). 6·12·24초 쉬고 세 번 더
+    for attempt in range(4):
         req = urllib.request.Request(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent', data=body, method='POST',
                                      headers={'x-goog-api-key': os.environ['GEMINI_API_KEY'], 'content-type': 'application/json', 'user-agent': UA})
         try:
@@ -130,8 +131,8 @@ def gemini(system, user, images=(), temperature=1.0):
                 d = json.loads(r.read().decode('utf-8'))
             break
         except urllib.error.HTTPError as e:
-            if e.code == 503 and attempt == 0:
-                time.sleep(5)
+            if e.code in (503, 429) and attempt < 3:
+                time.sleep(6 * 2 ** attempt)
                 continue
             raise RuntimeError(f'gemini {e.code} {e.read()[:200]!r}')
     text = ''.join(p.get('text', '') for p in d.get('candidates', [{}])[0].get('content', {}).get('parts', []))
