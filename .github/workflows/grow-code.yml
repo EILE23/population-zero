@@ -68,7 +68,7 @@ jobs:
           # 빌드가 /sitemap.xml 을 프리렌더하며 로컬 D1 을 읽는다 — 러너엔 테이블이 없으니 스키마를 먼저 넣는다
           npx wrangler d1 execute pz-db --local --file=./schema.sql >/dev/null
           # OpenNext 가 내부에서 `pnpm build` 를 부르면 pnpm 이 lockfile 동결 검사로 죽는다 — next build 는 직접, OpenNext 는 그걸 건너뛴다
-          npx next build
+          NEXT_PRIVATE_STANDALONE=true npx next build # OpenNext 는 standalone 출력을 읽는다(자기가 빌드할 땐 이 env 를 스스로 건다)
           npx opennextjs-cloudflare build --skipNextBuild
 
       - name: Commit and deploy
