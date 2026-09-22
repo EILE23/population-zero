@@ -217,6 +217,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           used.set(c0.spot.key, (used.get(c0.spot.key) ?? 0) + 1);
           stops.push({ map: c0.map, spot: c0.spot, dur: 14 + rr() * 30 });
         }
+        // 마을이 지은 지도(골목 등)에도 간다 — 직업표엔 그 자리가 없어 아무도 안 갔다(운영자 2026-09-22). 열 명 중 넷쯤이 하루 한 번 들른다
+        const grown = maps.current.filter((m) => !MAPS.some((bm) => bm.key === m.key) && m.owner === undefined && m.spots.length > 0);
+        if (grown.length && rr() < 0.4) { const gm = grown[Math.floor(rr() * grown.length)]; const gs = gm.spots[Math.floor(rr() * gm.spots.length)]; stops.splice(Math.floor(rr() * (stops.length + 1)), 0, { map: gm.key, spot: gs, dur: 16 + rr() * 30 }); }
         // 누구나 한 번은 그냥 서성인다 — 자리(분수·카페·벤치) 주변에만 몰리지 않고 광장의 빈 데도 사람이 있게. 자기 일터 지도 안에서
         { const w = wander(stops[0]?.map ?? 'square', 9); if (w) stops.splice(1 + Math.floor(rr() * stops.length), 0, { map: w.map, spot: w.spot, dur: 10 + rr() * 20 }); }
         if (home) { const hs = home.spots.filter((s) => s.kind !== 'door'); stops.splice(Math.floor(rr() * stops.length), 0, { map: home.key, spot: hs[Math.floor(rr() * hs.length)], dur: 30 + rr() * 60 }); }
