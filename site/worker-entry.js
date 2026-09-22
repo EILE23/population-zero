@@ -11,6 +11,7 @@ export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cac
 export { ChatRoom } from './chat-room.js';
 export { ClimbRoom } from './climb-room.js';
 import { runMailCron } from './mail-cron.js';
+import { runCiClock } from './ci-clock.js'; // GitHub Actions 를 정시에 깨우는 시계(GitHub 크론이 밀려서)
 
 const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account', '/go/', '/square', '/climb', '/play']; // 게임 페이지: 구경꾼도 항상 최신 번들을 받아야 로그인한 사람과 같은 걸 본다 // /go/: 광고 착지 — 클릭마다 다른 글로 보내야 하니 캐시하지 않는다
 
@@ -131,6 +132,7 @@ export default {
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(cleanupAssets(env).catch(() => console.error('Asset cleanup failed; queued items retained')));
     ctx.waitUntil(runMailCron(env)); // 답변 알림·주간 마케팅 메일 (자체적으로 실패를 삼킨다)
+    ctx.waitUntil(runCiClock(env).catch((e) => console.log('ci-clock failed', String(e).slice(0, 80))));
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
