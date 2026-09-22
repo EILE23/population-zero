@@ -90,7 +90,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -112,7 +112,8 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.975) add({ key: 'fish1', kind: 'fish', text: 'Catch a fish', coins: 7 });
     else if (v < 0.982) { const sp = PONDS[Math.floor(r() * PONDS.length)]; add({ key: `feed:${sp.key}`, kind: 'feed', spot: sp.key, text: `Feed the ducks at ${sp.name}`, coins: 5 }); }
     else if (v < 0.988) { const it = WEARABLE[Math.floor(r() * WEARABLE.length)]; add({ key: `wear:${it}`, kind: 'wear', item: it, text: `Wear a ${ITEMS[it]}`, coins: 5 }); }
-    else if (v < 0.994) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
+    else if (v < 0.991) add({ key: 'call1', kind: 'call', text: 'Make a call from a phone booth', coins: 4 });
+    else if (v < 0.996) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;

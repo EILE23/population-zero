@@ -40,6 +40,8 @@ type Prop = { key: string; name: string; kind: PropKind; x: number; d: number; s
 const VIEW_W = 960, VIEW_H = 470, GROUND = 330, TOP = GROUND - DEPTH_PX;
 const TOUCH = typeof window !== 'undefined' && 'ontouchstart' in window;
 const REPAIRERS = ['gardener', 'sweeper', 'grocer', 'courier'];
+/** 전화 부스에서 통화가 끝나면 돌아오는 대사 — 무뚝뚝하게 */
+const CALL_LINES = ['no dial tone. that tracks.', 'wrong number.', 'still ringing.', 'busy. of course.', 'hello? — dead line.', 'call me back.'];
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -71,7 +73,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], wearing: new Set<ItemKey>(), hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0 });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], wearing: new Set<ItemKey>(), hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0, calling: 0 });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const feedRef = useRef({ map: '', x: 0, d: 0, until: 0 }); // 마지막으로 오리에게 모이를 준 곳(나 또는 근처 주민) — 오리가 그쪽으로 모인다
@@ -283,9 +285,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (hour() !== curHour) { curHour = hour(); spawn(); }
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
-      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
+      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
       const knock = (byName: string, line: string, fine = 0) => {
-        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0;
+        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0;
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
         b.stack = []; b.wearing.clear(); say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
@@ -341,8 +343,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           void complete('fish1');
         }
       }
+      if (!spectator && b.calling > 0) { // 통화하는 동안 멈춰 있다가, 끊으면 상대의 대사가 온다
+        b.calling = Math.max(0, b.calling - dt); b.moving = false;
+        if (b.calling === 0) { const l = pick(CALL_LINES); say(l, 2200); said.current.set(me!.id, { body: l, until: now + 2500 }); void complete('call1'); }
+      }
       if (b.swing > 0) b.swing = Math.max(0, b.swing - dt);
-      if (!spectator && ready.current && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0 && b.feeding <= 0) {
+      if (!spectator && ready.current && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0 && b.feeding <= 0 && b.calling <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
         const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
         if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
@@ -418,6 +424,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const screen = cur.spots.find((s) => (s.kind === 'tv' || s.kind === 'shelf') && dist(b.x, b.d, s.x, s.d) < 90);
                 const garden = cur.spots.find((s) => s.kind === 'garden' && dist(b.x, b.d, s.x, s.d) < 90);
                 const rack = cur.spots.find((s) => s.kind === 'rack' && dist(b.x, b.d, s.x, s.d) < 90);
+                const booth = cur.spots.find((s) => s.kind === 'booth' && dist(b.x, b.d, s.x, s.d) < 90);
                 if (seat) { b.sitting = !b.sitting; if (b.sitting) { b.x = seat.x; b.d = seat.d; b.seat = seat.kind; } }
                 else if (gym) { b.exercise = 2.4; b.exerciseKind = gym.kind === 'pullbar' ? 'pullup' : 'press'; b.x = gym.x; b.d = gym.d; say(gym.kind === 'pullbar' ? 'Pull-ups.' : 'Bench press.', 1200); }
                 else if (screen) { b.still = b.still ? null : (screen.kind as 'tv' | 'shelf'); if (b.still) { b.x = screen.x; b.d = screen.d; } }
@@ -426,6 +433,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                   for (const q of quests.current.values()) if (q.kind === 'water' && q.spot === garden.key) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
                 }
                 else if (rack) { b.stack.push('rod'); say('Took a rod from the rack.', 1500); }
+                else if (booth) { b.calling = 2.2; b.x = booth.x; b.d = booth.d; say('Dialing.', 1000); }
               }
             }
             if (b.stack.length >= 3) void complete('collect3');
@@ -630,6 +638,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (b.hurt > 0) { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-b.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, figureColor(me!.id), t, false); ctx.restore(); }
         else figure(ctx, fx, fy - (b.sitting ? (SEAT_LIFT[b.seat] ?? 0) * fs : 0), fs, myPose(), b.face, figureColor(me!.id), t, false);
         if (b.still) actIcon(ctx, b.still === 'tv' ? 'watch' : 'read', fx + 18 * fs, fy - 46 * fs, fs);
+        if (b.calling > 0) actIcon(ctx, 'phone', fx + 18 * fs, fy - 46 * fs, fs);
         const carried = b.stack.filter((it) => !b.wearing.has(it));
         carried.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
         for (const it of b.wearing) if (b.stack.includes(it)) item(ctx, it, fx, fy - (WORN_Y[it] ?? 44) * fs, fs * 0.8);
