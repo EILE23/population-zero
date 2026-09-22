@@ -46,6 +46,9 @@ jobs:
         run: |
           corepack enable
           CI=true pnpm install --no-frozen-lockfile --ignore-scripts
+      - name: Tidy the growth documents
+        run: node patrol/grow-tidy.mjs
+
       - name: Pick the next request
         id: pick
         working-directory: patrol
@@ -165,7 +168,7 @@ jobs:
           if [ "${ADD:-0}" -ne 1 ] || [ "${REM:-0}" -ne 0 ]; then echo "registry change is not exactly one added line (+$ADD -$REM) — discarding"; echo "nothing=1" >> "$GITHUB_ENV"; exit 0; fi
           grep -q "slug: '${SLUG}'" site/src/features/games/registry.ts || { echo "slug not registered"; echo "nothing=1" >> "$GITHUB_ENV"; exit 0; }
           # 로그 밖의 파일이 섞였는지 마지막으로 — 아티팩트 구조상 있을 수 없지만 확인은 한 줄이다
-          BAD=$(git diff --cached --name-only | grep -v -E "^(site/src/features/games/${SLUG}/|site/src/features/games/registry\.ts$|patrol/GAMES-LOG\.md$)" || true)
+          BAD=$(git diff --cached --name-only | grep -v -E "^(site/src/features/games/${SLUG}/|site/src/features/games/registry\.ts$|patrol/GAMES-LOG\.md$|patrol/GROW-BACKLOG\.md$|patrol/GROW-DONE\.md$|patrol/growth/)" || true)
           if [ -n "$BAD" ]; then echo "out-of-scope paths: $BAD"; echo "nothing=1" >> "$GITHUB_ENV"; exit 0; fi
 
       - name: Static check — imports, network, storage, eval, DOM injection

@@ -40,6 +40,9 @@ jobs:
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Tidy the growth documents # 완료 항목은 백로그에서 GROW-DONE 으로, 긴 로그는 월별 보관 — 백로그엔 열린 항목만 남는다
+        run: node patrol/grow-tidy.mjs
+
       - name: Implement one backlog item
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -54,7 +57,7 @@ jobs:
           CHANGED=$(git diff --cached --name-only)
           echo "$CHANGED"
           # 엔진(stickman·tower·world·goose·games/engine) + 그 위의 두 게임(square·climb) + 뱃지 + 백로그. 사람이 만든 게임 폴더·registry 는 건드리지 못한다
-          BAD=$(echo "$CHANGED" | grep -v -E '^(site/src/features/square/|site/src/features/climb/|site/src/features/games/engine/|site/src/lib/goose\.ts|site/src/lib/world\.ts|site/src/lib/stickman\.ts|site/src/lib/tower\.ts|site/src/lib/pond\.ts|patrol/GROW-BACKLOG\.md|patrol/GROW-LOG\.md)' || true)
+          BAD=$(echo "$CHANGED" | grep -v -E '^(site/src/features/square/|site/src/features/climb/|site/src/features/games/engine/|site/src/lib/goose\.ts|site/src/lib/world\.ts|site/src/lib/stickman\.ts|site/src/lib/tower\.ts|site/src/lib/pond\.ts|patrol/GROW-BACKLOG\.md|patrol/GROW-LOG\.md|patrol/GROW-DONE\.md|patrol/growth/)' || true)
           if [ -n "$BAD" ]; then echo "reverting out-of-scope changes:"; echo "$BAD"; echo "$BAD" | xargs -r git checkout HEAD -- ; echo "$BAD" | xargs -r git rm -q --cached --ignore-unmatch; fi
           git add -A
           git diff --cached --stat
