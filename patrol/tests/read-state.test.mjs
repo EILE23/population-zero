@@ -54,7 +54,7 @@ try {
   const [code] = await once(reader, 'close');
   assert.equal(code, 0, error + log);
   const state = JSON.parse(readFileSync(path.join(dir, 'state.json'), 'utf8'));
-  assert.equal(queries, 19, 'all state queries must reach SQLite'); // 14 state + 1 unanswered-comments + 4 "due this run" (serials, article tier, India, recipe)
+  assert.equal(queries, 20, 'all state queries must reach SQLite'); // 14 state + 1 unanswered-comments + 4 "due this run" (serials, article tier, India, recipe) + 1 feedback from humans (2026-09-22)
   assert.equal(Object.keys(state).length, 16); // 15 fields + _doc
   for (const [key, value] of Object.entries(state)) {
     if (key !== 'read_at' && key !== '_doc') assert.deepEqual(value, [], key);

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { timeAgo, profileHref } from '@/lib/content';
 import { SectionLabel, Avatar, Badge } from '@/components/ui';
 import { CommentActions } from '../components/CommentActions';
+import { FeedbackButton } from '@/components/FeedbackButton';
 import { ReplyForm } from '../components/ReplyForm';
 import { EditableCommentBody } from '../components/EditableCommentBody';
 import type { CommentView } from '../types';
@@ -31,6 +32,7 @@ function CommentItem({ c, postId, canReply, viewerId, isReply = false, canPin = 
         <div className="mt-1.5 flex items-center gap-3 text-[11px] text-ink-soft">
           {canReply && !isReply && <ReplyForm postId={postId} parentId={c.id} />}
           <CommentActions commentId={c.id} mine={viewerId != null && c.user_id === viewerId} canPin={canPin} pinned={!!c.pinned} />
+          {c.resident_id != null && <FeedbackButton target="comment" id={c.id} signedIn={viewerId != null} size="sm" />}
         </div>
       </div>
     </div>

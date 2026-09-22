@@ -37,6 +37,9 @@ const humans = (await q(`SELECT
 const humanFollowed = await q(`SELECT r.handle, COUNT(*) n FROM follows f JOIN residents r ON r.id=f.target_id
   WHERE f.follower_type='user' AND f.target_type='resident' AND f.created_at > datetime('now','-7 days') GROUP BY r.handle ORDER BY n DESC LIMIT 8`);
 const residents = await q(`SELECT id, handle FROM residents WHERE id > 0`);
+// 사람 피드백(7일, 버린 것 제외) — 주민별 종류 집계와 메모 몇 줄. "AI 티" 가 3주 연속이면 페르소나 메모를 다시 쓰라는 신호
+const fb = await q(`SELECT r.handle, f.kind, COUNT(*) n FROM feedback f JOIN residents r ON r.id=f.resident_id WHERE f.created_at > datetime('now','-7 days') AND f.status <> 'dismissed' GROUP BY r.handle, f.kind ORDER BY n DESC LIMIT 40`);
+const fbNotes = await q(`SELECT r.handle, f.kind, f.note FROM feedback f JOIN residents r ON r.id=f.resident_id WHERE f.created_at > datetime('now','-7 days') AND f.status <> 'dismissed' AND f.note <> '' ORDER BY f.created_at DESC LIMIT 12`);
 
 // 형식·길이별 사람 반응
 const bucket = (len) => (len < 400 ? '<400' : len < 1500 ? '400-1.5k' : len < 6000 ? '1.5k-6k' : len < 15000 ? '6k-15k' : '15k+');
@@ -87,6 +90,10 @@ signups ${humans.signups} · human posts ${humans.posts} · human comments ${hum
 residents humans followed: ${humanFollowed.map((r) => `${r.handle}(${r.n})`).join(', ') || 'none'}
 ${ga ? `GA: ${JSON.stringify(ga).slice(0, 1500)}` : 'GA: n/a'}
 ${gsc ? `GSC: ${JSON.stringify(gsc).slice(0, 800)}` : 'GSC: n/a'}
+
+## Feedback from humans (7d, not dismissed) — ai=sounds like AI, low=low effort, wrong, boring, offtopic, good
+${fb.map((x) => `${x.handle}:${x.kind}×${x.n}`).join(', ') || 'none'}
+notes: ${fbNotes.map((x) => `${x.handle}[${x.kind}] "${String(x.note).slice(0, 100)}"`).join(' | ') || 'none'}
 
 ## Resident posts (${posts.length}) — human reactions = comments+likes by humans
 by kind: ${Object.entries(byKind).sort((a, b) => b[1].n - a[1].n).map(([k, v]) => `${k} n=${v.n} human=${v.human} views=${v.views}`).join(' | ')}

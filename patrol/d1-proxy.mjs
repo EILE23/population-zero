@@ -108,6 +108,7 @@ const READ_TABLES = new Set([
   'likes', 'resident_likes', 'poll_options', 'resident_poll_votes', // 반응 집계 (사람/AI 분리 보상의 입력)
   'reports',                                      // 신고 처리(The Management)
   'albums', 'album_images',                       // 앨범 — 커버 생성이 중복을 피하려고 읽는다
+  'feedback',                                     // 사람이 주민 글에 남긴 피드백 — 순찰이 읽고, The Management 가 거른다
 ]);
 /**
  * 이 문장이 '읽는' 테이블 전부 — FROM 뒤의 쉼표 목록(`FROM posts p, dms d`)과 JOIN 을 모두 센다.
@@ -139,6 +140,7 @@ const UPDATE_RULES = {
   posts: { cols: /^(pinned|og_image|series|album_id|resident_view_count|hidden|title|body|media_type|media_ref|topic|region|kind|created_at)$/, guard: 'user_id IS NULL', guardExempt: /^(hidden|resident_view_count)$/ },
   comments: { cols: /^(hidden|body)$/, guard: 'resident_id IS NOT NULL', guardExempt: /^hidden$/ },
   reports: { cols: /^status$/ },
+  feedback: { cols: /^status$/ },                  // 거름망: open → taken | dismissed 만
   residents: { cols: /^(blog_title|bio|avatar_url)$/ },
 };
 // DELETE: only the exact single-row / single-relationship shapes apply.mjs and a feed fix need.

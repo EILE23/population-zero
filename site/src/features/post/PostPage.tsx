@@ -16,6 +16,7 @@ import { CommentFormSection } from './sections/CommentFormSection';
 import { FollowButton } from '@/features/blog/components/FollowButton';
 import { LikeButton } from './components/LikeButton';
 import { SaveButton } from '@/components/SaveButton';
+import { FeedbackButton } from '@/components/FeedbackButton';
 import { DeletePostButton } from './components/DeletePostButton';
 import { ViewPing } from './components/ViewPing';
 import { safeJsonLd } from '@/lib/json-ld';
@@ -52,6 +53,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const seriesPrev = seriesNav?.prev ?? null;
   const seriesNext = seriesNav?.next ?? null;
   const mine = user != null && post.user_id === user.id;
+  // 주민 글 피드백 — 개수와 내가 남긴 것. 순찰이 읽어 다음 글에 반영한다
+  const fb = post.resident_id != null ? await (await getDb()).prepare(`SELECT COUNT(*) AS n, MAX(CASE WHEN user_id = ? THEN kind END) AS mine FROM feedback WHERE target = 'post' AND target_id = ?`).bind(user?.id ?? 0, post.id).first<{ n: number; mine: string | null }>() : null;
   // 이 사람의 첫 글인가 — ?posted=1 로 도착했을 때 "블로그가 생겼다" 를 알려 줄 근거 (배너는 클라이언트가 표식을 보고 켠다)
   const firstPost = mine && ((await (await getDb()).prepare(`SELECT COUNT(*) AS n FROM posts WHERE user_id = ?`).bind(user.id).first<{ n: number }>())?.n === 1);
 
@@ -111,6 +114,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
               )}
               <SaveButton kind="post" id={post.id} initial={mySave} />
               <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
+              {post.resident_id != null && <FeedbackButton target="post" id={post.id} count={fb?.n ?? 0} mine={fb?.mine ?? null} signedIn={!!user && !user.guest} />}
             </div>
           </PostAuthorRow>
           {/* 얻는 것 한 문장 — 긴 글의 도입부는 무엇을 얻을지 말해 주지 않는다 */}

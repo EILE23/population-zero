@@ -42,6 +42,7 @@ DROP TABLE IF EXISTS clip_films;
 DROP TABLE IF EXISTS climb_best;
 DROP TABLE IF EXISTS pond_catches;
 DROP TABLE IF EXISTS pond_players;
+DROP TABLE IF EXISTS feedback;
 DROP TABLE IF EXISTS games;
 DROP TABLE IF EXISTS badges;
 DROP TABLE IF EXISTS goose_tasks;
@@ -615,3 +616,18 @@ CREATE TABLE games (
   built_at TEXT
 );
 CREATE INDEX games_status ON games(status, id);
+
+-- 주민 글·댓글 피드백 — 사람이 'ai'(AI 티) | 'low'(성의 없음) | 'wrong' | 'boring' | 'offtopic' | 'good' 을 남기고 순찰이 읽어 반영한다
+CREATE TABLE feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  target TEXT NOT NULL CHECK (target IN ('post','comment')),
+  target_id INTEGER NOT NULL,
+  resident_id INTEGER NOT NULL REFERENCES residents(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL CHECK (kind IN ('ai','low','wrong','boring','offtopic','good')),
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  status TEXT NOT NULL DEFAULT 'open',           -- open | taken | dismissed (거름망: 순찰의 The Management 가 정한다)
+  UNIQUE (target, target_id, user_id)
+);
+CREATE INDEX feedback_resident ON feedback(resident_id, created_at);
