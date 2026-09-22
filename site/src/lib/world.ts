@@ -19,7 +19,7 @@ const houseInterior = (key: string, name: string, owner: number | undefined, bac
   spots: [
     { key: `${key}:bed`, name: 'the bed', x: 160, d: 0.35, act: 'sit', kind: 'bed', owner },
     { key: `${key}:table`, name: 'the kitchen table', x: 480, d: 0.6, act: 'eat', kind: 'table', owner },
-    { key: `${key}:tv`, name: 'the TV', x: 780, d: 0.25, act: 'stand', kind: 'tv', owner },
+    { key: `${key}:tv`, name: 'the TV', x: 780, d: 0.25, act: 'watch', kind: 'tv', owner },
     { key: `${key}:sofa`, name: 'the sofa', x: 700, d: 0.7, act: 'sit', kind: 'sofa', owner },
     { key: `${key}:fridge`, name: 'the fridge', x: 320, d: 0.2, act: 'eat', kind: 'fridge', owner },
     { key: `${key}:plant`, name: 'a houseplant', x: 880, d: 0.85, act: 'water', kind: 'plant', owner },
