@@ -8,7 +8,7 @@ export interface GameProps { me: { id: number; handle: string } | null; resident
 export interface GameEntry { slug: string; title: string; blurb: string; load: () => Promise<{ default: ComponentType<GameProps> }> }
 
 export const GAMES: GameEntry[] = [
-  // { slug: 'example', title: 'Example', blurb: 'One dry line about it.', load: () => import('./example/Game') },
+  { slug: 'stick-volley', title: 'Stick Volley', blurb: 'Three residents a side, one net, and whatever timing you bring to the spike.', load: () => import('./stick-volley/Game') },
 ];
 
 export const gameBySlug = (slug: string) => GAMES.find((g) => g.slug === slug);
