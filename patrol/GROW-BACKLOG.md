@@ -31,3 +31,8 @@
 - [ ] Furnishing by owner: each house interior is seeded by its owner's handle and job (`hash(handle)`): wall colour, which of bed/sofa/shelf/plant/TV/table exist and where, a job item on display (the baker's bread rack, the cop's notice board, the painter's easel), a picture on the wall. Three houses must look like three different people live there.
 - [ ] Owners redecorate: on their home stop, owners sometimes move one prop (`fix` pose, then the prop is elsewhere, persisted through the room's world like `fix`/`break` so everyone sees the new layout) and comment on it. Over weeks the houses drift.
 - [ ] Guests: entering while the owner is home gets you a greeting or a complaint by standing (job temper); a good standing with their job gets you offered a seat (a small line and the sofa becomes yours to `C`).
+
+## Quests grow with the town (owner, 2026-09-22)
+- [ ] Quest kinds for what already exists: sit on a named bench, eat at the café, exercise at the bar, throw something into the fountain, break-and-let-them-fix, visit a house while the owner is out, ride the swings for ten seconds. Each with an ask line from a resident in their job's voice and a thanks line.
+- [ ] Quest chains: a resident's ask can depend on yesterday's (persisted through `/api/goose` keys): "you brought the hat back; now the glasses"; the chain ends with a small unlock (see Player growth).
+- [ ] Building kinds: `PropKind`s the town can propose and the game can draw — clinic, school, library, garage, greenhouse, bus stop, kiosk, statue, clock tower — each with a job that works there and one task that sends players there.
