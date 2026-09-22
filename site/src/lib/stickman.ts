@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -162,13 +162,25 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     ctx.restore(); return;
   }
   if (pose === 'pullup') {
-    // 철봉 — 두 손으로 봉을 잡고 몸을 당겼다 늘어뜨린다
-    const p = (Math.sin(t * 3) + 1) / 2; // 0 매달림 1 당김
-    hip = [0, -20 - p * 4]; shoulder = [0, -34 - p * 6]; head = [0, -46 - p * 8];
+    // 철봉 — 봉(-60)을 잡고 매달려 발이 땅에서 떨어진 채 몸을 당겼다 늘어뜨린다. 당기면 턱이 봉 위로, 무릎은 접힌다
+    const p = (Math.sin(t * 2.6) + 1) / 2; // 0 매달림 1 당김
+    shoulder = [0, -44 - p * 12]; hip = [0, -26 - p * 10]; head = [1, -52 - p * 12];
     line(hip, shoulder);
-    line(hip, [-4, -8 - p * 2], [-5, 0]); line(hip, [4, -8 - p * 2], [5, 0]);
-    line(shoulder, [-6, -46], [-8, -54]); line(shoulder, [6, -46], [8, -54]); // 팔은 봉 높이에 고정
+    line(hip, [3, -16 - p * 8 + p * 4], [1, -6 - p * 10]); line(hip, [-2, -15 - p * 8 + p * 4], [-4, -5 - p * 10]); // 다리 늘어짐 → 접힘
+    line(shoulder, [-7, -52 - p * 4], [-8, -60]); line(shoulder, [7, -52 - p * 4], [8, -60]); // 손은 봉에 고정
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'press') {
+    // 벤치프레스 — 벤치(-14) 에 누워 바(양끝 원판)를 밀어 올렸다 내린다. 머리는 뒤(face 반대), 다리는 벤치 끝에서 바닥으로
+    const p = (Math.sin(t * 2.4) + 1) / 2; // 0 내림(가슴) 1 올림
+    const by = -18; const bar = by - 12 - p * 16;
+    line([-2, by], [-22, by - 2]);                      // 몸통(엉덩이 → 어깨)
+    line([-2, by], [8, by - 1], [12, 0]); line([-2, by], [6, by + 1], [9, 0]); // 다리 내려 바닥
+    line([-22, by - 2], [-20, bar + 6], [-19, bar]); line([-22, by - 2], [-12, bar + 6], [-11, bar]); // 팔 → 바
+    ctx.lineWidth = 3; line([-32, bar], [2, bar]); ctx.lineWidth = 2.4; // 바
+    ctx.beginPath(); ctx.arc(-32, bar, 5, 0, 6.29); ctx.fill(); ctx.beginPath(); ctx.arc(2, bar, 5, 0, 6.29); ctx.fill(); // 원판
+    ctx.beginPath(); ctx.arc(-30, by - 4, 7, 0, 6.29); ctx.fill(); // 머리
     ctx.restore(); return;
   }
   if (pose === 'run') {

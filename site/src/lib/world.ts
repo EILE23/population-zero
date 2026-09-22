@@ -85,7 +85,7 @@ export const MAPS: GameMap[] = [
       { key: 'ptree2', name: 'a willow', x: 1900, d: 0.2, act: 'read', kind: 'tree' },
       { key: 'bin4', name: 'a bin', x: 1200, d: 0.95, act: 'stand', kind: 'bin' },
       { key: 'pullbar', name: 'the pull-up bar', x: 1550, d: 0.3, act: 'pullup', kind: 'pullbar' },
-      { key: 'benchpress', name: 'the bench press', x: 2050, d: 0.55, act: 'pushup', kind: 'benchpress' },
+      { key: 'benchpress', name: 'the bench press', x: 2050, d: 0.55, act: 'press', kind: 'benchpress' },
     ],
     exits: [{ x: 2390, d: 0.5, to: 'square', toX: 40, toD: 0.5, label: 'The square →' }],
   },

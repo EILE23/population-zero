@@ -40,8 +40,8 @@ const seatPose = (kind: PropKind | undefined): FigPose => kind === 'bed' ? 'sit'
 const SEAT_LIFT: Partial<Record<PropKind, number>> = { sofa: 10, bed: 20 };
 const seatAt = (m: GameMap, x: number, d: number) => m.spots.find((s) => SITTABLE.includes(s.kind) && dist(x, d, s.x, s.d) < 40);
 /** 주민 일과 → 자세. 사람이 같은 걸 할 때도 같은 자세를 쓴다 */
-const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup' } as Record<string, FigPose>)[act] ?? 'stand');
-const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup'];
+const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press' } as Record<string, FigPose>)[act] ?? 'stand');
+const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press'];
 
 export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [] }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -62,7 +62,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'pushup' as 'pushup' | 'pullup' });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press' });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const [questList, setQuestList] = useState<Quest[]>([]);
@@ -179,13 +179,19 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       // 오늘의 명단 — 모두에게 같다(날짜 씨앗 + 집 주인). 할 일의 주민도 이 안에서 뽑힌다
       const owners = maps.current.map((m) => m.owner).filter((o): o is number => o !== undefined);
       const chosen = dayRoster(new Date().toISOString().slice(0, 10), residents.length, owners);
+      const used = new Map<string, number>(); // 자리별 배정 수 — 같은 직업이 한 곳에 몰리지 않게 덜 쓰인 자리부터 준다
       npcs.current = chosen.map((who) => {
         const handle = residents[who].handle; const job = jobOf(handle); const seed = hash(`square:${who}:${hour()}`); const rr = rng(seed);
         const home = maps.current.find((m) => m.owner === who);
         const cand = job.spots.map((k) => spotIndex.get(k)).filter((x): x is { map: string; spot: Spot } => !!x);
         const stops: Npc['stops'] = [];
         const n = 3 + Math.floor(rr() * 2);
-        for (let k = 0; k < n; k++) { const c0 = cand.length ? cand[Math.floor(rr() * cand.length)] : spotIndex.get('fountain')!; stops.push({ map: c0.map, spot: c0.spot, dur: 14 + rr() * 30 }); }
+        for (let k = 0; k < n; k++) {
+          let c0 = spotIndex.get('fountain')!;
+          if (cand.length) { const least = Math.min(...cand.map((c) => used.get(c.spot.key) ?? 0)); const pool = cand.filter((c) => (used.get(c.spot.key) ?? 0) === least); c0 = pool[Math.floor(rr() * pool.length)]; }
+          used.set(c0.spot.key, (used.get(c0.spot.key) ?? 0) + 1);
+          stops.push({ map: c0.map, spot: c0.spot, dur: 14 + rr() * 30 });
+        }
         if (home) { const hs = home.spots.filter((s) => s.kind !== 'door'); stops.splice(Math.floor(rr() * stops.length), 0, { map: home.key, spot: hs[Math.floor(rr() * hs.length)], dur: 30 + rr() * 60 }); }
         const angry = content.angry.includes(handle) || rr() < job.temper;
         return { who, tx: 0, td: 0.5, job, seed, stops, x: 0, d: 0.5, map: stops[0].map, face: 1 as const, item: job.item, mode: 'routine' as Mode, until: 0, say: '', sayUntil: 0, moving: false, act: 'stand', angry, threw: 0, swing: 0, target: null, owner: null };
@@ -194,14 +200,19 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     };
     /** 지도 a → b 로 가는 문: a 의 출구 중 b 로 가는 것, 없으면 광장으로 가는 것(집→공원처럼 두 번 건너는 경우) */
     const doorTo = (from: string, to: string) => { const m = mapOf(from); return m.exits.find((e) => e.to === to) ?? m.exits.find((e) => e.to === 'square') ?? m.exits[0]; };
+    /** 자리에 설 곳 — 앉는 자리·운동기구는 정확히 그 위, 나머지는 ±110px·앞뒤 ±0.18 로 흩어진다(씨앗+정거장 번호로 결정적). 뭉치면 누가 누군지 안 보인다 */
+    const EXACT: PropKind[] = [...SITTABLE, 'pullbar', 'benchpress'];
+    const standAt = (spot: Spot, seed: number, i: number): [number, number] => {
+      if (EXACT.includes(spot.kind) || spot.act === 'sit') return [spot.x, spot.d];
+      const r = rng(hash(`${seed}:${i}`)); return [spot.x + (r() - 0.5) * 220, Math.min(0.95, Math.max(0.05, spot.d + (r() - 0.5) * 0.36))];
+    };
     const routine = (n: Npc, t: number) => {
       type Seg = { map: string; x0: number; d0: number; x1: number; d1: number; dur: number; act: string; away?: boolean };
       const segs: Seg[] = [];
       const sp = RESIDENT_SPEED * n.job.speed;
       for (let i = 0; i < n.stops.length; i++) {
         const a = n.stops[i], b = n.stops[(i + 1) % n.stops.length];
-        const ax = a.spot.x + ((n.seed % 60) - 30), ad = Math.min(1, Math.max(0.05, a.spot.d + ((n.seed % 20) - 10) / 100));
-        const bx = b.spot.x + ((n.seed % 60) - 30), bd = Math.min(1, Math.max(0.05, b.spot.d + ((n.seed % 20) - 10) / 100));
+        const [ax, ad] = standAt(a.spot, n.seed, i), [bx, bd] = standAt(b.spot, n.seed, (i + 1) % n.stops.length);
         segs.push({ map: a.map, x0: ax, d0: ad, x1: ax, d1: ad, dur: a.dur, act: a.spot.act });
         if (a.map === b.map) segs.push({ map: a.map, x0: ax, d0: ad, x1: bx, d1: bd, dur: Math.hypot(bx - ax, (bd - ad) * 400) / sp, act: 'stand' });
         else {
@@ -323,7 +334,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const seat = cur.spots.find((s) => SITTABLE.includes(s.kind) && dist(b.x, b.d, s.x, s.d) < 90);
                 const gym = cur.spots.find((s) => (s.kind === 'pullbar' || s.kind === 'benchpress') && dist(b.x, b.d, s.x, s.d) < 90);
                 if (seat) { b.sitting = !b.sitting; if (b.sitting) { b.x = seat.x; b.d = seat.d; b.seat = seat.kind; } }
-                else if (gym) { b.exercise = 2.4; b.exerciseKind = gym.kind === 'pullbar' ? 'pullup' : 'pushup'; b.x = gym.x; b.d = gym.d; say(gym.kind === 'pullbar' ? 'Pull-ups.' : 'Push-ups.', 1200); }
+                else if (gym) { b.exercise = 2.4; b.exerciseKind = gym.kind === 'pullbar' ? 'pullup' : 'press'; b.x = gym.x; b.d = gym.d; say(gym.kind === 'pullbar' ? 'Pull-ups.' : 'Bench press.', 1200); }
               }
             }
             if (b.stack.length >= 3) void complete('collect3');
@@ -580,7 +591,7 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
 }
 function actIcon(ctx: CanvasRenderingContext2D, act: string, x: number, y: number, s: number) {
   ctx.fillStyle = '#5b4f56'; ctx.font = `${10 * s}px ui-monospace, monospace`; ctx.textAlign = 'left';
-  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups' } as Record<string, string>)[act] ?? '', x, y);
+  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups', press: 'bench press' } as Record<string, string>)[act] ?? '', x, y);
 }
 function name(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) { ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
 function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) {
