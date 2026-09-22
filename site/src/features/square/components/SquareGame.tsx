@@ -72,6 +72,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const thrown = useRef<{ item: ItemKey; map: string; x: number; d: number; z: number; vx: number; vz: number; from: number; by?: number; remote?: boolean }[]>([]);
   const broken = useRef(new Map<string, { hp: number; brokeAt: number }>());
   const others = useRef(new Map<number, Other>());
+  const said = useRef(new Map<number, { body: string; until: number }>()); // 채팅 말풍선 — uid → 말, 4초. 아래 목록에도 남는다
   const cam = useRef(0);
   const tour = useRef({ uid: 0, until: 0 });
   const stats = useRef({ shoves: [] as { who: number; at: number }[], chasedSince: 0, chasedBy: -1, doneKeys: new Set(done), seq: 0, pendingKnock: null as { by: string; line: string } | null });
@@ -131,7 +132,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         else if (m.t === 'rest') { const o = map.get(Number(m.uid)); if (o) { o.status = 'rest'; o.pose = 'sit'; } }
         else if (m.t === 'leave') map.delete(Number(m.uid));
         else if (m.t === 'ev') apply({ ...(m.ev as Ev), by: m.by }, false);
-        else if (m.t === 'chat') setChats((c) => [...c.slice(-7), { who: String(m.handle), body: String(m.body) }]);
+        else if (m.t === 'chat') { setChats((c) => [...c.slice(-7), { who: String(m.handle), body: String(m.body) }]); if (Number(m.uid)) said.current.set(Number(m.uid), { body: String(m.body), until: performance.now() + 4000 }); }
       };
       sock.onclose = () => { if (alive) setTimeout(connect, Math.min(15000, 1000 * 2 ** retry++)); };
     };
@@ -505,6 +506,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           else { const pose = (KNOWN_POSES.includes(o.pose) ? o.pose : 'stand') as FigPose; const lift = SEATED.includes(pose) ? (SEAT_LIFT[seatAt(cur, o.x, o.d)?.kind ?? 'bench'] ?? 0) * fs : 0; figure(ctx, fx, fy - lift, fs, pose, o.face, col, t, false); }
           o.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
           name(ctx, fx, fy - (58 + o.stack.length * 12) * fs, s, o.handle);
+          const sd = said.current.get(o.uid); if (sd && now < sd.until) bubble(ctx, fx, fy - (70 + o.stack.length * 12) * fs, s, sd.body);
         } });
       }
       if (!spectator) layer.push({ d: b.d, f: () => {
@@ -515,6 +517,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (b.still) actIcon(ctx, b.still === 'tv' ? 'watch' : 'read', fx + 18 * fs, fy - 46 * fs, fs);
         b.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
         name(ctx, fx, fy - (58 + b.stack.length * 12) * fs, s, me!.handle);
+        const sd = said.current.get(me!.id); if (sd && now < sd.until) bubble(ctx, fx, fy - (70 + b.stack.length * 12) * fs, s, sd.body);
       } });
       layer.sort((a, bb) => a.d - bb.d).forEach((l) => l.f());
       if (now - hudAt > 250) { hudAt = now; setHud({ online: [...others.current.values()].filter((o) => o.status === 'active').length + (spectator ? 0 : 1), carry: b.stack.map((x) => ITEMS[x]).join(', '), map: cur.name, exit: exitNear }); }
@@ -529,7 +532,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     fit(); const ro = new ResizeObserver(fit); ro.observe(w); return () => ro.disconnect();
   }, []);
 
-  const send = () => { const b = line.trim(); if (!b || ws.current?.readyState !== 1) return; ws.current.send(JSON.stringify({ t: 'chat', body: b })); setLine(''); };
+  const send = () => { const b = line.trim(); if (!b || ws.current?.readyState !== 1) return; ws.current.send(JSON.stringify({ t: 'chat', body: b })); if (me) said.current.set(me.id, { body: b, until: performance.now() + 4000 }); setLine(''); }; // 내 말은 바로 내 머리 위에(방은 나에겐 되돌려 주지 않는다)
   const hold = (k: keyof typeof input.current) => ({ onPointerDown: () => { input.current[k] = true; }, onPointerUp: () => { input.current[k] = false; }, onPointerLeave: () => { input.current[k] = false; } });
 
   return (

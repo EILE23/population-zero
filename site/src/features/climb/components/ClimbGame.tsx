@@ -25,6 +25,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   const input = useRef<Input>({ left: false, right: false, jump: false });
   const crumbled = useRef(new Map<string, number>()); // id → 밟은 시각
   const others = useRef(new Map<number, Other>());
+  const said = useRef(new Map<number, { body: string; until: number }>()); // 채팅 말풍선 — uid → 말, 4초
   const cam = useRef(0);
   const tour = useRef({ y: 0, manualUntil: 0, uid: 0, until: 0 }); // 구경꾼 카메라: 바닥에서 천천히 올라가며 탑을 훑고, 휠·드래그로 직접 볼 수 있다
   const [chats, setChats] = useState<Chat[]>([]);
@@ -62,7 +63,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
         else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { o.tx = Number(m.x); o.ty = Number(m.y); o.pose = m.pose as Pose; o.face = m.face === -1 ? -1 : 1; o.status = 'active'; } }
         else if (m.t === 'rest') { const o = map.get(Number(m.uid)); if (o) { o.status = 'rest'; o.pose = 'sit'; } }
         else if (m.t === 'leave') map.delete(Number(m.uid));
-        else if (m.t === 'chat') setChats((c) => [...c.slice(-7), { who: String(m.handle), body: String(m.body), at: Date.now() }]);
+        else if (m.t === 'chat') { setChats((c) => [...c.slice(-7), { who: String(m.handle), body: String(m.body), at: Date.now() }]); if (Number(m.uid)) said.current.set(Number(m.uid), { body: String(m.body), until: performance.now() + 4000 }); }
       };
       sock.onclose = () => { setHud((h) => ({ ...h, connected: false })); if (alive) setTimeout(connect, Math.min(15000, 1000 * 2 ** retry++)); };
     };
@@ -201,12 +202,14 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
         const fx = sx(o.x), fy = sy(o.y);
         figure(ctx, fx, fy, scale, o.status === 'rest' ? 'sit' : o.pose, o.face, figureColor(o.uid), t, false);
         label(ctx, fx, fy, scale, o.handle, false, clicks, `/@${o.handle.toLowerCase().replace(/ /g, '-')}`);
+        const sd = said.current.get(o.uid); if (sd && now < sd.until) bubble(ctx, fx, fy, scale, sd.body);
       }
       // 나
       if (!spectator && ready.current) {
         const b = body.current; const fx = sx(b.x), fy = sy(b.y);
         figure(ctx, fx, fy, scale, poseOf(b), b.face, figureColor(me!.id), t, false);
         label(ctx, fx, fy, scale, me!.handle, false, clicks, '');
+        const sd = said.current.get(me!.id); if (sd && now < sd.until) bubble(ctx, fx, fy, scale, sd.body);
       }
       // 아래로 떨어지는 사람 눈에 띄게 — 바닥 그림자 생략. HUD 는 React 로
       if (now - hudAt > 250) {
@@ -228,7 +231,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
 
   const say = () => {
     const body = line.trim(); if (!body || !ws.current || ws.current.readyState !== 1) return;
-    ws.current.send(JSON.stringify({ t: 'chat', body })); setLine('');
+    ws.current.send(JSON.stringify({ t: 'chat', body })); if (me) said.current.set(me.id, { body, until: performance.now() + 4000 }); setLine('');
   };
   const hold = (k: 'left' | 'right') => ({ onPointerDown: () => { input.current[k] = true; }, onPointerUp: () => { input.current[k] = false; }, onPointerLeave: () => { input.current[k] = false; } });
 
