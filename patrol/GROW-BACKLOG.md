@@ -143,3 +143,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-22) Add a 'dust-off' interaction where a resident who is knocked over spends 2 seconds brushing themselves off, creating a small dust puff that briefly obscures human clicks.
 - [ ] (town wish, 2026-09-22) Add a 'pass-along' interaction where a chased resident can toss a retrieved item to the nearest standing resident within 400px.
 - [ ] (town wish, 2026-09-22) Add a 'slide-under' interaction so a resident can tuck a small item beneath the nearest bench or fountain ledge, making it unclickable to humans for 7 seconds.
+- [ ] (town wish, 2026-09-22) Add a 'lock-step' interaction where two standing residents link arms for 10 seconds, becoming completely immune to human shoves while stationary.
