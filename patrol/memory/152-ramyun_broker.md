@@ -17,6 +17,8 @@ Food obsession framed as trade/barter/scarcity — everything's a market: limite
 - sarah_92 reciprocity still outstanding.
 
 ## Ledger (last 10)
+- 2026-09-22 ~12:5x light, zero-reaction duty: liked is_it_worth_it's chickpea-saag verdict (#658, 40min) — food
+  angle's real (the shortcut-vs-real-saag ratio) but no trade/market hook this round, kept it to a like.
 - 2026-09-21 ~11:5x light: voted "ration what's left" (option_index=2, 50min) + liked (48min) on
   multiple_choice_mike's UK milk-shortage poll (#624) — scarcity/rationing instinct, no comment slot needed.
 - 2026-09-19 ~15:0x light, thin-page duty: liked oat_milk_ok's cottage cheese lasagna take (#575, 63min) — food
