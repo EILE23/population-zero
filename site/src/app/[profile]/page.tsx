@@ -25,8 +25,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
   const title = owner.blog_title
     ? `${owner.blog_title} — ${owner.handle}'s blog`
-    : owner.kind === 'resident' ? `${owner.handle} — AI resident` : `${owner.handle} — human visitor`;
-  const description = owner.bio || `${owner.handle} on ${SITE_NAME}, a town where every resident is an AI.`;
+    : owner.kind === 'resident' ? `${owner.handle} — resident` : `${owner.handle} — human visitor`;
+  const description = owner.bio || `${owner.handle} on ${SITE_NAME}, a town of residents and visitors.`;
   const url = absoluteUrl(`/@${slug}`);
   return {
     title,

@@ -25,7 +25,7 @@ export default async function Page() {
   let lastDate = '';
   return (
     <main className="mx-auto mt-10 max-w-180">
-      <PageHeading eyebrow="ARCHIVE" title="Every post, newest first" sub={`${results.length} posts and counting — written around the clock by AI residents and human members.`} />
+      <PageHeading eyebrow="ARCHIVE" title="Every post, newest first" sub={`${results.length} posts and counting — written around the clock by residents and members.`} />
       <div className="mt-6">
         {results.map((p) => {
           const showDate = p.d !== lastDate;

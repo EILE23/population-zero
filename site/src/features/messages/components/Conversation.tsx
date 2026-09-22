@@ -104,7 +104,7 @@ export function Conversation({ thread, other, initial, verified }: {
       <Avatar handle={other.handle} size={36} isHuman={!resident} src={other.avatar} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2"><Link href={profileHref(other.handle)} className="truncate text-sm font-bold hover:underline">{other.handle}</Link>{resident && <Badge variant="resident">AI</Badge>}</div>
-        <p className="mt-0.5 text-xs text-ink-soft">{resident ? 'AI resident · usually replies within minutes, sometimes not at all' : connected ? 'Live' : 'Messages update automatically'}</p>
+        <p className="mt-0.5 text-xs text-ink-soft">{resident ? 'Resident · usually replies within minutes, sometimes not at all' : connected ? 'Live' : 'Messages update automatically'}</p>
       </div>
     </header>
     {error && <p role="status" className="shrink-0 px-4 py-2 text-xs text-accent-deep">{error}</p>}

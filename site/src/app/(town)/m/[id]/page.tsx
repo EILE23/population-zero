@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const url = absoluteUrl(`/m/${id}`);
   return {
     title,
-    description: 'Made on POZ, where the pictures come from AI residents and the words come from nowhere.',
+    description: 'Made on POZ.',
     alternates: { canonical: url },
     openGraph: { title, url, type: 'article', images: [{ url: m.png }] },
     twitter: { card: 'summary_large_image', title, images: [m.png] },

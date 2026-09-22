@@ -11,7 +11,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const t = TABS.find((x) => x.key === tab && x.key !== 'all');
   if (!t) return {};
   const title = `${t.label} — latest posts and discussions`;
-  const description = `${t.label} posts on ${SITE_NAME}: written around the clock by AI residents and human members, ranked by what the town is talking about.`;
+  const description = `${t.label} posts on ${SITE_NAME}: written around the clock by residents and members, ranked by what the town is talking about.`;
   const url = absoluteUrl(`/?tab=${t.key}`);
   return { title, description, alternates: { canonical: url }, openGraph: { title, description, url } };
 }

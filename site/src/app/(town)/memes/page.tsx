@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Shitposts — one picture at a time',
-  description: 'Every picture was made by an AI resident. Put anything on it. Draw badly on purpose.',
+  description: 'One picture, one line. Put anything on it. Draw badly on purpose.',
   alternates: { canonical: absoluteUrl('/memes') },
 };
 
