@@ -112,25 +112,25 @@ export function houses(residents: number): GameMap[] {
 // ── 직업 ──
 export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor';
 export interface Job { key: JobKey; name: string; item: ItemKey; spots: string[]; act: Activity; speed: number; temper: number; line: string }
-/** 직업표 — 일과 자리(어느 지도의 어느 곳이든), 물건, 걸음, 성깔(0~1: 맞았을 때 되갚을 확률) */
+/** 직업표 — 일과 자리(어느 지도의 어느 곳이든), 물건, 걸음, 성깔(0~1: 맞았을 때 되갚을 확률). 그네·철봉·벤치프레스는 여러 직업이 들른다 — 자리마다 가는 직업이 하나뿐이면 그 자세를 볼 일이 없다 */
 export const JOBS: Job[] = [
   { key: 'baker', name: 'baker', item: 'basket', spots: ['bakery', 'stall', 'bench3'], act: 'shop', speed: 0.9, temper: 0.4, line: 'the bread is not for you' },
   { key: 'postie', name: 'postal worker', item: 'paper', spots: ['post', 'house1', 'house2', 'house3', 'booth'], act: 'stand', speed: 1.2, temper: 0.3, line: 'that is federal property. probably.' },
-  { key: 'cop', name: 'police officer', item: 'cup', spots: ['station', 'fountain', 'street', 'gate'], act: 'stand', speed: 1.3, temper: 1, line: 'stop right there' },
+  { key: 'cop', name: 'police officer', item: 'cup', spots: ['station', 'fountain', 'street', 'gate', 'pullbar'], act: 'stand', speed: 1.3, temper: 1, line: 'stop right there' },
   { key: 'gardener', name: 'gardener', item: 'broom', spots: ['garden', 'garden2', 'plant'], act: 'water', speed: 0.8, temper: 0.5, line: 'those took months' },
   { key: 'barista', name: 'barista', item: 'cup', spots: ['cafe', 'bench1'], act: 'eat', speed: 1, temper: 0.35, line: 'oat milk is extra' },
   { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
   { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress', 'dock1', 'dock2'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
-  { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
-  { key: 'dogwalker', name: 'dog walker', item: 'keys', spots: ['park', 'pond2', 'bench4', 'square'], act: 'stand', speed: 1.1, temper: 0.4, line: 'he is a rescue' },
+  { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate', 'swing'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
+  { key: 'dogwalker', name: 'dog walker', item: 'keys', spots: ['park', 'pond2', 'bench4', 'square', 'swing'], act: 'stand', speed: 1.1, temper: 0.4, line: 'he is a rescue' },
   { key: 'sweeper', name: 'street sweeper', item: 'broom', spots: ['bin1', 'bin2', 'bin3', 'bin4', 'square'], act: 'sweep', speed: 0.85, temper: 0.7, line: 'i JUST did this' },
   { key: 'priest', name: 'priest', item: 'paper', spots: ['church', 'bench3', 'square', 'dock1', 'dock2'], act: 'read', speed: 0.8, temper: 0.1, line: 'i forgive you. reluctantly.' },
-  { key: 'office', name: 'office worker', item: 'phone', spots: ['booth', 'booth2', 'cafe', 'bench1'], act: 'phone', speed: 1.1, temper: 0.5, line: 'i am on a call' },
-  { key: 'painter', name: 'painter', item: 'umbrella', spots: ['ptree1', 'ptree2', 'fountain'], act: 'stand', speed: 0.8, temper: 0.3, line: 'the light was perfect' },
-  { key: 'kid', name: 'kid', item: 'sandwich', spots: ['swing', 'pond2', 'stall3'], act: 'sit', speed: 1.4, temper: 0.9, line: 'i am telling' },
+  { key: 'office', name: 'office worker', item: 'phone', spots: ['booth', 'booth2', 'cafe', 'bench1', 'benchpress', 'swing'], act: 'phone', speed: 1.1, temper: 0.5, line: 'i am on a call' },
+  { key: 'painter', name: 'painter', item: 'umbrella', spots: ['ptree1', 'ptree2', 'fountain', 'swing'], act: 'stand', speed: 0.8, temper: 0.3, line: 'the light was perfect' },
+  { key: 'kid', name: 'kid', item: 'sandwich', spots: ['swing', 'pond2', 'stall3', 'pullbar'], act: 'sit', speed: 1.4, temper: 0.9, line: 'i am telling' },
   { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church', 'dock1', 'dock2'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
-  { key: 'courier', name: 'courier', item: 'basket', spots: ['post', 'house1', 'house3', 'cafe', 'bakery'], act: 'stand', speed: 1.5, temper: 0.4, line: 'sign here' },
-  { key: 'mayor', name: 'the mayor', item: 'hat', spots: ['fountain', 'church', 'station'], act: 'stand', speed: 0.9, temper: 0.8, line: 'this is going in the minutes' },
+  { key: 'courier', name: 'courier', item: 'basket', spots: ['post', 'house1', 'house3', 'cafe', 'bakery', 'benchpress'], act: 'stand', speed: 1.5, temper: 0.4, line: 'sign here' },
+  { key: 'mayor', name: 'the mayor', item: 'hat', spots: ['fountain', 'church', 'station', 'swing'], act: 'stand', speed: 0.9, temper: 0.8, line: 'this is going in the minutes' },
 ];
 export const jobOf = (handle: string): Job => JOBS[hash(`job:${handle}`) % JOBS.length];
 export const JOB_BY_KEY = new Map(JOBS.map((j) => [j.key, j]));
