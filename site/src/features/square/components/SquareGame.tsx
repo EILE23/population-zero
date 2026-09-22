@@ -328,9 +328,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (i.grab && !grabWas && b.z === 0) {
           if (b.stack.length) {
             const it = b.stack.pop()!;
+            const bin = cur.spots.find((s) => s.kind === 'bin' && dist(b.x, b.d, s.x, s.d) < 90);
             const water = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
             const spotNear = cur.spots.find((s) => (s.kind === 'bench' || s.kind === 'cafe' || s.kind === 'table' || s.kind === 'bed') && dist(b.x, b.d, s.x, s.d) < 90);
-            if (FOOD.includes(it) && spotNear && spotNear.kind !== 'bed') { b.eating = 1; say(`Ate the ${ITEMS[it]}.`, 1500); } // 카페·식탁·벤치 — 침대에서는 안 먹는다
+            if (bin) { // 통에 들어가면 그걸로 끝 — 줍기 목록에도, 바닥에도 다시 나타나지 않는다(먹기와 같은 규칙: 새 ev 없이 다음 pos.s 로 남에게도 보인다)
+              say(`Binned the ${ITEMS[it]}.`, 1500); void complete(`bin:${it}:${bin.key}`);
+              for (const q of quests.current.values()) if (q.kind === 'bin' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
+            }
+            else if (FOOD.includes(it) && spotNear && spotNear.kind !== 'bed') { b.eating = 1; say(`Ate the ${ITEMS[it]}.`, 1500); } // 카페·식탁·벤치 — 침대에서는 안 먹는다
             else {
               drop(it, b.x + b.face * 18, b.d, null, water?.key);
               if (water) { void complete(`dunk:${it}:${water.key}`); say(`Splash. The ${ITEMS[it]} is in ${water.name}.`); for (const q of quests.current.values()) if (q.kind === 'dunk' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); } }
@@ -557,7 +562,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, or watch the TV / read the bookshelf indoors (move to stop) · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things; the police fine you; other people can hit you too</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead, anything near a bin is gone for good), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, or watch the TV / read the bookshelf indoors (move to stop) · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things; the police fine you; other people can hit you too</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
         {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}{questList.map((q) => <li key={q.key} className={doneList.includes(q.key) ? 'line-through opacity-50' : 'text-accent-deep'}>☐ {q.text} <span className="font-mono text-[10.5px] text-ink-soft">asked · +{q.coins}</span></li>)}</ul>}

@@ -47,6 +47,8 @@ export const WATER = WATER_SPOTS;
 const ALL_SPOTS = MAPS.flatMap((m) => m.spots);
 /** 물 줄 수 있는 화단 — 할 일·부탁이 여기서 하나를 고른다 */
 const GARDENS = ALL_SPOTS.filter((s) => s.kind === 'garden');
+/** 쓰레기를 버릴 수 있는 통 — 할 일·부탁이 여기서 하나를 고른다 */
+const BINS = ALL_SPOTS.filter((s) => s.kind === 'bin');
 
 export interface Routine { who: number; item: ItemKey; seed: number; stops: { spot: string; dur: number }[]; speed: number }
 /** 오늘의 명단 — 날짜로 고정된 30명. 모두가 같은 명단을 봐야 남이 때린 주민이 내 화면에도 있다. 일과는 시간마다 바뀐다 */
@@ -84,7 +86,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -102,14 +104,15 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const bs = ALL_SPOTS.filter((x) => x.kind === 'bench' || x.kind === 'cafe'); const s = bs[Math.floor(r() * bs.length)]; add({ key: `deliver:${it}:${s.key}`, kind: 'deliver', item: it, spot: s.key, text: `Bring a ${ITEMS[it]} to ${s.name}`, coins: 7 }); }
     else if (v < 0.9) { const p = pick(); add({ key: `sit:${p.who}`, kind: 'sit', who: p.who, text: `Make ${handles[p.who]} give up chasing you`, coins: 6 }); }
     else if (v < 0.93) { const sp = GARDENS[Math.floor(r() * GARDENS.length)]; add({ key: `water:${sp.key}`, kind: 'water', spot: sp.key, text: `Water ${sp.name}`, coins: 5 }); }
-    else if (v < 0.97) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
+    else if (v < 0.96) { const it = items[Math.floor(r() * items.length)]; const sp = BINS[Math.floor(r() * BINS.length)]; add({ key: `bin:${it}:${sp.key}`, kind: 'bin', item: it, spot: sp.key, text: `Bin a ${ITEMS[it]} at ${sp.name}`, coins: 6 }); }
+    else if (v < 0.98) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
 }
 
 // ── 퀘스트 — 주민에게 말을 걸면(E) 부탁 하나. 날짜·주민으로 정해져 서버가 같은 걸 계산할 수 있다 ──
-export type QuestKind = 'fetch' | 'revenge' | 'dunk' | 'water';
+export type QuestKind = 'fetch' | 'revenge' | 'dunk' | 'water' | 'bin';
 export interface Quest { key: string; who: number; kind: QuestKind; item?: ItemKey; target?: number; spot?: string; text: string; ask: string; thanks: string; coins: number }
 export function questFor(day: string, who: number, roster: number[], handles: string[]): Quest {
   const r = rng(hash(`quest:${day}:${who}`));
@@ -117,8 +120,9 @@ export function questFor(day: string, who: number, roster: number[], handles: st
   const v = r();
   if (v < 0.5) { const it = items[Math.floor(r() * items.length)]; return { key: `q:${who}:fetch:${it}`, who, kind: 'fetch', item: it, text: `${handles[who]} wants a ${ITEMS[it]}`, ask: `get me a ${ITEMS[it]}. don't ask.`, thanks: pick2(r, ['finally.', 'you are alright.', 'i owe you nothing.', 'this will do.']), coins: 8 }; }
   if (v < 0.72) { let t = roster[Math.floor(r() * roster.length)]; if (t === who) t = roster[(roster.indexOf(t) + 1) % roster.length]; return { key: `q:${who}:revenge:${t}`, who, kind: 'revenge', target: t, text: `${handles[who]} wants ${handles[t]} knocked over`, ask: `${handles[t]}. knock them over. i will pay.`, thanks: pick2(r, ['heh.', 'good.', 'we never spoke.', 'worth it.']), coins: 10 }; }
-  if (v < 0.88) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)];
+  if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)];
     return { key: `q:${who}:dunk:${it}:${w}`, who, kind: 'dunk', item: it, spot: w, text: `${handles[who]} wants a ${ITEMS[it]} in the water`, ask: `put a ${ITEMS[it]} in the water for me. any water.`, thanks: pick2(r, ['splash. thank you.', 'that is closure.', 'good riddance.']), coins: 9 }; }
+  if (v < 0.92) { const it = items[Math.floor(r() * items.length)]; return { key: `q:${who}:bin:${it}`, who, kind: 'bin', item: it, text: `${handles[who]} wants a ${ITEMS[it]} gone`, ask: `take this ${ITEMS[it]} and bin it. i do not want to see it again.`, thanks: pick2(r, ['gone. good.', 'finally.', 'do not bring it back.']), coins: 7 }; }
   const sp = GARDENS[Math.floor(r() * GARDENS.length)];
   return { key: `q:${who}:water:${sp.key}`, who, kind: 'water', spot: sp.key, text: `${handles[who]} wants ${sp.name} watered`, ask: `could you water ${sp.name}? it has been a dry week.`, thanks: pick2(r, ["they'll live another day.", 'much obliged.', 'the leaves say thank you.']), coins: 7 };
 }
