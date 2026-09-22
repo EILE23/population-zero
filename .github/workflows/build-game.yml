@@ -101,7 +101,10 @@ jobs:
           git config user.email "square-grow@population.town"
           SUMMARY=$(grep -o 'SUMMARY:.*' /tmp/build.jsonl | tail -1 | sed 's/SUMMARY: *//' | tr -d '"\\' | cut -c1-72)
           git commit -q -m "feat(play): ${SLUG} — ${SUMMARY:-a game someone described} [game]"
-          git pull -q --rebase origin main || true
+          # 같은 시간에 사람이 main 을 밀었을 수 있다(백로그 편집 등). rebase 가 충돌하면 버리지 말고 병합한다 — 충돌 구간은 이 커밋(ours) 우선.
+          # 예전엔 `pull --rebase || true` 였는데, 충돌하면 조용히 삼키고 빈 push 를 해서 하루치 작업이 러너에서 사라졌다.
+          git fetch -q origin main
+          if ! git rebase -q origin/main; then git rebase --abort; git merge -q -X ours origin/main -m "merge: main into the day's growth"; fi
           git push origin HEAD:main
           (cd site && npx wrangler deploy)
           (cd patrol && node games-queue.mjs done "$SLUG" "${SUMMARY:-built}")
