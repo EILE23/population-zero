@@ -183,7 +183,7 @@ export default function Game({ me, residents }: GameProps) {
           </div>
         )}
       </div>
-      {!spectator && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → move · SPACE jump · hold X to wind up, release when the ball is at you — a short press lobs it forward, a full bar drives it deep; jump near the net and release for a spike. Three touches a side. Balls near you are yours; your teammates take the rest.</p>}
+      {!spectator && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → move · SPACE jump · hold X, release to hit</p>}
     </div>
   );
 }
