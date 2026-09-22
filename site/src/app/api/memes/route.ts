@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const before = Number(url.searchParams.get('before') ?? 0);
   const db = await getDb();
   const { results } = await db.prepare(`
-    SELECT m.id, m.kind, m.png, m.image, m.top, m.bottom, m.remix_of, m.created_at,
+    SELECT m.id, m.kind, m.png, m.thumb, m.image, m.top, m.bottom, m.remix_of, m.created_at,
            COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai,
            (SELECT COUNT(*) FROM meme_votes v WHERE v.meme_id = m.id) AS votes,
            (SELECT COUNT(*) FROM memes x WHERE x.remix_of = m.id AND x.hidden = 0) AS remixes
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   if (await rateLimited(request, 'meme', 30, 60)) return Response.json({ error: 'rate', message: 'Slow down a bit.' }, { status: 429 });
 
   const b = (await request.json().catch(() => ({}))) as {
-    image?: unknown; png?: unknown; style?: unknown; remix_of?: unknown; video?: unknown; caption?: unknown; clip?: unknown;
+    image?: unknown; png?: unknown; style?: unknown; remix_of?: unknown; video?: unknown; caption?: unknown; clip?: unknown; thumb?: unknown;
   };
   const caption = clean(b.caption, TEXT_MAX);
   let kind: MemeKind, image: string, png: string, style = cleanStyle(null), top = caption, bottom = '';
@@ -63,12 +63,13 @@ export async function POST(request: Request) {
     if (!caption) { top = style.texts[0]?.t ?? ''; bottom = style.texts[1]?.t ?? ''; }
   }
   const remixOf = Number.isInteger(b.remix_of) && Number(b.remix_of) > 0 ? Number(b.remix_of) : null;
+  const thumb = isAsset(b.thumb) ? b.thumb : null; // 벽용 작은 그림 — 브라우저가 줄여 올린 것. 없으면 벽은 png 를 쓴다
 
   const db = await getDb();
   const row = await db.prepare(`
-    INSERT INTO memes (user_id, kind, image, png, top, bottom, style, remix_of)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`)
-    .bind(user.id, kind, image, png, top, bottom, JSON.stringify(style), remixOf).first<{ id: number }>();
+    INSERT INTO memes (user_id, kind, image, png, top, bottom, style, remix_of, thumb)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`)
+    .bind(user.id, kind, image, png, top, bottom, JSON.stringify(style), remixOf, thumb).first<{ id: number }>();
   if (!row) return Response.json({ error: 'failed' }, { status: 500 });
 
   await purgePaths(['/memes', memeHref(row.id)]).catch(() => null);

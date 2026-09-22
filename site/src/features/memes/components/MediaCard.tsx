@@ -10,7 +10,8 @@ import { youtubeId, type MemeKind } from '@/lib/memes';
  *   video  평소엔 썸네일, 올리면 유튜브가 소리 없이 돈다(iframe 은 그때 처음 붙는다 — 40개가 한꺼번에 뜨면 안 된다)
  * 클릭은 항상 영구링크로 간다(iframe 은 pointer-events 를 끈다).
  */
-export function MediaCard({ kind, png, image, alt }: { kind: MemeKind; png: string; image: string; alt: string }) {
+/** thumb: 벽용 작은 그림(480px). 있으면 평소엔 그걸 걸고, GIF 는 올렸을 때만 원본을 부른다 — 벽 80장이 원본 PNG 를 다 받으면 느리다 */
+export function MediaCard({ kind, png, thumb, image, alt }: { kind: MemeKind; png: string; thumb?: string | null; image: string; alt: string }) {
   const [hover, setHover] = useState(false);
   const still = useRef<HTMLCanvasElement>(null);
   const [frozen, setFrozen] = useState(false);
@@ -24,7 +25,7 @@ export function MediaCard({ kind, png, image, alt }: { kind: MemeKind; png: stri
 
   // GIF 첫 프레임 — 이미지가 오면 캔버스에 한 번 찍고 그걸 보여 준다. 실패하면(캔버스 오염 등) 그냥 GIF 를 보여 준다
   useEffect(() => {
-    if (kind !== 'gif') return;
+    if (kind !== 'gif' || thumb) return; // 섬네일이 있으면 그게 첫 프레임 노릇을 한다
     const im = new Image(); im.crossOrigin = 'anonymous';
     im.onload = () => {
       const c = still.current; if (!c) return;
@@ -32,12 +33,12 @@ export function MediaCard({ kind, png, image, alt }: { kind: MemeKind; png: stri
       try { c.getContext('2d')?.drawImage(im, 0, 0); setFrozen(true); } catch { /* 위 주석 */ }
     };
     im.src = png;
-  }, [kind, png]);
+  }, [kind, png, thumb]);
 
   return (
     <span className="relative block overflow-hidden" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={png} alt={alt} loading="lazy"
+      <img src={kind === 'gif' && thumb ? (hover ? png : thumb) : (thumb ?? png)} alt={alt} loading="lazy" decoding="async"
         className={`block w-full transition-transform duration-300 ${kind === 'image' ? 'group-hover:scale-[1.03]' : ''} ${kind === 'gif' && frozen && !hover ? 'invisible' : ''}`} />
       {kind === 'gif' && <canvas ref={still} className={`absolute inset-0 h-full w-full ${frozen && !hover ? '' : 'hidden'}`} aria-hidden />}
       {kind === 'gif' && <span className="absolute left-2 top-2 rounded bg-ink/80 px-1.5 font-mono text-[10px] font-bold text-paper">GIF</span>}

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Clapperboard, ImagePlus, Upload } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { youtubeId } from '@/lib/memes';
+import { thumbFromFile } from '@/lib/thumb';
 
 /**
  * 그냥 올리기 — 그림 한 장, GIF 한 장, 유튜브 링크 하나. 만들기(그림판)와 나란히 있고 더 자주 쓰인다.
@@ -39,7 +40,7 @@ export function MemeUpload({ signedIn }: { signedIn: boolean }) {
     if (video.trim() && !yt) { setMessage('That does not look like a YouTube link.'); return; }
     setBusy(true); setMessage('');
     try {
-      let png: string | undefined, clip: string | undefined;
+      let png: string | undefined, clip: string | undefined, thumb: string | undefined;
       const isVideo = !!file && file.type.startsWith('video/');
       const send = async (f: File, kind: 'meme' | 'clip') => {
         const body = new FormData(); body.append('image', f); body.append('kind', kind);
@@ -47,6 +48,8 @@ export function MemeUpload({ signedIn }: { signedIn: boolean }) {
         if (!d.url) setMessage(d.error === 'upload failed (type/size)' ? (kind === 'clip' ? 'WebM or MP4 up to 12MB.' : 'PNG, JPG, WEBP or GIF up to 8MB.') : d.error ?? 'Upload failed.');
         return d.url;
       };
+      // 벽용 작은 그림(480px WebP) — 실패해도 게시는 간다(벽이 원본을 쓴다)
+      const sendThumb = async (blob: Blob | null) => (blob ? await send(new File([blob], blob.type === 'image/webp' ? 'thumb.webp' : 'thumb.jpg', { type: blob.type }), 'meme') : undefined);
       if (file && !yt) {
         if (isVideo) {
           // 내 영상 — 포스터는 브라우저가 첫 프레임을 찍는다
@@ -54,13 +57,15 @@ export function MemeUpload({ signedIn }: { signedIn: boolean }) {
           const posterBlob = await firstFrame(file);
           png = posterBlob ? await send(new File([posterBlob], 'poster.png', { type: 'image/png' }), 'meme') : undefined;
           if (!png) { setBusy(false); return; }
+          thumb = await sendThumb(posterBlob ? await thumbFromFile(new File([posterBlob], 'p.png', { type: 'image/png' })) : null);
         } else {
           png = await send(file, 'meme'); if (!png) { setBusy(false); return; }
+          thumb = await sendThumb(await thumbFromFile(file));
         }
       }
       const res = await fetch('/api/memes', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(yt ? { video: video.trim(), caption } : clip ? { clip, png, caption } : { png, caption }),
+        body: JSON.stringify(yt ? { video: video.trim(), caption } : clip ? { clip, png, thumb, caption } : { png, thumb, caption }),
       });
       const d = await res.json() as { ok?: boolean; url?: string; message?: string };
       if (!res.ok || !d.ok) { setMessage(d.message ?? 'Could not post that.'); setBusy(false); return; }

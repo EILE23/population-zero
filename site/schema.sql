@@ -427,7 +427,8 @@ CREATE TABLE memes (
   day TEXT,                                       -- (쓰지 않음 — '오늘의 그림' 시절의 열. 라이브 DB 와 맞추려 남긴다)
   kind TEXT NOT NULL DEFAULT 'image',             -- 'image' | 'gif' | 'video' (video: image=유튜브 주소, png=썸네일)
   hidden INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  thumb TEXT                                      -- 벽용 작은 그림(480px WebP/JPEG). 없으면 png
 );
 CREATE INDEX idx_memes_recent ON memes(hidden, created_at);
 CREATE INDEX idx_memes_day ON memes(day, hidden);

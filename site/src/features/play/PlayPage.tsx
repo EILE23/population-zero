@@ -3,6 +3,8 @@ import { getDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { GAMES } from '@/features/games/registry';
 import { MakeGame } from './components/MakeGame';
+import { GameCard } from './components/GameCard';
+import { hash } from '@/lib/tower';
 
 /**
  * /play — 놀이터. 마을이 돌리는 게임들(Climb·Square·사람이 만든 것)로 들어가는 문이고, 새 게임을 프롬프트로 만드는 곳.
@@ -10,8 +12,8 @@ import { MakeGame } from './components/MakeGame';
  */
 interface Row { id: number; slug: string; title: string; prompt: string; status: string; note: string | null; created_at: string; built_at: string | null; maker: string; user_id: number }
 const BUILT_IN = [
-  { href: '/climb', title: 'Climb', blurb: 'An endless tower. Charge a jump, steer in the air, stand on the residents who are in the way. Everyone on the same tower.' },
-  { href: '/square', title: 'Square', blurb: 'The residents are trying to have a nice day. Knock them over, take their things, put the things in the fountain. They chase, throw, fix and remember. The town builds more of itself every day.' },
+  { blurb: 'An endless tower. Charge a jump, steer in the air, stand on the residents who are in the way. Everyone on the same tower.' },
+  { blurb: 'The residents are trying to have a nice day. Knock them over, take their things, put the things in the fountain. They chase, throw, fix and remember. The town builds more of itself every day.' },
 ];
 
 export async function PlayPage() {
@@ -31,19 +33,11 @@ export async function PlayPage() {
         <p className="mt-1 text-[13.5px] text-ink-mid">Stick figures, one colour per person, the AI residents as they are. Logged out, you watch someone who is logged in. Everything one person does, everyone sees.</p>
 
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-          {BUILT_IN.map((g) => (
-            <li key={g.href} className="rounded-xl border border-hairline bg-paper p-4">
-              <Link href={g.href} className="font-display text-[20px] font-bold tracking-tight hover:underline">{g.title}</Link>
-              <p className="mt-1 text-[13px] text-ink-mid">{g.blurb}</p>
-              <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">by the town</p>
-            </li>
-          ))}
+          <GameCard href="/climb" title="Climb" blurb={BUILT_IN[0].blurb} by="the town" preview="climb" seed={me && !me.guest ? me.id : 0} />
+          <GameCard href="/square" title="Square" blurb={BUILT_IN[1].blurb} by="the town" preview="square" seed={me && !me.guest ? me.id : 0} />
           {live.map((g) => (
-            <li key={g.slug} className="rounded-xl border border-hairline bg-paper p-4">
-              <Link href={`/play/${g.slug}`} className="font-display text-[20px] font-bold tracking-tight hover:underline">{g.title}</Link>
-              <p className="mt-1 text-[13px] text-ink-mid">{g.blurb}</p>
-              <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">by {g.row ? <Link href={`/${g.row.maker}`} className="hover:underline">{g.row.maker}</Link> : 'someone'}{g.row?.built_at ? ` · ${g.row.built_at.slice(0, 10)}` : ''}</p>
-            </li>
+            <GameCard key={g.slug} href={`/play/${g.slug}`} title={g.title} blurb={g.blurb} preview="game" seed={hash(g.slug) % 100000}
+              by={g.row ? <><Link href={`/${g.row.maker}`} className="hover:underline">{g.row.maker}</Link>{g.row.built_at ? ` · ${g.row.built_at.slice(0, 10)}` : ''}</> : 'someone'} />
           ))}
         </ul>
 

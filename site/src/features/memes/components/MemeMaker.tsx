@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowUpRight, Brush, Circle, Clapperboard, Dices, Download, Eraser, ImagePlus, Minus, Move, Redo2, Square, Sticker, Trash2, Type, Undo2, Upload } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
 import { ASSET_PREFIX, cleanStyle, FONTS, PANELS_MAX, STICKERS_MAX, TEXTS_MAX, type MemeSticker, type MemeText } from '@/lib/memes';
+import { thumbBlob } from '@/lib/thumb';
 import { arrowPath, drawMemeText, drawSticker, FONT_CSS, FONT_LABEL, hitMemeText, hitSticker } from '@/lib/meme-draw';
 import { record, storyboard } from './reel';
 
@@ -296,9 +297,10 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     const clip = await upload(new File([reel.video], `reel.${ext}`, { type: reel.mime }), 'clip');
     const png = clip ? await upload(new File([reel.poster], 'poster.png', { type: 'image/png' }), 'meme') : null;
     if (!clip || !png) { setBusy('idle'); return; }
+    const thumb = await thumbOf(view.current!);
     const res = await fetch('/api/memes', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ clip, png, style: cleanStyle({ texts, panels, stickers }), remix_of: initial?.remixOf ?? null }),
+      body: JSON.stringify({ clip, png, thumb, style: cleanStyle({ texts, panels, stickers }), remix_of: initial?.remixOf ?? null }),
     });
     const d = await res.json() as { ok?: boolean; url?: string; message?: string };
     setBusy('idle');
@@ -306,6 +308,12 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     router.push(d.url!);
   };
 
+  /** 벽용 섬네일 — 실패해도 게시는 막지 않는다(벽이 원본을 쓴다) */
+  const thumbOf = async (c: HTMLCanvasElement): Promise<string | null> => {
+    const b = await thumbBlob(c); if (!b) return null;
+    const body = new FormData(); body.append('image', new File([b], b.type === 'image/webp' ? 'thumb.webp' : 'thumb.jpg', { type: b.type })); body.append('kind', 'meme');
+    const d = await (await fetch('/api/upload', { method: 'POST', body })).json().catch(() => ({})) as { url?: string }; return d.url ?? null;
+  };
   const upload = async (file: File, kind: 'inline' | 'meme' | 'clip'): Promise<string | null> => {
     const body = new FormData(); body.append('image', file); body.append('kind', kind);
     const res = await fetch('/api/upload', { method: 'POST', body });
@@ -344,9 +352,10 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     if (!blob) { setBusy('idle'); return; }
     const png = await upload(new File([blob], 'meme.png', { type: 'image/png' }), 'meme');
     if (!png) { setBusy('idle'); return; }
+    const thumb = await thumbOf(view.current!);
     const res = await fetch('/api/memes', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ image: base ?? png, png, style: cleanStyle({ texts, panels, stickers }), remix_of: initial?.remixOf ?? null }),
+      body: JSON.stringify({ image: base ?? png, png, thumb, style: cleanStyle({ texts, panels, stickers }), remix_of: initial?.remixOf ?? null }),
     });
     const d = await res.json() as { ok?: boolean; url?: string; message?: string };
     setBusy('idle');

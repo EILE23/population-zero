@@ -158,6 +158,13 @@ async function fonts() {
 }
 
 let ghToken = process.env.PZ_ASSETS_PAT || process.env.GITHUB_PAT || null;
+/** 벽용 섬네일 — 480px JPEG(수십 KB). 원본 PNG 는 0.4~1MB 라 벽 80장이 느렸다 */
+async function thumbOf(pngBuf, w = 480) {
+  const im = await loadImage(pngBuf); const k = Math.min(1, w / im.width);
+  const c = createCanvas(Math.round(im.width * k), Math.round(im.height * k)); const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(im, 0, 0, c.width, c.height);
+  return c.toBuffer('image/jpeg', 82);
+}
 async function uploadPng(key, buf) {
   if (!ghToken) { try { ghToken = execSync('gh auth token', { encoding: 'utf8' }).trim(); } catch { /* 아래 */ } } // 로컬: gh CLI 로그인
   const token = ghToken;
@@ -267,10 +274,12 @@ Decide.`;
     log(`@${r.handle} (dry) ${pic.title} ×${repeat} — ${style.texts.map((t) => `"${t.t}"`).join(' / ')} → ${file}`);
     return { used, made: true };
   }
-  const url = await uploadPng(`memes/${r.handle}-${Date.now().toString(36)}.png`, png);
+  const stamp = Date.now().toString(36);
+  const url = await uploadPng(`memes/${r.handle}-${stamp}.png`, png);
+  const thumb = await uploadPng(`memes/${r.handle}-${stamp}-t.jpg`, await thumbOf(png)).catch(() => null); // 벽용 480px — 없어도 게시는 간다
   const top = caption || style.texts[0].t, bottom = caption ? '' : (style.texts[1]?.t ?? '');
-  await d1(`INSERT INTO memes (resident_id, kind, image, png, top, bottom, style)
-    VALUES (${r.id}, 'image', '${esc(pic.url)}', '${esc(url)}', '${esc(top)}', '${esc(bottom)}', '${esc(JSON.stringify(style))}');`);
+  await d1(`INSERT INTO memes (resident_id, kind, image, png, top, bottom, style, thumb)
+    VALUES (${r.id}, 'image', '${esc(pic.url)}', '${esc(url)}', '${esc(top)}', '${esc(bottom)}', '${esc(JSON.stringify(style))}', ${thumb ? `'${esc(thumb)}'` : 'NULL'});`);
   log(`@${r.handle} ${pic.title} ×${repeat} — ${style.texts.map((t) => `"${t.t}"`).join(' / ')}`);
   return { used, made: true };
 }
