@@ -9,9 +9,9 @@ import type { GameProps } from '../registry';
  * 사람은 A 팀 앞사람(색은 내 색). 나머지는 주민. 로그아웃이면 주민끼리 친다. 랠리·3터치·서브·15점 세트.
  */
 const W = 960, H = 470, GROUND = 392, NET_X = 480, NET_TOP = 286, GRAV = 1400, BALL_R = 9;
-const REACH_X = 34, REACH_Y = 84, JUMP_V = 520, GZ = 1900, SPEED_AI = 265, SPEED_ME = 280, FS = 1.1, CHARGE = 0.7;
+const REACH_X = 34, REACH_Y = 84, JUMP_V = 520, GZ = 1900, SPEED_AI = 265, SPEED_ME = 280, FS = 1.1, CHARGE = 0.7, READ_ERR = 46;
 type Side = 'A' | 'B';
-interface P { side: Side; x: number; home: number; z: number; vz: number; face: 1 | -1; pose: FigPose; hit: number; name: string; color: string; seed: number; charge: number }
+interface P { side: Side; x: number; home: number; z: number; vz: number; face: 1 | -1; pose: FigPose; hit: number; name: string; color: string; seed: number; charge: number; err: number }
 interface Ball { x: number; y: number; vx: number; vy: number; live: boolean; side: Side; touches: number; last: P | null; serveAt: number; server: Side }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -44,7 +44,7 @@ export default function Game({ me, residents }: GameProps) {
     const c = canvas.current!; const ctx = c.getContext('2d')!;
     const r = rng(hash(`volley:${me?.id ?? 0}:${new Date().toISOString().slice(0, 10)}`));
     const pool = residents.filter((x) => x.id > 0).sort(() => r() - 0.5).slice(0, 4);
-    const mk = (side: Side, i: number, home: number, who?: { id: number; handle: string }): P => ({ side, x: home, home, z: 0, vz: 0, face: side === 'A' ? 1 : -1, pose: 'stand', hit: 0, charge: 0, name: who?.handle ?? me?.handle ?? 'you', color: who ? '#3a2f36' : figureColor(me?.id ?? 1), seed: hash(who?.handle ?? 'me') });
+    const mk = (side: Side, i: number, home: number, who?: { id: number; handle: string }): P => ({ side, x: home, home, z: 0, vz: 0, face: side === 'A' ? 1 : -1, pose: 'stand', hit: 0, charge: 0, err: 0, name: who?.handle ?? me?.handle ?? 'you', color: who ? '#3a2f36' : figureColor(me?.id ?? 1), seed: hash(who?.handle ?? 'me') });
     const homesA = [380, 170], homesB = [580, 790]; // 앞·뒤 한 명씩
     const ps: P[] = [
       ...homesA.map((h, i) => mk('A', i, h, spectator || i > 0 ? pool[i] : undefined)),
@@ -59,6 +59,7 @@ export default function Game({ me, residents }: GameProps) {
       ball.x = s.x; ball.y = GROUND - 70; ball.live = true; ball.side = ball.server; ball.touches = 1; ball.last = s;
       const tx = ball.server === 'A' ? 600 + r() * 280 : 80 + r() * 280;
       const v = aim(ball.x, ball.y, tx, 1.1, true); ball.vx = v.vx; ball.vy = v.vy; s.pose = 'throw'; s.hit = 0.3; s.charge = 0;
+      for (const q of ps) if (q.side !== ball.server) q.err = (r() - 0.5) * 2 * READ_ERR; // 받는 쪽이 서브를 읽는 오차 — 완벽한 수비는 랠리가 끝나지 않는다
     };
     const point = (to: Side, why: string) => {
       sc[to]++; ball.live = false; ball.server = to; ball.serveAt = performance.now() + 1500; say(`${why} Point ${to}. ${sc.A}–${sc.B}`, 1500);
@@ -68,6 +69,7 @@ export default function Game({ me, residents }: GameProps) {
     const strike = (p: P) => {
       const side = p.side; const n = ball.side === side ? ball.touches : 0;
       ball.side = side; ball.touches = n + 1; ball.last = p; p.hit = 0.3;
+      for (const q of ps) if (q.side !== side) q.err = (r() - 0.5) * 2 * READ_ERR; // 상대가 이 터치를 새로 읽는다
       const spike = ball.touches >= 3 || p.z > 20;
       if (spike) {
         // 빈 곳을 노린다 — 후보 세 곳 중 상대 선수들에게서 가장 먼 곳
@@ -86,6 +88,7 @@ export default function Game({ me, residents }: GameProps) {
     const strikeMe = (p: P, pw: number) => {
       const side = p.side; const n = ball.side === side ? ball.touches : 0;
       ball.side = side; ball.touches = n + 1; ball.last = p; p.hit = 0.3;
+      for (const q of ps) if (q.side !== side) q.err = (r() - 0.5) * 2 * READ_ERR;
       const tx = clamp(p.x + p.face * (70 + pw * 640), 30, W - 30); const cross = (tx < NET_X) !== (p.x < NET_X);
       const T = p.z > 20 ? 0.45 + (1 - pw) * 0.4 : 0.6 + (1 - pw) * 0.6;
       const v = aim(ball.x, ball.y, tx, T, cross); ball.vx = v.vx; ball.vy = v.vy;
@@ -124,7 +127,7 @@ export default function Game({ me, residents }: GameProps) {
           // 사람이 낙하점 가까이(140px) 있으면 그 공은 사람 몫 — 팀원이 대신 받아 주지 않는다
           const humanHas = mine && mine.side === p.side && mine !== ball.last && Math.abs(mine.x - land) < 140;
           const taker = humanHas ? mine : mates.filter((q) => q !== mine).sort((a, b) => Math.abs(a.x - land) - Math.abs(b.x - land))[0] ?? p;
-          const target = p === taker && landSide === p.side ? land + (p.side === 'A' ? -12 : 12) : p.home;
+          const target = p === taker && landSide === p.side ? land + p.err + (p.side === 'A' ? -12 : 12) : p.home;
           dx = Math.abs(target - p.x) > 6 ? Math.sign(target - p.x) : 0;
           if (p === taker && landSide === p.side && ball.y < GROUND - 120 && Math.abs(ball.x - p.x) < 40 && Math.abs(p.x - NET_X) < 160 && p.z === 0 && ball.touches >= 2) p.vz = JUMP_V; // 스파이크 점프
         } else { const target = p.home; dx = Math.abs(target - p.x) > 6 ? Math.sign(target - p.x) : 0; }

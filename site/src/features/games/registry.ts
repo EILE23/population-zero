@@ -9,6 +9,7 @@ export interface GameEntry { slug: string; title: string; blurb: string; load: (
 
 export const GAMES: GameEntry[] = [
   { slug: 'stick-volley', title: 'Stick Volley', blurb: 'Three residents a side, one net, and whatever timing you bring to the spike.', load: () => import('./stick-volley/Game') },
+  { slug: 'stick-volley', title: 'Stick Volley', blurb: 'Two residents a side, one net, and whatever timing you bring to the spike.', load: () => import('./stick-volley/Game') },
 ];
 
 export const gameBySlug = (slug: string) => GAMES.find((g) => g.slug === slug);
