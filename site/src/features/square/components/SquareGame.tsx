@@ -346,7 +346,20 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       }
       if (!spectator && b.calling > 0) { // 통화하는 동안 멈춰 있다가, 끊으면 상대의 대사가 온다
         b.calling = Math.max(0, b.calling - dt); b.moving = false;
-        if (b.calling === 0) { const l = pick(CALL_LINES); say(l, 2200); said.current.set(me!.id, { body: l, until: now + 2500 }); void complete('call1'); }
+        if (b.calling === 0) {
+          void complete('call1');
+          // 6분의 1 확률로 잘못 걸린 전화가 아니라 오늘 명단의 주민과 실제로 연결된다 — 퀘스트 기계는 그대로 재사용
+          const ringWho = Math.random() < 1 / 6 ? rosterIds.filter((w) => !quests.current.has(w)) : [];
+          const who = ringWho.length ? ringWho[Math.floor(Math.random() * ringWho.length)] : -1;
+          const q = who >= 0 ? questOf(who) : null;
+          if (q && !st.doneKeys.has(q.key)) {
+            quests.current.set(who, q); setQuestList([...quests.current.values()]);
+            const line = `${residents[who].handle}: ${q.ask}`;
+            say(line, 2800); said.current.set(me!.id, { body: q.ask, until: now + 2800 });
+          } else {
+            const l = pick(CALL_LINES); say(l, 2200); said.current.set(me!.id, { body: l, until: now + 2500 });
+          }
+        }
       }
       if (!spectator && b.shaking > 0) { // 나무를 흔드는 동안 멈춰 있다가, 다 되면 잎만 지거나(대개) 사과가 떨어진다(가끔)
         b.shaking = Math.max(0, b.shaking - dt); b.moving = false;
