@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -149,6 +149,16 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
+  if (pose === 'feed') {
+    // 오리에게 모이 주기 — 물주기와 같은 자세지만 낟알이 앞으로 흩뿌려진다(아래로 떨어지는 물방울과 달리)
+    const m = (Math.sin(t * 4) + 1) / 2;
+    hip = [0, -16]; shoulder = [6, -30]; head = [10, -37];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [5, -8], [6, 0]);
+    line(shoulder, [14, -26 + m * 4], [21, -20 + m * 6]); line(shoulder, [3, -25], [5, -18]);
+    ctx.fillStyle = '#c9b48a'; for (let k = 0; k < 3; k++) { const p = ((t * 3 + k / 3) % 1); ctx.beginPath(); ctx.arc(23 + k * 4, -18 + p * 16, 1.2, 0, 6.29); ctx.fill(); } ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
   if (pose === 'sweep') {
     // 빗자루질 — 숙인 채 두 손으로 자루를 잡고 좌우로 쓸기
     const p = Math.sin(t * 5) * 6;
@@ -263,5 +273,22 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
   }
   ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
   if (pose === 'hurt') { ctx.beginPath(); ctx.arc(head[0], head[1], 12, 0, 6.29); ctx.strokeStyle = '#ff2d55'; ctx.stroke(); }
+  ctx.restore();
+}
+
+/** 작은 동물 — 오리부터(마을이 늘리는 동물의 첫 종류). 씨앗+시각의 함수라 모두 같은 걸 본다. 발끝 (x,y) 기준 */
+export type CritterKind = 'duck';
+export type CritterPose = 'paddle' | 'flap' | 'feed';
+export function critter(ctx: CanvasRenderingContext2D, kind: CritterKind, x: number, y: number, s: number, pose: CritterPose, t: number) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.3; ctx.lineJoin = 'round';
+  const F = (c: string) => { ctx.fillStyle = c; ctx.fill(); ctx.stroke(); };
+  const bob = pose === 'paddle' ? Math.sin(t * 3) * 1.1 : 0;
+  const duck0 = pose === 'feed' ? -1 : -4 + bob; // 모이 먹을 땐 고개 숙이려고 몸을 살짝 낮춘다
+  ctx.beginPath(); ctx.ellipse(0, duck0, 8, 5, 0, 0, 6.29); F('#e6d3a5');
+  const headY = pose === 'feed' ? duck0 - 1 : duck0 - 4;
+  ctx.beginPath(); ctx.arc(5, headY, 3.2, 0, 6.29); F('#e6d3a5');
+  ctx.fillStyle = '#d98a2a'; ctx.beginPath(); ctx.moveTo(8, headY); ctx.lineTo(13, headY + 1); ctx.lineTo(8, headY + 2); ctx.closePath(); ctx.fill();
+  if (pose === 'flap') { const wf = Math.sin(t * 18) * 5; ctx.strokeStyle = '#3a2f36'; ctx.beginPath(); ctx.moveTo(-2, duck0 - 2); ctx.lineTo(-9, duck0 - 8 - wf); ctx.lineTo(-3, duck0); ctx.closePath(); F('#c9b48a'); }
   ctx.restore();
 }

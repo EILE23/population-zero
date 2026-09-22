@@ -49,6 +49,8 @@ const ALL_SPOTS = MAPS.flatMap((m) => m.spots);
 const GARDENS = ALL_SPOTS.filter((s) => s.kind === 'garden');
 /** 쓰레기를 버릴 수 있는 통 — 할 일·부탁이 여기서 하나를 고른다 */
 const BINS = ALL_SPOTS.filter((s) => s.kind === 'bin');
+/** 오리에게 모이를 줄 수 있는 연못 — 할 일이 여기서 하나를 고른다 */
+const PONDS = ALL_SPOTS.filter((s) => s.kind === 'pond');
 
 export interface Routine { who: number; item: ItemKey; seed: number; stops: { spot: string; dur: number }[]; speed: number }
 /** 오늘의 명단 — 날짜로 고정된 30명. 모두가 같은 명단을 봐야 남이 때린 주민이 내 화면에도 있다. 일과는 시간마다 바뀐다 */
@@ -86,7 +88,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -106,6 +108,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.93) { const sp = GARDENS[Math.floor(r() * GARDENS.length)]; add({ key: `water:${sp.key}`, kind: 'water', spot: sp.key, text: `Water ${sp.name}`, coins: 5 }); }
     else if (v < 0.96) { const it = items[Math.floor(r() * items.length)]; const sp = BINS[Math.floor(r() * BINS.length)]; add({ key: `bin:${it}:${sp.key}`, kind: 'bin', item: it, spot: sp.key, text: `Bin a ${ITEMS[it]} at ${sp.name}`, coins: 6 }); }
     else if (v < 0.975) add({ key: 'fish1', kind: 'fish', text: 'Catch a fish', coins: 7 });
+    else if (v < 0.982) { const sp = PONDS[Math.floor(r() * PONDS.length)]; add({ key: `feed:${sp.key}`, kind: 'feed', spot: sp.key, text: `Feed the ducks at ${sp.name}`, coins: 5 }); }
     else if (v < 0.99) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }

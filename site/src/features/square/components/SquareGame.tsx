@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ListChecks, Upload } from 'lucide-react';
-import { figure, SEATED, type FigPose } from '@/lib/stickman';
+import { critter, figure, SEATED, type CritterPose, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY, ITEM_LIST as POND_ITEMS } from '@/lib/pond';
 import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, FOOD, GRAB_R, ITEMS, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, type ItemKey, type Quest, type Task } from '@/lib/goose';
@@ -40,8 +40,9 @@ const seatPose = (kind: PropKind | undefined): FigPose => kind === 'bed' ? 'sit'
 const SEAT_LIFT: Partial<Record<PropKind, number>> = { sofa: 10, bed: 20 };
 const seatAt = (m: GameMap, x: number, d: number) => m.spots.find((s) => SITTABLE.includes(s.kind) && dist(x, d, s.x, s.d) < 40);
 /** 주민 일과 → 자세. 사람이 같은 걸 할 때도 같은 자세를 쓴다 */
-const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch', fish: 'fish' } as Record<string, FigPose>)[act] ?? 'stand');
+const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch', fish: 'fish', feed: 'feed' } as Record<string, FigPose>)[act] ?? 'stand');
 const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish'];
+interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: number; x: number; d: number; scareUntil: number }
 
 export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [] }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -65,6 +66,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0 });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
+  const feedRef = useRef({ map: '', x: 0, d: 0, until: 0 }); // 마지막으로 오리에게 모이를 준 곳(나 또는 근처 주민) — 오리가 그쪽으로 모인다
   const [questList, setQuestList] = useState<Quest[]>([]);
   const npcs = useRef<Npc[]>([]);
   const loose = useRef<Map<string, Loose>>(new Map());
@@ -243,6 +245,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       propsOf.set(m.key, list);
     }
     const propByKey = new Map<string, { map: string; p: Prop }>(); for (const [mk, list] of propsOf) for (const p of list) propByKey.set(p.key, { map: mk, p });
+    // 오리 — 연못마다 3~5마리, 씨앗으로 정해져 모두 같은 수를 본다. 자리(x,d)는 매 프레임 목표를 향해 스프링으로 따라간다
+    const ducks: Duck[] = [];
+    for (const m of maps.current) for (const sp of m.spots.filter((s) => s.kind === 'pond')) {
+      const r = rng(hash(`duck:${sp.key}`)); const n = 3 + Math.floor(r() * 3);
+      for (let i = 0; i < n; i++) ducks.push({ map: m.key, pond: sp.key, baseX: sp.x, baseD: sp.d, seed: Math.floor(r() * 1e6), x: sp.x, d: sp.d, scareUntil: 0 });
+    }
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
@@ -350,10 +358,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             const bin = cur.spots.find((s) => s.kind === 'bin' && dist(b.x, b.d, s.x, s.d) < 90);
             const water = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
             const spotNear = cur.spots.find((s) => (s.kind === 'bench' || s.kind === 'cafe' || s.kind === 'table' || s.kind === 'bed') && dist(b.x, b.d, s.x, s.d) < 90);
+            const pondSpot = cur.spots.find((s) => s.kind === 'pond' && dist(b.x, b.d, s.x, s.d) < 140);
             if (bin) { // 통에 들어가면 그걸로 끝 — 줍기 목록에도, 바닥에도 다시 나타나지 않는다(먹기와 같은 규칙: 새 ev 없이 다음 pos.s 로 남에게도 보인다)
               say(`Binned the ${ITEMS[it]}.`, 1500); void complete(`bin:${it}:${bin.key}`);
               for (const q of quests.current.values()) if (q.kind === 'bin' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
             }
+            else if (pondSpot && FOOD.includes(it)) { feedRef.current = { map: cur.key, x: b.x, d: b.d, until: now + 3000 }; say('The ducks converge.', 1500); void complete(`feed:${pondSpot.key}`); }
             else if (FOOD.includes(it) && spotNear && spotNear.kind !== 'bed') { b.eating = 1; say(`Ate the ${ITEMS[it]}.`, 1500); } // 카페·식탁·벤치 — 침대에서는 안 먹는다
             else {
               drop(it, b.x + b.face * 18, b.d, null, water?.key);
@@ -461,7 +471,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           continue;
         }
         n.map = base.map; n.x = base.x; n.d = base.d; n.face = base.face; n.act = base.away ? 'away' : base.act; n.moving = base.moving;
-        if (!n.moving && n.act !== 'away' && n.item && FOOD.includes(n.item)) n.act = 'eat'; // 먹을 것을 든 채 멈춰 서면 어디서든 먹는다 — 사람과 같은 규칙
+        if (!n.moving && n.act !== 'away' && n.item && FOOD.includes(n.item)) { // 먹을 것을 든 채 멈춰 서면 어디서든 먹는다 — 연못이면 오리에게 준다(사람과 같은 규칙)
+          const pondHere = here(n) ? cur.spots.find((s) => s.kind === 'pond' && dist(n.x, n.d, s.x, s.d) < 90) : undefined;
+          n.act = pondHere ? 'feed' : 'eat';
+          if (pondHere) feedRef.current = { map: n.map, x: n.x, d: n.d, until: now + 400 };
+        }
         if (!spectator && here(n) && b.hurt <= 0 && !base.away) {
           const ls = [...loose.current.values()].filter((l) => l.map === cur.key && !l.dunked);
           const mine = ls.find((l) => l.from === n.who);
@@ -496,6 +510,24 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         }
       }
       for (const [k, v] of broken.current) if (v.brokeAt && now - v.brokeAt > 300000) broken.current.delete(k); // 아무도 안 고치면 5분 뒤 저절로
+      // ── 오리 — 느린 원을 그리며 헤엄치다, 뛰어드는 사람이나 던진 것이 가까이 오면(각자 화면이 판단) 파닥이며 흩어진다 ──
+      for (const dck of ducks) {
+        if (dck.map !== cur.key) continue;
+        const amp = 30 + (dck.seed % 50), ampD = 0.04 + (dck.seed % 8) / 160, sp2 = 0.12 + (dck.seed % 11) / 70, ph = (dck.seed % 628) / 100;
+        const bx = dck.baseX + Math.cos(t * sp2 + ph) * amp, bdd = Math.min(0.98, Math.max(0.5, dck.baseD + Math.sin(t * sp2 * 1.6 + ph) * ampD));
+        let threat: { x: number; d: number } | null = null;
+        if (!spectator && b.moving && dist(b.x, b.d, bx, bdd) < 90) threat = { x: b.x, d: b.d };
+        if (!threat) for (const o of others.current.values()) { if (o.map === cur.key && o.status === 'active' && dist(o.x, o.d, bx, bdd) < 90) { threat = { x: o.x, d: o.d }; break; } }
+        if (!threat) for (const th of thrown.current) { if (th.map === cur.key && th.z > 0 && dist(th.x, th.d, bx, bdd) < 70) { threat = { x: th.x, d: th.d }; break; } }
+        if (threat) dck.scareUntil = now + 1600;
+        if (now < dck.scareUntil) {
+          const away = threat ?? { x: bx - 40, d: bdd };
+          const fx = bx + Math.sign(bx - away.x || (dck.seed % 2 ? 1 : -1)) * 50;
+          dck.x += (fx - dck.x) * Math.min(1, dt * 7); dck.d += (bdd - dck.d) * Math.min(1, dt * 7);
+        } else if (feedRef.current.map === cur.key && now < feedRef.current.until && dist(feedRef.current.x, feedRef.current.d, bx, bdd) < 220) {
+          dck.x += (feedRef.current.x - dck.x) * Math.min(1, dt * 2.2); dck.d += (feedRef.current.d - dck.d) * Math.min(1, dt * 2.2);
+        } else { dck.x += (bx - dck.x) * Math.min(1, dt * 2); dck.d += (bdd - dck.d) * Math.min(1, dt * 2); }
+      }
       if (chasing >= 0) { if (st.chasedBy !== chasing) { st.chasedBy = chasing; st.chasedSince = now; } else if (now - st.chasedSince > 10000) void complete('chased'); } else { st.chasedBy = -1; st.chasedSince = 0; }
       // 카메라
       let target = b.x;
@@ -519,6 +551,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       type Draw = { d: number; f: () => void }; const layer: Draw[] = [];
       for (const p of props) { const fx = sx(p.x); if (fx < -200 || fx > W + 200) continue; const bs = broken.current.get(p.key); layer.push({ d: p.d, f: () => { prop(ctx, p.kind, fx, dy(p.d) * s, ds(p.d) * s, p.seed, t, [...loose.current.values()].filter((l) => l.dunked === p.key), bs ? (bs.brokeAt ? 'broken' : bs.hp < 3 ? 'cracked' : 'ok') : 'ok'); if (fresh.current.has(p.key)) { ctx.fillStyle = '#7b526c'; ctx.font = `bold ${9.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`new · ${p.name}`, fx, (dy(p.d) + 14) * s); } } }); }
       for (const l of loose.current.values()) { if (l.dunked || l.map !== cur.key) continue; const fx = sx(l.x); if (fx < -50 || fx > W + 50) continue; layer.push({ d: l.d - 0.001, f: () => item(ctx, l.item, fx, dy(l.d) * s - 6 * s, ds(l.d) * s) }); }
+      for (const dck of ducks) {
+        if (dck.map !== cur.key) continue; const fx = sx(dck.x); if (fx < -40 || fx > W + 40) continue;
+        const pose: CritterPose = now < dck.scareUntil ? 'flap' : (feedRef.current.map === cur.key && now < feedRef.current.until && dist(feedRef.current.x, feedRef.current.d, dck.x, dck.d) < 80 ? 'feed' : 'paddle');
+        layer.push({ d: dck.d - 0.002, f: () => critter(ctx, 'duck', fx, dy(dck.d) * s, ds(dck.d) * s, pose, t) });
+      }
       for (const th of thrown.current) { if (th.map !== cur.key) continue; const fx = sx(th.x); layer.push({ d: th.d, f: () => item(ctx, th.item, fx, (dy(th.d) - th.z) * s - 6 * s, ds(th.d) * s) }); }
       for (const n of npcs.current) {
         if (!here(n) || n.act === 'away') continue;
@@ -597,7 +634,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead, anything near a bin is gone for good), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, take a rod from the rack by either pond, or watch the TV / read the bookshelf indoors (move to stop) · with a rod, C at the water's edge casts and waits for a bite · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things — and sometimes trip mid-chase (they drop what they carry, you get away); running empty-handed over something on the ground trips you too; the police fine you; other people can hit you too</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead, anything near a bin is gone for good, and either near a pond feeds the ducks instead), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, take a rod from the rack by either pond, or watch the TV / read the bookshelf indoors (move to stop) · with a rod, C at the water's edge casts and waits for a bite · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things — and sometimes trip mid-chase (they drop what they carry, you get away); running empty-handed over something on the ground trips you too; the police fine you; other people can hit you too</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
         {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}{questList.map((q) => <li key={q.key} className={doneList.includes(q.key) ? 'line-through opacity-50' : 'text-accent-deep'}>☐ {q.text} <span className="font-mono text-[10.5px] text-ink-soft">asked · +{q.coins}</span></li>)}</ul>}
@@ -670,7 +707,7 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
 }
 function actIcon(ctx: CanvasRenderingContext2D, act: string, x: number, y: number, s: number) {
   ctx.fillStyle = '#5b4f56'; ctx.font = `${10 * s}px ui-monospace, monospace`; ctx.textAlign = 'left';
-  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups', press: 'bench press', watch: 'watching', fish: 'fishing' } as Record<string, string>)[act] ?? '', x, y);
+  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups', press: 'bench press', watch: 'watching', fish: 'fishing', feed: 'feeding the ducks' } as Record<string, string>)[act] ?? '', x, y);
 }
 function name(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) { ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
 function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) {
