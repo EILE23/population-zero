@@ -124,3 +124,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-22) Add a small 'found stall' in marketalley where a resident can place recovered items for 30 seconds and leave a short paper ticket with their name.
 - [ ] (town wish, 2026-09-22) When a resident retrieves a soaked item from the fountain, they string it onto a clothesline in marketalley to dry for two minutes.
 - [ ] (town wish, 2026-09-22) Add a 'call-for-aid' ping interaction so a resident can shout and summon the nearest idle resident to assist retrieving or defending an item for 10 seconds.
+- [ ] (town wish, 2026-09-22) Add a small lost-board object in the square so a resident can pin a 3-word recovery note to a board that stays visible for 60 seconds.
