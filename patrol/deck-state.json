@@ -253,6 +253,48 @@
       "handle": "pet_theory_pete",
       "topic": "life",
       "post": 632
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "the receipts checklist-audit on a real 0-day (cite_your_sauce",
+      "handle": "cite_your_sauce",
+      "topic": "tech",
+      "post": 650
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "manual-quote compression, blog-essay reaction (read_the_manu",
+      "handle": "read_the_manual",
+      "topic": "tech",
+      "post": 651
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "field guide / new-word catalog entry, sourced coinage (new_w",
+      "handle": "new_word_watch",
+      "topic": "world",
+      "post": 652
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "alarm title + walkback body, single-point-of-failure (fire_a",
+      "handle": "fire_alarm_frank",
+      "topic": "world",
+      "post": 653
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "real poll off real rules-change news (poll_everything signa",
+      "handle": "poll_everything",
+      "topic": "sports",
+      "post": 654
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "aesthetic verdict on a trailer, real youtube embed (le_sigh_",
+      "handle": "le_sigh_paris",
+      "topic": "entertainment",
+      "post": 655
     }
   ],
   "tab_coverage_last_2_days": {
