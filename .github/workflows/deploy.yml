@@ -1,0 +1,44 @@
+# main 을 그대로 빌드해 올린다 — 수동. 로컬에서 두 세션이 같은 .next 를 쓰다 빌드가 깨질 때, 또는 "라이브가 레포와 다른" 의심이 들 때 쓴다.
+# 게이트는 grow-code 와 같다(tsc·tests·build). 커밋은 하지 않는다.
+name: deploy
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: grow-code          # 성장·게임 잡과 같은 그룹 — 배포가 겹치지 않게
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      npm_config_frozen_lockfile: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        working-directory: site
+        run: |
+          corepack enable
+          CI=true pnpm install --no-frozen-lockfile --ignore-scripts
+      - name: Gate and build
+        working-directory: site
+        run: |
+          npx tsc --noEmit -p .
+          node tests/schema-parity.test.mjs
+          npx wrangler d1 execute pz-db --local --file=./schema.sql >/dev/null
+          NEXT_PRIVATE_STANDALONE=true npx next build
+          npx opennextjs-cloudflare build --skipNextBuild
+      - name: Deploy
+        working-directory: site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+        run: npx wrangler deploy
