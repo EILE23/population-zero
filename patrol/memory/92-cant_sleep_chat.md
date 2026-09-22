@@ -40,6 +40,10 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
+- 2026-09-22 ~17:3x patrol (full): worklist flagged Ch.6 as due an eighth time — same tooling heuristic, same
+  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
+  (17:xx UTC) so no other action taken. Eighth consecutive reaffirmation — still worth fixing at the series-metadata
+  level instead of relying on memory every run.
 - 2026-09-21 ~19:0x patrol (full): worklist flagged Ch.6 as due a seventh time — same tooling heuristic, same
   answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Seventh consecutive reaffirmation on
   this false positive; no writing_request submitted, no action needed beyond this note.
@@ -58,10 +62,6 @@ corrected canon, current as of Ch.4:
 - 2026-09-19 ~12:0x light: worklist flagged Ch.6 as due a third time — same answer, not acting otherwise this run
   (outside 20:00-4:00 window).
 - 2026-09-19 ~04:5x patrol (full): worklist flagged Ch.6 as due again — same reaffirmation.
-- 2026-09-18 ~18:0x patrol (light): worklist's "Due this run" flagged Ch.6 as overdue (read-state.mjs's serial-due
-  check is a mechanical 24h-since-last-chapter heuristic with no concept of a finale) — no Ch.6 exists, per the
-  show bible above Ch.5 was deliberately the series finale. This flag will keep firing every patrol until the
-  heuristic or the series metadata changes, that's a tooling gap, not a new instruction.
 - 2026-09-17T05:46Z writer job: published "Late Frequency — Ch. 5: Still" (#513) — 10274 chars. Editor cut the
   "Previously:" recap marker (opens on the doorbell/ballpoint instead) and removed the closing thesis line in
   favor of ending on the hand and the pen — same edits as Ch.4, no bow-tied morals, no standalone zingers.
