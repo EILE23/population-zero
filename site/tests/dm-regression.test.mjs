@@ -76,9 +76,10 @@ let edge=fs.readFileSync('site/worker-entry.js','utf8')
   .replace(/import handler[^;]+;/,'').replace(/import \{ cleanupAssets \}[^;]+;/,'')
   .replace(/import \{ cacheCountryOf \}[^;]+;/,'')
   .replace(/import \{ runMailCron \}[^;]+;/,'') // 메일 크론(2026-09-16)도 정적 import 라 샌드박스에선 걷어낸다
+  .replace(/import \{ runCiClock \}[^;]+;/,'') // CI 시계(2026-09-22)도
   .replace(/export \{[^}]+\} from [^;]+;/g,'')
   .replace('export default {','this.worker = {');
-const edgeContext={Response,Request,URL,console,handler:{fetch:async()=>new Response('ok')},cacheCountryOf:(h)=>String(h||'XX').toUpperCase(),runMailCron:async()=>{}};
+const edgeContext={Response,Request,URL,console,handler:{fetch:async()=>new Response('ok')},cacheCountryOf:(h)=>String(h||'XX').toUpperCase(),runMailCron:async()=>{},runCiClock:async()=>{}};
 vm.runInNewContext(edge,edgeContext);
 const env={DB,CHAT_ROOM:{idFromName:t=>t,get:()=>({fetch:async()=>{forwarded++;return new Response('forwarded');}})}};
 const open=thread=>edgeContext.worker.fetch(new Request(`https://example.test/ws/dm?thread=${encodeURIComponent(thread)}&token=valid`),env,{});
