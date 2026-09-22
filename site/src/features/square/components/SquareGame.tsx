@@ -334,6 +334,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             const q = quests.current.get(n.who) ?? questOf(n.who);
             if (st.doneKeys.has(q.key)) { n.say = pick(['we are done here.', 'nothing today.', 'go away.']); n.sayUntil = now + 2000; }
             else if (q.kind === 'fetch' && b.stack.includes(q.item!)) { b.stack.splice(b.stack.indexOf(q.item!), 1); n.item = q.item!; finishQuest(q, n); }
+            else if (q.kind === 'pond' && b.stack.includes('fish')) { b.stack.splice(b.stack.indexOf('fish'), 1); n.item = 'fish'; finishQuest(q, n); }
             else if (q.kind === 'revenge' && st.shoves.some((x) => x.who === q.target && now - x.at < 120000)) finishQuest(q, n);
             else { quests.current.set(n.who, q); setQuestList([...quests.current.values()]); n.say = q.ask; n.sayUntil = now + 3500; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; }
           }

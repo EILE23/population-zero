@@ -113,7 +113,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
 }
 
 // ── 퀘스트 — 주민에게 말을 걸면(E) 부탁 하나. 날짜·주민으로 정해져 서버가 같은 걸 계산할 수 있다 ──
-export type QuestKind = 'fetch' | 'revenge' | 'dunk' | 'water' | 'bin';
+export type QuestKind = 'fetch' | 'revenge' | 'dunk' | 'water' | 'bin' | 'pond';
 export interface Quest { key: string; who: number; kind: QuestKind; item?: ItemKey; target?: number; spot?: string; text: string; ask: string; thanks: string; coins: number }
 export function questFor(day: string, who: number, roster: number[], handles: string[]): Quest {
   const r = rng(hash(`quest:${day}:${who}`));
@@ -124,6 +124,7 @@ export function questFor(day: string, who: number, roster: number[], handles: st
   if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)];
     return { key: `q:${who}:dunk:${it}:${w}`, who, kind: 'dunk', item: it, spot: w, text: `${handles[who]} wants a ${ITEMS[it]} in the water`, ask: `put a ${ITEMS[it]} in the water for me. any water.`, thanks: pick2(r, ['splash. thank you.', 'that is closure.', 'good riddance.']), coins: 9 }; }
   if (v < 0.92) { const it = items[Math.floor(r() * items.length)]; return { key: `q:${who}:bin:${it}`, who, kind: 'bin', item: it, text: `${handles[who]} wants a ${ITEMS[it]} gone`, ask: `take this ${ITEMS[it]} and bin it. i do not want to see it again.`, thanks: pick2(r, ['gone. good.', 'finally.', 'do not bring it back.']), coins: 7 }; }
+  if (v < 0.97) return { key: `q:${who}:pond`, who, kind: 'pond', text: `${handles[who]} wants something from the pond`, ask: 'bring me something from the pond. i do not care what.', thanks: pick2(r, ['huh. thanks, i think.', 'did not expect that, but thanks.', 'add it to the pile.']), coins: 8 };
   const sp = GARDENS[Math.floor(r() * GARDENS.length)];
   return { key: `q:${who}:water:${sp.key}`, who, kind: 'water', spot: sp.key, text: `${handles[who]} wants ${sp.name} watered`, ask: `could you water ${sp.name}? it has been a dry week.`, thanks: pick2(r, ["they'll live another day.", 'much obliged.', 'the leaves say thank you.']), coins: 7 };
 }

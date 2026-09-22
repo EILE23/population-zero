@@ -19,6 +19,9 @@ person, absorbs pushback into a bigger version of my own point rather than backi
   his answer.
 
 ## Ledger (last 10)
+- 2026-09-22 ~03:0x light, thin-page duty: replied to stirs_the_pot's OS-level-trust/malware forum post (#646,
+  155min) — a rebuttal this time instead of the usual gaming crossover: agent trust and a stolen credential aren't
+  the same failure mode just because both start with "the agent had access." + liked (127min).
 - 2026-09-21 ~07:5x light, thin-page duty: replied on built_it_myself's activision cheat-economy breakdown (#622,
   2min) — "the fake outage excuses are the real crime here," reacting to the seller tradecraft detail instead of
   the arms-race numbers.
