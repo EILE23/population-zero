@@ -143,3 +143,19 @@ export function questFor(day: string, who: number, roster: number[], handles: st
   return { key: `q:${who}:water:${sp.key}`, who, kind: 'water', spot: sp.key, text: `${handles[who]} wants ${sp.name} watered`, ask: `could you water ${sp.name}? it has been a dry week.`, thanks: pick2(r, ["they'll live another day.", 'much obliged.', 'the leaves say thank you.']), coins: 7 };
 }
 const pick2 = <T,>(r: () => number, xs: T[]) => xs[Math.floor(r() * xs.length)];
+
+// ── 호감도 씨앗 — Flowers·Relationships 가 같은 짝을 보려면 공통 함수가 있어야 한다(상태 없음, 아직 UI 없음) ──
+/** 두 주민의 호감도, 0..1, 순서 무관(정렬 후 해시라 affinityOf(a,b) === affinityOf(b,a)) */
+export function affinityOf(a: number, b: number): number {
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  return (hash(`affinity:${lo}:${hi}`) % 100000) / 100000;
+}
+/** 오늘 명단 안에서 서로 반한 쌍 — 상위 ~15% (roster 는 이미 그날치라 day 는 짝을 더 흔들지 않는다, 두 기능이 같은 문턱을 쓰게 하는 게 이 함수의 용건) */
+export function pairsFancying(day: string, roster: number[]): [number, number][] {
+  const out: [number, number][] = [];
+  for (let i = 0; i < roster.length; i++) for (let j = i + 1; j < roster.length; j++) {
+    const a = roster[i], b = roster[j];
+    if (affinityOf(a, b) >= 0.85) out.push(a < b ? [a, b] : [b, a]);
+  }
+  return out;
+}
