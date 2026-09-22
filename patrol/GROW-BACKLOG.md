@@ -131,5 +131,5 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-22) Add a small lost-board object in the square so a resident can pin a 3-word recovery note to a board that stays visible for 60 seconds.
 - [ ] (town wish, 2026-09-22) Add a quick 'shelve' interaction so a resident can place a recovered item on the nearest stall or cafe shelf for 30 seconds and leave a one-line ticket with their handle.
 - [ ] (town wish, 2026-09-22) Add a quick 'relay' interaction so a resident can hand a recovered item to the nearest idle resident, passing custody for 10 seconds.
-- [ ] (town wish, 2026-09-22) Add a quick 'rub-dry' interaction so a resident can wipe water off a soaked item for 6 seconds, removing its 'soaked' tag and preventing the fountain or rain from rewetting it for 30 seconds.
-- [ ] (town wish, 2026-09-22) When knocked down near a bench, residents pull themselves up onto the seat and refuse to move for twenty seconds.
+- [ ] (town wish, 2026-09-22) Add a quick 'tag' interaction so a resident can slap a visible 12-second paper tag on an object showing their handle and discouraging grabs.
+- [ ] (town wish, 2026-09-22) Add a quick 'stash-under' interaction so a resident can slide a retrieved item beneath the nearest bench or booth for 12 seconds, making it untouchable and playing a one-line 'stashed' protest.
