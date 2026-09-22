@@ -45,6 +45,24 @@ function box(ctx, t, Wc, Hc, padK = 0.3) {
 const overflows = (b, Wc, Hc) => b.x0 < -3 || b.y0 < -3 || b.x1 > Wc + 3 || b.y1 > Hc + 3;
 const hits = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
+/** 글자 상자들이 겹치면 뒤의 것을 아래(안 되면 위)로 민다. 네 번 밀어도 겹치면 포기 — make-memes.mjs 와 같다 */
+function separate(ctx, texts, Wc, Hc) {
+  const out = [];
+  for (const t0 of texts) {
+    let t = { ...t0 };
+    for (let tries = 0; tries < 4; tries++) {
+      const b = box(ctx, t, Wc, Hc); const other = out.map((o) => box(ctx, o, Wc, Hc)).find((o) => hits(o, b));
+      if (!other) break;
+      const down = (other.y1 - b.y0 + 8) / Hc, up = (b.y1 - other.y0 + 8) / Hc;
+      const ny = t.y + down; const uy = t.y - up;
+      t = { ...t, y: ny < 0.98 ? ny : uy };
+      if (tries === 3) return null;
+    }
+    out.push(t);
+  }
+  return out;
+}
+
 let ghToken = process.env.PZ_ASSETS_PAT || process.env.GITHUB_PAT || null;
 async function upload(key, buf) {
   if (!ghToken) { try { ghToken = execSync('gh auth token', { encoding: 'utf8' }).trim(); } catch { /* */ } }
@@ -75,8 +93,12 @@ async function main() {
     const overlap = boxes.some((a, i) => boxes.some((b, j) => j > i && hits(a, b)));
     if (!over && !overlap) continue;
     bad++;
-    const placed = style.texts.map((t) => fitMemeText(ctx, t, W, Hc));
-    const still = placed.map((t) => box(ctx, t, W, Hc, 0.15)).some((b) => overflows(b, W, Hc));
+    // 넘침은 fit 으로, 겹침은 separate(make-memes 와 같은 규칙: 뒤의 것을 아래로, 안 되면 위로)로 — 둘 다 못 풀면 수동
+    const fitted = style.texts.map((t) => fitMemeText(ctx, t, W, Hc));
+    const sep = separate(ctx, fitted, W, Hc);
+    const placed = sep ? sep.map((t) => fitMemeText(ctx, t, W, Hc)) : null;
+    const still = !placed || placed.map((t) => box(ctx, t, W, Hc, 0.15)).some((b) => overflows(b, W, Hc))
+      || placed.some((a, i) => placed.some((b, j) => j > i && hits(box(ctx, a, W, Hc), box(ctx, b, W, Hc))));
     log(`#${m.id} @${m.handle}: ${over ? '넘침 ' : ''}${overlap ? '겹침 ' : ''}→ ${still ? '맞춰도 넘침(수동)' : APPLY ? '다시 그림' : '맞출 수 있음'}`);
     if (!APPLY || still) continue;
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, Hc);
