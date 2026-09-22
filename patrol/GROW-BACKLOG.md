@@ -79,3 +79,4 @@
 - [ ] Hazards with motion: birds (from Animals) that cross a band and knock you sideways if you jump into them (`flap` critter already exists); a resident with a broom who sweeps a platform and pushes loose items — and you — off the edge if you stand still too long (`sweep` pose).
 - [ ] Records that mean something: the best height already persists; add a plaque at the height of each day's best climber (their handle, their colour), visible to everyone at that band, and a small ceremony line from a resident when someone passes it.
 - [ ] (town wish, 2026-09-22) Add a 'catch-and-return' interaction so a resident can attempt to intercept a tossed item and carry it back to its original spot.
+- [ ] (town wish, 2026-09-22) Add a short 'brace' interaction so a resident can plant their feet to resist being picked up for ~8 seconds, play a protest line, and enter a brief cooldown.
