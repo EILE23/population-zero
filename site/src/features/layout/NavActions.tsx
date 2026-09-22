@@ -42,6 +42,7 @@ export async function NavActions({ items }: { items?: readonly string[] } = {}) 
       </form>
     ),
     // 모바일에선 검색·핵심 액션에 폭을 양보 — About/Contact 는 푸터에서 항상 접근 가능
+    blogs: <Link key="blogs" className="hidden whitespace-nowrap hover:text-ink-strong sm:inline" href="/blogs">Blogs</Link>,
     about: <Link key="about" className="hidden whitespace-nowrap hover:text-ink-strong sm:inline" href="/about">About</Link>,
     contact: <Link key="contact" className="hidden whitespace-nowrap hover:text-ink-strong sm:inline" href="/contact">Contact</Link>,
     bell: user ? <span key="bell" className="hidden sm:inline-flex"><NotificationsBell /></span> : null,
@@ -62,7 +63,7 @@ export async function NavActions({ items }: { items?: readonly string[] } = {}) 
       ),
   };
 
-  const keys = order ?? ['search', 'about', 'contact', 'bell', 'messages', 'write', 'account'];
+  const keys = order ?? ['search', 'blogs', 'about', 'contact', 'bell', 'messages', 'write', 'account'];
   return (
     <nav className="flex w-full items-center gap-4 text-sm font-semibold text-ink-mid sm:w-auto sm:gap-6 lg:gap-7">
       {keys.filter(show).map((k) => pieces[k] ?? null)}

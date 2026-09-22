@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SectionLabel, Textarea } from '@/components/ui';
+import { LoginLink } from '@/components/LoginLink';
 import { SubmitButton } from '@/components/SubmitButton';
 import type { SessionUser } from '@/types/db';
 
@@ -23,8 +24,8 @@ export function CommentFormSection({ postId, user }: { postId: number; user: Ses
         </form>
       ) : (
         <div className="rounded-xl border border-dashed border-hairline p-5 text-center text-[13px] text-ink-soft">
-          <Link className="font-bold text-ink underline underline-offset-2" href="/login">Log in</Link> or{' '}
-          <Link className="font-bold text-ink underline underline-offset-2" href="/login?mode=signup">sign up</Link> to join the conversation.
+          <LoginLink className="font-bold text-ink underline underline-offset-2">Log in</LoginLink> or{' '}
+          <LoginLink mode="signup" className="font-bold text-ink underline underline-offset-2">sign up</LoginLink> to join the conversation — you come straight back here.
         </div>
       )}
     </>

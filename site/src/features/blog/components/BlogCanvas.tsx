@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
 import { PostCard, SectionLabel, Avatar, Badge, Cover } from '@/components/ui';
+import { FollowButton } from './FollowButton';
 import { postHref, timeAgo } from '@/lib/content';
 import { themeVars, WIDTHS, BLOCK_GAP, BLOCK_PAD, BLOCK_SPAN, type BlogLayout, type Block } from '@/lib/blog-layout';
 import type { BlogFilter, ProfileData } from '../types';
@@ -14,7 +15,7 @@ import type { BlogFilter, ProfileData } from '../types';
  */
 export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, memes, blockWrap, zoneProps, filter }: {
   layout: BlogLayout;
-  data: Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
+  data: BlogCanvasData;
   base: string;
   viewer: boolean;
   /** 편집기 안에서는 링크를 따라가지 않게 한다 */
@@ -52,10 +53,12 @@ export function BlogCanvas({ layout, data, base, viewer, editing, guestbook, mem
     <div data-pz="canvas" style={shellStyle} className="mx-auto w-full pz-canvas">
       {rail ? (
         <div className={`pz-rail-grid ${shell === 'rail-right' ? 'pz-rail-right' : ''}`}>
+          {/* 본문이 먼저다 — DOM 순서가 곧 휴대폰 순서이고 스크린리더 순서다. 레일(방명록·링크)이 앞에 오면
+              좁은 화면에서 제목이 955px, 첫 글이 1394px 아래로 밀렸다(실측). 넓은 화면의 좌우 배치는 CSS order 가 한다 */}
+          <div className="pz-flow pz-main min-w-0" {...(zoneProps?.('main') ?? {})}>{mainBlocks.map(render)}</div>
           <aside data-pz="rail" className="pz-rail pz-flow" {...(zoneProps?.('rail') ?? {})}>
             {railBlocks.length ? railBlocks.map(render) : editing ? <p className="pz-drop">Drag a block here</p> : null}
           </aside>
-          <div className="pz-flow min-w-0" {...(zoneProps?.('main') ?? {})}>{mainBlocks.map(render)}</div>
         </div>
       ) : (
         <div className="pz-flow" {...(zoneProps?.('main') ?? {})}>{mainBlocks.map(render)}</div>
@@ -363,9 +366,10 @@ function BlockView({ block, data, base, viewer, editing, guestbook, memes, hasHe
         <div className="flex flex-wrap items-center gap-2">
           {p.write !== false && <PzLink href="/write" editing={editing}><span className={cls}>Write</span></PzLink>}
           {p.messages !== false && <PzLink href="/messages" editing={editing}><span className={cls}>Messages</span></PzLink>}
-          {p.follow !== false && !data.isMe && (
-            <PzLink href={`${base}/follows`} editing={editing}><span className={cls}>Followers</span></PzLink>
-          )}
+          {/* 장식이 기능을 대신하면 안 된다 — 'Followers' 링크가 팔로우 버튼 자리에 있었다 */}
+          {p.follow !== false && !data.isMe && (editing
+            ? <span className={cls}>Follow · {data.followerCount}</span>
+            : <FollowButton targetType={data.owner.type} targetId={data.owner.id} initialFollowing={!!data.iFollow} initialCount={data.followerCount} canFollow={viewer} compact />)}
         </div>,
       );
     }
@@ -421,4 +425,4 @@ function PzTab({ href, label, active, editing }: { href: string; label: string; 
   return <Link href={href} className={cls}>{label}</Link>;
 }
 
-type BlogCanvasData = Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'>;
+type BlogCanvasData = Pick<ProfileData, 'owner' | 'posts' | 'topics' | 'pinnedPost' | 'seriesList' | 'followerCount' | 'followingCount' | 'isMe'> & { iFollow?: boolean };

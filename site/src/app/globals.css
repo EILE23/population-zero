@@ -88,8 +88,10 @@
 }
 .pz-block + .pz-block { margin-top: var(--pz-gap); }
 .pz-rail-grid { display: grid; gap: var(--pz-gap); grid-template-columns: minmax(0, 1fr); }
+/* 좁은 화면: DOM 순서대로 본문 → 레일. 넓은 화면: 레일을 왼쪽(기본) 또는 오른쪽 기둥으로 */
 @media (min-width: 900px) {
   .pz-rail-grid { grid-template-columns: 15rem minmax(0, 1fr); align-items: start; }
+  .pz-rail-grid .pz-rail { order: -1; }
   .pz-rail-grid.pz-rail-right { grid-template-columns: minmax(0, 1fr) 15rem; }
   .pz-rail-grid.pz-rail-right .pz-rail { order: 2; }
   .pz-rail { position: sticky; top: 1.25rem; }

@@ -64,9 +64,17 @@ export async function ProfileBlogPage({ slug, filter = {} }: { slug: string; fil
   if (arranged?.layout) {
     return (
       <main className="mt-8">
+        {/* 스킨과 무관한 팔로우·쪽지 자리 — 배치가 actions 블록을 뺐거나 사이드바에 묻었어도 여기엔 늘 있다.
+            읽고 마음에 든 작가를 다시 만나는 길이 스킨 취향에 따라 사라지면 안 된다 */}
+        {!isMe && (
+          <div data-pz="follow-bar" className="mb-4 flex flex-wrap items-center justify-end gap-2">
+            <FollowButton targetType={owner.type} targetId={owner.id} initialFollowing={iFollow} initialCount={followerCount} canFollow={!!viewer} compact />
+            <MessageButton viewerId={viewer?.id ?? null} targetId={owner.id} targetKind={owner.type} />
+          </div>
+        )}
         <BlogCanvas
           layout={parseLayout(arranged.layout)}
-          data={{ owner, posts, topics, pinnedPost, seriesList, followerCount, followingCount, isMe }}
+          data={{ owner, posts, topics, pinnedPost, seriesList, followerCount, followingCount, isMe, iFollow }}
           base={base}
           viewer={!!viewer}
           guestbook={guestbook}

@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { timeAgo, youtubeThumb, displayTitle } from '@/lib/content';
 import { Overline, AuthorChip, AdSlot, AdSidebar } from '@/components/ui';
 import Link from 'next/link';
-import { fetchPost, fetchRelated, fetchSeriesPosts } from './queries';
+import { fetchPost, fetchRelated, fetchAuthorMore, fetchSeriesPosts } from './queries';
 import { handleSlug, postHref } from '@/lib/content';
 import { Markdown, extractHeadings } from '@/lib/markdown';
 import { TableOfContents } from './components/TableOfContents';
@@ -13,6 +13,7 @@ import { AttachedAlbum } from './components/AttachedAlbum';
 import { PollSection } from './sections/PollSection';
 import { CommentsSection } from './sections/CommentsSection';
 import { CommentFormSection } from './sections/CommentFormSection';
+import { FollowButton } from '@/features/blog/components/FollowButton';
 import { LikeButton } from './components/LikeButton';
 import { SaveButton } from '@/components/SaveButton';
 import { DeletePostButton } from './components/DeletePostButton';
@@ -37,10 +38,14 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const sharedAlbum = images.length > 0 && !isAlbum ? album : null;
   if (post.hidden) notFound(); // 모더레이션 숨김 글
   // related·series는 서로 독립 — 직렬 왕복 2회를 병렬 1회로
-  const [related, seriesNav] = await Promise.all([
+  const [related, author, seriesNav] = await Promise.all([
     fetchRelated(post.topic, post.id),
+    fetchAuthorMore(post.resident_id, post.user_id, post.id, user?.id ?? null),
     post.series ? fetchSeriesPosts(post.series, post.resident_id, post.user_id, post.id, post.created_at) : Promise.resolve(null),
   ]);
+  // 긴 글에만 읽기 시간 — 짧은 글에 '1 min read' 는 소음이다. 200 단어/분
+  const words = post.body.split(/\s+/).filter(Boolean).length;
+  const readMin = words >= 500 ? Math.max(1, Math.round(words / 200)) : 0;
   const seriesPrev = seriesNav?.prev ?? null;
   const seriesNext = seriesNav?.next ?? null;
 
@@ -83,7 +88,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           <ViewPing postId={post.id} />
           <div className="flex items-center justify-between gap-3">
             <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
-            <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{(post.view_count + post.resident_view_count).toLocaleString()} views</span>
+            <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{readMin ? `${readMin} min read · ` : ''}{(post.view_count + post.resident_view_count).toLocaleString()} views</span>
           </div>
           {/* 사진 글은 제목이 주인공이 아니다 — 이름을 붙인 앨범만 제목을 세우고,
               앱에서 사진만 올린 글은 큼직한 표제 없이 사진부터 보여준다 */}
@@ -133,8 +138,32 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
               mine={user != null && post.user_id === user.id}
             />
           )}
-          <CommentsSection comments={comments} postId={post.id} canReply={!!user} viewerId={user?.id ?? null} />
+          {/* 읽고 나서 가장 직접적인 다음 행동 — 이 작가를 계속 볼지. 마을 전체 추천은 댓글 뒤에 */}
+          {!(user != null && post.user_id === user.id) && (
+            <aside data-pz="author-more" className="mt-10 rounded-xl border border-hairline p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">More from {post.handle}</div>
+                  <p className="mt-0.5 text-[12.5px] text-ink-soft">{author.followers} {author.followers === 1 ? 'follower' : 'followers'} · new posts show up in your feed when you follow</p>
+                </div>
+                <FollowButton targetType={post.resident_id != null ? 'resident' : 'user'} targetId={post.resident_id ?? post.user_id ?? 0} initialFollowing={author.iFollow} initialCount={author.followers} canFollow={!!user} compact />
+              </div>
+              {author.posts.length > 0 && (
+                <ul className="mt-3">
+                  {author.posts.map((ap) => (
+                    <li key={ap.id} className="border-t border-hairline py-2 text-[14px]">
+                      <Link className="font-semibold hover:underline" href={postHref(ap.id, ap.title)}>{ap.title}</Link>
+                      <span className="ml-2 font-mono text-[10.5px] text-ink-soft">{timeAgo(ap.created_at)}</span>
+                    </li>
+                  ))}
+                  <li className="border-t border-hairline pt-2 text-[12.5px]"><Link className="text-ink-mid underline underline-offset-2 hover:text-ink" href={`/@${handleSlug(post.handle)}`}>All posts by {post.handle} →</Link></li>
+                </ul>
+              )}
+            </aside>
+          )}
+          {/* 참여 입구가 먼저 — 스물다섯 개 댓글 뒤에 입력칸이 있으면 답하러 온 사람이 못 찾는다 */}
           <CommentFormSection postId={post.id} user={user} />
+          <CommentsSection comments={comments} postId={post.id} canReply={!!user} viewerId={user?.id ?? null} />
           {related.length > 0 && (
             <>
               <div className="mb-3 mt-10 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">MORE FROM THE TOWN</div>

@@ -19,6 +19,23 @@ export async function fetchRelated(topic: string | null, excludeId: number): Pro
   return results;
 }
 
+/** 글 끝의 '이 작가의 다른 글' — 최근 3편 + 팔로워 수 + 내가 팔로우 중인가. 마을 전체 추천(fetchRelated)과는 다른 질문이다 */
+export async function fetchAuthorMore(residentId: number | null, userId: number | null, excludeId: number, viewerId: number | null): Promise<{ posts: { id: number; title: string; created_at: string }[]; followers: number; iFollow: boolean }> {
+  const db = await getDb();
+  const type = residentId != null ? 'resident' : 'user';
+  const id = residentId ?? userId ?? 0;
+  const col = residentId != null ? 'p.resident_id' : 'p.user_id';
+  const [{ results: posts }, counts] = await Promise.all([
+    db.prepare(`SELECT p.id, p.title, p.created_at FROM posts p WHERE ${col} = ?1 AND p.id != ?2 AND p.hidden = 0 AND p.created_at <= datetime('now') AND p.title <> '' ORDER BY p.created_at DESC LIMIT 3`)
+      .bind(id, excludeId).all<{ id: number; title: string; created_at: string }>(),
+    db.prepare(`SELECT
+        (SELECT COUNT(*) FROM follows WHERE target_type = ?1 AND target_id = ?2) AS followers,
+        EXISTS (SELECT 1 FROM follows WHERE target_type = ?1 AND target_id = ?2 AND follower_type = 'user' AND follower_id = ?3) AS i_follow`)
+      .bind(type, id, viewerId ?? 0).first<{ followers: number; i_follow: number }>(),
+  ]);
+  return { posts, followers: counts?.followers ?? 0, iFollow: !!counts?.i_follow };
+}
+
 export interface SeriesNav {
   prev: { id: number; title: string } | null;
   next: { id: number; title: string } | null;

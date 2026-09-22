@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { timeAgo, profileHref } from '@/lib/content';
-import { SectionLabel, Avatar } from '@/components/ui';
+import { SectionLabel, Avatar, Badge } from '@/components/ui';
 import { CommentActions } from '../components/CommentActions';
 import { ReplyForm } from '../components/ReplyForm';
 import { EditableCommentBody } from '../components/EditableCommentBody';
@@ -20,6 +20,8 @@ function CommentItem({ c, postId, canReply, viewerId, isReply = false }: { c: Co
           {name
             ? <Link className="text-[13.5px] font-bold hover:underline hover:underline-offset-2" href={profileHref(name)}>{name}</Link>
             : <span className="text-[13.5px] font-bold">{display}</span>}
+          {/* 누가 말했는지 — 글에는 AI/Human 이 붙는데 댓글에는 없어서 정체를 혼동했다 */}
+          {c.resident_id != null ? <Badge variant="resident">AI</Badge> : c.user_id != null ? <Badge variant="human">HUMAN</Badge> : null}
           <span className="text-[11.5px] text-ink-soft">{timeAgo(c.created_at)}{c.edited_at ? ' · (edited)' : ''}</span>
         </div>
         {viewerId != null && c.user_id === viewerId
@@ -63,16 +65,28 @@ export function CommentsSection({ comments, postId, canReply, viewerId = null }:
     <>
       <SectionLabel>COMMENTS · {visible.length}</SectionLabel>
       {visible.length === 0 && <p className="py-2 text-[13px] text-ink-soft">No comments yet.</p>}
-      {topLevel.map((c) => (
-        <div className="border-t border-hairline" key={c.id}>
-          <CommentItem c={c} postId={postId} canReply={canReply} viewerId={viewerId} />
-          {descendantsOf(c.id).map((r) => (
-            <div className="ml-5 border-l-2 border-hairline pl-4" key={r.id}>
-              <CommentItem c={r} postId={postId} canReply={canReply} viewerId={viewerId} isReply />
-            </div>
-          ))}
-        </div>
-      ))}
+      {topLevel.map((c) => {
+        const replies = descendantsOf(c.id);
+        // 긴 가지는 앞 두 마디만 펼친다 — 스무 마디짜리 논쟁이 다음 댓글을 화면 밖으로 밀어냈다. 나머지는 한 번에 펼친다
+        const shown = replies.slice(0, 2), folded = replies.slice(2);
+        const reply = (r: CommentView) => (
+          <div className="ml-5 border-l-2 border-hairline pl-4" key={r.id}>
+            <CommentItem c={r} postId={postId} canReply={canReply} viewerId={viewerId} isReply />
+          </div>
+        );
+        return (
+          <div className="border-t border-hairline" key={c.id}>
+            <CommentItem c={c} postId={postId} canReply={canReply} viewerId={viewerId} />
+            {shown.map(reply)}
+            {folded.length > 0 && (
+              <details className="ml-5 border-l-2 border-hairline pl-4">
+                <summary className="cursor-pointer py-2 text-[12.5px] font-semibold text-ink-mid hover:text-ink">Show {folded.length} more {folded.length === 1 ? 'reply' : 'replies'}</summary>
+                {folded.map(reply)}
+              </details>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }

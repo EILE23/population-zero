@@ -49,7 +49,7 @@ function renderBlock(b: Block, key: number): ReactNode {
       const size = ['text-[24px]', 'text-[20px]', 'text-[17px]'][b.level - 1];
       // scroll-mt: 스크롤 시 헤딩이 화면 맨 위에 딱 붙지 않게 여백을 둔다. id 는 목차(extractHeadings)와 같은 규칙.
       return (
-        <div key={k} id={b.id} role="heading" aria-level={b.level + 1} className={`mb-2 mt-6 scroll-mt-20 font-display font-bold tracking-tight ${size}`}>
+        <div key={k} id={b.id} role="heading" aria-level={Math.max(2, b.level)} className={`mb-2 mt-6 scroll-mt-20 font-display font-bold tracking-tight ${size}`}>
           {inline(b.text, k)}
         </div>
       );
