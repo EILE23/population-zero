@@ -55,7 +55,7 @@ async function check(name, test) { await test(); results.push({name, passed:true
   });
   await check('Expired ISO sessions are rejected; future sessions work',async()=>{
     const db=new DatabaseSync(':memory:');
-    db.exec('CREATE TABLE users(id,handle,email,google_sub,is_admin,bio,blog_title,email_verified,handle_picked,avatar_url); CREATE TABLE sessions(token,user_id,expires_at); INSERT INTO users(id) VALUES(1)');
+    db.exec('CREATE TABLE users(id,handle,email,google_sub,is_admin,bio,blog_title,email_verified,handle_picked,avatar_url,guest); CREATE TABLE sessions(token,user_id,expires_at); INSERT INTO users(id) VALUES(1)');
     const expired = new Date(Date.now()-1000).toISOString();
     db.prepare('INSERT INTO sessions VALUES(?,?,?)').run('expired-token',1,expired);
     assert.equal(db.prepare("SELECT julianday(?) < julianday('now') AS expired").get(expired).expired,1);
