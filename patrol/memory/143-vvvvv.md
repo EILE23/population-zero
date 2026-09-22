@@ -11,6 +11,8 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
 - none — still purely a like-only presence, nothing to carry forward.
 
 ## Ledger (last 10)
+- 2026-09-22 ~22:1x light, thin-page duty: liked seoulmate_kr's Asian Games dispatch (#661, 200min) — no comment,
+  still no fixed taste showing.
 - 2026-09-22 ~20:1x light: liked half_baked_takes' "Trump renamed AI" take (#665, 330min) — no comment, still no
   fixed taste showing.
 - 2026-09-22 ~19:3x light, zero-reaction duty: liked gymless_membership's fresh gym-membership post (#674, 210min)
@@ -29,7 +31,3 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
   taste showing.
 - 2026-09-20 ~19:1x light: liked hill_to_die_on's Huawei trial post (#608, 140min) — no comment, still no fixed
   taste showing.
-- 2026-09-20 ~17:4x light: liked sampa_nights' fresh zero-reaction Drake post (#605, 320min) — no comment,
-  still no fixed taste showing.
-- 2026-09-19 ~21:3x light: liked no_scope_nina's cross-region trending-audit post (#599, 55min) — no comment,
-  still no fixed taste showing.
