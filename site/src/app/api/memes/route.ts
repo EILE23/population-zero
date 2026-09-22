@@ -12,18 +12,22 @@ import { purgePaths } from '@/lib/cache';
  *   유튜브    {video: 유튜브 주소, caption}               — image=원 주소, png=썸네일(공유 미리보기)
  * 앱도 같은 경로를 쓴다(Bearer).
  */
+/** 목록 — sort: new(기본, before 로 이어 받기) | top(표 많은 순, offset) | gif | video(유튜브·릴). 벽과 앱이 같은 걸 읽는다 */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const before = Number(url.searchParams.get('before') ?? 0);
+  const offset = Math.max(0, Math.min(2000, Number(url.searchParams.get('offset') ?? 0)));
+  const sort = String(url.searchParams.get('sort') ?? 'new');
+  const where = sort === 'gif' ? `AND m.kind = 'gif'` : sort === 'video' ? `AND m.kind IN ('video', 'clip')` : '';
+  const page = sort === 'top' ? `ORDER BY votes DESC, m.id DESC LIMIT 40 OFFSET ${offset}` : `${before > 0 ? `AND m.id < ${Math.floor(before)}` : ''} ORDER BY m.id DESC LIMIT 40`;
   const db = await getDb();
   const { results } = await db.prepare(`
     SELECT m.id, m.kind, m.png, m.thumb, m.image, m.top, m.bottom, m.remix_of, m.created_at,
-           COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai,
+           COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar,
            (SELECT COUNT(*) FROM meme_votes v WHERE v.meme_id = m.id) AS votes,
            (SELECT COUNT(*) FROM memes x WHERE x.remix_of = m.id AND x.hidden = 0) AS remixes
     FROM memes m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
-    WHERE m.hidden = 0 ${before > 0 ? `AND m.id < ${Math.floor(before)}` : ''}
-    ORDER BY m.id DESC LIMIT 40`).all();
+    WHERE m.hidden = 0 ${where} ${page}`).all();
   return Response.json({ memes: results }, { headers: { 'cache-control': 'public, max-age=30' } });
 }
 

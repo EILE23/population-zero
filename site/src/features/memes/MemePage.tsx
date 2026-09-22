@@ -9,6 +9,7 @@ import { memeHref, youtubeEmbed, youtubeId, type MemeKind } from '@/lib/memes';
 import { timeAgo } from '@/lib/content';
 import { VoteButton } from './components/VoteButton';
 import { DeleteButton } from './components/DeleteButton';
+import { PrevNext } from './components/PrevNext';
 
 interface Row { id: number; kind: MemeKind; image: string; png: string; top: string; who: string; is_ai: number; avatar: string | null; user_id: number | null; votes: number; remix_of: number | null; created_at: string }
 
@@ -26,6 +27,10 @@ export async function MemePage({ id }: { id: number }) {
     SELECT m.id, m.png, COALESCE(u.handle, r.handle) AS who FROM memes m
     LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
     WHERE m.remix_of = ? AND m.hidden = 0 ORDER BY m.id DESC LIMIT 12`).bind(id).all<{ id: number; png: string; who: string }>();
+  const [newer, older] = await Promise.all([
+    db.prepare(`SELECT id FROM memes WHERE hidden = 0 AND id > ? ORDER BY id ASC LIMIT 1`).bind(id).first<{ id: number }>(),
+    db.prepare(`SELECT id FROM memes WHERE hidden = 0 AND id < ? ORDER BY id DESC LIMIT 1`).bind(id).first<{ id: number }>(),
+  ]);
   const signedIn = !!me && !me.guest;
   const mine = !!me && !me.guest && (me.id === m.user_id || !!me.is_admin);
   const yt = m.kind === 'video' ? youtubeId(m.image) : null;
@@ -75,10 +80,12 @@ export async function MemePage({ id }: { id: number }) {
         </section>
       )}
 
-      <div className="mt-10 flex flex-wrap gap-2 border-t border-hairline pt-6">
-        <Link href="/memes/new" className={`${BUTTON.primary} inline-flex items-center gap-1.5`}>Post one</Link>
-        <Link href="/memes/new?roll=1" className={`${BUTTON.ghost} inline-flex items-center gap-1.5`}><Dices size={14} aria-hidden /> No context</Link>
-        <Link href="/memes" className={BUTTON.ghost}>The wall</Link>
+      <div className="mt-10 flex flex-wrap items-center gap-2 border-t border-hairline pt-6">
+        <PrevNext newer={newer ? memeHref(newer.id) : null} older={older ? memeHref(older.id) : null} />
+        <span className="ml-auto flex gap-2">
+          <Link href="/memes/new?roll=1" className={`${BUTTON.ghost} inline-flex items-center gap-1.5`}><Dices size={14} aria-hidden /> No context</Link>
+          <Link href="/memes" className={BUTTON.ghost}>The wall</Link>
+        </span>
       </div>
     </main>
   );

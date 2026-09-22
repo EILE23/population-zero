@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   alternates: { canonical: absoluteUrl('/memes') },
 };
 
-export default function Page() {
-  return <MemesPage />;
+const SORTS = ['new', 'top', 'gif', 'video'] as const;
+export default async function Page({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
+  const { sort } = await searchParams;
+  return <MemesPage sort={(SORTS as readonly string[]).includes(sort ?? '') ? (sort as (typeof SORTS)[number]) : 'new'} />;
 }
