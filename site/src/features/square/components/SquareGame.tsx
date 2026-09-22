@@ -88,6 +88,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const stats = useRef({ shoves: [] as { who: number; at: number }[], chasedSince: 0, chasedBy: -1, doneKeys: new Set(done), seq: 0, pendingKnock: null as { by: string; line: string } | null });
   const [doneList, setDoneList] = useState<string[]>(done);
   const [toast, setToast] = useState('');
+  // 방의 init(저장된 내 자리·지도)이 오기 전엔 내 캐릭터를 그리지도 보내지도 않는다 — 기본 좌표에 잠깐 서 있는 게 보였다(운영자 2026-09-22). 4초 안에 안 오면(방이 죽었을 때) 그냥 시작
+  const ready = useRef(false); const [loading, setLoading] = useState(true);
   const [chats, setChats] = useState<{ who: string; body: string }[]>([]);
   const [line, setLine] = useState('');
   const [hud, setHud] = useState({ online: 0, carry: '', map: 'The square', exit: '' });
@@ -136,6 +138,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           loose.current.clear(); for (const [id, l] of Object.entries(w.loose ?? {})) loose.current.set(id, { id, item: l.item as ItemKey, map: String(l.m), x: Number(l.x), d: Number(l.d), from: l.from === null ? null : Number(l.from), dunked: l.dunked ? String(l.dunked) : undefined });
           broken.current.clear(); for (const [k, v] of Object.entries(w.broken ?? {})) broken.current.set(k, { hp: v.hp, brokeAt: v.brokeAt ? performance.now() - Math.max(0, wall() - v.brokeAt) : 0 });
           for (const [who, o] of Object.entries(w.npc ?? {})) apply({ k: 'npc', who: Number(who), ...o }, false);
+          if (!ready.current) { ready.current = true; setLoading(false); }
         }
         else if (m.t === 'user') put(m.u as Record<string, unknown>);
         else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { if (typeof m.m === 'string' && m.m && m.m !== o.map) { o.map = m.m; o.x = Number(m.x); o.d = Math.min(1, Math.max(0, Number(m.y) / 1000)); } o.tx = Number(m.x); o.td = Math.min(1, Math.max(0, Number(m.y) / 1000)); o.tz = Number(m.z) || 0; o.pose = String(m.pose); o.status = 'active'; o.face = m.face === -1 ? -1 : 1; const { stack, worn } = parseStack(String(m.s || '')); o.stack = stack; o.worn = worn; } }
@@ -147,7 +150,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       sock.onclose = () => { if (alive) setTimeout(connect, Math.min(15000, 1000 * 2 ** retry++)); };
     };
     connect();
-    return () => { alive = false; sock?.close(); };
+    const fallback = setTimeout(() => { if (!ready.current) { ready.current = true; setLoading(false); } }, 4000);
+    return () => { alive = false; clearTimeout(fallback); sock?.close(); };
   }, [me]);
 
   const complete = async (key: string) => {
@@ -334,7 +338,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         }
       }
       if (b.swing > 0) b.swing = Math.max(0, b.swing - dt);
-      if (!spectator && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0 && b.feeding <= 0) {
+      if (!spectator && ready.current && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0 && b.feeding <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
         const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
         if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
@@ -425,7 +429,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         }
         jumpWas = i.jump; grabWas = i.grab; shoveWas = i.shove; kickWas = i.kick; talkWas = i.talk;
       }
-      if (!spectator && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), s: b.stack.map((it) => b.wearing.has(it) ? `${it}!` : it).join(','), pose: b.hurt > 0 ? 'hurt' : myPose(), face: b.face, m: cur.key })); }
+      if (!spectator && ready.current && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), s: b.stack.map((it) => b.wearing.has(it) ? `${it}!` : it).join(','), pose: b.hurt > 0 ? 'hurt' : myPose(), face: b.face, m: cur.key })); }
       // ── 주민 ──
       let chasing = -1; const mineOff: Npc[] = [];
       for (const n of npcs.current) {
@@ -616,7 +620,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           const sd = said.current.get(o.uid); if (sd && now < sd.until) bubble(ctx, fx, fy - (70 + carried.length * 12) * fs, s, sd.body);
         } });
       }
-      if (!spectator) layer.push({ d: b.d, f: () => {
+      if (!spectator && ready.current) layer.push({ d: b.d, f: () => {
         const fx = sx(b.x), fy = (dy(b.d) - b.z) * s, fs = ds(b.d) * s;
         if (b.z > 0) { ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(fx, dy(b.d) * s, 12 * fs, 4 * fs, 0, 0, 6.29); ctx.fill(); }
         if (b.hurt > 0) { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-b.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, figureColor(me!.id), t, false); ctx.restore(); }
@@ -652,6 +656,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       </div>
       <div className="relative mt-2 overflow-hidden rounded-xl border border-hairline bg-[#eef0f2]">
         <canvas ref={canvas} className="block w-full touch-none" />
+        {loading && <div className="absolute inset-0 grid place-items-center bg-[#eef0f2]"><p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">{spectator ? 'Finding someone to watch…' : 'Finding your spot…'}</p></div>}
         {toast && <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-ink px-3 py-1 text-[12.5px] font-bold text-paper">{toast}</div>}
         {spectator && (
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-paper/90 px-3 py-2 text-[12.5px]">

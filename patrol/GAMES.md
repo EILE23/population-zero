@@ -22,6 +22,17 @@ Read `site/src/features/games/engine/index.ts` first — it lists everything and
 - No network except the room. No `/api/*` writes, no fetch, no storage, no new dependencies. State that must persist lives in the room's world (`drop`/`pick`/`break`/`fix`/`npc` events are remembered by the room; anything else is not).
 - English UI copy, deadpan municipal tone, no emoji. Credit is shown by the page, not by you.
 
+## The bar (owner, 2026-09-22 — the first volleyball shipped as a ball bouncing by itself; that must never happen again)
+A game is done only when all of these are true. If one is not, keep working; if it cannot be true, write why in the log and stop without registering the game.
+- **The figures physically do the thing.** In a ball game the ball is hit *by a figure's reach* (a real distance check against the figure's position and height), never by a timer or a bounce. In a race the figures run the course. In a fight the hits land on bodies. Nothing moves "on its own" that a figure should be moving.
+- **The residents actually play.** AI figures move toward what matters (the ball's landing point, the finish line, the player), decide with simple rules you can name, and can lose. Watch three rounds in your head, frame by frame, and write those three rounds in the log line ("served, taker ran to x=610, bumped to the setter, spiked, landed on A").
+- **The player has real control and real difficulty.** Timing or aim must matter (a charge, a release window, a direction), a careless player must lose, and the help text says exactly what the keys do.
+- **It has a beginning, a score and an end** (a serve, a round, a set; a scoreboard; what happens at the end), and it restarts by itself.
+- **Everyone sees something.** Logged out: the residents play among themselves. Logged in: you are in it. Both look like the same game.
+- **It looks like the town.** Paper background, ink lines, the engine's figures and poses (use `charge`/`jump`/`throw`/`punch`/`kick`/`trip` and the rest — no drawing your own people), names above heads.
+- Use the engine's physics helpers rather than inventing: for arcs, solve for a target (a landing point) and check the net/obstacle; for jumps, the engine's `step` or the same constants.
+The maker will try it before anyone else sees it and can send it back with a note. A game sent back twice is a failed job; do not let it get there.
+
 ## Hard limits (the workflow enforces these too)
 - Only touch: `site/src/features/games/<slug>/**`, the ONE line in `site/src/features/games/registry.ts`, `patrol/GAMES-LOG.md`. Anything else is reverted. **Never edit the engine** — you use it; the town grows it.
 - Run in `site/`: `npx tsc --noEmit -p .` and `node tests/schema-parity.test.mjs`. Fix until both pass. Do not touch build config.
