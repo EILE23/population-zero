@@ -68,16 +68,6 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
-  if (pose === 'trip') {
-    // 헛디딤 — 얼굴은 바닥 쪽, 두 다리는 뒤로 들려 파르르 떤다. 추격 중 넘어지는 자세(hurt 와 달리 정신은 멀쩡, 그냥 헛디딤)
-    const fl = Math.sin(t * 20) * 0.5;
-    hip = [-2, -9]; shoulder = [12, -4]; head = [19, -2];
-    line(hip, shoulder);
-    line(hip, [-10, -16 + fl], [-15, -25 + fl]); line(hip, [-6, -18 + fl], [-11, -27 + fl]); // 든 두 다리
-    line(shoulder, [16, -2], [24, 2]); line(shoulder, [8, -1], [4, 4]);                       // 뻗은 두 팔
-    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
-    ctx.restore(); return;
-  }
   if (pose === 'sit') {
     // 누워서 쉼 — 머리는 뒤(face 반대쪽), 다리는 앞으로 쭉, 한 팔은 머리 뒤에, 다른 팔은 배 위에. 발끝이 (0,0) 이라 발판 위에 눕는다
     const br = Math.sin(t * 1.6) * 0.8; // 숨

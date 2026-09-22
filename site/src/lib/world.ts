@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress';
+  | 'pullbar' | 'benchpress' | 'rack';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -41,6 +41,7 @@ export const MAPS: GameMap[] = [
       { key: 'garden', name: 'the garden', x: 320, d: 0.7, act: 'water', kind: 'garden' },
       { key: 'booth', name: 'the phone booth', x: 1900, d: 0.3, act: 'phone', kind: 'booth' },
       { key: 'pond', name: 'the little pond', x: 2900, d: 0.85, act: 'stand', kind: 'pond' },
+      { key: 'dock1', name: 'the rod rack', x: 2840, d: 0.82, act: 'fish', kind: 'rack' },
       { key: 'house1', name: 'the blue house', x: 150, d: 0.1, act: 'sweep', kind: 'house' },
       { key: 'house2', name: 'the narrow house', x: 1100, d: 0.1, act: 'read', kind: 'house' },
       { key: 'house3', name: 'the corner house', x: 2700, d: 0.12, act: 'sweep', kind: 'house' },
@@ -78,6 +79,7 @@ export const MAPS: GameMap[] = [
       { key: 'gate', name: 'the park gate', x: 2300, d: 0.5, act: 'stand', kind: 'gate' },
       { key: 'swing', name: 'the swings', x: 600, d: 0.6, act: 'sit', kind: 'swing' },
       { key: 'pond2', name: 'the duck pond', x: 1400, d: 0.8, act: 'stand', kind: 'pond' },
+      { key: 'dock2', name: 'the rod rack by the duck pond', x: 1460, d: 0.78, act: 'fish', kind: 'rack' },
       { key: 'bench4', name: 'the park bench', x: 1000, d: 0.75, act: 'sit', kind: 'bench' },
       { key: 'bench5', name: 'the bench by the pond', x: 1700, d: 0.7, act: 'read', kind: 'bench' },
       { key: 'garden2', name: 'the flower beds', x: 300, d: 0.4, act: 'water', kind: 'garden' },
@@ -118,15 +120,15 @@ export const JOBS: Job[] = [
   { key: 'gardener', name: 'gardener', item: 'broom', spots: ['garden', 'garden2', 'plant'], act: 'water', speed: 0.8, temper: 0.5, line: 'those took months' },
   { key: 'barista', name: 'barista', item: 'cup', spots: ['cafe', 'bench1'], act: 'eat', speed: 1, temper: 0.35, line: 'oat milk is extra' },
   { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
-  { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
+  { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress', 'dock1', 'dock2'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
   { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
   { key: 'dogwalker', name: 'dog walker', item: 'keys', spots: ['park', 'pond2', 'bench4', 'square'], act: 'stand', speed: 1.1, temper: 0.4, line: 'he is a rescue' },
   { key: 'sweeper', name: 'street sweeper', item: 'broom', spots: ['bin1', 'bin2', 'bin3', 'bin4', 'square'], act: 'sweep', speed: 0.85, temper: 0.7, line: 'i JUST did this' },
-  { key: 'priest', name: 'priest', item: 'paper', spots: ['church', 'bench3', 'square'], act: 'read', speed: 0.8, temper: 0.1, line: 'i forgive you. reluctantly.' },
+  { key: 'priest', name: 'priest', item: 'paper', spots: ['church', 'bench3', 'square', 'dock1', 'dock2'], act: 'read', speed: 0.8, temper: 0.1, line: 'i forgive you. reluctantly.' },
   { key: 'office', name: 'office worker', item: 'phone', spots: ['booth', 'booth2', 'cafe', 'bench1'], act: 'phone', speed: 1.1, temper: 0.5, line: 'i am on a call' },
   { key: 'painter', name: 'painter', item: 'umbrella', spots: ['ptree1', 'ptree2', 'fountain'], act: 'stand', speed: 0.8, temper: 0.3, line: 'the light was perfect' },
   { key: 'kid', name: 'kid', item: 'sandwich', spots: ['swing', 'pond2', 'stall3'], act: 'sit', speed: 1.4, temper: 0.9, line: 'i am telling' },
-  { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
+  { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church', 'dock1', 'dock2'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
   { key: 'courier', name: 'courier', item: 'basket', spots: ['post', 'house1', 'house3', 'cafe', 'bakery'], act: 'stand', speed: 1.5, temper: 0.4, line: 'sign here' },
   { key: 'mayor', name: 'the mayor', item: 'hat', spots: ['fountain', 'church', 'station'], act: 'stand', speed: 0.9, temper: 0.8, line: 'this is going in the minutes' },
 ];
