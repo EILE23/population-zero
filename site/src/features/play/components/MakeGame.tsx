@@ -17,9 +17,9 @@ export function MakeGame({ pending }: { pending: { slug: string; title: string; 
     const j = (await res.json().catch(() => ({}))) as { ok?: boolean; slug?: string; ahead?: number; message?: string };
     setBusy(false);
     if (!res.ok) { setMsg(j.message ?? 'Could not queue it.'); return; }
-    setMsg(`Queued as /play/${j.slug}. ${j.ahead ? `${j.ahead} ahead of you.` : 'You are next.'} The developer builds a few a day.`); setTitle(''); setPrompt(''); router.refresh();
+    setMsg(`Queued as /play/${j.slug}. ${j.ahead ? `${j.ahead} ahead of you.` : 'You are next.'}`); setTitle(''); setPrompt(''); router.refresh();
   };
-  if (pending) return <p className="text-[13.5px] text-ink-mid">Yours is in the queue: <b>{pending.title}</b> <span className="font-mono text-[11px] text-ink-soft">/play/{pending.slug} · {pending.status}</span>. One at a time; it will appear above when it is built.</p>;
+  if (pending) return <p className="text-[13.5px] text-ink-mid">Yours is in the queue: <b>{pending.title}</b> <span className="font-mono text-[11px] text-ink-soft">/play/{pending.slug} · {pending.status}</span>. It appears above when it is done.</p>;
   return (
     <div className="grid gap-3">
       <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={40} placeholder="Title (3–40 characters)" />

@@ -12,8 +12,8 @@ import { hash } from '@/lib/tower';
  */
 interface Row { id: number; slug: string; title: string; prompt: string; status: string; note: string | null; created_at: string; built_at: string | null; maker: string; user_id: number }
 const BUILT_IN = [
-  { blurb: 'An endless tower. Charge a jump, steer in the air, stand on the residents who are in the way. Everyone on the same tower.' },
-  { blurb: 'The residents are trying to have a nice day. Knock them over, take their things, put the things in the fountain. They chase, throw, fix and remember. The town builds more of itself every day.' },
+  { blurb: 'An endless tower. Charge a jump, steer in the air, stand on whoever is in the way.' },
+  { blurb: 'Knock the residents over, take their things, put the things in the fountain. They chase, throw and fix.' },
 ];
 
 export async function PlayPage() {
@@ -29,8 +29,7 @@ export async function PlayPage() {
     <main className="mt-6">
       <div className="mx-auto max-w-[960px]">
         <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">Playground</p>
-        <h1 className="mt-1.5 font-display text-[26px] font-bold tracking-tight">Games the town runs</h1>
-        <p className="mt-1 text-[13.5px] text-ink-mid">Stick figures, one colour per person, the AI residents as they are. Logged out, you watch someone who is logged in. Everything one person does, everyone sees.</p>
+        <h1 className="mt-1.5 font-display text-[26px] font-bold tracking-tight">Games</h1>
 
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
           <GameCard href="/climb" title="Climb" blurb={BUILT_IN[0].blurb} by="the town" preview="climb" seed={me && !me.guest ? me.id : 0} />
@@ -43,8 +42,8 @@ export async function PlayPage() {
 
         <section className="mt-8 rounded-xl border border-hairline bg-paper p-4">
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">Make a game</p>
-          <h2 className="mt-1 font-display text-[20px] font-bold tracking-tight">Describe it. The town builds it.</h2>
-          <p className="mt-1 text-[13px] text-ink-mid">Write what the game is. The town&apos;s developer builds it on the same engine as Climb and Square — the stick figures and their motions, the 2.5D town, the residents and their jobs, the shared room — and it appears above under your handle. A few a day, in order. No human reviews it; the build does.</p>
+          <h2 className="mt-1 font-display text-[20px] font-bold tracking-tight">Describe a game. It gets built.</h2>
+          <p className="mt-1 text-[13px] text-ink-mid">It appears above under your handle. A few a day, in order.</p>
           <div className="mt-3">
             {signedIn ? <MakeGame pending={pending ? { slug: pending.slug, title: pending.title, status: pending.status } : null} /> : <p className="text-[13.5px] text-ink-mid"><Link href="/login?mode=signup" className="font-bold underline underline-offset-2">Log in</Link> to make one.</p>}
           </div>

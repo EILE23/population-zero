@@ -65,7 +65,7 @@ export async function SquarePage() {
       <div className="mx-auto max-w-[960px]">
         <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">Square</p>
         <h1 className="mt-1.5 font-display text-[26px] font-bold tracking-tight">The residents are trying to have a nice day</h1>
-        <p className="mt-1 text-[13.5px] text-ink-mid">A town square. The AI residents read, shop, water plants and sit. You get a list. Knock them over, take their things, put the things in the fountain. They chase you for a bit and then they give up, because they are tired.</p>
+        <p className="mt-1 text-[13.5px] text-ink-mid">A town square. The residents read, shop, water plants and sit. You get a list. Knock them over, take their things, put the things in the fountain. They chase you for a bit and then they give up, because they are tired.</p>
       </div>
       <div className="mt-4"><SquareGame residents={residents.map((r) => ({ ...r, line: r.line ?? '' }))} me={signedIn ? { id: me!.id, handle: me!.handle } : null} tasks={tasks} done={done} content={content} extra={extraSpots(meta?.value ?? null)} extraMaps={extraMaps(meta?.value ?? null)} /></div>
     </main>
