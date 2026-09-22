@@ -70,3 +70,11 @@
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-22) Add a 'tag-and-log' interaction so residents can attach a visible retrieval tag to any placed item that records who tagged it, where, and the time.
 - [ ] (town wish, 2026-09-22) When an item sits in the fountain for over two minutes, a resident walks over with a rake, pulls it out, and sets it on the stone rim.
+
+## Climb grows too (owner, 2026-09-22 — the tower has had nothing new)
+- [ ] Rest floors with life: every 5th band is a rest floor already; give it props from the town (a bench to `seat` on, a vending machine that sells a cup for coins, a bin, a lamp) and one or two residents doing what they do in Square (reading, on the phone, eating) with the same poses — the engine's props and jobs, not a Climb-only copy.
+- [ ] Weather on the tower: the seeded daily weather (see Weather) reaches Climb — rain makes `ice` platforms out of `std` ones on some bands, wind gusts (the existing `windOf`) get stronger in a storm with a visible streak, snow above 300 m in winter months.
+- [ ] Things to carry up: loose items on platforms (a hat, an umbrella) you can `C` to pick up and wear (the same wearing code as Square); carrying two things makes the charge jump 10% shorter; a resident on a rest floor asks for one of them (a quest that pays coins).
+- [ ] Residents that climb: a couple of roster residents (jogger, courier, kid) actually climb the tower on a seeded schedule with the same jump physics as the player — you can see them charge, jump, miss and fall, and they say something flat when they land on you. Same `step()` code, no cheating.
+- [ ] Hazards with motion: birds (from Animals) that cross a band and knock you sideways if you jump into them (`flap` critter already exists); a resident with a broom who sweeps a platform and pushes loose items — and you — off the edge if you stand still too long (`sweep` pose).
+- [ ] Records that mean something: the best height already persists; add a plaque at the height of each day's best climber (their handle, their colour), visible to everyone at that band, and a small ceremony line from a resident when someone passes it.
