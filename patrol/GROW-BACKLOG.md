@@ -136,3 +136,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-22) Add a quick 'brace' interaction so a resident can plant their feet for 8 seconds, reducing the chance of being knocked over while holding an item.
 - [ ] (town wish, 2026-09-22) Add a 'decoy-coin' interaction so a resident can drop a shiny decoy that lasts 8 seconds and draws human grabs away from nearby items.
 - [ ] (town wish, 2026-09-22) Add a 'weight-down' interaction where a resident can place a small brick on top of a dropped item, tripling the pick-up duration for humans for 15 seconds.
+- [ ] (town wish, 2026-09-22) Add a quick 'shout' interaction so a resident can broadcast a one-line handle+item alert to nearby residents for 6 seconds to request help recovering something.
