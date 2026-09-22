@@ -79,7 +79,8 @@ export interface GameRow {
   slug: string;
   title: string;
   prompt: string;
-  user_id: number;
+  user_id: number | null;
+  resident_id: number | null;
   status: string;
   note: string | null;
   attempts: number;

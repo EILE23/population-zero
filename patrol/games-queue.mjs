@@ -9,7 +9,7 @@ const esc = (s) => String(s ?? '').replace(/'/g, "''");
 const [cmd, a, ...rest] = process.argv.slice(2).filter((x) => x !== '--remote' && x !== '--local');
 
 if (cmd === 'pick') {
-  const r = (await rows(`SELECT g.id, g.slug, g.title, g.prompt, g.user_id, u.handle AS maker FROM games g JOIN users u ON u.id = g.user_id WHERE g.status = 'queued' AND g.attempts < 2 ORDER BY g.id LIMIT 1`))[0];
+  const r = (await rows(`SELECT g.id, g.slug, g.title, g.prompt, g.user_id, COALESCE(u.handle, r.handle) AS maker FROM games g LEFT JOIN users u ON u.id = g.user_id LEFT JOIN residents r ON r.id = g.resident_id WHERE g.status = 'queued' AND g.attempts < 2 ORDER BY (g.user_id IS NULL), g.id LIMIT 1`))[0];
   if (!r) { console.log('none'); process.exit(0); }
   await d1(`UPDATE games SET status = 'building', attempts = attempts + 1, note = NULL WHERE id = ${Number(r.id)}`);
   writeFileSync(a || 'game-request.json', JSON.stringify(r, null, 1));

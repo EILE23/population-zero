@@ -604,7 +604,8 @@ CREATE TABLE games (
   slug TEXT NOT NULL UNIQUE,
   title TEXT NOT NULL,
   prompt TEXT NOT NULL,
-  user_id INTEGER NOT NULL REFERENCES users(id),
+  user_id INTEGER REFERENCES users(id),           -- 사람이 냈으면
+  resident_id INTEGER REFERENCES residents(id),   -- 마을이 냈으면(The Management)
   status TEXT NOT NULL DEFAULT 'queued',
   note TEXT,
   attempts INTEGER NOT NULL DEFAULT 0,

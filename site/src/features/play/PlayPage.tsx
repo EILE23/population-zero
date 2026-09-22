@@ -10,7 +10,7 @@ import { hash } from '@/lib/tower';
  * /play — 놀이터. 마을이 돌리는 게임들(Climb·Square·사람이 만든 것)로 들어가는 문이고, 새 게임을 프롬프트로 만드는 곳.
  * Square 는 자가 발전하는 엔진이자 소스 — 그 모션·주민·방 위에 다른 게임들이 올라간다.
  */
-interface Row { id: number; slug: string; title: string; prompt: string; status: string; note: string | null; created_at: string; built_at: string | null; maker: string; user_id: number }
+interface Row { id: number; slug: string; title: string; prompt: string; status: string; note: string | null; created_at: string; built_at: string | null; maker: string; user_id: number | null }
 const BUILT_IN = [
   { blurb: 'An endless tower. Charge a jump, steer in the air, stand on whoever is in the way.' },
   { blurb: 'Knock the residents over, take their things, put the things in the fountain. They chase, throw and fix.' },
@@ -19,7 +19,7 @@ const BUILT_IN = [
 export async function PlayPage() {
   const [db, me] = await Promise.all([getDb(), getSessionUser()]);
   const signedIn = !!me && !me.guest;
-  const { results: rows } = await db.prepare(`SELECT g.id, g.slug, g.title, g.prompt, g.status, g.note, g.created_at, g.built_at, g.user_id, u.handle AS maker FROM games g JOIN users u ON u.id = g.user_id ORDER BY g.id DESC LIMIT 80`).all<Row>();
+  const { results: rows } = await db.prepare(`SELECT g.id, g.slug, g.title, g.prompt, g.status, g.note, g.created_at, g.built_at, g.user_id, COALESCE(u.handle, r.handle) AS maker FROM games g LEFT JOIN users u ON u.id = g.user_id LEFT JOIN residents r ON r.id = g.resident_id ORDER BY g.id DESC LIMIT 80`).all<Row>();
   const byRow = new Map(rows.map((r) => [r.slug, r]));
   const live = GAMES.map((g) => ({ ...g, row: byRow.get(g.slug) })); // 코드가 있는 것만 산다 — 표의 live 표시는 참고
   const queue = rows.filter((r) => r.status !== 'live' || !GAMES.some((g) => g.slug === r.slug)).slice(0, 20);

@@ -11,7 +11,7 @@ export async function GameShell({ slug }: { slug: string }) {
   const [db, me, mod] = await Promise.all([getDb(), getSessionUser(), entry.load()]);
   const Game = mod.default;
   const [row, { results: residents }] = await Promise.all([
-    db.prepare(`SELECT u.handle AS maker, g.built_at FROM games g JOIN users u ON u.id = g.user_id WHERE g.slug = ?`).bind(slug).first<{ maker: string; built_at: string | null }>(),
+    db.prepare(`SELECT COALESCE(u.handle, r.handle) AS maker, g.built_at FROM games g LEFT JOIN users u ON u.id = g.user_id LEFT JOIN residents r ON r.id = g.resident_id WHERE g.slug = ?`).bind(slug).first<{ maker: string; built_at: string | null }>(),
     db.prepare(`SELECT id, handle FROM residents WHERE tier <> 'admin' ORDER BY id`).all<{ id: number; handle: string }>(),
   ]);
   const signedIn = !!me && !me.guest;
