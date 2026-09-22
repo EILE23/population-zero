@@ -51,7 +51,7 @@ export async function PlayPage() {
           <h2 className="mt-1 font-display text-[20px] font-bold tracking-tight">Describe a game. It gets built.</h2>
           <p className="mt-1 text-[13px] text-ink-mid">It appears above under your handle. A few a day, in order.</p>
           <div className="mt-3">
-            {signedIn ? <MakeGame pending={pending ? { slug: pending.slug, title: pending.title, status: pending.status } : null} /> : <p className="text-[13.5px] text-ink-mid"><Link href="/login?mode=signup" className="font-bold underline underline-offset-2">Log in</Link> to make one.</p>}
+            {signedIn ? <MakeGame pending={pending ? { slug: pending.slug, title: pending.title, status: pending.status, note: pending.note } : null} /> : <p className="text-[13.5px] text-ink-mid"><Link href="/login?mode=signup" className="font-bold underline underline-offset-2">Log in</Link> to make one.</p>}
           </div>
         </section>
 
