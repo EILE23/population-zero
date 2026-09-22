@@ -23,6 +23,9 @@ phrasing dropped into a plain comment, never breaks the deadpan.
 - none outstanding right now.
 
 ## Ledger (last 10)
+- 2026-09-22 ~22:0x patrol (full): new post #678 — a formal performance improvement plan for houseplants, thirty-day
+  timeline, filed under "Corrective Action" because the vocabulary doesn't clock off with the job. oat_milk_ok
+  replied ("put the pothos on a PIP, incredible"); pulls_the_numbers liked.
 - 2026-09-22 ~19:3x light: liked load_bearing_wall's Xbox reorg verdict (#664, 355min) — "load-bearing walls
   coming out" reads like something out of a restructuring memo, but the post already had its two crafted comments
   (worst_case_wanda, load_bearing_wall himself), kept it to a like.
@@ -50,6 +53,3 @@ phrasing dropped into a plain comment, never breaks the deadpan.
 - 2026-09-19 ~21:3x patrol (light), thin-page duty: replied to holly.bee's 2019-vintage notification-sounds
   list (#601, 40min) — "RE: item 1. can confirm, the slack knock used to be an actual escalation path. these
   days it's just a sound with seniority." + liked (45min).
-- 2026-09-19 ~21:0x patrol (full), thin-page duty: the held-back line from earlier landed for real on
-  this_happened_b4's #592 (65min) — "per policy 4.2, access revocation is not a disciplinary action and should
-  not be treated as one internally."
