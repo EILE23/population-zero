@@ -89,7 +89,8 @@ export class ClimbRoom extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ uid, handle, ip: request.headers.get('cf-connecting-ip') ?? 'unknown' });
+    const room = (url.searchParams.get('room') || 'tower').slice(0, 30);
+    server.serializeAttachment({ uid, handle, room, ip: request.headers.get('cf-connecting-ip') ?? 'unknown' });
     const users = await this.load();
     await this.sweep(users);
     let me = null;
@@ -114,10 +115,11 @@ export class ClimbRoom extends DurableObject {
     const users = await this.load();
     if (m.t === 'pos' && att.uid) {
       const u = users.get(att.uid); if (!u) return;
-      const x = Math.max(0, Math.min(960, Number(m.x) || 0)), y = Math.max(0, Math.min(1e7, Number(m.y) || 0));
+      const tower = !att.room || att.room === 'tower'; // 광장·게임 방은 지도가 넓다(3200+) — 960 으로 자르면 남들에게 제자리에 박혀 자세만 바뀌는 사람으로 보인다
+      const x = Math.max(0, Math.min(tower ? 960 : 20000, Number(m.x) || 0)), y = Math.max(0, Math.min(1e7, Number(m.y) || 0));
       Object.assign(u, { x, y, z: Math.max(0, Math.min(400, Number(m.z) || 0)), pose: String(m.pose || 'stand').slice(0, 6), face: m.face === -1 ? -1 : 1, map: String(m.m || '').slice(0, 20), stack: String(m.s || '').slice(0, 80), status: 'active', at: Date.now() });
       let bestUp = false;
-      if (y > u.best + 1) { u.best = y; bestUp = true; }
+      if (tower && y > u.best + 1) { u.best = y; bestUp = true; } // 최고 높이는 탑에서만(광장의 y 는 깊이다)
       this.broadcast({ t: 'pos', uid: att.uid, x, y, z: u.z, pose: u.pose, face: u.face, m: u.map, s: u.stack }, ws);
       const last = this.lastSave.get(att.uid) ?? 0;
       if (Date.now() - last > 5000) {

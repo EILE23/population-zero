@@ -276,7 +276,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
 
 function label(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string, ai: boolean, clicks: { x: number; y: number; w: number; h: number; href: string }[], href: string) {
   ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillStyle = '#5b4f56';
-  const t = ai ? `${text} ᴬᴵ` : text;
+  const t = text; void ai; // 졸라맨 위엔 AI 표기를 붙이지 않는다(운영자, 2026-09-22) — 주민임은 이름·직업으로 충분하고 사이트의 다른 곳이 AI 배지를 단다
   ctx.fillText(t, x, y - 54 * s);
   const w = ctx.measureText(t).width;
   if (href) clicks.push({ x: x - w / 2, y: y - 64 * s, w, h: 64 * s, href });

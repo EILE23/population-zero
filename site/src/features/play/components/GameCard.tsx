@@ -56,7 +56,6 @@ function scene(ctx: CanvasRenderingContext2D, kind: Preview, t: number, seed: nu
     else { x = b[0]; y = b[1]; pose = 'stand'; }
     figure(ctx, x, y + scroll, 1.05, pose, b[0] >= a[0] ? 1 : -1, figureColor(seed || 7), t, false);
     figure(ctx, 255, 70 + scroll, 0.95, 'sit', -1, INK, t, false); // 쉬는 주민
-    label(ctx, 255, 44 + scroll, 'ᴬᴵ');
     return;
   }
   if (kind === 'square') {
@@ -69,8 +68,8 @@ function scene(ctx: CanvasRenderingContext2D, kind: Preview, t: number, seed: nu
     ctx.fillStyle = '#b9b1b6'; ctx.fillRect(157, 100, 6, 26); ctx.strokeStyle = '#8fb8cc'; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.moveTo(160, 100); ctx.quadraticCurveTo(160 + (k - 1.5) * 12, 84 + Math.sin(t * 3 + k) * 3, 160 + (k - 1.5) * 16, 122); ctx.stroke(); }
     ctx.fillStyle = '#8b6b4a'; ctx.fillRect(40, 146, 46, 4); ctx.fillRect(40, 136, 46, 3); ctx.fillRect(44, 150, 3, 9); ctx.fillRect(79, 150, 3, 9);
     // 주민 둘: 하나는 벤치에 앉아 읽고, 하나는 왔다 갔다. 사람 하나가 달려든다
-    figure(ctx, 63, 160, 1, 'seat', 1, INK, t, false); label(ctx, 63, 108, 'ᴬᴵ');
-    const wx = 230 + Math.sin(t * 0.7) * 50; figure(ctx, wx, 168, 1.05, 'run', Math.cos(t * 0.7) >= 0 ? 1 : -1, INK, t, false); label(ctx, wx, 114, 'ᴬᴵ');
+    figure(ctx, 63, 160, 1, 'seat', 1, INK, t, false);
+    const wx = 230 + Math.sin(t * 0.7) * 50; figure(ctx, wx, 168, 1.05, 'run', Math.cos(t * 0.7) >= 0 ? 1 : -1, INK, t, false);
     const px = ((t * 90) % (W + 80)) - 40; figure(ctx, px, 150, 1, px > 90 && px < 130 ? 'punch' : 'run', 1, figureColor(seed || 3), t, false);
     return;
   }
@@ -81,6 +80,5 @@ function scene(ctx: CanvasRenderingContext2D, kind: Preview, t: number, seed: nu
   const poses: FigPose[] = ['stand', 'run', 'jump', 'kick', 'punch', 'read', 'swing', 'seat'];
   const i = Math.floor(t / 1.4) % poses.length;
   figure(ctx, 160, 158, 1.3, poses[i], 1, figureColor(seed), t, false);
-  figure(ctx, 90 + Math.sin(t) * 20, 162, 1, 'run', Math.cos(t) >= 0 ? 1 : -1, INK, t, false); label(ctx, 90 + Math.sin(t) * 20, 108, 'ᴬᴵ');
+  figure(ctx, 90 + Math.sin(t) * 20, 162, 1, 'run', Math.cos(t) >= 0 ? 1 : -1, INK, t, false);
 }
-function label(ctx: CanvasRenderingContext2D, x: number, y: number, s: string) { ctx.fillStyle = '#5b4f56'; ctx.font = 'bold 9px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText(s, x, y); }

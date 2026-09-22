@@ -94,7 +94,7 @@ async function openClimbSocket(request, env, room = 'tower') {
   const stub = env.CLIMB_ROOM.get(env.CLIMB_ROOM.idFromName(room));
   const forward = new URL(request.url);
   forward.search = '';
-  forward.searchParams.set('uid', String(uid)); forward.searchParams.set('handle', handle); forward.searchParams.set('avatar', avatar);
+  forward.searchParams.set('uid', String(uid)); forward.searchParams.set('handle', handle); forward.searchParams.set('avatar', avatar); forward.searchParams.set('room', room); // 방 이름 — 탑만 x 를 960 으로 자르고 최고 높이를 적는다
   return stub.fetch(new Request(forward.toString(), request));
 }
 
