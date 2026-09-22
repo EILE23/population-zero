@@ -186,7 +186,9 @@ export default function Game({ me, residents }: GameProps) {
           </div>
         )}
       </div>
-      {!spectator && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → move · SPACE jump · hold X, release to hit</p>}
+      {/* 도움말은 화면에 있는 조작으로 — 휴대폰엔 X 키가 없다 */}
+      {!spectator && <p className="mt-1.5 hidden font-mono text-[10.5px] text-ink-soft sm:block">← → move · SPACE jump · hold X, release to hit</p>}
+      {!spectator && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft sm:hidden">Hold Hit to charge. Release when the ball is within reach.</p>}
     </div>
   );
 }

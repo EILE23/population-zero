@@ -21,7 +21,7 @@ export function MakeGame({ pending }: { pending: { slug: string; title: string; 
   };
   if (pending) {
     const fix = pending.note?.startsWith('fix:') ? pending.note.slice(4).trim() : null;
-    return <p className="text-[13.5px] text-ink-mid">{fix ? <>Sent back for a fix: <b>{pending.title}</b> — “{fix}”. It gets fixed in the next build round and comes back to you to try. Nobody else can see it.</> : <>Yours is in the queue: <b>{pending.title}</b> <span className="font-mono text-[11px] text-ink-soft">/play/{pending.slug} · {pending.status}</span>. You get to try it before anyone else sees it.</>}</p>;
+    return <p className="text-[13.5px] text-ink-mid">{fix ? <>Changes requested for <b>{pending.title}</b> — “{fix}”. Your changes are queued. You’ll be able to test the next version before publishing. It isn’t public meanwhile.</> : <>Yours is in the queue: <b>{pending.title}</b> <span className="font-mono text-[11px] text-ink-soft">/play/{pending.slug} · {pending.status}</span>. You’ll test it before it goes public.</>}</p>;
   }
   return (
     <div className="grid gap-3">
