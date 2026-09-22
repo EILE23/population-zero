@@ -4,7 +4,7 @@ import { figure, figureColor, hash, jobOf, rng, type FigPose } from '@/features/
 import type { GameProps } from '../registry';
 
 /**
- * Stick Volley — 3:3 배구. 졸라맨이 공의 낙하점으로 달려가 진짜로 받아 올리고(범프·세트), 세 번째 터치로 네트를 넘긴다(스파이크).
+ * Stick Volley — 2:2 배구(운영자: 2:2 가 낫다). 졸라맨이 공의 낙하점으로 달려가 진짜로 받아 올리고(범프·세트), 세 번째 터치로 네트를 넘긴다(스파이크).
  * 물리: 공은 화면 y 로 떨어진다(중력 GRAV). 치는 쪽은 목표 지점을 정하고 그곳에 떨어지도록 (vx, vy) 를 풀어서 넘긴다 — 네트 위를 못 넘으면 더 높은 궤적으로.
  * 사람은 A 팀 앞사람(색은 내 색). 나머지는 주민. 로그아웃이면 주민끼리 친다. 랠리·3터치·서브·15점 세트.
  */
@@ -43,19 +43,19 @@ export default function Game({ me, residents }: GameProps) {
   useEffect(() => {
     const c = canvas.current!; const ctx = c.getContext('2d')!;
     const r = rng(hash(`volley:${me?.id ?? 0}:${new Date().toISOString().slice(0, 10)}`));
-    const pool = residents.filter((x) => x.id > 0).sort(() => r() - 0.5).slice(0, 6);
+    const pool = residents.filter((x) => x.id > 0).sort(() => r() - 0.5).slice(0, 4);
     const mk = (side: Side, i: number, home: number, who?: { id: number; handle: string }): P => ({ side, x: home, home, z: 0, vz: 0, face: side === 'A' ? 1 : -1, pose: 'stand', hit: 0, charge: 0, name: who?.handle ?? me?.handle ?? 'you', color: who ? '#3a2f36' : figureColor(me?.id ?? 1), seed: hash(who?.handle ?? 'me') });
-    const homesA = [400, 260, 130], homesB = [560, 700, 830];
+    const homesA = [380, 170], homesB = [580, 790]; // 앞·뒤 한 명씩
     const ps: P[] = [
       ...homesA.map((h, i) => mk('A', i, h, spectator || i > 0 ? pool[i] : undefined)),
-      ...homesB.map((h, i) => mk('B', i, h, pool[3 + i])),
+      ...homesB.map((h, i) => mk('B', i, h, pool[2 + i])),
     ];
     const mine = spectator ? null : ps[0];
-    const ball: Ball = { x: 130, y: GROUND - 60, vx: 0, vy: 0, live: false, side: 'A', touches: 0, last: null, serveAt: performance.now() + 1200, server: 'A' };
+    const ball: Ball = { x: 170, y: GROUND - 60, vx: 0, vy: 0, live: false, side: 'A', touches: 0, last: null, serveAt: performance.now() + 1200, server: 'A' };
     const sc = { A: 0, B: 0 }; let msg = 'Serve.'; let msgUntil = 0; let raf = 0, last = performance.now();
     const say = (m: string, ms = 1600) => { msg = m; msgUntil = performance.now() + ms; setScore({ ...sc, msg }); };
     const serve = () => {
-      const s = ps.find((p) => p.side === ball.server && p.home === (ball.server === 'A' ? 130 : 830))!;
+      const s = ps.find((p) => p.side === ball.server && p.home === (ball.server === 'A' ? 170 : 790))!; // 뒷사람이 서브
       ball.x = s.x; ball.y = GROUND - 70; ball.live = true; ball.side = ball.server; ball.touches = 1; ball.last = s;
       const tx = ball.server === 'A' ? 600 + r() * 280 : 80 + r() * 280;
       const v = aim(ball.x, ball.y, tx, 1.1, true); ball.vx = v.vx; ball.vy = v.vy; s.pose = 'throw'; s.hit = 0.3; s.charge = 0;
@@ -154,7 +154,7 @@ export default function Game({ me, residents }: GameProps) {
         if (p === mine && p.charge > 0) { ctx.fillStyle = '#e6e0da'; ctx.fillRect(p.x - 20, fy - 76, 40, 5); ctx.fillStyle = p.charge >= CHARGE ? '#ad7096' : '#3a2f36'; ctx.fillRect(p.x - 20, fy - 76, 40 * (p.charge / CHARGE), 5); }
         ctx.fillStyle = '#5b4f56'; ctx.font = 'bold 10.5px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText(p === mine ? p.name : `${p.name} · ${jobOf(p.name).name}`, p.x, fy - 62);
       }
-      ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(ball.live ? ball.x : ps.find((p) => p.side === ball.server && p.home === (ball.server === 'A' ? 130 : 830))!.x + 14, ball.live ? ball.y : GROUND - 44, BALL_R, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(ball.live ? ball.x : ps.find((p) => p.side === ball.server && p.home === (ball.server === 'A' ? 170 : 790))!.x + 14, ball.live ? ball.y : GROUND - 44, BALL_R, 0, 6.29); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#1b0c15'; ctx.font = 'bold 22px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText(`${sc.A}   ${sc.B}`, NET_X, 40);
       ctx.font = 'bold 11px ui-monospace, monospace'; ctx.fillStyle = '#5b4f56'; ctx.fillText('A', NET_X - 60, 40); ctx.fillText('B', NET_X + 60, 40);
       if (now < msgUntil) { ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillStyle = '#7b526c'; ctx.fillText(msg, NET_X, 66); }
@@ -172,7 +172,7 @@ export default function Game({ me, residents }: GameProps) {
   const hold = (k: keyof typeof input.current) => ({ onPointerDown: () => { input.current[k] = true; }, onPointerUp: () => { input.current[k] = false; }, onPointerLeave: () => { input.current[k] = false; } });
   return (
     <div className="mx-auto w-full max-w-[960px]">
-      <div className="flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft"><span>Stick Volley · first to 15</span><span>{score.A}–{score.B}</span></div>
+      <div className="flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft"><span>Stick Volley · 2 v 2 · first to 15</span><span>{score.A}–{score.B}</span></div>
       <div className="relative mt-2 overflow-hidden rounded-xl border border-hairline bg-[#eef0f2]">
         <canvas ref={canvas} className="block w-full touch-none" />
         {spectator && <div className="absolute inset-x-0 bottom-0 bg-paper/90 px-3 py-2 text-[12.5px]">The residents are playing. Log in to take the front spot on team A.</div>}
