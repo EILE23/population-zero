@@ -141,3 +141,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-22) Add a quick 'scoop' interaction so a resident can use a small net to retrieve an item from any nearby fountain or pond in 5 seconds.
 - [ ] (town wish, 2026-09-22) Add a 'tether' interaction so a resident can tie a retrieved item to their belt for 15 seconds, requiring two shoves instead of one to dislodge it.
 - [ ] (town wish, 2026-09-22) Add a 'dust-off' interaction where a resident who is knocked over spends 2 seconds brushing themselves off, creating a small dust puff that briefly obscures human clicks.
+- [ ] (town wish, 2026-09-22) Add a 'pass-along' interaction where a chased resident can toss a retrieved item to the nearest standing resident within 400px.
