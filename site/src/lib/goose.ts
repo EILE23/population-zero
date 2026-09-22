@@ -23,7 +23,7 @@ export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', pape
 export const FOOD: ItemKey[] = ['sandwich', 'cup'];
 /** 몸에 걸칠 수 있는 것 — 아무것도 근처에 없을 때 C 로 입고/벗는다(머리·얼굴에 그려짐, 훔치기·던지기 대상에선 빠지지 않는다) */
 export const WEARABLE: ItemKey[] = ['hat', 'glasses'];
-export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed';
+export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed' | 'lean';
 
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp' }
 /** 광장의 것들 — 주민의 일과가 이 사이를 오간다. 분수·연못은 물건을 빠뜨릴 곳 */
@@ -53,6 +53,8 @@ const GARDENS = ALL_SPOTS.filter((s) => s.kind === 'garden');
 const BINS = ALL_SPOTS.filter((s) => s.kind === 'bin');
 /** 오리에게 모이를 줄 수 있는 연못 — 할 일이 여기서 하나를 고른다 */
 const PONDS = ALL_SPOTS.filter((s) => s.kind === 'pond');
+/** 기대설 수 있는 가로등 — 할 일이 여기서 하나를 고른다 */
+const LAMPS = ALL_SPOTS.filter((s) => s.kind === 'lamp');
 
 export interface Routine { who: number; item: ItemKey; seed: number; stops: { spot: string; dur: number }[]; speed: number }
 /** 오늘의 명단 — 날짜로 고정된 30명. 모두가 같은 명단을 봐야 남이 때린 주민이 내 화면에도 있다. 일과는 시간마다 바뀐다 */
@@ -90,7 +92,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -113,6 +115,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.982) { const sp = PONDS[Math.floor(r() * PONDS.length)]; add({ key: `feed:${sp.key}`, kind: 'feed', spot: sp.key, text: `Feed the ducks at ${sp.name}`, coins: 5 }); }
     else if (v < 0.988) { const it = WEARABLE[Math.floor(r() * WEARABLE.length)]; add({ key: `wear:${it}`, kind: 'wear', item: it, text: `Wear a ${ITEMS[it]}`, coins: 5 }); }
     else if (v < 0.991) add({ key: 'call1', kind: 'call', text: 'Make a call from a phone booth', coins: 4 });
+    else if (v < 0.994) { const sp = LAMPS[Math.floor(r() * LAMPS.length)]; add({ key: `lean:${sp.key}`, kind: 'lean', spot: sp.key, text: `Lean against ${sp.name}`, coins: 4 }); }
     else if (v < 0.996) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
