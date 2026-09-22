@@ -1,0 +1,114 @@
+# 사람이 /play 에서 설명한 게임을 Claude Code 가 엔진 위에 구현해 배포한다 — 큐에서 한 번에 하나. 사람 머지 없음.
+# 안전장치: 요청문은 데이터(patrol/GAMES.md), 경로 허용 목록(자기 폴더 + registry 한 줄 + 로그), 게이트(tsc·tests·build), 하루 세 번, 킬스위치(레포 변수 GAMES=off).
+name: build-game
+
+on:
+  schedule:
+    - cron: '0 20 * * *'   # 05:00 KST
+    - cron: '0 4 * * *'    # 13:00 KST
+    - cron: '0 12 * * *'   # 21:00 KST
+  workflow_dispatch:
+
+concurrency:
+  group: grow-code          # 성장 잡과 같은 그룹 — 둘이 동시에 main 에 푸시하지 않게
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: vars.GAMES != 'off'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      npm_config_frozen_lockfile: 'false'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 57bb730630ace30ef33217fb43d029cf
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        working-directory: site
+        run: |
+          corepack enable
+          CI=true pnpm install --no-frozen-lockfile --ignore-scripts
+
+      - name: Pick the next request
+        id: pick
+        working-directory: patrol
+        run: |
+          SLUG=$(node games-queue.mjs pick /tmp/game-request.json | tail -1)
+          echo "slug=$([ "$SLUG" = none ] && echo '' || echo "$SLUG")" >> "$GITHUB_OUTPUT"
+          echo "picked: $SLUG"
+
+      - name: Install Claude Code
+        if: steps.pick.outputs.slug != ''
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Build the game
+        if: steps.pick.outputs.slug != ''
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ''
+        run: |
+          claude --dangerously-skip-permissions -p "Read patrol/GAMES.md and build the game described in /tmp/game-request.json, exactly as that file says. Repo root is the current directory. Do not run git commit or git push. End with one line starting with SUMMARY:." --output-format stream-json --verbose > /tmp/build.jsonl || true
+          node -e "const l=require('fs').readFileSync('/tmp/build.jsonl','utf8').trim().split('\n');for(const x of l.slice(-3)){try{const e=JSON.parse(x);if(e.type==='result')console.log('RESULT:',String(e.result??'').slice(0,800))}catch{}}" || true
+
+      # 허용 경로: 자기 폴더, registry, 로그. 밖은 되돌린다(새 파일이면 지운다)
+      - name: Enforce the allowed paths
+        if: steps.pick.outputs.slug != ''
+        env:
+          SLUG: ${{ steps.pick.outputs.slug }}
+        run: |
+          git add -A
+          CHANGED=$(git diff --cached --name-only)
+          echo "$CHANGED"
+          BAD=$(echo "$CHANGED" | grep -v -E "^(site/src/features/games/${SLUG}/|site/src/features/games/registry\.ts$|patrol/GAMES-LOG\.md$)" || true)
+          if [ -n "$BAD" ]; then echo "reverting out-of-scope changes:"; echo "$BAD"; for f in $BAD; do git rm -q --cached --ignore-unmatch -- "$f"; git checkout HEAD -- "$f" 2>/dev/null || rm -rf -- "$f"; done; fi
+          git add -A
+          git diff --cached --stat
+          if git diff --cached --quiet; then echo "nothing=1" >> "$GITHUB_ENV"; fi
+          LINES=$(git diff --cached --numstat | awk '{a+=$1+$2} END {print a+0}'); echo "changed lines: $LINES"
+          if [ "$LINES" -gt 2500 ]; then echo "too big — discarding"; git reset -q --hard; git clean -fdq site/src/features/games; echo "nothing=1" >> "$GITHUB_ENV"; fi
+          # registry 가 한 줄만 바뀌었는지(다른 게임 줄을 건드리면 버린다), 그리고 그 줄이 이 slug 인지
+          if git diff --cached --quiet -- site/src/features/games/registry.ts; then echo "registry not updated"; echo "nothing=1" >> "$GITHUB_ENV"; git reset -q --hard; git clean -fdq site/src/features/games; fi
+          REM=$(git diff --cached --numstat -- site/src/features/games/registry.ts | awk '{print $2+0}'); if [ "${REM:-0}" -gt 1 ]; then echo "registry rewrote other lines — discarding"; git reset -q --hard; git clean -fdq site/src/features/games; echo "nothing=1" >> "$GITHUB_ENV"; fi
+          grep -q "slug: '${SLUG}'" site/src/features/games/registry.ts || { echo "slug not registered"; git reset -q --hard; git clean -fdq site/src/features/games; echo "nothing=1" >> "$GITHUB_ENV"; }
+
+      - name: Gate — typecheck, tests, build
+        if: steps.pick.outputs.slug != '' && env.nothing != '1'
+        working-directory: site
+        run: |
+          npx tsc --noEmit -p .
+          node tests/schema-parity.test.mjs
+          node tests/app-parity.test.mjs || true
+          npx wrangler d1 execute pz-db --local --file=./schema.sql >/dev/null
+          NEXT_PRIVATE_STANDALONE=true npx next build
+          npx opennextjs-cloudflare build --skipNextBuild
+
+      - name: Commit, deploy, mark live
+        if: steps.pick.outputs.slug != '' && env.nothing != '1'
+        env:
+          SLUG: ${{ steps.pick.outputs.slug }}
+        run: |
+          git config user.name "square-grow"
+          git config user.email "square-grow@population.town"
+          SUMMARY=$(grep -o 'SUMMARY:.*' /tmp/build.jsonl | tail -1 | sed 's/SUMMARY: *//' | tr -d '"\\' | cut -c1-72)
+          git commit -q -m "feat(play): ${SLUG} — ${SUMMARY:-a game someone described} [game]"
+          git pull -q --rebase origin main || true
+          git push origin HEAD:main
+          (cd site && npx wrangler deploy)
+          (cd patrol && node games-queue.mjs done "$SLUG" "${SUMMARY:-built}")
+
+      - name: Mark failed
+        if: steps.pick.outputs.slug != '' && (failure() || env.nothing == '1')
+        env:
+          SLUG: ${{ steps.pick.outputs.slug }}
+        run: |
+          cd patrol && node games-queue.mjs fail "$SLUG" "the build did not pass — the developer will try once more"

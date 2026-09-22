@@ -83,19 +83,21 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const spectator = !me;
   const say = (msg: string, ms = 2500) => { setToast(msg); setTimeout(() => setToast(''), ms); };
   const mapOf = (k: string) => maps.current.find((m) => m.key === k) ?? maps.current[0];
+  /** 방(서버) 시각 — 주민 일과는 (씨앗, 시각) 의 함수라 모두가 같은 시계를 써야 같은 자리에 보인다. init 의 now 로 내 시계와의 차이를 잰다 */
+  const skew = useRef(0); const wall = () => Date.now() + skew.current;
 
   // ── 이벤트: 내 화면에 적용하고 방에 보낸다 / 남의 것을 받아 적용한다 ──
   const apply = (w: Ev, mine: boolean) => {
     if (w.k === 'drop') loose.current.set(String(w.id), { id: String(w.id), item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), from: w.from === null ? null : Number(w.from), dunked: w.dunked ? String(w.dunked) : undefined });
     else if (w.k === 'pick') loose.current.delete(String(w.id));
-    else if (w.k === 'break') broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, Date.now() - Number(w.brokeAt)) : 0 });
+    else if (w.k === 'break') broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, wall() - Number(w.brokeAt)) : 0 });
     else if (w.k === 'fix') broken.current.delete(String(w.key));
-    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - Date.now()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
+    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - wall()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
     else if (w.k === 'npcpos' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n && n.owner !== me?.id) { if (n.map !== String(w.m ?? n.map)) { n.x = Number(w.x); n.d = Number(w.d); } n.tx = Number(w.x); n.td = Number(w.d); n.face = w.face === -1 ? -1 : 1; n.moving = !!w.moving; n.map = String(w.m ?? n.map); if (w.swing) n.swing = 0.28; } }
     else if (w.k === 'hitp' && !mine && me && Number(w.uid) === me.id) { stats.current.pendingKnock = { by: String(w.byName ?? 'someone'), line: String(w.kind) === 'kick' ? 'kicked you' : 'punched you' }; }
   };
   const emit = (ev: Ev) => { apply(ev, true); if (ws.current?.readyState === 1 && me) ws.current.send(JSON.stringify({ t: 'ev', ev })); };
-  const npcEv = (n: Npc, extra: Record<string, unknown> = {}) => emit({ k: 'npc', who: n.who, mode: n.mode, until: Date.now() + Math.max(0, n.until - performance.now()), x: n.x, d: n.d, item: n.item, by: me?.id, ...extra });
+  const npcEv = (n: Npc, extra: Record<string, unknown> = {}) => emit({ k: 'npc', who: n.who, mode: n.mode, until: wall() + Math.max(0, n.until - performance.now()), x: n.x, d: n.d, item: n.item, by: me?.id, ...extra });
   const drop = (item: ItemKey, x: number, d: number, from: number | null, dunked?: string) => { const id = `${me?.id ?? 0}-${Date.now().toString(36)}-${stats.current.seq++}`; emit({ k: 'drop', id, item, m: mapKey.current, x, d, from, dunked }); return id; };
 
   // ── 방 ──
@@ -115,10 +117,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           map.set(uid, { uid, handle: String(u.handle ?? ''), x: prev?.x ?? (Number(u.x) || 0), tx: Number(u.x) || 0, d: prev?.d ?? d, td: d, z: 0, tz: 0, pose: String(u.pose ?? 'stand'), status: u.status === 'rest' ? 'rest' : 'active', map: String(u.map || 'square'), face: u.face === -1 ? -1 : 1, stack: String(u.stack || '').split(',').filter((k): k is ItemKey => k in ITEMS) });
         };
         if (m.t === 'init') {
+          if (typeof m.now === 'number' && Math.abs(m.now - Date.now()) < 6 * 3600000) skew.current = m.now - Date.now(); // 반나절 넘게 어긋나면 서버 쪽이 이상한 것
           map.clear(); for (const u of m.users as Record<string, unknown>[]) put(u);
           const w = (m.world ?? {}) as { loose?: Record<string, Record<string, unknown>>; broken?: Record<string, { hp: number; brokeAt: number }>; npc?: Record<string, Record<string, unknown>> };
           loose.current.clear(); for (const [id, l] of Object.entries(w.loose ?? {})) loose.current.set(id, { id, item: l.item as ItemKey, map: String(l.m), x: Number(l.x), d: Number(l.d), from: l.from === null ? null : Number(l.from), dunked: l.dunked ? String(l.dunked) : undefined });
-          broken.current.clear(); for (const [k, v] of Object.entries(w.broken ?? {})) broken.current.set(k, { hp: v.hp, brokeAt: v.brokeAt ? performance.now() - Math.max(0, Date.now() - v.brokeAt) : 0 });
+          broken.current.clear(); for (const [k, v] of Object.entries(w.broken ?? {})) broken.current.set(k, { hp: v.hp, brokeAt: v.brokeAt ? performance.now() - Math.max(0, wall() - v.brokeAt) : 0 });
           for (const [who, o] of Object.entries(w.npc ?? {})) apply({ k: 'npc', who: Number(who), ...o }, false);
         }
         else if (m.t === 'user') put(m.u as Record<string, unknown>);
@@ -169,7 +172,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     const questOf = (who: number) => questFor(new Date().toISOString().slice(0, 10), who, rosterIds, residents.map((r) => r.handle));
     const finishQuest = (q: Quest, n: Npc) => { n.say = q.thanks; n.sayUntil = now0() + 2500; quests.current.delete(q.who); setQuestList([...quests.current.values()]); void complete(q.key); };
     const now0 = () => performance.now();
-    const hour = () => Math.floor(Date.now() / 3600000); let curHour = hour();
+    const hour = () => Math.floor(wall() / 3600000); let curHour = hour();
     const spotIndex = new Map<string, { map: string; spot: Spot }>();
     for (const m of maps.current) for (const sp of m.spots) spotIndex.set(sp.key, { map: m.key, spot: sp });
     const spawn = () => {
@@ -229,7 +232,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
-      const dt = Math.min(0.1, (now - last) / 1000); last = now; const t = Date.now() / 1000;
+      const dt = Math.min(0.1, (now - last) / 1000); last = now; const t = wall() / 1000;
       if (hour() !== curHour) { curHour = hour(); spawn(); }
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
@@ -264,7 +267,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (st2.brokeAt) return;
           st2.hp -= air ? 3 : kind === 'kick' ? 2 : 1;
           if (st2.hp <= 0) { st2.brokeAt = now; say(`You broke ${pr.name}.`); void complete(`break:${pr.key}`); for (const m of npcs.current) if (here(m) && m.mode === 'routine' && dist(m.x, m.d, pr.x, pr.d) < 260) { m.say = pick(content.shoved); m.sayUntil = now + 2000; if (m.angry || m.job.key === 'cop') { m.mode = 'chase'; m.owner = me!.id; m.until = now + CHASE_SEC * 1000; npcEv(m, { say: m.say }); } } }
-          emit({ k: 'break', key: pr.key, hp: st2.hp, brokeAt: st2.brokeAt ? Date.now() : 0 });
+          emit({ k: 'break', key: pr.key, hp: st2.hp, brokeAt: st2.brokeAt ? wall() : 0 });
         }
       };
       // ── 나 ──

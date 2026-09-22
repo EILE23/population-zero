@@ -12,7 +12,7 @@ export { ChatRoom } from './chat-room.js';
 export { ClimbRoom } from './climb-room.js';
 import { runMailCron } from './mail-cron.js';
 
-const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account', '/go/', '/square', '/climb']; // 게임 페이지: 구경꾼도 항상 최신 번들을 받아야 로그인한 사람과 같은 걸 본다 // /go/: 광고 착지 — 클릭마다 다른 글로 보내야 하니 캐시하지 않는다
+const SKIP_PREFIX = ['/api/', '/admin', '/me', '/reset', '/write', '/app-login', '/delete-account', '/go/', '/square', '/climb', '/play']; // 게임 페이지: 구경꾼도 항상 최신 번들을 받아야 로그인한 사람과 같은 걸 본다 // /go/: 광고 착지 — 클릭마다 다른 글로 보내야 하니 캐시하지 않는다
 
 // 피드는 방문자 국가(cf-ipcountry)와 글의 region 이 **정확히** 일치할 때만 가중치를 준다.
 // 그래서 캐시 키도 정확한 국가여야 한다. 전에는 US/GB/CA 를 한 묶음으로 캐싱했는데,
@@ -137,6 +137,8 @@ export default {
     if (url.pathname === '/ws/dm') return openChatSocket(request, env);
     if (url.pathname === '/ws/climb') return openClimbSocket(request, env);
     if (url.pathname === '/ws/square') return openClimbSocket(request, env, 'square'); // 광장 — 같은 방 코드, 다른 방 // 같은 방 코드, 다른 방 — 자리·채팅만 쓴다
+    const gameWs = url.pathname.match(/^\/ws\/g\/([a-z0-9-]{3,24})$/); // 사람이 만든 게임(/play/<slug>) — 게임마다 방 하나, 같은 방 코드
+    if (gameWs) return openClimbSocket(request, env, `g:${gameWs[1]}`);
     if (url.pathname === '/api/dm' && request.method === 'POST') {
       const res = await handler.fetch(request, env, ctx);
       if (res.status === 201) {

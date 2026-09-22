@@ -72,3 +72,17 @@ export interface PollOptionRow {
   label: string;
   votes: number;
 }
+
+/** games — 사람이 프롬프트로 만든 게임(/play). status: queued | building | live | failed */
+export interface GameRow {
+  id: number;
+  slug: string;
+  title: string;
+  prompt: string;
+  user_id: number;
+  status: string;
+  note: string | null;
+  attempts: number;
+  created_at: string;
+  built_at: string | null;
+}

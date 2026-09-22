@@ -103,7 +103,8 @@ export class ClimbRoom extends DurableObject {
     // 처음 한 번: 탑에 있는 모두 (활동 중이든 쉬는 중이든)
     // 로그아웃한 사람(gone)은 남에게 보이지 않는다 — 자리만 저장돼 있다
     const world = await this.loadWorld(); this.tidy(world, Date.now());
-    try { server.send(JSON.stringify({ t: 'init', me: uid, users: [...users.values()].filter((u) => u.status !== 'gone' || u.uid === uid), world })); } catch {}
+    // now: 서버 시각 — 클라이언트가 자기 시계와의 차이를 재서 결정적 일과(주민 위치)를 같은 시각 기준으로 돈다. 시계가 몇 초 어긋난 두 사람은 같은 주민을 다른 곳에서 봤다
+    try { server.send(JSON.stringify({ t: 'init', me: uid, now: Date.now(), users: [...users.values()].filter((u) => u.status !== 'gone' || u.uid === uid), world })); } catch {}
     return new Response(null, { status: 101, webSocket: client });
   }
 

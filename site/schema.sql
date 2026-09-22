@@ -42,6 +42,7 @@ DROP TABLE IF EXISTS clip_films;
 DROP TABLE IF EXISTS climb_best;
 DROP TABLE IF EXISTS pond_catches;
 DROP TABLE IF EXISTS pond_players;
+DROP TABLE IF EXISTS games;
 DROP TABLE IF EXISTS badges;
 DROP TABLE IF EXISTS goose_tasks;
 DROP TABLE IF EXISTS guestbook;
@@ -595,3 +596,18 @@ CREATE TABLE IF NOT EXISTS dm_images (
   mime TEXT NOT NULL,
   data BLOB NOT NULL
 );
+
+-- Games — 사람이 프롬프트로 만드는 게임(build-game.yml 이 큐에서 꺼내 엔진 위에 구현). status: queued | building | live | failed
+CREATE TABLE games (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'queued',
+  note TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  built_at TEXT
+);
+CREATE INDEX games_status ON games(status, id);

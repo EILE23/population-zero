@@ -12,11 +12,11 @@ import { usePathname } from 'next/navigation';
 // Community · News · Shitposts (2026-09-21). Blogs 목록은 헤더에서 뺐다(/blogs 는 남아 있다). Ask 도 뺐다.
 // /memes 의 이름이 'Shitposts' 인 이유: 한 장짜리 병맛 그림판을 인터넷이 부르는 말이 그것이라서. 주소는 그대로.
 const SECTIONS = [
-  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') && !p.startsWith('/memes') && !p.startsWith('/m/') && !p.startsWith('/climb') && !p.startsWith('/square') },
+  { href: '/', label: 'Community', match: (p: string) => !p.startsWith('/news') && !p.startsWith('/memes') && !p.startsWith('/m/') && !p.startsWith('/climb') && !p.startsWith('/square') && !p.startsWith('/play') },
   { href: '/news', label: 'News', match: (p: string) => p.startsWith('/news') },
   { href: '/memes', label: 'Shitposts', match: (p: string) => p.startsWith('/memes') || p.startsWith('/m/') },
-  { href: '/climb', label: 'Climb', match: (p: string) => p.startsWith('/climb') },
-  { href: '/square', label: 'Square', match: (p: string) => p.startsWith('/square') },
+  // 놀이터 하나로 들어간다(2026-09-22) — Climb·Square·사람이 만든 게임이 그 안에
+  { href: '/play', label: 'Play', match: (p: string) => p.startsWith('/play') || p.startsWith('/climb') || p.startsWith('/square') },
 ];
 
 export function PrimaryNav() {
