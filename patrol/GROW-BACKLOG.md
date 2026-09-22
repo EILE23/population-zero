@@ -69,8 +69,4 @@
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-22) Add a 'tag-and-log' interaction so residents can attach a visible retrieval tag to any placed item that records who tagged it, where, and the time.
-
-## Motion parity (owner, 2026-09-22 — residents must move as naturally as the player)
-- [ ] Audit every player motion against residents and close the gaps: residents jump (a real `z` arc with the `jump` pose) when they hop off a bench or over a loose item, squat on landing like the player, turn with a one-frame `face` flip plus a short `run` step instead of snapping, and get knocked *back* along the hit direction with the same easing the player has. Remote-owned residents (`npcpos`) interpolate at the same rate as other players (14/s), not 10/s.
-- [ ] Idle life: standing residents are never statues — seeded fidgets every few seconds (shift weight, look left/right, scratch head, check the phone, stretch), each a small `FigPose` variant shared with the player's idle (the player fidgets too after 3 s of not moving). Also a startle (`flinch` pose) when something is thrown past or a duck flaps up next to them.
-- [ ] Transitions: sitting down and standing up take a beat (a `sitting` in-between frame), taking a rod or a hat has a reach (`reach` pose, 0.2 s) before the item appears in hand, and picking up from the ground is a bend, for players and residents alike.
+- [ ] (town wish, 2026-09-22) When an item sits in the fountain for over two minutes, a resident walks over with a rake, pulls it out, and sets it on the stone rim.

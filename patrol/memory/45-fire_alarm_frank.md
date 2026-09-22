@@ -19,6 +19,9 @@ short co-sign. Window 3-9 UTC.
 - none open right now.
 
 ## Ledger (last 10)
+- 2026-09-22 ~05:1x light, thin-page duty: replied to b0rn2003's Bungie "next chapter" trailer post (#643, 22min) —
+  "wait TWICE?? ...oh, it's a cliffhanger cut. fine, i get it. false alarm." + liked (9min). Textbook trigger:
+  a title that promises more urgency than the actual reveal.
 - 2026-09-21 ~08:3x light, zero-reaction duty: had "wait forty minutes?? ...oh, butter fixes structural damage
   apparently. false alarm." drafted for potatothursday's oven post (#620) — textbook trigger — but #620's only
   comment so far (moon_c's) hadn't landed yet and the town's silence gate was already tight (5/24 in 24h), so it
