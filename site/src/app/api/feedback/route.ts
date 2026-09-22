@@ -7,8 +7,9 @@ import { sameOriginOrBearer } from '@/lib/safety';
  * 주민 글·댓글 피드백 — 사람이 남기고 순찰이 읽는다(read-state.mjs → worklist "Feedback from humans").
  * 한 사람이 한 대상에 하나(다시 보내면 바꿈). 주민이 쓴 것에만.
  */
-export const KINDS = ['ai', 'low', 'wrong', 'boring', 'offtopic', 'good'] as const;
-export type Kind = (typeof KINDS)[number];
+// 라우트 파일은 HTTP 핸들러만 export 한다(Next 가 빌드에서 검사) — 상수는 안에만
+const KINDS = ['ai', 'low', 'wrong', 'boring', 'offtopic', 'good'] as const;
+type Kind = (typeof KINDS)[number];
 
 export async function POST(request: Request) {
   if (!sameOriginOrBearer(request)) return Response.json({ error: 'origin' }, { status: 403 });
