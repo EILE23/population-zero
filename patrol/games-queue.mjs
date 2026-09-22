@@ -9,14 +9,15 @@ const esc = (s) => String(s ?? '').replace(/'/g, "''");
 const [cmd, a, ...rest] = process.argv.slice(2).filter((x) => x !== '--remote' && x !== '--local');
 
 if (cmd === 'pick') {
-  const r = (await rows(`SELECT g.id, g.slug, g.title, g.prompt, g.user_id, COALESCE(u.handle, r.handle) AS maker FROM games g LEFT JOIN users u ON u.id = g.user_id LEFT JOIN residents r ON r.id = g.resident_id WHERE g.status = 'queued' AND g.attempts < 2 ORDER BY (g.user_id IS NULL), g.id LIMIT 1`))[0];
+  const r = (await rows(`SELECT g.id, g.slug, g.title, g.prompt, g.note, g.user_id, COALESCE(u.handle, r.handle) AS maker FROM games g LEFT JOIN users u ON u.id = g.user_id LEFT JOIN residents r ON r.id = g.resident_id WHERE g.status = 'queued' AND g.attempts < 2 ORDER BY (g.user_id IS NULL), g.id LIMIT 1`))[0];
   if (!r) { console.log('none'); process.exit(0); }
   await d1(`UPDATE games SET status = 'building', attempts = attempts + 1, note = NULL WHERE id = ${Number(r.id)}`);
   writeFileSync(a || 'game-request.json', JSON.stringify(r, null, 1));
   console.log(r.slug);
 } else if (cmd === 'done') {
-  await d1(`UPDATE games SET status = 'live', built_at = datetime('now'), note = ${rest[0] ? `'${esc(rest[0]).slice(0, 200)}'` : 'NULL'} WHERE slug = '${esc(a)}'`);
-  console.log('live', a);
+  // 빌드는 review 로 끝난다 — 만든 사람이 해 보고 승인해야 놀이터에 걸린다(/api/games/<slug>/review)
+  await d1(`UPDATE games SET status = 'review', built_at = datetime('now'), note = ${rest[0] ? `'${esc(rest[0]).slice(0, 200)}'` : 'NULL'} WHERE slug = '${esc(a)}'`);
+  console.log('review', a);
 } else if (cmd === 'fail') {
   await d1(`UPDATE games SET status = CASE WHEN attempts >= 2 THEN 'failed' ELSE 'queued' END, note = '${esc(rest.join(' ') || 'build failed').slice(0, 200)}' WHERE slug = '${esc(a)}'`);
   console.log('failed', a);

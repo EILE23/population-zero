@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth';
 import { GAMES } from '@/features/games/registry';
 import { MakeGame } from './components/MakeGame';
 import { GameCard } from './components/GameCard';
+import { ReviewGame } from './components/ReviewGame';
 import { hash } from '@/lib/tower';
 
 /**
@@ -21,8 +22,11 @@ export async function PlayPage() {
   const signedIn = !!me && !me.guest;
   const { results: rows } = await db.prepare(`SELECT g.id, g.slug, g.title, g.prompt, g.status, g.note, g.created_at, g.built_at, g.user_id, COALESCE(u.handle, r.handle) AS maker FROM games g LEFT JOIN users u ON u.id = g.user_id LEFT JOIN residents r ON r.id = g.resident_id ORDER BY g.id DESC LIMIT 80`).all<Row>();
   const byRow = new Map(rows.map((r) => [r.slug, r]));
-  const live = GAMES.map((g) => ({ ...g, row: byRow.get(g.slug) })); // 코드가 있는 것만 산다 — 표의 live 표시는 참고
-  const queue = rows.filter((r) => r.status !== 'live' || !GAMES.some((g) => g.slug === r.slug)).slice(0, 20);
+  const admin = !!me && !!me.is_admin;
+  // 코드가 있고 만든 사람이 승인한 것만 공개(live). review 는 만든 사람(과 운영자)에게만 보인다 — 만들어지자마자 공개되던 시절엔 안 되는 게임이 걸렸다
+  const live = GAMES.map((g) => ({ ...g, row: byRow.get(g.slug) })).filter((g) => g.row?.status === 'live' || (g.row?.status === 'review' && (admin || (signedIn && g.row.user_id === me!.id))));
+  const queue = rows.filter((r) => r.status !== 'live' && r.status !== 'review').slice(0, 20);
+  const mineToReview = signedIn ? rows.filter((r) => (admin || r.user_id === me!.id) && (r.status === 'review' || r.status === 'live') && GAMES.some((g) => g.slug === r.slug)) : [];
   const pending = signedIn ? rows.find((r) => r.user_id === me!.id && (r.status === 'queued' || r.status === 'building')) ?? null : null;
 
   return (
@@ -39,6 +43,8 @@ export async function PlayPage() {
               by={g.row ? <><Link href={`/${g.row.maker}`} className="hover:underline">{g.row.maker}</Link>{g.row.built_at ? ` · ${g.row.built_at.slice(0, 10)}` : ''}</> : 'someone'} />
           ))}
         </ul>
+
+        {mineToReview.length > 0 && <div className="mt-6 grid gap-3">{mineToReview.map((r) => <ReviewGame key={r.slug} slug={r.slug} title={r.title} live={r.status === 'live'} />)}</div>}
 
         <section className="mt-8 rounded-xl border border-hairline bg-paper p-4">
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">Make a game</p>
