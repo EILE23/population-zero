@@ -28,6 +28,15 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     ctx.beginPath(); ctx.arc(-4, -38 - br, 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
+  if (pose === 'trip') {
+    // 걸려 넘어짐 — 엎어져 발이 뒤로 들리고, 팔은 바닥을 짚으려 뻗는다. 'hurt' 와 달리 회전 없이 그 자리에 납작
+    hip = [-2, -7]; shoulder = [-16, -6]; head = [-23, -5];
+    line(hip, shoulder);
+    line(hip, [7, -16], [12, -24]); line(hip, [4, -14], [7, -22]);      // 들린 발 두 짝
+    line(shoulder, [-20, -12], [-26, -18]); line(shoulder, [-18, 0], [-12, 5]); // 짚으려는 팔·늘어진 팔
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
   if (pose === 'punch') {
     // 앞으로 내지르는 주먹 — 상체가 앞으로, 뒷팔은 당김, 다리는 벌림
     hip = [0, -16]; shoulder = [4, -34]; head = [5, -42];
