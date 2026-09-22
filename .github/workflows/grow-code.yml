@@ -5,7 +5,9 @@ name: grow-code
 on:
   schedule:
     - cron: '30 19 * * *'   # 04:30 KST
-    - cron: '30 7 * * *'    # 16:30 KST — 하루 두 번(운영자: 상호작용이 빨리 늘어야 한다)
+    - cron: '30 1 * * *'    # 10:30 KST
+    - cron: '30 7 * * *'    # 16:30 KST
+    - cron: '30 13 * * *'   # 22:30 KST — 하루 네 번(운영자 2026-09-22: 일주일 뒤엔 확 달라져 있어야 한다)
   workflow_dispatch:
 
 concurrency:
