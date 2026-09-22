@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const title = String(b.title ?? '').replace(/\s+/g, ' ').trim();
   const prompt = String(b.prompt ?? '').replace(/\r/g, '').trim();
   if (title.length < 3 || title.length > 40) return Response.json({ error: 'title', message: 'Title: 3 to 40 characters.' }, { status: 400 });
-  if (prompt.length < 40 || prompt.length > 900) return Response.json({ error: 'prompt', message: 'Describe the game in 40 to 900 characters. What you do, what the residents do, how it ends.' }, { status: 400 });
+  if (prompt.length < 12 || prompt.length > 900) return Response.json({ error: 'prompt', message: 'Describe the game in 12 to 900 characters.' }, { status: 400 });
   const db = await getDb();
   const pending = await db.prepare(`SELECT slug, status FROM games WHERE user_id = ? AND status IN ('queued', 'building') LIMIT 1`).bind(user.id).first<{ slug: string; status: string }>();
   if (pending) return Response.json({ error: 'pending', message: `You already have one in the queue (${pending.slug}). One at a time.` }, { status: 409 });

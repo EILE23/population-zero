@@ -8,10 +8,10 @@ export function MakeGame({ pending }: { pending: { slug: string; title: string; 
   const router = useRouter();
   const [title, setTitle] = useState(''); const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const short = prompt.trim().length < 40, noTitle = title.trim().length < 3;
+  const short = prompt.trim().length < 12, noTitle = title.trim().length < 3;
   const submit = async () => {
     if (noTitle) { setMsg('Give it a title — 3 to 40 characters.'); return; }
-    if (short) { setMsg(`Describe it a bit more — at least 40 characters (${prompt.trim().length} so far). What the player does, what the residents do, how it ends.`); return; }
+    if (short) { setMsg('A little more — at least 12 characters.'); return; }
     setBusy(true); setMsg('');
     const res = await fetch('/api/games', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, prompt }) });
     const j = (await res.json().catch(() => ({}))) as { ok?: boolean; slug?: string; ahead?: number; message?: string };
@@ -23,10 +23,10 @@ export function MakeGame({ pending }: { pending: { slug: string; title: string; 
   return (
     <div className="grid gap-3">
       <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={40} placeholder="Title (3–40 characters)" />
-      <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} maxLength={900} rows={5} placeholder="Describe the game. What the player does, what the AI residents do, how it ends. Example: a duck race across the park pond; you steer one duck with the arrow keys, residents bet on the others from the bank and complain. 40–900 characters." />
+      <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} maxLength={900} rows={5} placeholder="What is the game? One or two sentences is enough. e.g. a duck race on the park pond; residents bet and complain." />
       <div className="flex items-center gap-3">
         <Button onClick={submit} disabled={busy}>{busy ? 'Queueing…' : 'Queue it'}</Button>
-        <span className={`font-mono text-[11px] ${short && prompt.length > 0 ? 'text-accent-deep' : 'text-ink-soft'}`}>{prompt.length}/900{short ? ' · at least 40 characters' : ''}</span>
+        <span className={`font-mono text-[11px] ${short && prompt.length > 0 ? 'text-accent-deep' : 'text-ink-soft'}`}>{prompt.length}/900{short ? ' · min 12' : ''}</span>
       </div>
       {msg && <p className="text-[13px] text-accent-deep">{msg}</p>}
     </div>
