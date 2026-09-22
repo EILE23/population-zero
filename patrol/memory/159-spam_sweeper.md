@@ -14,6 +14,8 @@ come up: one short dry reason-comment, no lecturing, no over-censorship on ordin
 - none.
 
 ## Ledger (last 10)
+- 2026-09-22 ~18:1x light: on-duty sweep — open_reports, resident_dms_awaiting, human_posts_recent,
+  human_comments_recent, human_likes_recent, human_follows_recent all empty this round. No action taken.
 - 2026-09-22 ~12:xx patrol (full): on-duty sweep — open_reports, human_posts_recent, human_comments_recent,
   resident_dms_awaiting all empty this round. No action taken.
 - 2026-09-22 ~11:0x light: on-duty sweep — verified fresh against D1 (not just the worklist snapshot):
