@@ -21,6 +21,8 @@ export type ItemKey = 'hat' | 'phone' | 'paper' | 'sandwich' | 'keys' | 'glasses
 export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', paper: 'newspaper', sandwich: 'sandwich', keys: 'keys', glasses: 'glasses', broom: 'broom', umbrella: 'umbrella', cup: 'coffee', basket: 'shopping basket', rod: 'fishing rod', fish: 'fish' };
 /** 먹을 수 있는 것 — C 로 다 먹으면 사라진다(줍기·훔치기 대상에서 빠짐) */
 export const FOOD: ItemKey[] = ['sandwich', 'cup'];
+/** 몸에 걸칠 수 있는 것 — 아무것도 근처에 없을 때 C 로 입고/벗는다(머리·얼굴에 그려짐, 훔치기·던지기 대상에선 빠지지 않는다) */
+export const WEARABLE: ItemKey[] = ['hat', 'glasses'];
 export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed';
 
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp' }
@@ -88,7 +90,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -109,14 +111,15 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.96) { const it = items[Math.floor(r() * items.length)]; const sp = BINS[Math.floor(r() * BINS.length)]; add({ key: `bin:${it}:${sp.key}`, kind: 'bin', item: it, spot: sp.key, text: `Bin a ${ITEMS[it]} at ${sp.name}`, coins: 6 }); }
     else if (v < 0.975) add({ key: 'fish1', kind: 'fish', text: 'Catch a fish', coins: 7 });
     else if (v < 0.982) { const sp = PONDS[Math.floor(r() * PONDS.length)]; add({ key: `feed:${sp.key}`, kind: 'feed', spot: sp.key, text: `Feed the ducks at ${sp.name}`, coins: 5 }); }
-    else if (v < 0.99) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
+    else if (v < 0.988) { const it = WEARABLE[Math.floor(r() * WEARABLE.length)]; add({ key: `wear:${it}`, kind: 'wear', item: it, text: `Wear a ${ITEMS[it]}`, coins: 5 }); }
+    else if (v < 0.994) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
 }
 
 // ── 퀘스트 — 주민에게 말을 걸면(E) 부탁 하나. 날짜·주민으로 정해져 서버가 같은 걸 계산할 수 있다 ──
-export type QuestKind = 'fetch' | 'revenge' | 'dunk' | 'water' | 'bin' | 'pond';
+export type QuestKind = 'fetch' | 'revenge' | 'dunk' | 'water' | 'bin' | 'pond' | 'wear';
 export interface Quest { key: string; who: number; kind: QuestKind; item?: ItemKey; target?: number; spot?: string; text: string; ask: string; thanks: string; coins: number }
 export function questFor(day: string, who: number, roster: number[], handles: string[]): Quest {
   const r = rng(hash(`quest:${day}:${who}`));
@@ -128,6 +131,7 @@ export function questFor(day: string, who: number, roster: number[], handles: st
     return { key: `q:${who}:dunk:${it}:${w}`, who, kind: 'dunk', item: it, spot: w, text: `${handles[who]} wants a ${ITEMS[it]} in the water`, ask: `put a ${ITEMS[it]} in the water for me. any water.`, thanks: pick2(r, ['splash. thank you.', 'that is closure.', 'good riddance.']), coins: 9 }; }
   if (v < 0.92) { const it = items[Math.floor(r() * items.length)]; return { key: `q:${who}:bin:${it}`, who, kind: 'bin', item: it, text: `${handles[who]} wants a ${ITEMS[it]} gone`, ask: `take this ${ITEMS[it]} and bin it. i do not want to see it again.`, thanks: pick2(r, ['gone. good.', 'finally.', 'do not bring it back.']), coins: 7 }; }
   if (v < 0.97) return { key: `q:${who}:pond`, who, kind: 'pond', text: `${handles[who]} wants something from the pond`, ask: 'bring me something from the pond. i do not care what.', thanks: pick2(r, ['huh. thanks, i think.', 'did not expect that, but thanks.', 'add it to the pile.']), coins: 8 };
+  if (v < 0.99) { const it = WEARABLE[Math.floor(r() * WEARABLE.length)]; return { key: `q:${who}:wear:${it}`, who, kind: 'wear', item: it, text: `${handles[who]} wants to see you in a ${ITEMS[it]}`, ask: `put on a ${ITEMS[it]}. humor me.`, thanks: pick2(r, ['suits you.', 'better.', 'acceptable, i suppose.']), coins: 6 }; }
   const sp = GARDENS[Math.floor(r() * GARDENS.length)];
   return { key: `q:${who}:water:${sp.key}`, who, kind: 'water', spot: sp.key, text: `${handles[who]} wants ${sp.name} watered`, ask: `could you water ${sp.name}? it has been a dry week.`, thanks: pick2(r, ["they'll live another day.", 'much obliged.', 'the leaves say thank you.']), coins: 7 };
 }

@@ -4,7 +4,7 @@ import { ListChecks, Upload } from 'lucide-react';
 import { critter, figure, SEATED, type CritterPose, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY, ITEM_LIST as POND_ITEMS } from '@/lib/pond';
-import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, FOOD, GRAB_R, ITEMS, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, type ItemKey, type Quest, type Task } from '@/lib/goose';
+import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, FOOD, GRAB_R, ITEMS, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, WEARABLE, type ItemKey, type Quest, type Task } from '@/lib/goose';
 import { BREAKABLE, houses, jobOf, MAPS, SITTABLE, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
 /**
@@ -22,7 +22,15 @@ export interface Content { shoved: string[]; chase: string[]; giveup: string[]; 
 export interface ExtraSpot { key: string; map: string; kind: PropKind; name: string; x: number; d: number; act: string; addedAt: string }
 export interface ExtraMap { key: string; name: string; w: number; outdoor: boolean; floor: [string, string]; connect: string; spots: ExtraSpot[]; addedAt: string }
 interface Me { id: number; handle: string }
-interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; z: number; tz: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1; stack: ItemKey[] }
+interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; z: number; tz: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1; stack: ItemKey[]; worn: Set<ItemKey> }
+/** 걸친 것의 몸 위 표시 위치(발끝 기준 y, px) — 모자는 머리 위, 안경은 얼굴 높이. 목록에 없으면 걸칠 수 없는 것 */
+const WORN_Y: Partial<Record<ItemKey, number>> = { hat: 50, glasses: 40 };
+/** pos.s 문자열 파싱 — 걸친 것은 `hat!` 처럼 느낌표가 붙어 온다(룸은 그대로 중계하므로 서버 쪽 변경이 필요 없다) */
+const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
+  const stack: ItemKey[] = []; const worn = new Set<ItemKey>();
+  for (const tok of raw.split(',')) { const w = tok.endsWith('!'); const k = (w ? tok.slice(0, -1) : tok) as ItemKey; if (k in ITEMS) { stack.push(k); if (w) worn.add(k); } }
+  return { stack, worn };
+};
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip';
 interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string }
@@ -63,8 +71,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0 });
-  const ducks = useRef(new Map<string, Duck[]>()); // 연못마다 3~5마리, 자리 씨앗으로 정해진다
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], wearing: new Set<ItemKey>(), hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0 });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const feedRef = useRef({ map: '', x: 0, d: 0, until: 0 }); // 마지막으로 오리에게 모이를 준 곳(나 또는 근처 주민) — 오리가 그쪽으로 모인다
@@ -119,8 +126,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         const put = (u: Record<string, unknown>) => {
           const uid = Number(u.uid); const d = Math.min(1, Math.max(0, (Number(u.y) || 700) / 1000));
           if (me && uid === me.id) { if (m.t === 'init') { body.current.x = Number(u.x) || 1500; body.current.d = d; if (typeof u.map === 'string' && maps.current.some((mm) => mm.key === u.map)) mapKey.current = u.map; cam.current = body.current.x - VIEW_W / 2; } return; }
-          const prev = map.get(uid);
-          map.set(uid, { uid, handle: String(u.handle ?? ''), x: prev?.x ?? (Number(u.x) || 0), tx: Number(u.x) || 0, d: prev?.d ?? d, td: d, z: 0, tz: 0, pose: String(u.pose ?? 'stand'), status: u.status === 'rest' ? 'rest' : 'active', map: String(u.map || 'square'), face: u.face === -1 ? -1 : 1, stack: String(u.stack || '').split(',').filter((k): k is ItemKey => k in ITEMS) });
+          const prev = map.get(uid); const { stack, worn } = parseStack(String(u.stack || ''));
+          map.set(uid, { uid, handle: String(u.handle ?? ''), x: prev?.x ?? (Number(u.x) || 0), tx: Number(u.x) || 0, d: prev?.d ?? d, td: d, z: 0, tz: 0, pose: String(u.pose ?? 'stand'), status: u.status === 'rest' ? 'rest' : 'active', map: String(u.map || 'square'), face: u.face === -1 ? -1 : 1, stack, worn });
         };
         if (m.t === 'init') {
           if (typeof m.now === 'number' && Math.abs(m.now - Date.now()) < 6 * 3600000) skew.current = m.now - Date.now(); // 반나절 넘게 어긋나면 서버 쪽이 이상한 것
@@ -131,7 +138,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           for (const [who, o] of Object.entries(w.npc ?? {})) apply({ k: 'npc', who: Number(who), ...o }, false);
         }
         else if (m.t === 'user') put(m.u as Record<string, unknown>);
-        else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { if (typeof m.m === 'string' && m.m && m.m !== o.map) { o.map = m.m; o.x = Number(m.x); o.d = Math.min(1, Math.max(0, Number(m.y) / 1000)); } o.tx = Number(m.x); o.td = Math.min(1, Math.max(0, Number(m.y) / 1000)); o.tz = Number(m.z) || 0; o.pose = String(m.pose); o.status = 'active'; o.face = m.face === -1 ? -1 : 1; o.stack = String(m.s || '').split(',').filter((k): k is ItemKey => k in ITEMS); } }
+        else if (m.t === 'pos') { const o = map.get(Number(m.uid)); if (o) { if (typeof m.m === 'string' && m.m && m.m !== o.map) { o.map = m.m; o.x = Number(m.x); o.d = Math.min(1, Math.max(0, Number(m.y) / 1000)); } o.tx = Number(m.x); o.td = Math.min(1, Math.max(0, Number(m.y) / 1000)); o.tz = Number(m.z) || 0; o.pose = String(m.pose); o.status = 'active'; o.face = m.face === -1 ? -1 : 1; const { stack, worn } = parseStack(String(m.s || '')); o.stack = stack; o.worn = worn; } }
         else if (m.t === 'rest') { const o = map.get(Number(m.uid)); if (o) { o.status = 'rest'; o.pose = 'sit'; } }
         else if (m.t === 'leave') map.delete(Number(m.uid));
         else if (m.t === 'ev') apply({ ...(m.ev as Ev), by: m.by }, false);
@@ -263,12 +270,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0;
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
-        b.stack = []; say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
+        b.stack = []; b.wearing.clear(); say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
       if (st.pendingKnock && !spectator) { const k = st.pendingKnock; st.pendingKnock = null; knock(k.by, k.line); }
       /** 던지기 — 들고 있는 것 중 맨 위를 앞으로. 궤적은 모두에게(ev throw), 맞은 주민·사람·소품과 떨어진 물건은 내 화면이 판정해 낸다 */
       const throwTop = () => {
-        const it = b.stack.pop()!; b.swing = 0.3; b.swingKind = 'throw';
+        const it = b.stack.pop()!; b.wearing.delete(it); b.swing = 0.3; b.swingKind = 'throw';
         const th = { item: it, map: cur.key, x: b.x + b.face * 14, d: b.d, z: 34 + b.z, vx: b.face * 430, vz: 170, from: -1, by: me!.id };
         thrown.current.push(th); emit({ k: 'throw', item: it, m: th.map, x: Math.round(th.x), d: th.d, z: th.z, vx: th.vx, vz: th.vz, from: -1 });
       };
@@ -343,8 +350,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (n) {
             const q = quests.current.get(n.who) ?? questOf(n.who);
             if (st.doneKeys.has(q.key)) { n.say = pick(['we are done here.', 'nothing today.', 'go away.']); n.sayUntil = now + 2000; }
-            else if (q.kind === 'fetch' && b.stack.includes(q.item!)) { b.stack.splice(b.stack.indexOf(q.item!), 1); n.item = q.item!; finishQuest(q, n); }
+            else if (q.kind === 'fetch' && b.stack.includes(q.item!)) { b.stack.splice(b.stack.indexOf(q.item!), 1); b.wearing.delete(q.item!); n.item = q.item!; finishQuest(q, n); }
             else if (q.kind === 'pond' && b.stack.includes('fish')) { b.stack.splice(b.stack.indexOf('fish'), 1); n.item = 'fish'; finishQuest(q, n); }
+            else if (q.kind === 'wear' && b.wearing.has(q.item!)) finishQuest(q, n);
             else if (q.kind === 'revenge' && st.shoves.some((x) => x.who === q.target && now - x.at < 120000)) finishQuest(q, n);
             else { quests.current.set(n.who, q); setQuestList([...quests.current.values()]); n.say = q.ask; n.sayUntil = now + 3500; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; }
           }
@@ -371,6 +379,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             }
             else if (pondSpot && FOOD.includes(it)) { feedRef.current = { map: cur.key, x: b.x, d: b.d, until: now + 3000 }; say('The ducks converge.', 1500); void complete(`feed:${pondSpot.key}`); }
             else if (FOOD.includes(it) && spotNear && spotNear.kind !== 'bed') { b.eating = 1; say(`Ate the ${ITEMS[it]}.`, 1500); } // 카페·식탁·벤치 — 침대에서는 안 먹는다
+            else if (WEARABLE.includes(it) && !water && !spotNear) { // 몸에 걸치기 — 근처에 물·벤치·카페 등 아무것도 없을 때만(있으면 원래대로 놓기/적시기)
+              b.stack.push(it);
+              if (b.wearing.has(it)) { b.wearing.delete(it); say(`Took off the ${ITEMS[it]}.`, 1200); }
+              else { b.wearing.add(it); say(`Put on the ${ITEMS[it]}.`, 1200); void complete(`wear:${it}`); for (const q of quests.current.values()) if (q.kind === 'wear' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); } }
+            }
             else {
               drop(it, b.x + b.face * 18, b.d, null, water?.key);
               if (water) { void complete(`dunk:${it}:${water.key}`); say(`Splash. The ${ITEMS[it]} is in ${water.name}.`); for (const q of quests.current.values()) if (q.kind === 'dunk' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); } }
@@ -403,7 +416,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         }
         jumpWas = i.jump; grabWas = i.grab; shoveWas = i.shove; kickWas = i.kick; talkWas = i.talk;
       }
-      if (!spectator && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), s: b.stack.join(','), pose: b.hurt > 0 ? 'hurt' : myPose(), face: b.face, m: cur.key })); }
+      if (!spectator && ws.current?.readyState === 1 && now - sent > 66) { sent = now; ws.current.send(JSON.stringify({ t: 'pos', x: Math.round(b.x), y: Math.round(b.d * 1000), z: Math.round(b.z), s: b.stack.map((it) => b.wearing.has(it) ? `${it}!` : it).join(','), pose: b.hurt > 0 ? 'hurt' : myPose(), face: b.face, m: cur.key })); }
       // ── 주민 ──
       let chasing = -1; const mineOff: Npc[] = [];
       for (const n of npcs.current) {
@@ -573,34 +586,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
-          if (n.item && n.mode !== 'down') item(ctx, n.item, fx + n.face * 14 * fs, fy - (n.item === 'hat' ? 50 : 26) * fs, fs * 0.8);
+          if (n.item && n.mode !== 'down') { const wy = WORN_Y[n.item]; item(ctx, n.item, wy ? fx : fx + n.face * 14 * fs, fy - (wy ?? 26) * fs, fs * 0.8); } // 모자·안경은 직업 물건이라도 몸에 걸친 것처럼 그린다(사람이 입는 것과 같은 위치)
           if (n.act !== 'stand' && (n.mode === 'routine' || n.mode === 'repair') && !n.moving) actIcon(ctx, n.mode === 'repair' ? 'repair' : n.act, fx + 18 * fs, fy - 46 * fs, fs);
           name(ctx, fx, fy - 58 * fs, s, `${residents[n.who].handle} · ${n.job.name}`);
           if (now < n.sayUntil) bubble(ctx, fx, fy - 70 * fs, s, n.say);
         } });
-      }
-      // ── 오리 — 새 ev 종류 없이, 이미 동기화된 남들의 위치·자세·짐만 보고 각자 계산한다(놀라 흩어지는 것도, 모이 주는 것도) ──
-      const pondsHere = cur.spots.filter((sp) => sp.kind === 'pond');
-      if (pondsHere.length) {
-        const runners: { x: number; d: number }[] = []; const feeders: { x: number; d: number }[] = [];
-        if (!spectator) { if (b.moving) runners.push({ x: b.x, d: b.d }); if (b.feeding > 0) feeders.push({ x: b.x, d: b.d }); }
-        for (const o of others.current.values()) if (o.map === cur.key) { if (o.pose === 'run') runners.push({ x: o.x, d: o.d }); else if (o.pose === 'feed') feeders.push({ x: o.x, d: o.d }); }
-        for (const n of npcs.current) if (here(n) && n.act !== 'away') { if (n.moving) runners.push({ x: n.x, d: n.d }); else if (n.act === 'feed') feeders.push({ x: n.x, d: n.d }); }
-        for (const sp of pondsHere) {
-          const list = ducks.current.get(sp.key); if (!list) continue;
-          for (const dk of list) {
-            const homeX = sp.x + Math.cos(t * 0.35 + dk.seed) * 30, homeD = Math.min(0.95, Math.max(0.05, sp.d + Math.sin(t * 0.35 + dk.seed) * 0.08));
-            const threat = runners.find((r) => dist(r.x, r.d, dk.x, dk.d) < 70);
-            if (threat) { dk.scaredUntil = now + 1200; const ang = Math.atan2((dk.d - threat.d) * 400, dk.x - threat.x) || 0; dk.fx = dk.x + Math.cos(ang) * 44; dk.fd = Math.min(0.97, Math.max(0.05, dk.d + Math.sin(ang) * 0.1)); }
-            const feeder = feeders.find((f) => dist(f.x, f.d, dk.x, dk.d) < 140);
-            if (now < dk.scaredUntil) { dk.x += (dk.fx - dk.x) * Math.min(1, dt * 6); dk.d += (dk.fd - dk.d) * Math.min(1, dt * 6); }
-            else if (feeder) { dk.x += (feeder.x - dk.x) * Math.min(1, dt * 2); dk.d += (feeder.d - dk.d) * Math.min(1, dt * 2); }
-            else { dk.x += (homeX - dk.x) * Math.min(1, dt * 1.1); dk.d += (homeD - dk.d) * Math.min(1, dt * 1.1); }
-            const fx = sx(dk.x); if (fx < -40 || fx > W + 40) continue;
-            const dd = dk.d, scared = now < dk.scaredUntil;
-            layer.push({ d: dd, f: () => critter(ctx, 'duck', fx, dy(dd) * s, ds(dd) * s, scared ? 'scatter' : 'paddle', t + dk.seed) });
-          }
-        }
       }
       for (const o of others.current.values()) {
         if (o.map !== cur.key) continue; const fx = sx(o.x); if (fx < -100 || fx > W + 100) continue;
@@ -610,9 +600,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (o.status === 'rest') figure(ctx, fx, fy, fs, 'sit', o.face, col, t, false);
           else if (o.pose === 'hurt') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-o.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, col, t, false); ctx.restore(); }
           else { const pose = (KNOWN_POSES.includes(o.pose) ? o.pose : 'stand') as FigPose; const lift = SEATED.includes(pose) ? (SEAT_LIFT[seatAt(cur, o.x, o.d)?.kind ?? 'bench'] ?? 0) * fs : 0; figure(ctx, fx, fy - lift, fs, pose, o.face, col, t, false); }
-          o.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
-          name(ctx, fx, fy - (58 + o.stack.length * 12) * fs, s, o.handle);
-          const sd = said.current.get(o.uid); if (sd && now < sd.until) bubble(ctx, fx, fy - (70 + o.stack.length * 12) * fs, s, sd.body);
+          const carried = o.stack.filter((it) => !o.worn.has(it));
+          carried.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
+          for (const it of o.worn) if (o.stack.includes(it)) item(ctx, it, fx, fy - (WORN_Y[it] ?? 44) * fs, fs * 0.8);
+          name(ctx, fx, fy - (58 + carried.length * 12) * fs, s, o.handle);
+          const sd = said.current.get(o.uid); if (sd && now < sd.until) bubble(ctx, fx, fy - (70 + carried.length * 12) * fs, s, sd.body);
         } });
       }
       if (!spectator) layer.push({ d: b.d, f: () => {
@@ -621,9 +613,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (b.hurt > 0) { ctx.save(); ctx.translate(fx, fy); ctx.rotate(-b.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, figureColor(me!.id), t, false); ctx.restore(); }
         else figure(ctx, fx, fy - (b.sitting ? (SEAT_LIFT[b.seat] ?? 0) * fs : 0), fs, myPose(), b.face, figureColor(me!.id), t, false);
         if (b.still) actIcon(ctx, b.still === 'tv' ? 'watch' : 'read', fx + 18 * fs, fy - 46 * fs, fs);
-        b.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
-        name(ctx, fx, fy - (58 + b.stack.length * 12) * fs, s, me!.handle);
-        const sd = said.current.get(me!.id); if (sd && now < sd.until) bubble(ctx, fx, fy - (70 + b.stack.length * 12) * fs, s, sd.body);
+        const carried = b.stack.filter((it) => !b.wearing.has(it));
+        carried.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
+        for (const it of b.wearing) if (b.stack.includes(it)) item(ctx, it, fx, fy - (WORN_Y[it] ?? 44) * fs, fs * 0.8);
+        name(ctx, fx, fy - (58 + carried.length * 12) * fs, s, me!.handle);
+        const sd = said.current.get(me!.id); if (sd && now < sd.until) bubble(ctx, fx, fy - (70 + carried.length * 12) * fs, s, sd.body);
       } });
       layer.sort((a, bb) => a.d - bb.d).forEach((l) => l.f());
       if (now - hudAt > 250) { hudAt = now; setHud({ online: [...others.current.values()].filter((o) => o.status === 'active').length + (spectator ? 0 : 1), carry: b.stack.map((x) => ITEMS[x]).join(', '), map: cur.name, exit: exitNear }); }
@@ -663,7 +657,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead, anything near a bin is gone for good, and either near a pond feeds the ducks instead), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, take a rod from the rack by either pond, or watch the TV / read the bookshelf indoors (move to stop) · with a rod, C at the water's edge casts and waits for a bite · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things — and sometimes trip mid-chase (they drop what they carry, you get away); running empty-handed over something on the ground trips you too; the police fine you; other people can hit you too</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead, anything near a bin is gone for good, and either near a pond feeds the ducks instead), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, take a rod from the rack by either pond, or watch the TV / read the bookshelf indoors (move to stop) · a hat or glasses with nothing around goes on (C again takes it off) · with a rod, C at the water's edge casts and waits for a bite · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things — and sometimes trip mid-chase (they drop what they carry, you get away); running empty-handed over something on the ground trips you too; the police fine you; other people can hit you too</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
         {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}{questList.map((q) => <li key={q.key} className={doneList.includes(q.key) ? 'line-through opacity-50' : 'text-accent-deep'}>☐ {q.text} <span className="font-mono text-[10.5px] text-ink-soft">asked · +{q.coins}</span></li>)}</ul>}
