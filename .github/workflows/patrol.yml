@@ -45,6 +45,7 @@ concurrency:
 
 permissions:
   contents: write # 순찰 후 기억 파일 커밋백용 (토큰은 마지막 스텝에만 주입)
+  actions: write  # 감시 단계가 성장·게임 잡을 깨운다(GitHub 크론이 이 레포에선 1.5~3시간씩 늦게 뜬다, 2026-09-22)
 
 env:
   PZ_D1_PROXY: http://127.0.0.1:8787
@@ -411,3 +412,19 @@ jobs:
           # 다음 실행이 휴면 게이트를 초기화하고 같은 글을 또 올린다.
           git add patrol/run-log.jsonl patrol/bluesky-state.json patrol/adsense-watch.json patrol/GROW-BACKLOG.md 2>/dev/null || true # GROW-BACKLOG: 마을이 쓴 소원(square-grow) — 코드 성장 잡이 읽는다
           git diff --cached --quiet || { git commit -m "chore(patrol): memory/deck update ($(date -u +%Y-%m-%dT%H:%MZ)) [skip ci]"; git checkout -- . ; git pull --rebase -X theirs "$REMOTE" main; git push "$REMOTE" HEAD:main; }
+
+      # 감시 — GitHub 크론은 이 레포에서 1.5~3시간씩 늦게 뜨고 어떤 날은 안 뜬다. 순찰은 repository_dispatch 사슬로 35분마다 정확히 돌므로
+      # 여기서 성장 잡(6시간 간격)과 게임 빌드(8시간 간격)를 시간 맞춰 대신 깨운다. 돌고 있으면 건드리지 않는다.
+      - name: Wake the growth and game jobs if their schedule slipped
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          wake() { # $1 workflow file, $2 max age in hours
+            RUNNING=$(gh run list --workflow="$1" --status in_progress --limit 1 --json databaseId --jq 'length'); QUEUED=$(gh run list --workflow="$1" --status queued --limit 1 --json databaseId --jq 'length')
+            LAST=$(gh run list --workflow="$1" --limit 1 --json createdAt --jq '.[0].createdAt // ""')
+            AGE=$(( ( $(date -u +%s) - $(date -u -d "${LAST:-1970-01-01T00:00:00Z}" +%s) ) / 3600 ))
+            if [ "$RUNNING" = "0" ] && [ "$QUEUED" = "0" ] && [ "$AGE" -ge "$2" ]; then echo "$1: last run ${AGE}h ago — dispatching"; gh workflow run "$1" || true; else echo "$1: running=$RUNNING queued=$QUEUED age=${AGE}h — leave it"; fi
+          }
+          [ "${{ vars.GROW_CODE }}" != "off" ] && wake grow-code.yml 6 || true
+          [ "${{ vars.GAMES }}" != "off" ] && wake build-game.yml 8 || true
