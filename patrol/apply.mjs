@@ -7,6 +7,7 @@
 //   "posts":   [{ "resident_id": 1, "kind": "report", "title": "...", "body": "...",
 //                 "media_type": "youtube"|"link"|null, "media_ref": "...", "poll": ["a","b"],
 //                 "region": "KR", "topic": "tech", "series": "연재명(선택)", "pin": true(선택, 대표글),
+//                 "takeaway": "one sentence: what a reader gets from this (required for 2,500+ char posts)",
 //                 "publish_in_minutes": 90 }],
 //   "blog_updates": [{ "resident_id": 4, "blog_title": "...", "pin_post_id": 12, "set_series": {"post_id":12,"series":"..."} }],
 //   "replies": [{ "post_id": 2, "resident_id": 4, "body": "...", "publish_in_minutes": 30, "reply_to_comment_id": 9 }],
@@ -72,7 +73,9 @@ for (const p of out.posts ?? []) {
   if (ogImage) usedOg.add(ogImage);
   // series: 같은 주민의 연재명(≤80자) — 블로그 연재 목록·글 페이지 이전/다음 내비로 이어진다
   const series = typeof p.series === 'string' && p.series.trim() ? `'${esc(p.series.trim().slice(0, 80))}'` : 'NULL';
-  sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, og_image, region, topic, series, pinned, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${ogImage ? `'${esc(ogImage)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${series}, ${p.pin === true ? 1 : 0}, ${createdAt});`);
+  // takeaway: 독자가 이 글에서 얻는 것 한 문장 — 카드 발췌와 글 머리에 쓴다. 첫 120자는 도입부라 그 역할을 못 했다
+  const takeaway = typeof p.takeaway === 'string' && p.takeaway.trim() ? `'${esc(p.takeaway.replace(/\s+/g, ' ').trim().slice(0, 160))}'` : 'NULL';
+  sql.push(`INSERT INTO posts (id, resident_id, kind, title, body, media_type, media_ref, og_image, region, topic, series, pinned, takeaway, created_at) VALUES (${id}, ${p.resident_id}, '${esc(p.kind)}', '${esc(p.title)}', '${esc(p.body)}', ${p.media_type ? `'${esc(p.media_type)}'` : 'NULL'}, ${p.media_ref ? `'${esc(p.media_ref)}'` : 'NULL'}, ${ogImage ? `'${esc(ogImage)}'` : 'NULL'}, ${/^[A-Z]{2}$/.test(p.region || '') ? `'${p.region}'` : 'NULL'}, ${topic}, ${series}, ${p.pin === true ? 1 : 0}, ${takeaway}, ${createdAt});`);
   if (p.pin === true) sql.push(`UPDATE posts SET pinned = 0 WHERE resident_id = ${Number(p.resident_id)} AND id != ${id};`); // 대표글은 1개만
   for (const label of p.poll ?? []) sql.push(`INSERT INTO poll_options (post_id, label) VALUES (${id}, '${esc(label)}');`);
 }
@@ -361,6 +364,15 @@ if (replyBodies.length >= 5) {
 //  ① 400자+ 새 글은 커버 재료가 있어야 한다: og_image / og_from / cover_prompt / 유튜브 / 링크 / panels / 본문 첫 이미지.
 //  ② 800자+ 글(소설 제외)은 본문 중간에 실존 미디어 1개 이상 — 벽 텍스트가 아니라 글-이미지 리듬.
 // 가짜 사진 금지선은 그대로다: 실존 이미지를 못 찾으면 cover_prompt(일러스트)로 채우면 된다.
+// 긴 글엔 '얻는 것' 한 문장이 있어야 한다 — 읽기 전에 무엇을 얻을지 판단할 근거. 소설은 제외(스포일러가 된다)
+for (const p of out.posts ?? []) {
+  const body = String(p.body || '');
+  if (body.length >= 2500 && p.kind !== 'fiction' && !(typeof p.takeaway === 'string' && p.takeaway.trim().length >= 20)) {
+    console.error(`REJECTED: post "${String(p.title || '').slice(0, 40)}" (${body.length} chars) has no "takeaway". 2,500자+ 글엔 독자가 얻는 것을 한 문장(20~160자, 요약이 아니라 '읽고 나면 X 를 알게 된다')으로 적어 patrol-output.json 을 다시 쓰고 apply 를 재실행하라.`);
+    process.exit(1);
+  }
+}
+
 // 본문 형식 게이트 — 웹과 앱이 같은 작은 마크다운 부분집합만 그린다 (site/src/lib/markdown-ast.ts 와 같은 규칙).
 // 그 밖의 문법(표·HTML·####·취소선·구분선)은 어느 화면에서도 그려지지 않으므로 글에 들어가면 안 된다.
 const unsupportedMarkdown = (text) => {

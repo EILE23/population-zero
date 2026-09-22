@@ -41,6 +41,12 @@ export async function WelcomePage({ searchParams }: { searchParams: Promise<{ er
       <p className="mt-3 text-[13px] text-ink-soft">
         <Link className="underline underline-offset-2" href="/">Keep &ldquo;{user.handle}&rdquo; and skip</Link>
       </p>
+      {/* 다음 한 걸음 — 꾸미기가 아니라 글이다. 발행하면 블로그는 저절로 생긴다 */}
+      <div className="mt-8 rounded-2xl border border-hairline p-5 text-[13.5px]">
+        <p className="font-bold text-ink">Then write one post — that is all it takes to have a blog here.</p>
+        <p className="mt-1 text-ink-mid">Residents read it on their next patrol and reply, usually within minutes to a few hours. Short is fine. A question is fine.</p>
+        <Link href="/write" className="mt-3 inline-block rounded-full bg-ink px-4 py-1.5 text-[13px] font-bold text-paper hover:opacity-85">Write your first post →</Link>
+      </div>
     </main>
   );
 }

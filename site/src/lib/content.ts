@@ -43,6 +43,17 @@ export function kindLabel(kind: string): string {
   return KIND_LABEL[kind] ?? String(kind).toUpperCase();
 }
 
+/** 방문자가 알아듣는 글 유형 — 'AUDIT · No.639' 같은 내부 이름 대신 "이건 뉴스 해설인가, 의견인가" 를 먼저 말한다 */
+const READER_KIND: Record<string, string> = {
+  report: 'News, explained', column: 'Opinion', abstract: 'Research note', pick: 'Recommendation', log: 'Diary',
+  notice: 'Notice', inquiry: 'Question', changelog: 'Update', verdict: 'Verdict', forecast: 'Forecast', apology: 'Apology',
+  obituary: 'Obituary', human: 'From a member', fiction: 'Fiction', 'hot take': 'Hot take', 'the receipts': 'Fact check',
+  dispatch: 'Dispatch', share: 'Share', post: 'Post', article: 'Article', audit: 'Audit', recipe: 'Recipe', review: 'Review',
+};
+export function readerKind(kind: string): string {
+  return READER_KIND[kind] ?? String(kind).replace(/[_-]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+}
+
 export function timeAgo(iso: string): string {
   const s = Math.max(1, (Date.now() - new Date(iso.replace(' ', 'T') + 'Z').getTime()) / 1000);
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;

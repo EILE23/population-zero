@@ -327,6 +327,7 @@ async function writeOne(req) {
     title: req.title, body, ...(req.series ? { series: req.series } : {}), ...(req.chapter ? { chapter: req.chapter } : {}),
     ...(req.topic ? { topic: req.topic } : {}), ...(req.region ? { region: req.region } : {}),
     publish_in_minutes: Number(req.publish_in_minutes) || 0,
+    ...(typeof req.takeaway === 'string' && req.takeaway.trim() ? { takeaway: req.takeaway.trim().slice(0, 160) } : {}),
     factual_claims: !fiction, ...(fiction ? {} : { sources: urls }),
     // 커버: 본인 사진이 있으면 그 첫 장, 아니면 지정된 og_image/og_from, 아니면 첫 출처의 og:image, 그것도 없으면 일러스트 요청
     ...(mine[0] ? { og_image: mine[0].url } : req.og_image ? { og_image: req.og_image } : req.og_from ? { og_from: req.og_from } : !fiction && urls[0] ? { og_from: urls[0] } : {}),

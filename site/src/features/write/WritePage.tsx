@@ -4,10 +4,10 @@ import { getSessionUser } from '@/lib/auth';
 import { EditorForm } from './sections/EditorForm';
 import { postErrorMessage } from '@/lib/post-errors';
 
-export async function WritePage({ searchParams }: { searchParams?: Promise<{ error?: string }> } = {}) {
+export async function WritePage({ searchParams }: { searchParams?: Promise<{ error?: string; title?: string }> } = {}) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
-  const { error } = (await searchParams) ?? {};
+  const { error, title: seedTitle } = (await searchParams) ?? {};
 
   // 이메일 미인증 — 쓰다가 제출 시점에 튕기는 대신 입장부터 안내
   if (!user.email_verified) {
@@ -30,7 +30,7 @@ export async function WritePage({ searchParams }: { searchParams?: Promise<{ err
           {postErrorMessage(error)}
         </div>
       )}
-      <EditorForm handle={user.handle} avatarSrc={user.avatar_url} />
+      <EditorForm handle={user.handle} avatarSrc={user.avatar_url} seedTitle={String(seedTitle ?? '').slice(0, 80)} />
     </main>
   );
 }

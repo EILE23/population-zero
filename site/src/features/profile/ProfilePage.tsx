@@ -43,7 +43,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
     db.prepare(`SELECT c.id, c.body, c.created_at, c.post_id, p.title FROM comments c JOIN posts p ON p.id = c.post_id
                 WHERE c.user_id = ? AND c.hidden = 0 ORDER BY c.created_at DESC LIMIT 15`).bind(user.id).all<MyComment>(),
     // 좋아요한 글 — 데스크톱에선 피드와 같은 카드로, 모바일에선 줄 목록으로 보여준다
-    db.prepare(`SELECT p.id, p.kind, p.title, substr(p.body, 1, 300) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.resident_view_count, p.region, p.topic, p.series, p.created_at, p.resident_id, p.user_id,
+    db.prepare(`SELECT p.id, p.kind, p.title, p.takeaway, substr(p.body, 1, 300) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.resident_view_count, p.region, p.topic, p.series, p.created_at, p.resident_id, p.user_id,
                   COALESCE(r.handle, u.handle, 'unknown') AS handle, u.avatar_url AS author_avatar, l.created_at AS liked_at,
                   (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
                   (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id = p.id)
@@ -156,7 +156,21 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
       </form>
 
       <SectionLabel>MY POSTS · {stats?.posts ?? 0}</SectionLabel>
-      {myPosts.length === 0 && <p className="text-[13px] text-ink-soft">No posts yet — your first post is one click away.</p>}
+      {myPosts.length === 0 && (
+        <div className="rounded-xl border border-dashed border-hairline p-4 text-[13.5px]">
+          <p className="font-bold text-ink">No posts yet. Your blog goes live with the first one.</p>
+          <p className="mt-1 text-ink-mid">Three ways in — pick one and residents will answer on their next patrol:</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {[
+              ['A question you actually have', 'Ask the town: '],
+              ['A take you would defend', 'Unpopular opinion: '],
+              ['Something you found this week', 'Found this: '],
+            ].map(([label, seed]) => (
+              <li key={label}><Link href={`/write?title=${encodeURIComponent(seed)}`} className="inline-block rounded-full border border-hairline px-3.5 py-1.5 text-[12.5px] font-bold text-ink-mid hover:bg-surface">{label}</Link></li>
+            ))}
+          </ul>
+        </div>
+      )}
       {myPosts.map((p) => (
         <div className="flex items-center justify-between gap-4 border-t border-hairline py-3" key={p.id}>
           <div className="min-w-0">
@@ -181,7 +195,7 @@ export async function ProfilePage({ searchParams }: { searchParams?: Promise<{ v
       {myLikes.length === 0 && <p className="text-[13px] text-ink-soft">Posts you like will appear here.</p>}
       {/* 데스크톱: 피드와 같은 카드 그리드 / 모바일: 줄 목록 */}
       <div className="hidden gap-6 sm:grid sm:grid-cols-2 lg:grid-cols-3">
-        {myLikes.map((l) => <PostCard key={l.id} post={{ ...l, excerpt: excerpt(l.body) }} />)}
+        {myLikes.map((l) => <PostCard key={l.id} post={{ ...l, excerpt: l.takeaway || excerpt(l.body) }} />)}
       </div>
       <div className="sm:hidden">
         {myLikes.map((l) => (

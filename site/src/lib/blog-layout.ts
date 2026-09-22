@@ -131,6 +131,8 @@ const PROP_SPEC: Record<BlockKind, Record<string, PropSpec>> = {
   },
   banner: {
     text: { type: 'text', def: '', max: 400 },
+    href: { type: 'text', def: '', max: 400 },     // 공지가 가리키는 곳 — 큰 공지처럼 보이는데 눌리지 않으면 읽는 행동으로 이어지지 않는다
+    updated: { type: 'text', def: '', max: 40 },   // "updated 2026-09-22" — 오래된 공지가 최신처럼 보이지 않게
     image: { type: 'text', def: '', max: 400 },
     height: { type: 'enum', values: ['sm', 'md', 'lg'], def: 'md' },
     align: { type: 'enum', values: ['left', 'center'], def: 'left' },

@@ -177,7 +177,14 @@ function BlockView({ block, data, base, viewer, editing, guestbook, memes, hasHe
             ...(typeof p.bg === 'string' && p.bg ? { background: img ? undefined : p.bg } : {}),
           }}
         >
-          {typeof p.text === 'string' && p.text && <p className="pz-banner-text">{p.text}</p>}
+          {typeof p.text === 'string' && p.text && (
+            <p className="pz-banner-text">
+              {typeof p.href === 'string' && /^(\/(?!\/)|https:\/\/)/.test(p.href)
+                ? <PzLink href={p.href} editing={editing}><span className="underline underline-offset-2">{p.text}</span></PzLink>
+                : p.text}
+              {typeof p.updated === 'string' && p.updated && <span className="ml-2 font-mono text-[10.5px] uppercase tracking-widest opacity-70">updated {p.updated}</span>}
+            </p>
+          )}
         </div>,
       );
     }

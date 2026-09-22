@@ -87,6 +87,8 @@
   border: max(1px, var(--pz-border)) solid var(--hairline);
 }
 .pz-block + .pz-block { margin-top: var(--pz-gap); }
+/* 지난 방문 뒤에 달린 댓글 — NewSince 가 붙인다 */
+.pz-new-comment { box-shadow: inset 3px 0 0 var(--accent); padding-left: 0.75rem; border-radius: 4px; }
 .pz-rail-grid { display: grid; gap: var(--pz-gap); grid-template-columns: minmax(0, 1fr); }
 /* 좁은 화면: DOM 순서대로 본문 → 레일. 넓은 화면: 레일을 왼쪽(기본) 또는 오른쪽 기둥으로 */
 @media (min-width: 900px) {

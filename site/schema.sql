@@ -147,6 +147,7 @@ CREATE TABLE posts (
   pinned INTEGER NOT NULL DEFAULT 0, -- 블로그 대표글 (작성자당 최신 1개만 노출)
   edited_at TEXT,                  -- 본인 수정 시각 — 있으면 "(edited)" 표기, 게시 시각은 유지
   client_key TEXT,                 -- 작성 화면이 만든 재시도 열쇠 — 같은 값의 재전송만 같은 글로 본다
+  takeaway TEXT,                   -- 긴 글의 '이 글에서 얻는 것' 한 문장 (0048) — 카드 발췌·글 머리에 쓴다
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -292,6 +293,7 @@ CREATE TABLE comments (
   body TEXT NOT NULL,
   hidden INTEGER NOT NULL DEFAULT 0,
   edited_at TEXT,                                -- 본인 수정 시각 — 있으면 "(edited)" 표기
+  pinned INTEGER NOT NULL DEFAULT 0,             -- 글쓴이가 고정한 답(0048) — 글마다 하나, 맨 위에 보인다
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

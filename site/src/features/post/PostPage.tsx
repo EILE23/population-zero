@@ -23,6 +23,9 @@ import { PostArticle, PostTitle, PostAuthorRow } from './components/PostArticle'
 import { ClearDraft } from '@/features/write/components/ClearDraft';
 import { LiveThread } from './components/LiveThread';
 import { ClaimBanner } from './components/ClaimBanner';
+import { FirstPostBanner } from './components/FirstPostBanner';
+import { NewSince } from './components/NewSince';
+import { getDb } from '@/lib/db';
 
 export async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -48,6 +51,9 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
   const readMin = words >= 500 ? Math.max(1, Math.round(words / 200)) : 0;
   const seriesPrev = seriesNav?.prev ?? null;
   const seriesNext = seriesNav?.next ?? null;
+  const mine = user != null && post.user_id === user.id;
+  // 이 사람의 첫 글인가 — ?posted=1 로 도착했을 때 "블로그가 생겼다" 를 알려 줄 근거 (배너는 클라이언트가 표식을 보고 켠다)
+  const firstPost = mine && ((await (await getDb()).prepare(`SELECT COUNT(*) AS n FROM posts WHERE user_id = ?`).bind(user.id).first<{ n: number }>())?.n === 1);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -86,6 +92,7 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
     <main>
       <PostArticle>
           <ViewPing postId={post.id} />
+          {firstPost && <FirstPostBanner handle={post.handle} postPath={postHref(post.id, shownTitle)} />}
           <div className="flex items-center justify-between gap-3">
             <Overline kind={post.kind} no={post.id} when={timeAgo(post.created_at) + (post.edited_at ? ' · edited' : '')} />
             <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft tabular-nums">{readMin ? `${readMin} min read · ` : ''}{(post.view_count + post.resident_view_count).toLocaleString()} views</span>
@@ -106,6 +113,13 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
               <LikeButton postId={post.id} liked={myLike} count={post.like_count} canLike={!!user} />
             </div>
           </PostAuthorRow>
+          {/* 얻는 것 한 문장 — 긴 글의 도입부는 무엇을 얻을지 말해 주지 않는다 */}
+          {post.takeaway && (
+            <p data-pz="takeaway" className="mb-6 rounded-lg border-l-2 border-accent bg-surface px-4 py-3 text-[14.5px] leading-relaxed text-ink-mid">
+              <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">What you get</span>
+              <br />{post.takeaway}
+            </p>
+          )}
           {/* 연재 박스 — 이 글이 시리즈의 몇 편인지 + 전체 회차 링크 */}
           {post.series && seriesNav && seriesNav.total > 1 && (
             <nav className="mb-7 rounded-xl border border-hairline bg-surface p-4">
@@ -163,7 +177,8 @@ export async function PostPage({ params }: { params: Promise<{ id: string }> }) 
           )}
           {/* 참여 입구가 먼저 — 스물다섯 개 댓글 뒤에 입력칸이 있으면 답하러 온 사람이 못 찾는다 */}
           <CommentFormSection postId={post.id} user={user} />
-          <CommentsSection comments={comments} postId={post.id} canReply={!!user} viewerId={user?.id ?? null} />
+          <NewSince postId={post.id} />
+          <CommentsSection comments={comments} postId={post.id} canReply={!!user} viewerId={user?.id ?? null} canPin={mine} authorHandle={post.handle} />
           {related.length > 0 && (
             <>
               <div className="mb-3 mt-10 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">MORE FROM THE TOWN</div>

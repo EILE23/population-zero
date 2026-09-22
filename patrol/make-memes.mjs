@@ -90,6 +90,32 @@ Return JSON:
 
 // 모델: GEMINI_API_KEY 가 있으면 Gemini(무료 티어, 안전 필터를 '높음만 차단'으로 내려 병맛이 살아남는다), 없으면 OpenAI.
 // 모델 이름은 박아 두지 않는다 — 'gemini-2.5-flash' 가 404 를 냈다(실측). 목록에서 제일 새 flash 를 고른다. MEME_MODEL 로 고정 가능.
+// 유명 템플릿의 빈칸 — 이름만 주면 모델은 역할 배치를 자주 틀렸다(실측: 세 글자짜리 틀에 한 줄만). 제목 부분일치로 찾는다
+const TEMPLATE_SLOTS = [
+  { m: /distracted boyfriend/i, roles: ['the man = me / a group', 'girlfriend = what I should be doing', 'red dress = what I turn to instead'] },
+  { m: /drake/i, roles: ['top = the thing rejected', 'bottom = the thing preferred (same category, dumber)'] },
+  { m: /two buttons/i, roles: ['left button = bad option 1', 'right button = bad option 2'] },
+  { m: /change my mind/i, roles: ['the sign = one confident, slightly wrong opinion'] },
+  { m: /expanding brain|galaxy brain/i, roles: ['step 1 = normal', 'step 2 = dumber, presented as smarter', 'step 3 = dumber still', 'step 4 = the dumbest, glowing'] },
+  { m: /woman yelling at.*cat/i, roles: ['left = the accusation', 'right = the calm wrong answer'] },
+  { m: /always has been/i, roles: ["astronaut 1 = 'wait, it's all X?'", "astronaut 2 = 'always has been'"] },
+  { m: /is this a pigeon/i, roles: ['the man = who', 'the butterfly = the thing', 'caption = the wrong name he gives it'] },
+  { m: /once again asking|bernie/i, roles: ['the sign = one humble, absurd request'] },
+  { m: /surprised pikachu/i, roles: ['top = the obvious cause', 'bottom = the surprise at the obvious result'] },
+  { m: /this is fine/i, roles: ['one line = the thing that is not fine'] },
+  { m: /hide the pain harold/i, roles: ['top = the situation', 'bottom = the forced okay'] },
+  { m: /panik|kalm/i, roles: ['panik = the worry', 'kalm = the relief', 'panik = the worse realisation'] },
+  { m: /gru'?s plan/i, roles: ['step 1', 'step 2', 'step 3 = the flaw', 'step 4 = the flaw, noticed'] },
+  { m: /trade offer/i, roles: ['i receive = what I get', 'you receive = what you get (worse)'] },
+  { m: /buff doge|cheems/i, roles: ['buff doge = the strong old way', 'cheems = the weak new way'] },
+  { m: /anakin|padme/i, roles: ['anakin = the plan', "padme = 'right?'", 'anakin = (silence)', "padme = 'right??'"] },
+  { m: /epic handshake/i, roles: ['left arm = group A', 'right arm = group B', 'hands = what they agree on'] },
+  { m: /left exit 12|exit 12/i, roles: ['straight = the sensible path', 'exit = the dumb turn taken'] },
+  { m: /running away balloon/i, roles: ['balloon = the thing wanted', 'the hand = what holds you back', 'the kid = me'] },
+  { m: /mother ignoring kid drowning/i, roles: ['drowning kid = what is neglected', 'the favoured kid = what gets the attention', 'mother = me'] },
+];
+const slotsOf = (title) => TEMPLATE_SLOTS.find((t) => t.m.test(String(title || ''))) ?? null;
+
 let GEMINI = process.env.GEMINI_API_KEY ? (process.env.MEME_MODEL ?? 'auto') : null;
 async function pickGemini() {
   const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY } });
@@ -236,8 +262,8 @@ ${memory ? `Your own notes:\n${memory}\n` : ''}
 ${mine.length ? `What you wrote lately: ${mine.map((x) => `"${x.title}"`).join(', ')}` : ''}
 ${news.length ? `Headlines going around today: ${news.map((n) => `"${n.title}"`).join(' · ')}` : ''}
 
-THE PICTURES (index: name, width x height)
-${pics.map((x, i) => `${i}: ${x.title}${x.w ? `, ${x.w}x${x.h}` : ''}${x.url.includes('metmuseum') ? ' (old painting, public domain)' : ' (meme template)'}`).join('\n')}
+THE PICTURES (index: name, width x height — and, for known templates, the exact slots to fill)
+${pics.map((x, i) => `${i}: ${x.title}${x.w ? `, ${x.w}x${x.h}` : ''}${x.url.includes('metmuseum') ? ' (old painting, public domain)' : ' (meme template)'}${slotsOf(x.title) ? ` — SLOTS: ${slotsOf(x.title).roles.join(' / ')} (${slotsOf(x.title).roles.length} texts, in this order)` : ''}`).join('\n')}
 
 Decide.`;
 
@@ -247,6 +273,12 @@ Decide.`;
   const stranger = String(out.stranger ?? '').trim();
   if (stranger.split(/\s+/).length < 4) { log(`@${r.handle} 검증 실패(stranger 문장 없음) — 버림`); return { used, made: false }; }
   const pic = pics[Number(out.picture)] ?? pics[0];
+  // 역할이 정해진 템플릿은 빈칸 수를 지켜야 한다 — Drake 에 글자 하나, Two Buttons 에 셋이면 틀을 안 쓴 것이다
+  const slots = slotsOf(pic.title);
+  if (slots && (out.texts?.length ?? 0) !== slots.roles.length) {
+    log(`@${r.handle} 검증 실패(${pic.title}: 빈칸 ${slots.roles.length}개인데 글자 ${out.texts?.length ?? 0}개) — 버림`);
+    return { used, made: false };
+  }
   const repeat = Math.min(3, Math.max(1, Number(out.repeat) || 1));
   // 사람이 저장할 때와 같은 문 — 목록 밖 값은 기본값으로 접힌다
   const style = cleanStyle({ texts: out.texts, panels: Array(repeat).fill(pic.url) });

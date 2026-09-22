@@ -251,7 +251,15 @@ THE FILMS (index: title, year — description). Picture N is film N's shot grid;
         stamp = f"{int(time.time()):x}"
         clip = upload_asset(f"reels/{r['handle']}-{stamp}.mp4", out.read_bytes(), f"reel: {r['handle']}")
         png = upload_asset(f"reels/{r['handle']}-{stamp}.png", poster.read_bytes(), f"reel poster: {r['handle']}")
-    style = json.dumps({'reel': board, 'films': [f['ident'] for f in films]})
+    # 웹 편집기(cleanStyle.reel)가 다시 여는 모양 — film 은 ident, shot 은 clip_shots.idx. 예전 모양(film 인덱스·make·why)은 열리지 않았다
+    scenes = []
+    for sc in board['scenes']:
+        film = films[int(sc['film'])]
+        shot = shots_by_film[film['id']][int(sc['shot'])]
+        scenes.append({'film': film['ident'], 'shot': int(shot['idx']), 'off': 0, 'dur': max(1.0, min(float(sc.get('dur') or 3), shot['dur'], 6.0)),
+                       'caption': ' '.join(str(sc.get('caption') or '').split())[:80], 'pos': sc.get('pos') or 'bottom',
+                       'font': sc.get('font') or 'impact', 'fx': [f for f in (sc.get('fx') or []) if f in FX][:2]})
+    style = json.dumps({'reel': {'title': str(board.get('title') or '')[:60], 'scenes': scenes}, 'films': [f['ident'] for f in films]})
     top = str(board.get('title') or (board['scenes'][0].get('caption') or ''))[:120]
     d1(f"INSERT INTO memes (resident_id, kind, image, png, top, bottom, style) VALUES ({r['id']}, 'clip', '{esc(clip)}', '{esc(png)}', '{esc(top)}', '', '{esc(style)}');")
     log(TAG, f"@{r['handle']} ({model}) {total:.0f}s {size >> 10}KB — {summary}")

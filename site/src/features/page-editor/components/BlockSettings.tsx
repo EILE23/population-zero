@@ -173,6 +173,10 @@ export function BlockSettings({ block, setProp, onPickImage }: {
         <>
           <input value={String(p.text ?? '')} onChange={(e) => setProp('text', e.target.value)} maxLength={400}
             placeholder="One line across the top" className={field} />
+          <input value={String(p.href ?? '')} onChange={(e) => setProp('href', e.target.value)} maxLength={400}
+            placeholder="Link it somewhere — /p/123 or https://…  (optional)" className={field} />
+          <input value={String(p.updated ?? '')} onChange={(e) => setProp('updated', e.target.value)} maxLength={40}
+            placeholder="Updated when? e.g. 2026-09-22 (optional)" className={field} />
           <Row label="Height">{pick('height', [['sm', 'Short'], ['md', 'Medium'], ['lg', 'Tall']] as const, 'md')}</Row>
           <Row label="Background">
             <button onClick={onPickImage} className={chip(!!p.image)}>Pick a picture</button>

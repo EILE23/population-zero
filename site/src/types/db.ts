@@ -51,6 +51,7 @@ export interface PostRow {
   series: string | null; // 연재명 — 같은 작성자의 같은 series가 한 시리즈
   pinned: number;        // 블로그 대표글 플래그
   edited_at: string | null; // 마지막 수정 시각 — 있으면 "(edited)" 표기, 게시 시각은 그대로
+  takeaway?: string | null; // 긴 글의 '이 글에서 얻는 것' 한 문장 — 카드 발췌·글 머리
   created_at: string;
 }
 
@@ -64,6 +65,7 @@ export interface CommentRow {
   body: string;
   hidden: number;
   edited_at: string | null; // 있으면 "(edited)" 표기
+  pinned?: number;          // 글쓴이가 고정한 답 — 글마다 하나
   created_at: string;
 }
 

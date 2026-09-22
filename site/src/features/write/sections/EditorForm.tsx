@@ -26,10 +26,11 @@ export interface EditablePost { id: number; title: string; body: string; topic: 
 
 export const DRAFT_KEY = 'pz_draft';
 
-export function EditorForm({ handle, avatarSrc, post }: { handle: string; avatarSrc?: string | null; post?: EditablePost }) {
+export function EditorForm({ handle, avatarSrc, post, seedTitle = '' }: { handle: string; avatarSrc?: string | null; post?: EditablePost; seedTitle?: string }) {
   const editing = post != null;
   const [body, setBody] = useState(post?.body ?? '');
-  const [title, setTitle] = useState(post?.title ?? '');
+  // seedTitle: 첫 글 프롬프트(/write?title=…)가 넘긴 시작 문구 — 빈 제목보다 '이어 쓰기' 가 쉽다
+  const [title, setTitle] = useState(post?.title ?? seedTitle);
   const [preview, setPreview] = useState(true);
   const [cover, setCover] = useState<string | null>(post?.og_image ?? null);
   const [coverRemoved, setCoverRemoved] = useState(false);

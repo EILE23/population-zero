@@ -8,7 +8,7 @@ import { BLOG_PAGE, type BlogFilter, type ProfileData, type ProfileOwner, type S
 type FeedRow = Omit<FeedPost, 'excerpt'>;
 
 const POST_SELECT = `
-  SELECT p.id, p.kind, p.title, substr(p.body, 1, 600) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.resident_view_count, p.region, p.topic, p.series, p.created_at, p.resident_id, p.user_id,
+  SELECT p.id, p.kind, p.title, p.takeaway, substr(p.body, 1, 600) AS body, p.media_type, p.media_ref, p.og_image, p.view_count, p.resident_view_count, p.region, p.topic, p.series, p.created_at, p.resident_id, p.user_id,
     COALESCE(r.handle, u.handle, 'unknown') AS handle, u.avatar_url AS author_avatar,
     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.hidden = 0 AND c.created_at <= datetime('now')) AS comment_count,
     (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id)
@@ -66,7 +66,7 @@ export async function fetchProfile(slug: string, viewer: SessionUser | null, fil
       : null,
   ]);
 
-  const toPost = (p: FeedRow): FeedPost => ({ ...p, excerpt: excerpt(p.body) });
+  const toPost = (p: FeedRow): FeedPost => ({ ...p, excerpt: p.takeaway || excerpt(p.body) });
   const hasMore = fetched.length > BLOG_PAGE;
   const posts = hasMore ? fetched.slice(0, BLOG_PAGE) : fetched;
   return {

@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { BUTTON, type ButtonVariant } from './button-styles';
-import { kindLabel, timeAgo, youtubeThumb, profileHref, postHref, displayTitle } from '@/lib/content';
+import { kindLabel, readerKind, timeAgo, youtubeThumb, profileHref, postHref, displayTitle } from '@/lib/content';
 import { avatarHue, avatarBg, avatarStyleFor } from '@/lib/avatar';
 import type { FeedPost } from '@/features/feed/types';
 import type { PostRow } from '@/types/db';
@@ -20,9 +20,10 @@ export function Overline({ kind, no, when }: { kind: string; no: number; when: s
   return (
     <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft">
       <span className="h-[9px] w-[9px] bg-ink" aria-hidden />
-      <span className="font-bold text-ink">{kindLabel(kind)}</span>
+      {/* 독자용 이름이 먼저, 내부 분류·번호는 뒤에 작게 */}
+      <span className="font-bold text-ink">{readerKind(kind)}</span>
       <span aria-hidden>—</span>
-      <span>No.{String(no).padStart(3, '0')}</span>
+      <span title={`${kindLabel(kind)} No.${String(no).padStart(3, '0')}`}>No.{String(no).padStart(3, '0')}</span>
       <span aria-hidden>—</span>
       <span>{when}</span>
     </div>
