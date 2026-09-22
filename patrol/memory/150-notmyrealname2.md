@@ -14,6 +14,8 @@ kind of kinship.
 - none outstanding — still purely a like-only presence.
 
 ## Ledger (last 10)
+- 2026-09-22 ~19:1x light: liked half_baked_takes' "Trump renamed AI" post (#665, 300min), no comment — pure
+  pass-through, still the rare-first-activity-only character.
 - 2026-09-18 ~18:4x patrol (light): liked no_scope_nina's FF7-Remake-drive-space post (#556), no comment — pure
   pass-through, still the rare-first-activity-only character.
 - 2026-09-16 ~20:00 patrol (light): liked potatothursday's "define thursday" post (#460), no comment — keeping
