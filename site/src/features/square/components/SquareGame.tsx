@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ListChecks, Upload } from 'lucide-react';
 import { figure, SEATED, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
-import { BADGE_BY_KEY } from '@/lib/pond';
+import { BADGE_BY_KEY, ITEM_LIST } from '@/lib/pond';
 import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, FOOD, GRAB_R, ITEMS, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, type ItemKey, type Quest, type Task } from '@/lib/goose';
 import { BREAKABLE, houses, jobOf, MAPS, SITTABLE, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
@@ -40,8 +40,8 @@ const seatPose = (kind: PropKind | undefined): FigPose => kind === 'bed' ? 'sit'
 const SEAT_LIFT: Partial<Record<PropKind, number>> = { sofa: 10, bed: 20 };
 const seatAt = (m: GameMap, x: number, d: number) => m.spots.find((s) => SITTABLE.includes(s.kind) && dist(x, d, s.x, s.d) < 40);
 /** 주민 일과 → 자세. 사람이 같은 걸 할 때도 같은 자세를 쓴다 */
-const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch' } as Record<string, FigPose>)[act] ?? 'stand');
-const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip'];
+const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch', fish: 'fish' } as Record<string, FigPose>)[act] ?? 'stand');
+const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish'];
 
 export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [] }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -62,7 +62,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0 });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0 });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const [questList, setQuestList] = useState<Quest[]>([]);
@@ -250,9 +250,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (hour() !== curHour) { curHour = hour(); spawn(); }
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
-      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
+      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.fishing > 0 ? 'fish' : b.watering > 0 ? 'water' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
       const knock = (byName: string, line: string, fine = 0) => {
-        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0;
+        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0;
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
         b.stack = []; say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
@@ -298,8 +298,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (!spectator && b.exercise > 0) { b.exercise = Math.max(0, b.exercise - dt); b.moving = false; } // 운동하는 동안 잠깐 멈춘다
       if (!spectator && b.watering > 0) { b.watering = Math.max(0, b.watering - dt); b.moving = false; } // 물 주는 동안 잠깐 멈춘다
       if (!spectator && b.tripped > 0) { b.tripped = Math.max(0, b.tripped - dt); b.moving = false; } // 헛디뎌 넘어진 동안 잠깐 멈춘다
+      if (!spectator && b.fishing > 0) { // 입질을 기다리는 동안 잠깐 멈춘다 — 다 되면 이름 있는 것 하나가 발밑에 떨어진다(바닥의 물건과 같은 규칙)
+        const was = b.fishing; b.fishing = Math.max(0, b.fishing - dt); b.moving = false;
+        if (was > 0 && b.fishing <= 0) { const caught = pick(ITEM_LIST); say(`Caught ${caught.name}.`, 2500); drop('fish', b.x + b.face * 18, b.d, null); void complete('fish'); }
+      }
       if (b.swing > 0) b.swing = Math.max(0, b.swing - dt);
-      if (!spectator && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0) {
+      if (!spectator && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
         const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
         if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
@@ -325,6 +329,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             const q = quests.current.get(n.who) ?? questOf(n.who);
             if (st.doneKeys.has(q.key)) { n.say = pick(['we are done here.', 'nothing today.', 'go away.']); n.sayUntil = now + 2000; }
             else if (q.kind === 'fetch' && b.stack.includes(q.item!)) { b.stack.splice(b.stack.indexOf(q.item!), 1); n.item = q.item!; finishQuest(q, n); }
+            else if (q.kind === 'pond' && b.stack.includes('fish')) { b.stack.splice(b.stack.indexOf('fish'), 1); n.item = 'fish'; finishQuest(q, n); }
             else if (q.kind === 'revenge' && st.shoves.some((x) => x.who === q.target && now - x.at < 120000)) finishQuest(q, n);
             else { quests.current.set(n.who, q); setQuestList([...quests.current.values()]); n.say = q.ask; n.sayUntil = now + 3500; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; }
           }
@@ -332,7 +337,10 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (i.shove && !shoveWas && b.z === 0 && b.swing <= 0) hit('punch');
         if (i.kick && !kickWas && b.swing <= 0) hit('kick');
         if (i.grab && !grabWas && b.z === 0) {
-          if (b.stack.length) {
+          const pondSpot = cur.spots.find((s) => s.kind === 'pond' && dist(b.x, b.d, s.x, s.d) < 90);
+          if (b.stack.length && b.stack[b.stack.length - 1] === 'rod' && pondSpot) { // 낚싯대를 든 채 물가 — 앉아 던진다, 몇 초 뒤 입질
+            b.fishing = 4 + Math.random() * 8; b.x = pondSpot.x; b.d = pondSpot.d; say('Cast the line.', 1200);
+          } else if (b.stack.length) {
             const it = b.stack.pop()!;
             const bin = cur.spots.find((s) => s.kind === 'bin' && dist(b.x, b.d, s.x, s.d) < 90);
             const water = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
@@ -365,6 +373,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                   b.watering = 1.4; b.x = garden.x; b.d = garden.d; say(`Watered ${garden.name}.`, 1500); void complete(`water:${garden.key}`);
                   for (const q of quests.current.values()) if (q.kind === 'water' && q.spot === garden.key) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
                 }
+                else if (pondSpot) { b.stack.push('rod'); say('Took a rod from the rack.', 1500); } // 물가의 낚싯대 — 든 채 다시 C 하면 던진다
               }
             }
             if (b.stack.length >= 3) void complete('collect3');
@@ -582,7 +591,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead, anything near a bin is gone for good), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, or watch the TV / read the bookshelf indoors (move to stop) · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things — and sometimes trip mid-chase (they drop what they carry, you get away); running empty-handed over something on the ground trips you too; the police fine you; other people can hit you too</p>}
+      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ walk · SPACE jump · X punch, or throw what you carry (it hits residents, people and things) · Z kick (jump kick in the air, breaks things) · C grab / take / drop (a sandwich or coffee near a café, table or bench gets eaten instead, anything near a bin is gone for good), or with empty hands sit on a bench or sofa, lie on a bed, ride a swing (move to stand up), work out at the pull-up bar or bench press in the park, watch the TV / read the bookshelf indoors (move to stop), or at a pond take a rod from the rack, then C again to cast and wait for a bite · E talk (they ask for things) · walk into a door or road end to go through · they chase, throw, hit back and fix things — and sometimes trip mid-chase (they drop what they carry, you get away); running empty-handed over something on the ground trips you too; the police fine you; other people can hit you too</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
         {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}{questList.map((q) => <li key={q.key} className={doneList.includes(q.key) ? 'line-through opacity-50' : 'text-accent-deep'}>☐ {q.text} <span className="font-mono text-[10.5px] text-ink-soft">asked · +{q.coins}</span></li>)}</ul>}
@@ -647,12 +656,14 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
     case 'umbrella': ctx.beginPath(); ctx.arc(0, -4 * s, 10 * s, Math.PI, 0); F('#c94a4a'); ctx.beginPath(); ctx.moveTo(0, -4 * s); ctx.lineTo(0, 10 * s); ctx.stroke(); break;
     case 'cup': ctx.beginPath(); ctx.rect(-5 * s, -8 * s, 10 * s, 11 * s); F('#ffffff'); ctx.beginPath(); ctx.arc(7 * s, -3 * s, 3 * s, -1.5, 1.5); ctx.stroke(); break;
     case 'basket': ctx.beginPath(); ctx.moveTo(-10 * s, -6 * s); ctx.lineTo(10 * s, -6 * s); ctx.lineTo(7 * s, 6 * s); ctx.lineTo(-7 * s, 6 * s); ctx.closePath(); F('#c9b48a'); ctx.beginPath(); ctx.arc(0, -6 * s, 8 * s, Math.PI, 0); ctx.stroke(); break;
+    case 'rod': ctx.beginPath(); ctx.moveTo(-6 * s, 8 * s); ctx.lineTo(9 * s, -13 * s); ctx.stroke(); break;
+    case 'fish': ctx.beginPath(); ctx.ellipse(-1 * s, 0, 8 * s, 4 * s, 0, 0, 6.29); F('#8fb8cc'); ctx.beginPath(); ctx.moveTo(6 * s, 0); ctx.lineTo(12 * s, -4 * s); ctx.lineTo(12 * s, 4 * s); ctx.closePath(); F('#8fb8cc'); break;
   }
   ctx.restore();
 }
 function actIcon(ctx: CanvasRenderingContext2D, act: string, x: number, y: number, s: number) {
   ctx.fillStyle = '#5b4f56'; ctx.font = `${10 * s}px ui-monospace, monospace`; ctx.textAlign = 'left';
-  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups', press: 'bench press', watch: 'watching' } as Record<string, string>)[act] ?? '', x, y);
+  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups', press: 'bench press', watch: 'watching', fish: 'fishing' } as Record<string, string>)[act] ?? '', x, y);
 }
 function name(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) { ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
 function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) {
