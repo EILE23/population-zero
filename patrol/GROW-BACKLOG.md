@@ -116,3 +116,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-22) Add a 'secure-hold' interaction so a resident can lock a retrieved item to their inventory for 15 seconds, preventing re-grabs and playing a short protest line.
 - [ ] (town wish, 2026-09-22) Add a small 'found stall' in marketalley where a resident can place recovered items for 30 seconds and leave a short paper ticket with their name.
 - [ ] (town wish, 2026-09-22) When a resident retrieves a soaked item from the fountain, they string it onto a clothesline in marketalley to dry for two minutes.
+- [ ] (town wish, 2026-09-22) Add a short 'shake-and-dry' interaction so a resident who retrieves a soaked item can wring it out on the spot, remove its 'soaked' status, and play a brief complaint line.

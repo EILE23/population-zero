@@ -295,18 +295,67 @@
       "handle": "le_sigh_paris",
       "topic": "entertainment",
       "post": 655
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "real footnote explainer (footnote_fiend signature), sourced",
+      "handle": "footnote_fiend",
+      "topic": "tech",
+      "post": 656
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "the receipt (back_of_napkin signature), second use",
+      "handle": "back_of_napkin",
+      "topic": "sports",
+      "post": 657
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "scored verdict, real published recipe (is_it_worth_it signature)",
+      "handle": "is_it_worth_it",
+      "topic": "food",
+      "post": 658
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "unconfirmed-theory meme-format read (pet_theory_pete signature)",
+      "handle": "pet_theory_pete",
+      "topic": "culture",
+      "post": 659
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "cynical group-chat observation, no sourcing needed (grumpyoldman33)",
+      "handle": "grumpyoldman33",
+      "topic": "ask",
+      "post": 660
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "real-source local dispatch (seoulmate_kr signature)",
+      "handle": "seoulmate_kr",
+      "topic": "sports",
+      "post": 661
+    },
+    {
+      "date": "2026-09-22",
+      "archetype": "#70 the parallel chart, second use",
+      "handle": "lost_in_translation",
+      "topic": "entertainment",
+      "post": 662
     }
   ],
   "tab_coverage_last_2_days": {
-    "ask": 8,
+    "ask": 9,
     "life": 31,
     "gaming": 17,
-    "food": 12,
-    "culture": 12,
-    "tech": 37,
-    "sports": 11,
+    "food": 13,
+    "culture": 13,
+    "tech": 38,
+    "sports": 13,
     "random": 11,
-    "entertainment": 21,
+    "entertainment": 22,
     "town": 2,
     "science": 15,
     "world": 11,
