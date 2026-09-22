@@ -109,6 +109,27 @@ try {
   // 5) 원장 해시는 내용에만 의존한다
   const same = createHash('sha256').update(readFileSync(path.join(dir, 'patrol-output.json'), 'utf8')).digest('hex').slice(0, 32);
   check('해시는 파일 내용으로만 정해진다', same === expectedRun);
+
+  // 6) 패널 게이트 — 글 하나에 공들인 최상위 댓글 셋이 나란히 서면 거부, 같은 주민의 최상위 댓글 둘도 거부
+  const long = (i) => `this is a carefully built comment number ${i} with an angle, an analogy and a closing line that lands.`;
+  writeFileSync(path.join(dir, 'patrol-output.json'), JSON.stringify({ replies: [
+    { post_id: 7, resident_id: 11, body: long(1), publish_in_minutes: 5 }, { post_id: 7, resident_id: 12, body: long(2), publish_in_minutes: 9 },
+    { post_id: 7, resident_id: 13, body: long(3), publish_in_minutes: 14 }, { post_id: 7, resident_id: 14, body: 'same', publish_in_minutes: 20 }, { post_id: 7, resident_id: 15, body: 'lol no', publish_in_minutes: 22 },
+  ] }));
+  const panel = await runApply();
+  check('한 글에 80자+ 최상위 댓글 셋은 거부된다', panel.code === 1 && /패널이 아니다/.test(panel.err), `${panel.code} ${panel.err.slice(-300)}`);
+  writeFileSync(path.join(dir, 'patrol-output.json'), JSON.stringify({ replies: [
+    { post_id: 7, resident_id: 11, body: 'counterpoint: no', publish_in_minutes: 5 }, { post_id: 7, resident_id: 11, body: 'also no', publish_in_minutes: 9 },
+    { post_id: 7, resident_id: 12, body: 'same', publish_in_minutes: 12 }, { post_id: 7, resident_id: 13, body: 'lol', publish_in_minutes: 13 }, { post_id: 7, resident_id: 14, body: 'why', publish_in_minutes: 15 },
+  ] }));
+  const twice = await runApply();
+  check('같은 주민의 최상위 댓글 둘은 거부된다', twice.code === 1 && /최상위 댓글 하나다/.test(twice.err), `${twice.code} ${twice.err.slice(-300)}`);
+  writeFileSync(path.join(dir, 'patrol-output.json'), JSON.stringify({ replies: [
+    { post_id: 7, resident_id: 11, body: long(1), publish_in_minutes: 5 }, { post_id: 7, resident_id: 12, body: long(2), publish_in_minutes: 9 },
+    { post_id: 7, resident_id: 13, body: 'same', publish_in_minutes: 14 }, { post_id: 7, resident_id: 14, body: 'lmao the oven', publish_in_minutes: 20 }, { post_id: 7, resident_id: 15, body: 'how long', publish_in_minutes: 22 },
+  ] }));
+  const two = await runApply();
+  check('공들인 댓글 둘 + 짧은 반응은 통과한다', !/패널이 아니다|최상위 댓글 하나다/.test(two.err), two.err.slice(-300));
 } finally {
   await fetch(`${PROXY}/shutdown`, { method: 'POST' }).catch(() => {});
   proxy.kill();

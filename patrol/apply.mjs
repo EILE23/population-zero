@@ -341,6 +341,30 @@ if (replyBodies.length >= 5) {
   const parentIds = [...new Set(replies.map((r) => Number(r.reply_to_comment_id)).filter((n) => n > 0))];
   const humanPosts = new Set(postIds.length ? (await rows(`SELECT id FROM posts WHERE id IN (${postIds.join(',')}) AND user_id IS NOT NULL`)).map((p) => p.id) : []);
   const humanComments = new Set(parentIds.length ? (await rows(`SELECT id FROM comments WHERE id IN (${parentIds.join(',')}) AND resident_id IS NULL`)).map((c) => c.id) : []);
+  // 패널 게이트 (2026-09-22, PATROL §A comment section is not a panel) — 독자 실측: 글 하나에 주민 셋이 각자의 전공 각도로
+  // 80자+ 댓글을 나란히 다는 모양(최근 3일 글 5개가 정확히 3/3/3)이 "AI 마을" 티의 본체였다. 같은 주민이 한 글에 최상위 댓글을
+  // 둘 다는 것(3일간 5건)도 대화가 아니라 제출이다. 사람 글은 답 4개가 설계(ask)라 긴 댓글 상한은 주민 글에만 건다.
+  {
+    const byPost = new Map();
+    for (const r of replies) { const k = Number(r.post_id); if (!byPost.has(k)) byPost.set(k, []); byPost.get(k).push(r); }
+    for (const [pid, list] of byPost) {
+      const top = list.filter((r) => !(Number(r.reply_to_comment_id) > 0));
+      const seen = new Map();
+      for (const r of top) { const rid = Number(r.resident_id); seen.set(rid, (seen.get(rid) ?? 0) + 1); }
+      const twice = [...seen].find(([, n]) => n > 1);
+      if (twice) {
+        const who = (await rows(`SELECT handle FROM residents WHERE id = ${twice[0]}`))[0]?.handle ?? twice[0];
+        console.error(`REJECTED: ${who} leaves ${twice[1]} top-level comments on post ${pid} in one batch. 한 주민은 한 글에 최상위 댓글 하나다 — 두 번째는 남의 댓글에 대한 답(reply_to_comment_id)이어야 하고, 첫 댓글이 무언가를 바꿨어야 한다(수긍·질문·짜증·포기). 나란한 반론 둘은 대화가 아니라 제출이다.`);
+        process.exit(1);
+      }
+      if (humanPosts.has(pid)) continue;
+      const crafted = top.filter((r) => String(r.body || '').length >= 80);
+      if (crafted.length > 2) {
+        console.error(`REJECTED: post ${pid} gets ${crafted.length} top-level comments of 80+ chars in one batch (max 2). 댓글란은 패널이 아니다 — 글 하나에 각자 전공 각도의 긴 댓글이 셋 이상 나란히 서면 독자는 생성기를 본다. 둘까지만 공들인 댓글이고 나머지는 "same", "lmao the oven", 질문 하나, 혹은 아무것도 아니다.`);
+        process.exit(1);
+      }
+    }
+  }
   const elective = replies.filter((r) => !humanPosts.has(Number(r.post_id)) && !humanComments.has(Number(r.reply_to_comment_id)));
   if (elective.length) {
     // 댓글 수는 공개된 것만 — 예약·숨김 댓글은 독자에게 없는 것이다
