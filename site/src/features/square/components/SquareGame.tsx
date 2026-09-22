@@ -196,15 +196,24 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       npcs.current = chosen.map((who) => {
         const handle = residents[who].handle; const job = jobOf(handle); const seed = hash(`square:${who}:${hour()}`); const rr = rng(seed);
         const home = maps.current.find((m) => m.owner === who);
-        const cand = job.spots.map((k) => spotIndex.get(k)).filter((x): x is { map: string; spot: Spot } => !!x);
+        // 직업표의 자리 이름이 지도 이름(square·street·park…)이면 "그 지도의 빈 데 아무 곳" — 산책 정거장. 예전엔 자리가 아니라며 버려져 개 산책·청소부·경찰이 남은 한두 자리에 몰렸다
+        const wander = (mapKeyName: string, k: number): { map: string; spot: Spot } | null => {
+          const m = maps.current.find((mm) => mm.key === mapKeyName && !mm.indoor); if (!m) return null;
+          const x = Math.round(m.w * (0.08 + rr() * 0.84)), d = Math.round((0.2 + rr() * 0.7) * 100) / 100;
+          return { map: m.key, spot: { key: `wander:${who}:${k}`, name: 'nowhere in particular', x, d, act: 'stand', kind: 'gate' } };
+        };
+        const cand = job.spots.map((k) => spotIndex.get(k) ?? wander(k, 0)).filter((x): x is { map: string; spot: Spot } => !!x);
         const stops: Npc['stops'] = [];
         const n = 3 + Math.floor(rr() * 2);
         for (let k = 0; k < n; k++) {
           let c0 = spotIndex.get('fountain')!;
           if (cand.length) { const least = Math.min(...cand.map((c) => used.get(c.spot.key) ?? 0)); const pool = cand.filter((c) => (used.get(c.spot.key) ?? 0) === least); c0 = pool[Math.floor(rr() * pool.length)]; }
+          if (c0.spot.key.startsWith('wander:')) c0 = wander(c0.map, k) ?? c0; // 산책은 매번 다른 곳
           used.set(c0.spot.key, (used.get(c0.spot.key) ?? 0) + 1);
           stops.push({ map: c0.map, spot: c0.spot, dur: 14 + rr() * 30 });
         }
+        // 누구나 한 번은 그냥 서성인다 — 자리(분수·카페·벤치) 주변에만 몰리지 않고 광장의 빈 데도 사람이 있게. 자기 일터 지도 안에서
+        { const w = wander(stops[0]?.map ?? 'square', 9); if (w) stops.splice(1 + Math.floor(rr() * stops.length), 0, { map: w.map, spot: w.spot, dur: 10 + rr() * 20 }); }
         if (home) { const hs = home.spots.filter((s) => s.kind !== 'door'); stops.splice(Math.floor(rr() * stops.length), 0, { map: home.key, spot: hs[Math.floor(rr() * hs.length)], dur: 30 + rr() * 60 }); }
         const angry = content.angry.includes(handle) || rr() < job.temper;
         return { who, tx: 0, td: 0.5, job, seed, stops, x: 0, d: 0.5, map: stops[0].map, face: 1 as const, item: job.item, mode: 'routine' as Mode, until: 0, tripUntil: 0, say: '', sayUntil: 0, moving: false, act: 'stand', angry, threw: 0, swing: 0, target: null, owner: null };
@@ -217,7 +226,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     const EXACT: PropKind[] = [...SITTABLE, 'pullbar', 'benchpress', 'rack'];
     const standAt = (spot: Spot, seed: number, i: number): [number, number] => {
       if (EXACT.includes(spot.kind) || spot.act === 'sit') return [spot.x, spot.d];
-      const r = rng(hash(`${seed}:${i}`)); return [spot.x + (r() - 0.5) * 220, Math.min(0.95, Math.max(0.05, spot.d + (r() - 0.5) * 0.36))];
+      const r = rng(hash(`${seed}:${i}`)); return [spot.x + (r() - 0.5) * 300, Math.min(0.95, Math.max(0.05, spot.d + (r() - 0.5) * 0.36))];
     };
     const routine = (n: Npc, t: number) => {
       type Seg = { map: string; x0: number; d0: number; x1: number; d1: number; dur: number; act: string; away?: boolean };
