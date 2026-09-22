@@ -5,7 +5,23 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed';
+/** 광장에 사는 작은 동물 — 졸라맨과 별도로 그린다(자세가 사람 관절과 안 맞아서). 결정적: 씨앗+시각만으로 정해져 모두 같은 걸 본다 */
+export type CritterKind = 'duck';
+export type CritterPose = 'paddle' | 'scatter';
+export function critter(ctx: CanvasRenderingContext2D, kind: CritterKind, x: number, y: number, s: number, pose: CritterPose, t: number) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.2; ctx.lineJoin = 'round';
+  if (kind === 'duck') {
+    const bob = Math.sin(t * 3) * (pose === 'scatter' ? 3 : 1);
+    ctx.fillStyle = '#e6d3a5';
+    ctx.beginPath(); ctx.ellipse(0, -4 + bob, 9, 5, 0, 0, 6.29); ctx.fill(); ctx.stroke(); // 몸통
+    ctx.beginPath(); ctx.ellipse(7, -9 + bob, 4, 3.4, 0, 0, 6.29); ctx.fill(); ctx.stroke(); // 머리
+    ctx.fillStyle = '#e0602a'; ctx.beginPath(); ctx.moveTo(10, -9 + bob); ctx.lineTo(15, -8 + bob); ctx.lineTo(10, -7 + bob); ctx.closePath(); ctx.fill(); // 부리
+    if (pose === 'scatter') { ctx.beginPath(); ctx.moveTo(-2, -10 + bob); ctx.lineTo(-9, -17 + bob); ctx.moveTo(2, -10 + bob); ctx.lineTo(6, -18 + bob); ctx.stroke(); } // 놀라 퍼덕이는 날개
+  }
+  ctx.restore();
+}
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -146,6 +162,15 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line(shoulder, [15, -24], [18, -16]); line(shoulder, [4, -24], [6, -18]);
     ctx.beginPath(); ctx.moveTo(15, -16); ctx.lineTo(25, -16); ctx.lineTo(23, -8); ctx.lineTo(17, -8); ctx.closePath(); ctx.stroke(); // 물뿌리개
     ctx.fillStyle = '#8fb8cc'; for (let k = 0; k < 3; k++) { const p = ((t * 2 + k / 3) % 1); ctx.beginPath(); ctx.arc(27 + k * 3, -10 + p * 10, 1.4, 0, 6.29); ctx.fill(); } ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'feed') {
+    // 오리 모이 주기 — 숙이고 한 팔로 부스러기를 던진다, 부스러기가 앞으로 흩어져 떨어진다
+    hip = [0, -16]; shoulder = [6, -30]; head = [10, -37];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [5, -8], [6, 0]);
+    line(shoulder, [14, -26], [18, -20]); line(shoulder, [3, -25], [4, -18]);
+    ctx.fillStyle = '#c9b48a'; for (let k = 0; k < 3; k++) { const q = (t * 2 + k / 3) % 1; ctx.beginPath(); ctx.arc(20 + q * 14, -14 + q * 14, 1.3, 0, 6.29); ctx.fill(); } ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
