@@ -62,7 +62,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0 });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const [questList, setQuestList] = useState<Quest[]>([]);
@@ -249,9 +249,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (hour() !== curHour) { curHour = hour(); spawn(); }
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
-      const myPose = (): FigPose => b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
+      const myPose = (): FigPose => b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
       const knock = (byName: string, line: string, fine = 0) => {
-        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null;
+        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0;
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
         b.stack = []; say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
@@ -295,8 +295,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (!spectator && b.hurt > 0) { b.hurt = Math.max(0, b.hurt - dt); b.moving = false; }
       if (!spectator && b.eating > 0) { b.eating = Math.max(0, b.eating - dt); b.moving = false; } // 먹는 동안 잠깐 멈춘다
       if (!spectator && b.exercise > 0) { b.exercise = Math.max(0, b.exercise - dt); b.moving = false; } // 운동하는 동안 잠깐 멈춘다
+      if (!spectator && b.watering > 0) { b.watering = Math.max(0, b.watering - dt); b.moving = false; } // 물 주는 동안 잠깐 멈춘다
       if (b.swing > 0) b.swing = Math.max(0, b.swing - dt);
-      if (!spectator && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0) {
+      if (!spectator && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
         const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
         if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
@@ -344,9 +345,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const seat = cur.spots.find((s) => SITTABLE.includes(s.kind) && dist(b.x, b.d, s.x, s.d) < 90);
                 const gym = cur.spots.find((s) => (s.kind === 'pullbar' || s.kind === 'benchpress') && dist(b.x, b.d, s.x, s.d) < 90);
                 const screen = cur.spots.find((s) => (s.kind === 'tv' || s.kind === 'shelf') && dist(b.x, b.d, s.x, s.d) < 90);
+                const garden = cur.spots.find((s) => s.kind === 'garden' && dist(b.x, b.d, s.x, s.d) < 90);
                 if (seat) { b.sitting = !b.sitting; if (b.sitting) { b.x = seat.x; b.d = seat.d; b.seat = seat.kind; } }
                 else if (gym) { b.exercise = 2.4; b.exerciseKind = gym.kind === 'pullbar' ? 'pullup' : 'press'; b.x = gym.x; b.d = gym.d; say(gym.kind === 'pullbar' ? 'Pull-ups.' : 'Bench press.', 1200); }
                 else if (screen) { b.still = b.still ? null : (screen.kind as 'tv' | 'shelf'); if (b.still) { b.x = screen.x; b.d = screen.d; } }
+                else if (garden) {
+                  b.watering = 1.4; b.x = garden.x; b.d = garden.d; say(`Watered ${garden.name}.`, 1500); void complete(`water:${garden.key}`);
+                  for (const q of quests.current.values()) if (q.kind === 'water' && q.spot === garden.key) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
+                }
               }
             }
             if (b.stack.length >= 3) void complete('collect3');
