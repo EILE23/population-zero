@@ -73,7 +73,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
   const total = legs.reduce((s, l) => s + l.stay + l.walk, 0);
   let u = (t + rt.seed % 1000) % total;
   for (const l of legs) {
-    if (u < l.stay) return { x: l.a.x + ((rt.seed % 60) - 30), d: Math.min(1, Math.max(0.05, l.a.d + ((rt.seed % 20) - 10) / 100)), act: l.a.act, moving: false, face: rt.seed % 2 ? 1 : -1 };
+    if (u < l.stay) { const seat = l.a.act === 'sit'; return { x: seat ? l.a.x : l.a.x + ((rt.seed % 60) - 30), d: seat ? l.a.d : Math.min(1, Math.max(0.05, l.a.d + ((rt.seed % 20) - 10) / 100)), act: l.a.act, moving: false, face: rt.seed % 2 ? 1 : -1 }; } // 앉는 자리는 그 위에 정확히(옆 바닥에 앉지 않게)
     u -= l.stay;
     if (u < l.walk) { const k = u / l.walk; return { x: l.a.x + (l.b.x - l.a.x) * k, d: l.a.d + (l.b.d - l.a.d) * k, act: 'stand', moving: true, face: l.b.x >= l.a.x ? 1 : -1 }; }
     u -= l.walk;

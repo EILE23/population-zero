@@ -4,7 +4,10 @@ import type { Pose } from './tower';
  * 졸라맨 — 발끝 (x, y). 관절로 그린다: 엉덩이(0,-16) · 어깨(0,-34, 목 바로 아래) · 머리(0,-42).
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick';
+/** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop';
+/** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
+export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
   ctx.save(); ctx.translate(x, y); ctx.scale(face * s, s);
   ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -54,6 +57,97 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line([-24, -5 - br], [-18, -11 - br], [-30, -12 - br]); // 팔 머리 뒤
     line([-24, -5 - br], [-14, -7 - br]);             // 팔 배 위
     ctx.beginPath(); ctx.arc(-33, -9 - br, 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'seat' || pose === 'eat') {
+    // 벤치에 앉음 — 엉덩이가 자리 높이(-15), 허벅지 앞으로, 정강이 아래로, 등은 세움. 먹을 땐 한 손이 입으로 오르내린다
+    const br = Math.sin(t * 1.6) * 0.6;
+    hip = [0, -15]; shoulder = [-1, -33 - br]; head = [-1, -41 - br];
+    line(hip, shoulder);
+    line(hip, [11, -15], [12, 0]); line(hip, [9, -14], [8, 0]);
+    line(shoulder, [3, -26 - br], [10, -18 - br]);
+    if (pose === 'eat') { const m = (Math.sin(t * 4) + 1) / 2; line(shoulder, [6, -28 - br], [10 - m * 5, -18 - m * 18 - br]); }
+    else line(shoulder, [1, -27 - br], [8, -19 - br]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'swing') {
+    // 그네 — 줄 흔들림(prop 의 sin(t*1.5)*10)과 같은 위상으로 좌우로 흔들리고, 앞으로 갈 때 다리를 뻗고 돌아올 때 접는다. 두 손은 위로 줄을 잡는다
+    const sw = Math.sin(t * 1.5); ctx.translate(face * sw * 10, 0);
+    hip = [0, -19]; shoulder = [-2 - sw * 2, -37]; head = [-2 - sw * 3, -45];
+    line(hip, shoulder);
+    for (const side of [1, -1]) {
+      const a = D - 0.5 - sw * 0.7 + side * 0.06; const knee = seg(hip[0], hip[1], THIGH, a);
+      line(hip, knee, seg(knee[0], knee[1], SHIN, a + 1.0 - sw * 0.8));
+    }
+    line(shoulder, [7, -44], [8, -52]); line(shoulder, [-7, -44], [-8, -52]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'read') {
+    // 서서 책 — 두 손이 가슴 앞, 머리는 살짝 숙임
+    hip = [0, -16]; shoulder = [1, -34]; head = [4, -41];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [7, -28], [11, -31]); line(shoulder, [5, -27], [11, -29]);
+    ctx.lineWidth = 1.6; ctx.strokeRect(9, -36, 9, 8); ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'chew') {
+    // 서서 먹음 — 한 손이 입으로 오르내림(앉을 데가 없을 때)
+    const m = (Math.sin(t * 4) + 1) / 2;
+    hip = [0, -16]; shoulder = [0, -34]; head = [1, -42];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [7, -29], [9 - m * 5, -22 - m * 15]); line(shoulder, [-5, -26], [-6, -18]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'phone') {
+    // 전화 — 한 손을 귀에, 다른 손은 주머니쯤, 고개 갸웃
+    hip = [0, -16]; shoulder = [0, -34]; head = [2, -42];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [7, -29], [6, -40]); line(shoulder, [-5, -27], [-3, -20]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'water') {
+    // 물주기 — 앞으로 숙이고 한 팔을 아래로 뻗어 물뿌리개, 물방울 떨어짐
+    hip = [0, -16]; shoulder = [8, -30]; head = [13, -36];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [5, -8], [6, 0]);
+    line(shoulder, [15, -24], [18, -16]); line(shoulder, [4, -24], [6, -18]);
+    ctx.beginPath(); ctx.moveTo(15, -16); ctx.lineTo(25, -16); ctx.lineTo(23, -8); ctx.lineTo(17, -8); ctx.closePath(); ctx.stroke(); // 물뿌리개
+    ctx.fillStyle = '#8fb8cc'; for (let k = 0; k < 3; k++) { const p = ((t * 2 + k / 3) % 1); ctx.beginPath(); ctx.arc(27 + k * 3, -10 + p * 10, 1.4, 0, 6.29); ctx.fill(); } ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'sweep') {
+    // 빗자루질 — 숙인 채 두 손으로 자루를 잡고 좌우로 쓸기
+    const p = Math.sin(t * 5) * 6;
+    hip = [0, -16]; shoulder = [6, -31]; head = [9, -39];
+    line(hip, shoulder); line(hip, [-5, -8], [-7, 0]); line(hip, [5, -8], [6, 0]);
+    line(shoulder, [11 + p * 0.5, -26], [13 + p, -22]); line(shoulder, [9 + p * 0.5, -22], [16 + p, -16]);
+    ctx.lineWidth = 1.6; line([9 + p, -28], [24 + p, 4]); ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(20 + p, 2); ctx.lineTo(30 + p, 0); ctx.lineTo(27 + p, 6); ctx.lineTo(19 + p, 7); ctx.closePath(); ctx.fill(); // 빗자루 술
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'fix') {
+    // 고치기 — 한쪽 무릎 꿇고 망치질
+    const h = (Math.sin(t * 8) + 1) / 2;
+    hip = [0, -9]; shoulder = [3, -27]; head = [5, -35];
+    line(hip, shoulder); line(hip, [-7, -3], [-11, 0]); line(hip, [8, -7], [10, 0]);
+    line(shoulder, [12, -24 + h * 5], [19, -30 + h * 16]); line(shoulder, [7, -20], [12, -12]);
+    ctx.fillRect(16, -36 + h * 16, 8, 4); // 망치 머리
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'shop') {
+    // 장보기 — 한 팔을 앞으로 뻗어 고르고, 고개를 내밈
+    const r = Math.sin(t * 2) * 2;
+    hip = [0, -16]; shoulder = [1, -34]; head = [4, -41];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [10, -32], [20, -30 + r]); line(shoulder, [-5, -27], [-4, -19]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
   if (pose === 'run') {
