@@ -171,8 +171,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     const typing = () => { const el = document.activeElement; return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement; };
     const set = (k: string, v: boolean, e: KeyboardEvent) => {
       const i = input.current;
-      if (k === 'ArrowLeft' || k === 'a') i.left = v; else if (k === 'ArrowRight' || k === 'd') i.right = v;
-      else if (k === 'ArrowUp' || k === 'w') i.up = v; else if (k === 'ArrowDown' || k === 's') i.down = v;
+      // 화살표만 — WASD 는 뺐다(운영자 2026-09-22: 채팅·다른 키와 겹쳐 불편)
+      if (k === 'ArrowLeft') i.left = v; else if (k === 'ArrowRight') i.right = v;
+      else if (k === 'ArrowUp') i.up = v; else if (k === 'ArrowDown') i.down = v;
       else if (k === ' ') i.jump = v; else if (k === 'c' || k === 'C' || k === 'Enter') i.grab = v; else if (k === 'x' || k === 'X') i.shove = v; else if (k === 'z' || k === 'Z' || k === 'Shift') i.kick = v; else if (k === 'e' || k === 'E') i.talk = v; else return;
       e.preventDefault();
     };

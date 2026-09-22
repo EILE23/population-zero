@@ -78,9 +78,9 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
     const key = (down: boolean) => (e: KeyboardEvent) => {
       if (typing()) return;
       const k = e.key;
-      if (k === 'ArrowLeft' || k === 'a' || k === 'A') { input.current.left = down; e.preventDefault(); }
-      else if (k === 'ArrowRight' || k === 'd' || k === 'D') { input.current.right = down; e.preventDefault(); }
-      else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { input.current.jump = down; e.preventDefault(); } // 누르는 동안 힘을 모으고 놓으면 뛴다
+      if (k === 'ArrowLeft') { input.current.left = down; e.preventDefault(); } // 화살표만 — WASD 는 뺐다(운영자 2026-09-22)
+      else if (k === 'ArrowRight') { input.current.right = down; e.preventDefault(); }
+      else if (k === ' ' || k === 'ArrowUp') { input.current.jump = down; e.preventDefault(); } // 누르는 동안 힘을 모으고 놓으면 뛴다
     };
     const kd = key(true), ku = key(false);
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);

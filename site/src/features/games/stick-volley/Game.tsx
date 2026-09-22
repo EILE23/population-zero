@@ -163,7 +163,7 @@ export default function Game({ me, residents }: GameProps) {
     raf = requestAnimationFrame(frame);
     const fit = () => { const width = Math.min(W, c.parentElement?.clientWidth ?? W); c.width = Math.round(width * devicePixelRatio); c.height = Math.round(width * (H / W) * devicePixelRatio); c.style.width = `${width}px`; c.style.height = `${width * (H / W)}px`; };
     fit(); const ro = new ResizeObserver(fit); ro.observe(c.parentElement ?? c);
-    const set = (k: string, v: boolean, e: KeyboardEvent) => { const i = input.current; if (k === 'ArrowLeft' || k === 'a') i.left = v; else if (k === 'ArrowRight' || k === 'd') i.right = v; else if (k === ' ') i.jump = v; else if (k === 'x' || k === 'X' || k === 'ArrowUp') i.hit = v; else return; e.preventDefault(); };
+    const set = (k: string, v: boolean, e: KeyboardEvent) => { const i = input.current; if (k === 'ArrowLeft') i.left = v; else if (k === 'ArrowRight') i.right = v; else if (k === ' ') i.jump = v; else if (k === 'x' || k === 'X' || k === 'ArrowUp') i.hit = v; else return; e.preventDefault(); };
     const kd = (e: KeyboardEvent) => set(e.key, true, e), ku = (e: KeyboardEvent) => set(e.key, false, e);
     if (!spectator) { window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); }
     return () => { cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
