@@ -9,9 +9,9 @@ import type { GameProps } from '../registry';
  * 사람은 A 팀 앞사람(색은 내 색). 나머지는 주민. 로그아웃이면 주민끼리 친다. 랠리·3터치·서브·15점 세트.
  */
 const W = 960, H = 470, GROUND = 392, NET_X = 480, NET_TOP = 286, GRAV = 1400, BALL_R = 9;
-const REACH_X = 34, REACH_Y = 84, JUMP_V = 520, GZ = 1900, SPEED_AI = 250, SPEED_ME = 280, FS = 1.1;
+const REACH_X = 34, REACH_Y = 84, JUMP_V = 520, GZ = 1900, SPEED_AI = 265, SPEED_ME = 280, FS = 1.1, CHARGE = 0.7;
 type Side = 'A' | 'B';
-interface P { side: Side; x: number; home: number; z: number; vz: number; face: 1 | -1; pose: FigPose; hit: number; name: string; color: string; seed: number }
+interface P { side: Side; x: number; home: number; z: number; vz: number; face: 1 | -1; pose: FigPose; hit: number; name: string; color: string; seed: number; charge: number }
 interface Ball { x: number; y: number; vx: number; vy: number; live: boolean; side: Side; touches: number; last: P | null; serveAt: number; server: Side }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -44,7 +44,7 @@ export default function Game({ me, residents }: GameProps) {
     const c = canvas.current!; const ctx = c.getContext('2d')!;
     const r = rng(hash(`volley:${me?.id ?? 0}:${new Date().toISOString().slice(0, 10)}`));
     const pool = residents.filter((x) => x.id > 0).sort(() => r() - 0.5).slice(0, 6);
-    const mk = (side: Side, i: number, home: number, who?: { id: number; handle: string }): P => ({ side, x: home, home, z: 0, vz: 0, face: side === 'A' ? 1 : -1, pose: 'stand', hit: 0, name: who?.handle ?? me?.handle ?? 'you', color: who ? '#3a2f36' : figureColor(me?.id ?? 1), seed: hash(who?.handle ?? 'me') });
+    const mk = (side: Side, i: number, home: number, who?: { id: number; handle: string }): P => ({ side, x: home, home, z: 0, vz: 0, face: side === 'A' ? 1 : -1, pose: 'stand', hit: 0, charge: 0, name: who?.handle ?? me?.handle ?? 'you', color: who ? '#3a2f36' : figureColor(me?.id ?? 1), seed: hash(who?.handle ?? 'me') });
     const homesA = [400, 260, 130], homesB = [560, 700, 830];
     const ps: P[] = [
       ...homesA.map((h, i) => mk('A', i, h, spectator || i > 0 ? pool[i] : undefined)),
@@ -58,19 +58,22 @@ export default function Game({ me, residents }: GameProps) {
       const s = ps.find((p) => p.side === ball.server && p.home === (ball.server === 'A' ? 130 : 830))!;
       ball.x = s.x; ball.y = GROUND - 70; ball.live = true; ball.side = ball.server; ball.touches = 1; ball.last = s;
       const tx = ball.server === 'A' ? 600 + r() * 280 : 80 + r() * 280;
-      const v = aim(ball.x, ball.y, tx, 1.1, true); ball.vx = v.vx; ball.vy = v.vy; s.pose = 'throw'; s.hit = 0.3;
+      const v = aim(ball.x, ball.y, tx, 1.1, true); ball.vx = v.vx; ball.vy = v.vy; s.pose = 'throw'; s.hit = 0.3; s.charge = 0;
     };
     const point = (to: Side, why: string) => {
       sc[to]++; ball.live = false; ball.server = to; ball.serveAt = performance.now() + 1500; say(`${why} Point ${to}. ${sc.A}–${sc.B}`, 1500);
       if (sc.A >= 15 || sc.B >= 15) { say(`${sc.A >= 15 ? 'A' : 'B'} takes the set ${sc.A}–${sc.B}.`, 3000); sc.A = 0; sc.B = 0; ball.serveAt = performance.now() + 3200; }
     };
     /** 치기 — 이 쪽의 몇 번째 터치인지에 따라 세트(같은 편 네트 앞)나 넘기기(상대 코트 빈 곳) */
-    const strike = (p: P, manual: boolean) => {
+    const strike = (p: P) => {
       const side = p.side; const n = ball.side === side ? ball.touches : 0;
       ball.side = side; ball.touches = n + 1; ball.last = p; p.hit = 0.3;
-      const spike = ball.touches >= 3 || p.z > 20 || manual && Math.abs(p.x - NET_X) < 140;
+      const spike = ball.touches >= 3 || p.z > 20;
       if (spike) {
-        const tx = side === 'A' ? NET_X + 60 + r() * 380 : 60 + r() * 380;
+        // 빈 곳을 노린다 — 후보 세 곳 중 상대 선수들에게서 가장 먼 곳
+        const opp = ps.filter((q) => q.side !== side);
+        const cands = [0, 1, 2].map(() => (side === 'A' ? NET_X + 60 + r() * 380 : 60 + r() * 380));
+        const tx = cands.sort((a, b) => Math.min(...opp.map((q) => Math.abs(q.x - b))) - Math.min(...opp.map((q) => Math.abs(q.x - a))))[0];
         const v = aim(ball.x, ball.y, tx, p.z > 20 ? 0.55 : 0.9, true); ball.vx = v.vx; ball.vy = v.vy; p.pose = p.z > 20 ? 'throw' : 'punch';
       } else {
         // 범프·세트: 같은 편에서 네트에 가장 가까운 다른 사람에게 높게
@@ -78,6 +81,15 @@ export default function Game({ me, residents }: GameProps) {
         const tx = clamp((mate?.x ?? p.x) + (side === 'A' ? -10 : 10), 30, W - 30);
         const v = aim(ball.x, ball.y, tx, 1.0 + r() * 0.2, false); ball.vx = v.vx; ball.vy = v.vy; p.pose = ball.touches === 1 ? 'charge' : 'jump';
       }
+    };
+    /** 사람의 타격 — 놓는 순간의 힘(0~1). 약하면 앞으로 짧게 띄우고(세터에게), 세면 상대 코트 깊숙이·낮게 */
+    const strikeMe = (p: P, pw: number) => {
+      const side = p.side; const n = ball.side === side ? ball.touches : 0;
+      ball.side = side; ball.touches = n + 1; ball.last = p; p.hit = 0.3;
+      const tx = clamp(p.x + p.face * (70 + pw * 640), 30, W - 30); const cross = (tx < NET_X) !== (p.x < NET_X);
+      const T = p.z > 20 ? 0.45 + (1 - pw) * 0.4 : 0.6 + (1 - pw) * 0.6;
+      const v = aim(ball.x, ball.y, tx, T, cross); ball.vx = v.vx; ball.vy = v.vy;
+      p.pose = p.z > 20 ? 'throw' : pw > 0.55 ? 'punch' : 'charge';
     };
     const canReach = (p: P) => Math.abs(p.x - ball.x) < REACH_X + (p.hit > 0 ? -99 : 0) && ball.y > GROUND - p.z - REACH_Y - 30 && ball.y < GROUND - p.z + 4;
 
@@ -101,11 +113,17 @@ export default function Game({ me, residents }: GameProps) {
         if (p.hit > 0) p.hit -= dt;
         const isMe = p === mine;
         let dx = 0;
-        if (isMe) { dx = (input.current.right ? 1 : 0) - (input.current.left ? 1 : 0); if (input.current.jump && p.z === 0) p.vz = JUMP_V; }
+        if (isMe) {
+          dx = (input.current.right ? 1 : 0) - (input.current.left ? 1 : 0); if (input.current.jump && p.z === 0) p.vz = JUMP_V;
+          if (input.current.hit) { p.charge = Math.min(CHARGE, p.charge + dt); dx *= 0.5; if (p.hit <= 0 && p.z === 0) p.pose = 'charge'; }
+          else if (p.charge > 0) { const pw = p.charge / CHARGE; p.charge = 0; if (ball.live && canReach(p) && ball.last !== p) strikeMe(p, pw); else { p.pose = 'punch'; p.hit = 0.25; } } // 놓는 순간 공이 닿아 있어야 맞는다 — 타이밍이 실력
+        }
         else if (ball.live && ball.side !== other(p.side) || ball.live && landSide === p.side) {
           // 공이 우리 코트로 오면 낙하점에 가장 가까운 사람이 받으러 간다. 나머지는 자기 자리로
           const mates = ps.filter((q) => q.side === p.side && q !== ball.last);
-          const taker = mates.sort((a, b) => Math.abs(a.x - land) - Math.abs(b.x - land))[0] ?? p;
+          // 사람이 낙하점 가까이(140px) 있으면 그 공은 사람 몫 — 팀원이 대신 받아 주지 않는다
+          const humanHas = mine && mine.side === p.side && mine !== ball.last && Math.abs(mine.x - land) < 140;
+          const taker = humanHas ? mine : mates.filter((q) => q !== mine).sort((a, b) => Math.abs(a.x - land) - Math.abs(b.x - land))[0] ?? p;
           const target = p === taker && landSide === p.side ? land + (p.side === 'A' ? -12 : 12) : p.home;
           dx = Math.abs(target - p.x) > 6 ? Math.sign(target - p.x) : 0;
           if (p === taker && landSide === p.side && ball.y < GROUND - 120 && Math.abs(ball.x - p.x) < 40 && Math.abs(p.x - NET_X) < 160 && p.z === 0 && ball.touches >= 2) p.vz = JUMP_V; // 스파이크 점프
@@ -114,11 +132,11 @@ export default function Game({ me, residents }: GameProps) {
         p.x = clamp(p.x + dx * (isMe ? SPEED_ME : SPEED_AI) * dt, lo, hi);
         if (dx) p.face = dx as 1 | -1; else p.face = p.side === 'A' ? 1 : -1;
         if (p.z > 0 || p.vz > 0) { p.vz -= GZ * dt; p.z = Math.max(0, p.z + p.vz * dt); if (p.z === 0) p.vz = 0; }
-        if (p.hit <= 0) p.pose = p.z > 0 ? 'jump' : dx ? 'run' : 'stand';
+        if (p.hit <= 0 && !(isMe && p.charge > 0 && p.z === 0)) p.pose = p.z > 0 ? 'jump' : dx ? 'run' : 'stand';
         // 치기 판정
         if (ball.live && canReach(p) && ball.last !== p) {
-          if (isMe) { if (input.current.hit) strike(p, true); }
-          else if (ball.side !== p.side || ball.touches < 3) strike(p, false);
+          if (isMe) { /* 사람은 놓는 순간에 친다(위) */ }
+          else if (ball.side !== p.side || ball.touches < 3) strike(p);
         }
       }
       // 그림
@@ -133,6 +151,7 @@ export default function Game({ me, residents }: GameProps) {
         const fy = GROUND - p.z;
         if (p.z > 0) { ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(p.x, GROUND, 12, 4, 0, 0, 6.29); ctx.fill(); }
         figure(ctx, p.x, fy, FS, p.pose, p.face, p.color, t + p.seed % 5, false);
+        if (p === mine && p.charge > 0) { ctx.fillStyle = '#e6e0da'; ctx.fillRect(p.x - 20, fy - 76, 40, 5); ctx.fillStyle = p.charge >= CHARGE ? '#ad7096' : '#3a2f36'; ctx.fillRect(p.x - 20, fy - 76, 40 * (p.charge / CHARGE), 5); }
         ctx.fillStyle = '#5b4f56'; ctx.font = 'bold 10.5px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText(p === mine ? p.name : `${p.name} · ${jobOf(p.name).name}`, p.x, fy - 62);
       }
       ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(ball.live ? ball.x : ps.find((p) => p.side === ball.server && p.home === (ball.server === 'A' ? 130 : 830))!.x + 14, ball.live ? ball.y : GROUND - 44, BALL_R, 0, 6.29); ctx.fill(); ctx.stroke();
@@ -164,7 +183,7 @@ export default function Game({ me, residents }: GameProps) {
           </div>
         )}
       </div>
-      {!spectator && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → move · SPACE jump · X hit when the ball is at you (low = bump to your setter, in the air near the net = spike over). Three touches a side. Your teammates cover what you do not reach.</p>}
+      {!spectator && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → move · SPACE jump · hold X to wind up, release when the ball is at you — a short press lobs it forward, a full bar drives it deep; jump near the net and release for a spike. Three touches a side. Balls near you are yours; your teammates take the rest.</p>}
     </div>
   );
 }
