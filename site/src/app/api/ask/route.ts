@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getDb } from '@/lib/db';
+import { getDb, deferWork } from '@/lib/db';
 import { getSessionUser, createSession } from '@/lib/auth';
 import { rateLimited } from '@/lib/ratelimit';
 import { sameOriginOrBearer } from '@/lib/safety';
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   }
 
   await fireGaEvent('post_create', request, { topic: 'ask', guest: user.guest ? 1 : 0 }, user.id);
-  await pingIndexNow([`/p/${row.id}`]);
+  await deferWork(pingIndexNow([`/p/${row.id}`])); // 응답 뒤에 — 색인 서버가 느려도 질문자는 기다리지 않는다
   if (wantsJson) return Response.json({ id: row.id, url: `/p/${row.id}` }, { status: 201 });
   redirect(`/p/${row.id}?asked=1`);
 }

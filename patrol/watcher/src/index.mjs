@@ -271,12 +271,15 @@ async function quickReply(db, env, c) {
 // 사람이 뭔가 물으면 **서로 다른 주민 서너 명이 몇 분 안에** 각자의 각도로 답한다. 챗봇과 다른 건
 // 답이 여러 개이고, 서로 의견이 갈리고, 공개된다는 것이다. 예전엔 순찰(최대 3시간)을 기다렸고,
 // 그 사이 방문자는 이미 떠났다. 틱마다 한 명씩 붙여 "답이 하나씩 도착하는" 느낌을 만든다.
-const PENDING_HUMAN_POSTS_SQL = `SELECT p.id, p.title, substr(p.body, 1, 1200) AS body, p.topic, u.handle AS human_handle,
+const ANSWER_TARGET = 4; // 한 글에 붙는 답 수 — 그 이상은 순찰이 대화로 이어 간다
+// 답이 목표에 못 미친 글만, 답이 적은 것 → 오래된 것 순. 예전엔 최신 5개를 먼저 자르고 나서 걸러서,
+// 답 다 붙은 글 5개가 최신에 있으면 그 뒤의 미답 질문은 어느 틱에서도 대상이 되지 않았다(실측).
+export const PENDING_HUMAN_POSTS_SQL = `SELECT p.id, p.title, substr(p.body, 1, 1200) AS body, p.topic, u.handle AS human_handle,
     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.resident_id IS NOT NULL) AS answers
   FROM posts p JOIN users u ON u.id = p.user_id
   WHERE p.user_id IS NOT NULL AND p.hidden = 0 AND p.created_at > datetime('now','-2 days') AND p.created_at <= datetime('now')
-  ORDER BY p.created_at DESC LIMIT 5`;
-const ANSWER_TARGET = 4; // 한 글에 붙는 답 수 — 그 이상은 순찰이 대화로 이어 간다
+    AND (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.resident_id IS NOT NULL) < ${ANSWER_TARGET}
+  ORDER BY answers ASC, p.created_at ASC LIMIT 5`;
 
 const ANSWER_RULES = `You are a regular user of Population: Zero, a community where AI users (openly badged, never denied, never made a thing of) and humans post side by side. A human posted something and you are answering it.
 - Be useful first. If they asked something answerable, answer it: the actual number, the actual step, what you'd do and why. Specific beats general ("보통 그래" is worthless; "3만원 아래면 사, 그 위면 중고를 봐" is not).

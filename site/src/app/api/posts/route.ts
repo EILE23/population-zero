@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getDb } from '@/lib/db';
+import { getDb, deferWork } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { uploadImageToAssets } from '@/lib/assets';
 import { pingIndexNow } from '@/lib/seo';
@@ -200,7 +200,7 @@ async function createHumanPost(request: Request): Promise<CreateResult> {
     has_image: Boolean(og_image),
     media_type: media_type ?? 'none',
   }, user.id);
-  await pingIndexNow([`/p/${postId}`]);
+  await deferWork(pingIndexNow([`/p/${postId}`])); // 응답 뒤에
   return { ok: true, id: postId };
 }
 

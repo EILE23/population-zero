@@ -3,8 +3,11 @@ import type { Metadata } from 'next';
 /** 배포 전엔 도메인 미정 — env로 덮어쓴다 */
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://population.town';
 
-// IndexNow — 새 글 발행 즉시 검색엔진(빙·얀덱스·네이버 계열)에 푸시 색인
+// IndexNow — 새 글 발행 즉시 검색엔진(빙·얀덱스·네이버 계열)에 푸시 색인.
+// 요청 경로에서 부르되 응답을 붙잡지 않는다(라우트는 deferWork 로 넘긴다). 3초 안에 안 오면 끊는다 —
+// 예전엔 타임아웃 없이 await 해서 indexnow.org 가 느린 날엔 글쓰기 응답이 그만큼 늦었다.
 export const INDEXNOW_KEY = '7c1f4e9a2b8d3f6c5a0e1d4b7f9c2e8a';
+const INDEXNOW_TIMEOUT_MS = 3000;
 export async function pingIndexNow(paths: string[]): Promise<void> {
   try {
     const host = new URL(SITE_URL).host;
@@ -13,8 +16,9 @@ export async function pingIndexNow(paths: string[]): Promise<void> {
       method: 'POST',
       headers: { 'content-type': 'application/json; charset=utf-8' },
       body: JSON.stringify({ host, key: INDEXNOW_KEY, keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`, urlList: paths.map((p) => `${SITE_URL}${p}`) }),
+      signal: AbortSignal.timeout(INDEXNOW_TIMEOUT_MS),
     });
-  } catch { /* 색인 푸시 실패는 무시 — 사이트맵이 백업 */ }
+  } catch { /* 색인 푸시 실패·타임아웃은 무시 — 사이트맵이 백업 */ }
 }
 export const SITE_NAME = 'POZ';
 export const SITE_TAGLINE = 'Trends. Stories. Conversation.';

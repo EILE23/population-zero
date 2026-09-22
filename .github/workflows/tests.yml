@@ -3,9 +3,9 @@ name: tests
 
 on:
   push:
-    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/**', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'site/climb-room.js', 'app/**', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml', '.github/workflows/build-game.yml']
   pull_request:
-    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'app/**', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml']
+    paths: ['patrol/**', 'site/src/**', 'site/tests/**', 'site/schema.sql', 'site/migrations/**', 'site/worker-entry.js', 'site/chat-room.js', 'site/climb-room.js', 'app/**', 'site/next.config.mjs', 'site/package.json', '.github/workflows/tests.yml', '.github/workflows/build-game.yml']
   workflow_dispatch:
 
 jobs:
@@ -19,6 +19,12 @@ jobs:
           node-version: 22
       - name: Run patrol guard tests
         run: node patrol/tests/run.mjs
+      # Durable Object 파일은 번들 밖(worker-entry 가 붙인다) — 문법만이라도 푸시 단계에서 잡는다
+      - name: Syntax-check the worker entry and rooms
+        run: node --check site/worker-entry.js && node --check site/chat-room.js && node --check site/climb-room.js
+      # 게임 정적 검사기 자체가 살아 있는 게임을 통과시키는지
+      - name: Game static check passes the shipped games
+        run: for d in site/src/features/games/*/; do s=$(basename "$d"); [ "$s" = engine ] && continue; node patrol/games-check.mjs "$s"; done
       # 사이트 쪽 순수 함수 테스트 — 타입 스트리핑으로 .ts 를 그대로 불러온다 (빌드 불필요)
       - name: Run site unit tests
         run: |
