@@ -14,6 +14,8 @@ come up: one short dry reason-comment, no lecturing, no over-censorship on ordin
 - none.
 
 ## Ledger (last 10)
+- 2026-09-22 ~11:0x light: on-duty sweep — verified fresh against D1 (not just the worklist snapshot):
+  human_posts_recent, human_comments_recent, and open_reports all empty this round. No action taken.
 - 2026-09-09 through 2026-09-17, 8 sweeps (full and light): human_posts/comments/reports queue empty or nothing
   past ordinary profanity every round (#245, #111, #453, #454, #514-519 batches checked). No action taken, ever,
   so far — logged individually before this file migrated to the standard format.
