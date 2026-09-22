@@ -23,8 +23,8 @@ export interface ExtraSpot { key: string; map: string; kind: PropKind; name: str
 export interface ExtraMap { key: string; name: string; w: number; outdoor: boolean; floor: [string, string]; connect: string; spots: ExtraSpot[]; addedAt: string }
 interface Me { id: number; handle: string }
 interface Other { uid: number; handle: string; x: number; tx: number; d: number; td: number; z: number; tz: number; pose: string; status: 'active' | 'rest'; map: string; face: 1 | -1; stack: ItemKey[] }
-type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair';
-interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
+type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip';
+interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; chaseUntil?: number }
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string }
 interface Ev { k: string; [x: string]: unknown }
 type Prop = { key: string; name: string; kind: PropKind; x: number; d: number; seed: number };
@@ -379,6 +379,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           continue;
         }
         if (n.mode === 'down') { if (now > n.until) { if (n.angry && !spectator) { n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); } else { n.mode = 'return'; npcEv(n); } } n.moving = false; mineOff.push(n); continue; }
+        if (n.mode === 'trip') { // 넘어져 잠깐 엎드림 — 회복하면 시계가 남았으면 추격을 잇고, 아니면(또는 닿을 거리에서 넘어져 놓쳤으면) 돌아간다
+          n.moving = false; mineOff.push(n);
+          if (now > n.until) {
+            if (n.chaseUntil !== undefined && now < n.chaseUntil) { n.mode = 'chase'; n.until = n.chaseUntil; n.chaseUntil = undefined; npcEv(n); }
+            else { n.mode = 'return'; n.chaseUntil = undefined; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); }
+          }
+          continue;
+        }
         if (n.mode === 'chase') {
           chasing = n.who; mineOff.push(n);
           const speed = CHASE_SPEED * (n.job.key === 'cop' ? 1.25 : n.job.key === 'jogger' ? 1.3 : n.job.key === 'retired' ? 0.6 : 1);
@@ -393,6 +401,18 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           }
           for (const m of npcs.current) if (m !== n && here(m) && m.mode === 'routine' && dist(m.x, m.d, n.x, n.d) < 220 && Math.random() < 0.004) { m.mode = 'chase'; m.owner = me!.id; m.until = now + 3000; m.say = pick(content.chase); m.sayUntil = now + 1500; npcEv(m, { say: m.say }); }
           const far = dist(n.x, n.d, b.x, b.d);
+          // 걸려 넘어짐 — 은퇴자와 뭔가 들고 뛰는 주민이 더 잘 넘어진다. 닿을 거리에서 넘어지면 그 자리에서 추격을 접는다(깨끗하게 도망친 것)
+          const tripCh = (n.job.key === 'retired' ? 0.1 : 0.035) + (n.item ? 0.02 : 0);
+          if (Math.random() < tripCh * dt) {
+            const gotAway = far < SHOVE_R + 40;
+            n.chaseUntil = gotAway ? undefined : Math.max(now + 200, n.until - 2000);
+            n.mode = 'trip'; n.until = now + 1200; n.moving = false;
+            n.say = pick(content.shoved); n.sayUntil = now + 2000;
+            if (n.item) { drop(n.item, n.x + n.face * 20, n.d, n.who); n.item = null; }
+            npcEv(n, { say: n.say });
+            if (gotAway) void complete('chased');
+            continue;
+          }
           if (n.item && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.3; n.swingKind = 'throw'; const th = { item: n.item, map: cur.key, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.who }; thrown.current.push(th); emit({ k: 'throw', ...th, m: th.map }); n.item = null; n.say = pick(content.thrown); n.sayUntil = now + 1500; }
           const ddx = b.x - n.x, ddd = b.d - n.d; const len = Math.hypot(ddx, ddd * 400) || 1;
           n.x += (ddx / len) * speed * dt; n.d = Math.max(0, Math.min(1, n.d + (ddd * 400 / len) * speed * dt / 400)); n.face = ddx >= 0 ? 1 : -1; n.moving = true;
@@ -491,7 +511,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : actPose(n.act, seat?.kind);
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'trip' ? 'trip' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : actPose(n.act, seat?.kind);
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
