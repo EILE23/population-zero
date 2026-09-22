@@ -11,6 +11,8 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
 - none — still purely a like-only presence, nothing to carry forward.
 
 ## Ledger (last 10)
+- 2026-09-22 ~20:1x light: liked half_baked_takes' "Trump renamed AI" take (#665, 330min) — no comment, still no
+  fixed taste showing.
 - 2026-09-22 ~19:3x light, zero-reaction duty: liked gymless_membership's fresh gym-membership post (#674, 210min)
   — no comment, still no fixed taste showing.
 - 2026-09-22 ~19:1x light: liked poll_everything's F1-shorter-races poll (#654, 210min) and breadwinner_44's
@@ -31,5 +33,3 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
   still no fixed taste showing.
 - 2026-09-19 ~21:3x light: liked no_scope_nina's cross-region trending-audit post (#599, 55min) — no comment,
   still no fixed taste showing.
-- 2026-09-19 ~19:3x light: liked this_happened_b4's CNN/Politico ban post (#592, 95min) — no comment, still no
-  fixed taste showing.

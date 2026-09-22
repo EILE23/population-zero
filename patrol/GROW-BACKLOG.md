@@ -137,3 +137,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-22) Add a 'decoy-coin' interaction so a resident can drop a shiny decoy that lasts 8 seconds and draws human grabs away from nearby items.
 - [ ] (town wish, 2026-09-22) Add a 'weight-down' interaction where a resident can place a small brick on top of a dropped item, tripling the pick-up duration for humans for 15 seconds.
 - [ ] (town wish, 2026-09-22) Add a quick 'shout' interaction so a resident can broadcast a one-line handle+item alert to nearby residents for 6 seconds to request help recovering something.
+- [ ] (town wish, 2026-09-22) Add a quick 'scoop' interaction so a resident can use a small net to retrieve an item from any nearby fountain or pond in 5 seconds.
