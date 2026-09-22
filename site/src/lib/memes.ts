@@ -38,7 +38,13 @@ export const PANELS_MAX = 4;
 export interface MemeSticker { url: string; x: number; y: number; w: number; rot: number }
 export const STICKERS_MAX = 8;
 
-export interface MemeStyle { texts: MemeText[]; panels: (string | null)[]; stickers: MemeSticker[] }
+/** 릴(clip) 의 구성 — 편집기가 다시 열 수 있게 저장한다. 예전엔 cleanStyle 이 이걸 버려서 릴은 리믹스가 불가능했다 */
+export interface ReelScene { film: string; shot: number; off: number; dur: number; caption: string; pos: 'top' | 'center' | 'bottom'; font: MemeText['font']; fx: string[] }
+export interface MemeReel { title: string; scenes: ReelScene[] }
+export const REEL_FX = ['zoom', 'punch', 'shake', 'bw', 'deepfry', 'slowmo', 'freeze'] as const;
+export const REEL_SCENES_MAX = 20;
+
+export interface MemeStyle { texts: MemeText[]; panels: (string | null)[]; stickers: MemeSticker[]; reel?: MemeReel }
 
 const HEX = /^#[0-9a-fA-F]{3,8}$/;
 const clamp = (n: unknown, lo: number, hi: number, def: number) => {
@@ -58,7 +64,7 @@ export const FONTS = ['impact', 'comic', 'hand', 'serif'] as const;
 
 /** 들어온 값은 전부 모르는 사람이 쓴 것으로 본다. 목록 밖 값은 기본값으로 접는다 */
 export function cleanStyle(raw: unknown): MemeStyle {
-  const src = (raw ?? {}) as { texts?: unknown; panels?: unknown; stickers?: unknown };
+  const src = (raw ?? {}) as { texts?: unknown; panels?: unknown; stickers?: unknown; reel?: unknown };
   const rawPanels = Array.isArray(src.panels) ? src.panels : [];
   const panels = rawPanels.slice(0, PANELS_MAX).map((u) => (isPicture(u) ? u : null));
   const stickers: MemeSticker[] = [];
@@ -84,7 +90,31 @@ export function cleanStyle(raw: unknown): MemeStyle {
       bg: (['none', 'box', 'bubble', 'badge'] as const).includes(o.bg as MemeText['bg']) ? (o.bg as MemeText['bg']) : 'none',
     });
   }
-  return { texts, panels: panels.length ? panels : [null], stickers };
+  const reel = cleanReel(src.reel);
+  return { texts, panels: panels.length ? panels : [null], stickers, ...(reel ? { reel } : {}) };
+}
+
+const CTRL = /[\u0000-\u0008\u000b-\u001f\u007f]/g;
+function cleanReel(raw: unknown): MemeReel | null {
+  const r = (raw ?? null) as { title?: unknown; scenes?: unknown } | null;
+  if (!r || !Array.isArray(r.scenes)) return null;
+  const scenes: ReelScene[] = [];
+  for (const s of r.scenes.slice(0, REEL_SCENES_MAX)) {
+    const o = (s ?? {}) as Partial<ReelScene>;
+    if (typeof o.film !== 'string' || !/^[\w.-]{1,80}$/.test(o.film)) continue;
+    scenes.push({
+      film: o.film,
+      shot: Math.max(0, Math.floor(clamp(o.shot, 0, 100000, 0))),
+      off: clamp(o.off, 0, 3600, 0),
+      dur: clamp(o.dur, 0.5, 6, 3),
+      caption: String(o.caption ?? '').replace(CTRL, '').slice(0, 80),
+      pos: (['top', 'center', 'bottom'] as const).includes(o.pos as ReelScene['pos']) ? (o.pos as ReelScene['pos']) : 'bottom',
+      font: FONTS.includes(o.font as MemeText['font']) ? (o.font as MemeText['font']) : 'impact',
+      fx: (Array.isArray(o.fx) ? o.fx : []).filter((f): f is string => typeof f === 'string' && (REEL_FX as readonly string[]).includes(f)).slice(0, 2),
+    });
+  }
+  if (!scenes.length) return null;
+  return { title: String(r.title ?? '').replace(CTRL, '').slice(0, 60), scenes };
 }
 
 export const memeHref = (id: number) => `/m/${id}`;

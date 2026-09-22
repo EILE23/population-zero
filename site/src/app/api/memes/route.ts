@@ -21,14 +21,18 @@ export async function GET(request: Request) {
   const where = sort === 'gif' ? `AND m.kind = 'gif'` : sort === 'video' ? `AND m.kind IN ('video', 'clip')` : '';
   const page = sort === 'top' ? `ORDER BY votes DESC, m.id DESC LIMIT 40 OFFSET ${offset}` : `${before > 0 ? `AND m.id < ${Math.floor(before)}` : ''} ORDER BY m.id DESC LIMIT 40`;
   const db = await getDb();
+  // voted: 이 사람이 이미 표를 넣었는가 — 없으면 새로고침마다 빈 버튼이 되어 다음 클릭이 표를 '빼' 버렸다
+  const me = await getSessionUser();
+  const voter = me && !me.guest ? `u${me.id}` : '';
   const { results } = await db.prepare(`
     SELECT m.id, m.kind, m.png, m.thumb, m.image, m.top, m.bottom, m.remix_of, m.created_at,
            COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar,
            (SELECT COUNT(*) FROM meme_votes v WHERE v.meme_id = m.id) AS votes,
+           EXISTS (SELECT 1 FROM meme_votes v WHERE v.meme_id = m.id AND v.voter = ?1) AS voted,
            (SELECT COUNT(*) FROM memes x WHERE x.remix_of = m.id AND x.hidden = 0) AS remixes
     FROM memes m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
-    WHERE m.hidden = 0 ${where} ${page}`).all();
-  return Response.json({ memes: results }, { headers: { 'cache-control': 'public, max-age=30' } });
+    WHERE m.hidden = 0 ${where} ${page}`).bind(voter).all();
+  return Response.json({ memes: results }, { headers: { 'cache-control': voter ? 'private, no-store' : 'public, max-age=30' } });
 }
 
 const clean = (s: unknown, max: number) => String(s ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);

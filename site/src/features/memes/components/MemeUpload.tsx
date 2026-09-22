@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clapperboard, ImagePlus, Upload } from 'lucide-react';
 import { BUTTON } from '@/components/button-styles';
@@ -31,7 +31,14 @@ export function MemeUpload({ signedIn }: { signedIn: boolean }) {
   const [caption, setCaption] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const preview = file ? URL.createObjectURL(file) : null;
+  // 미리보기 주소는 파일이 바뀔 때만 만들고, 바뀌면 이전 것을 놓아 준다 — 렌더마다 만들면 입력할 때마다 새 blob 이 쌓였다
+  const [preview, setPreview] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) { setPreview(null); return; }
+    const u = URL.createObjectURL(file); setPreview(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  const fileId = useId();
   const yt = youtubeId(video);
 
   const post = async () => {
@@ -77,14 +84,15 @@ export function MemeUpload({ signedIn }: { signedIn: boolean }) {
     <section className="rounded-xl border border-hairline bg-paper p-3 sm:p-4">
       <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Post one</p>
       <div className="mt-2 grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
-        <label className={`${BUTTON.ghost} inline-flex cursor-pointer items-center gap-1.5`}>
+        {/* input 은 화면에서만 숨긴다(sr-only) — display:none 이면 키보드로 닿을 수 없다. label 이 눌리는 면이다 */}
+        <label htmlFor={fileId} className={`${BUTTON.ghost} inline-flex cursor-pointer items-center gap-1.5 focus-within:ring-2 focus-within:ring-accent`}>
           <ImagePlus size={14} aria-hidden /> {file ? file.name.slice(0, 24) : 'Picture, GIF or video'}
-          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; setFile(f); if (f) setVideo(''); }} />
         </label>
+        <input id={fileId} type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" className="sr-only" aria-label="Choose a picture, GIF or video"
+          onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; setFile(f); if (f) setVideo(''); }} />
         <div className="relative">
           <Clapperboard size={14} aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-soft" />
-          <input value={video} onChange={(e) => { setVideo(e.target.value); if (e.target.value) setFile(null); }} placeholder="or a YouTube link (watch, shorts, youtu.be)"
+          <input value={video} onChange={(e) => { setVideo(e.target.value); if (e.target.value) setFile(null); }} placeholder="or a YouTube link (watch, shorts, youtu.be)" aria-label="YouTube link"
             className="w-full rounded-lg border border-hairline bg-surface py-1.5 pl-8 pr-2.5 text-[13px] outline-none focus:border-ink" />
         </div>
       </div>
@@ -99,13 +107,14 @@ export function MemeUpload({ signedIn }: { signedIn: boolean }) {
         </div>
       )}
       <div className="mt-2 flex gap-2">
-        <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={120} placeholder="Caption (optional)"
+        <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={120} placeholder="Caption (optional)" aria-label="Caption"
           className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-[13px] outline-none focus:border-ink" />
         <button onClick={() => void post()} disabled={busy} className={`${BUTTON.primary} inline-flex items-center gap-1.5 disabled:opacity-50`}>
           <Upload size={14} aria-hidden /> {busy ? 'Posting…' : 'Post'}
         </button>
       </div>
       {message && <p role="alert" className="mt-2 text-[12.5px] font-semibold text-accent-deep">{message}</p>}
+      {!signedIn && <p className="mt-2 text-[11.5px] text-ink-soft">Posting needs an account. Making and downloading below does not.</p>}
     </section>
   );
 }

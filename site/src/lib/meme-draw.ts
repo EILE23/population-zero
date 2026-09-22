@@ -46,10 +46,39 @@ export function wrapRows(ctx: Ctx, t: MemeText, W: number): string[] {
     for (const word of line.split(' ')) {
       const test = cur ? `${cur} ${word}` : word;
       if (cur && ctx.measureText(test).width > maxW) { out.push(cur); cur = word; } else cur = test;
+      // 낱말 하나가 폭을 넘으면(긴 URL·붙여 쓴 말) 글자 단위로 쪼갠다 — 예전엔 그대로 두어 가장자리로 삐져나갔다
+      while (cur.length > 1 && ctx.measureText(cur).width > maxW) {
+        let n = cur.length - 1;
+        while (n > 1 && ctx.measureText(cur.slice(0, n)).width > maxW) n--;
+        out.push(cur.slice(0, n)); cur = cur.slice(n);
+      }
     }
     out.push(cur);
   }
   return out;
+}
+
+/**
+ * 글자를 그림 안에 맞춘다 — 순찰(모델은 자를 못 본다)과 편집기(문구를 바꾸면 자동으로) 가 같은 규칙을 쓴다.
+ * 상자·꼬리·회전까지 넣은 외접 사각형이 그림을 넘으면 줄이고, 넘어간 만큼 안으로 민다. 위치는 최대한 그대로.
+ */
+export function fitMemeText(ctx: Ctx, t: MemeText, W: number, H: number): MemeText {
+  let cur = { ...t };
+  for (let i = 0; i < 10; i++) {
+    const px = cur.size * H;
+    setFont(ctx, cur, px);
+    const bb = textBounds(ctx, wrapRows(ctx, cur, W), px);
+    const pad = cur.bg === 'none' ? px * 0.15 : px * 0.5;
+    const tail = cur.bg === 'bubble' ? px * 1.1 : 0;
+    const cw = bb.w + pad * 2, ch = bb.h + pad * 2 + tail;
+    const a = (Math.abs(cur.rot) * Math.PI) / 180;
+    const ew = cw * Math.cos(a) + ch * Math.sin(a), eh = cw * Math.sin(a) + ch * Math.cos(a);
+    if ((ew > W * 0.98 || eh > H * 0.9) && cur.size > 0.02) { cur = { ...cur, size: Math.max(0.02, cur.size * 0.85) }; continue; }
+    const cx = cur.x * W + bb.x + bb.w / 2, cy = cur.y * H + bb.y + bb.h / 2 + tail / 2;
+    const nx = Math.min(W - ew / 2, Math.max(ew / 2, cx)), ny = Math.min(H - eh / 2, Math.max(eh / 2, cy));
+    return { ...cur, x: cur.x + (nx - cx) / W, y: cur.y + (ny - cy) / H };
+  }
+  return cur;
 }
 
 /** 글자 덩어리의 실제 경계(원점 = 글자 중심). 글꼴 크기로 어림하면 Anton 같은 글꼴에서 세로가 어긋난다 */

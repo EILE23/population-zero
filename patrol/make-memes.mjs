@@ -17,7 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { d1, rows } from './d1.mjs';
 import { cleanStyle, TEXTS_MAX } from '../site/src/lib/memes.ts';
-import { drawMemeText, FONT_FILES, setFont, textBounds, wrapRows } from '../site/src/lib/meme-draw.ts';
+import { drawMemeText, fitMemeText, FONT_FILES, setFont, textBounds, wrapRows } from '../site/src/lib/meme-draw.ts';
 
 const require = createRequire(import.meta.url);
 const { createCanvas, loadImage, GlobalFonts } = require('../site/node_modules/@napi-rs/canvas');
@@ -187,10 +187,14 @@ async function render(pic, repeat, texts) {
     ctx.drawImage(im, 0, i * h1, W, h1);
     if (repeat > 1) { ctx.fillStyle = '#111'; ctx.fillRect(0, (i + 1) * h1 - 2, W, 2); }
   }
-  const placed = separate(ctx, texts.map((t) => fit(ctx, t, c.width, c.height)), c.width, c.height);
+  // 맞추기(편집기와 같은 fitMemeText) → 겹침 풀기 → 다시 맞추기: 밀어낸 뒤에 가장자리를 넘을 수 있다
+  let placed = separate(ctx, texts.map((t) => fitMemeText(ctx, t, c.width, c.height)), c.width, c.height);
   if (!placed) return null; // 겹침을 못 풀면 안 만든다 — 글자가 포개진 짤은 짤이 아니다(실측)
+  placed = placed.map((t) => fitMemeText(ctx, t, c.width, c.height));
+  if (!separate(ctx, placed, c.width, c.height)?.every((t, i) => t.y === placed[i].y)) return null; // 다시 맞추다 또 겹치면 포기
   for (const t of placed) drawMemeText(ctx, t, c.width, c.height);
-  return c.toBuffer('image/png');
+  // 그린 그대로의 정의를 돌려준다 — 저장된 style 이 PNG 와 같아야 리믹스가 같은 자리에서 열린다
+  return { png: c.toBuffer('image/png'), texts: placed };
 }
 
 /** 글자 상자들이 겹치면 뒤의 것을 아래(안 되면 위)로 민다. 세 번 밀어도 겹치면 포기 */
@@ -211,23 +215,6 @@ function separate(ctx, texts, W, H) {
     out.push(t);
   }
   return out;
-}
-
-/** 모델은 자를 못 본다 — 글자 덩어리(상자·꼬리 포함)가 그림 밖으로 나가면 안으로 민다. 너무 크면 줄인다 */
-function fit(ctx, t, W, H) {
-  let cur = { ...t };
-  for (let i = 0; i < 6; i++) {
-    const px = cur.size * H;
-    setFont(ctx, cur, px);
-    const bb = textBounds(ctx, wrapRows(ctx, cur, W), px);
-    const pad = cur.bg === 'none' ? px * 0.15 : px * 0.5;
-    const top = bb.y - pad, bottom = bb.y + bb.h + pad + (cur.bg === 'bubble' ? px * 1.1 : 0);
-    if (bottom - top > H * 0.9) { cur = { ...cur, size: cur.size * 0.8 }; continue; }
-    const y = cur.y * H;
-    const shift = Math.max(0, -(y + top)) - Math.max(0, y + bottom - H);
-    return shift ? { ...cur, y: Math.min(1, Math.max(0, (y + shift) / H)) } : cur;
-  }
-  return cur;
 }
 
 async function makeOne(r, personas, news) {
@@ -266,8 +253,10 @@ Decide.`;
   if (!style.texts.length) { log(`@${r.handle} 글자 없음 — 버림`); return { used, made: false }; }
   const caption = String(out.caption ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
 
-  const png = await render(pic, repeat, style.texts);
-  if (!png) { log(`@${r.handle} 글자가 겹쳐서 버림`); return { used, made: false }; }
+  const drawn = await render(pic, repeat, style.texts);
+  if (!drawn) { log(`@${r.handle} 글자가 겹쳐서 버림`); return { used, made: false }; }
+  const { png } = drawn;
+  style.texts = drawn.texts; // 보정된 자리·크기 — PNG 에 찍힌 그대로 저장한다
   if (DRY) {
     mkdirSync(here('./logs'), { recursive: true });
     const file = here(`./logs/meme-${r.handle}.png`); writeFileSync(file, png);

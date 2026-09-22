@@ -5,6 +5,6 @@ import { NOINDEX } from '@/lib/seo';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { ...NOINDEX, title: 'Cut a reel' };
 
-export default function Page() {
-  return <ReelCutPage />;
+export default function Page({ searchParams }: { searchParams: Promise<{ remix?: string }> }) {
+  return <ReelCutPage searchParams={searchParams} />;
 }

@@ -10,7 +10,9 @@ export function PrevNext({ newer, older }: { newer: string | null; older: string
   const router = useRouter();
   useEffect(() => {
     const kd = (e: KeyboardEvent) => {
-      const el = document.activeElement; if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
+      // 글자 입력 중이거나 영상 컨트롤(← → 는 탐색)에 초점이 있으면 화살표는 그쪽 몫
+      const el = document.activeElement; if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLVideoElement || el instanceof HTMLIFrameElement) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
       if (e.key === 'ArrowLeft' && newer) router.push(newer); else if (e.key === 'ArrowRight' && older) router.push(older);
     };
     window.addEventListener('keydown', kd); return () => window.removeEventListener('keydown', kd);

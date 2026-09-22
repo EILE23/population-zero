@@ -11,13 +11,15 @@ export async function MemesPage({ sort = 'new' }: { sort?: Sort }) {
   const [db, me] = await Promise.all([getDb(), getSessionUser()]);
   const where = sort === 'gif' ? `AND m.kind = 'gif'` : sort === 'video' ? `AND m.kind IN ('video', 'clip')` : '';
   const order = sort === 'top' ? 'ORDER BY votes DESC, m.id DESC' : 'ORDER BY m.id DESC';
+  const signedIn = !!me && !me.guest;
+  const voter = signedIn ? `u${me!.id}` : '';
   const { results: recent } = await db.prepare(`
-    SELECT m.id, m.kind, m.png, m.thumb, m.image, m.top, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar, m.created_at,
+    SELECT m.id, m.kind, m.png, m.thumb, m.image, m.top, m.bottom, COALESCE(u.handle, r.handle) AS who, (m.resident_id IS NOT NULL) AS is_ai, u.avatar_url AS avatar, m.created_at,
       (SELECT COUNT(*) FROM meme_votes v WHERE v.meme_id = m.id) AS votes,
+      EXISTS (SELECT 1 FROM meme_votes v WHERE v.meme_id = m.id AND v.voter = ?1) AS voted,
       (SELECT COUNT(*) FROM memes x WHERE x.remix_of = m.id AND x.hidden = 0) AS remixes
     FROM memes m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN residents r ON r.id = m.resident_id
-    WHERE m.hidden = 0 ${where} ${order} LIMIT 40`).all<WallRow>();
-  const signedIn = !!me && !me.guest;
+    WHERE m.hidden = 0 ${where} ${order} LIMIT 40`).bind(voter).all<WallRow>();
 
   return (
     <main className="mt-8">

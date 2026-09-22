@@ -5,8 +5,20 @@ import { ArrowUpRight, Brush, Circle, Clapperboard, Dices, Download, Eraser, Ima
 import { BUTTON } from '@/components/button-styles';
 import { ASSET_PREFIX, cleanStyle, FONTS, PANELS_MAX, STICKERS_MAX, TEXTS_MAX, type MemeSticker, type MemeText } from '@/lib/memes';
 import { thumbBlob } from '@/lib/thumb';
-import { arrowPath, drawMemeText, drawSticker, FONT_CSS, FONT_LABEL, hitMemeText, hitSticker } from '@/lib/meme-draw';
+import { arrowPath, drawMemeText, drawSticker, fitMemeText, FONT_CSS, FONT_LABEL, hitMemeText, hitSticker } from '@/lib/meme-draw';
 import { record, storyboard } from './reel';
+
+/** 초안 — 로그인하러 나갔다 오거나 새로고침해도 돌아온다. 붓질층(ImageData)은 크기 때문에 넣지 않는다 */
+const DRAFT_KEY = 'pz-meme-draft';
+type Draft = { v: 1; at: number; panels: (string | null)[]; texts: MemeText[]; stickers: MemeSticker[] };
+const readDraft = (): Draft | null => {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as Draft | null;
+    if (!d || d.v !== 1 || Date.now() - d.at > 24 * 3600e3) return null;
+    if (!d.texts.length && !d.stickers.length) return null;
+    return d;
+  } catch { return null; }
+};
 
 /**
  * 짤 만들기 — 그림판 + 글자 + 스티커.
@@ -49,7 +61,10 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
   const [cut, setCut] = useState(0); // 지금 그림을 바꿀 컷
   const [texts, setTexts] = useState<MemeText[]>(initial?.style.texts ?? []);
   const [stickers, setStickers] = useState<MemeSticker[]>(initial?.style.stickers ?? []);
-  const [sel, setSel] = useState<Sel>(null);
+  // 리믹스는 첫 글자를 골라 둔다 — "한 줄만 바꾸면 내 것" 이 이 화면의 중심 경험이다
+  const [sel, setSel] = useState<Sel>(initial?.style.texts.length ? { kind: 'text', i: 0 } : null);
+  const [restored, setRestored] = useState(false);
+  const posted = useRef(false);
   const [tool, setTool] = useState<Tool>('text');
   const [pick, setPick] = useState<'bg' | 'sticker'>('bg'); // 아래 그림 띠를 누르면 — 바탕으로 쓸지, 스티커로 얹을지
   const [color, setColor] = useState('#ff2d55');
@@ -123,10 +138,30 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     }
   }, [stickers]);
 
-  /** 한 장 그리기 — 바탕 → 스티커 → 붓질 → 글자 */
-  const draw = useCallback(() => {
+  // 초안 복원(리믹스·🎲 시작이 아닐 때만) 과 저장. 게시가 끝나면 지운다
+  useEffect(() => {
+    if (initial || autoRoll) return;
+    const d = readDraft(); if (!d) return;
+    setPanels(d.panels); setTexts(d.texts); setStickers(d.stickers); setRestored(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (initial || posted.current) return;
+    const t = setTimeout(() => {
+      try {
+        if (!texts.length && !stickers.length) localStorage.removeItem(DRAFT_KEY);
+        else localStorage.setItem(DRAFT_KEY, JSON.stringify({ v: 1, at: Date.now(), panels, texts, stickers } satisfies Draft));
+      } catch { /* 저장 공간 없음 — 초안 없이 간다 */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [panels, texts, stickers, initial]);
+  const discardDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch { /* */ } setPanels([pics[0] ?? null]); setTexts([]); setStickers([]); setSel(null); setRestored(false); };
+
+  /** 한 장 그리기 — 바탕 → 스티커 → 붓질 → 글자. noSel 이면 선택 테두리 없이(내보내기용) */
+  const draw = useCallback((noSel = false) => {
     const c = view.current; if (!c) return;
     const ctx = c.getContext('2d')!;
+    const s = noSel ? null : sel;
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
     let top = 0;
@@ -137,16 +172,22 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
       if (i === cut && imgs.current.length > 1) { ctx.strokeStyle = '#ff2d55'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.strokeRect(2, top + 2, c.width - 4, h - 4); ctx.setLineDash([]); }
       top += h;
     });
-    stickers.forEach((s, i) => { const im = stImgs.current.get(s.url); if (im) drawSticker(ctx, s, im, c.width, c.height, sel?.kind === 'sticker' && sel.i === i); });
+    stickers.forEach((st, i) => { const im = stImgs.current.get(st.url); if (im) drawSticker(ctx, st, im, c.width, c.height, s?.kind === 'sticker' && s.i === i); });
     if (paint.current) ctx.drawImage(paint.current, 0, 0);
-    texts.forEach((t, i) => drawMemeText(ctx, t, c.width, c.height, sel?.kind === 'text' && sel.i === i));
+    texts.forEach((t, i) => drawMemeText(ctx, t, c.width, c.height, s?.kind === 'text' && s.i === i));
   }, [texts, stickers, sel, cut]);
 
   useEffect(() => {
     // 글꼴이 늦게 오면 첫 장이 기본 글꼴로 찍힌다 — 로드 뒤 한 번 더
     draw();
-    document.fonts?.ready.then(draw).catch(() => null);
+    document.fonts?.ready.then(() => draw()).catch(() => null);
   });
+
+  /** 글자를 그림 안에 맞춘다 — 문구가 길어지면 줄이고, 가장자리를 넘으면 안으로. 자리는 최대한 그대로 */
+  const fitted = (t: MemeText): MemeText => {
+    const c = view.current; const ctx = c?.getContext('2d');
+    return ctx ? fitMemeText(ctx, t, size.w, size.h) : t;
+  };
 
   // Delete·Backspace 로 고른 것 지우기, Ctrl+Z / Ctrl+Shift+Z 되돌리기, Ctrl+V 로 그림 붙여넣기 — 글자 입력 중엔 브라우저 몫
   useEffect(() => {
@@ -246,7 +287,12 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
 
   const patch = (p: Partial<MemeText>) => {
     if (sel?.kind !== 'text') return;
-    setTexts((ts) => ts.map((t, i) => (i === sel.i ? { ...t, ...p } : t)));
+    patchAt(sel.i, p);
+  };
+  /** i 번째 글자 바꾸기 — 문구·글꼴·상자가 바뀌면 크기·자리를 자동으로 맞춘다 (한 줄 바꿨는데 삐져나가면 그 사람은 다시 안 온다) */
+  const patchAt = (i: number, p: Partial<MemeText>) => {
+    const refit = 't' in p || 'font' in p || 'bg' in p || 'size' in p;
+    setTexts((ts) => ts.map((t, k) => (k === i ? (refit ? fitted({ ...t, ...p }) : { ...t, ...p }) : t)));
   };
   const patchSt = (p: Partial<MemeSticker>) => {
     if (sel?.kind !== 'sticker') return;
@@ -305,6 +351,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     const d = await res.json() as { ok?: boolean; url?: string; message?: string };
     setBusy('idle');
     if (!res.ok || !d.ok) { setMessage(d.message ?? 'Could not post that.'); return; }
+    posted.current = true; try { localStorage.removeItem(DRAFT_KEY); } catch { /* */ }
     router.push(d.url!);
   };
 
@@ -330,14 +377,12 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     if (as === 'sticker') addSticker(url); else setPanels((ps) => ps.map((p, i) => (i === cut ? url : p)));
   };
 
-  /** 결과 PNG — 캔버스가 오염됐으면(CORS 없이 들어온 그림) toBlob 이 던진다. 삼키지 않고 이유를 보여 준다 */
+  /** 결과 PNG — 선택 테두리 없이 바로 그린 뒤 뽑는다(setSel 뒤 옛 클로저를 부르면 테두리가 섞였다).
+   *  캔버스가 오염됐으면(CORS 없이 들어온 그림) toBlob 이 던진다. 삼키지 않고 이유를 보여 준다 */
   const toBlob = () => new Promise<Blob | null>((ok) => {
-    setSel(null);
-    requestAnimationFrame(() => {
-      draw();
-      try { view.current!.toBlob((b) => { if (!b) setMessage('Could not render the picture.'); ok(b); }, 'image/png'); }
-      catch (e) { setMessage(`Cannot save: ${e instanceof Error ? e.message : String(e)}`); ok(null); }
-    });
+    draw(true);
+    try { view.current!.toBlob((b) => { if (!b) setMessage('Could not render the picture.'); ok(b); }, 'image/png'); }
+    catch (e) { setMessage(`Cannot save: ${e instanceof Error ? e.message : String(e)}`); ok(null); }
   });
 
   const download = async () => {
@@ -360,6 +405,7 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
     const d = await res.json() as { ok?: boolean; url?: string; message?: string };
     setBusy('idle');
     if (!res.ok || !d.ok) { setMessage(d.message ?? 'Could not post that.'); return; }
+    posted.current = true; try { localStorage.removeItem(DRAFT_KEY); } catch { /* */ }
     router.push(d.url!);
   };
 
@@ -383,22 +429,28 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
           <button onClick={() => setTool('arrow')} className={tb(tool === 'arrow')} title="Arrow"><ArrowUpRight size={14} /></button>
           <span className="mx-1 h-5 w-px bg-hairline" />
           {PALETTE.map((c) => (
-            <button key={c} onClick={() => { setColor(c); if (t) patch({ color: c }); }} aria-label={c}
-              className={`size-5 cursor-pointer rounded-full border-2 ${color === c ? 'border-ink' : 'border-hairline'}`} style={{ background: c }} />
+            <button key={c} onClick={() => { setColor(c); if (t) patch({ color: c }); }} aria-label={`Colour ${c}`} aria-pressed={color === c}
+              className={`size-6 cursor-pointer rounded-full border-2 ${color === c ? 'border-ink' : 'border-hairline'}`} style={{ background: c }} />
           ))}
           <input type="color" value={color} onChange={(e) => { setColor(e.target.value); if (t) patch({ color: e.target.value }); }}
-            className="size-5 cursor-pointer rounded border border-hairline bg-transparent p-0" aria-label="Any colour" />
+            className="size-6 cursor-pointer rounded border border-hairline bg-transparent p-0" aria-label="Any colour" />
           <input type="range" min={2} max={60} value={width} onChange={(e) => setWidth(Number(e.target.value))} className="w-20" aria-label="Brush size" />
           <span className="mx-1 h-5 w-px bg-hairline" />
-          <button onClick={undo} className={tb(false)} title="Undo (Ctrl+Z)"><Undo2 size={14} /></button>
-          <button onClick={redo} className={tb(false)} title="Redo (Ctrl+Shift+Z)"><Redo2 size={14} /></button>
+          <button onClick={undo} className={tb(false)} title="Undo (Ctrl+Z)" aria-label="Undo"><Undo2 size={14} /></button>
+          <button onClick={redo} className={tb(false)} title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><Redo2 size={14} /></button>
         </div>
+        {restored && (
+          <p role="status" className="mt-2 flex items-center gap-2 text-[12px] text-ink-mid">
+            Picked up where you left off. <button onClick={discardDraft} className="cursor-pointer underline underline-offset-2 hover:text-ink">Start fresh</button>
+          </p>
+        )}
 
         {/* ── 캔버스 — 무대 높이는 고정, 그림은 그 안에 맞춰 넣는다(flex 여야 max-h 가 무대 기준으로 풀린다) ── */}
         <div className="mt-3 flex h-[min(70vh,640px)] items-center justify-center overflow-hidden rounded-xl border border-hairline bg-[#e9e6e8]">
           <canvas
             ref={view} width={size.w} height={size.h}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+            role="img" aria-label={texts.length ? `Meme canvas: ${texts.map((x) => x.t).join(' / ')}` : 'Meme canvas'}
             className={`block max-h-full max-w-full touch-none ${tool === 'text' || tool === 'move' ? 'cursor-move' : 'cursor-crosshair'}`}
             style={{ aspectRatio: `${size.w} / ${size.h}` }}
           />
@@ -409,11 +461,12 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
           <button onClick={() => void roll()} disabled={busy === 'rolling'} className={`${BUTTON.primary} inline-flex items-center gap-1.5 disabled:opacity-50`}>
             <Dices size={15} aria-hidden /> No context
           </button>
-          <label className={`${BUTTON.ghost} inline-flex cursor-pointer items-center gap-1.5`}>
-            <ImagePlus size={14} aria-hidden /> My picture
-            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void pickFile(f); }} />
+          {/* input 은 화면에서만 숨긴다(sr-only) — display:none 이면 키보드로 닿을 수 없다 */}
+          <label htmlFor="pz-meme-pic" className={`${BUTTON.ghost} inline-flex cursor-pointer items-center gap-1.5 focus-within:ring-2 focus-within:ring-accent`}>
+            <ImagePlus size={14} aria-hidden /> My picture{!signedIn && <span className="text-ink-soft"> (login)</span>}
           </label>
+          <input id="pz-meme-pic" type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" aria-label="Use my own picture"
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void pickFile(f); }} />
           <button onClick={() => setPanels((ps) => ps.map((p, i) => (i === cut ? null : p)))} className={BUTTON.ghost} title="White background">Blank</button>
           <span className="mx-1 h-5 w-px bg-hairline" />
           {/* 띠의 그림을 어디에 쓸지 — 바탕인지 스티커인지 */}
@@ -455,10 +508,25 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
 
       {/* ── 고른 것의 설정 + 올리기 ── */}
       <div className="flex flex-col gap-3">
+        {/* 글 목록 — 캔버스를 만지지 않고도 한 줄만 바꾸면 된다. 키보드로도 닿고, 크기·자리는 저절로 맞는다 */}
+        {texts.length > 0 && (
+          <div className="rounded-xl border border-hairline bg-paper p-3">
+            <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Lines — change any</p>
+            <ol className="mt-2 space-y-1.5">
+              {texts.map((x, i) => (
+                <li key={i} className="flex items-center gap-1.5">
+                  <input value={x.t} onFocus={() => setSel({ kind: 'text', i })} onChange={(e) => patchAt(i, { t: e.target.value })} maxLength={120} aria-label={`Line ${i + 1}`}
+                    className={`min-w-0 flex-1 rounded-lg border bg-surface px-2.5 py-1.5 text-[13px] font-bold outline-none focus:border-ink ${sel?.kind === 'text' && sel.i === i ? 'border-ink' : 'border-hairline'}`} />
+                  <button onClick={() => { snapshot(); setTexts(texts.filter((_, k) => k !== i)); setSel(null); }} className="cursor-pointer p-1 text-ink-soft hover:text-accent-deep" aria-label={`Delete line ${i + 1}`}><Trash2 size={13} /></button>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
         <div className="rounded-xl border border-hairline bg-paper p-3">
           {t ? (
             <>
-              <textarea value={t.t} onChange={(e) => patch({ t: e.target.value })} rows={2} maxLength={120}
+              <textarea value={t.t} onChange={(e) => patch({ t: e.target.value })} rows={2} maxLength={120} aria-label="Selected line"
                 className="w-full rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-[14px] font-bold outline-none focus:border-ink" />
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 {FONTS.map((f) => (
@@ -475,10 +543,17 @@ export function MemeMaker({ initial, pics, signedIn, autoRoll }: {
                 ))}
               </div>
               <label className="mt-2 block text-[11px] text-ink-soft">Size
-                <input type="range" min={0.03} max={0.3} step={0.005} value={t.size} onChange={(e) => patch({ size: Number(e.target.value) })} className="w-full" />
+                <input type="range" min={0.03} max={0.3} step={0.005} value={t.size} onChange={(e) => setTexts((ts) => ts.map((x, k) => (sel?.kind === 'text' && k === sel.i ? { ...x, size: Number(e.target.value) } : x)))} className="w-full" />
               </label>
               <label className="block text-[11px] text-ink-soft">Rotate
                 <input type="range" min={-45} max={45} value={t.rot} onChange={(e) => patch({ rot: Number(e.target.value) })} className="w-full" />
+              </label>
+              {/* 키보드로 옮기기 — 캔버스 끌기의 대체 경로 */}
+              <label className="block text-[11px] text-ink-soft">Across
+                <input type="range" min={0} max={1} step={0.01} value={t.x} onChange={(e) => patch({ x: Number(e.target.value) })} className="w-full" aria-label="Horizontal position" />
+              </label>
+              <label className="block text-[11px] text-ink-soft">Down
+                <input type="range" min={0} max={1} step={0.01} value={t.y} onChange={(e) => patch({ y: Number(e.target.value) })} className="w-full" aria-label="Vertical position" />
               </label>
               <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-soft">
                 <label className="inline-flex items-center gap-1">Fill <input type="color" value={t.color} onChange={(e) => patch({ color: e.target.value })} className="size-5 rounded border border-hairline p-0" /></label>

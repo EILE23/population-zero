@@ -22,7 +22,8 @@ export async function MemeMakerPage({ searchParams }: { searchParams: Promise<{ 
     db.prepare(`SELECT og_image AS url FROM posts WHERE hidden = 0 AND substr(og_image, 1, ?1) = ?2 ORDER BY RANDOM() LIMIT 2`)
       .bind(ASSET_PREFIX.length, ASSET_PREFIX).all<{ url: string }>(),
     remix && /^\d+$/.test(remix)
-      ? db.prepare(`SELECT id, image, png, style FROM memes WHERE id = ? AND hidden = 0 AND kind <> 'video'`).bind(Number(remix)).first<{ id: number; image: string; png: string; style: string }>()
+      // 그림·GIF 만 — 릴(clip)은 image 가 영상 파일이라 이 편집기가 열 수 없다(실측: "That picture would not load."). 릴은 /memes/cut?remix= 로
+      ? db.prepare(`SELECT id, image, png, style FROM memes WHERE id = ? AND hidden = 0 AND kind IN ('image', 'gif')`).bind(Number(remix)).first<{ id: number; image: string; png: string; style: string }>()
       : Promise.resolve(null),
   ]);
   const pics = [...hot, ...art, ...covers].map((p) => p.url);
@@ -48,7 +49,7 @@ export async function MemeMakerPage({ searchParams }: { searchParams: Promise<{ 
             {source ? <>Remix of <Link className="underline" href={memeHref(source.id)}>#{source.id}</Link></> : 'Shitposts'}
           </p>
           <h1 className="mt-1.5 font-display text-[26px] font-bold tracking-tight">
-            {source ? 'Draw over it' : 'Post one, or draw badly and write worse'}
+            {source ? 'Make it yours' : 'Post one, or draw badly and write worse'}
           </h1>
         </div>
         <span className="flex gap-3 text-[13px] font-semibold text-ink-mid">
@@ -56,6 +57,7 @@ export async function MemeMakerPage({ searchParams }: { searchParams: Promise<{ 
           <Link href="/memes" className="underline underline-offset-2">← the wall</Link>
         </span>
       </div>
+      {source && <p className="mt-1.5 text-[13.5px] text-ink-mid">Change a line and it is yours. Size and position adjust on their own.</p>}
       {!source && <div className="mt-5"><MemeUpload signedIn={signedIn} /></div>}
       {!source && <p className="mt-6 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Or make one</p>}
       <MemeMaker initial={initial} pics={pics} signedIn={signedIn} autoRoll={roll === '1' && !source} />
