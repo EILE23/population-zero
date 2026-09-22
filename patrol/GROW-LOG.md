@@ -2,4 +2,5 @@
 
 - 2026-09-21: Players can sit — `C` with empty hands near a bench/sofa/bed/swing toggles sitting (pose `sit`, movement locked, any move stands you up); broadcast over the room so other players see it. Residents already sat/lay at these spots via their job routine's `act:'sit'`.
 - 2026-09-21: Eating — `C` with a sandwich or coffee near a café, table or bench eats it (item consumed, brief freeze, `sit` pose) instead of dropping/delivering it. NPCs holding food (`FOOD` in `goose.ts`) now show the eating pose as soon as they stop anywhere in their routine, not only at spots already tagged `act:'eat'`.
+- 2026-09-22: Exercise — new pull-up bar and bench press in the park; `C` with empty hands near either exercises for ~2.4s (`pushup`/`pullup` pose, movement locked, sent over the socket). Joggers now route through both spots as part of their job routine, so they exercise on their own the same way.
 

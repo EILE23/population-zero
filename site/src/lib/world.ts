@@ -8,7 +8,8 @@ import { hash, rng } from './tower';
 import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
-  | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin';
+  | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
+  | 'pullbar' | 'benchpress';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -83,13 +84,15 @@ export const MAPS: GameMap[] = [
       { key: 'ptree1', name: 'an oak', x: 800, d: 0.15, act: 'stand', kind: 'tree' },
       { key: 'ptree2', name: 'a willow', x: 1900, d: 0.2, act: 'read', kind: 'tree' },
       { key: 'bin4', name: 'a bin', x: 1200, d: 0.95, act: 'stand', kind: 'bin' },
+      { key: 'pullbar', name: 'the pull-up bar', x: 1550, d: 0.3, act: 'pullup', kind: 'pullbar' },
+      { key: 'benchpress', name: 'the bench press', x: 2050, d: 0.55, act: 'pushup', kind: 'benchpress' },
     ],
     exits: [{ x: 2390, d: 0.5, to: 'square', toX: 40, toD: 0.5, label: 'The square →' }],
   },
 ];
 export const MAP_BY_KEY = new Map(MAPS.map((m) => [m.key, m]));
 export const WATER_SPOTS = ['fountain', 'pond', 'pond2'];
-export const BREAKABLE: PropKind[] = ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe', 'bin', 'tv', 'table', 'shelf', 'plant', 'swing', 'sofa'];
+export const BREAKABLE: PropKind[] = ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe', 'bin', 'tv', 'table', 'shelf', 'plant', 'swing', 'sofa', 'pullbar', 'benchpress'];
 /** 앉거나 누울 수 있는 것 — 사람도 주민도 여기서 'sit' 자세(사실은 눕는 자세)를 쓴다 */
 export const SITTABLE: PropKind[] = ['bench', 'sofa', 'bed', 'swing'];
 
@@ -115,7 +118,7 @@ export const JOBS: Job[] = [
   { key: 'gardener', name: 'gardener', item: 'broom', spots: ['garden', 'garden2', 'plant'], act: 'water', speed: 0.8, temper: 0.5, line: 'those took months' },
   { key: 'barista', name: 'barista', item: 'cup', spots: ['cafe', 'bench1'], act: 'eat', speed: 1, temper: 0.35, line: 'oat milk is extra' },
   { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
-  { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
+  { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
   { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
   { key: 'dogwalker', name: 'dog walker', item: 'keys', spots: ['park', 'pond2', 'bench4', 'square'], act: 'stand', speed: 1.1, temper: 0.4, line: 'he is a rescue' },
   { key: 'sweeper', name: 'street sweeper', item: 'broom', spots: ['bin1', 'bin2', 'bin3', 'bin4', 'square'], act: 'sweep', speed: 0.85, temper: 0.7, line: 'i JUST did this' },
