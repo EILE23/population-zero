@@ -63,7 +63,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0 });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0 });
+  const ducks = useRef(new Map<string, Duck[]>()); // 연못마다 3~5마리, 자리 씨앗으로 정해진다
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const feedRef = useRef({ map: '', x: 0, d: 0, until: 0 }); // 마지막으로 오리에게 모이를 준 곳(나 또는 근처 주민) — 오리가 그쪽으로 모인다
@@ -258,9 +259,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (hour() !== curHour) { curHour = hour(); spawn(); }
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
-      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
+      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.moving ? 'run' : 'stand';
       const knock = (byName: string, line: string, fine = 0) => {
-        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0;
+        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0;
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
         b.stack = []; say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
@@ -306,6 +307,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (!spectator && b.exercise > 0) { b.exercise = Math.max(0, b.exercise - dt); b.moving = false; } // 운동하는 동안 잠깐 멈춘다
       if (!spectator && b.watering > 0) { b.watering = Math.max(0, b.watering - dt); b.moving = false; } // 물 주는 동안 잠깐 멈춘다
       if (!spectator && b.tripped > 0) { b.tripped = Math.max(0, b.tripped - dt); b.moving = false; } // 헛디뎌 넘어진 동안 잠깐 멈춘다
+      if (!spectator && b.feeding > 0) { b.feeding = Math.max(0, b.feeding - dt); b.moving = false; } // 오리에게 모이를 주는 동안 잠깐 멈춘다
       if (!spectator && b.fishing > 0) { // 입질 기다리는 동안 낚싯대를 드리우고 앉아 있는다 — 다 되면 잡는다
         b.fishing = Math.max(0, b.fishing - dt); b.moving = false;
         if (b.fishing === 0) {
@@ -316,7 +318,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         }
       }
       if (b.swing > 0) b.swing = Math.max(0, b.swing - dt);
-      if (!spectator && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0) {
+      if (!spectator && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0 && b.feeding <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
         const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
         if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
@@ -351,8 +353,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (i.kick && !kickWas && b.swing <= 0) hit('kick');
         if (i.grab && !grabWas && b.z === 0) {
           const water1 = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
+          const pondSpot = cur.spots.find((s) => s.kind === 'pond' && dist(b.x, b.d, s.x, s.d) < 110);
           if (b.stack.length && b.stack.includes('rod') && water1) { // 대를 든 채 물가에서 — 던지고 기다린다(4~12초)
             b.fishing = 4 + Math.random() * 8; b.x = water1.x; b.d = Math.min(1, water1.d + 0.04); say('Cast the line.', 1200);
+          } else if (b.stack.length && pondSpot && FOOD.includes(b.stack[b.stack.length - 1])) { // 연못가에서 먹을 것을 들고 — 오리에게 준다
+            b.stack.pop(); b.feeding = 1.4; b.x = pondSpot.x; b.d = Math.min(0.97, pondSpot.d + 0.04);
+            say('Fed the ducks.', 1500); void complete('feed1');
           } else if (b.stack.length) {
             const it = b.stack.pop()!;
             const bin = cur.spots.find((s) => s.kind === 'bin' && dist(b.x, b.d, s.x, s.d) < 90);
@@ -572,6 +578,29 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           name(ctx, fx, fy - 58 * fs, s, `${residents[n.who].handle} · ${n.job.name}`);
           if (now < n.sayUntil) bubble(ctx, fx, fy - 70 * fs, s, n.say);
         } });
+      }
+      // ── 오리 — 새 ev 종류 없이, 이미 동기화된 남들의 위치·자세·짐만 보고 각자 계산한다(놀라 흩어지는 것도, 모이 주는 것도) ──
+      const pondsHere = cur.spots.filter((sp) => sp.kind === 'pond');
+      if (pondsHere.length) {
+        const runners: { x: number; d: number }[] = []; const feeders: { x: number; d: number }[] = [];
+        if (!spectator) { if (b.moving) runners.push({ x: b.x, d: b.d }); if (b.feeding > 0) feeders.push({ x: b.x, d: b.d }); }
+        for (const o of others.current.values()) if (o.map === cur.key) { if (o.pose === 'run') runners.push({ x: o.x, d: o.d }); else if (o.pose === 'feed') feeders.push({ x: o.x, d: o.d }); }
+        for (const n of npcs.current) if (here(n) && n.act !== 'away') { if (n.moving) runners.push({ x: n.x, d: n.d }); else if (n.act === 'feed') feeders.push({ x: n.x, d: n.d }); }
+        for (const sp of pondsHere) {
+          const list = ducks.current.get(sp.key); if (!list) continue;
+          for (const dk of list) {
+            const homeX = sp.x + Math.cos(t * 0.35 + dk.seed) * 30, homeD = Math.min(0.95, Math.max(0.05, sp.d + Math.sin(t * 0.35 + dk.seed) * 0.08));
+            const threat = runners.find((r) => dist(r.x, r.d, dk.x, dk.d) < 70);
+            if (threat) { dk.scaredUntil = now + 1200; const ang = Math.atan2((dk.d - threat.d) * 400, dk.x - threat.x) || 0; dk.fx = dk.x + Math.cos(ang) * 44; dk.fd = Math.min(0.97, Math.max(0.05, dk.d + Math.sin(ang) * 0.1)); }
+            const feeder = feeders.find((f) => dist(f.x, f.d, dk.x, dk.d) < 140);
+            if (now < dk.scaredUntil) { dk.x += (dk.fx - dk.x) * Math.min(1, dt * 6); dk.d += (dk.fd - dk.d) * Math.min(1, dt * 6); }
+            else if (feeder) { dk.x += (feeder.x - dk.x) * Math.min(1, dt * 2); dk.d += (feeder.d - dk.d) * Math.min(1, dt * 2); }
+            else { dk.x += (homeX - dk.x) * Math.min(1, dt * 1.1); dk.d += (homeD - dk.d) * Math.min(1, dt * 1.1); }
+            const fx = sx(dk.x); if (fx < -40 || fx > W + 40) continue;
+            const dd = dk.d, scared = now < dk.scaredUntil;
+            layer.push({ d: dd, f: () => critter(ctx, 'duck', fx, dy(dd) * s, ds(dd) * s, scared ? 'scatter' : 'paddle', t + dk.seed) });
+          }
+        }
       }
       for (const o of others.current.values()) {
         if (o.map !== cur.key) continue; const fx = sx(o.x); if (fx < -100 || fx > W + 100) continue;
