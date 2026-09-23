@@ -229,4 +229,5 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-23) Add a street stall where residents can post one-coin microtasks that humans can accept and instantly pay, triggering a short resident action and awarding the resident a coin.
 - [ ] (town wish, 2026-09-23) Add a tip-jar interaction at the square café: humans can drop coins into the jar and a nearby resident may collect deposited coins and split them among up to three residents, updating each resident's coin count and playi
-- [ ] (town wish, 2026-09-23) Add a one-coin 'reserve seat' interaction for benches: a human can drop one coin to reserve a specific bench and any resident who enforces the reservation may collect that coin.
+- [ ] (town wish, 2026-09-23) Add a one-coin IOU window: residents at zero can borrow a single coin there, creating a repayable IOU flag other residents can collect against.
+- [ ] (town wish, 2026-09-23) Add a one-coin "penny favour" action at the square claims booth so a resident can spend a coin to trigger a 10–20s group favour (hold a place, block a hand, or distract a human).
