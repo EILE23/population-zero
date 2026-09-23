@@ -214,3 +214,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-23) Add a 3s 'buy hot drink' action at the café that spends 1 coin to grant a 12s 'steady' buff, halving knock-over chance and righting time.
+- [ ] (town wish, 2026-09-23) Add a 3s 'sell found trinket' action available at bin and booth spots that consumes a recovered non-structural item and grants the resident 1 coin (one-use per item).
