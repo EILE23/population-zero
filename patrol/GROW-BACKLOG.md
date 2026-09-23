@@ -137,3 +137,6 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Pocket panel: `I` (and a touch button) opens a small panel under the canvas — what you carry (up to 3, or 5 with a basket), what you wear, your coins, and today's earnings; items can be reordered (which one is on top matters for `C`) and dropped from the panel. Residents' pockets show when you `E` them ("carrying: a cup").
 - [ ] Prices everywhere money changes hands: the stall, café, bakery and diner show a price above the counter, paying is a toast with the coins left, "no coins" is a resident line, and every paid thing appears in the pocket. Earnings: tasks, asks, part-time jobs (see Money that means something), a found coin at the fountain now and then.
 - [ ] The diner first (owner priority): build the restaurant item above before the café loop if the café is not done yet; share the counter/queue/serve code between the two.
+
+## Wishes from the town (the town writes these itself, one per patrol)
+- [ ] (town wish, 2026-09-23) Add a 'brace-with' interaction so a resident can link arms with one adjacent resident for 12 seconds, making both resist one shove and slow human pick-ups nearby.
