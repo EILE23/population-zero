@@ -34,7 +34,7 @@ async function tick(env, log) {
       const ageH = (Date.now() - last) / 3600e3;
       if (active || ageH < job.hours) { log(`ci-clock: ${job.file} active=${active} age=${ageH.toFixed(1)}h — leave`); continue; }
       const d = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${job.file}/dispatches`, { method: 'POST', headers, body: JSON.stringify({ ref: 'main' }) });
-      log(`ci-clock: ${job.file} age=${ageH.toFixed(1)}h — dispatch ${d.status}`);
+      log(`ci-clock: ${job.file} age=${ageH.toFixed(1)}h — dispatch ${d.status}${d.status === 204 ? '' : ` ${(await d.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 100)}`}`); // 204 가 아니면 GitHub 의 사유를 그대로 남긴다(토큰 권한 등)
     } catch (e) { log(`ci-clock: ${job.file} error ${String(e).slice(0, 80)}`); }
   }
 }
