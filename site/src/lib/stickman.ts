@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -43,6 +43,16 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line(hip, shoulder);
     line(hip, [-6, -7], [-8, 0]); line(hip, [6, -7], [8, 0]);
     line(shoulder, [8, -42], [11, -52]); line(shoulder, [-8, -42], [-11, -52]); // 두 팔 위로
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'shelve') {
+    // 선반에 올려두기 — Lost and found(relay and shelving): 한 팔을 높이 뻗어 물건을 얹고, 다른 팔은 옆에 늘어뜨린다. 뻗은 손이 살짝 오르내려 내려놓는 동작
+    const p = (Math.sin(t * 6) + 1) / 2; // 0 뻗음 1 내려놓음
+    hip = [0, -15]; shoulder = [3, -32]; head = [5, -40];
+    line(hip, shoulder);
+    line(hip, [-5, -7], [-7, 0]); line(hip, [5, -7], [6, 0]);
+    line(shoulder, [10, -40 - p * 4], [14, -48 - p * 6]); line(shoulder, [-4, -26], [-6, -18]);
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

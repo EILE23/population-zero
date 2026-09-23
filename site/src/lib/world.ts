@@ -137,3 +137,5 @@ export const JOBS: Job[] = [
 ];
 export const jobOf = (handle: string): Job => JOBS[hash(`job:${handle}`) % JOBS.length];
 export const JOB_BY_KEY = new Map(JOBS.map((j) => [j.key, j]));
+/** 직업표에 자기 건물이 있는 셋 — Relay and shelving 이 쓴다(주운 물건의 주인이 이 직업이면 상자 대신 그 건물 선반으로) */
+export const JOB_BUILDING: Partial<Record<JobKey, PropKind>> = { baker: 'bakery', postie: 'post', cop: 'station' };
