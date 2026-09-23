@@ -62,7 +62,9 @@ const SEAT_LIFT: Partial<Record<PropKind, number>> = { sofa: 10, bed: 20 };
 const seatAt = (m: GameMap, x: number, d: number) => m.spots.find((s) => SITTABLE.includes(s.kind) && dist(x, d, s.x, s.d) < 40);
 /** 주민 일과 → 자세. 사람이 같은 걸 할 때도 같은 자세를 쓴다 */
 const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch', fish: 'fish', feed: 'feed', lean: 'lean', shake: 'shake' } as Record<string, FigPose>)[act] ?? 'stand');
-const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'lean', 'shake', 'rake', 'yawn'];
+/** Keeping it(slide-under) — 벤치나 물가 턱 옆인지: 넘어지며 떨어뜨린 물건이 여기 있으면 트인 데 두지 않고 밑으로 숨긴다 */
+const slideNear = (m: GameMap, x: number, d: number) => m.spots.some((s) => (SITTABLE.includes(s.kind) || WATER_SPOTS.includes(s.key)) && dist(x, d, s.x, s.d) < 60);
+const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'lean', 'shake', 'rake', 'yawn', 'stretch'];
 interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: number; x: number; d: number; scareUntil: number }
 
 export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [], coins: coins0 = 0 }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[]; coins?: number }) {
@@ -98,6 +100,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const dunkedAt = useRef(new Map<string, number>()); // 물에 빠진 시각(내 화면이 처음 본 때, performance.now() 기준) — 갈퀴로 건질 때가 됐는지 재는 타이머
   const wet = useRef(new Map<string, number>()); // 방금 건져 젖은 채인 물건 — id → 이 시각까지 방울 표시(순전히 연출, 동기화 안 함)
   const decoyAt = useRef(new Map<string, number>()); // 내가 흘린 가짜 동전 — id → 사라질 시각(performance.now() 기준). 안 집히면 내 화면이 직접 치운다(오리가 물고기를 가져가는 것과 같은 요령)
+  const hideAt = useRef(new Map<string, number>()); // Keeping it(slide-under) — 벤치·물가 턱 밑에 숨긴 것 — id → 그때까지 못 줍고 반쯤 가려 그림(순전히 연출 타이머, wet 과 같은 요령)
   const flicker = useRef(new Map<string, number>()); // 가로등이 맞고 깜빡이는 순간 — 키 → 언제까지(performance.now() 기준, 순전히 연출이라 시계 보정 없이 쓴다)
   const others = useRef(new Map<number, Other>());
   const said = useRef(new Map<number, { body: string; until: number }>()); // 채팅 말풍선 — uid → 말, 4초. 아래 목록에도 남는다
@@ -120,8 +123,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
 
   // ── 이벤트: 내 화면에 적용하고 방에 보낸다 / 남의 것을 받아 적용한다 ──
   const apply = (w: Ev, mine: boolean) => {
-    if (w.k === 'drop') { const id = String(w.id); loose.current.set(id, { id, item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), from: w.from === null ? null : Number(w.from), dunked: w.dunked ? String(w.dunked) : undefined, board: w.board ? String(w.board) : undefined, shelf: w.shelf ? String(w.shelf) : undefined, note: w.note ? String(w.note) : undefined, origin: w.origin === undefined || w.origin === null ? undefined : Number(w.origin) }); if (w.dunked) dunkedAt.current.set(id, performance.now()); if (w.wet) wet.current.set(id, performance.now() + 60000); }
-    else if (w.k === 'pick') { const id = String(w.id); loose.current.delete(id); dunkedAt.current.delete(id); wet.current.delete(id); }
+    if (w.k === 'drop') { const id = String(w.id); loose.current.set(id, { id, item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), from: w.from === null ? null : Number(w.from), dunked: w.dunked ? String(w.dunked) : undefined, board: w.board ? String(w.board) : undefined, shelf: w.shelf ? String(w.shelf) : undefined, note: w.note ? String(w.note) : undefined, origin: w.origin === undefined || w.origin === null ? undefined : Number(w.origin) }); if (w.dunked) dunkedAt.current.set(id, performance.now()); if (w.wet) wet.current.set(id, performance.now() + 60000); if (w.hide) hideAt.current.set(id, performance.now() + 7000); }
+    else if (w.k === 'pick') { const id = String(w.id); loose.current.delete(id); dunkedAt.current.delete(id); wet.current.delete(id); hideAt.current.delete(id); }
     else if (w.k === 'break') { broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, wall() - Number(w.brokeAt)) : 0 }); if (w.kind === 'lamp') flicker.current.set(String(w.key), performance.now() + 500); }
     else if (w.k === 'fix') broken.current.delete(String(w.key));
     else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - wall()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; if (typeof w.st === 'string') n.stack = w.st.split(',').filter((k): k is ItemKey => k in ITEMS); n.caught = (w.caught as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
@@ -131,7 +134,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   };
   const emit = (ev: Ev) => { apply(ev, true); if (ws.current?.readyState === 1 && me) ws.current.send(JSON.stringify({ t: 'ev', ev })); };
   const npcEv = (n: Npc, extra: Record<string, unknown> = {}) => emit({ k: 'npc', who: n.who, mode: n.mode, until: wall() + Math.max(0, n.until - performance.now()), x: n.x, d: n.d, item: n.item, st: n.stack.join(','), caught: n.caught, by: me?.id, ...extra });
-  const drop = (item: ItemKey, x: number, d: number, from: number | null, dunked?: string, wet?: boolean, board?: string, note?: string, origin?: number, shelf?: string) => { const id = `${me?.id ?? 0}-${Date.now().toString(36)}-${stats.current.seq++}`; emit({ k: 'drop', id, item, m: mapKey.current, x, d, from, dunked, wet: wet ? 1 : undefined, board, note, origin, shelf }); return id; };
+  const drop = (item: ItemKey, x: number, d: number, from: number | null, dunked?: string, wet?: boolean, board?: string, note?: string, origin?: number, shelf?: string, hide?: boolean) => { const id = `${me?.id ?? 0}-${Date.now().toString(36)}-${stats.current.seq++}`; emit({ k: 'drop', id, item, m: mapKey.current, x, d, from, dunked, wet: wet ? 1 : undefined, board, note, origin, shelf, hide: hide ? 1 : undefined }); return id; };
 
   // ── 방 ──
   useEffect(() => {
@@ -304,7 +307,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const here = (n: Npc) => n.map === cur.key;
       const usable = (p: { key: string }) => !broken.current.get(p.key)?.brokeAt; // 부서진 소품은 앉지도 타지도 못한다(고쳐질 때까지)
       for (const [id, exp] of decoyAt.current) { if (now > exp) { decoyAt.current.delete(id); if (loose.current.has(id)) emit({ k: 'pick', id }); } } // 안 집힌 가짜 동전은 8초 뒤 스스로 치운다
-      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : 'stand'); // 서서 가만있을 때 22초에 한 번 잠깐 하품(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
+      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : 'stand'); // 서서 가만있을 때 22초에 한 번 잠깐 하품, 그 절반 박자 뒤에 한 번 기지개(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
       const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0;
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
@@ -329,7 +332,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (n) {
           n.mode = 'down'; n.owner = me!.id; n.until = now + (air ? 2600 : kind === 'kick' ? 1900 : 1400); n.face = (-b.face) as 1 | -1; n.x += b.face * (air ? 80 : kind === 'kick' ? 44 : 22);
           n.say = pick(content.shoved); n.sayUntil = now + 2000;
-          if (n.item) { drop(n.item, n.x + b.face * 26, n.d, n.who); n.item = null; }
+          if (n.item) { drop(n.item, n.x + b.face * 26, n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, slideNear(cur, n.x, n.d)); n.item = null; }
           for (const it of n.stack) drop(it, n.x + b.face * (26 + Math.random() * 30), Math.max(0, Math.min(1, n.d + (Math.random() - 0.5) * 0.15)), n.who); n.stack = [];
           npcEv(n, { say: n.say });
           if (air) say('Jump kick.', 1200);
@@ -445,10 +448,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               if (spotNear) void complete(`deliver:${it}:${spotNear.key}`);
             }
           } else {
-            const l = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+            const lNear = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+            // Keeping it (slide-under) — 벤치·물가 턱 밑에 숨겨 놓은 것은 7초 동안은 없는 셈(안 보이므로 다음은 주민 뺏기 쪽으로 그냥 넘어간다)
+            const hidden = lNear && (hideAt.current.get(lNear.id) ?? 0) > now;
+            const l = hidden ? undefined : lNear;
             // Keeping it (dust-off) — 방금 일어난 주민이 떨군 자기 물건은, 먼지 터는 ~2초 동안 한 번은 놓친다
             const dusting = l && l.from !== null ? npcs.current.find((p) => p.who === l.from && p.mode === 'dust' && !p.dustMissed) : undefined;
-            if (dusting) { dusting.dustMissed = true; say("Can't see straight for the dust.", 1400); void complete('dust1'); }
+            if (hidden) { say('Tucked out of sight.', 1400); void complete('slide1'); }
+            else if (dusting) { dusting.dustMissed = true; say("Can't see straight for the dust.", 1400); void complete('dust1'); }
             else if (l && l.item === 'decoy') { decoyAt.current.delete(l.id); emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say('Just a decoy.', 1400); void complete('decoy1'); }
             // Lost and found — 게시판 밑 상자: 사람도 주민도 그냥 C 로 가져간다(핀 노트 문구를 그대로 알림으로)
             else if (l && l.board) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say(l.note ?? `Took the ${ITEMS[l.item]}.`, 1800); void complete('crate1'); }
@@ -695,7 +702,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.say = pick(CATCH_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
               say(`${residents[n.who].handle} caught it.`, 1500); void complete('catch1'); gone(); continue;
             }
-            n.mode = 'down'; n.owner = me!.id; n.until = now + 1600; n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.x += Math.sign(th.vx) * 20; n.say = pick(content.shoved); n.sayUntil = now + 2000; if (n.item) { drop(n.item, n.x + Math.sign(th.vx) * 26, n.d, n.who); n.item = null; } npcEv(n, { say: n.say }); st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }]; say(`Hit ${residents[n.who].handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue;
+            n.mode = 'down'; n.owner = me!.id; n.until = now + 1600; n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.x += Math.sign(th.vx) * 20; n.say = pick(content.shoved); n.sayUntil = now + 2000; if (n.item) { drop(n.item, n.x + Math.sign(th.vx) * 26, n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, slideNear(cur, n.x, n.d)); n.item = null; } npcEv(n, { say: n.say }); st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }]; say(`Hit ${residents[n.who].handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue;
           }
           const o = [...others.current.values()].find((p) => p.map === cur.key && p.status === 'active' && Math.abs(th.x - p.x) < 22 && Math.abs(th.d - p.d) < 0.12 && th.z < 50 + p.z);
           if (o) { emit({ k: 'hitp', uid: o.uid, byName: me!.handle, kind: 'throw', item: th.item }); say(`Hit ${o.handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue; }
@@ -751,8 +758,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (l.dunked || l.board || l.shelf || l.map !== cur.key) continue;
         const fx = sx(l.x); if (fx < -50 || fx > W + 50) continue;
         const wetTil = wet.current.get(l.id); // 방금 갈퀴로 건진 것 — 1분간 물방울(순전히 연출)
+        const hideTil = hideAt.current.get(l.id); const tucked = hideTil !== undefined && now < hideTil; // Keeping it(slide-under) — 숨어 있는 동안 흐리고 낮게
         layer.push({ d: l.d - 0.001, f: () => {
-          item(ctx, l.item, fx, dy(l.d) * s - 6 * s, ds(l.d) * s);
+          if (tucked) ctx.globalAlpha = 0.35;
+          item(ctx, l.item, fx, dy(l.d) * s - (tucked ? 1 : 6) * s, ds(l.d) * s);
+          if (tucked) ctx.globalAlpha = 1;
           if (wetTil && now < wetTil) { ctx.strokeStyle = 'rgba(122,168,196,0.7)'; ctx.lineWidth = 1.3; for (let k = 0; k < 3; k++) { const ddx = (k - 1) * 6 * s; ctx.beginPath(); ctx.moveTo(fx + ddx, dy(l.d) * s - 2 * s); ctx.lineTo(fx + ddx, dy(l.d) * s + 3 * s); ctx.stroke(); } }
         } });
       }
@@ -768,7 +778,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품이 가끔
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : n.act === 'stand' && (t + n.seed + 11) % 22 < 1.2 ? 'stretch' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품·기지개가 가끔
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로

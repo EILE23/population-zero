@@ -96,7 +96,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'decoy' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'decoy' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -129,6 +129,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.99985) add({ key: 'crate1', kind: 'crate', text: 'Take something from the lost-and-found crate', coins: 5 });
     else if (v < 0.99988) add({ key: 'shelf1', kind: 'shelf', text: 'Take something recovered off a shop shelf', coins: 5 });
     else if (v < 0.99991) add({ key: 'dust1', kind: 'dust', text: 'Try to grab from a resident still brushing off the dust', coins: 4 });
+    else if (v < 0.99994) add({ key: 'slide1', kind: 'slide', text: 'Find what a knocked-over resident tucked under a bench or ledge', coins: 4 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
