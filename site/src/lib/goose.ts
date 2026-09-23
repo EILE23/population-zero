@@ -96,7 +96,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'decoy';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'decoy' | 'catch';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -124,6 +124,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.9986) add({ key: 'rake1', kind: 'rake', text: 'Help fish something out of the water', coins: 5 });
     else if (v < 0.9989) add({ key: 'decoy1', kind: 'decoy', text: 'Get handed a decoy coin instead of what you tried to steal', coins: 4 });
     else if (v < 0.9992) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
+    else if (v < 0.9995) add({ key: 'catch1', kind: 'catch', text: 'Have a resident catch something you threw', coins: 5 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
