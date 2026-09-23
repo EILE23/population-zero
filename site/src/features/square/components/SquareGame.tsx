@@ -32,7 +32,7 @@ const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
   return { stack, worn };
 };
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip';
-interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
+interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null }
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string }
 interface Ev { k: string; [x: string]: unknown }
 type Prop = { key: string; name: string; kind: PropKind; x: number; d: number; seed: number };
@@ -110,13 +110,13 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     else if (w.k === 'pick') loose.current.delete(String(w.id));
     else if (w.k === 'break') { broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, wall() - Number(w.brokeAt)) : 0 }); if (w.kind === 'lamp') flicker.current.set(String(w.key), performance.now() + 500); }
     else if (w.k === 'fix') broken.current.delete(String(w.key));
-    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - wall()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
+    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - wall()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; if (typeof w.st === 'string') n.stack = w.st.split(',').filter((k): k is ItemKey => k in ITEMS); n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } } }
     else if (w.k === 'npcpos' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n && n.owner !== me?.id) { if (n.map !== String(w.m ?? n.map)) { n.x = Number(w.x); n.d = Number(w.d); } n.tx = Number(w.x); n.td = Number(w.d); n.face = w.face === -1 ? -1 : 1; n.moving = !!w.moving; n.map = String(w.m ?? n.map); if (w.swing) { n.swing = 0.28; n.swingKind = w.sk === 'throw' ? 'throw' : 'punch'; } } }
     else if (w.k === 'hitp' && !mine && me && Number(w.uid) === me.id) { stats.current.pendingKnock = { by: String(w.byName ?? 'someone'), line: String(w.kind) === 'kick' ? 'kicked you' : String(w.kind) === 'throw' ? `threw ${ITEMS[w.item as ItemKey] ? `a ${ITEMS[w.item as ItemKey]}` : 'something'} at you` : 'punched you' }; }
     else if (w.k === 'throw' && !mine) thrown.current.push({ item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), z: Number(w.z), vx: Number(w.vx), vz: Number(w.vz), from: Number(w.from ?? -1), by: Number(w.by ?? 0), remote: true }); // 남이 던진 것 — 궤적만 그린다, 판정·떨어진 물건은 던진 쪽이 낸다
   };
   const emit = (ev: Ev) => { apply(ev, true); if (ws.current?.readyState === 1 && me) ws.current.send(JSON.stringify({ t: 'ev', ev })); };
-  const npcEv = (n: Npc, extra: Record<string, unknown> = {}) => emit({ k: 'npc', who: n.who, mode: n.mode, until: wall() + Math.max(0, n.until - performance.now()), x: n.x, d: n.d, item: n.item, by: me?.id, ...extra });
+  const npcEv = (n: Npc, extra: Record<string, unknown> = {}) => emit({ k: 'npc', who: n.who, mode: n.mode, until: wall() + Math.max(0, n.until - performance.now()), x: n.x, d: n.d, item: n.item, st: n.stack.join(','), by: me?.id, ...extra });
   const drop = (item: ItemKey, x: number, d: number, from: number | null, dunked?: string) => { const id = `${me?.id ?? 0}-${Date.now().toString(36)}-${stats.current.seq++}`; emit({ k: 'drop', id, item, m: mapKey.current, x, d, from, dunked }); return id; };
 
   // ── 방 ──
@@ -229,7 +229,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         { const w = wander(stops[0]?.map ?? 'square', 9); if (w) stops.splice(1 + Math.floor(rr() * stops.length), 0, { map: w.map, spot: w.spot, dur: 10 + rr() * 20 }); }
         if (home) { const hs = home.spots.filter((s) => s.kind !== 'door'); stops.splice(Math.floor(rr() * stops.length), 0, { map: home.key, spot: hs[Math.floor(rr() * hs.length)], dur: 30 + rr() * 60 }); }
         const angry = content.angry.includes(handle) || rr() < job.temper;
-        return { who, tx: 0, td: 0.5, job, seed, stops, x: 0, d: 0.5, map: stops[0].map, face: 1 as const, item: job.item, mode: 'routine' as Mode, until: 0, tripUntil: 0, say: '', sayUntil: 0, moving: false, act: 'stand', angry, threw: 0, swing: 0, target: null, owner: null };
+        return { who, tx: 0, td: 0.5, job, seed, stops, x: 0, d: 0.5, map: stops[0].map, face: 1 as const, item: job.item, mode: 'routine' as Mode, until: 0, tripUntil: 0, say: '', sayUntil: 0, moving: false, act: 'stand', angry, threw: 0, swing: 0, target: null, owner: null, stack: [] };
       });
       thrown.current = [];
     };
@@ -261,10 +261,10 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const total = segs.reduce((s0, g) => s0 + g.dur, 0);
       let u = (t + n.seed % 1000) % total;
       for (const g of segs) {
-        if (u < g.dur) { const k = g.dur ? u / g.dur : 1; const moving = g.x0 !== g.x1 || g.d0 !== g.d1; return { map: g.map, x: g.x0 + (g.x1 - g.x0) * k, d: g.d0 + (g.d1 - g.d0) * k, act: g.act, moving, face: (moving ? (g.x1 >= g.x0 ? 1 : -1) : (n.seed % 2 ? 1 : -1)) as 1 | -1, away: !!g.away }; }
+        if (u < g.dur) { const k = g.dur ? u / g.dur : 1; const moving = g.x0 !== g.x1 || g.d0 !== g.d1; return { map: g.map, x: g.x0 + (g.x1 - g.x0) * k, d: g.d0 + (g.d1 - g.d0) * k, act: g.act, moving, face: (moving ? (g.x1 >= g.x0 ? 1 : -1) : (n.seed % 2 ? 1 : -1)) as 1 | -1, away: !!g.away, into: u, seg: segs.indexOf(g) }; }
         u -= g.dur;
       }
-      const f = n.stops[0]; return { map: f.map, x: f.spot.x, d: f.spot.d, act: f.spot.act as string, moving: false, face: 1 as const, away: false };
+      const f = n.stops[0]; return { map: f.map, x: f.spot.x, d: f.spot.d, act: f.spot.act as string, moving: false, face: 1 as const, away: false, into: 0, seg: 0 };
     };
     spawn();
     const propsOf = new Map<string, Prop[]>();
@@ -315,6 +315,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           n.mode = 'down'; n.owner = me!.id; n.until = now + (air ? 2600 : kind === 'kick' ? 1900 : 1400); n.face = (-b.face) as 1 | -1; n.x += b.face * (air ? 80 : kind === 'kick' ? 44 : 22);
           n.say = pick(content.shoved); n.sayUntil = now + 2000;
           if (n.item) { drop(n.item, n.x + b.face * 26, n.d, n.who); n.item = null; }
+          for (const it of n.stack) drop(it, n.x + b.face * (26 + Math.random() * 30), Math.max(0, Math.min(1, n.d + (Math.random() - 0.5) * 0.15)), n.who); n.stack = [];
           npcEv(n, { say: n.say });
           if (air) say('Jump kick.', 1200);
           st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }];
@@ -430,8 +431,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             const l = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
             if (l) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); if (l.from !== null) { const n = npcs.current.find((p) => p.who === l.from); if (n && n.mode !== 'down' && here(n)) { n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; npcEv(n); } if (n) void complete(`steal:${n.who}`); } }
             else {
-              const n = npcs.current.filter((p) => here(p) && p.item && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
-              if (n && n.item) { b.stack.push(n.item); n.item = null; n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
+              const n = npcs.current.filter((p) => here(p) && (p.item || p.stack.length) && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
+              if (n && (n.item || n.stack.length)) { const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null; b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
               else {
                 // 장식으로 깔린 나무·가로등도 같은 소품이다 — 자리(spots)만 보면 똑같이 생긴 것 절반이 반응하지 않았다(운영자 2026-09-23). 부서진 건 못 쓴다
                 const seat = props.find((s) => SITTABLE.includes(s.kind) && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
@@ -499,7 +500,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             npcEv(n, { say: n.say });
             continue;
           }
-          if (n.item && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.3; n.swingKind = 'throw'; const th = { item: n.item, map: cur.key, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.who }; thrown.current.push(th); emit({ k: 'throw', ...th, m: th.map }); n.item = null; n.say = pick(content.thrown); n.sayUntil = now + 1500; }
+          if ((n.item || n.stack.length) && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.3; n.swingKind = 'throw'; const thrownItem = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && thrownItem === n.item) n.item = null; const th = { item: thrownItem, map: cur.key, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.who }; thrown.current.push(th); emit({ k: 'throw', ...th, m: th.map }); n.say = pick(content.thrown); n.sayUntil = now + 1500; }
           const ddx = b.x - n.x, ddd = b.d - n.d; const len = Math.hypot(ddx, ddd * 400) || 1;
           n.x += (ddx / len) * speed * dt; n.d = Math.max(0, Math.min(1, n.d + (ddd * 400 / len) * speed * dt / 400)); n.face = ddx >= 0 ? 1 : -1; n.moving = true;
           if (far < 26 && b.z === 0 && b.hurt <= 0) {
@@ -519,7 +520,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (!ok || tx === undefined || td === undefined) { n.mode = 'return'; n.target = null; npcEv(n); continue; }
           const ddx = tx - n.x, ddd = td - n.d; const len = Math.hypot(ddx, ddd * 400);
           if (len < 18) {
-            if (n.mode === 'fetch' && tgL) { emit({ k: 'pick', id: tgL.id }); if (!n.item) n.item = tgL.item; n.say = pick(['there.', 'honestly', 'who does this', 'picked it up. again.', 'this is mine now']); }
+            if (n.mode === 'fetch' && tgL) { emit({ k: 'pick', id: tgL.id }); if (!n.item) n.item = tgL.item; else if (n.stack.length < 3) n.stack.push(tgL.item); n.say = pick(['there.', 'honestly', 'who does this', 'picked it up. again.', 'this is mine now']); }
             else if (tgP) { if (now - n.until > 0) { emit({ k: 'fix', key: n.target! }); n.say = pick(['fixed. again.', 'there.', 'this is the third time', 'who keeps doing this', 'good as new. sort of.']); } else { n.moving = false; n.act = 'sweep'; continue; } } // 수리엔 몇 초가 걸린다(until 이 그 시각)
             n.target = null; n.sayUntil = now + 2000; n.mode = 'return'; npcEv(n, { say: n.say });
           } else { n.x += (ddx / len) * RESIDENT_SPEED * dt; n.d += (ddd * 400 / len) * RESIDENT_SPEED * dt / 400; n.face = ddx >= 0 ? 1 : -1; n.moving = true; if (n.mode === 'repair') n.until = now + 4000; }
@@ -532,16 +533,22 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           continue;
         }
         n.map = base.map; n.x = base.x; n.d = base.d; n.face = base.face; n.act = base.away ? 'away' : base.act; n.moving = base.moving;
-        if (!n.moving && n.act !== 'away' && n.item && FOOD.includes(n.item)) { // 먹을 것을 든 채 멈춰 서면 어디서든 먹는다 — 연못이면 오리에게 준다(사람과 같은 규칙)
+        // 나무 정거장: 1.6초 흔들고(사람과 같은 자세), 그 뒤 사과 하나가 손에(정거장마다 한 번), 그러고는 서서 먹는다 — 전부 정거장 시간의 함수라 모두 같은 걸 본다
+        if (!n.moving && n.act === 'shake') {
+          if (base.into >= 1.6) { n.act = 'stand'; if (n.shakeSeg !== base.seg && n.stack.length < 3) { n.shakeSeg = base.seg; n.stack.push('apple'); } }
+        }
+        const foodIdx = !n.moving && n.act !== 'away' ? n.stack.findIndex((it) => FOOD.includes(it)) : -1;
+        if (!n.moving && n.act !== 'away' && (foodIdx >= 0 || (n.item && FOOD.includes(n.item)))) { // 먹을 것을 든 채 멈춰 서면 어디서든 먹는다 — 연못이면 오리에게 준다(사람과 같은 규칙)
           const pondHere = here(n) ? cur.spots.find((s) => s.kind === 'pond' && dist(n.x, n.d, s.x, s.d) < 90) : undefined;
           n.act = pondHere ? 'feed' : 'eat';
           if (pondHere) feedRef.current = { map: n.map, x: n.x, d: n.d, until: now + 400 };
+          if (foodIdx >= 0 && base.into > 8) n.stack.splice(foodIdx, 1); // 8초쯤 뒤엔 다 먹었다
         }
         if (!spectator && here(n) && b.hurt <= 0 && !base.away) {
           const ls = [...loose.current.values()].filter((l) => l.map === cur.key && !l.dunked);
           const mine = ls.find((l) => l.from === n.who);
           const near = ls.find((l) => dist(n.x, n.d, l.x, l.d) < (n.angry ? 420 : 200));
-          const tg = (!n.item && mine) || (Math.random() < 0.01 ? near : null);
+          const tg = n.stack.length >= 3 ? null : (!n.item && mine) || (Math.random() < 0.01 ? near : null); // 손이 다 찼으면 주우러 안 간다
           if (tg && !npcs.current.some((m) => m.target === tg.id)) { n.mode = 'fetch'; n.owner = me!.id; n.target = tg.id; if (tg !== mine) { n.say = pick(['ugh', 'someone left this', 'not mine but ok', 'the state of this square']); n.sayUntil = now + 1800; } npcEv(n, { say: n.say }); continue; }
           // 수리공은 부서진 소품을 고치러 간다(지도 안, 가까운 것부터)
           if (REPAIRERS.includes(n.job.key) && Math.random() < 0.02) {
@@ -630,7 +637,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
           if (n.item && n.mode !== 'down') { const wy = WORN_Y[n.item]; item(ctx, n.item, wy ? fx : fx + n.face * 14 * fs, fy - (wy ?? 26) * fs, fs * 0.8); } // 모자·안경은 직업 물건이라도 몸에 걸친 것처럼 그린다(사람이 입는 것과 같은 위치)
           if (n.act !== 'stand' && (n.mode === 'routine' || n.mode === 'repair') && !n.moving) actIcon(ctx, n.mode === 'repair' ? 'repair' : n.act, fx + 18 * fs, fy - 46 * fs, fs);
-          name(ctx, fx, fy - 58 * fs, s, `${residents[n.who].handle} · ${n.job.name}`);
+          if (n.mode !== 'down') n.stack.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
+          name(ctx, fx, fy - (58 + n.stack.length * 12) * fs, s, `${residents[n.who].handle} · ${n.job.name}`);
           if (now < n.sayUntil) bubble(ctx, fx, fy - 70 * fs, s, n.say);
         } });
       }
