@@ -54,7 +54,8 @@ const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 's
 const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'lean', 'shake'];
 interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: number; x: number; d: number; scareUntil: number }
 
-export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [] }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[] }) {
+export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [], coins: coins0 = 0 }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[]; coins?: number }) {
+  const [coins, setCoins] = useState(coins0); // 지갑(연못 코인과 같은 지갑) — 할 일·부탁을 끝내면 는다
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const ws = useRef<WebSocket | null>(null);
@@ -164,8 +165,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     const t = q ?? tasks.find((x) => x.key === key)!; say(`Done: ${t.text} (+${t.coins})`, 3500);
     if (!me) return;
     const res = await fetch('/api/goose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key }) });
-    const d = await res.json().catch(() => ({})) as { ok?: boolean };
+    const d = await res.json().catch(() => ({})) as { ok?: boolean; coins?: number; already?: boolean };
     if (!d.ok) { stats.current.doneKeys.delete(key); setDoneList([...stats.current.doneKeys]); }
+    else if (!d.already && d.coins) setCoins((c) => c + (d.coins ?? 0));
   };
 
   // ── 입력 ──
@@ -681,7 +683,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     <div ref={wrap} className="mx-auto w-full max-w-[960px]">
       <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
         <span>{hud.map}{hud.carry ? <span className="font-normal normal-case tracking-normal"> — carrying {hud.carry}</span> : ''}{hud.exit ? <span className="font-normal normal-case tracking-normal"> — ↑ {hud.exit}</span> : ''}</span>
-        <span>{hud.online} here · {doneList.length}/{tasks.length} done today</span>
+        <span>{hud.online} here · {doneList.length}/{tasks.length} done today{me ? <> · {coins} coins</> : null}</span>
       </div>
       <div className="relative mt-2 overflow-hidden rounded-xl border border-hairline bg-[#eef0f2]">
         <canvas ref={canvas} className="block w-full touch-none" />

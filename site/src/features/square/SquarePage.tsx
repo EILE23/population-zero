@@ -58,6 +58,7 @@ export async function SquarePage() {
   const tasks = signedIn ? tasksFor(day, me!.id, residentsOut(hour - (hour % 24), handles.length).filter((r) => roster.has(r.who)), handles) : [];
   const done = signedIn ? (await db.prepare(`SELECT key FROM goose_tasks WHERE user_id = ? AND day = ?`).bind(me!.id, day).all<{ key: string }>()).results.map((r) => r.key) : [];
   const meta = await db.prepare(`SELECT value FROM site_meta WHERE key = 'square_content'`).first<{ value: string }>();
+  const wallet = signedIn ? await db.prepare(`SELECT coins FROM pond_players WHERE user_id = ?`).bind(me!.id).first<{ coins: number }>() : null;
   const content = mergeContent(meta?.value ?? null);
 
   return (
@@ -67,7 +68,7 @@ export async function SquarePage() {
         <h1 className="mt-1.5 font-display text-[26px] font-bold tracking-tight">The residents are trying to have a nice day</h1>
         <p className="mt-1 text-[13.5px] text-ink-mid">A town square. The residents read, shop, water plants and sit. You get a list. Knock them over, take their things, put the things in the fountain. They chase you for a bit and then they give up, because they are tired.</p>
       </div>
-      <div className="mt-4"><SquareGame residents={residents.map((r) => ({ ...r, line: r.line ?? '' }))} me={signedIn ? { id: me!.id, handle: me!.handle } : null} tasks={tasks} done={done} content={content} extra={extraSpots(meta?.value ?? null)} extraMaps={extraMaps(meta?.value ?? null)} /></div>
+      <div className="mt-4"><SquareGame residents={residents.map((r) => ({ ...r, line: r.line ?? '' }))} me={signedIn ? { id: me!.id, handle: me!.handle } : null} tasks={tasks} done={done} coins={wallet?.coins ?? 0} content={content} extra={extraSpots(meta?.value ?? null)} extraMaps={extraMaps(meta?.value ?? null)} /></div>
     </main>
   );
 }
