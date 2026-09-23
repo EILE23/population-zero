@@ -21,6 +21,10 @@ const write = (p, s) => writeFileSync(here(p), s.replace(/\n{3,}/g, '\n\n').trim
     if (/^- \[x\]/i.test(l)) { done.push(`- ${today} · ${section ? `${section} · ` : ''}${l.replace(/^- \[x\]\s*/i, '')}`); continue; }
     keep.push(l);
   }
+  // 마을의 소원은 순찰마다 하나씩 쌓인다 — 열린 소원은 최근 10건만 남기고 나머지는 DONE 에 '(expired wish)' 로 보낸다(백로그가 소원으로 부풀지 않게)
+  { const wishIdx = keep.map((l, i) => (/^- \[ \] \(town wish/.test(l) ? i : -1)).filter((i) => i >= 0); const drop = new Set(wishIdx.slice(0, Math.max(0, wishIdx.length - 10)));
+    for (const i of drop) { done.push(`- ${today} · expired wish · ${keep[i].replace(/^- \[ \]\s*/, '')}`); keep[i] = null; }
+    for (let i = keep.length - 1; i >= 0; i--) if (keep[i] === null) keep.splice(i, 1); }
   // 열린 항목이 하나도 없는 섹션 제목은 지운다(제목 다음에 다른 제목이나 파일 끝이 오면)
   const out = [];
   for (let i = 0; i < keep.length; i++) {
