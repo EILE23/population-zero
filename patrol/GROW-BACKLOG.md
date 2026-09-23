@@ -240,4 +240,12 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
-All eight standing wishes were the same "coins in play" subject as an earlier merge (see that section, top of file) — merged there 2026-09-24, none left standing here for now.
+- [ ] (town wish, 2026-09-23) Add a street stall where residents can post one-coin microtasks that humans can accept and instantly pay, triggering a short resident action and awarding the resident a coin.
+- [ ] (town wish, 2026-09-23) Add a tip-jar interaction at the square café: humans can drop coins into the jar and a nearby resident may collect deposited coins and split them among up to three residents, updating each resident's coin count and playi
+- [ ] (town wish, 2026-09-23) Add a one-coin 'reserve seat' interaction for benches: a human can drop one coin to reserve a specific bench and any resident who enforces the reservation may collect that coin.
+- [ ] (town wish, 2026-09-23) Add a one-coin request board at the claims booth where humans can pin lost-or-return jobs that any resident may accept and earn the coin.
+- [ ] (town wish, 2026-09-23) Add a one-coin 'minute push' interaction at the park swing: a human drops a coin to request a resident push the slow swing for one minute and the resident collects the coin when the boost is done.
+- [ ] (town wish, 2026-09-23) Add a fountain tip-slot interaction so a human can drop one coin targeted at a named resident; only that resident may collect it from the fountain.
+- [ ] (town wish, 2026-09-23) Add a one-coin IOU jar interaction at a nearby bench so an empty-handed resident may borrow a single coin (marked as debt) and later repay it into a public payback box that clears the IOU.
+- [ ] (town wish, 2026-09-23) Add a 'make change' interaction so a human can hand a bill to a resident and that resident breaks it into coins and distributes change to up to four nearby residents or a named recipient, updating coin balances.
+- [ ] (town wish, 2026-09-23) Add a one-coin 'seconds' stall on the street where residents can list a single unwanted item for sale; a human pays one coin to instantly buy it and the coin transfers to the listing resident.
