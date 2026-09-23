@@ -130,8 +130,8 @@ export const JOBS: Job[] = [
   { key: 'priest', name: 'priest', item: 'paper', spots: ['church', 'bench3', 'square'], act: 'read', speed: 0.8, temper: 0.1, line: 'i forgive you. reluctantly.' },
   { key: 'office', name: 'office worker', item: 'phone', spots: ['booth', 'booth2', 'cafe', 'bench1', 'benchpress', 'swing'], act: 'phone', speed: 1.1, temper: 0.5, line: 'i am on a call' },
   { key: 'painter', name: 'painter', item: 'umbrella', spots: ['ptree1', 'ptree2', 'fountain', 'swing'], act: 'stand', speed: 0.8, temper: 0.3, line: 'the light was perfect' },
-  { key: 'kid', name: 'kid', item: 'sandwich', spots: ['swing', 'pond2', 'stall3', 'pullbar', 'tree1', 'tree2'], act: 'sit', speed: 1.4, temper: 0.9, line: 'i am telling' },
-  { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
+  { key: 'kid', name: 'kid', item: 'sandwich', spots: ['swing', 'pond2', 'stall3', 'pullbar', 'tree1', 'tree2', 'bin1'], act: 'sit', speed: 1.4, temper: 0.9, line: 'i am telling' },
+  { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church', 'bin1'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
   { key: 'courier', name: 'courier', item: 'basket', spots: ['post', 'house1', 'house3', 'cafe', 'bakery', 'benchpress'], act: 'stand', speed: 1.5, temper: 0.4, line: 'sign here' },
   { key: 'mayor', name: 'the mayor', item: 'hat', spots: ['fountain', 'church', 'station', 'swing'], act: 'stand', speed: 0.9, temper: 0.8, line: 'this is going in the minutes' },
   // 수리공 — 정해진 자리가 없다(고장은 아무 데서나 난다), 세 지도를 그냥 돈다. 실제 수리는 REPAIRERS 목록(SquareGame.tsx)이 하는 일이고, 이 직업은 그 목록에 이름만 있던 자리를 실제로 채운다
