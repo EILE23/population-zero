@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'rack';
+  | 'pullbar' | 'benchpress' | 'rack' | 'board';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -47,6 +47,8 @@ export const MAPS: GameMap[] = [
       { key: 'tree1', name: 'the big tree', x: 950, d: 0.35, act: 'shake', kind: 'tree' },
       { key: 'tree2', name: 'the other tree', x: 2350, d: 0.2, act: 'shake', kind: 'tree' },
       { key: 'bin1', name: 'a bin', x: 1250, d: 0.9, act: 'sweep', kind: 'bin' },
+      // 잃어버린 물건 보관소 — Lost and found 체계의 첫 조각(board). 자리는 없다(직업표가 들르지 않는다), 갈 곳은 fetch 완료 때 코드가 정한다
+      { key: 'board1', name: 'the lost-and-found board', x: 1050, d: 0.62, act: 'stand', kind: 'board' },
     ],
     exits: [
       { x: 150, d: 0.12, to: 'house1', toX: 480, toD: 0.9, label: 'the blue house' },
