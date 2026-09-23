@@ -32,7 +32,7 @@ const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
   return { stack, worn };
 };
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver' | 'brace' | 'board' | 'shelve' | 'dust';
-interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean }
+interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number }
 /** board: 못 알아본 물건을 들고 게시판 앞 상자로 가는 중(캐리 필드는 catch/deliver 와 그대로 공유) — 도착하면 note/origin 을 붙여 내려놓는다.
  *  shelve: 주인의 직업에 자기 건물(빵집·우체국·경찰서)이 있으면 상자 대신 그 건물 선반으로 — 같은 캐리 필드, 도착해 잠깐(fix/rake 와 같은 요령) 선반에 얹는 자세를 보인 뒤 내려놓는다 */
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string; board?: string; shelf?: string; note?: string; origin?: number; weight?: boolean }
@@ -57,6 +57,8 @@ const STOW_LINES = ['in the cup, now.', 'not where you can see it.', 'good luck 
 const WEIGHT_LINES = ['there. good luck.', 'heavy enough now.', 'that ought to hold it.', 'take your time.'];
 /** 막 되찾은 물건을 쥔 채 넘어질 때 하는 말 — Keeping it 체계(tether), 보통의 shoved 대사 대신 */
 const TETHER_LINES = ['still mine.', "you'll have to try that again.", 'not letting go.', 'down, not out.'];
+const LINK_LINES = ["we've got this.", 'together, not you.', 'not on our watch.', 'try someone alone.'];
+const LINK_WINDOW = 14; // Keeping it(brace-with) — 팔짱 창의 길이(초). 시계로만 정해져 화면마다 따로 계산해도 같은 답
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -309,6 +311,18 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
       const usable = (p: { key: string }) => !broken.current.get(p.key)?.brokeAt; // 부서진 소품은 앉지도 타지도 못한다(고쳐질 때까지)
+      // Keeping it (brace-with) — 붙어 선 두 '일과' 주민이 팔짱을 낀다: 서로가 서로의 가장 가까운 상대일 때만(셋이 겹칠 때 이상하게 짝짓지 않으려),
+      // LINK_WINDOW초 창마다 결정적으로(시계+두 아이디의 해시) 35% — 새 상태 없이 모든 화면이 같은 답을 본다(오리·호감도 스침과 같은 요령)
+      const linkedNpc = (n: Npc): Npc | null => {
+        if (n.mode !== 'routine' || n.act === 'away') return null;
+        const near = (a: Npc) => npcs.current.filter((m) => m !== a && here(m) && m.mode === 'routine' && m.act !== 'away' && dist(a.x, a.d, m.x, m.d) < 60).sort((p, q) => dist(a.x, a.d, p.x, p.d) - dist(a.x, a.d, q.x, q.d))[0];
+        const partner = near(n);
+        if (!partner || near(partner) !== n) return null;
+        const bucket = Math.floor(t / LINK_WINDOW);
+        return (hash(`link:${Math.min(n.who, partner.who)}:${Math.max(n.who, partner.who)}:${bucket}`) % 1000) < 350 ? partner : null;
+      };
+      // 팔짱 낀 주민 중 누구든 (x,d) 근처에 있으면 그 사이에 놓인 것으로 친다 — 벽돌 없이도 weight-down 과 같은 채널을 태운다
+      const linkedGuard = (x: number, d: number) => npcs.current.some((n) => here(n) && dist(x, d, n.x, n.d) < 70 && linkedNpc(n));
       const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.busking > 0 ? 'busk' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : (t + (me?.id ?? 0) * 3 + 16) % 22 < 1.2 ? 'look' : (t + (me?.id ?? 0) * 3 + 6) % 22 < 1.2 ? 'check' : (t + (me?.id ?? 0) * 3 + 19) % 22 < 1.2 ? 'shrug' : 'stand'); // 서서 가만있을 때 22초에 한 번씩 돌아가며 하품·기지개·두리번·폰 확인·으쓱(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
       const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0; b.busking = 0;
@@ -332,6 +346,13 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (o) { emit({ k: 'hitp', uid: o.uid, byName: me!.handle, kind }); say(`You ${kind === 'kick' ? 'kicked' : 'punched'} ${o.handle}.`, 1500); return; }
         const n = npcs.current.filter((p) => here(p) && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < reach && Math.sign(p.x - b.x) === b.face).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
         if (n) {
+          // Keeping it (brace-with) — 팔짱 낀 창 안에서는 한 번은 넘어지지 않는다(같은 창에서 두 번째 타격부터는 보통대로 넘어간다)
+          const linkPartner = linkedNpc(n); const linkBucket = Math.floor(t / LINK_WINDOW);
+          if (linkPartner && n.linkAbsorbBucket !== linkBucket) {
+            n.linkAbsorbBucket = linkBucket; linkPartner.linkAbsorbBucket = linkBucket;
+            n.say = pick(LINK_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
+            return;
+          }
           n.mode = 'down'; n.owner = me!.id; n.until = now + (air ? 2600 : kind === 'kick' ? 1900 : 1400); n.face = (-b.face) as 1 | -1; n.x += b.face * (air ? 80 : kind === 'kick' ? 44 : 22);
           // Keeping it (tether) — 막 되찾은 자기 물건은 벨트에 묶여 있다: 이 다운-사이클의 첫 타격은 쥔 채로 넘어뜨리기만, 두 번째(같은 사이클 안, dust 단계 포함) 타격이라야 비로소 떨어진다
           const dislodge = n.tether ? n.tetherMissed : true;
@@ -406,14 +427,20 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
         else if (b.still) { b.moving = false; if (dx || dd || i.jump) b.still = null; } // TV·책장 앞에 서 있으면 움직이려는 순간 멈춘다(계속 봄)
         else if (b.leaning) { b.moving = false; if (dx || dd || i.jump) b.leaning = false; } // 가로등에 기대 있으면 움직이려는 순간 떨어진다
-        else if (b.weighTarget) { // Keeping it(weight-down) — 다른 자세들과 같은 요령: 움직이려는 순간 취소(이번 프레임엔 아직 안 움직임), 가만히 있으면 1.5초 뒤 저절로 집는다
+        else if (b.weighTarget) { // Keeping it(weight-down·brace-with) — 다른 자세들과 같은 요령: 움직이려는 순간 취소(이번 프레임엔 아직 안 움직임), 가만히 있으면 1.5초 뒤 저절로 집는다
           b.moving = false;
           if (dx || dd || i.jump) { b.weighTarget = null; b.weighing = 0; }
           else {
             b.weighing += dt;
             const l = loose.current.get(b.weighTarget);
             if (!l) { b.weighTarget = null; b.weighing = 0; }
-            else if (b.weighing >= 1.5) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say(`Got the ${ITEMS[l.item]} out from under it.`, 1600); void complete('weight1'); b.weighTarget = null; b.weighing = 0; }
+            else if (b.weighing >= 1.5) {
+              const guarded = !l.weight && linkedGuard(l.x, l.d); // 벽돌이 없다면 팔짱 낀 두 주민 사이였을 것 — 문구·할 일 키만 다르게, 같은 1.5초 채널
+              emit({ k: 'pick', id: l.id }); b.stack.push(l.item);
+              say(guarded ? 'Slipped it out from between them.' : `Got the ${ITEMS[l.item]} out from under it.`, 1600);
+              void complete(guarded ? 'bracewith1' : 'weight1');
+              b.weighTarget = null; b.weighing = 0;
+            }
           }
         }
         else {
@@ -492,7 +519,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             // Relay and shelving — 상자 대신 직업 건물 선반에 올려둔 것도 그냥 C 로(사람도 주민도 같은 규칙)
             else if (l && l.shelf) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say(l.note ?? `Took the ${ITEMS[l.item]}.`, 1800); void complete('shelf1'); }
             // Keeping it (weight-down) — 벽돌이 올라간 것은 바로 못 줍는다: 그 자리에 눌러앉아 1.5초 가만히 있어야 한다(위 이동 코드가 잰다). 이미 재는 중이면 다시 시작하지 않는다
-            else if (l && l.weight) { if (b.weighTarget !== l.id) { b.weighTarget = l.id; b.weighing = 0; say('Something heavy on top. Hold still.', 1600); } }
+            else if (l && (l.weight || linkedGuard(l.x, l.d))) { if (b.weighTarget !== l.id) { b.weighTarget = l.id; b.weighing = 0; say(l.weight ? 'Something heavy on top. Hold still.' : 'Someone might notice. Hold still.', 1600); } } // Keeping it(brace-with) — 벽돌 없이도, 팔짱 낀 두 주민 사이에 놓인 것도 같은 채널을 탄다
             else if (l) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); if (l.from !== null) { const n = npcs.current.find((p) => p.who === l.from); if (n && n.mode !== 'down' && here(n)) { n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; npcEv(n); } if (n) void complete(`steal:${n.who}`); } }
             else {
               const n = npcs.current.filter((p) => here(p) && (p.item || p.stack.length) && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
@@ -837,7 +864,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : n.act === 'stand' && (t + n.seed + 11) % 22 < 1.2 ? 'stretch' : n.act === 'stand' && (t + n.seed + 16) % 22 < 1.2 ? 'look' : n.act === 'stand' && (t + n.seed + 6) % 22 < 1.2 ? 'check' : n.act === 'stand' && (t + n.seed + 19) % 22 < 1.2 ? 'shrug' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품·기지개·두리번·폰 확인·으쓱이 가끔
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : linkedNpc(n) ? 'link' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : n.act === 'stand' && (t + n.seed + 11) % 22 < 1.2 ? 'stretch' : n.act === 'stand' && (t + n.seed + 16) % 22 < 1.2 ? 'look' : n.act === 'stand' && (t + n.seed + 6) % 22 < 1.2 ? 'check' : n.act === 'stand' && (t + n.seed + 19) % 22 < 1.2 ? 'shrug' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품·기지개·두리번·폰 확인·으쓱이 가끔
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
