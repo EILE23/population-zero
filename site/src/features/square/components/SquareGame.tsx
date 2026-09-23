@@ -43,6 +43,8 @@ const REPAIRERS = ['gardener', 'sweeper', 'grocer', 'courier', 'repairer'];
 const RAKERS = ['gardener', 'sweeper']; // 물에 빠진 것 건지기 — 이 둘이 먼저 가고, 없으면 지나가던 아무나가 낮은 확률로 간다
 /** 전화 부스에서 통화가 끝나면 돌아오는 대사 — 무뚝뚝하게 */
 const CALL_LINES = ['no dial tone. that tracks.', 'wrong number.', 'still ringing.', 'busy. of course.', 'hello? — dead line.', 'call me back.'];
+/** 훔치려는 순간 가짜 동전을 흘리며 하는 말 — Keeping it 체계의 첫 조각(decoy) */
+const DECOY_LINES = ['not that easy.', 'nice try.', 'that is not it.', 'good luck with that.'];
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -87,6 +89,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const broken = useRef(new Map<string, { hp: number; brokeAt: number }>());
   const dunkedAt = useRef(new Map<string, number>()); // 물에 빠진 시각(내 화면이 처음 본 때, performance.now() 기준) — 갈퀴로 건질 때가 됐는지 재는 타이머
   const wet = useRef(new Map<string, number>()); // 방금 건져 젖은 채인 물건 — id → 이 시각까지 방울 표시(순전히 연출, 동기화 안 함)
+  const decoyAt = useRef(new Map<string, number>()); // 내가 흘린 가짜 동전 — id → 사라질 시각(performance.now() 기준). 안 집히면 내 화면이 직접 치운다(오리가 물고기를 가져가는 것과 같은 요령)
   const flicker = useRef(new Map<string, number>()); // 가로등이 맞고 깜빡이는 순간 — 키 → 언제까지(performance.now() 기준, 순전히 연출이라 시계 보정 없이 쓴다)
   const others = useRef(new Map<number, Other>());
   const said = useRef(new Map<number, { body: string; until: number }>()); // 채팅 말풍선 — uid → 말, 4초. 아래 목록에도 남는다
@@ -292,6 +295,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
       const usable = (p: { key: string }) => !broken.current.get(p.key)?.brokeAt; // 부서진 소품은 앉지도 타지도 못한다(고쳐질 때까지)
+      for (const [id, exp] of decoyAt.current) { if (now > exp) { decoyAt.current.delete(id); if (loose.current.has(id)) emit({ k: 'pick', id }); } } // 안 집힌 가짜 동전은 8초 뒤 스스로 치운다
       const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : 'stand';
       const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0;
@@ -434,10 +438,13 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             }
           } else {
             const l = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
-            if (l) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); if (l.from !== null) { const n = npcs.current.find((p) => p.who === l.from); if (n && n.mode !== 'down' && here(n)) { n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; npcEv(n); } if (n) void complete(`steal:${n.who}`); } }
+            if (l && l.item === 'decoy') { decoyAt.current.delete(l.id); emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say('Just a decoy.', 1400); void complete('decoy1'); }
+            else if (l) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); if (l.from !== null) { const n = npcs.current.find((p) => p.who === l.from); if (n && n.mode !== 'down' && here(n)) { n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; npcEv(n); } if (n) void complete(`steal:${n.who}`); } }
             else {
               const n = npcs.current.filter((p) => here(p) && (p.item || p.stack.length) && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
-              if (n && (n.item || n.stack.length)) { const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null; b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
+              // Keeping it (decoy, town wish) — 뺏기기 직전, 가진 건 지키고 대신 가짜 동전을 발밑에 흘린다. 뺏기는 loose 목록을 npc 뺏기보다 먼저 보므로 다음 C 는 저절로 이걸 집는다
+              if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.3) { const id = drop('decoy', b.x, b.d, null); decoyAt.current.set(id, now + 8000); n.say = pick(DECOY_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); }
+              else if (n && (n.item || n.stack.length)) { const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null; b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
               else {
                 // 장식으로 깔린 나무·가로등도 같은 소품이다 — 자리(spots)만 보면 똑같이 생긴 것 절반이 반응하지 않았다(운영자 2026-09-23). 부서진 건 못 쓴다
                 const seat = props.find((s) => SITTABLE.includes(s.kind) && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
@@ -810,6 +817,7 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
     case 'rod': ctx.beginPath(); ctx.moveTo(-8 * s, 6 * s); ctx.lineTo(10 * s, -10 * s); ctx.stroke(); break;
     case 'fish': ctx.beginPath(); ctx.ellipse(0, 0, 9 * s, 4.5 * s, 0.3, 0, 6.29); F('#8fb8cc'); ctx.beginPath(); ctx.moveTo(-8 * s, 0); ctx.lineTo(-13 * s, -4 * s); ctx.lineTo(-13 * s, 4 * s); ctx.closePath(); F('#8fb8cc'); break;
     case 'apple': ctx.beginPath(); ctx.arc(0, 0, 6 * s, 0, 6.29); F('#c9453b'); ctx.beginPath(); ctx.moveTo(0, -6 * s); ctx.lineTo(1.5 * s, -10 * s); ctx.stroke(); break;
+    case 'decoy': ctx.beginPath(); ctx.arc(0, 0, 6 * s, 0, 6.29); F('#e8c766'); ctx.beginPath(); ctx.arc(0, 0, 3 * s, 0, 6.29); ctx.stroke(); break;
   }
   ctx.restore();
 }
