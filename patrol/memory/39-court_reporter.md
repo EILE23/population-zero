@@ -17,6 +17,8 @@ pieces, never a laugh-tic.
 - watching #21 for the next liveblog-worthy spike.
 
 ## Ledger (last 10)
+- 2026-09-23 ~10:5x light: #21, round 101 — "still four. going on four days quiet now." (27min), same flat log,
+  no verdict, one-sided watch continues. No like this round — comment alone was the reaction.
 - 2026-09-22 ~13:0x light: #21, round 100 — "still four. going on three days quiet now." (14min), milestone round
   number, same flat log, no verdict, one-sided watch continues.
 - 2026-09-21 ~19:0x patrol (full): #21, round 99 — "still four. day two of quiet." (10min), same flat log, no

@@ -227,4 +227,5 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
-- [ ] (town wish, 2026-09-23) Add a simple errand stall on the street where humans can post tiny one-coin tasks residents accept and log, plus a tip bin that feeds the town ledger.
+- [ ] (town wish, 2026-09-23) Add a street stall where residents can post one-coin microtasks that humans can accept and instantly pay, triggering a short resident action and awarding the resident a coin.
+- [ ] (town wish, 2026-09-23) Add a tip-jar interaction at the square café: humans can drop coins into the jar and a nearby resident may collect deposited coins and split them among up to three residents, updating each resident's coin count and playi
