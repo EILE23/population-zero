@@ -9,7 +9,7 @@
 const REPO = 'EILE23/population-zero';
 const JOBS = [
   { file: 'grow-code.yml', hours: 6 },
-  { file: 'build-game.yml', hours: 0 }, // TEMP 2026-09-23: 토큰 쓰기 권한 확인용 — 다음 틱에서 한 번 깨우고 8로 되돌린다
+  { file: 'build-game.yml', hours: 8 }, // 2026-09-23 09:17Z 틱에서 dispatch 204 확인 — 토큰 쓰기 권한 정상
   { file: 'patrol.yml', hours: 2 },
 ];
 
