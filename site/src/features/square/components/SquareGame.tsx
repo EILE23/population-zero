@@ -335,15 +335,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (!spectator && b.watering > 0) { b.watering = Math.max(0, b.watering - dt); b.moving = false; } // 물 주는 동안 잠깐 멈춘다
       if (!spectator && b.tripped > 0) { b.tripped = Math.max(0, b.tripped - dt); b.moving = false; } // 헛디뎌 넘어진 동안 잠깐 멈춘다
       if (!spectator && b.feeding > 0) { b.feeding = Math.max(0, b.feeding - dt); b.moving = false; } // 오리에게 모이를 주는 동안 잠깐 멈춘다
-      if (!spectator && b.fishing > 0) { // 입질 기다리는 동안 낚싯대를 드리우고 앉아 있는다 — 다 되면 잡는다
-        b.fishing = Math.max(0, b.fishing - dt); b.moving = false;
-        if (b.fishing === 0) {
-          const caught = pick(POND_ITEMS).name;
-          b.stack.push('fish'); say(`Caught ${caught}.`, 2500);
-          said.current.set(me!.id, { body: `caught ${caught}`, until: now + 3000 });
-          void complete('fish1');
-        }
-      }
       if (!spectator && b.calling > 0) { // 통화하는 동안 멈춰 있다가, 끊으면 상대의 대사가 온다
         b.calling = Math.max(0, b.calling - dt); b.moving = false;
         if (b.calling === 0) {
@@ -397,7 +388,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             const q = quests.current.get(n.who) ?? questOf(n.who);
             if (st.doneKeys.has(q.key)) { n.say = pick(['we are done here.', 'nothing today.', 'go away.']); n.sayUntil = now + 2000; }
             else if (q.kind === 'fetch' && b.stack.includes(q.item!)) { b.stack.splice(b.stack.indexOf(q.item!), 1); b.wearing.delete(q.item!); n.item = q.item!; finishQuest(q, n); }
-            else if (q.kind === 'pond' && b.stack.includes('fish')) { b.stack.splice(b.stack.indexOf('fish'), 1); n.item = 'fish'; finishQuest(q, n); }
             else if (q.kind === 'wear' && b.wearing.has(q.item!)) finishQuest(q, n);
             else if (q.kind === 'revenge' && st.shoves.some((x) => x.who === q.target && now - x.at < 120000)) finishQuest(q, n);
             else { quests.current.set(n.who, q); setQuestList([...quests.current.values()]); n.say = q.ask; n.sayUntil = now + 3500; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; }
@@ -406,11 +396,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (i.shove && !shoveWas && b.z === 0 && b.swing <= 0) hit('punch');
         if (i.kick && !kickWas && b.swing <= 0) hit('kick');
         if (i.grab && !grabWas && b.z === 0) {
-          const water1 = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
           const pondSpot = cur.spots.find((s) => s.kind === 'pond' && dist(b.x, b.d, s.x, s.d) < 110);
-          if (b.stack.length && b.stack.includes('rod') && water1) { // 대를 든 채 물가에서 — 던지고 기다린다(4~12초)
-            b.fishing = 4 + Math.random() * 8; b.x = water1.x; b.d = Math.min(1, water1.d + 0.04); say('Cast the line.', 1200);
-          } else if (b.stack.length && pondSpot && FOOD.includes(b.stack[b.stack.length - 1])) { // 연못가에서 먹을 것을 들고 — 오리에게 준다
+          if (b.stack.length && pondSpot && FOOD.includes(b.stack[b.stack.length - 1])) { // 연못가에서 먹을 것을 들고 — 오리에게 준다
             // 예전엔 두 갈래(자세만 / 오리만)가 따로 있어 자세는 나오는데 오리가 안 모이고 할 일 키도 달랐다(운영자 2026-09-23 "먹이주기가 안 된다") — 한 갈래로
             b.stack.pop(); b.feeding = 1.4; b.x = pondSpot.x; b.d = Math.min(0.97, pondSpot.d + 0.04);
             feedRef.current = { map: cur.key, x: b.x, d: b.d, until: now + 4000 };
@@ -447,7 +434,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const gym = cur.spots.find((s) => (s.kind === 'pullbar' || s.kind === 'benchpress') && dist(b.x, b.d, s.x, s.d) < 90);
                 const screen = cur.spots.find((s) => (s.kind === 'tv' || s.kind === 'shelf') && dist(b.x, b.d, s.x, s.d) < 90);
                 const garden = cur.spots.find((s) => s.kind === 'garden' && dist(b.x, b.d, s.x, s.d) < 90);
-                const rack = cur.spots.find((s) => s.kind === 'rack' && dist(b.x, b.d, s.x, s.d) < 90);
                 const booth = cur.spots.find((s) => s.kind === 'booth' && dist(b.x, b.d, s.x, s.d) < 90);
                 const lamp = cur.spots.find((s) => s.kind === 'lamp' && dist(b.x, b.d, s.x, s.d) < 90);
                 const tree = cur.spots.find((s) => s.kind === 'tree' && dist(b.x, b.d, s.x, s.d) < 90);
@@ -458,7 +444,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                   b.watering = 1.4; b.x = garden.x; b.d = garden.d; say(`Watered ${garden.name}.`, 1500); void complete(`water:${garden.key}`);
                   for (const q of quests.current.values()) if (q.kind === 'water' && q.spot === garden.key) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
                 }
-                else if (rack) { b.stack.push('rod'); say('Took a rod from the rack.', 1500); }
                 else if (booth) { b.calling = 2.2; b.x = booth.x; b.d = booth.d; say('Dialing.', 1000); }
                 else if (lamp) { b.leaning = !b.leaning; if (b.leaning) { b.x = lamp.x; b.d = lamp.d; say('Leaning.', 1000); void complete(`lean:${lamp.key}`); } }
                 else if (tree) { b.shaking = 1; b.shakeSpot = tree.key; b.x = tree.x; b.d = tree.d; say('Shaking the tree.', 900); }

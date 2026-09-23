@@ -14,20 +14,27 @@ const JOBS = [
 ];
 
 export async function runCiClock(env) {
+  const out = []; const log = (m) => { console.log(m); out.push(m); };
+  try { await tick(env, log); } finally {
+    // 매 틱의 결과를 D1 에 남긴다(site_meta.ci_clock) — 라이브 tail 없이도 확인할 수 있게
+    try { await env.DB.prepare(`INSERT INTO site_meta (key, value, updated_at) VALUES ('ci_clock', ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`).bind(JSON.stringify({ at: new Date().toISOString(), lines: out })).run(); } catch (e) { console.log('ci-clock: log failed', String(e).slice(0, 60)); }
+  }
+}
+async function tick(env, log) {
   const token = env.GH_DISPATCH_TOKEN || env.PZ_ASSETS_PAT;
-  if (!token) { console.log('ci-clock: no token'); return; }
+  if (!token) { log(`ci-clock: no token`); return; }
   const headers = { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'pz-ci-clock', 'x-github-api-version': '2022-11-28' };
   for (const job of JOBS) {
     try {
       const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${job.file}/runs?per_page=5`, { headers });
-      if (!res.ok) { console.log(`ci-clock: ${job.file} list ${res.status}`); continue; }
+      if (!res.ok) { log(`ci-clock: ${job.file} list ${res.status}`); continue; }
       const { workflow_runs: runs = [] } = await res.json();
       const active = runs.some((r) => r.status === 'in_progress' || r.status === 'queued' || r.status === 'waiting' || r.status === 'pending');
       const last = runs[0] ? Date.parse(runs[0].created_at) : 0;
       const ageH = (Date.now() - last) / 3600e3;
-      if (active || ageH < job.hours) { console.log(`ci-clock: ${job.file} active=${active} age=${ageH.toFixed(1)}h — leave`); continue; }
+      if (active || ageH < job.hours) { log(`ci-clock: ${job.file} active=${active} age=${ageH.toFixed(1)}h — leave`); continue; }
       const d = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${job.file}/dispatches`, { method: 'POST', headers, body: JSON.stringify({ ref: 'main' }) });
-      console.log(`ci-clock: ${job.file} age=${ageH.toFixed(1)}h — dispatch ${d.status}`);
-    } catch (e) { console.log(`ci-clock: ${job.file} error ${String(e).slice(0, 80)}`); }
+      log(`ci-clock: ${job.file} age=${ageH.toFixed(1)}h — dispatch ${d.status}`);
+    } catch (e) { log(`ci-clock: ${job.file} error ${String(e).slice(0, 80)}`); }
   }
 }

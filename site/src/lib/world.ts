@@ -41,8 +41,6 @@ export const MAPS: GameMap[] = [
       { key: 'garden', name: 'the garden', x: 320, d: 0.7, act: 'water', kind: 'garden' },
       { key: 'booth', name: 'the phone booth', x: 1900, d: 0.3, act: 'phone', kind: 'booth' },
       { key: 'lamp1', name: 'the lamp', x: 500, d: 0.6, act: 'lean', kind: 'lamp' },
-      { key: 'pond', name: 'the little pond', x: 2900, d: 0.85, act: 'stand', kind: 'pond' },
-      { key: 'dock1', name: 'the rod rack', x: 2840, d: 0.82, act: 'fish', kind: 'rack' },
       { key: 'house1', name: 'the blue house', x: 150, d: 0.1, act: 'sweep', kind: 'house' },
       { key: 'house2', name: 'the narrow house', x: 1100, d: 0.1, act: 'read', kind: 'house' },
       { key: 'house3', name: 'the corner house', x: 2700, d: 0.12, act: 'sweep', kind: 'house' },
@@ -81,7 +79,6 @@ export const MAPS: GameMap[] = [
       { key: 'gate', name: 'the park gate', x: 2300, d: 0.5, act: 'stand', kind: 'gate' },
       { key: 'swing', name: 'the swings', x: 600, d: 0.6, act: 'sit', kind: 'swing' },
       { key: 'pond2', name: 'the duck pond', x: 1400, d: 0.8, act: 'stand', kind: 'pond' },
-      { key: 'dock2', name: 'the rod rack by the duck pond', x: 1460, d: 0.78, act: 'fish', kind: 'rack' },
       { key: 'bench4', name: 'the park bench', x: 1000, d: 0.75, act: 'sit', kind: 'bench' },
       { key: 'bench5', name: 'the bench by the pond', x: 1700, d: 0.7, act: 'read', kind: 'bench' },
       { key: 'garden2', name: 'the flower beds', x: 300, d: 0.4, act: 'water', kind: 'garden' },
@@ -95,7 +92,7 @@ export const MAPS: GameMap[] = [
   },
 ];
 export const MAP_BY_KEY = new Map(MAPS.map((m) => [m.key, m]));
-export const WATER_SPOTS = ['fountain', 'pond', 'pond2'];
+export const WATER_SPOTS = ['fountain', 'pond2']; // 도심 한가운데 연못은 뺐다(운영자 2026-09-23). 연못은 공원의 오리 연못 하나 — 오리와 노는 곳
 export const BREAKABLE: PropKind[] = ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe', 'bin', 'tv', 'table', 'shelf', 'plant', 'swing', 'sofa', 'pullbar', 'benchpress'];
 /** 앉거나 누울 수 있는 것 — 사람도 주민도 여기서 'sit' 자세(사실은 눕는 자세)를 쓴다 */
 export const SITTABLE: PropKind[] = ['bench', 'sofa', 'bed', 'swing'];
@@ -122,15 +119,15 @@ export const JOBS: Job[] = [
   { key: 'gardener', name: 'gardener', item: 'broom', spots: ['garden', 'garden2', 'plant'], act: 'water', speed: 0.8, temper: 0.5, line: 'those took months' },
   { key: 'barista', name: 'barista', item: 'cup', spots: ['cafe', 'bench1'], act: 'eat', speed: 1, temper: 0.35, line: 'oat milk is extra' },
   { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
-  { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress', 'dock1', 'dock2'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
+  { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
   { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate', 'swing', 'lamp1', 'lamp2'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
   { key: 'dogwalker', name: 'dog walker', item: 'keys', spots: ['park', 'pond2', 'bench4', 'square', 'swing'], act: 'stand', speed: 1.1, temper: 0.4, line: 'he is a rescue' },
   { key: 'sweeper', name: 'street sweeper', item: 'broom', spots: ['bin1', 'bin2', 'bin3', 'bin4', 'square'], act: 'sweep', speed: 0.85, temper: 0.7, line: 'i JUST did this' },
-  { key: 'priest', name: 'priest', item: 'paper', spots: ['church', 'bench3', 'square', 'dock1', 'dock2'], act: 'read', speed: 0.8, temper: 0.1, line: 'i forgive you. reluctantly.' },
+  { key: 'priest', name: 'priest', item: 'paper', spots: ['church', 'bench3', 'square'], act: 'read', speed: 0.8, temper: 0.1, line: 'i forgive you. reluctantly.' },
   { key: 'office', name: 'office worker', item: 'phone', spots: ['booth', 'booth2', 'cafe', 'bench1', 'benchpress', 'swing'], act: 'phone', speed: 1.1, temper: 0.5, line: 'i am on a call' },
   { key: 'painter', name: 'painter', item: 'umbrella', spots: ['ptree1', 'ptree2', 'fountain', 'swing'], act: 'stand', speed: 0.8, temper: 0.3, line: 'the light was perfect' },
   { key: 'kid', name: 'kid', item: 'sandwich', spots: ['swing', 'pond2', 'stall3', 'pullbar', 'tree1', 'tree2'], act: 'sit', speed: 1.4, temper: 0.9, line: 'i am telling' },
-  { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church', 'dock1', 'dock2'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
+  { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
   { key: 'courier', name: 'courier', item: 'basket', spots: ['post', 'house1', 'house3', 'cafe', 'bakery', 'benchpress'], act: 'stand', speed: 1.5, temper: 0.4, line: 'sign here' },
   { key: 'mayor', name: 'the mayor', item: 'hat', spots: ['fountain', 'church', 'station', 'swing'], act: 'stand', speed: 0.9, temper: 0.8, line: 'this is going in the minutes' },
 ];

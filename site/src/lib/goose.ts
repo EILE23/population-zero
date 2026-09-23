@@ -113,7 +113,6 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.9) { const p = pick(); add({ key: `sit:${p.who}`, kind: 'sit', who: p.who, text: `Make ${handles[p.who]} give up chasing you`, coins: 6 }); }
     else if (v < 0.93) { const sp = GARDENS[Math.floor(r() * GARDENS.length)]; add({ key: `water:${sp.key}`, kind: 'water', spot: sp.key, text: `Water ${sp.name}`, coins: 5 }); }
     else if (v < 0.96) { const it = items[Math.floor(r() * items.length)]; const sp = BINS[Math.floor(r() * BINS.length)]; add({ key: `bin:${it}:${sp.key}`, kind: 'bin', item: it, spot: sp.key, text: `Bin a ${ITEMS[it]} at ${sp.name}`, coins: 6 }); }
-    else if (v < 0.975) add({ key: 'fish1', kind: 'fish', text: 'Catch a fish', coins: 7 });
     else if (v < 0.982) { const sp = PONDS[Math.floor(r() * PONDS.length)]; add({ key: `feed:${sp.key}`, kind: 'feed', spot: sp.key, text: `Feed the ducks at ${sp.name}`, coins: 5 }); }
     else if (v < 0.988) { const it = WEARABLE[Math.floor(r() * WEARABLE.length)]; add({ key: `wear:${it}`, kind: 'wear', item: it, text: `Wear a ${ITEMS[it]}`, coins: 5 }); }
     else if (v < 0.991) add({ key: 'call1', kind: 'call', text: 'Make a call from a phone booth', coins: 4 });
@@ -137,7 +136,6 @@ export function questFor(day: string, who: number, roster: number[], handles: st
   if (v < 0.8) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)];
     return { key: `q:${who}:dunk:${it}:${w}`, who, kind: 'dunk', item: it, spot: w, text: `${handles[who]} wants a ${ITEMS[it]} in the water`, ask: `put a ${ITEMS[it]} in the water for me. any water.`, thanks: pick2(r, ['splash. thank you.', 'that is closure.', 'good riddance.']), coins: 9 }; }
   if (v < 0.92) { const it = items[Math.floor(r() * items.length)]; return { key: `q:${who}:bin:${it}`, who, kind: 'bin', item: it, text: `${handles[who]} wants a ${ITEMS[it]} gone`, ask: `take this ${ITEMS[it]} and bin it. i do not want to see it again.`, thanks: pick2(r, ['gone. good.', 'finally.', 'do not bring it back.']), coins: 7 }; }
-  if (v < 0.97) return { key: `q:${who}:pond`, who, kind: 'pond', text: `${handles[who]} wants something from the pond`, ask: 'bring me something from the pond. i do not care what.', thanks: pick2(r, ['huh. thanks, i think.', 'did not expect that, but thanks.', 'add it to the pile.']), coins: 8 };
   if (v < 0.99) { const it = WEARABLE[Math.floor(r() * WEARABLE.length)]; return { key: `q:${who}:wear:${it}`, who, kind: 'wear', item: it, text: `${handles[who]} wants to see you in a ${ITEMS[it]}`, ask: `put on a ${ITEMS[it]}. humor me.`, thanks: pick2(r, ['suits you.', 'better.', 'acceptable, i suppose.']), coins: 6 }; }
   const sp = GARDENS[Math.floor(r() * GARDENS.length)];
   return { key: `q:${who}:water:${sp.key}`, who, kind: 'water', spot: sp.key, text: `${handles[who]} wants ${sp.name} watered`, ask: `could you water ${sp.name}? it has been a dry week.`, thanks: pick2(r, ["they'll live another day.", 'much obliged.', 'the leaves say thank you.']), coins: 7 };
