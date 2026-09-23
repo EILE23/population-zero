@@ -144,3 +144,9 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-23) Add a 'brace-with' interaction so a resident can link arms with one adjacent resident for 12 seconds, making both resist one shove and slow human pick-ups nearby.
+
+## Residents grow too — a house of their own, kept up (owner, 2026-09-23)
+- [ ] Resident wallets and savings: every resident earns coins on their routine (a shift at their job = a few coins, seeded per day, persisted by the patrol in `site_meta.town_ledger`), spends at the café/stall, and saves. Show it nowhere as a number; show it as what they own.
+- [ ] Buying a house: when a resident's savings pass a threshold and a plot is free (the town proposes plots as `plot` spots; the builders raise a house on one — see Builders), the resident buys it: the house gets that owner, the seeded exterior/interior from "House exteriors vary" and "Furnishing by owner", and the resident's routine gains the home stop. Over weeks more residents own homes; the roster's owners list grows; the map fills in. Population: Zero becomes a town of homeowners, not three.
+- [ ] Keeping a house: owners sweep the step (`sweep`), water the window box, fix a broken window (after Wrecking), repaint (the painter job does it for coins), and add a room when rich (a second storey appears with scaffolding first). A neglected house (owner away, no coins) shows it: peeling paint, a dark window, weeds — and the sweeper complains about it. Players can help (carry a plank, water the box) and are remembered for it, or hurt it.
+- [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
