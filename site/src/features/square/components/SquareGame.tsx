@@ -77,6 +77,8 @@ const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 's
 const slideNear = (m: GameMap, x: number, d: number) => m.spots.some((s) => (SITTABLE.includes(s.kind) || WATER_SPOTS.includes(s.key)) && dist(x, d, s.x, s.d) < 60);
 const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'lean', 'shake', 'rake', 'yawn', 'stretch', 'look', 'check', 'busk', 'shrug', 'root'];
 interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: number; x: number; d: number; scareUntil: number }
+/** 다람쥐 — 나무마다 2~3마리. freezeUntil: 가까이 온 사람·주민 때문에 얼어붙은 시각. climbUntil: 그 나무가 흔들려 줄기를 타는 중인 시각(Grows from Tree 와 짝) */
+interface Squirrel { map: string; tree: string; baseX: number; baseD: number; seed: number; x: number; d: number; freezeUntil: number; climbUntil: number }
 
 export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [], coins: coins0 = 0 }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[]; coins?: number }) {
   const [coins, setCoins] = useState(coins0); // 지갑(연못 코인과 같은 지갑) — 할 일·부탁을 끝내면 는다
@@ -307,6 +309,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     for (const m of maps.current) for (const sp of m.spots.filter((s) => s.kind === 'pond')) {
       const r = rng(hash(`duck:${sp.key}`)); const n = 3 + Math.floor(r() * 3);
       for (let i = 0; i < n; i++) ducks.push({ map: m.key, pond: sp.key, baseX: sp.x, baseD: sp.d, seed: Math.floor(r() * 1e6), x: sp.x, d: sp.d, scareUntil: 0 });
+    }
+    // 다람쥐 — 이름 붙은 나무마다(tree1·tree2·ptree1·ptree2; 장식으로 깔린 나무는 자리가 아니라 빠진다) 2~3마리, 밑동 근처를 씨앗+시계로 통통
+    const squirrels: Squirrel[] = [];
+    for (const m of maps.current) for (const sp of m.spots.filter((s) => s.kind === 'tree')) {
+      const r = rng(hash(`squirrel:${sp.key}`)); const n = 2 + Math.floor(r() * 2);
+      for (let i = 0; i < n; i++) squirrels.push({ map: m.key, tree: sp.key, baseX: sp.x + (r() - 0.5) * 40, baseD: Math.min(0.97, sp.d + 0.05 + r() * 0.05), seed: Math.floor(r() * 1e6), x: sp.x, d: sp.d, freezeUntil: 0, climbUntil: 0 });
     }
 
     const frame = (now: number) => {
@@ -848,6 +856,20 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           dck.x += (feedRef.current.x - dck.x) * Math.min(1, dt * 2.2); dck.d += (feedRef.current.d - dck.d) * Math.min(1, dt * 2.2);
         } else { dck.x += (bx - dck.x) * Math.min(1, dt * 2); dck.d += (bdd - dck.d) * Math.min(1, dt * 2); }
       }
+      // ── 다람쥐 — 밑동 근처를 씨앗으로 통통 뛰다가, 사람·주민이 다가오면 얼어붙고, 그 나무가 흔들리면(사람이든 주민이든, 사람 반응이 갈 필요 없다) 줄기를 타고 오른다 ──
+      for (const sq of squirrels) {
+        if (sq.map !== cur.key) continue;
+        const amp = 16 + (sq.seed % 14), sp2 = 0.5 + (sq.seed % 10) / 20, ph = (sq.seed % 628) / 100;
+        const bx = sq.baseX + Math.sin(t * sp2 + ph) * amp;
+        let near = !spectator && dist(b.x, b.d, bx, sq.baseD) < 70;
+        if (!near) for (const n of npcs.current) if (here(n) && dist(n.x, n.d, bx, sq.baseD) < 70) { near = true; break; }
+        if (near) sq.freezeUntil = now + 1000;
+        const treeSpot = spotIndex.get(sq.tree)?.spot;
+        const shakingHere = (!spectator && b.shaking > 0 && b.shakeSpot === sq.tree) || (!!treeSpot && npcs.current.some((n) => here(n) && n.act === 'shake' && dist(n.x, n.d, treeSpot.x, treeSpot.d) < 20));
+        if (shakingHere) sq.climbUntil = now + 1800;
+        if (now < sq.climbUntil && treeSpot) { sq.x += (treeSpot.x - sq.x) * Math.min(1, dt * 6); sq.d += (treeSpot.d - sq.d) * Math.min(1, dt * 6); }
+        else if (now >= sq.freezeUntil) { sq.x += (bx - sq.x) * Math.min(1, dt * 3); sq.d += (sq.baseD - sq.d) * Math.min(1, dt * 3); }
+      }
       if (chasing >= 0) { if (st.chasedBy !== chasing) { st.chasedBy = chasing; st.chasedSince = now; } else if (now - st.chasedSince > 10000) void complete('chased'); } else { st.chasedBy = -1; st.chasedSince = 0; }
       // 카메라
       let target = b.x;
@@ -888,6 +910,13 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (dck.map !== cur.key) continue; const fx = sx(dck.x); if (fx < -40 || fx > W + 40) continue;
         const pose: CritterPose = now < dck.scareUntil ? 'flap' : (feedRef.current.map === cur.key && now < feedRef.current.until && dist(feedRef.current.x, feedRef.current.d, dck.x, dck.d) < 80 ? 'feed' : 'paddle');
         layer.push({ d: dck.d - 0.002, f: () => critter(ctx, 'duck', fx, dy(dck.d) * s, ds(dck.d) * s, pose, t) });
+      }
+      for (const sq of squirrels) {
+        if (sq.map !== cur.key) continue; const fx = sx(sq.x); if (fx < -40 || fx > W + 40) continue;
+        const climbing = now < sq.climbUntil;
+        const pose: CritterPose = climbing ? 'climb' : now < sq.freezeUntil ? 'freeze' : 'hop';
+        const h = climbing ? 22 : 0; // 줄기를 타는 동안만 위로
+        layer.push({ d: sq.d - 0.0015, f: () => critter(ctx, 'squirrel', fx, dy(sq.d) * s - h * s, ds(sq.d) * s, pose, t) });
       }
       for (const th of thrown.current) { if (th.map !== cur.key) continue; const fx = sx(th.x); layer.push({ d: th.d, f: () => item(ctx, th.item, fx, (dy(th.d) - th.z) * s - 6 * s, ds(th.d) * s) }); }
       for (const n of npcs.current) {

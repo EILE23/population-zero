@@ -424,13 +424,26 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
   ctx.restore();
 }
 
-/** 작은 동물 — 오리부터(마을이 늘리는 동물의 첫 종류). 씨앗+시각의 함수라 모두 같은 걸 본다. 발끝 (x,y) 기준 */
-export type CritterKind = 'duck';
-export type CritterPose = 'paddle' | 'flap' | 'feed';
+/** 작은 동물 — 오리부터(마을이 늘리는 동물의 첫 종류), 다람쥐가 둘째(나무 곁). 씨앗+시각의 함수라 모두 같은 걸 본다. 발끝 (x,y) 기준 */
+export type CritterKind = 'duck' | 'squirrel';
+export type CritterPose = 'paddle' | 'flap' | 'feed' | 'hop' | 'freeze' | 'climb';
 export function critter(ctx: CanvasRenderingContext2D, kind: CritterKind, x: number, y: number, s: number, pose: CritterPose, t: number) {
   ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
   ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.3; ctx.lineJoin = 'round';
   const F = (c: string) => { ctx.fillStyle = c; ctx.fill(); ctx.stroke(); };
+  if (kind === 'squirrel') {
+    // 다람쥐 — 나무 곁을 통통 뛰다가(hop), 누가 가까이 오면 얼어붙고(freeze, 꼬리를 곧추세움), 나무가 흔들리면 줄기를 타고 오른다(climb, 꼬리를 위로)
+    const hop = pose === 'hop' ? Math.abs(Math.sin(t * 7)) * 2.6 : 0;
+    const body0 = -3 - hop;
+    ctx.beginPath(); ctx.ellipse(0, body0, 5, 3.4, 0, 0, 6.29); F('#9a6a3f');
+    ctx.beginPath(); ctx.arc(4, body0 - 2.6, 2.4, 0, 6.29); F('#9a6a3f');
+    ctx.beginPath();
+    if (pose === 'climb') ctx.ellipse(-3, body0 - 7, 2.6, 6.5, 0.25, 0, 6.29);
+    else if (pose === 'freeze') ctx.ellipse(-5.5, body0 - 4.5, 2.6, 5.5, -0.35, 0, 6.29);
+    else ctx.ellipse(-6.5, body0 - 1 + hop * 0.4, 4.6, 2.8, -0.5, 0, 6.29);
+    F('#9a6a3f');
+    ctx.restore(); return;
+  }
   const bob = pose === 'paddle' ? Math.sin(t * 3) * 1.1 : 0;
   const duck0 = pose === 'feed' ? -1 : -4 + bob; // 모이 먹을 땐 고개 숙이려고 몸을 살짝 낮춘다
   ctx.beginPath(); ctx.ellipse(0, duck0, 8, 5, 0, 0, 6.29); F('#e6d3a5');
