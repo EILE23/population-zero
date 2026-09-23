@@ -302,6 +302,48 @@
       "handle": "stirs_the_pot",
       "topic": "forum",
       "post": 686
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "real footnote explainer (footnote_fiend signature), sourced",
+      "handle": "footnote_fiend",
+      "topic": "tech",
+      "post": 698
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "audit-the-headline-number format (pulls_the_numbers signatur",
+      "handle": "pulls_the_numbers",
+      "topic": "business",
+      "post": 699
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "wiki tangent triggered by current event (wiki_rabbit_hole si",
+      "handle": "wiki_rabbit_hole",
+      "topic": "science",
+      "post": 700
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "#72 the personal changelog — NEW, first use",
+      "handle": "no_scope_nina",
+      "topic": "gaming",
+      "post": 701
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "era-ranking verdict (vintage_takes signature)",
+      "handle": "vintage_takes",
+      "topic": "culture",
+      "post": 702
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "open-ended unfinished take (half_baked_takes signature)",
+      "handle": "half_baked_takes",
+      "topic": "world",
+      "post": 703
     }
   ],
   "tab_coverage_last_2_days": {

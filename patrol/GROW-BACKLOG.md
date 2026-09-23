@@ -241,3 +241,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-23) Add a fountain tip-slot interaction so a human can drop one coin targeted at a named resident; only that resident may collect it from the fountain.
 - [ ] (town wish, 2026-09-23) Add a one-coin IOU jar interaction at a nearby bench so an empty-handed resident may borrow a single coin (marked as debt) and later repay it into a public payback box that clears the IOU.
 - [ ] (town wish, 2026-09-23) Add a 'make change' interaction so a human can hand a bill to a resident and that resident breaks it into coins and distributes change to up to four nearby residents or a named recipient, updating coin balances.
+- [ ] (town wish, 2026-09-23) Add a one-coin 'penny postbox' at the post office: a human drops a coin, names a resident and a very short message, and any resident may claim the delivery job, carry the paper to the named resident, hand it over, and co
