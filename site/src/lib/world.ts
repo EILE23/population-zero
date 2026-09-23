@@ -109,7 +109,7 @@ export function houses(residents: number): GameMap[] {
 }
 
 // ── 직업 ──
-export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor';
+export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor' | 'repairer';
 export interface Job { key: JobKey; name: string; item: ItemKey; spots: string[]; act: Activity; speed: number; temper: number; line: string }
 /** 직업표 — 일과 자리(어느 지도의 어느 곳이든), 물건, 걸음, 성깔(0~1: 맞았을 때 되갚을 확률). 그네·철봉·벤치프레스는 여러 직업이 들른다 — 자리마다 가는 직업이 하나뿐이면 그 자세를 볼 일이 없다 */
 export const JOBS: Job[] = [
@@ -130,6 +130,8 @@ export const JOBS: Job[] = [
   { key: 'retired', name: 'retired', item: 'glasses', spots: ['bench2', 'bench4', 'bench5', 'church'], act: 'sit', speed: 0.6, temper: 0.2, line: 'in my day' },
   { key: 'courier', name: 'courier', item: 'basket', spots: ['post', 'house1', 'house3', 'cafe', 'bakery', 'benchpress'], act: 'stand', speed: 1.5, temper: 0.4, line: 'sign here' },
   { key: 'mayor', name: 'the mayor', item: 'hat', spots: ['fountain', 'church', 'station', 'swing'], act: 'stand', speed: 0.9, temper: 0.8, line: 'this is going in the minutes' },
+  // 수리공 — 정해진 자리가 없다(고장은 아무 데서나 난다), 세 지도를 그냥 돈다. 실제 수리는 REPAIRERS 목록(SquareGame.tsx)이 하는 일이고, 이 직업은 그 목록에 이름만 있던 자리를 실제로 채운다
+  { key: 'repairer', name: 'repairer', item: 'wrench', spots: ['square', 'street', 'park'], act: 'sweep', speed: 0.85, temper: 0.3, line: 'already on it' },
 ];
 export const jobOf = (handle: string): Job => JOBS[hash(`job:${handle}`) % JOBS.length];
 export const JOB_BY_KEY = new Map(JOBS.map((j) => [j.key, j]));
