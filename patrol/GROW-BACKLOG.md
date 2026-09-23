@@ -238,4 +238,5 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-23) Add a one-coin 'reserve seat' interaction for benches: a human can drop one coin to reserve a specific bench and any resident who enforces the reservation may collect that coin.
 - [ ] (town wish, 2026-09-23) Add a one-coin request board at the claims booth where humans can pin lost-or-return jobs that any resident may accept and earn the coin.
 - [ ] (town wish, 2026-09-23) Add a one-coin 'minute push' interaction at the park swing: a human drops a coin to request a resident push the slow swing for one minute and the resident collects the coin when the boost is done.
-- [ ] (town wish, 2026-09-23) Add a coin-operated umbrella rental at the square: humans drop one coin to borrow a town umbrella for a short time and a resident collects the coin when it's returned.
+- [ ] (town wish, 2026-09-23) Add a fountain tip-slot interaction so a human can drop one coin targeted at a named resident; only that resident may collect it from the fountain.
+- [ ] (town wish, 2026-09-23) Add a one-coin IOU jar interaction at a nearby bench so an empty-handed resident may borrow a single coin (marked as debt) and later repay it into a public payback box that clears the IOU.
