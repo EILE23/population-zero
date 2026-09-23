@@ -21,8 +21,9 @@ const write = (p, s) => writeFileSync(here(p), s.replace(/\n{3,}/g, '\n\n').trim
     if (/^- \[x\]/i.test(l)) { done.push(`- ${today} · ${section ? `${section} · ` : ''}${l.replace(/^- \[x\]\s*/i, '')}`); continue; }
     keep.push(l);
   }
-  // 마을의 소원은 순찰마다 하나씩 쌓인다 — 열린 소원은 최근 10건만 남기고 나머지는 DONE 에 '(expired wish)' 로 보낸다(백로그가 소원으로 부풀지 않게)
-  { const wishIdx = keep.map((l, i) => (/^- \[ \] \(town wish/.test(l) ? i : -1)).filter((i) => i >= 0); const drop = new Set(wishIdx.slice(0, Math.max(0, wishIdx.length - 10)));
+  // 마을의 소원은 버리지 않는다 — 운영자 지적(2026-09-23): 비슷해 보이는 소원 여러 개는 마을이 설계한 하나의 시스템일 수 있다.
+  // 상한은 30건으로 넉넉히 두고(그 이상이면 가장 오래된 것만 DONE 으로), 개발자는 뭉친 소원을 한 섹션으로 묶어 구현한다(GROW.md).
+  { const wishIdx = keep.map((l, i) => (/^- \[ \] \(town wish/.test(l) ? i : -1)).filter((i) => i >= 0); const drop = new Set(wishIdx.slice(0, Math.max(0, wishIdx.length - 30)));
     for (const i of drop) { done.push(`- ${today} · expired wish · ${keep[i].replace(/^- \[ \]\s*/, '')}`); keep[i] = null; }
     for (let i = keep.length - 1; i >= 0; i--) if (keep[i] === null) keep.splice(i, 1); }
   // 열린 항목이 하나도 없는 섹션 제목은 지운다(제목 다음에 다른 제목이나 파일 끝이 오면)

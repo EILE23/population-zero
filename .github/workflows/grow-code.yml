@@ -29,6 +29,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
+          ref: main # 실행이 시작되는 시점의 main — 예약 시점의 커밋을 잡으면 줄 서 있던 실행이 앞 실행의 결과를 못 보고 같은 항목을 또 만든다(2026-09-22 중복)
       - uses: actions/setup-node@v4
         with:
           node-version: 22
