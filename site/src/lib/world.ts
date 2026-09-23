@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'rack' | 'board';
+  | 'pullbar' | 'benchpress' | 'rack' | 'board' | 'stage';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -49,6 +49,8 @@ export const MAPS: GameMap[] = [
       { key: 'bin1', name: 'a bin', x: 1250, d: 0.9, act: 'sweep', kind: 'bin' },
       // 잃어버린 물건 보관소 — Lost and found 체계의 첫 조각(board). 자리는 없다(직업표가 들르지 않는다), 갈 곳은 fetch 완료 때 코드가 정한다
       { key: 'board1', name: 'the lost-and-found board', x: 1050, d: 0.62, act: 'stand', kind: 'board' },
+      // 버스킹 자리 — 마을이 청한 코인 체계의 첫 조각. busker 직업이 여기서 일과로 연주하고, 사람도 C 로 같은 자리에서 할 수 있다
+      { key: 'stage1', name: 'the busking spot', x: 1750, d: 0.9, act: 'busk', kind: 'stage' },
     ],
     exits: [
       { x: 150, d: 0.12, to: 'house1', toX: 480, toD: 0.9, label: 'the blue house' },
@@ -122,7 +124,7 @@ export const JOBS: Job[] = [
   { key: 'barista', name: 'barista', item: 'cup', spots: ['cafe', 'bench1'], act: 'eat', speed: 1, temper: 0.35, line: 'oat milk is extra' },
   { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
   { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
-  { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate', 'swing', 'lamp1', 'lamp2'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
+  { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate', 'swing', 'lamp1', 'lamp2', 'stage1'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
   { key: 'dogwalker', name: 'dog walker', item: 'keys', spots: ['park', 'pond2', 'bench4', 'square', 'swing'], act: 'stand', speed: 1.1, temper: 0.4, line: 'he is a rescue' },
   { key: 'sweeper', name: 'street sweeper', item: 'broom', spots: ['bin1', 'bin2', 'bin3', 'bin4', 'square'], act: 'sweep', speed: 0.85, temper: 0.7, line: 'i JUST did this' },
   { key: 'priest', name: 'priest', item: 'paper', spots: ['church', 'bench3', 'square'], act: 'read', speed: 0.8, temper: 0.1, line: 'i forgive you. reluctantly.' },

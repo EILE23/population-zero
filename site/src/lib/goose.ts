@@ -25,7 +25,7 @@ export const FOOD: ItemKey[] = ['sandwich', 'cup', 'apple'];
 export const WEARABLE: ItemKey[] = ['hat', 'glasses'];
 /** 광장에 없는 물건 — 낚시는 뺐고(2026-09-23) 물고기·렌치는 직업이 만든다. decoy 는 뺏길 뻔한 주민이 그 자리에서 만든다. 할 일·주민 소지품 뽑기에서 제외해 "낚싯대를 훔쳐라" 같은 불가능한 할 일이 안 나오게 */
 export const NOT_CARRIED: ItemKey[] = ['rod', 'fish', 'wrench', 'decoy'];
-export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed' | 'lean' | 'shake';
+export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed' | 'lean' | 'shake' | 'busk';
 
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp' }
 /** 광장의 것들 — 주민의 일과가 이 사이를 오간다. 분수·연못은 물건을 빠뜨릴 곳 */
@@ -96,7 +96,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'decoy' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'decoy' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether' | 'busk';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -133,6 +133,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.99997) add({ key: 'stow1', kind: 'stow', text: 'Watch a resident hide something in their cup by the café', coins: 4 });
     else if (v < 0.99999) add({ key: 'weight1', kind: 'weight', text: 'Dig something out from under a dropped brick', coins: 4 });
     else if (v < 0.999995) add({ key: 'tether1', kind: 'tether', text: 'Knock down a resident holding their own recovered item twice to finally dislodge it', coins: 5 });
+    else if (v < 0.9999975) add({ key: 'busk1', kind: 'busk', text: 'Get a tip while busking', coins: 4 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
