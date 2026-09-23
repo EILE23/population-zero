@@ -31,7 +31,7 @@ const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
   for (const tok of raw.split(',')) { const w = tok.endsWith('!'); const k = (w ? tok.slice(0, -1) : tok) as ItemKey; if (k in ITEMS) { stack.push(k); if (w) worn.add(k); } }
   return { stack, worn };
 };
-type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver';
+type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver' | 'brace';
 interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null }
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string }
 interface Ev { k: string; [x: string]: unknown }
@@ -49,6 +49,8 @@ const DECOY_LINES = ['not that easy.', 'nice try.', 'that is not it.', 'good luc
 const CATCH_LINES = ['caught it.', 'not today.', 'nope.', 'missed me.'];
 /** 받아낸 걸 던진 자리에 돌려놓을 때 하는 말 */
 const CATCH_RETURN_LINES = ['here.', 'yours, i believe.', 'you dropped this.'];
+/** 뺏기지 않으려 두 발 딛고 버틸 때 하는 말 — Lost and found 체계의 첫 조각(holding on) */
+const BRACE_LINES = ['no.', 'mine.', 'not happening.', 'i need this.'];
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -448,6 +450,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               const n = npcs.current.filter((p) => here(p) && (p.item || p.stack.length) && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
               // Keeping it (decoy, town wish) — 뺏기기 직전, 가진 건 지키고 대신 가짜 동전을 발밑에 흘린다. 뺏기는 loose 목록을 npc 뺏기보다 먼저 보므로 다음 C 는 저절로 이걸 집는다
               if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.3) { const id = drop('decoy', b.x, b.d, null); decoyAt.current.set(id, now + 8000); n.say = pick(DECOY_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); }
+              // Lost and found (town wish) — 대신 두 발을 딛고 8초 버틴다: 그동안 C 는 실패하고(아래), 넘어뜨리면(hit()) 여전히 뺏긴다
+              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 3 / 7) { n.mode = 'brace'; n.owner = me!.id; n.until = now + 8000; n.x += Math.sign(n.x - b.x) * 20 || 20; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; n.say = pick(BRACE_LINES); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete('brace1'); }
+              else if (n && n.mode === 'brace') { say('Still holding on.', 1200); }
               else if (n && (n.item || n.stack.length)) { const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null; b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
               else {
                 // 장식으로 깔린 나무·가로등도 같은 소품이다 — 자리(spots)만 보면 똑같이 생긴 것 절반이 반응하지 않았다(운영자 2026-09-23). 부서진 건 못 쓴다
@@ -497,6 +502,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (n.mode === 'trip') { // 헛디뎌 잠깐 멈춤 — 회복하면 시계가 남아 있으면 계속 쫓고, 다 됐으면 포기
           mineOff.push(n); n.moving = false;
           if (now > n.tripUntil) { if (now > n.until) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); } else { n.mode = 'chase'; npcEv(n); } }
+          continue;
+        }
+        if (n.mode === 'brace') { // 두 발 딛고 버팀 — Lost and found: holding on. 8초 차면 제자리로(넘어뜨리면 hit() 이 먼저 mode 를 down 으로 바꿔 여기 오지 않는다)
+          mineOff.push(n); n.moving = false;
+          if (now > n.until) { n.mode = 'return'; npcEv(n); }
           continue;
         }
         if (n.mode === 'catch') { // 받아낸 자세로 0.3초 — 끝나면 던진 자리로 돌려주러 간다(Lost and found: interception)
@@ -691,7 +701,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : seat && !usable(seat) ? 'stand' : actPose(n.act, seat?.kind); // 부서진 벤치·그네 앞에선 그냥 선다
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : seat && !usable(seat) ? 'stand' : actPose(n.act, seat?.kind); // 부서진 벤치·그네 앞에선 그냥 선다
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
