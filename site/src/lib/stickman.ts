@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -188,6 +188,18 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line(shoulder, [11 + p * 0.5, -26], [13 + p, -22]); line(shoulder, [9 + p * 0.5, -22], [16 + p, -16]);
     ctx.lineWidth = 1.6; line([9 + p, -28], [24 + p, 4]); ctx.lineWidth = 2.4;
     ctx.beginPath(); ctx.moveTo(20 + p, 2); ctx.lineTo(30 + p, 0); ctx.lineTo(27 + p, 6); ctx.lineTo(19 + p, 7); ctx.closePath(); ctx.fill(); // 빗자루 술
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'rake') {
+    // 갈퀴로 물속 건지기 — 숙여서 긴 자루 갈퀴를 물에 넣었다 당긴다, 날 끝에 잔물결
+    const p = (Math.sin(t * 3) + 1) / 2; // 0 뻗음 1 당김
+    hip = [0, -13]; shoulder = [7, -28]; head = [11, -35];
+    line(hip, shoulder); line(hip, [-5, -7], [-7, 0]); line(hip, [5, -7], [6, 0]);
+    line(shoulder, [16 - p * 6, -22], [22 - p * 8, -14]); line(shoulder, [4, -22], [6, -16]);
+    ctx.lineWidth = 1.6; line([22 - p * 8, -14], [34 - p * 10, 2]); ctx.lineWidth = 2.4; // 자루
+    ctx.beginPath(); ctx.moveTo(30 - p * 10, 0); ctx.lineTo(38 - p * 10, -3); ctx.lineTo(38 - p * 10, 3); ctx.lineTo(30 - p * 10, 4); ctx.closePath(); ctx.fill(); // 갈퀴 날
+    ctx.strokeStyle = 'rgba(120,170,200,0.6)'; ctx.beginPath(); ctx.arc(30 - p * 10, 4, 3 + p * 3, 0, 3.14); ctx.stroke(); ctx.strokeStyle = color; // 잔물결
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
