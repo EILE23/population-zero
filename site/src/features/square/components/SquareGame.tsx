@@ -286,6 +286,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       if (hour() !== curHour) { curHour = hour(); spawn(); }
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
+      const usable = (p: { key: string }) => !broken.current.get(p.key)?.brokeAt; // 부서진 소품은 앉지도 타지도 못한다(고쳐질 때까지)
       const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : 'stand';
       const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0;
@@ -396,7 +397,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (i.shove && !shoveWas && b.z === 0 && b.swing <= 0) hit('punch');
         if (i.kick && !kickWas && b.swing <= 0) hit('kick');
         if (i.grab && !grabWas && b.z === 0) {
-          const pondSpot = cur.spots.find((s) => s.kind === 'pond' && dist(b.x, b.d, s.x, s.d) < 110);
+          const pondSpot = props.find((s) => s.kind === 'pond' && usable(s) && dist(b.x, b.d, s.x, s.d) < 110);
           if (b.stack.length && pondSpot && FOOD.includes(b.stack[b.stack.length - 1])) { // 연못가에서 먹을 것을 들고 — 오리에게 준다
             // 예전엔 두 갈래(자세만 / 오리만)가 따로 있어 자세는 나오는데 오리가 안 모이고 할 일 키도 달랐다(운영자 2026-09-23 "먹이주기가 안 된다") — 한 갈래로
             b.stack.pop(); b.feeding = 1.4; b.x = pondSpot.x; b.d = Math.min(0.97, pondSpot.d + 0.04);
@@ -404,10 +405,10 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             say('The ducks converge.', 1500); void complete(`feed:${pondSpot.key}`);
           } else if (b.stack.length) {
             const it = b.stack.pop()!;
-            const bin = cur.spots.find((s) => s.kind === 'bin' && dist(b.x, b.d, s.x, s.d) < 90);
+            const bin = props.find((s) => s.kind === 'bin' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
             const water = cur.spots.find((s) => WATER_SPOTS.includes(s.key) && dist(b.x, b.d, s.x, s.d) < 90);
             const spotNear = cur.spots.find((s) => (s.kind === 'bench' || s.kind === 'cafe' || s.kind === 'table' || s.kind === 'bed') && dist(b.x, b.d, s.x, s.d) < 90);
-            const pondSpot = cur.spots.find((s) => s.kind === 'pond' && dist(b.x, b.d, s.x, s.d) < 140);
+            const pondSpot = props.find((s) => s.kind === 'pond' && usable(s) && dist(b.x, b.d, s.x, s.d) < 140);
             if (bin) { // 통에 들어가면 그걸로 끝 — 줍기 목록에도, 바닥에도 다시 나타나지 않는다(먹기와 같은 규칙: 새 ev 없이 다음 pos.s 로 남에게도 보인다)
               say(`Binned the ${ITEMS[it]}.`, 1500); void complete(`bin:${it}:${bin.key}`);
               for (const q of quests.current.values()) if (q.kind === 'bin' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
@@ -430,13 +431,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               const n = npcs.current.filter((p) => here(p) && p.item && p.mode !== 'down' && p.act !== 'away' && dist(b.x, b.d, p.x, p.d) < GRAB_R + 6).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
               if (n && n.item) { b.stack.push(n.item); n.item = null; n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
               else {
-                const seat = cur.spots.find((s) => SITTABLE.includes(s.kind) && dist(b.x, b.d, s.x, s.d) < 90);
-                const gym = cur.spots.find((s) => (s.kind === 'pullbar' || s.kind === 'benchpress') && dist(b.x, b.d, s.x, s.d) < 90);
-                const screen = cur.spots.find((s) => (s.kind === 'tv' || s.kind === 'shelf') && dist(b.x, b.d, s.x, s.d) < 90);
-                const garden = cur.spots.find((s) => s.kind === 'garden' && dist(b.x, b.d, s.x, s.d) < 90);
-                const booth = cur.spots.find((s) => s.kind === 'booth' && dist(b.x, b.d, s.x, s.d) < 90);
-                const lamp = cur.spots.find((s) => s.kind === 'lamp' && dist(b.x, b.d, s.x, s.d) < 90);
-                const tree = cur.spots.find((s) => s.kind === 'tree' && dist(b.x, b.d, s.x, s.d) < 90);
+                // 장식으로 깔린 나무·가로등도 같은 소품이다 — 자리(spots)만 보면 똑같이 생긴 것 절반이 반응하지 않았다(운영자 2026-09-23). 부서진 건 못 쓴다
+                const seat = props.find((s) => SITTABLE.includes(s.kind) && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                const gym = props.find((s) => (s.kind === 'pullbar' || s.kind === 'benchpress') && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                const screen = props.find((s) => (s.kind === 'tv' || s.kind === 'shelf') && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                const garden = props.find((s) => s.kind === 'garden' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                const booth = props.find((s) => s.kind === 'booth' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                const lamp = props.find((s) => s.kind === 'lamp' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                const tree = props.find((s) => s.kind === 'tree' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 if (seat) { b.sitting = !b.sitting; if (b.sitting) { b.x = seat.x; b.d = seat.d; b.seat = seat.kind; } }
                 else if (gym) { b.exercise = 2.4; b.exerciseKind = gym.kind === 'pullbar' ? 'pullup' : 'press'; b.x = gym.x; b.d = gym.d; say(gym.kind === 'pullbar' ? 'Pull-ups.' : 'Bench press.', 1200); }
                 else if (screen) { b.still = b.still ? null : (screen.kind as 'tv' | 'shelf'); if (b.still) { b.x = screen.x; b.d = screen.d; } }
@@ -620,7 +622,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'trip' ? 'trip' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : actPose(n.act, seat?.kind);
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'trip' ? 'trip' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : seat && !usable(seat) ? 'stand' : actPose(n.act, seat?.kind); // 부서진 벤치·그네 앞에선 그냥 선다
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
