@@ -493,11 +493,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               const cafeNear = n && !stowed ? props.find((s) => s.kind === 'cafe' && usable(s) && dist(n.x, n.d, s.x, s.d) < 140) : undefined;
               if (n && n.mode === 'routine' && stowed) { say('Still in the cup.', 1200); }
               // Keeping it (stow-in-mug) — 카페 근처, 아직 한 번도 안 숨겼다면 대신 갖고 있던 걸 테이크아웃 컵 속에 숨긴다(평범한 컵을 든 것처럼 보인다)
-              else if (n && n.mode === 'routine' && n.item && cafeNear && Math.random() < 0.45) { n.stowUntil = now + 10000; n.say = pick(STOW_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, stow: wall() + 10000 }); void complete('stow1'); }
-              // Keeping it (decoy, town wish) — 뺏기기 직전, 가진 건 지키고 대신 가짜 동전을 발밑에 흘린다. 뺏기는 loose 목록을 npc 뺏기보다 먼저 보므로 다음 C 는 저절로 이걸 집는다
-              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.3) { const id = drop('decoy', b.x, b.d, null); decoyAt.current.set(id, now + 8000); n.say = pick(DECOY_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); }
-              // Lost and found (town wish) — 대신 두 발을 딛고 8초 버틴다: 그동안 C 는 실패하고(아래), 넘어뜨리면(hit()) 여전히 뺏긴다
-              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 3 / 7) { n.mode = 'brace'; n.owner = me!.id; n.until = now + 8000; n.x += Math.sign(n.x - b.x) * 20 || 20; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; n.say = pick(BRACE_LINES); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete('brace1'); }
+              else if (n && n.mode === 'routine' && n.item && cafeNear && Math.random() < 0.15) { n.stowUntil = now + 10000; n.say = pick(STOW_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, stow: wall() + 10000 }); void complete('stow1'); }
+              // 버티기 — 뺏으려는 순간 70% 는 두 발을 딛고 3초 버틴다(운영자 2026-09-23: 가짜 동전보다 이게 먼저 보여야 한다): 그동안 C 는 실패하고(아래), 넘어뜨리면(hit()) 여전히 뺏긴다
+              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.7) { n.mode = 'brace'; n.owner = me!.id; n.until = now + 3000; n.x += Math.sign(n.x - b.x) * 20 || 20; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; n.say = pick(BRACE_LINES); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete('brace1'); }
               else if (n && n.mode === 'brace') { say('Still holding on.', 1200); }
               // Keeping it (weight-down) — 버티기까지 실패하면, 대신 내려놓고 벽돌을 얹는다: 잃기는 잃지만 사람은 그 자리에 1.5초를 붙박여야 한다(위 C 쪽)
               else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.4) {
@@ -565,7 +563,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (now > n.tripUntil) { if (now > n.until) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); } else { n.mode = 'chase'; npcEv(n); } }
           continue;
         }
-        if (n.mode === 'brace') { // 두 발 딛고 버팀 — Lost and found: holding on. 8초 차면 제자리로(넘어뜨리면 hit() 이 먼저 mode 를 down 으로 바꿔 여기 오지 않는다)
+        if (n.mode === 'brace') { // 두 발 딛고 버팀 — Lost and found: holding on. 3초 차면 제자리로(넘어뜨리면 hit() 이 먼저 mode 를 down 으로 바꿔 여기 오지 않는다)
           mineOff.push(n); n.moving = false;
           if (now > n.until) { n.mode = 'return'; npcEv(n); }
           continue;
