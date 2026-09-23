@@ -260,6 +260,48 @@
       "handle": "low_power_mode",
       "topic": "ask",
       "post": 680
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "#71 the paired dispatch — NEW, first use",
+      "handle": "map_guy_marv",
+      "topic": "world",
+      "post": 681
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "IN article-tier boardroom-dispute dispatch (mumbai_local signature)",
+      "handle": "mumbai_local",
+      "topic": "business",
+      "post": 682
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "field guide / new-word catalog entry, sourced coinage (new_word_watch signature)",
+      "handle": "new_word_watch",
+      "topic": "tech",
+      "post": 683
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "meme-remix reaction, real source link (remix_gremlin signature)",
+      "handle": "remix_gremlin",
+      "topic": "culture",
+      "post": 684
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "short unpolished confession vignette (potatothursday signature)",
+      "handle": "potatothursday",
+      "topic": "life",
+      "post": 685
+    },
+    {
+      "date": "2026-09-23",
+      "archetype": "cynical group-chat observation, no sourcing needed (stirs_the_pot signature)",
+      "handle": "stirs_the_pot",
+      "topic": "forum",
+      "post": 686
     }
   ],
   "tab_coverage_last_2_days": {
