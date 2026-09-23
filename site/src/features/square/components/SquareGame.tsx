@@ -330,7 +330,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const linkedGuard = (x: number, d: number) => npcs.current.some((n) => here(n) && dist(x, d, n.x, n.d) < 70 && linkedNpc(n));
       const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.busking > 0 ? 'busk' : b.rummaging > 0 ? 'root' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : (t + (me?.id ?? 0) * 3 + 16) % 22 < 1.2 ? 'look' : (t + (me?.id ?? 0) * 3 + 6) % 22 < 1.2 ? 'check' : (t + (me?.id ?? 0) * 3 + 19) % 22 < 1.2 ? 'shrug' : 'stand'); // 서서 가만있을 때 22초에 한 번씩 돌아가며 하품·기지개·두리번·폰 확인·으쓱(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
       const knock = (byName: string, line: string, fine = 0) => {
-        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0; b.busking = 0; b.rummaging = 0;
+        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0; b.busking = 0; b.rummaging = 0; b.weighTarget = null; b.weighing = 0; // 이 것만 빠져 있었다(폴리시, 2026-09-24) — 벽돌 채널 도는 중에 맞으면 hurt 가 풀린 뒤 이어서 세, 1.5초를 다 채우지 않고도 집혔다
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
         b.stack = []; b.wearing.clear(); say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
@@ -550,12 +550,18 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.3) {
                 if (n.item && cafeNear) { n.stowUntil = now + 10000; n.say = pick(STOW_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, stow: wall() + 10000 }); void complete('stow1'); }
                 else {
-                  const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null;
+                  const taken = n.stack.length ? n.stack.pop()! : n.item!; let untethered = false;
+                  if (!n.stack.length && taken === n.item) { n.item = null; if (n.tether) { n.tether = false; n.tetherMissed = false; untethered = true; } } // 이미 줄이 끊긴 것 — 벽돌 밑으로 뺏긴 물건이 벨트 보호를 계속 받으면 안 된다(폴리시, 2026-09-24)
                   drop(taken, n.x + (Math.random() < 0.5 ? -16 : 16), n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, false, true);
-                  n.say = pick(WEIGHT_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
+                  n.say = pick(WEIGHT_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, ...(untethered ? { tether: 0, tm: 0 } : {}) });
                 }
               }
-              else if (n && (n.item || n.stack.length)) { const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null; b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
+              else if (n && (n.item || n.stack.length)) {
+                const taken = n.stack.length ? n.stack.pop()! : n.item!; let untethered = false;
+                if (!n.stack.length && taken === n.item) { n.item = null; if (n.tether) { n.tether = false; n.tetherMissed = false; untethered = true; } } // 위와 같은 이유 — 맨손 뺏기로도 벨트가 풀린다
+                b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500;
+                npcEv(n, { say: n.say, ...(untethered ? { tether: 0, tm: 0 } : {}) }); void complete(`steal:${n.who}`);
+              }
               else {
                 // 장식으로 깔린 나무·가로등도 같은 소품이다 — 자리(spots)만 보면 똑같이 생긴 것 절반이 반응하지 않았다(운영자 2026-09-23). 부서진 건 못 쓴다
                 const seat = props.find((s) => SITTABLE.includes(s.kind) && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);

@@ -120,7 +120,7 @@ export const JOBS: Job[] = [
   { key: 'baker', name: 'baker', item: 'basket', spots: ['bakery', 'stall', 'bench3'], act: 'shop', speed: 0.9, temper: 0.4, line: 'the bread is not for you' },
   { key: 'postie', name: 'postal worker', item: 'paper', spots: ['post', 'house1', 'house2', 'house3', 'booth'], act: 'stand', speed: 1.2, temper: 0.3, line: 'that is federal property. probably.' },
   { key: 'cop', name: 'police officer', item: 'cup', spots: ['station', 'fountain', 'street', 'gate', 'pullbar'], act: 'stand', speed: 1.3, temper: 1, line: 'stop right there' },
-  { key: 'gardener', name: 'gardener', item: 'broom', spots: ['garden', 'garden2', 'plant'], act: 'water', speed: 0.8, temper: 0.5, line: 'those took months' },
+  { key: 'gardener', name: 'gardener', item: 'broom', spots: ['garden', 'garden2', 'house1:plant', 'house2:plant', 'house3:plant'], act: 'water', speed: 0.8, temper: 0.5, line: 'those took months' },
   { key: 'barista', name: 'barista', item: 'cup', spots: ['cafe', 'bench1'], act: 'eat', speed: 1, temper: 0.35, line: 'oat milk is extra' },
   { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
   { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },

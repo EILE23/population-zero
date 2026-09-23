@@ -7,7 +7,7 @@
  * 오늘의 할 일은 (날짜, 사람) 씨앗으로 정해진다. 완료는 브라우저가 판정하고 서버는 기록·코인·뱃지만.
  */
 import { hash, rng } from './tower';
-import { MAPS, WATER_SPOTS } from './world';
+import { jobOf, MAPS, WATER_SPOTS } from './world';
 
 export const SQUARE_W = 3200;
 export const DEPTH_PX = 130;
@@ -107,7 +107,8 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
   const add = (t: Task) => { if (!tasks.some((x) => x.key === t.key)) tasks.push(t); };
   while (tasks.length < 8) {
     const v = r();
-    if (v < 0.25) { const p = pick(); add({ key: `steal:${p.who}`, kind: 'steal', who: p.who, item: p.item, text: `Steal ${handles[p.who]}'s ${ITEMS[p.item]}`, coins: 6 }); }
+    // p.item 은 이 낡은 residentsOut 모델의 무작위 뽑기라 실제 게임(world.ts JOBS)이 그 주민에게 들려준 물건과 다를 때가 대부분이었다(폴리시, 2026-09-24) — jobOf 로 실제 직업 물건을 쓴다
+    if (v < 0.25) { const p = pick(); const it = jobOf(handles[p.who]).item; add({ key: `steal:${p.who}`, kind: 'steal', who: p.who, item: it, text: `Steal ${handles[p.who]}'s ${ITEMS[it]}`, coins: 6 }); }
     else if (v < 0.42) { const it = items[Math.floor(r() * items.length)]; const w = WATER[Math.floor(r() * WATER.length)]; const ws = ALL_SPOTS.find((x) => x.key === w); add({ key: `dunk:${it}:${w}`, kind: 'dunk', item: it, spot: w, text: `Drop a ${ITEMS[it]} in ${ws?.name ?? w}`, coins: 10 }); }
     else if (v < 0.55) add({ key: 'shove3', kind: 'honk3', n: 3, text: 'Knock over three different residents within ten seconds', coins: 5 });
     else if (v < 0.66) add({ key: 'chased', kind: 'chased', n: 10, text: 'Get chased for ten seconds without being caught', coins: 8 });
