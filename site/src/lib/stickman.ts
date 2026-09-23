@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -63,6 +63,17 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line(hip, shoulder);
     line(hip, [9, -5], [15, 2]); line(hip, [-10, -6], [-15, 0]);           // 다리 넓게 벌려 디딤
     line(shoulder, [4, -24 + br], [9, -19 + br]); line(shoulder, [-1, -23 + br], [4, -18 + br]); // 팔 가슴 앞에서 움켜쥠
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'dust') {
+    // 먼지 털기 — Keeping it(dust-off): 넘어졌다 일어난 뒤 ~2초, 양손이 번갈아 옷의 먼지를 쓸어내리고 작은 먼지가 인다
+    const p = (Math.sin(t * 6) + 1) / 2; // 0 아래로 쓸어내림 1 위로 올림
+    hip = [0, -16]; shoulder = [0, -34]; head = [0, -42];
+    line(hip, shoulder);
+    line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [6, -28 + p * 10], [9, -20 + p * 14]); line(shoulder, [-6, -28 + (1 - p) * 10], [-9, -20 + (1 - p) * 14]);
+    ctx.fillStyle = '#c9b8a0'; for (let k = 0; k < 3; k++) { const q = (t * 3 + k / 3) % 1; ctx.beginPath(); ctx.arc(7 - k * 4, -4 - q * 13, 1.3 * (1 - q * 0.5), 0, 6.29); ctx.fill(); } ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

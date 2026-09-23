@@ -31,8 +31,8 @@ const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
   for (const tok of raw.split(',')) { const w = tok.endsWith('!'); const k = (w ? tok.slice(0, -1) : tok) as ItemKey; if (k in ITEMS) { stack.push(k); if (w) worn.add(k); } }
   return { stack, worn };
 };
-type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver' | 'brace' | 'board' | 'shelve';
-interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number }
+type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver' | 'brace' | 'board' | 'shelve' | 'dust';
+interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean }
 /** board: 못 알아본 물건을 들고 게시판 앞 상자로 가는 중(캐리 필드는 catch/deliver 와 그대로 공유) — 도착하면 note/origin 을 붙여 내려놓는다.
  *  shelve: 주인의 직업에 자기 건물(빵집·우체국·경찰서)이 있으면 상자 대신 그 건물 선반으로 — 같은 캐리 필드, 도착해 잠깐(fix/rake 와 같은 요령) 선반에 얹는 자세를 보인 뒤 내려놓는다 */
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string; board?: string; shelf?: string; note?: string; origin?: number }
@@ -446,7 +446,10 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             }
           } else {
             const l = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
-            if (l && l.item === 'decoy') { decoyAt.current.delete(l.id); emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say('Just a decoy.', 1400); void complete('decoy1'); }
+            // Keeping it (dust-off) — 방금 일어난 주민이 떨군 자기 물건은, 먼지 터는 ~2초 동안 한 번은 놓친다
+            const dusting = l && l.from !== null ? npcs.current.find((p) => p.who === l.from && p.mode === 'dust' && !p.dustMissed) : undefined;
+            if (dusting) { dusting.dustMissed = true; say("Can't see straight for the dust.", 1400); void complete('dust1'); }
+            else if (l && l.item === 'decoy') { decoyAt.current.delete(l.id); emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say('Just a decoy.', 1400); void complete('decoy1'); }
             // Lost and found — 게시판 밑 상자: 사람도 주민도 그냥 C 로 가져간다(핀 노트 문구를 그대로 알림으로)
             else if (l && l.board) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say(l.note ?? `Took the ${ITEMS[l.item]}.`, 1800); void complete('crate1'); }
             // Relay and shelving — 상자 대신 직업 건물 선반에 올려둔 것도 그냥 C 로(사람도 주민도 같은 규칙)
@@ -504,7 +507,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (n.mode !== 'down' && now > n.until + 8000) { n.mode = 'routine'; n.owner = null; }
           continue;
         }
-        if (n.mode === 'down') { if (now > n.until) { if (n.angry && !spectator) { n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); } else { n.mode = 'return'; npcEv(n); } } n.moving = false; mineOff.push(n); continue; }
+        if (n.mode === 'down') { if (now > n.until) { if (n.angry && !spectator) { n.mode = 'chase'; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2000; npcEv(n, { say: n.say }); } else { n.mode = 'dust'; n.until = now + 2000; n.dustMissed = false; npcEv(n); } } n.moving = false; mineOff.push(n); continue; }
+        if (n.mode === 'dust') { // 일어난 뒤 ~2초 먼지 털기 — Keeping it(dust-off): 그동안 방금 떨군 자기 물건을 사람이 집으려 하면 한 번은 놓친다(아래 C 쪽)
+          mineOff.push(n); n.moving = false;
+          if (now > n.until) { n.mode = 'return'; npcEv(n); }
+          continue;
+        }
         if (n.mode === 'trip') { // 헛디뎌 잠깐 멈춤 — 회복하면 시계가 남아 있으면 계속 쫓고, 다 됐으면 포기
           mineOff.push(n); n.moving = false;
           if (now > n.tripUntil) { if (now > n.until) { n.mode = 'return'; n.say = pick(content.giveup); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`sit:${n.who}`); } else { n.mode = 'chase'; npcEv(n); } }
@@ -760,7 +768,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품이 가끔
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품이 가끔
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
