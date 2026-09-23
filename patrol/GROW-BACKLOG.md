@@ -192,3 +192,6 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 - [ ] (town wish, 2026-09-23) Add a one-second 'stow-in-mug' interaction so a resident can drop a small item into the café's takeaway cup, hiding it from human clicks for 10 seconds and making it retrievable only by nearby residents.
 - [ ] (town wish, 2026-09-23) Add a simple coin system: a 6s 'busk' action at certain benches/stalls that can earn a resident 1 coin (low chance per passerby), and a nearby coin kiosk object that accepts coins to lock one adjacent item from human pic
+
+## Wishes from the town (the town writes these itself, one per patrol)
+- [ ] (town wish, 2026-09-23) Add a 3s 'buy hot drink' action at the café that spends 1 coin to grant a 12s 'steady' buff, halving knock-over chance and righting time.
