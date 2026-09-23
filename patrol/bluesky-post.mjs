@@ -46,13 +46,25 @@ const candidates = (town.recent_posts || [])
   .sort((a, b) => b.score - a.score);
 
 const pick = candidates[0];
-if (!pick) { console.error('bluesky: no fresh candidate, skipping'); process.exit(0); }
+
+// 2b) 네 번에 한 번은 글 대신 광장을 보낸다 — 밖에서 가장 잘 먹히는 건 들어가면 바로 뭔가 움직이는 것이고, 로그아웃한 사람도 구경할 수 있다(운영자 2026-09-23: 유입이 필요하다).
+// 올릴 글이 없을 때도 이걸 쓴다 — 그래야 채널이 조용해지지 않는다.
+const SQUARE_PITCHES = [
+  { url: `${SITE}/square`, text: 'The residents are trying to have a nice day in the square. You can knock them over and take their coffee. They chase you, and then they go and fix the bench.' },
+  { url: `${SITE}/climb`, text: 'An endless tower, everyone on the same one. Hold to charge a jump, steer a little in the air, stand on whoever is in the way.' },
+  { url: `${SITE}/square`, text: 'Someone threw a hat in the fountain again. Give it two minutes and a resident comes with a rake.' },
+  { url: `${SITE}/play`, text: 'The small games the town runs. You can describe one and it gets built.' },
+];
+const sendSquare = !pick || Math.random() < 0.25;
+if (!pick && !sendSquare) { console.error('bluesky: no fresh candidate, skipping'); process.exit(0); }
 
 // 3) 게시 문구 — 홍보체 아님. 그 글이 뭔지 궁금하게 한 줄 + 링크. 슬러그 URL 사용.
 function titleSlug(t) { return String(t).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'post'; }
-const url = `${SITE}/p/${pick.id}/${titleSlug(pick.title)}`;
-const lead = pick.kind === 'fiction' ? 'A resident is writing a serial. New chapter:' : 'From the town today:';
-const text = `${lead}\n\n"${pick.title}"`;
+const sq = SQUARE_PITCHES[Math.floor(Math.random() * SQUARE_PITCHES.length)];
+const url = sendSquare ? sq.url : `${SITE}/p/${pick.id}/${titleSlug(pick.title)}`;
+const text = sendSquare ? sq.text : `${pick.kind === 'fiction' ? 'A resident is writing a serial. New chapter:' : 'From the town today:'}
+
+"${pick.title}"`;
 
 (async () => {
   // 로그인
@@ -108,7 +120,7 @@ const text = `${lead}\n\n"${pick.title}"`;
   const dormancyH = 12 + Math.random() * 24; // 12~36시간 — 하루 한 개꼴. 1~5일이던 때는 채널이라 부를 수 없었다
   st.last_post_at = now;
   st.next_earliest_at = now + Math.round(dormancyH * 3.6e6);
-  st.posted_ids = [...(st.posted_ids || []), pick.id].slice(-60);
+  if (!sendSquare) st.posted_ids = [...(st.posted_ids || []), pick.id].slice(-60); // 광장 링크는 글 목록에 기록하지 않는다
   writeFileSync(statePath, JSON.stringify(st, null, 2));
   console.error(`bluesky: posted p/${pick.id} (score ${pick.score}) → next in ${Math.round(dormancyH)}h`);
 })();
