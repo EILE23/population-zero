@@ -23,6 +23,8 @@ export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', pape
 export const FOOD: ItemKey[] = ['sandwich', 'cup', 'apple'];
 /** 몸에 걸칠 수 있는 것 — 아무것도 근처에 없을 때 C 로 입고/벗는다(머리·얼굴에 그려짐, 훔치기·던지기 대상에선 빠지지 않는다) */
 export const WEARABLE: ItemKey[] = ['hat', 'glasses'];
+/** 광장에 없는 물건 — 낚시는 뺐고(2026-09-23) 물고기·렌치는 직업이 만든다. 할 일·주민 소지품 뽑기에서 제외해 "낚싯대를 훔쳐라" 같은 불가능한 할 일이 안 나오게 */
+export const NOT_CARRIED: ItemKey[] = ['rod', 'fish', 'wrench'];
 export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed' | 'lean' | 'shake';
 
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp' }
@@ -69,7 +71,7 @@ export function dayRoster(day: string, residents: number, extra: number[] = []):
 export function residentsOut(hour: number, residents: number): Routine[] {
   const r = rng(hash(`goose:${hour}`));
   const used = new Set<number>(); const out: Routine[] = [];
-  const keys = Object.keys(ITEMS) as ItemKey[];
+  const keys = (Object.keys(ITEMS) as ItemKey[]).filter((k) => !NOT_CARRIED.includes(k));
   const spots = SPOTS.filter((s) => s.kind !== 'lamp');
   for (let i = 0; i < 12 && i < residents; i++) {
     let who = Math.floor(r() * residents); while (used.has(who)) who = (who + 1) % residents; used.add(who);
@@ -100,7 +102,7 @@ export interface Task { key: string; kind: TaskKind; text: string; who?: number;
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
   const r = rng(hash(`tasks:${day}:${uid}`));
   const pick = () => out[Math.floor(r() * out.length)];
-  const items = Object.keys(ITEMS) as ItemKey[];
+  const items = (Object.keys(ITEMS) as ItemKey[]).filter((k) => !NOT_CARRIED.includes(k));
   const tasks: Task[] = [];
   const add = (t: Task) => { if (!tasks.some((x) => x.key === t.key)) tasks.push(t); };
   while (tasks.length < 8) {
