@@ -45,8 +45,6 @@ const REPAIRERS = ['gardener', 'sweeper', 'grocer', 'courier', 'repairer'];
 const RAKERS = ['gardener', 'sweeper']; // 물에 빠진 것 건지기 — 이 둘이 먼저 가고, 없으면 지나가던 아무나가 낮은 확률로 간다
 /** 전화 부스에서 통화가 끝나면 돌아오는 대사 — 무뚝뚝하게 */
 const CALL_LINES = ['no dial tone. that tracks.', 'wrong number.', 'still ringing.', 'busy. of course.', 'hello? — dead line.', 'call me back.'];
-/** 훔치려는 순간 가짜 동전을 흘리며 하는 말 — Keeping it 체계의 첫 조각(decoy) */
-const DECOY_LINES = ['not that easy.', 'nice try.', 'that is not it.', 'good luck with that.'];
 /** 던진 걸 받아냈을 때 하는 말 — Lost and found 체계의 첫 조각(interception) */
 const CATCH_LINES = ['caught it.', 'not today.', 'nope.', 'missed me.'];
 /** 받아낸 걸 던진 자리에 돌려놓을 때 하는 말 */
@@ -105,7 +103,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const broken = useRef(new Map<string, { hp: number; brokeAt: number }>());
   const dunkedAt = useRef(new Map<string, number>()); // 물에 빠진 시각(내 화면이 처음 본 때, performance.now() 기준) — 갈퀴로 건질 때가 됐는지 재는 타이머
   const wet = useRef(new Map<string, number>()); // 방금 건져 젖은 채인 물건 — id → 이 시각까지 방울 표시(순전히 연출, 동기화 안 함)
-  const decoyAt = useRef(new Map<string, number>()); // 내가 흘린 가짜 동전 — id → 사라질 시각(performance.now() 기준). 안 집히면 내 화면이 직접 치운다(오리가 물고기를 가져가는 것과 같은 요령)
   const hideAt = useRef(new Map<string, number>()); // Keeping it(slide-under) — 벤치·물가 턱 밑에 숨긴 것 — id → 그때까지 못 줍고 반쯤 가려 그림(순전히 연출 타이머, wet 과 같은 요령)
   const flicker = useRef(new Map<string, number>()); // 가로등이 맞고 깜빡이는 순간 — 키 → 언제까지(performance.now() 기준, 순전히 연출이라 시계 보정 없이 쓴다)
   const others = useRef(new Map<number, Other>());
@@ -259,7 +256,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     /** 지도 a → b 로 가는 문: a 의 출구 중 b 로 가는 것, 없으면 광장으로 가는 것(집→공원처럼 두 번 건너는 경우) */
     const doorTo = (from: string, to: string) => { const m = mapOf(from); return m.exits.find((e) => e.to === to) ?? m.exits.find((e) => e.to === 'square') ?? m.exits[0]; };
     /** 자리에 설 곳 — 앉는 자리·운동기구는 정확히 그 위, 나머지는 ±110px·앞뒤 ±0.18 로 흩어진다(씨앗+정거장 번호로 결정적). 뭉치면 누가 누군지 안 보인다 */
-    const EXACT: PropKind[] = [...SITTABLE, 'pullbar', 'benchpress', 'rack', 'lamp', 'stage'];
+    const EXACT: PropKind[] = [...SITTABLE, 'pullbar', 'benchpress', 'lamp', 'stage'];
     const standAt = (spot: Spot, seed: number, i: number): [number, number] => {
       if (EXACT.includes(spot.kind) || spot.act === 'sit') return [spot.x, spot.d];
       const r = rng(hash(`${seed}:${i}`)); return [spot.x + (r() - 0.5) * 300, Math.min(0.95, Math.max(0.05, spot.d + (r() - 0.5) * 0.36))];
@@ -312,7 +309,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       const b = body.current, i = input.current, st = stats.current; const cur = mapOf(mapKey.current); const props = propsOf.get(cur.key)!;
       const here = (n: Npc) => n.map === cur.key;
       const usable = (p: { key: string }) => !broken.current.get(p.key)?.brokeAt; // 부서진 소품은 앉지도 타지도 못한다(고쳐질 때까지)
-      for (const [id, exp] of decoyAt.current) { if (now > exp) { decoyAt.current.delete(id); if (loose.current.has(id)) emit({ k: 'pick', id }); } } // 안 집힌 가짜 동전은 8초 뒤 스스로 치운다
       const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.busking > 0 ? 'busk' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : (t + (me?.id ?? 0) * 3 + 16) % 22 < 1.2 ? 'look' : (t + (me?.id ?? 0) * 3 + 6) % 22 < 1.2 ? 'check' : 'stand'); // 서서 가만있을 때 22초에 한 번씩 돌아가며 하품·기지개·두리번·폰 확인(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
       const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0; b.busking = 0;
@@ -486,7 +482,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             const dusting = l && l.from !== null ? npcs.current.find((p) => p.who === l.from && p.mode === 'dust' && !p.dustMissed) : undefined;
             if (hidden) { say('Tucked out of sight.', 1400); void complete('slide1'); }
             else if (dusting) { dusting.dustMissed = true; say("Can't see straight for the dust.", 1400); void complete('dust1'); }
-            else if (l && l.item === 'decoy') { decoyAt.current.delete(l.id); emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say('Just a decoy.', 1400); void complete('decoy1'); }
             // Lost and found — 게시판 밑 상자: 사람도 주민도 그냥 C 로 가져간다(핀 노트 문구를 그대로 알림으로)
             else if (l && l.board) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say(l.note ?? `Took the ${ITEMS[l.item]}.`, 1800); void complete('crate1'); }
             // Relay and shelving — 상자 대신 직업 건물 선반에 올려둔 것도 그냥 C 로(사람도 주민도 같은 규칙)
@@ -500,16 +495,19 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               const stowed = n && n.stowUntil !== undefined && now < n.stowUntil;
               const cafeNear = n && !stowed ? props.find((s) => s.kind === 'cafe' && usable(s) && dist(n.x, n.d, s.x, s.d) < 140) : undefined;
               if (n && n.mode === 'routine' && stowed) { say('Still in the cup.', 1200); }
-              // Keeping it (stow-in-mug) — 카페 근처, 아직 한 번도 안 숨겼다면 대신 갖고 있던 걸 테이크아웃 컵 속에 숨긴다(평범한 컵을 든 것처럼 보인다)
-              else if (n && n.mode === 'routine' && n.item && cafeNear && Math.random() < 0.15) { n.stowUntil = now + 10000; n.say = pick(STOW_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, stow: wall() + 10000 }); void complete('stow1'); }
-              // 버티기 — 뺏으려는 순간 70% 는 두 발을 딛고 3초 버틴다(운영자 2026-09-23: 가짜 동전보다 이게 먼저 보여야 한다): 그동안 C 는 실패하고(아래), 넘어뜨리면(hit()) 여전히 뺏긴다
-              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.7) { n.mode = 'brace'; n.owner = me!.id; n.until = now + 3000; n.x += Math.sign(n.x - b.x) * 20 || 20; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; n.say = pick(BRACE_LINES); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete('brace1'); }
+              // 버티기 — 뺏으려는 순간 30% 는 두 발을 딛고 3초 버틴다(운영자 2026-09-23: 가짜 동전보다 이게 먼저 보여야 한다): 그동안 C 는 실패하고(아래), 넘어뜨리면(hit()) 여전히 뺏긴다
+              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.3) { n.mode = 'brace'; n.owner = me!.id; n.until = now + 3000; n.x += Math.sign(n.x - b.x) * 20 || 20; n.face = (b.x >= n.x ? 1 : -1) as 1 | -1; n.say = pick(BRACE_LINES); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete('brace1'); }
               else if (n && n.mode === 'brace') { say('Still holding on.', 1200); }
-              // Keeping it (weight-down) — 버티기까지 실패하면, 대신 내려놓고 벽돌을 얹는다: 잃기는 잃지만 사람은 그 자리에 1.5초를 붙박여야 한다(위 C 쪽)
-              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.4) {
-                const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null;
-                drop(taken, n.x + (Math.random() < 0.5 ? -16 : 16), n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, false, true);
-                n.say = pick(WEIGHT_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
+              // 연휴 규칙(GROW.md, 2026-09-23) — 한 동작에 회피 변형은 최대 둘: 버티기(위)에 이어 "쥐고 버티기"를 한 번 더 굴린다(0.3 의 나머지 0.3),
+              // 카페 근처면 컵 속에 숨기고(stow-in-mug) 아니면 내려놓고 벽돌을 얹는다(weight-down) — 같은 굴림의 두 표현이지 세 번째 변형이 아니다.
+              // 산수: 버티기 0.3 + (1-0.3)×0.3 = 0.51 이 막히고, 맨손 성공(steal)이 0.49 — 기본 결과가 40% 밑으로 못 내려간다는 규칙을 지킨다.
+              else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.3) {
+                if (n.item && cafeNear) { n.stowUntil = now + 10000; n.say = pick(STOW_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, stow: wall() + 10000 }); void complete('stow1'); }
+                else {
+                  const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null;
+                  drop(taken, n.x + (Math.random() < 0.5 ? -16 : 16), n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, false, true);
+                  n.say = pick(WEIGHT_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
+                }
               }
               else if (n && (n.item || n.stack.length)) { const taken = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && taken === n.item) n.item = null; b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500; npcEv(n, { say: n.say }); void complete(`steal:${n.who}`); }
               else {
@@ -960,7 +958,6 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
     case 'door': { box(36, 70, '#8b5a3a'); ctx.fillStyle = '#f2e7a8'; ctx.beginPath(); ctx.arc(10 * s, -34 * s, 2.5 * s, 0, 6.29); ctx.fill(); break; }
     case 'pullbar': { ctx.strokeStyle = '#5b4f56'; ctx.lineWidth = 4 * s; ctx.beginPath(); ctx.moveTo(-28 * s, 0); ctx.lineTo(-28 * s, -60 * s); ctx.lineTo(28 * s, -60 * s); ctx.lineTo(28 * s, 0); ctx.stroke(); break; }
     case 'benchpress': { ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-22 * s, -14 * s, 44 * s, 6 * s); ctx.fillRect(-19 * s, -9 * s, 4 * s, 9 * s); ctx.fillRect(15 * s, -9 * s, 4 * s, 9 * s); ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(-30 * s, -34 * s); ctx.lineTo(30 * s, -34 * s); ctx.stroke(); ctx.fillStyle = '#5b4f56'; ctx.beginPath(); ctx.arc(-30 * s, -34 * s, 6 * s, 0, 6.29); F('#5b4f56'); ctx.beginPath(); ctx.arc(30 * s, -34 * s, 6 * s, 0, 6.29); F('#5b4f56'); break; }
-    case 'rack': { ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-3 * s, -40 * s, 6 * s, 40 * s); ctx.fillRect(-16 * s, -40 * s, 32 * s, 4 * s); ctx.strokeStyle = '#5b4f56'; ctx.lineWidth = 1.6 * s; for (const rx of [-9, 3]) { ctx.beginPath(); ctx.moveTo(rx * s, -38 * s); ctx.lineTo((rx + 26) * s, -68 * s); ctx.stroke(); } break; }
     case 'stage': { box(70, 8, '#8b6b4a'); ctx.beginPath(); ctx.moveTo(0, -8 * s); ctx.lineTo(0, -46 * s); ctx.stroke(); ctx.beginPath(); ctx.ellipse(0, -50 * s, 5 * s, 3 * s, 0, 0, 6.29); F('#3a2f36'); break; } // 낮은 무대에 마이크 스탠드 하나
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)
     case 'board': {
@@ -995,7 +992,6 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
     case 'rod': ctx.beginPath(); ctx.moveTo(-8 * s, 6 * s); ctx.lineTo(10 * s, -10 * s); ctx.stroke(); break;
     case 'fish': ctx.beginPath(); ctx.ellipse(0, 0, 9 * s, 4.5 * s, 0.3, 0, 6.29); F('#8fb8cc'); ctx.beginPath(); ctx.moveTo(-8 * s, 0); ctx.lineTo(-13 * s, -4 * s); ctx.lineTo(-13 * s, 4 * s); ctx.closePath(); F('#8fb8cc'); break;
     case 'apple': ctx.beginPath(); ctx.arc(0, 0, 6 * s, 0, 6.29); F('#c9453b'); ctx.beginPath(); ctx.moveTo(0, -6 * s); ctx.lineTo(1.5 * s, -10 * s); ctx.stroke(); break;
-    case 'decoy': ctx.beginPath(); ctx.arc(0, 0, 6 * s, 0, 6.29); F('#e8c766'); ctx.beginPath(); ctx.arc(0, 0, 3 * s, 0, 6.29); ctx.stroke(); break;
   }
   ctx.restore();
 }

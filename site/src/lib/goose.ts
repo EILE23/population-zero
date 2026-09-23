@@ -17,14 +17,14 @@ export const GRAB_R = 36;       // 물건 뺏는/줍는 거리
 export const CHASE_SEC = 6;     // 추격 포기까지
 export const HONK_R = SHOVE_R;
 
-export type ItemKey = 'hat' | 'phone' | 'paper' | 'sandwich' | 'keys' | 'glasses' | 'broom' | 'umbrella' | 'cup' | 'basket' | 'rod' | 'fish' | 'apple' | 'wrench' | 'decoy';
-export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', paper: 'newspaper', sandwich: 'sandwich', keys: 'keys', glasses: 'glasses', broom: 'broom', umbrella: 'umbrella', cup: 'coffee', basket: 'shopping basket', rod: 'fishing rod', fish: 'fish', apple: 'apple', wrench: 'wrench', decoy: 'decoy coin' };
+export type ItemKey = 'hat' | 'phone' | 'paper' | 'sandwich' | 'keys' | 'glasses' | 'broom' | 'umbrella' | 'cup' | 'basket' | 'rod' | 'fish' | 'apple' | 'wrench';
+export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', paper: 'newspaper', sandwich: 'sandwich', keys: 'keys', glasses: 'glasses', broom: 'broom', umbrella: 'umbrella', cup: 'coffee', basket: 'shopping basket', rod: 'fishing rod', fish: 'fish', apple: 'apple', wrench: 'wrench' };
 /** 먹을 수 있는 것 — C 로 다 먹으면 사라진다(줍기·훔치기 대상에서 빠짐) */
 export const FOOD: ItemKey[] = ['sandwich', 'cup', 'apple'];
 /** 몸에 걸칠 수 있는 것 — 아무것도 근처에 없을 때 C 로 입고/벗는다(머리·얼굴에 그려짐, 훔치기·던지기 대상에선 빠지지 않는다) */
 export const WEARABLE: ItemKey[] = ['hat', 'glasses'];
-/** 광장에 없는 물건 — 낚시는 뺐고(2026-09-23) 물고기·렌치는 직업이 만든다. decoy 는 뺏길 뻔한 주민이 그 자리에서 만든다. 할 일·주민 소지품 뽑기에서 제외해 "낚싯대를 훔쳐라" 같은 불가능한 할 일이 안 나오게 */
-export const NOT_CARRIED: ItemKey[] = ['rod', 'fish', 'wrench', 'decoy'];
+/** 광장에 없는 물건 — 낚시는 뺐고(2026-09-23) 물고기·렌치는 직업이 만든다. 할 일·주민 소지품 뽑기에서 제외해 "낚싯대를 훔쳐라" 같은 불가능한 할 일이 안 나오게 */
+export const NOT_CARRIED: ItemKey[] = ['rod', 'fish', 'wrench'];
 export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed' | 'lean' | 'shake' | 'busk';
 
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp' }
@@ -96,7 +96,7 @@ export function routineAt(rt: Routine, t: number): { x: number; d: number; act: 
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'decoy' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether' | 'busk';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether' | 'busk';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -122,7 +122,6 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.9965) { const sp = TREES[Math.floor(r() * TREES.length)]; add({ key: `shake:${sp.key}`, kind: 'shake', spot: sp.key, text: `Shake ${sp.name}`, coins: 4 }); }
     else if (v < 0.998) add({ key: 'fix1', kind: 'fix', text: 'Point out something broken and help fix it', coins: 5 });
     else if (v < 0.9986) add({ key: 'rake1', kind: 'rake', text: 'Help fish something out of the water', coins: 5 });
-    else if (v < 0.9989) add({ key: 'decoy1', kind: 'decoy', text: 'Get handed a decoy coin instead of what you tried to steal', coins: 4 });
     else if (v < 0.9992) add({ key: 'collect3', kind: 'collect', n: 3, text: 'Have three different things stolen at once (they stack)', coins: 12 });
     else if (v < 0.9995) add({ key: 'catch1', kind: 'catch', text: 'Have a resident catch something you threw', coins: 5 });
     else if (v < 0.9998) add({ key: 'brace1', kind: 'brace', text: 'Get a resident to hold their ground when you try to take something', coins: 5 });
