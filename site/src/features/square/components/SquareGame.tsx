@@ -73,7 +73,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], wearing: new Set<ItemKey>(), hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0, calling: 0, leaning: false, shaking: 0, shakeSpot: '' });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], wearing: new Set<ItemKey>(), hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, tripCd: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0, calling: 0, leaning: false, shaking: 0, shakeSpot: '' });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const feedRef = useRef({ map: '', x: 0, d: 0, until: 0 }); // 마지막으로 오리에게 모이를 준 곳(나 또는 근처 주민) — 오리가 그쪽으로 모인다
@@ -378,9 +378,10 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         else {
           if (dx || dd) { b.x = Math.max(20, Math.min(cur.w - 20, b.x + dx * PLAYER_SPEED * slow * dt)); b.d = Math.max(0, Math.min(1, b.d + dd * 1.5 * dt)); if (dx) b.face = dx as 1 | -1; }
           // 빈손으로 전속력일 때 바닥의 물건을 밟으면 헛디딘다 — 주민이 쫓다 넘어지는 것과 같은 자세
-          if ((dx || dd) && b.stack.length === 0) {
-            const li = [...loose.current.values()].find((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < 20);
-            if (li && Math.random() < 0.5) { b.tripped = 1.2; say(`Tripped over the ${ITEMS[li.item]}.`, 1400); }
+          // 너무 잘 넘어졌다(프레임마다 50%): 이제 밟고 지나가는 동안 초당 60% — 지나치는 0.15초면 한 번에 10%쯤. 넘어지면 8초는 다시 안 걸린다
+          if ((dx || dd) && b.stack.length === 0 && now > b.tripCd) {
+            const li = [...loose.current.values()].find((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < 14);
+            if (li && Math.random() < 0.6 * dt) { b.tripped = 1.2; b.tripCd = now + 8000; say(`Tripped over the ${ITEMS[li.item]}.`, 1400); }
           }
           b.moving = !!(dx || dd);
           if (i.jump && !jumpWas && b.z === 0) b.vz = 560;
@@ -410,8 +411,10 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (b.stack.length && b.stack.includes('rod') && water1) { // 대를 든 채 물가에서 — 던지고 기다린다(4~12초)
             b.fishing = 4 + Math.random() * 8; b.x = water1.x; b.d = Math.min(1, water1.d + 0.04); say('Cast the line.', 1200);
           } else if (b.stack.length && pondSpot && FOOD.includes(b.stack[b.stack.length - 1])) { // 연못가에서 먹을 것을 들고 — 오리에게 준다
+            // 예전엔 두 갈래(자세만 / 오리만)가 따로 있어 자세는 나오는데 오리가 안 모이고 할 일 키도 달랐다(운영자 2026-09-23 "먹이주기가 안 된다") — 한 갈래로
             b.stack.pop(); b.feeding = 1.4; b.x = pondSpot.x; b.d = Math.min(0.97, pondSpot.d + 0.04);
-            say('Fed the ducks.', 1500); void complete('feed1');
+            feedRef.current = { map: cur.key, x: b.x, d: b.d, until: now + 4000 };
+            say('The ducks converge.', 1500); void complete(`feed:${pondSpot.key}`);
           } else if (b.stack.length) {
             const it = b.stack.pop()!;
             const bin = cur.spots.find((s) => s.kind === 'bin' && dist(b.x, b.d, s.x, s.d) < 90);
@@ -422,7 +425,6 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               say(`Binned the ${ITEMS[it]}.`, 1500); void complete(`bin:${it}:${bin.key}`);
               for (const q of quests.current.values()) if (q.kind === 'bin' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
             }
-            else if (pondSpot && FOOD.includes(it)) { feedRef.current = { map: cur.key, x: b.x, d: b.d, until: now + 3000 }; say('The ducks converge.', 1500); void complete(`feed:${pondSpot.key}`); }
             else if (FOOD.includes(it) && spotNear && spotNear.kind !== 'bed') { b.eating = 1; say(`Ate the ${ITEMS[it]}.`, 1500); } // 카페·식탁·벤치 — 침대에서는 안 먹는다
             else if (WEARABLE.includes(it) && !water && !spotNear) { // 몸에 걸치기 — 근처에 물·벤치·카페 등 아무것도 없을 때만(있으면 원래대로 놓기/적시기)
               b.stack.push(it);
