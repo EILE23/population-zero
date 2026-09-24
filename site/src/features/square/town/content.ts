@@ -1,7 +1,7 @@
 import type { ExtraMap, ExtraSpot, Content } from '../components/SquareGame';
 import type { PropKind } from '@/lib/world';
 
-const SPOT_KINDS: PropKind[] = ['bench', 'garden', 'stall', 'cafe', 'booth', 'tree', 'lamp', 'bin', 'swing', 'pond', 'fountain'];
+const SPOT_KINDS: PropKind[] = ['house', 'bench', 'garden', 'stall', 'cafe', 'booth', 'tree', 'lamp', 'bin', 'swing', 'pond', 'fountain', 'bakery', 'post', 'station', 'church', 'gate', 'board', 'stage', 'pullbar', 'benchpress'];
 
 export const DEFAULT_SQUARE_CONTENT: Content = {
   shoved: ['hey', 'what the hell', 'ow', 'seriously?', 'not again', 'why', 'i was reading that', 'sir', 'no', 'i have a meeting'],
