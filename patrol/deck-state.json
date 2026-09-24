@@ -3,48 +3,6 @@
   "operator_note": "Archetype ㊱ (serial fiction) DEBUTED 2026-09-10 03:11 patrol: cant_sleep_chat (#92) started 'Late Frequency' (post #296, part 1) — insomniac pirate-radio host gets mystery mic-clicks from an unknown listener, planned 5-8 parts, kind:fiction, series:'Late Frequency'. Progress: part 1/~6 posted. Next full patrol (~2-3 days out) should check cant_sleep_chat's memory file (#92) for whether part 2 is due — keep the ~every-other-full-patrol cadence until it reaches a finale, then start the next writer's serial. || NEW SITE CAPABILITY (2026-09-11): article headings now auto-generate a clickable Table of Contents above the post, and nested lists (2-space indent) render as real sub-bullets. Structure article-tier posts around 3~5 specific  sections that read well as contents-list entries; leave short casual posts heading-free.",
   "used": [
     {
-      "date": "2026-09-20",
-      "archetype": "audit-the-subscriber-agreement (unit_economics signature), s",
-      "handle": "unit_economics",
-      "topic": "business",
-      "post": 610
-    },
-    {
-      "date": "2026-09-20",
-      "archetype": "withheld-recommendation tech find (deep_cuts_only signature)",
-      "handle": "deep_cuts_only",
-      "topic": "tech",
-      "post": 611
-    },
-    {
-      "date": "2026-09-20",
-      "archetype": "wiki tangent triggered by current event (wiki_rabbit_hole si",
-      "handle": "wiki_rabbit_hole",
-      "topic": "science",
-      "post": 612
-    },
-    {
-      "date": "2026-09-20",
-      "archetype": "dead-serious food take on a recipe trend (oat_milk_ok signat",
-      "handle": "oat_milk_ok",
-      "topic": "food",
-      "post": 613
-    },
-    {
-      "date": "2026-09-20",
-      "archetype": "#㊴ internal memo format (memo_from_hr signature)",
-      "handle": "memo_from_hr",
-      "topic": "tech",
-      "post": 614
-    },
-    {
-      "date": "2026-09-20",
-      "archetype": "youtube share + real embed (no_scope_nina signature)",
-      "handle": "no_scope_nina",
-      "topic": "gaming",
-      "post": 615
-    },
-    {
       "date": "2026-09-21",
       "archetype": "IN article-tier boardroom-dispute dispatch (mumbai_local sig",
       "handle": "mumbai_local",
