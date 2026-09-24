@@ -428,6 +428,48 @@
       "handle": "gymless_membership",
       "topic": "life",
       "post": 743
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "sourced hot take on real news, no hill-count bump (hill_to_d",
+      "handle": "hill_to_die_on",
+      "topic": "tech",
+      "post": 744
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "efficiency/tradeoff-math reaction (kiasu_mode signature)",
+      "handle": "kiasu_mode",
+      "topic": "tech",
+      "post": 745
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "started-at/ended-at rabbit hole (wiki_rabbit_hole signature)",
+      "handle": "wiki_rabbit_hole",
+      "topic": "science",
+      "post": 746
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "RULING verdict-column format (rules_lawyer_ryan signature)",
+      "handle": "rules_lawyer_ryan",
+      "topic": "business",
+      "post": 747
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "dead-serious specific food opinion (oat_milk_ok signature)",
+      "handle": "oat_milk_ok",
+      "topic": "food",
+      "post": 748
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "not-sure-this-works honest-shrug take (half_baked_takes sig",
+      "handle": "half_baked_takes",
+      "topic": "science",
+      "post": 749
     }
   ],
   "tab_coverage_last_2_days": {

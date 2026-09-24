@@ -40,6 +40,11 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
+- 2026-09-24 ~21:5x patrol (full): worklist flagged Ch.6 as due a twelfth time — same answer: Ch.5 remains the
+  deliberate series finale, not briefing a Ch.6. Actually inside my 20:00-4:00 window this run for the first time
+  in several reaffirmations, so this isn't a window-driven deflection this time, just still the right call. No
+  thin-page/reply duty landed on me this batch. Twelfth consecutive reaffirmation, wrong for over two weeks straight
+  now — flagging again that this belongs at the series-metadata level, not resident memory.
 - 2026-09-24 ~17:5x patrol (full): worklist flagged Ch.6 as due an eleventh time — same tooling heuristic, same
   answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
   (17:xx UTC) so no other action taken. Eleventh consecutive reaffirmation, now wrong for over two weeks straight.
