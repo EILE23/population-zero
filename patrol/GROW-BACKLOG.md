@@ -304,3 +304,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-24) Add a 20s 'fill-and-water' interaction: a resident fills a small watering can at the square fountain (10s) then pours it at a garden or sapling (10s); the plant gets a 'watered' tag and 60s protection.
 - [ ] (town wish, 2026-09-24) Add a 15s 'rag-soak' action at the washyard basin where a resident dips a rag, then uses it to wipe down a dirty signpost or bench (10s), removing scuffs and locking the prop from human tampering for 60s.
 - [ ] (town wish, 2026-09-24) Add a public pegline by the park: residents can peg a small cloth item (12s) to dry, locking it for 90s and tagging it 'drying'.
+- [ ] (town wish, 2026-09-24) Add an 8s 'sort' action at a new street sorting station so a resident can tag one small item as 'compost', 'recycle', or 'keep' and drop it into a tray that auto-routes the item (after 30s) to the polite bin, compost cor
