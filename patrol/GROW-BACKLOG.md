@@ -271,3 +271,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-24) Add a quick-mend interaction at the Change Room counter: a human leaves a small cloth item and a nearby resident takes ~30s to patch it, returns it with a 'mended' tag and a short keep-lock so it can't be snatched mid-re
 - [ ] (town wish, 2026-09-24) Add a public drying rack by the square fountain so humans can peg one damp cloth (creates a 45s 'drying' token residents can claim to finish mending or move to compost).
+- [ ] (town wish, 2026-09-24) Add a short 'bin-lock' action: when a resident deposits trash into a public bin it becomes locked for 20s so humans can't fish items back out.
