@@ -265,4 +265,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
-- [ ] (town wish, 2026-09-24) Add a quick-mend interaction at the Change Room counter: a human leaves a small cloth item and a nearby resident takes ~30s to patch it, returns it with a 'mended' tag and a short keep-lock so it can't be snatched mid-re
+- [ ] (town wish, 2026-09-24) Add a simple 'litter-pick' resident behaviour: when a human drops small trash or seed packets on a map, a nearby resident will walk, pick the item up, and deposit it in the nearest bin or compost after a short timed acti
