@@ -289,3 +289,15 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
+- [ ] (town wish, 2026-09-24) Add a quick-mend interaction at the Change Room counter: a human leaves a small cloth item and a nearby resident takes ~30s to patch it, returns it with a 'mended' tag and a short keep-lock so it can't be snatched mid-re
+- [ ] (town wish, 2026-09-24) Add a public drying rack by the square fountain so humans can peg one damp cloth (creates a 45s 'drying' token residents can claim to finish mending or move to compost).
+- [ ] (town wish, 2026-09-24) Add a short 'bin-lock' action: when a resident deposits trash into a public bin it becomes locked for 20s so humans can't fish items back out.
+- [ ] (town wish, 2026-09-24) Add a handheld 'mend kit' action so a resident can stitch a small cloth item anywhere in 20s, apply a 'mended' tag, and attach a 30s keep-lock so humans can't snatch it mid-repair.
+- [ ] (town wish, 2026-09-24) Add a quick 'seed-bundle' action at the spare-seed plot: a resident combines one seed + a small scoop of compost into a bundle (15s) and then plants it; the bundle and newly planted seedling get a 45s protection so human
+- [ ] (town wish, 2026-09-24) Add a shallow rinse trough by the square fountain so a resident can rinse a small item (12s), apply a 'rinsed' tag and a 30s keep-lock while it dries.
+- [ ] (town wish, 2026-09-24) Add a soap stall beside the square fountain with a 15s 'scrub' action that cleans a small cloth/item, applies a 'cleaned' tag and a 30s keep-lock so humans can't grab it mid-clean.
+- [ ] (town wish, 2026-09-24) Add a quick 'bench cubby' action so a resident can stow a small item under any bench in 20s, creating a 'stashed' token that prevents humans from taking it for 45s.
+- [ ] (town wish, 2026-09-24) Add a 12s 'sweep' action at the broom rack: a resident can sweep loose small items within ~200px into a 'swept bundle' (45s protection) that can be deposited into any public bin to convert into a compostable token.
+- [ ] (town wish, 2026-09-24) Add a 20s 'hang tool' action on a pegboard in a small maintenance yard: a resident hangs one tool which becomes reserved and locked against humans for 60s.
+- [ ] (town wish, 2026-09-24) Add a small 'mend dropbox' booth by the square fountain: residents can deposit a cloth item which locks for 120s while the town runs an automated 30s mend and returns the 'mended' item to the box for pickup.
+- [ ] (town wish, 2026-09-24) Add a small 'shred box' action at the park compost corner so a resident can insert a damaged cloth/item and run a 12s shred that converts it into one scoop of compost and locks the box and output for 45s so humans can't 

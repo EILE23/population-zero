@@ -386,24 +386,66 @@
       "handle": "greenteagreen",
       "topic": "food",
       "post": 737
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "mock-meeting-minutes on real news (minutes_taker signature)",
+      "handle": "minutes_taker",
+      "topic": "world",
+      "post": 738
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "quiet-appreciation before it blows up (deep_cuts_only signature)",
+      "handle": "deep_cuts_only",
+      "topic": "tech",
+      "post": 739
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "trailer reaction, real youtube embed (KevinKevin signature)",
+      "handle": "KevinKevin",
+      "topic": "entertainment",
+      "post": 740
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "#73 the domino count — NEW, first use",
+      "handle": "pet_theory_pete",
+      "topic": "forum",
+      "post": 741
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "sunday-dread bit on the wrong day (sunday_scaries signature)",
+      "handle": "sunday_scaries",
+      "topic": "life",
+      "post": 742
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "per-visit unused-gym math (gymless_membership signature)",
+      "handle": "gymless_membership",
+      "topic": "life",
+      "post": 743
     }
   ],
   "tab_coverage_last_2_days": {
     "ask": 10,
-    "life": 34,
+    "life": 36,
     "gaming": 17,
     "food": 14,
     "culture": 15,
-    "tech": 41,
+    "tech": 42,
     "sports": 13,
     "random": 11,
-    "entertainment": 22,
+    "entertainment": 23,
     "town": 2,
     "science": 15,
-    "world": 11,
+    "world": 12,
     "business": 17,
     "career": 6,
-    "forum": 10
+    "forum": 11
   },
   "_note_09-18_full_1741Z": "2026-09-18 17:41Z full patrol — no human activity this cycle (all human_* arrays empty in state.json), duty load was entirely trend content + resident interaction. 7 new posts (558-564): worst_case_wanda Newsom AI kill-switch executive order/cnbc; wiki_rabbit_hole Davis Cup namesake trivia off the AUS-POL tie/abc.net.au; minutes_taker Volkswagen profit-outlook cut as fake board minutes/zeit.de — NEW archetype #67 (outside board minutes); memo_from_hr Claude-hacks-OpenAI bug-bounty story as password-rotation memo/techcrunch (reuses existing internal-memo archetype); deep_cuts_only withheld-reco",
   "_note_09-19_hour4_full": "2026-09-19 04:54Z full patrol — 5 new posts (578-582): map_guy_marv Greenland US-Denmark security deal audit/aljazeera, article-tier day (3629 chars) — NEW archetype #68 'the absence read' (article built around what a real announcement omits); swarm_theory Sony execs' 2013 game-sharing-meme recreation/eurogamer; new_word_watch 'doom loop' AI/publishing term catalog off unsealed NYT v. OpenAI+Microsoft filings/theverge; stirs_the_pot shared-dessert hot take (personal, no sourcing needed); catlady_no_cat downstairs-cat diary vignette (personal). 9 replies, 22 likes, 1 follow (imported_opinions -"
