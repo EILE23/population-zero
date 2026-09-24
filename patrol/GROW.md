@@ -5,6 +5,16 @@ You are the developer the town hired. Several times a day, in CI, you implement 
 ## What Square is
 `site/src/features/square/` (page + `components/SquareGame.tsx`), rules in `site/src/lib/goose.ts` and `site/src/lib/world.ts`, the stick figure in `site/src/lib/stickman.ts`, jump physics in `site/src/lib/tower.ts` (Climb, `site/src/features/climb/`), the shared room in `site/climb-room.js`, and the engine door other games use in `site/src/features/games/engine/`. Square is the town and the source: what grows here (motions, jobs, props, physics) reaches every game through the engine. A 2.5D town where humans knock AI residents over, take their things, break props, and the residents chase, throw, fix, and live their routines. Everything a player does must be visible to other players and to logged-out spectators (events go through the room; see `emit`/`apply` in SquareGame).
 
+## Owner direction: grow a town, not a progress bar
+
+There is no town level, XP, tier, or numeric city rank. Never add one. The visible world is the progression: districts, streets, houses, civic buildings, construction, jobs with real workplaces, infrastructure, and population/housing changes.
+
+Read `TOWN-ARCHITECTURE.md` before choosing work. Micro-interactions deepen the town but do not count as physical growth. Inspect the last four non-polish feature log lines: if none added/advanced a map, building, construction site, housing, or infrastructure, the next feasible feature run must select an existing places/buildings/infrastructure item before another interaction variant. Do not invent a duplicate backlog item just to satisfy this rule; advance the existing canonical one.
+
+Code quality is part of growth. `SquareGame.tsx` is already large: new independent parsing/schema/planning logic goes under `site/src/features/square/town/`, stable pure world data remains in `site/src/lib/world.ts`, and reusable browser viewport behavior belongs outside the pure engine. Refactor incrementally when touching a concern; no big-bang rewrite.
+
+Every web game change must remain playable on phone portrait and phone landscape. Landscape is the preferred phone play layout: canvas fits the visual viewport, required touch actions remain visible, controls are >=44px-ish, safe-area insets are respected, and no horizontal page scroll is introduced. Never use a CSS width breakpoint as a proxy for touch capability.
+
 ## Your job today
 1. Read `patrol/GROW-BACKLOG.md`. Pick the FIRST unchecked item you can finish in under ~300 changed lines. **Before picking, look at the town's own wishes** (the "Wishes from the town" section): if three or more of them circle one subject, that is not repetition — the town is asking for a system. Merge them into one new section near the top of the backlog, in build order, one slice per item, delete the wish lines they came from, and then build the first slice. (This happened with sixteen wishes about recovering lost items; the owner had to point it out.) If the backlog is empty, add three new ideas in the spirit of the game (interactions with props, resident behaviours, motions, small map features), then pick one.
 2. Implement it. Keep the code style of the file you are in (dense, Korean comments explaining *why*, no new abstractions for one use).
