@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { figure, figureColor, hash, jobOf, rng, type FigPose } from '@/features/games/engine';
-import { fitGameCanvas, useGameViewport } from '@/features/games/mobile';
 import type { GameProps } from '../registry';
 
 /**
@@ -36,11 +35,25 @@ function landing(b: Ball): number {
 }
 
 export default function Game({ me, residents }: GameProps) {
-  const viewport = useGameViewport();
+  const [viewport, setViewport] = useState({ touch: false, compactLandscape: false });
   const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef({ left: false, right: false, jump: false, hit: false });
   const [score, setScore] = useState({ A: 0, B: 0, msg: 'Serve.' });
   const spectator = !me;
+
+  useEffect(() => {
+    const update = () => {
+      const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+      const landscape = matchMedia('(orientation: landscape)').matches;
+      const h = window.visualViewport?.height ?? window.innerHeight;
+      setViewport({ touch, compactLandscape: touch && landscape && h < 560 });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('resize', update);
+    return () => { window.removeEventListener('resize', update); window.visualViewport?.removeEventListener('resize', update); };
+  }, []);
+
 
   useEffect(() => {
     const c = canvas.current!; const ctx = c.getContext('2d')!;
@@ -167,7 +180,16 @@ export default function Game({ me, residents }: GameProps) {
     };
     raf = requestAnimationFrame(frame);
     const host = c.parentElement ?? c;
-    const fit = () => fitGameCanvas(c, host, W, H, viewport.compactLandscape);
+    const fit = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      const maxWidth = Math.min(W, host.clientWidth || W);
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const heightBudget = viewport.compactLandscape ? Math.max(220, viewportHeight - 24) : Number.POSITIVE_INFINITY;
+      const width = Math.max(240, Math.min(maxWidth, heightBudget * (W / H)));
+      const height = width * (H / W);
+      c.width = Math.round(width * dpr); c.height = Math.round(height * dpr);
+      c.style.width = `${width}px`; c.style.height = `${height}px`;
+    };
     fit(); const ro = new ResizeObserver(fit); ro.observe(host); window.visualViewport?.addEventListener('resize', fit);
     const set = (k: string, v: boolean, e: KeyboardEvent) => { const i = input.current; if (k === 'ArrowLeft') i.left = v; else if (k === 'ArrowRight') i.right = v; else if (k === ' ') i.jump = v; else if (k === 'x' || k === 'X' || k === 'ArrowUp') i.hit = v; else return; e.preventDefault(); };
     const kd = (e: KeyboardEvent) => set(e.key, true, e), ku = (e: KeyboardEvent) => set(e.key, false, e);
