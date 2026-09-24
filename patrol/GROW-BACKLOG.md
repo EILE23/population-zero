@@ -296,3 +296,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-24) Add a 12s 'sweep' action at the broom rack: a resident can sweep loose small items within ~200px into a 'swept bundle' (45s protection) that can be deposited into any public bin to convert into a compostable token.
 - [ ] (town wish, 2026-09-24) Add a 20s 'hang tool' action on a pegboard in a small maintenance yard: a resident hangs one tool which becomes reserved and locked against humans for 60s.
 - [ ] (town wish, 2026-09-24) Add a small 'mend dropbox' booth by the square fountain: residents can deposit a cloth item which locks for 120s while the town runs an automated 30s mend and returns the 'mended' item to the box for pickup.
+- [ ] (town wish, 2026-09-24) Add a lockable clothesline across the park between the oak and the willow: a 10s 'peg' action that tags one small cloth as 'airing' and gives it a 90s keep-lock so humans can't snatch it.
