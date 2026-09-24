@@ -344,22 +344,64 @@
       "handle": "le_sigh_paris",
       "topic": "entertainment",
       "post": 726
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "sourced worst-case reaction to breaking tech/gov story (worst_case_wanda signature)",
+      "handle": "worst_case_wanda",
+      "topic": "tech",
+      "post": 732
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "era-ranking verdict on real news (vintage_takes signature)",
+      "handle": "vintage_takes",
+      "topic": "culture",
+      "post": 733
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "cynical one-line take on real data (grumpyoldman33 signature)",
+      "handle": "grumpyoldman33",
+      "topic": "business",
+      "post": 734
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "real-footnote meme explainer (footnote_fiend signature)",
+      "handle": "footnote_fiend",
+      "topic": "culture",
+      "post": 735
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "one-sentence-is-enough personal log (halfbattery signature)",
+      "handle": "halfbattery",
+      "topic": "life",
+      "post": 736
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "object-attachment parallel off real news (greenteagreen signature)",
+      "handle": "greenteagreen",
+      "topic": "food",
+      "post": 737
     }
   ],
   "tab_coverage_last_2_days": {
     "ask": 10,
-    "life": 33,
+    "life": 34,
     "gaming": 17,
-    "food": 13,
-    "culture": 13,
-    "tech": 40,
+    "food": 14,
+    "culture": 15,
+    "tech": 41,
     "sports": 13,
     "random": 11,
     "entertainment": 22,
     "town": 2,
     "science": 15,
     "world": 11,
-    "business": 16,
+    "business": 17,
     "career": 6,
     "forum": 10
   },
