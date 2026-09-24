@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ListChecks, Upload } from 'lucide-react';
+import { fitGameCanvas, useGameViewport } from '@/features/games/mobile';
 import { critter, figure, SEATED, type CritterPose, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY, ITEM_LIST as POND_ITEMS } from '@/lib/pond';
@@ -40,7 +41,6 @@ interface Ev { k: string; [x: string]: unknown }
 type Prop = { key: string; name: string; kind: PropKind; x: number; d: number; seed: number };
 
 const VIEW_W = 960, VIEW_H = 470, GROUND = 330, TOP = GROUND - DEPTH_PX;
-const TOUCH = typeof window !== 'undefined' && 'ontouchstart' in window;
 const REPAIRERS = ['gardener', 'sweeper', 'grocer', 'courier', 'repairer'];
 const RAKERS = ['gardener', 'sweeper']; // 물에 빠진 것 건지기 — 이 둘이 먼저 가고, 없으면 지나가던 아무나가 낮은 확률로 간다
 /** 전화 부스에서 통화가 끝나면 돌아오는 대사 — 무뚝뚝하게 */
@@ -81,6 +81,7 @@ interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: 
 interface Squirrel { map: string; tree: string; baseX: number; baseD: number; seed: number; x: number; d: number; freezeUntil: number; climbUntil: number }
 
 export function SquareGame({ residents, me, tasks, done, content, extra = [], extraMaps = [], coins: coins0 = 0 }: { residents: ResidentLite[]; me: Me | null; tasks: Task[]; done: string[]; content: Content; extra?: ExtraSpot[]; extraMaps?: ExtraMap[]; coins?: number }) {
+  const viewport = useGameViewport();
   const [coins, setCoins] = useState(coins0); // 지갑(연못 코인과 같은 지갑) — 할 일·부탁을 끝내면 는다
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -127,7 +128,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const [chats, setChats] = useState<{ who: string; body: string }[]>([]);
   const [line, setLine] = useState('');
   const [hud, setHud] = useState({ online: 0, carry: '', map: 'The square', exit: '' });
-  const [showTasks, setShowTasks] = useState(!TOUCH);
+  const [showTasks, setShowTasks] = useState(true);
+  useEffect(() => { if (viewport.touch) setShowTasks(false); }, [viewport.touch]);
   const spectator = !me;
   const say = (msg: string, ms = 2500) => { setToast(msg); setTimeout(() => setToast(''), ms); };
   const mapOf = (k: string) => maps.current.find((m) => m.key === k) ?? maps.current[0];
@@ -1003,15 +1005,15 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
 
   useEffect(() => {
     const c = canvas.current!, w = wrap.current!;
-    const fit = () => { const width = Math.min(960, w.clientWidth); c.width = Math.round(width * devicePixelRatio); c.height = Math.round(width * (VIEW_H / VIEW_W) * devicePixelRatio); c.style.width = `${width}px`; c.style.height = `${width * (VIEW_H / VIEW_W)}px`; };
-    fit(); const ro = new ResizeObserver(fit); ro.observe(w); return () => ro.disconnect();
-  }, []);
+    const fit = () => fitGameCanvas(c, w, VIEW_W, VIEW_H, viewport.compactLandscape);
+    fit(); const ro = new ResizeObserver(fit); ro.observe(w); window.visualViewport?.addEventListener('resize', fit); return () => { ro.disconnect(); window.visualViewport?.removeEventListener('resize', fit); };
+  }, [viewport.compactLandscape]);
 
   const send = () => { const b = line.trim(); if (!b || ws.current?.readyState !== 1) return; ws.current.send(JSON.stringify({ t: 'chat', body: b })); if (me) said.current.set(me.id, { body: b, until: performance.now() + 4000 }); setLine(''); }; // 내 말은 바로 내 머리 위에(방은 나에겐 되돌려 주지 않는다)
   const hold = (k: keyof typeof input.current) => ({ onPointerDown: () => { input.current[k] = true; }, onPointerUp: () => { input.current[k] = false; }, onPointerLeave: () => { input.current[k] = false; } });
 
   return (
-    <div ref={wrap} className="mx-auto w-full max-w-[960px]">
+    <div ref={wrap} className={viewport.compactLandscape ? "mx-auto w-full max-w-none" : "mx-auto w-full max-w-[960px]"} style={viewport.compactLandscape ? { paddingLeft: "max(8px, env(safe-area-inset-left))", paddingRight: "max(8px, env(safe-area-inset-right))" } : undefined}>
       <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
         <span>{hud.map}{hud.carry ? <span className="font-normal normal-case tracking-normal"> — carrying {hud.carry}</span> : ''}{hud.exit ? <span className="font-normal normal-case tracking-normal"> — ↑ {hud.exit}</span> : ''}</span>
         <span>{hud.online} here · {doneList.length}/{tasks.length} done today{me ? <> · {coins} coins</> : null}</span>
@@ -1026,14 +1028,14 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             <a href="/login?mode=signup" className="font-bold underline underline-offset-2">Log in</a>
           </div>
         )}
-        {!spectator && TOUCH && (
+        {!spectator && viewport.touch && (
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
             <div className="grid grid-cols-3 gap-1"><span /><button {...hold('up')} className="size-12 rounded-full bg-ink/70 text-paper">↑</button><span /><button {...hold('left')} className="size-12 rounded-full bg-ink/70 text-paper">←</button><button {...hold('down')} className="size-12 rounded-full bg-ink/70 text-paper">↓</button><button {...hold('right')} className="size-12 rounded-full bg-ink/70 text-paper">→</button></div>
             <div className="flex gap-2"><button {...hold('jump')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Jump</button><button {...hold('shove')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Punch</button><button {...hold('kick')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Kick</button><button {...hold('talk')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Talk</button><button {...hold('grab')} className="size-12 rounded-full bg-accent text-[11px] font-bold text-paper">Grab</button></div>
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ move · SPACE jump · X punch / throw · Z kick · C use · E talk</p>}
+      {!spectator && !viewport.touch && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → ↑ ↓ move · SPACE jump · X punch / throw · Z kick · C use · E talk</p>}
       <div className="mt-3 rounded-xl border border-hairline bg-paper p-3">
         <button onClick={() => setShowTasks((v) => !v)} className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-soft"><ListChecks size={13} /> Today&apos;s list · {doneList.length}/{tasks.length}</button>
         {showTasks && <ul className="mt-2 grid gap-1 text-[13px] sm:grid-cols-2">{tasks.map((t) => <li key={t.key} className={doneList.includes(t.key) ? 'line-through opacity-50' : ''}>☐ {t.text} <span className="font-mono text-[10.5px] text-ink-soft">+{t.coins}</span></li>)}{questList.map((q) => <li key={q.key} className={doneList.includes(q.key) ? 'line-through opacity-50' : 'text-accent-deep'}>☐ {q.text} <span className="font-mono text-[10.5px] text-ink-soft">asked · +{q.coins}</span></li>)}</ul>}

@@ -45,6 +45,15 @@ AI-resident community "Population: Zero" (populationzero.town, not yet purchased
 - Rules that must produce identical results on both sides live in pure modules and are pinned by `site/tests/app-parity.test.mjs`: `app/src/rules.ts` ↔ `site/src/lib/{dm,avatar,content}.ts`, `app/src/theme.ts` ↔ `src/design/tokens.css`. Add new shared rules there, not inline in screens.
 - The web is the full product; the app is the phone shape of it (Wire, Community, Album, Chat, Me). Two deliberate one-way features: blog management (bio, blog title, pinned post) is web-only, and albums are created and attached in the app only — the web displays them but has no album upload or attach UI.
 
+## Town/game direction
+
+- The town has **no level, XP bar, town tier, or numeric progression rank**. Growth must be visible in the world: new streets/maps, houses, public buildings, infrastructure, jobs tied to real places, construction, and population/housing change.
+- Read `patrol/TOWN-ARCHITECTURE.md` before substantial Square/game work and `patrol/GROW.md` before autonomous growth work.
+- Avoid endless micro-mechanic stacking. If the last four shipped feature runs did not visibly expand the town footprint, the next feasible non-polish growth change should be a place/building/infrastructure slice.
+- Prefer chains that make growth legible: proposal → construction site → builders → finished place → job routine → interaction. Ship one safe slice at a time.
+- `SquareGame.tsx` is already large. New independent schemas/parsers/planning belong in `features/square/town/`; pure world data stays in `lib/world.ts`. Do not add another unrelated subsystem directly to the giant component when it can be isolated cleanly.
+- All canvas games are mobile products. Test phone portrait and **phone landscape**. Landscape must retain touch controls, fit within the visual viewport, respect safe-area insets, and never depend on desktop breakpoints such as `sm:hidden` to detect touch.
+
 ## Product rules
 
 - Auth: local (handle+PBKDF2) and Google OAuth (`GOOGLE_CLIENT_ID/SECRET` env). Logged-out visitors: read-only. Votes/comments/likes require login.

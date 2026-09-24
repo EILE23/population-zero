@@ -35,10 +35,25 @@ function landing(b: Ball): number {
 }
 
 export default function Game({ me, residents }: GameProps) {
+  const [viewport, setViewport] = useState({ touch: false, compactLandscape: false });
   const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef({ left: false, right: false, jump: false, hit: false });
   const [score, setScore] = useState({ A: 0, B: 0, msg: 'Serve.' });
   const spectator = !me;
+
+  useEffect(() => {
+    const update = () => {
+      const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+      const landscape = matchMedia('(orientation: landscape)').matches;
+      const h = window.visualViewport?.height ?? window.innerHeight;
+      setViewport({ touch, compactLandscape: touch && landscape && h < 560 });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('resize', update);
+    return () => { window.removeEventListener('resize', update); window.visualViewport?.removeEventListener('resize', update); };
+  }, []);
+
 
   useEffect(() => {
     const c = canvas.current!; const ctx = c.getContext('2d')!;
@@ -164,31 +179,41 @@ export default function Game({ me, residents }: GameProps) {
       if (ball.live && ball.touches > 0) { ctx.font = '10.5px ui-monospace, monospace'; ctx.fillStyle = '#5b4f56'; ctx.fillText(`${ball.side} · touch ${ball.touches}`, NET_X, 86); }
     };
     raf = requestAnimationFrame(frame);
-    const fit = () => { const width = Math.min(W, c.parentElement?.clientWidth ?? W); c.width = Math.round(width * devicePixelRatio); c.height = Math.round(width * (H / W) * devicePixelRatio); c.style.width = `${width}px`; c.style.height = `${width * (H / W)}px`; };
-    fit(); const ro = new ResizeObserver(fit); ro.observe(c.parentElement ?? c);
+    const host = c.parentElement ?? c;
+    const fit = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      const maxWidth = Math.min(W, host.clientWidth || W);
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const heightBudget = viewport.compactLandscape ? Math.max(220, viewportHeight - 24) : Number.POSITIVE_INFINITY;
+      const width = Math.max(240, Math.min(maxWidth, heightBudget * (W / H)));
+      const height = width * (H / W);
+      c.width = Math.round(width * dpr); c.height = Math.round(height * dpr);
+      c.style.width = `${width}px`; c.style.height = `${height}px`;
+    };
+    fit(); const ro = new ResizeObserver(fit); ro.observe(host); window.visualViewport?.addEventListener('resize', fit);
     const set = (k: string, v: boolean, e: KeyboardEvent) => { const i = input.current; if (k === 'ArrowLeft') i.left = v; else if (k === 'ArrowRight') i.right = v; else if (k === ' ') i.jump = v; else if (k === 'x' || k === 'X' || k === 'ArrowUp') i.hit = v; else return; e.preventDefault(); };
     const kd = (e: KeyboardEvent) => set(e.key, true, e), ku = (e: KeyboardEvent) => set(e.key, false, e);
     if (!spectator) { window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); }
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
-  }, [me, residents, spectator]);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); window.visualViewport?.removeEventListener('resize', fit); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
+  }, [me, residents, spectator, viewport.compactLandscape]);
 
   const hold = (k: keyof typeof input.current) => ({ onPointerDown: () => { input.current[k] = true; }, onPointerUp: () => { input.current[k] = false; }, onPointerLeave: () => { input.current[k] = false; } });
   return (
-    <div className="mx-auto w-full max-w-[960px]">
+    <div className={viewport.compactLandscape ? "mx-auto w-full max-w-none" : "mx-auto w-full max-w-[960px]"} style={viewport.compactLandscape ? { paddingLeft: "max(8px, env(safe-area-inset-left))", paddingRight: "max(8px, env(safe-area-inset-right))" } : undefined}>
       <div className="flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft"><span>Stick Volley · 2 v 2 · first to 15</span><span>{score.A}–{score.B}</span></div>
       <div className="relative mt-2 overflow-hidden rounded-xl border border-hairline bg-[#eef0f2]">
         <canvas ref={canvas} className="block w-full touch-none" />
         {spectator && <div className="absolute inset-x-0 bottom-0 bg-paper/90 px-3 py-2 text-[12.5px]">The residents are playing. Log in to take the front spot on team A.</div>}
-        {!spectator && (
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-2 sm:hidden">
+        {!spectator && viewport.touch && (
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
             <div className="flex gap-1"><button {...hold('left')} className="size-12 rounded-full bg-ink/70 text-paper">←</button><button {...hold('right')} className="size-12 rounded-full bg-ink/70 text-paper">→</button></div>
             <div className="flex gap-2"><button {...hold('jump')} className="size-12 rounded-full bg-ink/70 text-[11px] font-bold text-paper">Jump</button><button {...hold('hit')} className="size-12 rounded-full bg-accent text-[11px] font-bold text-paper">Hit</button></div>
           </div>
         )}
       </div>
       {/* 도움말은 화면에 있는 조작으로 — 휴대폰엔 X 키가 없다 */}
-      {!spectator && <p className="mt-1.5 hidden font-mono text-[10.5px] text-ink-soft sm:block">← → move · SPACE jump · hold X, release to hit</p>}
-      {!spectator && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft sm:hidden">Hold Hit to charge. Release when the ball is within reach.</p>}
+      {!spectator && !viewport.touch && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → move · SPACE jump · hold X, release to hit</p>}
+      {!spectator && viewport.touch && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">Hold Hit to charge. Release when the ball is within reach.</p>}
     </div>
   );
 }

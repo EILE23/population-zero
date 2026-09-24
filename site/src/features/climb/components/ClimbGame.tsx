@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { figure } from '@/lib/stickman';
+import { fitGameCanvas, useGameViewport } from '@/features/games/mobile';
 import { around, band, BAND_H, collide, figPlats, figureColor, metres, npcAt, npcsOf, platX, poseOf, shoved, step, WORLD_W, type Body, type Figure, type Input, type Npc, type Pose } from '@/lib/tower';
 
 /**
@@ -15,9 +16,9 @@ interface Other { uid: number; handle: string; avatar: string; x: number; y: num
 interface Chat { who: string; body: string; at: number }
 
 const VIEW_H = 640;
-const TOUCH = typeof window !== 'undefined' && 'ontouchstart' in window;
 
 export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; me: { id: number; handle: string } | null; best: number }) {
+  const viewport = useGameViewport();
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const ws = useRef<WebSocket | null>(null);
@@ -225,9 +226,9 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   // 캔버스 해상도 — 컨테이너 폭에 맞춘다
   useEffect(() => {
     const c = canvas.current!, w = wrap.current!;
-    const fit = () => { const width = Math.min(960, w.clientWidth); c.width = Math.round(width * devicePixelRatio); c.height = Math.round(width * (VIEW_H / 960) * devicePixelRatio); c.style.width = `${width}px`; c.style.height = `${width * (VIEW_H / 960)}px`; };
-    fit(); const ro = new ResizeObserver(fit); ro.observe(w); return () => ro.disconnect();
-  }, []);
+    const fit = () => fitGameCanvas(c, w, 960, VIEW_H, viewport.compactLandscape);
+    fit(); const ro = new ResizeObserver(fit); ro.observe(w); window.visualViewport?.addEventListener('resize', fit); return () => { ro.disconnect(); window.visualViewport?.removeEventListener('resize', fit); };
+  }, [viewport.compactLandscape]);
 
   const say = () => {
     const body = line.trim(); if (!body || !ws.current || ws.current.readyState !== 1) return;
@@ -236,7 +237,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
   const hold = (k: 'left' | 'right') => ({ onPointerDown: () => { input.current[k] = true; }, onPointerUp: () => { input.current[k] = false; }, onPointerLeave: () => { input.current[k] = false; } });
 
   return (
-    <div ref={wrap} className="mx-auto w-full max-w-[960px]">
+    <div ref={wrap} className={viewport.compactLandscape ? "mx-auto w-full max-w-none" : "mx-auto w-full max-w-[960px]"} style={viewport.compactLandscape ? { paddingLeft: "max(8px, env(safe-area-inset-left))", paddingRight: "max(8px, env(safe-area-inset-right))" } : undefined}>
       <div className="flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
         <span>{spectator ? `Watching · ${Math.round(cam.current / 10)}m` : `${hud.h}m · best ${hud.best}m`}</span>
         <span><span className={`mr-1 inline-block size-2 rounded-full ${hud.connected ? 'bg-[#34c759]' : 'bg-hairline'}`} />{hud.online} climbing · {hud.resting} resting</span>
@@ -249,7 +250,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
             <a href="/login?mode=signup" className="font-bold underline underline-offset-2">Log in</a>
           </div>
         )}
-        {!spectator && TOUCH && (
+        {!spectator && viewport.touch && (
           <div className="absolute inset-x-0 bottom-0 flex justify-between p-2">
             <div className="flex gap-2">
               <button {...hold('left')} className="size-14 rounded-full bg-ink/70 text-paper text-xl">←</button>
@@ -259,7 +260,7 @@ export function ClimbGame({ residents, me, best }: { residents: ResidentLite[]; 
           </div>
         )}
       </div>
-      {!spectator && !TOUCH && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → run · hold SPACE, release to jump · steer in the air</p>}
+      {!spectator && !viewport.touch && <p className="mt-1.5 font-mono text-[10.5px] text-ink-soft">← → run · hold SPACE, release to jump · steer in the air</p>}
       {/* 채팅 — 성의 없게. 저장 안 함 */}
       <div className="mt-3 rounded-lg border border-hairline bg-paper px-2.5 py-1.5 text-[12.5px]">
         <div className="max-h-24 overflow-y-auto">
