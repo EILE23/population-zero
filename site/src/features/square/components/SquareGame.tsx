@@ -36,7 +36,7 @@ type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip
 interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; binSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number }
 /** board: 못 알아본 물건을 들고 게시판 앞 상자로 가는 중(캐리 필드는 catch/deliver 와 그대로 공유) — 도착하면 note/origin 을 붙여 내려놓는다.
  *  shelve: 주인의 직업에 자기 건물(빵집·우체국·경찰서)이 있으면 상자 대신 그 건물 선반으로 — 같은 캐리 필드, 도착해 잠깐(fix/rake 와 같은 요령) 선반에 얹는 자세를 보인 뒤 내려놓는다 */
-interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string; board?: string; shelf?: string; note?: string; origin?: number; weight?: boolean; mend?: boolean; sort?: boolean }
+interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string; board?: string; shelf?: string; note?: string; origin?: number; weight?: boolean; mend?: boolean; sort?: boolean; bin?: string }
 interface Ev { k: string; [x: string]: unknown }
 type Prop = { key: string; name: string; kind: PropKind; x: number; d: number; seed: number };
 
@@ -115,6 +115,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const wet = useRef(new Map<string, number>()); // 방금 건져 젖은 채인 물건 — id → 이 시각까지 방울 표시(순전히 연출, 동기화 안 함)
   const hideAt = useRef(new Map<string, number>()); // Keeping it(slide-under) — 벤치·물가 턱 밑에 숨긴 것 — id → 그때까지 못 줍고 반쯤 가려 그림(순전히 연출 타이머, wet 과 같은 요령)
   const lockAt = useRef(new Map<string, number>()); // Keep-lock(town wishes 2026-09-24 병합) — 막 고쳐진 물건은 잠깐 못 줍는다 — id → 그때까지(순전히 연출 타이머, hideAt·wet 과 같은 요령, 동기화 안 함)
+  const binLockAt = useRef(new Map<string, number>()); // Keep-lock(bin-lock, town wish 2026-09-24) — 청소부가 방금 비운 통은 20초간 다시 뒤적일 수 없다 — 통 key → 그때까지(위 lockAt 은 물건 id 를 잠그고, 이건 통 자체를 잠근다. 순전히 연출 타이머, 동기화 안 함)
   const flicker = useRef(new Map<string, number>()); // 가로등이 맞고 깜빡이는 순간 — 키 → 언제까지(performance.now() 기준, 순전히 연출이라 시계 보정 없이 쓴다)
   const others = useRef(new Map<number, Other>());
   const said = useRef(new Map<number, { body: string; until: number }>()); // 채팅 말풍선 — uid → 말, 4초. 아래 목록에도 남는다
@@ -138,7 +139,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
 
   // ── 이벤트: 내 화면에 적용하고 방에 보낸다 / 남의 것을 받아 적용한다 ──
   const apply = (w: Ev, mine: boolean) => {
-    if (w.k === 'drop') { const id = String(w.id); loose.current.set(id, { id, item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), from: w.from === null ? null : Number(w.from), dunked: w.dunked ? String(w.dunked) : undefined, board: w.board ? String(w.board) : undefined, shelf: w.shelf ? String(w.shelf) : undefined, note: w.note ? String(w.note) : undefined, origin: w.origin === undefined || w.origin === null ? undefined : Number(w.origin), weight: !!w.weight, mend: !!w.mend, sort: !!w.sort }); if (w.dunked) dunkedAt.current.set(id, performance.now()); if (w.wet) wet.current.set(id, performance.now() + 60000); if (w.hide) hideAt.current.set(id, performance.now() + 7000); }
+    if (w.k === 'drop') { const id = String(w.id); loose.current.set(id, { id, item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), from: w.from === null ? null : Number(w.from), dunked: w.dunked ? String(w.dunked) : undefined, board: w.board ? String(w.board) : undefined, shelf: w.shelf ? String(w.shelf) : undefined, note: w.note ? String(w.note) : undefined, origin: w.origin === undefined || w.origin === null ? undefined : Number(w.origin), weight: !!w.weight, mend: !!w.mend, sort: !!w.sort, bin: w.bin ? String(w.bin) : undefined }); if (w.dunked) dunkedAt.current.set(id, performance.now()); if (w.wet) wet.current.set(id, performance.now() + 60000); if (w.hide) hideAt.current.set(id, performance.now() + 7000); }
     else if (w.k === 'pick') { const id = String(w.id); loose.current.delete(id); dunkedAt.current.delete(id); wet.current.delete(id); hideAt.current.delete(id); lockAt.current.delete(id); }
     else if (w.k === 'break') { broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, wall() - Number(w.brokeAt)) : 0 }); if (w.kind === 'lamp') flicker.current.set(String(w.key), performance.now() + 500); }
     else if (w.k === 'fix') broken.current.delete(String(w.key));
@@ -149,7 +150,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   };
   const emit = (ev: Ev) => { apply(ev, true); if (ws.current?.readyState === 1 && me) ws.current.send(JSON.stringify({ t: 'ev', ev })); };
   const npcEv = (n: Npc, extra: Record<string, unknown> = {}) => emit({ k: 'npc', who: n.who, mode: n.mode, until: wall() + Math.max(0, n.until - performance.now()), x: n.x, d: n.d, item: n.item, st: n.stack.join(','), caught: n.caught, by: me?.id, ...extra });
-  const drop = (item: ItemKey, x: number, d: number, from: number | null, dunked?: string, wet?: boolean, board?: string, note?: string, origin?: number, shelf?: string, hide?: boolean, weight?: boolean, mend?: boolean, sort?: boolean) => { const id = `${me?.id ?? 0}-${Date.now().toString(36)}-${stats.current.seq++}`; emit({ k: 'drop', id, item, m: mapKey.current, x, d, from, dunked, wet: wet ? 1 : undefined, board, note, origin, shelf, hide: hide ? 1 : undefined, weight: weight ? 1 : undefined, mend: mend ? 1 : undefined, sort: sort ? 1 : undefined }); return id; };
+  const drop = (item: ItemKey, x: number, d: number, from: number | null, dunked?: string, wet?: boolean, board?: string, note?: string, origin?: number, shelf?: string, hide?: boolean, weight?: boolean, mend?: boolean, sort?: boolean, bin?: string) => { const id = `${me?.id ?? 0}-${Date.now().toString(36)}-${stats.current.seq++}`; emit({ k: 'drop', id, item, m: mapKey.current, x, d, from, dunked, wet: wet ? 1 : undefined, board, note, origin, shelf, hide: hide ? 1 : undefined, weight: weight ? 1 : undefined, mend: mend ? 1 : undefined, sort: sort ? 1 : undefined, bin }); return id; };
 
   // ── 방 ──
   useEffect(() => {
@@ -524,7 +525,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               say('Sold. Not much, but something.', 1600); void complete('sell1');
             }
             else if (bin) { // Service drop-offs (sort the scraps) — 통에 들어가도 바로 사라지지 않는다: sort 표시가 붙은 채 그 자리에 남아, 지나가던 청소부가 분류하러 올 때까지는 남도 도로 주울 수 있다
-              drop(it, bin.x + (Math.random() - 0.5) * 16, bin.d, null, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, true);
+              drop(it, bin.x + (Math.random() - 0.5) * 16, bin.d, null, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, true, bin.key);
               say(`Binned the ${ITEMS[it]}.`, 1500); void complete(`bin:${it}:${bin.key}`);
               for (const q of quests.current.values()) if (q.kind === 'bin' && q.item === it) { const n = npcs.current.find((p) => p.who === q.who); if (n) finishQuest(q, n); }
             }
@@ -610,6 +611,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 else if (booth) { b.calling = 2.2; b.x = booth.x; b.d = booth.d; say('Dialing.', 1000); }
                 else if (lamp) { b.leaning = !b.leaning; if (b.leaning) { b.x = lamp.x; b.d = lamp.d; say('Leaning.', 1000); void complete(`lean:${lamp.key}`); } }
                 else if (tree) { b.shaking = 1; b.shakeSpot = tree.key; b.x = tree.x; b.d = tree.d; say('Shaking the tree.', 900); }
+                else if (rummageBin && (binLockAt.current.get(rummageBin.key) ?? 0) > now) { say('Just emptied. Give it a minute.', 1500); void complete('binlock1'); } // Keep-lock(bin-lock) — 청소부가 방금 비운 통은 아직 못 뒤진다
                 else if (rummageBin) { b.rummaging = 1.2; b.rummageSpot = rummageBin.key; b.x = rummageBin.x; b.d = rummageBin.d; say('Rummaging.', 900); }
                 else if (stage) { b.busking = 6; b.x = stage.x; b.d = stage.d; say('Busking.', 1000); }
                 else if (fixing) { b.fixing = 0.8; b.x = fixing.x; b.d = fixing.d; emit({ k: 'fix', key: fixing.key }); broken.current.delete(fixing.key); say(`Helped fix ${fixing.name}.`, 1500); void complete('fix1'); }
@@ -743,7 +745,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             // Service drop-offs (mend request) — 게시판에 꽂아 둔 물건을 수리공이 고친다: 수리(repair)와 같은 고치는 자세, 다 되면 "고쳤다"는 쪽지로 바꿔 도로 게시판에
             else if (n.mode === 'mend' && tgL) { if (now - n.until > 0) { emit({ k: 'pick', id: tgL.id }); const mid = drop(tgL.item, tgL.x, tgL.d, null, undefined, undefined, tgL.board, `${ITEMS[tgL.item]} — mended`, tgL.origin, tgL.shelf); lockAt.current.set(mid, now + 15000); n.say = pick(['fixed. good as new.', 'there. mended.', 'that will hold.']); } else { n.moving = false; n.act = 'sweep'; continue; } } // Keep-lock — 막 고친 것은 15초간 바로 못 줍는다(town wishes 2026-09-24 병합)
             // Service drop-offs (sort the scraps) — 통 옆에 남은 것을 진짜로 치운다: 고치기와 달리 다시 내려놓지 않는다, 그걸로 분류가 끝난 것이다
-            else if (n.mode === 'sort' && tgL) { if (now - n.until > 0) { emit({ k: 'pick', id: tgL.id }); n.say = pick(['sorted.', 'that goes in recycling.', 'compost, this one.', 'found its bin.']); } else { n.moving = false; n.act = 'sweep'; continue; } }
+            // Keep-lock(bin-lock, town wish 2026-09-24) — 청소부가 통을 비우고 나면 그 통은 20초간 다시 못 뒤진다(물건이 아니라 통 자체를 잠근다)
+            else if (n.mode === 'sort' && tgL) { if (now - n.until > 0) { emit({ k: 'pick', id: tgL.id }); if (tgL.bin) binLockAt.current.set(tgL.bin, now + 20000); n.say = pick(['sorted.', 'that goes in recycling.', 'compost, this one.', 'found its bin.']); } else { n.moving = false; n.act = 'sweep'; continue; } }
             else if (tgP) { if (now - n.until > 0) { emit({ k: 'fix', key: n.target! }); n.say = pick(['fixed. again.', 'there.', 'this is the third time', 'who keeps doing this', 'good as new. sort of.']); } else { n.moving = false; n.act = 'sweep'; continue; } } // 수리엔 몇 초가 걸린다(until 이 그 시각)
             n.target = null; n.sayUntil = now + 2000; if (n.mode !== 'board' && n.mode !== 'shelve') n.mode = 'return'; npcEv(n, { say: n.say, tether: n.tether ? 1 : undefined });
           } else { n.x += (ddx / len) * RESIDENT_SPEED * dt; n.d += (ddd * 400 / len) * RESIDENT_SPEED * dt / 400; n.face = ddx >= 0 ? 1 : -1; n.moving = true; if (n.mode === 'repair') n.until = now + 4000; else if (n.mode === 'rake' || n.mode === 'mend' || n.mode === 'sort') n.until = now + 1200; }
