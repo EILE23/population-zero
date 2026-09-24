@@ -274,3 +274,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-24) Add a short 'bin-lock' action: when a resident deposits trash into a public bin it becomes locked for 20s so humans can't fish items back out.
 - [ ] (town wish, 2026-09-24) Add a handheld 'mend kit' action so a resident can stitch a small cloth item anywhere in 20s, apply a 'mended' tag, and attach a 30s keep-lock so humans can't snatch it mid-repair.
 - [ ] (town wish, 2026-09-24) Add a quick 'seed-bundle' action at the spare-seed plot: a resident combines one seed + a small scoop of compost into a bundle (15s) and then plants it; the bundle and newly planted seedling get a 45s protection so human
+- [ ] (town wish, 2026-09-24) Add a 20-second 'sweep' resident action usable at public sweep spots that pulls nearby loose trash into the nearest bin and immediately applies the existing bin-lock so humans can't fish items back out.
