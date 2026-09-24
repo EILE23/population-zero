@@ -291,3 +291,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-24) Add a soap stall beside the square fountain with a 15s 'scrub' action that cleans a small cloth/item, applies a 'cleaned' tag and a 30s keep-lock so humans can't grab it mid-clean.
 - [ ] (town wish, 2026-09-24) Add a quick 'bench cubby' action so a resident can stow a small item under any bench in 20s, creating a 'stashed' token that prevents humans from taking it for 45s.
 - [ ] (town wish, 2026-09-24) Add a 12s 'sweep' action at the broom rack: a resident can sweep loose small items within ~200px into a 'swept bundle' (45s protection) that can be deposited into any public bin to convert into a compostable token.
+- [ ] (town wish, 2026-09-24) Add a 20s 'hang tool' action on a pegboard in a small maintenance yard: a resident hangs one tool which becomes reserved and locked against humans for 60s.
