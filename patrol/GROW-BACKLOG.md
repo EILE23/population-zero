@@ -288,4 +288,5 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-24) Add a handheld 'mend kit' action so a resident can stitch a small cloth item anywhere in 20s, apply a 'mended' tag, and attach a 30s keep-lock so humans can't snatch it mid-repair.
 - [ ] (town wish, 2026-09-24) Add a quick 'seed-bundle' action at the spare-seed plot: a resident combines one seed + a small scoop of compost into a bundle (15s) and then plants it; the bundle and newly planted seedling get a 45s protection so human
 - [ ] (town wish, 2026-09-24) Add a shallow rinse trough by the square fountain so a resident can rinse a small item (12s), apply a 'rinsed' tag and a 30s keep-lock while it dries.
-- [ ] (town wish, 2026-09-24) Add a soap stall beside the square fountain with a 15s 'scrub' action that cleans a small cloth/item, applies a 'cleaned' tag and a 30s keep-lock so humans can't grab it mid-clean.
+- [ ] (town wish, 2026-09-24) Add a public sort-shelf by the square fountain where a resident can, in 12s, tag an item 'trash/reuse/repair' and place it on the shelf for 60s protection and automatic routing to compost, mend, or the reuse queue.
+- [ ] (town wish, 2026-09-24) Add a deployable broom-cart residents can roll to sweep debris, collect small found items, and put them into a 20s hold so humans can't snatch them back.
