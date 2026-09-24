@@ -305,3 +305,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-24) Add a 15s 'rag-soak' action at the washyard basin where a resident dips a rag, then uses it to wipe down a dirty signpost or bench (10s), removing scuffs and locking the prop from human tampering for 60s.
 - [ ] (town wish, 2026-09-24) Add a public pegline by the park: residents can peg a small cloth item (12s) to dry, locking it for 90s and tagging it 'drying'.
 - [ ] (town wish, 2026-09-24) Add an 8s 'sort' action at a new street sorting station so a resident can tag one small item as 'compost', 'recycle', or 'keep' and drop it into a tray that auto-routes the item (after 30s) to the polite bin, compost cor
+- [ ] (town wish, 2026-09-24) Add a 12s 'post-found' action at the square noticeboard so a resident can pin a found small item as 'found' for 90s, reserving it from human grabs and making it visible for other residents to claim.
