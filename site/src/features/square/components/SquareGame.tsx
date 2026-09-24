@@ -113,6 +113,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   const dunkedAt = useRef(new Map<string, number>()); // 물에 빠진 시각(내 화면이 처음 본 때, performance.now() 기준) — 갈퀴로 건질 때가 됐는지 재는 타이머
   const wet = useRef(new Map<string, number>()); // 방금 건져 젖은 채인 물건 — id → 이 시각까지 방울 표시(순전히 연출, 동기화 안 함)
   const hideAt = useRef(new Map<string, number>()); // Keeping it(slide-under) — 벤치·물가 턱 밑에 숨긴 것 — id → 그때까지 못 줍고 반쯤 가려 그림(순전히 연출 타이머, wet 과 같은 요령)
+  const lockAt = useRef(new Map<string, number>()); // Keep-lock(town wishes 2026-09-24 병합) — 막 고쳐진 물건은 잠깐 못 줍는다 — id → 그때까지(순전히 연출 타이머, hideAt·wet 과 같은 요령, 동기화 안 함)
   const flicker = useRef(new Map<string, number>()); // 가로등이 맞고 깜빡이는 순간 — 키 → 언제까지(performance.now() 기준, 순전히 연출이라 시계 보정 없이 쓴다)
   const others = useRef(new Map<number, Other>());
   const said = useRef(new Map<number, { body: string; until: number }>()); // 채팅 말풍선 — uid → 말, 4초. 아래 목록에도 남는다
@@ -136,7 +137,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   // ── 이벤트: 내 화면에 적용하고 방에 보낸다 / 남의 것을 받아 적용한다 ──
   const apply = (w: Ev, mine: boolean) => {
     if (w.k === 'drop') { const id = String(w.id); loose.current.set(id, { id, item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), from: w.from === null ? null : Number(w.from), dunked: w.dunked ? String(w.dunked) : undefined, board: w.board ? String(w.board) : undefined, shelf: w.shelf ? String(w.shelf) : undefined, note: w.note ? String(w.note) : undefined, origin: w.origin === undefined || w.origin === null ? undefined : Number(w.origin), weight: !!w.weight, mend: !!w.mend, sort: !!w.sort }); if (w.dunked) dunkedAt.current.set(id, performance.now()); if (w.wet) wet.current.set(id, performance.now() + 60000); if (w.hide) hideAt.current.set(id, performance.now() + 7000); }
-    else if (w.k === 'pick') { const id = String(w.id); loose.current.delete(id); dunkedAt.current.delete(id); wet.current.delete(id); hideAt.current.delete(id); }
+    else if (w.k === 'pick') { const id = String(w.id); loose.current.delete(id); dunkedAt.current.delete(id); wet.current.delete(id); hideAt.current.delete(id); lockAt.current.delete(id); }
     else if (w.k === 'break') { broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, wall() - Number(w.brokeAt)) : 0 }); if (w.kind === 'lamp') flicker.current.set(String(w.key), performance.now() + 500); }
     else if (w.k === 'fix') broken.current.delete(String(w.key));
     else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - wall()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; if (typeof w.st === 'string') n.stack = w.st.split(',').filter((k): k is ItemKey => k in ITEMS); n.caught = (w.caught as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } if (typeof w.stow === 'number') n.stowUntil = performance.now() + Math.max(0, w.stow - wall()); if (typeof w.tether === 'number') n.tether = !!w.tether; if (typeof w.tm === 'number') n.tetherMissed = !!w.tm; } }
@@ -540,10 +541,13 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             const lNear = [...loose.current.values()].filter((x) => x.map === cur.key && !x.dunked && dist(b.x, b.d, x.x, x.d) < GRAB_R).sort((p, q) => dist(b.x, b.d, p.x, p.d) - dist(b.x, b.d, q.x, q.d))[0];
             // Keeping it (slide-under) — 벤치·물가 턱 밑에 숨겨 놓은 것은 7초 동안은 없는 셈(안 보이므로 다음은 주민 뺏기 쪽으로 그냥 넘어간다)
             const hidden = lNear && (hideAt.current.get(lNear.id) ?? 0) > now;
-            const l = hidden ? undefined : lNear;
+            // Keep-lock — 막 고친 것은 잠깐 못 줍는다(town wishes 2026-09-24 병합, hideAt과 같은 순전한 연출 타이머)
+            const locked = lNear && !hidden && (lockAt.current.get(lNear.id) ?? 0) > now;
+            const l = hidden || locked ? undefined : lNear;
             // Keeping it (dust-off) — 방금 일어난 주민이 떨군 자기 물건은, 먼지 터는 ~2초 동안 한 번은 놓친다
             const dusting = l && l.from !== null ? npcs.current.find((p) => p.who === l.from && p.mode === 'dust' && !p.dustMissed) : undefined;
             if (hidden) { say('Tucked out of sight.', 1400); void complete('slide1'); }
+            else if (locked) { say('Still being looked at.', 1400); void complete('lock1'); }
             else if (dusting) { dusting.dustMissed = true; say("Can't see straight for the dust.", 1400); void complete('dust1'); }
             // Lost and found — 게시판 밑 상자: 사람도 주민도 그냥 C 로 가져간다(핀 노트 문구를 그대로 알림으로)
             else if (l && l.board) { emit({ k: 'pick', id: l.id }); b.stack.push(l.item); say(l.note ?? `Took the ${ITEMS[l.item]}.`, 1800); void complete('crate1'); }
@@ -735,7 +739,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             }
             else if (n.mode === 'rake' && tgL) { if (now - n.until > 0) { emit({ k: 'pick', id: tgL.id }); const rim = { x: tgL.x + (Math.random() - 0.5) * 26, d: Math.min(0.97, tgL.d + 0.05) }; drop(tgL.item, rim.x, rim.d, null, undefined, true); n.say = pick(['out it comes.', 'there it is.', 'someone always leaves something.']); } else { n.moving = false; n.act = 'sweep'; continue; } } // 갈퀴질도 몇 초(until)
             // Service drop-offs (mend request) — 게시판에 꽂아 둔 물건을 수리공이 고친다: 수리(repair)와 같은 고치는 자세, 다 되면 "고쳤다"는 쪽지로 바꿔 도로 게시판에
-            else if (n.mode === 'mend' && tgL) { if (now - n.until > 0) { emit({ k: 'pick', id: tgL.id }); drop(tgL.item, tgL.x, tgL.d, null, undefined, undefined, tgL.board, `${ITEMS[tgL.item]} — mended`, tgL.origin, tgL.shelf); n.say = pick(['fixed. good as new.', 'there. mended.', 'that will hold.']); } else { n.moving = false; n.act = 'sweep'; continue; } }
+            else if (n.mode === 'mend' && tgL) { if (now - n.until > 0) { emit({ k: 'pick', id: tgL.id }); const mid = drop(tgL.item, tgL.x, tgL.d, null, undefined, undefined, tgL.board, `${ITEMS[tgL.item]} — mended`, tgL.origin, tgL.shelf); lockAt.current.set(mid, now + 15000); n.say = pick(['fixed. good as new.', 'there. mended.', 'that will hold.']); } else { n.moving = false; n.act = 'sweep'; continue; } } // Keep-lock — 막 고친 것은 15초간 바로 못 줍는다(town wishes 2026-09-24 병합)
             // Service drop-offs (sort the scraps) — 통 옆에 남은 것을 진짜로 치운다: 고치기와 달리 다시 내려놓지 않는다, 그걸로 분류가 끝난 것이다
             else if (n.mode === 'sort' && tgL) { if (now - n.until > 0) { emit({ k: 'pick', id: tgL.id }); n.say = pick(['sorted.', 'that goes in recycling.', 'compost, this one.', 'found its bin.']); } else { n.moving = false; n.act = 'sweep'; continue; } }
             else if (tgP) { if (now - n.until > 0) { emit({ k: 'fix', key: n.target! }); n.say = pick(['fixed. again.', 'there.', 'this is the third time', 'who keeps doing this', 'good as new. sort of.']); } else { n.moving = false; n.act = 'sweep'; continue; } } // 수리엔 몇 초가 걸린다(until 이 그 시각)
