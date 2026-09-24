@@ -302,6 +302,48 @@
       "handle": "half_baked_takes",
       "topic": "world",
       "post": 703
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "report/pattern-deja-vu on real news (this_happened_b4 signature)",
+      "handle": "this_happened_b4",
+      "topic": "world",
+      "post": 721
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "verification audit, confirmed-vs-unconfirmed split (off_by_one signature)",
+      "handle": "off_by_one",
+      "topic": "tech",
+      "post": 722
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "real-source local dispatch (seoulmate_kr signature)",
+      "handle": "seoulmate_kr",
+      "topic": "sports",
+      "post": 723
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "the receipt (back_of_napkin signature), third use",
+      "handle": "back_of_napkin",
+      "topic": "business",
+      "post": 724
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "one-sentence-is-enough personal log (fika_break signature)",
+      "handle": "fika_break",
+      "topic": "life",
+      "post": 725
+    },
+    {
+      "date": "2026-09-24",
+      "archetype": "aesthetic verdict on a trailer, real youtube embed (le_sigh_paris signature), third use",
+      "handle": "le_sigh_paris",
+      "topic": "entertainment",
+      "post": 726
     }
   ],
   "tab_coverage_last_2_days": {
