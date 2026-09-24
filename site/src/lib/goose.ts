@@ -27,25 +27,6 @@ export const WEARABLE: ItemKey[] = ['hat', 'glasses'];
 export const NOT_CARRIED: ItemKey[] = ['rod', 'fish', 'wrench'];
 export type Activity = 'read' | 'phone' | 'sit' | 'water' | 'sweep' | 'shop' | 'stand' | 'eat' | 'pushup' | 'pullup' | 'press' | 'watch' | 'fish' | 'feed' | 'lean' | 'shake' | 'busk';
 
-export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp' }
-/** 광장의 것들 — 주민의 일과가 이 사이를 오간다. 분수·연못은 물건을 빠뜨릴 곳 */
-export const SPOTS: Spot[] = [
-  { key: 'fountain', name: 'the fountain', x: 1600, d: 0.55, act: 'stand', kind: 'fountain' },
-  { key: 'bench1', name: 'the bench by the fountain', x: 1380, d: 0.8, act: 'sit', kind: 'bench' },
-  { key: 'bench2', name: 'the far bench', x: 2500, d: 0.75, act: 'sit', kind: 'bench' },
-  { key: 'cafe', name: 'the café', x: 2150, d: 0.45, act: 'eat', kind: 'cafe' },
-  { key: 'stall', name: 'the market stall', x: 700, d: 0.5, act: 'shop', kind: 'stall' },
-  { key: 'garden', name: 'the garden', x: 320, d: 0.7, act: 'water', kind: 'garden' },
-  { key: 'booth', name: 'the phone booth', x: 1900, d: 0.3, act: 'phone', kind: 'booth' },
-  { key: 'pond', name: 'the little pond', x: 2900, d: 0.85, act: 'stand', kind: 'pond' },
-  { key: 'house1', name: 'the blue house', x: 150, d: 0.1, act: 'sweep', kind: 'house' },
-  { key: 'house2', name: 'the narrow house', x: 1100, d: 0.1, act: 'read', kind: 'house' },
-  { key: 'house3', name: 'the corner house', x: 2700, d: 0.12, act: 'sweep', kind: 'house' },
-  { key: 'tree1', name: 'the big tree', x: 950, d: 0.35, act: 'shake', kind: 'tree' },
-  { key: 'tree2', name: 'the other tree', x: 2350, d: 0.2, act: 'shake', kind: 'tree' },
-  { key: 'lamp1', name: 'the lamp', x: 1750, d: 0.85, act: 'stand', kind: 'lamp' },
-];
-export const spotOf = (key: string) => SPOTS.find((s) => s.key === key)!;
 export const WATER = WATER_SPOTS;
 /** 모든 지도의 자리(집 안 제외) — 할 일이 가리킬 수 있는 곳 */
 const ALL_SPOTS = MAPS.flatMap((m) => m.spots);
@@ -72,7 +53,7 @@ export function residentsOut(hour: number, residents: number): Routine[] {
   const r = rng(hash(`goose:${hour}`));
   const used = new Set<number>(); const out: Routine[] = [];
   const keys = (Object.keys(ITEMS) as ItemKey[]).filter((k) => !NOT_CARRIED.includes(k));
-  const spots = SPOTS.filter((s) => s.kind !== 'lamp');
+  const spots = ALL_SPOTS.filter((s) => s.kind !== 'lamp');
   for (let i = 0; i < 12 && i < residents; i++) {
     let who = Math.floor(r() * residents); while (used.has(who)) who = (who + 1) % residents; used.add(who);
     const n = 3 + Math.floor(r() * 2); const stops = [];
@@ -80,19 +61,6 @@ export function residentsOut(hour: number, residents: number): Routine[] {
     out.push({ who, item: keys[Math.floor(r() * keys.length)], seed: hash(`goose:${hour}:${who}`), stops, speed: RESIDENT_SPEED * (0.8 + r() * 0.4) });
   }
   return out;
-}
-/** 기본 일과의 위치 — t 초에 어느 정거장 사이 어디쯤인가 (거위가 없을 때의 진실) */
-export function routineAt(rt: Routine, t: number): { x: number; d: number; act: Activity; moving: boolean; face: 1 | -1 } {
-  const legs = rt.stops.map((s, i) => { const a = spotOf(s.spot), b = spotOf(rt.stops[(i + 1) % rt.stops.length].spot); const walk = Math.hypot(b.x - a.x, (b.d - a.d) * 400) / rt.speed; return { a, b, stay: s.dur, walk }; });
-  const total = legs.reduce((s, l) => s + l.stay + l.walk, 0);
-  let u = (t + rt.seed % 1000) % total;
-  for (const l of legs) {
-    if (u < l.stay) { const seat = l.a.act === 'sit'; return { x: seat ? l.a.x : l.a.x + ((rt.seed % 60) - 30), d: seat ? l.a.d : Math.min(1, Math.max(0.05, l.a.d + ((rt.seed % 20) - 10) / 100)), act: l.a.act, moving: false, face: rt.seed % 2 ? 1 : -1 }; } // 앉는 자리는 그 위에 정확히(옆 바닥에 앉지 않게)
-    u -= l.stay;
-    if (u < l.walk) { const k = u / l.walk; return { x: l.a.x + (l.b.x - l.a.x) * k, d: l.a.d + (l.b.d - l.a.d) * k, act: 'stand', moving: true, face: l.b.x >= l.a.x ? 1 : -1 }; }
-    u -= l.walk;
-  }
-  return { x: legs[0].a.x, d: legs[0].a.d, act: legs[0].a.act, moving: false, face: 1 };
 }
 
 // ── 오늘의 할 일 ──
