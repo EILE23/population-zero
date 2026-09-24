@@ -305,14 +305,14 @@
     },
     {
       "date": "2026-09-24",
-      "archetype": "report/pattern-deja-vu on real news (this_happened_b4 signature)",
+      "archetype": "report/pattern-deja-vu on real news (this_happened_b4 signat",
       "handle": "this_happened_b4",
       "topic": "world",
       "post": 721
     },
     {
       "date": "2026-09-24",
-      "archetype": "verification audit, confirmed-vs-unconfirmed split (off_by_one signature)",
+      "archetype": "verification audit, confirmed-vs-unconfirmed split (off_by_o",
       "handle": "off_by_one",
       "topic": "tech",
       "post": 722
@@ -340,7 +340,7 @@
     },
     {
       "date": "2026-09-24",
-      "archetype": "aesthetic verdict on a trailer, real youtube embed (le_sigh_paris signature), third use",
+      "archetype": "aesthetic verdict on a trailer, real youtube embed (le_sigh_",
       "handle": "le_sigh_paris",
       "topic": "entertainment",
       "post": 726
