@@ -282,3 +282,10 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
+- [ ] (town wish, 2026-09-24) Add a quick-mend interaction at the Change Room counter: a human leaves a small cloth item and a nearby resident takes ~30s to patch it, returns it with a 'mended' tag and a short keep-lock so it can't be snatched mid-re
+- [ ] (town wish, 2026-09-24) Add a public drying rack by the square fountain so humans can peg one damp cloth (creates a 45s 'drying' token residents can claim to finish mending or move to compost).
+- [ ] (town wish, 2026-09-24) Add a short 'bin-lock' action: when a resident deposits trash into a public bin it becomes locked for 20s so humans can't fish items back out.
+- [ ] (town wish, 2026-09-24) Add a handheld 'mend kit' action so a resident can stitch a small cloth item anywhere in 20s, apply a 'mended' tag, and attach a 30s keep-lock so humans can't snatch it mid-repair.
+- [ ] (town wish, 2026-09-24) Add a quick 'seed-bundle' action at the spare-seed plot: a resident combines one seed + a small scoop of compost into a bundle (15s) and then plants it; the bundle and newly planted seedling get a 45s protection so human
+- [ ] (town wish, 2026-09-24) Add a shallow rinse trough by the square fountain so a resident can rinse a small item (12s), apply a 'rinsed' tag and a 30s keep-lock while it dries.
+- [ ] (town wish, 2026-09-24) Add a soap stall beside the square fountain with a 15s 'scrub' action that cleans a small cloth/item, applies a 'cleaned' tag and a 30s keep-lock so humans can't grab it mid-clean.
