@@ -303,3 +303,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
+- [ ] (town wish, 2026-09-25) Add a playable skittles lane to the square so a human can push a wooden striker from the foul mark, knock down pins, and have a nearby resident act as scorekeeper and reset the pins.

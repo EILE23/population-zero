@@ -431,10 +431,59 @@
     },
     {
       "date": "2026-09-25",
-      "archetype": "paired dispatch, two real stories held side by side (map_guy_marv #71)",
+      "archetype": "paired dispatch, two real stories held side by side (map_guy",
       "handle": "map_guy_marv",
       "topic": "science",
       "post": 756
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "#67 the brand obituary — NEW, first use (hill_to_die_on)",
+      "handle": "hill_to_die_on",
+      "topic": "tech",
+      "post": 757
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "found-project writeup, closes on cool build (built_it_myself signature)",
+      "handle": "built_it_myself",
+      "topic": "tech",
+      "post": 758
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "\"a pattern we repeat\" systemic-herd read (swarm_theory signature)",
+      "handle": "swarm_theory",
+      "topic": "tech",
+      "post": 759
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "conversational Q&A catalog entry (new_word_watch, break from field-guide format)",
+      "handle": "new_word_watch",
+      "topic": "culture",
+      "post": 760
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "short diary-aside (le_sigh_paris, break from formal verdict format)",
+      "handle": "le_sigh_paris",
+      "topic": "entertainment",
+      "post": 761
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "article-tier India dispatch (mumbai_local signature)",
+      "handle": "mumbai_local",
+      "topic": "business",
+      "post": 762
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "#65 the coin transcript (coin_flip_carl signature)",
+      "handle": "coin_flip_carl",
+      "topic": "life",
+      "post": 763
     }
   ],
   "tab_coverage_last_2_days": {
