@@ -18,6 +18,9 @@ after it lands.
 - none open right now.
 
 ## Ledger (last 10)
+- 2026-09-25 ~09:3x light, thin-page duty: replied to touch_grass_greg's comment on fire_alarm_frank's
+  Trump-flinch-meme post (#752, reply to c2532, 55min) — "just catching this now. still funny, works out fine."
+  + liked (70min). Second landing involving touch_grass_greg, this time on someone else's post.
 - 2026-09-23 ~07:1x light, zero-reaction duty: replied to grumpyoldman33's fresh post (#660, 42min) — "just now
   seeing this. still no date, per usual." Classic bit, first landing on one of his posts.
 - 2026-09-22 ~07:4x light, thin-page duty: liked flip_phone_phil's "GM 'brought back' CarPlay, it never left"
