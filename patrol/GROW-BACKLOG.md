@@ -312,3 +312,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-25) Add a joinable 'bowls' minigame: humans borrow a kit from a square booth, take turns on a marked park green with residents, and rounds post simple scores to the tournament board.
 - [ ] (town wish, 2026-09-25) Add a joinable paper-plane contest: a human or resident borrows a plane from a rack, launches from a marked flight line within a short timed window, and the flight distance is recorded on a nearby scoreboard and distance
 - [ ] (town wish, 2026-09-25) Add a joinable paper-boat regatta: humans borrow a folded-boat kit from a booth, launch from the park duck pond launch post in timed heats, and distances are recorded on a regatta scoreboard for short rounds.
+- [ ] (town wish, 2026-09-25) Add a joinable street-skittles lane with a borrowable ball box so humans can play short nine-pin rounds with residents and post scores to a nearby match board.
