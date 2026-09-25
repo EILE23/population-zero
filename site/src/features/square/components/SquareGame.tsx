@@ -353,6 +353,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         const th = { item: it, map: cur.key, x: b.x + b.face * 14, d: b.d, z: 34 + b.z, vx: b.face * 430, vz: 170, from: -1, by: me!.id, ox: b.x + b.face * 14, od: b.d }; // ox/od: 던진 자리 — 받아내면 여기로 돌려준다
         thrown.current.push(th); emit({ k: 'throw', item: it, m: th.map, x: Math.round(th.x), d: th.d, z: th.z, vx: th.vx, vz: th.vz, from: -1 });
       };
+      // 폴리시(2026-09-25) — catch/deliver/board/shelve 로 남을 위해 나르던 것(n.caught)은 다운될 때 안 치워졌다: mode 가 down 을 벗어나도
+      // (dust → return/routine) 계속 그려지고, 이 필드는 C 로 줍는 목록에 없어 영영 못 줍는 유령 물건이 됐다. 넘어지면 바로 떨어뜨린다(stow-in-mug 창도 함께 닫는다)
+      const flushCaught = (n: Npc, x: number, d: number) => { if (n.caught) drop(n.caught, x, d, null); n.caught = null; n.retX = null; n.retD = null; n.boardNote = undefined; n.boardOrigin = undefined; n.stowUntil = undefined; };
       const hit = (kind: 'punch' | 'kick') => {
         if (kind === 'punch' && b.stack.length) { throwTop(); return; }
         b.swing = 0.28; b.swingKind = kind;
@@ -371,6 +374,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             return;
           }
           n.mode = 'down'; n.owner = me!.id; n.until = now + (air ? 2600 : kind === 'kick' ? 1900 : 1400); n.face = (-b.face) as 1 | -1; n.x += b.face * (air ? 80 : kind === 'kick' ? 44 : 22);
+          flushCaught(n, n.x + b.face * 20, n.d);
           // Keeping it (tether) — 막 되찾은 자기 물건은 벨트에 묶여 있다: 이 다운-사이클의 첫 타격은 쥔 채로 넘어뜨리기만, 두 번째(같은 사이클 안, dust 단계 포함) 타격이라야 비로소 떨어진다
           const dislodge = n.tether ? n.tetherMissed : true;
           if (!dislodge) n.tetherMissed = true;
@@ -583,15 +587,17 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               else if (n && n.mode === 'routine' && (n.item || n.stack.length) && Math.random() < 0.3) {
                 if (n.item && cafeNear) { n.stowUntil = now + 10000; n.say = pick(STOW_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, stow: wall() + 10000 }); void complete('stow1'); }
                 else {
-                  const taken = n.stack.length ? n.stack.pop()! : n.item!; let untethered = false;
-                  if (!n.stack.length && taken === n.item) { n.item = null; if (n.tether) { n.tether = false; n.tetherMissed = false; untethered = true; } } // 이미 줄이 끊긴 것 — 벽돌 밑으로 뺏긴 물건이 벨트 보호를 계속 받으면 안 된다(폴리시, 2026-09-24)
+                  // 폴리시(2026-09-25) — 값이 같은지(taken === n.item)로 "직업 물건에서 왔나"를 가리면, stack 에 우연히 같은 종류(예: 주운 여분 wrench)가 있을 때
+                  // 진짜 직업 물건은 그대로인데도 n.item 이 지워져 소품이 세상에서 그냥 증발했다. pop 하기 전에 어디서 왔는지를 미리 정해 둔다
+                  const fromItem = !n.stack.length; const taken = fromItem ? n.item! : n.stack.pop()!; let untethered = false;
+                  if (fromItem) { n.item = null; if (n.tether) { n.tether = false; n.tetherMissed = false; untethered = true; } } // 이미 줄이 끊긴 것 — 벽돌 밑으로 뺏긴 물건이 벨트 보호를 계속 받으면 안 된다(폴리시, 2026-09-24)
                   drop(taken, n.x + (Math.random() < 0.5 ? -16 : 16), n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, false, true);
                   n.say = pick(WEIGHT_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say, ...(untethered ? { tether: 0, tm: 0 } : {}) });
                 }
               }
               else if (n && (n.item || n.stack.length)) {
-                const taken = n.stack.length ? n.stack.pop()! : n.item!; let untethered = false;
-                if (!n.stack.length && taken === n.item) { n.item = null; if (n.tether) { n.tether = false; n.tetherMissed = false; untethered = true; } } // 위와 같은 이유 — 맨손 뺏기로도 벨트가 풀린다
+                const fromItem = !n.stack.length; const taken = fromItem ? n.item! : n.stack.pop()!; let untethered = false;
+                if (fromItem) { n.item = null; if (n.tether) { n.tether = false; n.tetherMissed = false; untethered = true; } } // 위와 같은 이유 — 맨손 뺏기로도 벨트가 풀린다
                 b.stack.push(taken); n.mode = 'chase'; n.owner = me!.id; n.until = now + CHASE_SEC * 1000; n.say = pick(content.chase); n.sayUntil = now + 2500;
                 npcEv(n, { say: n.say, ...(untethered ? { tether: 0, tm: 0 } : {}) }); void complete(`steal:${n.who}`);
               }
@@ -706,7 +712,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
             npcEv(n, { say: n.say });
             continue;
           }
-          if ((n.item || n.stack.length) && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.3; n.swingKind = 'throw'; const thrownItem = n.stack.length ? n.stack.pop()! : n.item!; if (!n.stack.length && thrownItem === n.item) n.item = null; const th = { item: thrownItem, map: cur.key, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.who }; thrown.current.push(th); emit({ k: 'throw', ...th, m: th.map }); n.say = pick(content.thrown); n.sayUntil = now + 1500; }
+          if ((n.item || n.stack.length) && far > 70 && far < 170 && now - n.threw > 4000 && b.hurt <= 0) { n.threw = now; n.swing = 0.3; n.swingKind = 'throw'; const fromItem = !n.stack.length; const thrownItem = fromItem ? n.item! : n.stack.pop()!; if (fromItem) n.item = null; const th = { item: thrownItem, map: cur.key, x: n.x, d: n.d, z: 30, vx: Math.sign(b.x - n.x) * 380, vz: 120, from: n.who }; thrown.current.push(th); emit({ k: 'throw', ...th, m: th.map }); n.say = pick(content.thrown); n.sayUntil = now + 1500; }
           const ddx = b.x - n.x, ddd = b.d - n.d; const len = Math.hypot(ddx, ddd * 400) || 1;
           n.x += (ddx / len) * speed * dt; n.d = Math.max(0, Math.min(1, n.d + (ddd * 400 / len) * speed * dt / 400)); n.face = ddx >= 0 ? 1 : -1; n.moving = true;
           if (far < 26 && b.z === 0 && b.hurt <= 0) {
@@ -870,7 +876,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.say = pick(CATCH_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
               say(`${residents[n.who].handle} caught it.`, 1500); void complete('catch1'); gone(); continue;
             }
-            n.mode = 'down'; n.owner = me!.id; n.until = now + 1600; n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.x += Math.sign(th.vx) * 20; n.say = pick(content.shoved); n.sayUntil = now + 2000; if (n.item) { drop(n.item, n.x + Math.sign(th.vx) * 26, n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, slideNear(cur, n.x, n.d)); n.item = null; } npcEv(n, { say: n.say }); st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }]; say(`Hit ${residents[n.who].handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue;
+            n.mode = 'down'; n.owner = me!.id; n.until = now + 1600; n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.x += Math.sign(th.vx) * 20; n.say = pick(content.shoved); n.sayUntil = now + 2000; if (n.item) { drop(n.item, n.x + Math.sign(th.vx) * 26, n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, slideNear(cur, n.x, n.d)); n.item = null; } flushCaught(n, n.x + Math.sign(th.vx) * 20, n.d); npcEv(n, { say: n.say }); st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }]; say(`Hit ${residents[n.who].handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue;
           }
           const o = [...others.current.values()].find((p) => p.map === cur.key && p.status === 'active' && Math.abs(th.x - p.x) < 22 && Math.abs(th.d - p.d) < 0.12 && th.z < 50 + p.z);
           if (o) { emit({ k: 'hitp', uid: o.uid, byName: me!.handle, kind: 'throw', item: th.item }); say(`Hit ${o.handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue; }
