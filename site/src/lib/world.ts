@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -90,6 +90,9 @@ export const MAPS: GameMap[] = [
       { key: 'bench4', name: 'the park bench', x: 1000, d: 0.75, act: 'sit', kind: 'bench' },
       { key: 'bench5', name: 'the bench by the pond', x: 1700, d: 0.7, act: 'read', kind: 'bench' },
       { key: 'garden2', name: 'the flower beds', x: 300, d: 0.4, act: 'water', kind: 'garden' },
+      // 보체 코트 — Turn-based games 체계(town wishes, 2026-09-25)의 셋째 자리(체스·조약돌 던지기 다음). 점수는 같은 seed+10초-버킷 셈,
+      // 마을이 겹쳐 쓴 "볼링장"·"구주희 레인" 소원도 같은 모양이라 이 코트 하나가 대신한다(별도 자리 없음)
+      { key: 'bocce1', name: 'the bocce court', x: 480, d: 0.4, act: 'stand', kind: 'bocce' },
       { key: 'ptree1', name: 'an oak', x: 800, d: 0.15, act: 'stand', kind: 'tree' },
       { key: 'ptree2', name: 'a willow', x: 1900, d: 0.2, act: 'read', kind: 'tree' },
       { key: 'bin4', name: 'a bin', x: 1200, d: 0.95, act: 'sweep', kind: 'bin' },

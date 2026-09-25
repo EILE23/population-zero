@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -145,6 +145,15 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     hip = [0, -16]; shoulder = [p, -34]; head = [p, -42];
     line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
     line(shoulder, [4, -28], [-2, -25]); line(shoulder, [-4, -28], [2, -25]); // 팔짱
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'fan') {
+    // 부채질 — 동작 목록(idle fidget), 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기의 여덟째 박자: 몸 떨기(추위)의 더운 쪽 짝. 한 손이 얼굴 앞에서 빠르게 흔들린다
+    const p = Math.sin(t * 10) * 3;
+    hip = [0, -16]; shoulder = [1, -34]; head = [2, -42];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [6, -30], [10 + p, -38]); line(shoulder, [-5, -26], [-6, -18]);
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

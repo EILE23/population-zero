@@ -75,7 +75,7 @@ const seatAt = (m: GameMap, x: number, d: number) => m.spots.find((s) => SITTABL
 const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch', fish: 'fish', feed: 'feed', lean: 'lean', shake: 'shake', busk: 'busk', root: 'root' } as Record<string, FigPose>)[act] ?? 'stand');
 /** Keeping it(slide-under) — 벤치나 물가 턱 옆인지: 넘어지며 떨어뜨린 물건이 여기 있으면 트인 데 두지 않고 밑으로 숨긴다 */
 const slideNear = (m: GameMap, x: number, d: number) => m.spots.some((s) => (SITTABLE.includes(s.kind) || WATER_SPOTS.includes(s.key)) && dist(x, d, s.x, s.d) < 60);
-const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'feed', 'lean', 'shake', 'rake', 'yawn', 'stretch', 'look', 'check', 'busk', 'shrug', 'root', 'sneeze', 'shiver', 'chess'];
+const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'feed', 'lean', 'shake', 'rake', 'yawn', 'stretch', 'look', 'check', 'busk', 'shrug', 'root', 'sneeze', 'shiver', 'chess', 'fan'];
 interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: number; x: number; d: number; scareUntil: number }
 /** 다람쥐 — 나무마다 2~3마리. freezeUntil: 가까이 온 사람·주민 때문에 얼어붙은 시각. climbUntil: 그 나무가 흔들려 줄기를 타는 중인 시각(Grows from Tree 와 짝) */
 interface Squirrel { map: string; tree: string; baseX: number; baseD: number; seed: number; x: number; d: number; freezeUntil: number; climbUntil: number }
@@ -340,7 +340,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       };
       // 팔짱 낀 주민 중 누구든 (x,d) 근처에 있으면 그 사이에 놓인 것으로 친다 — 벽돌 없이도 weight-down 과 같은 채널을 태운다
       const linkedGuard = (x: number, d: number) => npcs.current.some((n) => here(n) && dist(x, d, n.x, n.d) < 70 && linkedNpc(n));
-      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.busking > 0 ? 'busk' : b.rummaging > 0 ? 'root' : b.chessing > 0 ? 'chess' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : (t + (me?.id ?? 0) * 3 + 16) % 22 < 1.2 ? 'look' : (t + (me?.id ?? 0) * 3 + 6) % 22 < 1.2 ? 'check' : (t + (me?.id ?? 0) * 3 + 19) % 22 < 1.2 ? 'shrug' : (t + (me?.id ?? 0) * 3 + 3) % 22 < 1.2 ? 'sneeze' : (t + (me?.id ?? 0) * 3 + 14) % 22 < 1.2 ? 'shiver' : 'stand'); // 서서 가만있을 때 22초에 한 번씩 돌아가며 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
+      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.busking > 0 ? 'busk' : b.rummaging > 0 ? 'root' : b.chessing > 0 ? 'chess' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : (t + (me?.id ?? 0) * 3 + 16) % 22 < 1.2 ? 'look' : (t + (me?.id ?? 0) * 3 + 6) % 22 < 1.2 ? 'check' : (t + (me?.id ?? 0) * 3 + 19) % 22 < 1.2 ? 'shrug' : (t + (me?.id ?? 0) * 3 + 3) % 22 < 1.2 ? 'sneeze' : (t + (me?.id ?? 0) * 3 + 14) % 22 < 1.2 ? 'shiver' : (t + (me?.id ?? 0) * 3 + 8) % 22 < 1.2 ? 'fan' : 'stand'); // 서서 가만있을 때 22초에 한 번씩 돌아가며 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기·부채질(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다) — 더위 체계보다 먼저 넣는다(몸 떨기가 추위 체계보다 먼저 들어온 것과 같은 순서)
       const knock = (byName: string, line: string, fine = 0) => {
         b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0; b.busking = 0; b.rummaging = 0; b.chessing = 0; b.weighTarget = null; b.weighing = 0; // 이 것만 빠져 있었다(폴리시, 2026-09-24) — 벽돌 채널 도는 중에 맞으면 hurt 가 풀린 뒤 이어서 세, 1.5초를 다 채우지 않고도 집혔다
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
@@ -402,6 +402,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         else if (kind === 'punch') {
           const pebbleToss = props.find((s) => s.kind === 'pebbletoss' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
           if (pebbleToss) { b.swing = 0.3; b.swingKind = 'throw'; b.x = pebbleToss.x; b.d = pebbleToss.d; say('Toss.', 900); void complete('toss1'); }
+          else {
+            // Turn-based games(bocce, town wish 2026-09-25) — 조약돌 던지기와 같은 요령: 맨손 X 는 새 포즈 없이 기존 throw 를 낮은 궤적처럼 재사용(굴리는 동작으로 읽힌다). 점수는 아래 prop() 이 시계로만 그린다
+            const bocceCourt = props.find((s) => s.kind === 'bocce' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+            if (bocceCourt) { b.swing = 0.3; b.swingKind = 'throw'; b.x = bocceCourt.x; b.d = bocceCourt.d; say('Roll.', 900); void complete('bocce1'); }
+          }
         }
       };
       // ── 나 ──
@@ -975,7 +980,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'mend' ? 'fix' : n.mode === 'sort' ? 'sweep' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : linkedNpc(n) ? 'link' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : n.act === 'stand' && (t + n.seed + 11) % 22 < 1.2 ? 'stretch' : n.act === 'stand' && (t + n.seed + 16) % 22 < 1.2 ? 'look' : n.act === 'stand' && (t + n.seed + 6) % 22 < 1.2 ? 'check' : n.act === 'stand' && (t + n.seed + 19) % 22 < 1.2 ? 'shrug' : n.act === 'stand' && (t + n.seed + 3) % 22 < 1.2 ? 'sneeze' : n.act === 'stand' && (t + n.seed + 14) % 22 < 1.2 ? 'shiver' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기가 가끔
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'mend' ? 'fix' : n.mode === 'sort' ? 'sweep' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : linkedNpc(n) ? 'link' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : n.act === 'stand' && (t + n.seed + 11) % 22 < 1.2 ? 'stretch' : n.act === 'stand' && (t + n.seed + 16) % 22 < 1.2 ? 'look' : n.act === 'stand' && (t + n.seed + 6) % 22 < 1.2 ? 'check' : n.act === 'stand' && (t + n.seed + 19) % 22 < 1.2 ? 'shrug' : n.act === 'stand' && (t + n.seed + 3) % 22 < 1.2 ? 'sneeze' : n.act === 'stand' && (t + n.seed + 14) % 22 < 1.2 ? 'shiver' : n.act === 'stand' && (t + n.seed + 8) % 22 < 1.2 ? 'fan' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기·부채질이 가끔
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
@@ -1135,6 +1140,20 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
       ctx.beginPath(); ctx.rect(-24 * s, -18 * s, 8 * s, 18 * s); F('#8b6b4a'); // 세워둔 팻말 기둥
       ctx.beginPath(); ctx.rect(-17 * s, -46 * s, 34 * s, 16 * s); F('#3a2f36');
       ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${a} – ${bpt}`, 0, -35 * s);
+      break;
+    }
+    // 보체 코트 — Turn-based games 셋째 자리(체스·조약돌 다음, 마을이 겹쳐 쓴 "볼링장"·"구주희 레인" 소원도 이 코트 하나로 겸한다). 점수는 같은 seed+10초-버킷 셈
+    case 'bocce': {
+      ctx.beginPath(); ctx.rect(-46 * s, -6 * s, 92 * s, 10 * s); F('#c9b48a'); // 흙 코트
+      const bucket = Math.floor(t / 10);
+      const turnLeft = bucket % 2 === 0;
+      ctx.beginPath(); ctx.arc(30 * s, -1 * s, 3.5 * s, 0, 6.29); F('#5b4f56'); // 작은 팔레트(표적공)
+      ctx.beginPath(); ctx.arc(-6 * s, -1 * s, 4 * s, 0, 6.29); F(turnLeft ? '#c94a4a' : '#8b3a3a'); // 공 둘(차례면 밝게)
+      ctx.beginPath(); ctx.arc(10 * s, -1 * s, 4 * s, 0, 6.29); F(!turnLeft ? '#3a6ad0' : '#2a4a90');
+      let a = 0, bpt = 0;
+      for (let k = 0; k < 12; k++) { const h = hash(`bocce:${seed}:${bucket - k}`) % 5; if (h < 2) a++; else if (h < 4) bpt++; }
+      ctx.beginPath(); ctx.rect(-17 * s, -40 * s, 34 * s, 16 * s); F('#3a2f36');
+      ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${a} – ${bpt}`, 0, -29 * s);
       break;
     }
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)
