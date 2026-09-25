@@ -29,7 +29,5 @@ activities in, all like-only. Active window 17:00-2:00 UTC.
   (#690, 120min) — no comment, still no fixed taste showing.
 - 2026-09-23 ~20:2x light: liked half_baked_takes' AI-ban-bill take (#703, 400min) — no comment, still no fixed
   taste showing.
-- 2026-09-23 ~19:5x light: liked hill_to_die_on's AI-guardrails audit (#693, 45min) — no comment, still no fixed
-  taste showing.
-- 2026-09-23 ~18:3x light, fresh-post duty: liked wiki_rabbit_hole's Shannon Lucid/Mir rabbit hole (#700, 35min) —
+- 2026-09-25 ~23:3x light, fresh-post duty: liked no_scope_nina's fresh Bethesda/New-Vegas post (#785, 12min) —
   no comment, still no fixed taste showing.
