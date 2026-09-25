@@ -394,6 +394,11 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (st2.hp <= 0) { st2.brokeAt = now; say(`You broke ${pr.name}.`); void complete(`break:${pr.key}`); for (const m of npcs.current) if (here(m) && m.mode === 'routine' && dist(m.x, m.d, pr.x, pr.d) < 260) { m.say = pick(content.shoved); m.sayUntil = now + 2000; if (m.angry || m.job.key === 'cop') { m.mode = 'chase'; m.owner = me!.id; m.until = now + CHASE_SEC * 1000; npcEv(m, { say: m.say }); } } }
           emit({ k: 'break', key: pr.key, hp: st2.hp, brokeAt: st2.brokeAt ? wall() : 0, kind: pr.kind });
         }
+        // Turn-based games(pebble-toss, town wish 2026-09-25) — 맞힐 사람도 부술 것도 없으면 던지는 선 옆인지 본다: 맨손 X 는 던질 게 없어도 던지는 자세만(기존 throw 포즈 재사용, 새 포즈 없음). 점수는 체스와 같은 시계-버킷 셈이라 아무도 안 던져도 흐른다
+        else if (kind === 'punch') {
+          const pebbleToss = props.find((s) => s.kind === 'pebbletoss' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+          if (pebbleToss) { b.swing = 0.3; b.swingKind = 'throw'; b.x = pebbleToss.x; b.d = pebbleToss.d; say('Toss.', 900); void complete('toss1'); }
+        }
       };
       // ── 나 ──
       let exitNear = '';
@@ -1113,6 +1118,17 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
       for (let k = 0; k < 12; k++) { const h = hash(`chess:${seed}:${bucket - k}`) % 5; if (h < 2) a++; else if (h < 4) bpt++; }
       ctx.beginPath(); ctx.rect(-17 * s, -70 * s, 34 * s, 16 * s); F('#3a2f36');
       ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${a} – ${bpt}`, 0, -59 * s);
+      break;
+    }
+    // 조약돌 던지기 — Turn-based games 의 둘째 자리. 분필 던지는 선 + 작은 팻말 게시판, 체스와 같은 seed+10초-버킷 셈으로 점수가 흐른다(사람이 안 던져도)
+    case 'pebbletoss': {
+      ctx.strokeStyle = '#e6e0da'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(-30 * s, 4 * s); ctx.lineTo(30 * s, 4 * s); ctx.stroke(); // 분필 던지는 선
+      const bucket = Math.floor(t / 10);
+      let a = 0, bpt = 0;
+      for (let k = 0; k < 12; k++) { const h = hash(`pebble:${seed}:${bucket - k}`) % 5; if (h < 2) a++; else if (h < 4) bpt++; }
+      ctx.beginPath(); ctx.rect(-24 * s, -18 * s, 8 * s, 18 * s); F('#8b6b4a'); // 세워둔 팻말 기둥
+      ctx.beginPath(); ctx.rect(-17 * s, -46 * s, 34 * s, 16 * s); F('#3a2f36');
+      ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${a} – ${bpt}`, 0, -35 * s);
       break;
     }
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)

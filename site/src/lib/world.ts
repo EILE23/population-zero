@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -51,6 +51,8 @@ export const MAPS: GameMap[] = [
       { key: 'board1', name: 'the lost-and-found board', x: 1050, d: 0.62, act: 'stand', kind: 'board' },
       // 버스킹 자리 — 마을이 청한 코인 체계의 첫 조각. busker 직업이 여기서 일과로 연주하고, 사람도 C 로 같은 자리에서 할 수 있다
       { key: 'stage1', name: 'the busking spot', x: 1750, d: 0.9, act: 'busk', kind: 'stage' },
+      // 조약돌 던지기 — Turn-based games 체계(town wishes, 2026-09-25)의 둘째 자리. 체스와 같은 시계-버킷 점수, 아무 직업도 안 들른다(체스와 같은 이유)
+      { key: 'pebbletoss1', name: 'the pebble-toss line', x: 1480, d: 0.35, act: 'stand', kind: 'pebbletoss' },
     ],
     exits: [
       { x: 150, d: 0.12, to: 'house1', toX: 480, toD: 0.9, label: 'the blue house' },
