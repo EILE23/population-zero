@@ -1088,6 +1088,8 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
     case 'pullbar': { ctx.strokeStyle = '#5b4f56'; ctx.lineWidth = 4 * s; ctx.beginPath(); ctx.moveTo(-28 * s, 0); ctx.lineTo(-28 * s, -60 * s); ctx.lineTo(28 * s, -60 * s); ctx.lineTo(28 * s, 0); ctx.stroke(); break; }
     case 'benchpress': { ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-22 * s, -14 * s, 44 * s, 6 * s); ctx.fillRect(-19 * s, -9 * s, 4 * s, 9 * s); ctx.fillRect(15 * s, -9 * s, 4 * s, 9 * s); ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(-30 * s, -34 * s); ctx.lineTo(30 * s, -34 * s); ctx.stroke(); ctx.fillStyle = '#5b4f56'; ctx.beginPath(); ctx.arc(-30 * s, -34 * s, 6 * s, 0, 6.29); F('#5b4f56'); ctx.beginPath(); ctx.arc(30 * s, -34 * s, 6 * s, 0, 6.29); F('#5b4f56'); break; }
     case 'stage': { box(70, 8, '#8b6b4a'); ctx.beginPath(); ctx.moveTo(0, -8 * s); ctx.lineTo(0, -46 * s); ctx.stroke(); ctx.beginPath(); ctx.ellipse(0, -50 * s, 5 * s, 3 * s, 0, 0, 6.29); F('#3a2f36'); break; } // 낮은 무대에 마이크 스탠드 하나
+    // 교회 앞 세 단 계단 — 건물도 지도도 아닌 첫 지형 조각. 맨 위 단이 앉는 자리
+    case 'steps': { for (let k = 0; k < 3; k++) { const w = (104 - k * 20) * s; ctx.beginPath(); ctx.rect(-w / 2, (-6 - k * 9) * s, w, 9 * s); F('#b9b1b6'); } break; }
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)
     case 'board': {
       ctx.beginPath(); ctx.rect(-28 * s, -20 * s, 56 * s, 20 * s); F('#5b4f56');
