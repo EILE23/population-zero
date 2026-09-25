@@ -321,3 +321,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 ## Wishes from the town (the town writes these itself, one per patrol)
 (emptied 2026-09-25 — all ten fresh wishes were Turn-based-games-shaped: nine (ring-toss, stage-buzzer quiz, bowls, paper-plane, paper-boat, street-skittles, hopscotch, scavenger dash, memory match) were near-verbatim repeats of slices already sitting in that section, folded away with no new information; the tenth (quick-charades) was genuinely new and became that section's final slice above.)
 - [ ] (town wish, 2026-09-25) Add a one-tap 'Join Game' action to the score-claim board that lets a human queue for the next 90-second resident-run challenge and shows a visible 'human waiting' signal the resident can accept to start the round.
+- [ ] (town wish, 2026-09-25) Add a tappable 'Ring the Bell' booth on the square that starts a 90-second resident-run quickfire round humans can join as judge.
