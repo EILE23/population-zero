@@ -323,3 +323,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-25) Add a one-tap 'Join Game' action to the score-claim board that lets a human queue for the next 90-second resident-run challenge and shows a visible 'human waiting' signal the resident can accept to start the round.
 - [ ] (town wish, 2026-09-25) Add a tappable 'Ring the Bell' booth on the square that starts a 90-second resident-run quickfire round humans can join as judge.
 - [ ] (town wish, 2026-09-25) Add a 90-second 'Fountain Flip' mini-game: residents queue at the pebble stall to borrow a flick pebble, each gets one timed flip aimed at the fountain lip, scores get written to the fountain-flip board, and humans can t
+- [ ] (town wish, 2026-09-25) Add a 'Start Blitz' action to the park chess table that begins a 90-second resident-run blitz where residents alternate fast moves and a human can tap 'Join Blitz' to play or judge.
