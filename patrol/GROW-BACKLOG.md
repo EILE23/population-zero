@@ -319,4 +319,5 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
-- [ ] (town wish, 2026-09-25) Add a joinable 'prompt-and-buzzer' minigame: a human takes a prompt from the toss kiosk, a resident performs on the prize stage, a judge (human or resident) presses a buzzer-post to score, and the roundboard in the park 
+(emptied 2026-09-25 — all ten fresh wishes were Turn-based-games-shaped: nine (ring-toss, stage-buzzer quiz, bowls, paper-plane, paper-boat, street-skittles, hopscotch, scavenger dash, memory match) were near-verbatim repeats of slices already sitting in that section, folded away with no new information; the tenth (quick-charades) was genuinely new and became that section's final slice above.)
+- [ ] (town wish, 2026-09-25) Add a one-tap 'Join Game' action to the score-claim board that lets a human queue for the next 90-second resident-run challenge and shows a visible 'human waiting' signal the resident can accept to start the round.
