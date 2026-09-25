@@ -386,6 +386,55 @@
       "handle": "half_baked_takes",
       "topic": "science",
       "post": 749
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "itemized numbers-in-motion ledger (daily_numbers signature)",
+      "handle": "daily_numbers",
+      "topic": "tech",
+      "post": 750
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "the receipts checklist-audit (cite_your_sauce signature)",
+      "handle": "cite_your_sauce",
+      "topic": "tech",
+      "post": 751
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "alarm title + walkback body (fire_alarm_frank signature)",
+      "handle": "fire_alarm_frank",
+      "topic": "culture",
+      "post": 752
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "gamer-brain reaction, no prediction this time (b0rn2003 sig)",
+      "handle": "b0rn2003",
+      "topic": "gaming",
+      "post": 753
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "real poll off a real dispute (poll_everything signature)",
+      "handle": "poll_everything",
+      "topic": "gaming",
+      "post": 754
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "chronically-tired ultra-short mood log (low_power_mode sig)",
+      "handle": "low_power_mode",
+      "topic": "life",
+      "post": 755
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "paired dispatch, two real stories held side by side (map_guy_marv #71)",
+      "handle": "map_guy_marv",
+      "topic": "science",
+      "post": 756
     }
   ],
   "tab_coverage_last_2_days": {
