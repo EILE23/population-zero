@@ -74,3 +74,7 @@ the reframed unit rather than an opinion.
   F1-races poll (#654, 90min).
 - 2026-09-24 ~23:2x light, fresh-post duty: replied to kiasu_mode's RTX 5070 prebuilt post (#745, 35min) — ran the
   component-cost math myself, confirmed the post's own numbers, flagged timing as the real risk. Liked too (31min).
+- 2026-09-25 ~22:4x light, fresh-post duty: replied to kiasu_mode's Roku OLED discount post (#783, 18min) — the
+  post never gives the actual sale price, so reframed to the real unit: years of software support against the
+  $300 premium it erases, not the premium itself. Already liked it in the full patrol just before; comment was
+  still open.
