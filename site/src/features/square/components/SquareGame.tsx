@@ -33,7 +33,7 @@ const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
   return { stack, worn };
 };
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver' | 'brace' | 'board' | 'shelve' | 'dust' | 'mend' | 'sort';
-interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw'; stack: ItemKey[]; shakeSeg?: number; binSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number }
+interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw' | 'laugh'; stack: ItemKey[]; shakeSeg?: number; binSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number }
 /** board: 못 알아본 물건을 들고 게시판 앞 상자로 가는 중(캐리 필드는 catch/deliver 와 그대로 공유) — 도착하면 note/origin 을 붙여 내려놓는다.
  *  shelve: 주인의 직업에 자기 건물(빵집·우체국·경찰서)이 있으면 상자 대신 그 건물 선반으로 — 같은 캐리 필드, 도착해 잠깐(fix/rake 와 같은 요령) 선반에 얹는 자세를 보인 뒤 내려놓는다 */
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string; board?: string; shelf?: string; note?: string; origin?: number; weight?: boolean; mend?: boolean; sort?: boolean; bin?: string }
@@ -75,7 +75,7 @@ const seatAt = (m: GameMap, x: number, d: number) => m.spots.find((s) => SITTABL
 const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch', fish: 'fish', feed: 'feed', lean: 'lean', shake: 'shake', busk: 'busk', root: 'root' } as Record<string, FigPose>)[act] ?? 'stand');
 /** Keeping it(slide-under) — 벤치나 물가 턱 옆인지: 넘어지며 떨어뜨린 물건이 여기 있으면 트인 데 두지 않고 밑으로 숨긴다 */
 const slideNear = (m: GameMap, x: number, d: number) => m.spots.some((s) => (SITTABLE.includes(s.kind) || WATER_SPOTS.includes(s.key)) && dist(x, d, s.x, s.d) < 60);
-const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'feed', 'lean', 'shake', 'rake', 'yawn', 'stretch', 'look', 'check', 'busk', 'shrug', 'root', 'sneeze', 'shiver', 'chess', 'fan'];
+const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'feed', 'lean', 'shake', 'rake', 'yawn', 'stretch', 'look', 'check', 'busk', 'shrug', 'root', 'sneeze', 'shiver', 'chess', 'fan', 'laugh'];
 interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: number; x: number; d: number; scareUntil: number }
 /** 다람쥐 — 나무마다 2~3마리. freezeUntil: 가까이 온 사람·주민 때문에 얼어붙은 시각. climbUntil: 그 나무가 흔들려 줄기를 타는 중인 시각(Grows from Tree 와 짝) */
 interface Squirrel { map: string; tree: string; baseX: number; baseD: number; seed: number; x: number; d: number; freezeUntil: number; climbUntil: number }
@@ -143,7 +143,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     else if (w.k === 'pick') { const id = String(w.id); loose.current.delete(id); dunkedAt.current.delete(id); wet.current.delete(id); hideAt.current.delete(id); lockAt.current.delete(id); }
     else if (w.k === 'break') { broken.current.set(String(w.key), { hp: Number(w.hp), brokeAt: w.brokeAt ? performance.now() - Math.max(0, wall() - Number(w.brokeAt)) : 0 }); if (w.kind === 'lamp') flicker.current.set(String(w.key), performance.now() + 500); }
     else if (w.k === 'fix') broken.current.delete(String(w.key));
-    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - wall()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; if (typeof w.st === 'string') n.stack = w.st.split(',').filter((k): k is ItemKey => k in ITEMS); n.caught = (w.caught as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } if (typeof w.stow === 'number') n.stowUntil = performance.now() + Math.max(0, w.stow - wall()); if (typeof w.tether === 'number') n.tether = !!w.tether; if (typeof w.tm === 'number') n.tetherMissed = !!w.tm; } }
+    else if (w.k === 'npc' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n) { n.mode = w.mode as Mode; n.until = performance.now() + Math.max(0, Number(w.until) - wall()); n.x = Number(w.x); n.d = Number(w.d); n.tx = n.x; n.td = n.d; n.item = (w.item as ItemKey | null) ?? null; if (typeof w.st === 'string') n.stack = w.st.split(',').filter((k): k is ItemKey => k in ITEMS); n.caught = (w.caught as ItemKey | null) ?? null; n.owner = w.mode === 'routine' ? null : Number(w.by ?? -1); if (w.say) { n.say = String(w.say); n.sayUntil = performance.now() + 2000; } if (typeof w.stow === 'number') n.stowUntil = performance.now() + Math.max(0, w.stow - wall()); if (typeof w.tether === 'number') n.tether = !!w.tether; if (typeof w.tm === 'number') n.tetherMissed = !!w.tm; if (typeof w.swing === 'number' && w.sk === 'laugh') { n.swing = w.swing; n.swingKind = 'laugh'; } } }
     else if (w.k === 'npcpos' && !mine) { const n = npcs.current.find((x) => x.who === Number(w.who)); if (n && n.owner !== me?.id) { if (n.map !== String(w.m ?? n.map)) { n.x = Number(w.x); n.d = Number(w.d); } n.tx = Number(w.x); n.td = Number(w.d); n.face = w.face === -1 ? -1 : 1; n.moving = !!w.moving; n.map = String(w.m ?? n.map); if (w.swing) { n.swing = 0.28; n.swingKind = w.sk === 'throw' ? 'throw' : 'punch'; } } }
     else if (w.k === 'hitp' && !mine && me && Number(w.uid) === me.id) { stats.current.pendingKnock = { by: String(w.byName ?? 'someone'), line: String(w.kind) === 'kick' ? 'kicked you' : String(w.kind) === 'throw' ? `threw ${ITEMS[w.item as ItemKey] ? `a ${ITEMS[w.item as ItemKey]}` : 'something'} at you` : 'punched you' }; }
     else if (w.k === 'throw' && !mine) thrown.current.push({ item: w.item as ItemKey, map: String(w.m), x: Number(w.x), d: Number(w.d), z: Number(w.z), vx: Number(w.vx), vz: Number(w.vz), from: Number(w.from ?? -1), by: Number(w.by ?? 0), remote: true }); // 남이 던진 것 — 궤적만 그린다, 판정·떨어진 물건은 던진 쪽이 낸다
@@ -448,7 +448,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (b.busking === 0) {
           const near = npcs.current.filter((p) => here(p) && p.mode === 'routine' && dist(b.x, b.d, p.x, p.d) < 260).length;
           const tips = Array.from({ length: near }, () => Math.random() < 0.2).filter(Boolean).length;
-          if (tips > 0) { say(tips > 1 ? `${tips} coins land in the hat.` : 'A coin lands in the hat.', 1800); void complete('busk1'); } else say('Nothing today.', 1400);
+          if (tips > 0) {
+            say(tips > 1 ? `${tips} coins land in the hat.` : 'A coin lands in the hat.', 1800); void complete('busk1');
+            // 동작 목록(thin axis: motions, 2026-09-25) — 팁이 들어오면 근처(80px) 다른 주민 하나가 낮은 확률로 웃는다. swing/sk 를 npcEv 로 실어 보내야 남의 화면에도 보인다(routine 모드는 주기 동기화 대상이 아니다)
+            const laugher = npcs.current.find((p) => here(p) && p.mode === 'routine' && dist(b.x, b.d, p.x, p.d) < 80 && Math.random() < 0.35);
+            if (laugher) { laugher.swing = 0.6; laugher.swingKind = 'laugh'; npcEv(laugher, { swing: 0.6, sk: 'laugh' }); }
+          } else say('Nothing today.', 1400);
         }
       }
       if (!spectator && b.rummaging > 0) { // 통 뒤적이기 — Grows from Bins: 대개 그냥 쓰레기, 낮은 확률로 뭔가 손에 잡힌다. 근처에 청소부가 있으면 한마디 한다
@@ -618,6 +623,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const rummageBin = props.find((s) => s.kind === 'bin' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 const stage = props.find((s) => s.kind === 'stage' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 const chessTable = props.find((s) => s.kind === 'chesstable' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                // Resident-run rounds(light-chain board, town wishes 2026-09-25 병합) — 체스와 같은 요령: 판은 seed+시계로만 이미 흐르는 중, C 는 그걸 들여다볼 뿐
+                const simon = props.find((s) => s.kind === 'simon' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 // 수리공이 지금 고치고 있는 부서진 소품 옆에서 거들면 그 자리에서 바로 끝난다(수리공은 부서짐이 사라진 걸 보고 그냥 돌아간다)
                 const fixing = props.find((s) => broken.current.get(s.key)?.brokeAt && dist(b.x, b.d, s.x, s.d) < 90 && npcs.current.some((p) => here(p) && p.mode === 'repair' && p.target === s.key));
                 // 갈퀴질하는 주민 옆에서 거들면 그 자리에서 바로 건져진다 — 같은 요령(수리공이 부서짐이 사라진 걸 보고 돌아가듯, 갈퀴질하는 주민도 다음 판정에서 물건이 사라진 걸 보고 돌아간다)
@@ -639,6 +646,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 else if (chessTable) { b.chessing = 10; b.x = chessTable.x; b.d = chessTable.d; say('Your move.', 1000); }
                 else if (fixing) { b.fixing = 0.8; b.x = fixing.x; b.d = fixing.d; emit({ k: 'fix', key: fixing.key }); broken.current.delete(fixing.key); say(`Helped fix ${fixing.name}.`, 1500); void complete('fix1'); }
                 else if (raking) { b.raking = 0.8; b.x = raking.x; b.d = raking.d; emit({ k: 'pick', id: raking.id }); const rim = { x: raking.x + (Math.random() - 0.5) * 26, d: Math.min(0.97, raking.d + 0.05) }; drop(raking.item, rim.x, rim.d, null, undefined, true); say(`Helped fish the ${ITEMS[raking.item]} out.`, 1500); void complete('rake1'); }
+                else if (simon) { b.x = simon.x; b.d = simon.d; const bucket = Math.floor(t / 6); const kept = hash(`simon:hit:${simon.seed}:${bucket}`) % 5 < 2; say(kept ? 'Kept up with it.' : 'Lost the thread there.', 1200); void complete('simon1'); }
               }
             }
             if (b.stack.length >= 3) void complete('collect3');
@@ -1154,6 +1162,19 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
       for (let k = 0; k < 12; k++) { const h = hash(`bocce:${seed}:${bucket - k}`) % 5; if (h < 2) a++; else if (h < 4) bpt++; }
       ctx.beginPath(); ctx.rect(-17 * s, -40 * s, 34 * s, 16 * s); F('#3a2f36');
       ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${a} – ${bpt}`, 0, -29 * s);
+      break;
+    }
+    // 빛 이어가기 판 — Resident-run rounds(town wishes, 2026-09-25 병합, 아홉 '시작' 소원 중 다섯은 체스·조약돌·보체·무대 자리의 되풀이였다)의 첫 자리.
+    // 세 칸 중 하나만 밝다(seed+6초-버킷), 위 슬레이트엔 이어진 길이(연속 성공, 최근 12버킷까지 거슬러 센다) — 체스류와 같은 요령이라 사람이 안 봐도 흐른다
+    case 'simon': {
+      box(70, 10, '#8b6b4a');
+      const bucket = Math.floor(t / 6);
+      const lit = hash(`simon:pad:${seed}:${bucket}`) % 3;
+      for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.rect((-30 + k * 24) * s, -32 * s, 18 * s, 18 * s); F(k === lit ? '#f2e7a8' : '#5b4f56'); }
+      let chain = 0;
+      for (let k = 0; k < 12; k++) { if (hash(`simon:hit:${seed}:${bucket - k}`) % 5 < 2) chain++; else break; }
+      ctx.beginPath(); ctx.rect(-19 * s, -58 * s, 38 * s, 16 * s); F('#3a2f36');
+      ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`chain ${chain}`, 0, -47 * s);
       break;
     }
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)

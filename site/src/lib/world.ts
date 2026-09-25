@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -53,6 +53,9 @@ export const MAPS: GameMap[] = [
       { key: 'stage1', name: 'the busking spot', x: 1750, d: 0.9, act: 'busk', kind: 'stage' },
       // 조약돌 던지기 — Turn-based games 체계(town wishes, 2026-09-25)의 둘째 자리. 체스와 같은 시계-버킷 점수, 아무 직업도 안 들른다(체스와 같은 이유)
       { key: 'pebbletoss1', name: 'the pebble-toss line', x: 1480, d: 0.35, act: 'stand', kind: 'pebbletoss' },
+      // 빛 이어가기 판 — Resident-run rounds 체계(town wishes, 2026-09-25 병합)의 첫 자리. 세 칸이 seed+6초-버킷으로 차례로 빛나고
+      // 이어진 길이는 체스류와 같은 12-버킷 창으로 센다 — 아무 직업도 안 들른다(체스와 같은 이유: 시계가 이미 계속 "놀고" 있다)
+      { key: 'simon1', name: 'the light-chain board', x: 2020, d: 0.8, act: 'stand', kind: 'simon' },
     ],
     exits: [
       { x: 150, d: 0.12, to: 'house1', toX: 480, toD: 0.9, label: 'the blue house' },

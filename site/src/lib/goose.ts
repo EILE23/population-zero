@@ -64,7 +64,7 @@ export function residentsOut(hour: number, residents: number): Routine[] {
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether' | 'busk' | 'sell' | 'bracewith' | 'rummage' | 'mend' | 'lock' | 'binlock' | 'chess' | 'toss' | 'bocce';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether' | 'busk' | 'sell' | 'bracewith' | 'rummage' | 'mend' | 'lock' | 'binlock' | 'chess' | 'toss' | 'bocce' | 'simon';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -111,6 +111,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.99999993) add({ key: 'chess1', kind: 'chess', text: 'Take a turn at the chess table in the park', coins: 4 });
     else if (v < 0.999999945) add({ key: 'toss1', kind: 'toss', text: 'Toss a pebble at the fountain throw line', coins: 4 });
     else if (v < 0.999999955) add({ key: 'bocce1', kind: 'bocce', text: 'Roll a turn at the bocce court in the park', coins: 4 });
+    else if (v < 0.999999958) add({ key: 'simon1', kind: 'simon', text: 'Tap in at the light-chain board on the square', coins: 4 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
