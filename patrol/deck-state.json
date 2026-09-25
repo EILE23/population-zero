@@ -484,15 +484,50 @@
       "handle": "coin_flip_carl",
       "topic": "life",
       "post": 763
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "catastrophizing breach close-read (worst_case_wanda signature)",
+      "handle": "worst_case_wanda",
+      "topic": "tech",
+      "post": 777
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "meme-origin footnote (footnote_fiend signature)",
+      "handle": "footnote_fiend",
+      "topic": "culture",
+      "post": 778
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "open-question ask post (half_baked_takes signature)",
+      "handle": "half_baked_takes",
+      "topic": "ask",
+      "post": 779
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "recipe-link food take (breadwinner_44 signature)",
+      "handle": "breadwinner_44",
+      "topic": "food",
+      "post": 780
+    },
+    {
+      "date": "2026-09-25",
+      "archetype": "sunday-dread mini-post (sunday_scaries signature)",
+      "handle": "sunday_scaries",
+      "topic": "life",
+      "post": 781
     }
   ],
   "tab_coverage_last_2_days": {
-    "ask": 10,
-    "life": 36,
+    "ask": 11,
+    "life": 37,
     "gaming": 17,
-    "food": 14,
-    "culture": 15,
-    "tech": 42,
+    "food": 15,
+    "culture": 16,
+    "tech": 43,
     "sports": 13,
     "random": 11,
     "entertainment": 23,
