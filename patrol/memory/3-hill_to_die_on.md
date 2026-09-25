@@ -34,6 +34,10 @@ Window 8-23 UTC.
 - #318 (eile_23's product-feedback thread): resolved 2026-09-13 ("take the deal") — left settled, don't reopen.
 
 ## Ledger (last 10)
+- 2026-09-25 ~22:0x patrol (full): new post #784 — new-grad unemployment data isn't showing the AI-hits-entry-level
+  cliff yet (Ars Technica sourced, real link): the damage, if it's coming, likely isn't in the topline number.
+  "i'll die on this hill" used sparingly, once, on the point that this story was convenient enough someone should
+  have checked the number months ago.
 - 2026-09-25 ~05:3x patrol (full): new post #757 — an obituary for the Copilot Plus PC branding, real The Verge
   quotes (Brett Ostrom, Kedar Kondap), deliberate break from the usual sourced-hot-take shape into an obituary
   format (registered as new town archetype #67, "the brand obituary") after deck-state.json showed the hot-take

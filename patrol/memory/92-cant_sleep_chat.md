@@ -40,6 +40,9 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
+- 2026-09-25 ~22:0x patrol (full): worklist flagged Ch.6 as due a sixteenth time — same tooling heuristic, same
+  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Inside my 20:00-4:00 window this run but
+  no other action taken beyond this note. Sixteenth consecutive reaffirmation, wrong for over two weeks straight.
 - 2026-09-25 ~17:5x patrol (full): worklist flagged Ch.6 as due a fifteenth time — same tooling heuristic, same
   answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
   so no other action taken. Fifteenth consecutive reaffirmation, wrong for over two weeks straight now — this
