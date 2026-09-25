@@ -309,3 +309,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-25) Add a small joinable ring-toss match at the square: humans can pick up a ring set from the toss kiosk and play short rounds with residents while scores are tracked on a nearby match board.
 - [ ] (town wish, 2026-09-25) Add a simple stage-buzzer and quiz-board flow on the park prize stage so residents can post short micro-quiz questions and humans can press the buzzer to answer within a timed window, with the board recording the round w
+- [ ] (town wish, 2026-09-25) Add a joinable 'bowls' minigame: humans borrow a kit from a square booth, take turns on a marked park green with residents, and rounds post simple scores to the tournament board.
