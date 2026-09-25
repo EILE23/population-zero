@@ -75,7 +75,7 @@ const seatAt = (m: GameMap, x: number, d: number) => m.spots.find((s) => SITTABL
 const actPose = (act: string, seat: PropKind | undefined): FigPose => act === 'sit' ? seatPose(seat) : act === 'eat' ? (seat ? 'eat' : 'chew') : (({ read: 'read', phone: 'phone', water: 'water', sweep: 'sweep', shop: 'shop', pushup: 'pushup', pullup: 'pullup', press: 'press', watch: 'watch', fish: 'fish', feed: 'feed', lean: 'lean', shake: 'shake', busk: 'busk', root: 'root' } as Record<string, FigPose>)[act] ?? 'stand');
 /** Keeping it(slide-under) — 벤치나 물가 턱 옆인지: 넘어지며 떨어뜨린 물건이 여기 있으면 트인 데 두지 않고 밑으로 숨긴다 */
 const slideNear = (m: GameMap, x: number, d: number) => m.spots.some((s) => (SITTABLE.includes(s.kind) || WATER_SPOTS.includes(s.key)) && dist(x, d, s.x, s.d) < 60);
-const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'feed', 'lean', 'shake', 'rake', 'yawn', 'stretch', 'look', 'check', 'busk', 'shrug', 'root', 'sneeze', 'shiver'];
+const KNOWN_POSES = ['run', 'jump', 'punch', 'kick', 'sit', 'seat', 'swing', 'eat', 'chew', 'read', 'phone', 'water', 'sweep', 'fix', 'shop', 'pushup', 'pullup', 'press', 'throw', 'watch', 'trip', 'fish', 'feed', 'lean', 'shake', 'rake', 'yawn', 'stretch', 'look', 'check', 'busk', 'shrug', 'root', 'sneeze', 'shiver', 'chess'];
 interface Duck { map: string; pond: string; baseX: number; baseD: number; seed: number; x: number; d: number; scareUntil: number }
 /** 다람쥐 — 나무마다 2~3마리. freezeUntil: 가까이 온 사람·주민 때문에 얼어붙은 시각. climbUntil: 그 나무가 흔들려 줄기를 타는 중인 시각(Grows from Tree 와 짝) */
 interface Squirrel { map: string; tree: string; baseX: number; baseD: number; seed: number; x: number; d: number; freezeUntil: number; climbUntil: number }
@@ -101,7 +101,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
   })());
   const fresh = useRef(new Set([...extra, ...extraMaps.flatMap((m) => m.spots)].filter((e) => Date.now() - Date.parse(e.addedAt) < 86400000).map((e) => e.key)));
   const mapKey = useRef('square');
-  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], wearing: new Set<ItemKey>(), hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, tripCd: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0, calling: 0, leaning: false, shaking: 0, shakeSpot: '', fixing: 0, raking: 0, weighing: 0, weighTarget: null as string | null, busking: 0, rummaging: 0, rummageSpot: '' });
+  const body = useRef({ x: 1500, d: 0.7, z: 0, vz: 0, face: 1 as 1 | -1, moving: false, stack: [] as ItemKey[], wearing: new Set<ItemKey>(), hurt: 0, swing: 0, swingKind: 'punch' as 'punch' | 'kick' | 'throw', sitting: false, eating: 0, tripCd: 0, seat: 'bench' as PropKind, exercise: 0, exerciseKind: 'press' as 'pushup' | 'pullup' | 'press', still: null as 'tv' | 'shelf' | null, watering: 0, tripped: 0, fishing: 0, feeding: 0, calling: 0, leaning: false, shaking: 0, shakeSpot: '', fixing: 0, raking: 0, weighing: 0, weighTarget: null as string | null, busking: 0, rummaging: 0, rummageSpot: '', chessing: 0 });
   const input = useRef({ left: false, right: false, up: false, down: false, jump: false, grab: false, shove: false, kick: false, talk: false });
   const quests = useRef<Map<number, Quest>>(new Map()); // 말 걸어서 받은 부탁
   const feedRef = useRef({ map: '', x: 0, d: 0, until: 0 }); // 마지막으로 오리에게 모이를 준 곳(나 또는 근처 주민) — 오리가 그쪽으로 모인다
@@ -340,9 +340,9 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       };
       // 팔짱 낀 주민 중 누구든 (x,d) 근처에 있으면 그 사이에 놓인 것으로 친다 — 벽돌 없이도 weight-down 과 같은 채널을 태운다
       const linkedGuard = (x: number, d: number) => npcs.current.some((n) => here(n) && dist(x, d, n.x, n.d) < 70 && linkedNpc(n));
-      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.busking > 0 ? 'busk' : b.rummaging > 0 ? 'root' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : (t + (me?.id ?? 0) * 3 + 16) % 22 < 1.2 ? 'look' : (t + (me?.id ?? 0) * 3 + 6) % 22 < 1.2 ? 'check' : (t + (me?.id ?? 0) * 3 + 19) % 22 < 1.2 ? 'shrug' : (t + (me?.id ?? 0) * 3 + 3) % 22 < 1.2 ? 'sneeze' : (t + (me?.id ?? 0) * 3 + 14) % 22 < 1.2 ? 'shiver' : 'stand'); // 서서 가만있을 때 22초에 한 번씩 돌아가며 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
+      const myPose = (): FigPose => b.tripped > 0 ? 'trip' : b.swing > 0 ? b.swingKind : b.z > 0 ? 'jump' : b.exercise > 0 ? b.exerciseKind : b.watering > 0 ? 'water' : b.fishing > 0 ? 'fish' : b.feeding > 0 ? 'feed' : b.calling > 0 ? 'phone' : b.shaking > 0 ? 'shake' : b.fixing > 0 ? 'fix' : b.raking > 0 ? 'rake' : b.busking > 0 ? 'busk' : b.rummaging > 0 ? 'root' : b.chessing > 0 ? 'chess' : b.eating > 0 ? (b.sitting ? 'eat' : 'chew') : b.sitting ? seatPose(b.seat) : b.still ? (b.still === 'tv' ? 'watch' : 'read') : b.leaning ? 'lean' : b.moving ? 'run' : ((t + (me?.id ?? 0) * 3) % 22 < 1.2 ? 'yawn' : (t + (me?.id ?? 0) * 3 + 11) % 22 < 1.2 ? 'stretch' : (t + (me?.id ?? 0) * 3 + 16) % 22 < 1.2 ? 'look' : (t + (me?.id ?? 0) * 3 + 6) % 22 < 1.2 ? 'check' : (t + (me?.id ?? 0) * 3 + 19) % 22 < 1.2 ? 'shrug' : (t + (me?.id ?? 0) * 3 + 3) % 22 < 1.2 ? 'sneeze' : (t + (me?.id ?? 0) * 3 + 14) % 22 < 1.2 ? 'shiver' : 'stand'); // 서서 가만있을 때 22초에 한 번씩 돌아가며 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기(동작 목록, 순전히 시계 함수라 동기화 없이도 모두 같은 걸 본다)
       const knock = (byName: string, line: string, fine = 0) => {
-        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0; b.busking = 0; b.rummaging = 0; b.weighTarget = null; b.weighing = 0; // 이 것만 빠져 있었다(폴리시, 2026-09-24) — 벽돌 채널 도는 중에 맞으면 hurt 가 풀린 뒤 이어서 세, 1.5초를 다 채우지 않고도 집혔다
+        b.hurt = 1.2; b.vz = 0; b.z = 0; b.sitting = false; b.eating = 0; b.exercise = 0; b.still = null; b.watering = 0; b.tripped = 0; b.fishing = 0; b.feeding = 0; b.calling = 0; b.leaning = false; b.shaking = 0; b.fixing = 0; b.raking = 0; b.busking = 0; b.rummaging = 0; b.chessing = 0; b.weighTarget = null; b.weighing = 0; // 이 것만 빠져 있었다(폴리시, 2026-09-24) — 벽돌 채널 도는 중에 맞으면 hurt 가 풀린 뒤 이어서 세, 1.5초를 다 채우지 않고도 집혔다
         for (const it of b.stack) drop(it, b.x + (Math.random() - 0.5) * 80, Math.max(0, Math.min(1, b.d + (Math.random() - 0.5) * 0.2)), null);
         b.stack = []; b.wearing.clear(); say(`${byName}: ${line}${fine ? ` (fined ${fine})` : ''}`); st.chasedSince = 0;
       };
@@ -446,8 +446,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (sweeperNear) { sweeperNear.say = pick(content.shoved); sweeperNear.sayUntil = now + 2200; npcEv(sweeperNear, { say: sweeperNear.say }); }
         }
       }
+      if (!spectator && b.chessing > 0) { // 체스 테이블에서 한 수 — 점수는 아래 prop() 이 시계만으로 그린다, 이 채널은 순전히 사람이 자리에 앉아 있는 연출(~10초, 한 수)
+        b.chessing = Math.max(0, b.chessing - dt); b.moving = false;
+        if (b.chessing === 0) void complete('chess1');
+      }
       if (b.swing > 0) b.swing = Math.max(0, b.swing - dt);
-      if (!spectator && ready.current && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0 && b.feeding <= 0 && b.calling <= 0 && b.shaking <= 0 && b.fixing <= 0 && b.raking <= 0 && b.busking <= 0 && b.rummaging <= 0) {
+      if (!spectator && ready.current && b.hurt <= 0 && b.eating <= 0 && b.exercise <= 0 && b.watering <= 0 && b.tripped <= 0 && b.fishing <= 0 && b.feeding <= 0 && b.calling <= 0 && b.shaking <= 0 && b.fixing <= 0 && b.raking <= 0 && b.busking <= 0 && b.rummaging <= 0 && b.chessing <= 0) {
         const dx = (i.right ? 1 : 0) - (i.left ? 1 : 0), dd = (i.down ? 1 : 0) - (i.up ? 1 : 0);
         const slow = 1 - Math.min(0.5, b.stack.length * 0.12);
         if (b.sitting) { b.moving = false; if (dx || dd || i.jump) b.sitting = false; } // 앉아 있으면 움직이려는 순간 일어난다(이번 프레임엔 아직 안 움직임)
@@ -597,6 +601,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const tree = props.find((s) => s.kind === 'tree' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 const rummageBin = props.find((s) => s.kind === 'bin' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 const stage = props.find((s) => s.kind === 'stage' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                const chessTable = props.find((s) => s.kind === 'chesstable' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 // 수리공이 지금 고치고 있는 부서진 소품 옆에서 거들면 그 자리에서 바로 끝난다(수리공은 부서짐이 사라진 걸 보고 그냥 돌아간다)
                 const fixing = props.find((s) => broken.current.get(s.key)?.brokeAt && dist(b.x, b.d, s.x, s.d) < 90 && npcs.current.some((p) => here(p) && p.mode === 'repair' && p.target === s.key));
                 // 갈퀴질하는 주민 옆에서 거들면 그 자리에서 바로 건져진다 — 같은 요령(수리공이 부서짐이 사라진 걸 보고 돌아가듯, 갈퀴질하는 주민도 다음 판정에서 물건이 사라진 걸 보고 돌아간다)
@@ -614,6 +619,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 else if (rummageBin && (binLockAt.current.get(rummageBin.key) ?? 0) > now) { say('Just emptied. Give it a minute.', 1500); void complete('binlock1'); } // Keep-lock(bin-lock) — 청소부가 방금 비운 통은 아직 못 뒤진다
                 else if (rummageBin) { b.rummaging = 1.2; b.rummageSpot = rummageBin.key; b.x = rummageBin.x; b.d = rummageBin.d; say('Rummaging.', 900); }
                 else if (stage) { b.busking = 6; b.x = stage.x; b.d = stage.d; say('Busking.', 1000); }
+                // Turn-based games(chess) — 한 사람이 한 자리에서 한 수(~10초)만 둘 수 있다. 점수는 사람이 두든 안 두든 시계로만 이미 계산 중(아래 prop())
+                else if (chessTable) { b.chessing = 10; b.x = chessTable.x; b.d = chessTable.d; say('Your move.', 1000); }
                 else if (fixing) { b.fixing = 0.8; b.x = fixing.x; b.d = fixing.d; emit({ k: 'fix', key: fixing.key }); broken.current.delete(fixing.key); say(`Helped fix ${fixing.name}.`, 1500); void complete('fix1'); }
                 else if (raking) { b.raking = 0.8; b.x = raking.x; b.d = raking.d; emit({ k: 'pick', id: raking.id }); const rim = { x: raking.x + (Math.random() - 0.5) * 26, d: Math.min(0.97, raking.d + 0.05) }; drop(raking.item, rim.x, rim.d, null, undefined, true); say(`Helped fish the ${ITEMS[raking.item]} out.`, 1500); void complete('rake1'); }
               }
@@ -993,6 +1000,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         if (b.calling > 0) actIcon(ctx, 'phone', fx + 18 * fs, fy - 46 * fs, fs);
         if (b.leaning) actIcon(ctx, 'lean', fx + 18 * fs, fy - 46 * fs, fs);
         if (b.busking > 0) actIcon(ctx, 'busk', fx + 18 * fs, fy - 46 * fs, fs);
+        if (b.chessing > 0) actIcon(ctx, 'chess', fx + 18 * fs, fy - 46 * fs, fs);
         const carried = b.stack.filter((it) => !b.wearing.has(it));
         carried.forEach((it, k) => item(ctx, it, fx, fy - (48 + k * 12) * fs, fs * 0.8));
         for (const it of b.wearing) if (b.stack.includes(it)) item(ctx, it, fx, fy - (WORN_Y[it] ?? 44) * fs, fs * 0.8);
@@ -1090,6 +1098,23 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
     case 'stage': { box(70, 8, '#8b6b4a'); ctx.beginPath(); ctx.moveTo(0, -8 * s); ctx.lineTo(0, -46 * s); ctx.stroke(); ctx.beginPath(); ctx.ellipse(0, -50 * s, 5 * s, 3 * s, 0, 0, 6.29); F('#3a2f36'); break; } // 낮은 무대에 마이크 스탠드 하나
     // 교회 앞 세 단 계단 — 건물도 지도도 아닌 첫 지형 조각. 맨 위 단이 앉는 자리
     case 'steps': { for (let k = 0; k < 3; k++) { const w = (104 - k * 20) * s; ctx.beginPath(); ctx.rect(-w / 2, (-6 - k * 9) * s, w, 9 * s); F('#b9b1b6'); } break; }
+    // 체스 테이블 — Turn-based games(town wishes, 2026-09-25)의 첫 자리. 판+걸상 둘, 위쪽 분필 슬레이트에 점수.
+    // 점수는 seed(테이블마다 다름) + t(=wall()/1000, 모두 같은 방 시계) 로만 정해진다 — 최근 12수(~2분)만 세어 매 10초 다시 그린다,
+    // 하루치를 다 더하지 않아도 화면마다 똑같은 값이 나온다(passing-glance 류가 쓰는 것과 같은 요령). 사람이 앉아 두든 안 두든 그대로 흐른다
+    case 'chesstable': {
+      const bucket = Math.floor(t / 10);
+      const turnLeft = bucket % 2 === 0;
+      ctx.beginPath(); ctx.rect(-38 * s, -16 * s, 10 * s, 16 * s); F(turnLeft ? '#a98b64' : '#8b6b4a'); // 걸상(왼쪽 — 차례면 밝게)
+      ctx.beginPath(); ctx.rect(28 * s, -16 * s, 10 * s, 16 * s); F(!turnLeft ? '#a98b64' : '#8b6b4a');  // 걸상(오른쪽)
+      box(50, 30, '#8b6b4a');
+      ctx.beginPath(); ctx.rect(-22 * s, -46 * s, 44 * s, 16 * s); F('#c9b48a'); // 체크판
+      for (let row = 0; row < 2; row++) for (let col = 0; col < 6; col++) if ((row + col) % 2 === 0) { ctx.beginPath(); ctx.rect((-22 + col * 7.33) * s, (-46 + row * 8) * s, 7.33 * s, 8 * s); F('#5b4f56'); }
+      let a = 0, bpt = 0;
+      for (let k = 0; k < 12; k++) { const h = hash(`chess:${seed}:${bucket - k}`) % 5; if (h < 2) a++; else if (h < 4) bpt++; }
+      ctx.beginPath(); ctx.rect(-17 * s, -70 * s, 34 * s, 16 * s); F('#3a2f36');
+      ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${a} – ${bpt}`, 0, -59 * s);
+      break;
+    }
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)
     case 'board': {
       ctx.beginPath(); ctx.rect(-28 * s, -20 * s, 56 * s, 20 * s); F('#5b4f56');
@@ -1128,7 +1153,7 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
 }
 function actIcon(ctx: CanvasRenderingContext2D, act: string, x: number, y: number, s: number) {
   ctx.fillStyle = '#5b4f56'; ctx.font = `${10 * s}px ui-monospace, monospace`; ctx.textAlign = 'left';
-  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups', press: 'bench press', watch: 'watching', fish: 'fishing', feed: 'feeding the ducks', lean: 'leaning', shake: 'shaking the tree', busk: 'busking' } as Record<string, string>)[act] ?? '', x, y);
+  ctx.fillText(({ read: 'reading', phone: 'on the phone', sit: 'sitting', water: 'watering', sweep: 'sweeping', shop: 'shopping', eat: 'eating', repair: 'fixing it', pushup: 'push-ups', pullup: 'pull-ups', press: 'bench press', watch: 'watching', fish: 'fishing', feed: 'feeding the ducks', lean: 'leaning', shake: 'shaking the tree', busk: 'busking', chess: 'playing chess' } as Record<string, string>)[act] ?? '', x, y);
 }
 function name(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) { ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
 function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string) {

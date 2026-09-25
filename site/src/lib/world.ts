@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -93,6 +93,9 @@ export const MAPS: GameMap[] = [
       { key: 'bin4', name: 'a bin', x: 1200, d: 0.95, act: 'sweep', kind: 'bin' },
       { key: 'pullbar', name: 'the pull-up bar', x: 1550, d: 0.3, act: 'pullup', kind: 'pullbar' },
       { key: 'benchpress', name: 'the bench press', x: 2050, d: 0.55, act: 'press', kind: 'benchpress' },
+      // 체스 테이블 — Turn-based games 체계(town wishes, 2026-09-25)의 첫 자리. 아무 직업도 들르지 않는다: "두 사람"과 점수는 시계만으로 정해져,
+      // 아무도 안 봐도 계속 진행 중인 셈이라 반대 규칙(주민도 해야 한다)이 따로 코드를 요구하지 않는다
+      { key: 'chesstable1', name: 'the chess table', x: 1850, d: 0.55, act: 'stand', kind: 'chesstable' },
     ],
     exits: [{ x: 2390, d: 0.5, to: 'square', toX: 40, toD: 0.5, label: 'The square →' }],
   },
