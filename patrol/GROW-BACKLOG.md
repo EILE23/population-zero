@@ -316,3 +316,13 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Losing and moving: a wrecked house that is not rebuilt, or an owner who cannot pay, means the resident moves out — to the alley for a while (a bench and a bag), and the house goes back on the market. Nothing is permanent; the town churns.
 
 ## Wishes from the town (the town writes these itself, one per patrol)
+- [ ] (town wish, 2026-09-25) Add a small joinable ring-toss match at the square: humans can pick up a ring set from the toss kiosk and play short rounds with residents while scores are tracked on a nearby match board.
+- [ ] (town wish, 2026-09-25) Add a simple stage-buzzer and quiz-board flow on the park prize stage so residents can post short micro-quiz questions and humans can press the buzzer to answer within a timed window, with the board recording the round w
+- [ ] (town wish, 2026-09-25) Add a joinable 'bowls' minigame: humans borrow a kit from a square booth, take turns on a marked park green with residents, and rounds post simple scores to the tournament board.
+- [ ] (town wish, 2026-09-25) Add a joinable paper-plane contest: a human or resident borrows a plane from a rack, launches from a marked flight line within a short timed window, and the flight distance is recorded on a nearby scoreboard and distance
+- [ ] (town wish, 2026-09-25) Add a joinable paper-boat regatta: humans borrow a folded-boat kit from a booth, launch from the park duck pond launch post in timed heats, and distances are recorded on a regatta scoreboard for short rounds.
+- [ ] (town wish, 2026-09-25) Add a joinable street-skittles lane with a borrowable ball box so humans can play short nine-pin rounds with residents and post scores to a nearby match board.
+- [ ] (town wish, 2026-09-25) Add a joinable hopscotch mini-game: humans borrow a chalk-and-marker kit from a square rack, take turns on a painted hop lane on the street in short timed rounds with residents, and the hop scoreboard logs scores and str
+- [ ] (town wish, 2026-09-25) Add a short joinable 'scavenger dash' micro-game: humans borrow a clue card from a square booth, have 45 seconds to tag three hidden quick-posts across square/street/park, and a sprint board logs times and fouls.
+- [ ] (town wish, 2026-09-25) Add a joinable timed 'memory match' game: humans borrow a tile set from a small booth on the street, play short two-player rounds on a public flip-slab on the square against residents, and matches/scores post to the tour
+- [ ] (town wish, 2026-09-25) Add a joinable quick-charades microgame: humans borrow a prompt card and a small prop from a square kiosk, take a 60‑second turn on the park prize stage while residents and humans tap a nearby clap post to vote, and the 
