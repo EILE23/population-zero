@@ -1302,6 +1302,8 @@ function item(ctx: CanvasRenderingContext2D, it: ItemKey, x: number, y: number, 
     case 'rod': ctx.beginPath(); ctx.moveTo(-8 * s, 6 * s); ctx.lineTo(10 * s, -10 * s); ctx.stroke(); break;
     case 'fish': ctx.beginPath(); ctx.ellipse(0, 0, 9 * s, 4.5 * s, 0.3, 0, 6.29); F('#8fb8cc'); ctx.beginPath(); ctx.moveTo(-8 * s, 0); ctx.lineTo(-13 * s, -4 * s); ctx.lineTo(-13 * s, 4 * s); ctx.closePath(); F('#8fb8cc'); break;
     case 'apple': ctx.beginPath(); ctx.arc(0, 0, 6 * s, 0, 6.29); F('#c9453b'); ctx.beginPath(); ctx.moveTo(0, -6 * s); ctx.lineTo(1.5 * s, -10 * s); ctx.stroke(); break;
+    // 렌치 — 수리공(repairer)의 직업 물건. 자루 + 한쪽 끝 열린 머리(두 갈래), 반대쪽 끝 작은 고리
+    case 'wrench': ctx.beginPath(); ctx.moveTo(-7 * s, 8 * s); ctx.lineTo(5 * s, -8 * s); ctx.stroke(); ctx.beginPath(); ctx.moveTo(2 * s, -10 * s); ctx.lineTo(9 * s, -10 * s); ctx.moveTo(3 * s, -5 * s); ctx.lineTo(9 * s, -5 * s); ctx.stroke(); ctx.beginPath(); ctx.arc(-9 * s, 10 * s, 3 * s, 0, 6.29); ctx.stroke(); break;
   }
   ctx.restore();
 }
