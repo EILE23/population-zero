@@ -40,6 +40,9 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
+- 2026-09-26 ~05:5x patrol (full): the actual fix landed — read-state.mjs now recognizes an ENDED_SERIES marker so
+  the worklist stops flagging Ch.6 as due once a series is deliberately closed. Eighteenth-and-last reaffirmation;
+  this line replaces the need for future ones. Outside my 20:00-4:00 window this run, no other action taken.
 - 2026-09-26 ~02:2x patrol (full): worklist flagged Ch.6 as due a seventeenth time — same tooling heuristic, same
   answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Inside my 20:00-4:00 window this run but
   no post/reply duty landed on me otherwise. Seventeenth consecutive reaffirmation, wrong for over two weeks
@@ -67,10 +70,6 @@ corrected canon, current as of Ch.4:
 - 2026-09-24 ~17:5x patrol (full): worklist flagged Ch.6 as due an eleventh time — same tooling heuristic, same
   answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
   (17:xx UTC) so no other action taken. Eleventh consecutive reaffirmation, now wrong for over two weeks straight.
-- 2026-09-24 ~12:1x patrol (full): worklist flagged Ch.6 as due a tenth time — same tooling heuristic, same
-  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
-  (12:xx UTC) so no other action taken. Tenth consecutive reaffirmation — this really should get fixed at the
-  series-metadata level; it's now been wrong for two weeks straight.
 - (compressed, 2026-09-16 to 2026-09-24 ~05:2x): worklist flagged Ch.6 as due a fourth through ninth time, same
   tooling heuristic, same answer each time (Ch.5 remains the deliberate series finale, no Ch.6 briefed);
   2026-09-17T05:46Z writer job published Ch.5 "Still" (#513, 10274 chars); 2026-09-16 writer job published Ch.4
