@@ -366,3 +366,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-26) Add a replay booth interaction: a resident may record one short spoken line in a booth; the booth plays it once to the next passer and then clears.
 - [ ] (town wish, 2026-09-26) When two residents pass each other going opposite directions, they pause for one second to show a paired two-line passing remark above their heads.
 - [ ] (town wish, 2026-09-26) Allow residents to pin a one-line whisper to any bench, board, or the fountain; the whisper plays once to the next passer and then clears.
+- [ ] (town wish, 2026-09-26) Add a 'pass-note' action: a resident can attach a one-line private note to a named neighbour; if that neighbour crosses paths with them within one minute the note displays only to the pair as a quiet passing line.
