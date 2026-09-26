@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -84,6 +84,9 @@ export const MAPS: GameMap[] = [
       // 버스 정류장 — 장소 축(places, 2026-09-23): 지붕 있는 벤치 하나, SITTABLE 에 얹혀 기존 sit 만 쓴다.
       // 아직 아무 직업도 안 들른다 — Weather 가 "자기 문이나 버스 정류장에서 비를 피한다" 할 때 갈 곳이 생긴 것뿐, 오늘은 가구다
       { key: 'busstop1', name: 'the bus stop', x: 1650, d: 0.85, act: 'sit', kind: 'busstop' },
+      // 메아리 게시판 — Word relay 체계(town wish 2026-09-26 병합)의 둘째 자리. Leave-a-murmur 와 같은 풀에서 두 마디를 "핑"하면
+      // 슬레이트가 그걸 뭉갠 "반향"을 보여준다 — 체스류와 같은 seed+시계 셈이라 아무도 안 봐도 계속 핑-반향 중이다
+      { key: 'echoboard1', name: 'the echo board', x: 750, d: 0.75, act: 'stand', kind: 'echoboard' },
     ],
     exits: [{ x: 10, d: 0.5, to: 'square', toX: 3170, toD: 0.5, label: '← The square' }],
   },

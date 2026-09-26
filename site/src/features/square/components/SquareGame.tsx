@@ -71,6 +71,7 @@ const MURMUR_PIN_PCT = 30, MURMUR_ECHO_R = 80, MURMUR_ECHO_PCT = 30; // 그 창�
 /** 되뇔 때 한 단어를 뭉갠다 — "quiet today." → "quiet —." 식, 씨앗으로 어느 단어인지 결정적으로 고른다 */
 const muffle = (line: string, seed: number): string => { const words = line.replace(/\.$/, '').split(' '); words[seed % words.length] = '—'; return `${words.join(' ')}.`; };
 const WAVE_WINDOW = 4, WAVE_R = 50, WAVE_PCT = 40; // 동작 목록(Together, wave hello) — 스치는 두 주민이 손을 흔드는 창(초)·거리(px)·확률(%)
+const ECHO_WINDOW = 15; // 메아리 게시판(Word relay, 둘째 자리) — 체스류와 같은 시계+해시 요령, 이 창마다 핑-반향이 한 번씩 새로 정해진다
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -632,6 +633,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const chessTable = props.find((s) => s.kind === 'chesstable' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 // Resident-run rounds(light-chain board, town wishes 2026-09-25 병합) — 체스와 같은 요령: 판은 seed+시계로만 이미 흐르는 중, C 는 그걸 들여다볼 뿐
                 const simon = props.find((s) => s.kind === 'simon' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                // Word relay(echo board, 둘째 자리) — 체스류와 같은 요령: 슬레이트는 seed+시계로만 이미 핑-반향 중, C 는 그걸 읽을 뿐
+                const echoboard = props.find((s) => s.kind === 'echoboard' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 // 수리공이 지금 고치고 있는 부서진 소품 옆에서 거들면 그 자리에서 바로 끝난다(수리공은 부서짐이 사라진 걸 보고 그냥 돌아간다)
                 const fixing = props.find((s) => broken.current.get(s.key)?.brokeAt && dist(b.x, b.d, s.x, s.d) < 90 && npcs.current.some((p) => here(p) && p.mode === 'repair' && p.target === s.key));
                 // 갈퀴질하는 주민 옆에서 거들면 그 자리에서 바로 건져진다 — 같은 요령(수리공이 부서짐이 사라진 걸 보고 돌아가듯, 갈퀴질하는 주민도 다음 판정에서 물건이 사라진 걸 보고 돌아간다)
@@ -654,6 +657,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 else if (fixing) { b.fixing = 0.8; b.x = fixing.x; b.d = fixing.d; emit({ k: 'fix', key: fixing.key }); broken.current.delete(fixing.key); say(`Helped fix ${fixing.name}.`, 1500); void complete('fix1'); }
                 else if (raking) { b.raking = 0.8; b.x = raking.x; b.d = raking.d; emit({ k: 'pick', id: raking.id }); const rim = { x: raking.x + (Math.random() - 0.5) * 26, d: Math.min(0.97, raking.d + 0.05) }; drop(raking.item, rim.x, rim.d, null, undefined, true); say(`Helped fish the ${ITEMS[raking.item]} out.`, 1500); void complete('rake1'); }
                 else if (simon) { b.x = simon.x; b.d = simon.d; const bucket = Math.floor(t / 6); const kept = hash(`simon:hit:${simon.seed}:${bucket}`) % 5 < 2; say(kept ? 'Kept up with it.' : 'Lost the thread there.', 1200); void complete('simon1'); }
+                else if (echoboard) { b.x = echoboard.x; b.d = echoboard.d; const bucket = Math.floor(t / ECHO_WINDOW); const ping = MURMUR_LINES[hash(`echoboard:ping:${echoboard.seed}:${bucket}`) % MURMUR_LINES.length]; say(muffle(ping, hash(`echoboard:echo:${echoboard.seed}:${bucket}`)), 1400); void complete('echoboard1'); }
               }
             }
             if (b.stack.length >= 3) void complete('collect3');
@@ -1225,6 +1229,18 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
       for (let k = 0; k < 12; k++) { if (hash(`simon:hit:${seed}:${bucket - k}`) % 5 < 2) chain++; else break; }
       ctx.beginPath(); ctx.rect(-19 * s, -58 * s, 38 * s, 16 * s); F('#3a2f36');
       ctx.fillStyle = '#e6e0da'; ctx.font = `bold ${9 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`chain ${chain}`, 0, -47 * s);
+      break;
+    }
+    // 메아리 게시판 — Word relay 체계 둘째 자리(town wish 2026-09-26 병합). 기둥 위 슬레이트 두 줄: 위는 핑, 아래는 그걸 뭉갠 반향.
+    // seed(자리마다 다름) + t(=wall()/1000, 모두 같은 방 시계) 로만 정해진다 — ECHO_WINDOW 마다 새로 갈린다, 사람이 읽든 안 읽든 그대로 흐른다
+    case 'echoboard': {
+      ctx.beginPath(); ctx.rect(-4 * s, -50 * s, 8 * s, 50 * s); F('#8b6b4a'); // 기둥
+      const bucket = Math.floor(t / ECHO_WINDOW);
+      const ping = MURMUR_LINES[hash(`echoboard:ping:${seed}:${bucket}`) % MURMUR_LINES.length];
+      const echo = muffle(ping, hash(`echoboard:echo:${seed}:${bucket}`));
+      ctx.beginPath(); ctx.rect(-40 * s, -92 * s, 80 * s, 40 * s); F('#3a2f36'); // 분필 슬레이트
+      ctx.fillStyle = '#e6e0da'; ctx.font = `${8 * s}px ui-monospace, monospace`; ctx.textAlign = 'center';
+      ctx.fillText(ping, 0, -78 * s); ctx.fillText(echo, 0, -66 * s);
       break;
     }
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)
