@@ -4,7 +4,7 @@ import { ListChecks, Upload } from 'lucide-react';
 import { fitGameCanvas, useGameViewport } from '@/features/games/mobile';
 import { critter, figure, SEATED, type CritterPose, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
-import { BADGE_BY_KEY, ITEM_LIST as POND_ITEMS } from '@/lib/pond';
+import { BADGE_BY_KEY } from '@/lib/pond';
 import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, FOOD, GRAB_R, ITEMS, NOT_CARRIED, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, WEARABLE, type ItemKey, type Quest, type Task } from '@/lib/goose';
 import { BREAKABLE, houses, JOB_BUILDING, jobOf, MAPS, SITTABLE, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
@@ -889,7 +889,24 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
               n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.say = pick(CATCH_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
               say(`${residents[n.who].handle} caught it.`, 1500); void complete('catch1'); gone(); continue;
             }
-            n.mode = 'down'; n.owner = me!.id; n.until = now + 1600; n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.x += Math.sign(th.vx) * 20; n.say = pick(content.shoved); n.sayUntil = now + 2000; if (n.item) { drop(n.item, n.x + Math.sign(th.vx) * 26, n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, slideNear(cur, n.x, n.d)); n.item = null; } flushCaught(n, n.x + Math.sign(th.vx) * 20, n.d); npcEv(n, { say: n.say }); st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }]; say(`Hit ${residents[n.who].handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue;
+            // Brace-with 링크 흡수 — 맨손 타격과 같은 규칙: 팔짱 낀 창 안에서는 던진 것에 맞아도 한 번은 넘어지지 않는다(폴리시, 2026-09-26)
+            const tLinkPartner = linkedNpc(n); const tLinkBucket = Math.floor(t / LINK_WINDOW);
+            if (tLinkPartner && n.linkAbsorbBucket !== tLinkBucket) {
+              n.linkAbsorbBucket = tLinkBucket; tLinkPartner.linkAbsorbBucket = tLinkBucket;
+              n.say = pick(LINK_LINES); n.sayUntil = now + 2000; npcEv(n, { say: n.say });
+              gone(); drop(th.item, th.x, th.d, null); continue;
+            }
+            n.mode = 'down'; n.owner = me!.id; n.until = now + 1600; n.face = (th.vx > 0 ? -1 : 1) as 1 | -1; n.x += Math.sign(th.vx) * 20; n.say = pick(content.shoved); n.sayUntil = now + 2000;
+            flushCaught(n, n.x + Math.sign(th.vx) * 20, n.d);
+            // 맨손 넘어뜨림과 같은 벨트(tether) 규칙 — 던진 것에 맞았다고 벨트 보호를 건너뛰면 한 번만 맞혀도 tether1 이 무력화된다(폴리시, 2026-09-26)
+            const tDislodge = n.tether ? n.tetherMissed : true;
+            if (!tDislodge) n.tetherMissed = true;
+            else {
+              if (n.tether) { void complete('tether1'); n.tether = false; n.tetherMissed = false; }
+              if (n.item) { drop(n.item, n.x + Math.sign(th.vx) * 26, n.d, n.who, undefined, undefined, undefined, undefined, undefined, undefined, slideNear(cur, n.x, n.d)); n.item = null; }
+              for (const it of n.stack) drop(it, n.x + Math.sign(th.vx) * (26 + Math.random() * 30), Math.max(0, Math.min(1, n.d + (Math.random() - 0.5) * 0.15)), n.who); n.stack = [];
+            }
+            npcEv(n, { say: n.say, tether: n.tether ? 1 : 0, tm: n.tetherMissed ? 1 : 0 }); st.shoves = [...st.shoves.filter((x) => now - x.at < 10000), { who: n.who, at: now }]; say(`Hit ${residents[n.who].handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue;
           }
           const o = [...others.current.values()].find((p) => p.map === cur.key && p.status === 'active' && Math.abs(th.x - p.x) < 22 && Math.abs(th.d - p.d) < 0.12 && th.z < 50 + p.z);
           if (o) { emit({ k: 'hitp', uid: o.uid, byName: me!.handle, kind: 'throw', item: th.item }); say(`Hit ${o.handle} with the ${ITEMS[th.item]}.`, 1500); gone(); drop(th.item, th.x, th.d, null); continue; }
