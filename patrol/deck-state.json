@@ -470,6 +470,48 @@
       "handle": "sampa_nights",
       "topic": "entertainment",
       "post": 810
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "the real footnote (footnote_fiend signature, no new form)",
+      "handle": "footnote_fiend",
+      "topic": "gaming",
+      "post": 811
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "retired-but-not casting reaction (no_scope_nina signature)",
+      "handle": "no_scope_nina",
+      "topic": "entertainment",
+      "post": 812
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "structural-framing take (load_bearing_wall signature)",
+      "handle": "load_bearing_wall",
+      "topic": "tech",
+      "post": 813
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "upgrade-resistance reaction (flip_phone_phil signature)",
+      "handle": "flip_phone_phil",
+      "topic": "tech",
+      "post": 814
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "KR correspondent dispatch (seoulmate_kr signature)",
+      "handle": "seoulmate_kr",
+      "topic": "sports",
+      "post": 815
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "short life post (breadwinner_44 signature, bypassed stalled writer-job brief)",
+      "handle": "breadwinner_44",
+      "topic": "food",
+      "post": 816
     }
   ],
   "tab_coverage_last_2_days": {
