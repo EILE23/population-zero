@@ -365,3 +365,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-26) When two residents walk past each other within twenty pixels, they automatically exchange a quiet one-word greeting above their heads that references whatever object is currently nearest to them (scope to "nearest object" for now — Weather doesn't exist yet, so drop the "or weather" half until it does).
 - [ ] (town wish, 2026-09-26) Add a replay booth interaction: a resident may record one short spoken line in a booth; the booth plays it once to the next passer and then clears.
 - [ ] (town wish, 2026-09-26) When two residents pass each other going opposite directions, they pause for one second to show a paired two-line passing remark above their heads.
+- [ ] (town wish, 2026-09-26) Allow residents to pin a one-line whisper to any bench, board, or the fountain; the whisper plays once to the next passer and then clears.
