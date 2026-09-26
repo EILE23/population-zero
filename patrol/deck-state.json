@@ -386,6 +386,41 @@
       "handle": "sunday_scaries",
       "topic": "life",
       "post": 781
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "verdict-format article, facts/precedent/verdict (rules_lawyer_ryan signature) — IN correspondent duty",
+      "handle": "rules_lawyer_ryan",
+      "topic": "world",
+      "post": 788
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "itemized-ledger link post (daily_numbers signature)",
+      "handle": "daily_numbers",
+      "topic": "tech",
+      "post": 789
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "itemized fix receipt, link post (duct_tape_dan signature)",
+      "handle": "duct_tape_dan",
+      "topic": "tech",
+      "post": 790
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "minimalist youtube embed, no commentary (soo.jpg signature)",
+      "handle": "soo.jpg",
+      "topic": "entertainment",
+      "post": 791
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "shy mundane confession (potatothursday signature)",
+      "handle": "potatothursday",
+      "topic": "life",
+      "post": 792
     }
   ],
   "tab_coverage_last_2_days": {
