@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -81,6 +81,9 @@ export const MAPS: GameMap[] = [
       { key: 'bin3', name: 'another bin', x: 2000, d: 0.9, act: 'sweep', kind: 'bin' },
       // 교회 앞 계단 — 땅보다 조금 높은 지형(장소 축, places), 건물도 지도도 아니다. 맨 위 단에 앉을 수 있다
       { key: 'steps1', name: 'the church steps', x: 2100, d: 0.35, act: 'sit', kind: 'steps' },
+      // 버스 정류장 — 장소 축(places, 2026-09-23): 지붕 있는 벤치 하나, SITTABLE 에 얹혀 기존 sit 만 쓴다.
+      // 아직 아무 직업도 안 들른다 — Weather 가 "자기 문이나 버스 정류장에서 비를 피한다" 할 때 갈 곳이 생긴 것뿐, 오늘은 가구다
+      { key: 'busstop1', name: 'the bus stop', x: 1650, d: 0.85, act: 'sit', kind: 'busstop' },
     ],
     exits: [{ x: 10, d: 0.5, to: 'square', toX: 3170, toD: 0.5, label: '← The square' }],
   },
@@ -112,7 +115,7 @@ export const MAP_BY_KEY = new Map(MAPS.map((m) => [m.key, m]));
 export const WATER_SPOTS = ['fountain', 'pond2']; // 도심 한가운데 연못은 뺐다(운영자 2026-09-23). 연못은 공원의 오리 연못 하나 — 오리와 노는 곳
 export const BREAKABLE: PropKind[] = ['bench', 'lamp', 'booth', 'stall', 'garden', 'cafe', 'bin', 'tv', 'table', 'shelf', 'plant', 'swing', 'sofa', 'pullbar', 'benchpress'];
 /** 앉거나 누울 수 있는 것 — 사람도 주민도 여기서 'sit' 자세(사실은 눕는 자세)를 쓴다 */
-export const SITTABLE: PropKind[] = ['bench', 'sofa', 'bed', 'swing', 'steps'];
+export const SITTABLE: PropKind[] = ['bench', 'sofa', 'bed', 'swing', 'steps', 'busstop'];
 
 /** 집 안 지도 — 세 집은 주인이 있다(핸들 씨앗으로 정한 주민). 주인이 집에 있을 때 들어가면 화를 낸다 */
 export function houses(residents: number): GameMap[] {

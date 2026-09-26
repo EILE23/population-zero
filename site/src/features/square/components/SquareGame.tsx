@@ -1122,6 +1122,8 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
     case 'stage': { box(70, 8, '#8b6b4a'); ctx.beginPath(); ctx.moveTo(0, -8 * s); ctx.lineTo(0, -46 * s); ctx.stroke(); ctx.beginPath(); ctx.ellipse(0, -50 * s, 5 * s, 3 * s, 0, 0, 6.29); F('#3a2f36'); break; } // 낮은 무대에 마이크 스탠드 하나
     // 교회 앞 세 단 계단 — 건물도 지도도 아닌 첫 지형 조각. 맨 위 단이 앉는 자리
     case 'steps': { for (let k = 0; k < 3; k++) { const w = (104 - k * 20) * s; ctx.beginPath(); ctx.rect(-w / 2, (-6 - k * 9) * s, w, 9 * s); F('#b9b1b6'); } break; }
+    // 버스 정류장 — 지붕 있는 벤치. SITTABLE 이 나머지를 다 하므로 그림만 있으면 된다(새 자세도, 새 상호작용도 없다)
+    case 'busstop': { ctx.fillStyle = '#5b4f56'; ctx.fillRect(-36 * s, -70 * s, 4 * s, 62 * s); ctx.fillRect(32 * s, -70 * s, 4 * s, 62 * s); ctx.fillRect(-38 * s, -74 * s, 76 * s, 6 * s); ctx.fillStyle = '#8b6b4a'; ctx.fillRect(-26 * s, -16 * s, 52 * s, 5 * s); ctx.fillRect(-22 * s, -11 * s, 4 * s, 11 * s); ctx.fillRect(18 * s, -11 * s, 4 * s, 11 * s); break; }
     // 체스 테이블 — Turn-based games(town wishes, 2026-09-25)의 첫 자리. 판+걸상 둘, 위쪽 분필 슬레이트에 점수.
     // 점수는 seed(테이블마다 다름) + t(=wall()/1000, 모두 같은 방 시계) 로만 정해진다 — 최근 12수(~2분)만 세어 매 10초 다시 그린다,
     // 하루치를 다 더하지 않아도 화면마다 똑같은 값이 나온다(passing-glance 류가 쓰는 것과 같은 요령). 사람이 앉아 두든 안 두든 그대로 흐른다
