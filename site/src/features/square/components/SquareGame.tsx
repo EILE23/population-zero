@@ -72,6 +72,10 @@ const MURMUR_PIN_PCT = 30, MURMUR_ECHO_R = 80, MURMUR_ECHO_PCT = 30; // 그 창�
 const muffle = (line: string, seed: number): string => { const words = line.replace(/\.$/, '').split(' '); words[seed % words.length] = '—'; return `${words.join(' ')}.`; };
 const WAVE_WINDOW = 4, WAVE_R = 50, WAVE_PCT = 40; // 동작 목록(Together, wave hello) — 스치는 두 주민이 손을 흔드는 창(초)·거리(px)·확률(%)
 const ECHO_WINDOW = 15; // 메아리 게시판(Word relay, 둘째 자리) — 체스류와 같은 시계+해시 요령, 이 창마다 핑-반향이 한 번씩 새로 정해진다
+/** 응답 게시판(Word relay, 셋째 자리) — 위 줄은 "부름"(REPLY_CALLS), 아래는 근처 주민 하나 또는 둘의 "응답"(REPLY_LINES). 점수가 아니라 흘러가는 문구라 동기화가 필요 없다 */
+const REPLY_CALLS = ['heads up.', 'over here.', 'anyone home.', 'look sharp.', 'all clear.', 'quick word.'];
+const REPLY_LINES = ['heard you.', 'on it.', 'not now.', "who's asking.", 'same here.', 'noted.'];
+const REPLY_WINDOW = 12; // 체스류(10초)·에코보드(15초)와 다른 자기만의 박자
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -635,6 +639,8 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 const simon = props.find((s) => s.kind === 'simon' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 // Word relay(echo board, 둘째 자리) — 체스류와 같은 요령: 슬레이트는 seed+시계로만 이미 핑-반향 중, C 는 그걸 읽을 뿐
                 const echoboard = props.find((s) => s.kind === 'echoboard' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
+                // Word relay(reply board, 셋째 자리) — 같은 요령: 부름-응답은 seed+시계로만 이미 흐르는 중, C 는 그걸 들여다볼 뿐
+                const replyboard = props.find((s) => s.kind === 'replyboard' && usable(s) && dist(b.x, b.d, s.x, s.d) < 90);
                 // 수리공이 지금 고치고 있는 부서진 소품 옆에서 거들면 그 자리에서 바로 끝난다(수리공은 부서짐이 사라진 걸 보고 그냥 돌아간다)
                 const fixing = props.find((s) => broken.current.get(s.key)?.brokeAt && dist(b.x, b.d, s.x, s.d) < 90 && npcs.current.some((p) => here(p) && p.mode === 'repair' && p.target === s.key));
                 // 갈퀴질하는 주민 옆에서 거들면 그 자리에서 바로 건져진다 — 같은 요령(수리공이 부서짐이 사라진 걸 보고 돌아가듯, 갈퀴질하는 주민도 다음 판정에서 물건이 사라진 걸 보고 돌아간다)
@@ -658,6 +664,13 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
                 else if (raking) { b.raking = 0.8; b.x = raking.x; b.d = raking.d; emit({ k: 'pick', id: raking.id }); const rim = { x: raking.x + (Math.random() - 0.5) * 26, d: Math.min(0.97, raking.d + 0.05) }; drop(raking.item, rim.x, rim.d, null, undefined, true); say(`Helped fish the ${ITEMS[raking.item]} out.`, 1500); void complete('rake1'); }
                 else if (simon) { b.x = simon.x; b.d = simon.d; const bucket = Math.floor(t / 6); const kept = hash(`simon:hit:${simon.seed}:${bucket}`) % 5 < 2; say(kept ? 'Kept up with it.' : 'Lost the thread there.', 1200); void complete('simon1'); }
                 else if (echoboard) { b.x = echoboard.x; b.d = echoboard.d; const bucket = Math.floor(t / ECHO_WINDOW); const ping = MURMUR_LINES[hash(`echoboard:ping:${echoboard.seed}:${bucket}`) % MURMUR_LINES.length]; say(muffle(ping, hash(`echoboard:echo:${echoboard.seed}:${bucket}`)), 1400); void complete('echoboard1'); }
+                else if (replyboard) {
+                  b.x = replyboard.x; b.d = replyboard.d; const bucket = Math.floor(t / REPLY_WINDOW);
+                  const call = REPLY_CALLS[hash(`replyboard:call:${replyboard.seed}:${bucket}`) % REPLY_CALLS.length];
+                  const nReplies = 1 + (hash(`replyboard:n:${replyboard.seed}:${bucket}`) % 2); // prop() 이 그리는 슬레이트와 같은 셈 — 보이는 응답 수만큼 그대로 읽는다
+                  const replies = Array.from({ length: nReplies }, (_, k) => REPLY_LINES[hash(`replyboard:reply:${replyboard.seed}:${bucket}:${k}`) % REPLY_LINES.length]);
+                  say(`${call} — ${replies.join(' / ')}`, 1600); void complete('replyboard1');
+                }
               }
             }
             if (b.stack.length >= 3) void complete('collect3');
@@ -1241,6 +1254,19 @@ function prop(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: numbe
       ctx.beginPath(); ctx.rect(-40 * s, -92 * s, 80 * s, 40 * s); F('#3a2f36'); // 분필 슬레이트
       ctx.fillStyle = '#e6e0da'; ctx.font = `${8 * s}px ui-monospace, monospace`; ctx.textAlign = 'center';
       ctx.fillText(ping, 0, -78 * s); ctx.fillText(echo, 0, -66 * s);
+      break;
+    }
+    // 응답 게시판 — Word relay 체계 셋째 자리(town wish 2026-09-26 재확인). 기둥 위 슬레이트 석 줄까지: 위는 부름(REPLY_CALLS), 아래는 근처 주민 하나 또는 둘의 응답(REPLY_LINES).
+    // seed(자리마다 다름) + t(=wall()/1000, 모두 같은 방 시계) 로만 정해진다 — REPLY_WINDOW 마다 새로 갈린다, 점수가 아니라 흘러가는 문구라 사람이 읽든 안 읽든 그대로 흐른다
+    case 'replyboard': {
+      ctx.beginPath(); ctx.rect(-4 * s, -46 * s, 8 * s, 46 * s); F('#8b6b4a'); // 기둥
+      const bucket = Math.floor(t / REPLY_WINDOW);
+      const call = REPLY_CALLS[hash(`replyboard:call:${seed}:${bucket}`) % REPLY_CALLS.length];
+      const nReplies = 1 + (hash(`replyboard:n:${seed}:${bucket}`) % 2); // 이웃 하나 또는 둘
+      ctx.beginPath(); ctx.rect(-40 * s, -102 * s, 80 * s, 56 * s); F('#3a2f36'); // 분필 슬레이트(석 줄까지)
+      ctx.fillStyle = '#e6e0da'; ctx.font = `${8 * s}px ui-monospace, monospace`; ctx.textAlign = 'center';
+      ctx.fillText(call, 0, -88 * s);
+      for (let k = 0; k < nReplies; k++) ctx.fillText(REPLY_LINES[hash(`replyboard:reply:${seed}:${bucket}:${k}`) % REPLY_LINES.length], 0, (-88 + (k + 1) * 12) * s);
       break;
     }
     // 상자(바닥, 안의 물건은 dunked 목록으로 넘어온다 — 물웅덩이·연못과 같은 요령) + 그 위 게시판(코르크판, 핀으로 꽂은 쪽지 최대 5장)

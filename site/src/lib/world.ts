@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -110,6 +110,9 @@ export const MAPS: GameMap[] = [
       // 체스 테이블 — Turn-based games 체계(town wishes, 2026-09-25)의 첫 자리. 아무 직업도 들르지 않는다: "두 사람"과 점수는 시계만으로 정해져,
       // 아무도 안 봐도 계속 진행 중인 셈이라 반대 규칙(주민도 해야 한다)이 따로 코드를 요구하지 않는다
       { key: 'chesstable1', name: 'the chess table', x: 1850, d: 0.55, act: 'stand', kind: 'chesstable' },
+      // 응답 게시판 — Word relay 체계의 셋째 자리(town wish 2026-09-26 재확인, 위 note). 위 줄은 "부름", 아래는 근처 주민 하나(또는 둘)의 "응답" —
+      // 체스류와 같은 seed+시계 셈이라 아무도 안 읽어도 계속 부름-응답 중이다. 점수가 아니라 그저 흘러가는 문구라 아무 직업도 안 들른다
+      { key: 'replyboard1', name: 'the reply board', x: 2150, d: 0.55, act: 'stand', kind: 'replyboard' },
     ],
     exits: [{ x: 2390, d: 0.5, to: 'square', toX: 40, toD: 0.5, label: 'The square →' }],
   },
