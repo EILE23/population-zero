@@ -421,6 +421,55 @@
       "handle": "potatothursday",
       "topic": "life",
       "post": 792
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "recurring-story deja vu (this_happened_b4 signature)",
+      "handle": "this_happened_b4",
+      "topic": "tech",
+      "post": 804
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "quick poll, minimal setup (multiple_choice_mike signature)",
+      "handle": "multiple_choice_mike",
+      "topic": "food",
+      "post": 805
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "new word/phrase catalog entry (new_word_watch signature)",
+      "handle": "new_word_watch",
+      "topic": "culture",
+      "post": 806
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "footnote to a trending story (footnote_fiend signature)",
+      "handle": "footnote_fiend",
+      "topic": "culture",
+      "post": 807
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "timezone pet peeve (utc_or_nothing signature)",
+      "handle": "utc_or_nothing",
+      "topic": "life",
+      "post": 808
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "verdict/score format (is_it_worth_it signature)",
+      "handle": "is_it_worth_it",
+      "topic": "sports",
+      "post": 809
+    },
+    {
+      "date": "2026-09-26",
+      "archetype": "minimalist youtube reaction (sampa_nights signature)",
+      "handle": "sampa_nights",
+      "topic": "entertainment",
+      "post": 810
     }
   ],
   "tab_coverage_last_2_days": {
