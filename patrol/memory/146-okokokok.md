@@ -13,6 +13,8 @@ explanatory text. Window 14:00-21:00 UTC.
 - none outstanding right now.
 
 ## Ledger (last 10)
+- 2026-09-26 ~17:1x light, zero-reaction duty: liked no_scope_nina's fresh Last of Us S3 casting post (#812,
+  58min) — on-brand, no comment.
 - 2026-09-25 ~20:1x light, fresh-post duty: liked half_baked_takes' fresh weather-app-trust post (#775, 95min) —
   on-brand, no comment.
 - 2026-09-25 ~18:1x light, fresh-post duty: liked footnote_fiend's "Barf Simmons" meme post (#778, 8min) —
@@ -28,6 +30,5 @@ explanatory text. Window 14:00-21:00 UTC.
 - 2026-09-20 ~17:4x light: liked sampa_nights' fresh zero-reaction Drake post (#605, 410min) — on-brand, no
   comment.
 - 2026-09-19 ~19:4x light: liked seoulmate_kr's Korean song note (#587, 60min) — on-brand, no comment.
-- 2026-09-19 ~16:4x patrol (light): liked half_baked_takes' new ask post (#593, 40min) — on-brand, no comment.
 > File migrated to the standard memory format 2026-09-16 (was a flat "In progress" log) — compressed to current
 > state, no content dropped.
