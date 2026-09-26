@@ -5,7 +5,7 @@ import { fitGameCanvas, useGameViewport } from '@/features/games/mobile';
 import { critter, figure, SEATED, type CritterPose, type FigPose } from '@/lib/stickman';
 import { figureColor, hash, rng } from '@/lib/tower';
 import { BADGE_BY_KEY } from '@/lib/pond';
-import { CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, FOOD, GRAB_R, ITEMS, NOT_CARRIED, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, WEARABLE, type ItemKey, type Quest, type Task } from '@/lib/goose';
+import { affinityOf, CHASE_SEC, CHASE_SPEED, dayRoster, DEPTH_PX, FOOD, GRAB_R, ITEMS, NOT_CARRIED, PLAYER_SPEED, questFor, RESIDENT_SPEED, SHOVE_R, WATER, WEARABLE, type ItemKey, type Quest, type Task } from '@/lib/goose';
 import { BREAKABLE, houses, JOB_BUILDING, jobOf, MAPS, SITTABLE, WATER_SPOTS, type GameMap, type PropKind, type Spot } from '@/lib/world';
 
 /**
@@ -33,7 +33,7 @@ const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
   return { stack, worn };
 };
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver' | 'brace' | 'board' | 'shelve' | 'dust' | 'mend' | 'sort';
-interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw' | 'laugh'; stack: ItemKey[]; shakeSeg?: number; binSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number }
+interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw' | 'laugh'; stack: ItemKey[]; shakeSeg?: number; binSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number; murmurBucket?: number; waveBucket?: number; waveUntil?: number }
 /** board: 못 알아본 물건을 들고 게시판 앞 상자로 가는 중(캐리 필드는 catch/deliver 와 그대로 공유) — 도착하면 note/origin 을 붙여 내려놓는다.
  *  shelve: 주인의 직업에 자기 건물(빵집·우체국·경찰서)이 있으면 상자 대신 그 건물 선반으로 — 같은 캐리 필드, 도착해 잠깐(fix/rake 와 같은 요령) 선반에 얹는 자세를 보인 뒤 내려놓는다 */
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string; board?: string; shelf?: string; note?: string; origin?: number; weight?: boolean; mend?: boolean; sort?: boolean; bin?: string }
@@ -64,6 +64,13 @@ const RUMMAGE_LINES = ['huh.', 'someone lost this.', 'finders keepers.', 'still 
 /** 통에서 나올 수 있는 것 — 낚싯대·물고기·렌치는 뺀다(직업 도구지 버려진 물건이 아니다) */
 const RUMMAGE_ITEMS = (Object.keys(ITEMS) as ItemKey[]).filter((k) => !NOT_CARRIED.includes(k));
 const RUMMAGE_ODDS = 0.22; // 대개 그냥 쓰레기 — 낮은 확률로만 뭔가 나온다(사람·주민 같은 굴림)
+/** Word relay 체계 첫 조각(leave a murmur) — 가로등·벤치에 남기는 두 마디 혼잣말, 고정 풀에서만 고른다(자유 문장 없음) */
+const MURMUR_LINES = ['quiet today.', 'long shift.', 'nice light.', 'good crowd.', 'almost done.', 'watch out.', 'not yet.', 'very late.'];
+const MURMUR_WINDOW = 20; // 몇 초마다 새로 남을지 판단하는 창 — 체스·자갈 던지기와 같은 시계+해시 요령, 동기화 없이 화면마다 같은 답
+const MURMUR_PIN_PCT = 30, MURMUR_ECHO_R = 80, MURMUR_ECHO_PCT = 30; // 그 창에 정말 남을 확률(%) · 지나가며 받아 되뇌는 거리(px) · 되뇔 확률(%)
+/** 되뇔 때 한 단어를 뭉갠다 — "quiet today." → "quiet —." 식, 씨앗으로 어느 단어인지 결정적으로 고른다 */
+const muffle = (line: string, seed: number): string => { const words = line.replace(/\.$/, '').split(' '); words[seed % words.length] = '—'; return `${words.join(' ')}.`; };
+const WAVE_WINDOW = 4, WAVE_R = 50, WAVE_PCT = 40; // 동작 목록(Together, wave hello) — 스치는 두 주민이 손을 흔드는 창(초)·거리(px)·확률(%)
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -873,6 +880,30 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           }
         }
       }
+      // Word relay(leave a murmur) — 가로등에 기대거나 벤치에 앉은 주민이 이따금 두 마디를 남기고, 지나가던 다른 주민이 한 단어 뭉개 되뇐다.
+      // 전부 시계+해시(체스·조약돌 던지기와 같은 요령)라 화면마다 새로 계산해도 같은 답 — 동기화 없음(오리·다람쥐와 같은 이유), 사람 행동이 필요 없어 관전자도 똑같이 본다
+      const murmurBucket = Math.floor(t / MURMUR_WINDOW);
+      for (const sp of cur.spots) {
+        if (sp.kind !== 'lamp' && sp.kind !== 'bench') continue;
+        if (hash(`murmur:pin:${sp.key}:${murmurBucket}`) % 100 >= MURMUR_PIN_PCT) continue;
+        const pinner = npcs.current.find((n) => here(n) && n.mode === 'routine' && n.murmurBucket !== murmurBucket && dist(n.x, n.d, sp.x, sp.d) < 5 && ((sp.kind === 'lamp' && n.act === 'lean') || (sp.kind === 'bench' && n.act === 'sit')));
+        if (!pinner) continue;
+        const text = MURMUR_LINES[hash(`murmur:line:${sp.key}:${murmurBucket}`) % MURMUR_LINES.length];
+        pinner.murmurBucket = murmurBucket; pinner.say = text; pinner.sayUntil = now + 2000;
+        const echoer = npcs.current.find((n) => n !== pinner && here(n) && n.mode === 'routine' && n.murmurBucket !== murmurBucket && dist(n.x, n.d, sp.x, sp.d) < MURMUR_ECHO_R && hash(`murmur:echo:${n.who}:${sp.key}:${murmurBucket}`) % 100 < MURMUR_ECHO_PCT);
+        if (echoer) { echoer.murmurBucket = murmurBucket; echoer.say = muffle(text, hash(`murmur:word:${sp.key}:${murmurBucket}`)); echoer.sayUntil = now + 2000; }
+      }
+      // 동작 목록(Together, wave hello) — 호감도 관계도(affinityOf, 스치는 눈길용) 팔짱도(linkedNpc, brace-with 용) 없는 두 '일과' 주민이 걷다 스치면 손을 흔든다. 같은 시계+해시 요령, 동기화 없음
+      const waveBucket = Math.floor(t / WAVE_WINDOW);
+      for (let wi = 0; wi < npcs.current.length; wi++) {
+        const n1 = npcs.current[wi]; if (!here(n1) || n1.mode !== 'routine' || !n1.moving || n1.waveBucket === waveBucket) continue;
+        for (let wj = wi + 1; wj < npcs.current.length; wj++) {
+          const n2 = npcs.current[wj]; if (!here(n2) || n2.mode !== 'routine' || !n2.moving || n2.waveBucket === waveBucket) continue;
+          if (dist(n1.x, n1.d, n2.x, n2.d) >= WAVE_R || linkedNpc(n1) === n2 || affinityOf(n1.who, n2.who) >= 0.85) continue;
+          if (hash(`wave:${Math.min(n1.who, n2.who)}:${Math.max(n1.who, n2.who)}:${waveBucket}`) % 100 >= WAVE_PCT) continue;
+          n1.waveBucket = waveBucket; n2.waveBucket = waveBucket; n1.waveUntil = now + 500; n2.waveUntil = now + 500; break;
+        }
+      }
       if (!spectator && now - npcSent > 200 && ws.current?.readyState === 1) { npcSent = now; for (const n of mineOff) ws.current.send(JSON.stringify({ t: 'ev', ev: { k: 'npcpos', who: n.who, x: Math.round(n.x), d: Math.round(n.d * 100) / 100, face: n.face, moving: n.moving, m: n.map, swing: n.swing > 0.15 ? 1 : 0, sk: n.swingKind ?? 'punch' } })); }
       for (const th of [...thrown.current]) {
         th.x += th.vx * dt; th.vz -= 700 * dt; th.z += th.vz * dt;
@@ -1005,7 +1036,7 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
         layer.push({ d: n.d, f: () => {
           const fy = dy(n.d) * s, fs = ds(n.d) * s;
           const seat = seatAt(cur, n.x, n.d);
-          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'mend' ? 'fix' : n.mode === 'sort' ? 'sweep' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : linkedNpc(n) ? 'link' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : n.act === 'stand' && (t + n.seed + 11) % 22 < 1.2 ? 'stretch' : n.act === 'stand' && (t + n.seed + 16) % 22 < 1.2 ? 'look' : n.act === 'stand' && (t + n.seed + 6) % 22 < 1.2 ? 'check' : n.act === 'stand' && (t + n.seed + 19) % 22 < 1.2 ? 'shrug' : n.act === 'stand' && (t + n.seed + 3) % 22 < 1.2 ? 'sneeze' : n.act === 'stand' && (t + n.seed + 14) % 22 < 1.2 ? 'shiver' : n.act === 'stand' && (t + n.seed + 8) % 22 < 1.2 ? 'fan' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기·부채질이 가끔
+          const pose: FigPose = n.mode === 'down' ? 'hurt' : n.mode === 'dust' ? 'dust' : n.mode === 'trip' ? 'trip' : n.mode === 'catch' ? 'catch' : n.mode === 'brace' ? 'brace' : n.swing > 0 ? (n.swingKind ?? 'punch') : n.waveUntil !== undefined && now < n.waveUntil ? 'wave' : n.moving ? 'run' : n.mode === 'repair' ? 'fix' : n.mode === 'mend' ? 'fix' : n.mode === 'sort' ? 'sweep' : n.mode === 'rake' ? 'rake' : n.mode === 'shelve' ? 'shelve' : linkedNpc(n) ? 'link' : seat && !usable(seat) ? 'stand' : (n.act === 'stand' && (t + n.seed) % 22 < 1.2 ? 'yawn' : n.act === 'stand' && (t + n.seed + 11) % 22 < 1.2 ? 'stretch' : n.act === 'stand' && (t + n.seed + 16) % 22 < 1.2 ? 'look' : n.act === 'stand' && (t + n.seed + 6) % 22 < 1.2 ? 'check' : n.act === 'stand' && (t + n.seed + 19) % 22 < 1.2 ? 'shrug' : n.act === 'stand' && (t + n.seed + 3) % 22 < 1.2 ? 'sneeze' : n.act === 'stand' && (t + n.seed + 14) % 22 < 1.2 ? 'shiver' : n.act === 'stand' && (t + n.seed + 8) % 22 < 1.2 ? 'fan' : actPose(n.act, seat?.kind)); // 부서진 벤치·그네 앞에선 그냥 선다. 가만히 서 있기만 할 때(줄 서기·서성임)는 사람과 같은 하품·기지개·두리번·폰 확인·으쓱·재채기·몸 떨기·부채질이 가끔
           const lift = SEATED.includes(pose) && seat ? (SEAT_LIFT[seat.kind] ?? 0) * fs : 0;
           if (n.mode === 'down') { ctx.save(); ctx.translate(fx, fy); ctx.rotate(n.face * 1.4); figure(ctx, 0, 0, fs, 'hurt', 1, '#3a2f36', t, false); ctx.restore(); }
           else figure(ctx, fx, fy - lift, fs, pose, n.face, n.job.key === 'cop' ? '#1f3a5a' : '#3a2f36', pose === 'swing' ? t : t + n.seed % 5, false); // 그네는 소품의 줄과 같은 위상이어야 하니 t 그대로
