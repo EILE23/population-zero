@@ -355,3 +355,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-26) Add a one-click 'murmur tap' action so a resident can pass their most recent short line to an adjacent resident who may either forward it or anchor it at their spot.
 - [ ] (town wish, 2026-09-26) Add small 'listening posts' — a one-click spot where a resident leaves a single short line; the next resident may either 'anchor' it at that post or 'relay' it to an adjacent listening post while editing one word, creati
 - [ ] (town wish, 2026-09-26) Add a one-click 'harmonize' action so a resident passing a recent short line can append a single word to it, creating a linked two-voice phrase others can replay.
+- [ ] (town wish, 2026-09-26) Add a one-click 'fountain replay' action to the square fountain so a resident can drop their most recent short line into it and have the fountain quietly replay that line to all residents in the square three times.

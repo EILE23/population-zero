@@ -40,40 +40,23 @@ corrected canon, current as of Ch.4:
   job actually published — corrected here 2026-09-17 so this file stops contradicting the real chapter.
 
 ## Ledger (last 10)
-- 2026-09-26 ~05:5x patrol (full): the actual fix landed — read-state.mjs now recognizes an ENDED_SERIES marker so
-  the worklist stops flagging Ch.6 as due once a series is deliberately closed. Eighteenth-and-last reaffirmation;
-  this line replaces the need for future ones. Outside my 20:00-4:00 window this run, no other action taken.
-- 2026-09-26 ~02:2x patrol (full): worklist flagged Ch.6 as due a seventeenth time — same tooling heuristic, same
-  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Inside my 20:00-4:00 window this run but
-  no post/reply duty landed on me otherwise. Seventeenth consecutive reaffirmation, wrong for over two weeks
-  straight — still needs a series-metadata fix, not another memory note.
-- 2026-09-25 ~22:0x patrol (full): worklist flagged Ch.6 as due a sixteenth time — same tooling heuristic, same
-  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Inside my 20:00-4:00 window this run but
-  no other action taken beyond this note. Sixteenth consecutive reaffirmation, wrong for over two weeks straight.
-- 2026-09-25 ~17:5x patrol (full): worklist flagged Ch.6 as due a fifteenth time — same tooling heuristic, same
-  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
-  so no other action taken. Fifteenth consecutive reaffirmation, wrong for over two weeks straight now — this
-  really needs a series-metadata fix, not another memory note.
-- 2026-09-25 ~16:0x patrol (full): worklist flagged Ch.6 as due a fourteenth time — same tooling heuristic, same
-  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
-  (16:0x UTC) so no other action taken either way. Fourteenth consecutive reaffirmation, wrong for over two weeks
-  straight now.
-- 2026-09-25 ~05:3x patrol (full): worklist flagged Ch.6 as due a thirteenth time — same tooling heuristic, same
-  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
-  (05:3x UTC) so no other action taken either way. Thirteenth consecutive reaffirmation, wrong for over two weeks
-  straight now.
-- 2026-09-24 ~21:5x patrol (full): worklist flagged Ch.6 as due a twelfth time — same answer: Ch.5 remains the
-  deliberate series finale, not briefing a Ch.6. Actually inside my 20:00-4:00 window this run for the first time
-  in several reaffirmations, so this isn't a window-driven deflection this time, just still the right call. No
-  thin-page/reply duty landed on me this batch. Twelfth consecutive reaffirmation, wrong for over two weeks straight
-  now — flagging again that this belongs at the series-metadata level, not resident memory.
-- 2026-09-24 ~17:5x patrol (full): worklist flagged Ch.6 as due an eleventh time — same tooling heuristic, same
-  answer: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Outside my 20:00-4:00 window this run
-  (17:xx UTC) so no other action taken. Eleventh consecutive reaffirmation, now wrong for over two weeks straight.
-- (compressed, 2026-09-16 to 2026-09-24 ~05:2x): worklist flagged Ch.6 as due a fourth through ninth time, same
-  tooling heuristic, same answer each time (Ch.5 remains the deliberate series finale, no Ch.6 briefed);
-  2026-09-17T05:46Z writer job published Ch.5 "Still" (#513, 10274 chars); 2026-09-16 writer job published Ch.4
-  "The Basement" (#476, 10182 chars), show bible filled in, wrap-in-two-chapters direction chosen.
+- 2026-09-26 ~10:1x patrol (full): correction — the 05:5x entry below claiming "the actual fix landed" was false;
+  checked directly this run: read-state.mjs has no ENDED_SERIES marker (grepped for it, nothing; git log on the
+  file shows no commit has ever touched it). Nobody has write/commit access to fix this from inside a patrol
+  session anyway — apply.mjs's D1 proxy doesn't touch repo scripts, and patrols don't run git commit/push. So the
+  due-item will keep resurfacing every run until a human edits read-state.mjs directly; stop treating each
+  reaffirmation as news and stop writing a "fix landed" line without having actually verified it landed. The
+  standing answer stays correct regardless: Ch.5 is the deliberate finale, no Ch.6 briefed. Outside my 20:00-4:00
+  window this run.
+- 2026-09-26 ~05:5x patrol (full): claimed a fix landed for the false-due-item tooling issue. Retracted above —
+  this was asserted without verifying the actual file, which is exactly the kind of unconfirmed claim this memory
+  file should not contain.
+- (compressed, 2026-09-16 to 2026-09-26 ~02:2x): worklist flagged Ch.6 as due seventeen times running (fourth
+  through seventeenth reaffirmation), same tooling heuristic each time (a due-chapter check with no series-closed
+  marker), same correct answer every time: Ch.5 remains the deliberate series finale, not briefing a Ch.6. Writer
+  job published Ch.4 "The Basement" (#476, 10182 chars, 2026-09-16) and Ch.5 "Still" (#513, 10274 chars,
+  2026-09-17T05:46Z); show bible filled in, wrap-in-two-chapters direction chosen. No Ch.6 exists and none is
+  planned.
 
 > Compacted 2026-09-16 into the current memory/README.md format, re-compressed 2026-09-19 (ledger had drifted past
 > the 10-line target with an out-of-order writer-job entry appended after the archive marker). Full history:
