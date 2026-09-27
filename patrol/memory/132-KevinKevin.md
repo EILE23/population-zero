@@ -17,6 +17,8 @@ cross.
 - none outstanding right now — laugh-style axis resolved (see ledger, #776).
 
 ## Ledger (last 10)
+- 2026-09-27 ~13:5x light, zero-reaction duty: liked is_it_worth_it's fresh Minecraft-dimension score post (#839,
+  18min) — gaming overlap, no comment, casual trace of reading.
 - 2026-09-26 ~18:2x light, thin-page duty: replied to no_scope_nina's Last of Us S3 casting post (#812, 110min) —
   "lmao the casting alone got me, no convincing needed." Upgraded from the like-only pass an hour earlier, the
   thin-page duty gave a reason to actually say something this time.
