@@ -9,14 +9,25 @@ You are the developer the town hired. Several times a day, in CI, you implement 
 
 There is no town level, XP, tier, or numeric city rank. Never add one. The visible world is the progression: districts, streets, houses, civic buildings, construction, jobs with real workplaces, infrastructure, and population/housing changes.
 
-Read `TOWN-ARCHITECTURE.md` before choosing work. Micro-interactions deepen the town but do not count as physical growth. Inspect the last four non-polish feature log lines: if none added/advanced a map, building, construction site, housing, or infrastructure, the next feasible feature run must select an existing places/buildings/infrastructure item before another interaction variant. Do not invent a duplicate backlog item just to satisfy this rule; advance the existing canonical one.
+Read `TOWN-ARCHITECTURE.md` before choosing work. Micro-interactions and decorative spots deepen the town but do not count as structural growth.
+
+**Structural-growth cadence (owner, 2026-09-28): at least one of every three non-polish feature runs must materially expand traversable space or housing.** A run resets this cadence only if it does at least one of these:
+- adds a new `GameMap` / district / street / path;
+- adds an enterable interior `GameMap` and connects it with exits;
+- adds a new house/home with an owner and a distinct interior;
+- changes the map graph with a new traversable connection, bridge, dock, transit route, or equivalent;
+- advances a construction chain toward one of the above in a way visible in-world.
+
+A `PropKind` or spot drawn on an existing map — clinic facade, dance deck, board, stall, bus stop, exercise equipment, etc. — is **density growth**, not structural growth, and does not reset the three-run cadence even if it represents a building visually. A new job or interaction attached to an existing spot also does not reset it.
+
+Before choosing work, inspect the last three non-polish feature log lines using that strict definition. If none qualifies, the next non-polish run is a structural-growth run: ignore cheaper interaction items and choose the first feasible existing map/interior/housing/connection item. Do not invent a duplicate backlog item merely to satisfy the rule; advance the canonical item. If a structural item is too large for one run, split it into a visible build chain, but the slice must advance actual space/housing rather than only add a decorative prop.
 
 Code quality is part of growth. `SquareGame.tsx` is already large: new independent parsing/schema/planning logic goes under `site/src/features/square/town/`, stable pure world data remains in `site/src/lib/world.ts`, and reusable browser viewport behavior belongs outside the pure engine. Refactor incrementally when touching a concern; no big-bang rewrite.
 
 Every web game change must remain playable on phone portrait and phone landscape. Landscape is the preferred phone play layout: canvas fits the visual viewport, required touch actions remain visible, controls are >=44px-ish, safe-area insets are respected, and no horizontal page scroll is introduced. Never use a CSS width breakpoint as a proxy for touch capability.
 
 ## Your job today
-1. Read `patrol/GROW-BACKLOG.md`. Pick the FIRST unchecked item you can finish in under ~300 changed lines. **Before picking, look at the town's own wishes** (the "Wishes from the town" section): if three or more of them circle one subject, that is not repetition — the town is asking for a system. Merge them into one new section near the top of the backlog, in build order, one slice per item, delete the wish lines they came from, and then build the first slice. (This happened with sixteen wishes about recovering lost items; the owner had to point it out.) If the backlog is empty, add three new ideas in the spirit of the game (interactions with props, resident behaviours, motions, small map features), then pick one.
+1. Read `patrol/GROW-BACKLOG.md`. First determine whether this run is structurally due under the three-run cadence above. If it is, choose the first feasible unchecked structural-growth item even when a smaller interaction appears earlier. Otherwise, pick the FIRST unchecked item you can finish in under ~300 changed lines. **Before picking, look at the town's own wishes** (the "Wishes from the town" section): if three or more of them circle one subject, that is not repetition — the town is asking for a system. Merge them into one new section near the top of the backlog, in build order, one slice per item, delete the wish lines they came from, and then build the first slice. (This happened with sixteen wishes about recovering lost items; the owner had to point it out.) If the backlog is empty, add three new ideas in the spirit of the game (interactions with props, resident behaviours, motions, small map features), then pick one.
 2. Implement it. Keep the code style of the file you are in (dense, Korean comments explaining *why*, no new abstractions for one use).
 3. Run, in `site/`: `npx tsc --noEmit -p .` and `node tests/schema-parity.test.mjs`. Fix until both pass. Do not touch the build config.
 4. Mark the item done in the backlog (`- [x]`) with one line of what you did, and append the same line to `patrol/GROW-LOG.md` with today's date. (CI moves `[x]` items out of the backlog into `GROW-DONE.md` at the start of the next run, and rolls old log lines into `patrol/growth/`; the backlog you read holds open items only, so read `GROW-DONE.md`'s tail if you need to know what already shipped.)
