@@ -33,7 +33,7 @@ const parseStack = (raw: string): { stack: ItemKey[]; worn: Set<ItemKey> } => {
   return { stack, worn };
 };
 type Mode = 'routine' | 'down' | 'chase' | 'return' | 'fetch' | 'repair' | 'trip' | 'rake' | 'catch' | 'deliver' | 'brace' | 'board' | 'shelve' | 'dust' | 'mend' | 'sort';
-interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw' | 'laugh'; stack: ItemKey[]; shakeSeg?: number; binSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number; murmurBucket?: number; waveBucket?: number; waveUntil?: number }
+interface Npc { who: number; tx: number; td: number; swingKind?: 'punch' | 'throw' | 'laugh'; stack: ItemKey[]; shakeSeg?: number; binSeg?: number; job: ReturnType<typeof jobOf>; seed: number; stops: { map: string; spot: Spot; dur: number }[]; x: number; d: number; map: string; face: 1 | -1; item: ItemKey | null; mode: Mode; until: number; tripUntil: number; say: string; sayUntil: number; moving: boolean; act: string; angry: boolean; threw: number; swing: number; target: string | null; owner: number | null; caught: ItemKey | null; retX: number | null; retD: number | null; boardNote?: string; boardOrigin?: number; dustMissed?: boolean; stowUntil?: number; tether?: boolean; tetherMissed?: boolean; linkAbsorbBucket?: number; murmurBucket?: number; waveBucket?: number; waveUntil?: number; seatGreetBucket?: number }
 /** board: 못 알아본 물건을 들고 게시판 앞 상자로 가는 중(캐리 필드는 catch/deliver 와 그대로 공유) — 도착하면 note/origin 을 붙여 내려놓는다.
  *  shelve: 주인의 직업에 자기 건물(빵집·우체국·경찰서)이 있으면 상자 대신 그 건물 선반으로 — 같은 캐리 필드, 도착해 잠깐(fix/rake 와 같은 요령) 선반에 얹는 자세를 보인 뒤 내려놓는다 */
 interface Loose { id: string; item: ItemKey; map: string; x: number; d: number; from: number | null; dunked?: string; board?: string; shelf?: string; note?: string; origin?: number; weight?: boolean; mend?: boolean; sort?: boolean; bin?: string }
@@ -76,6 +76,10 @@ const ECHO_WINDOW = 15; // 메아리 게시판(Word relay, 둘째 자리) — �
 const REPLY_CALLS = ['heads up.', 'over here.', 'anyone home.', 'look sharp.', 'all clear.', 'quick word.'];
 const REPLY_LINES = ['heard you.', 'on it.', 'not now.', "who's asking.", 'same here.', 'noted.'];
 const REPLY_WINDOW = 12; // 체스류(10초)·에코보드(15초)와 다른 자기만의 박자
+/** Passing words 체계 첫 조각(A greeting near someone seated) — 지나가는 주민의 인사, 앉은 주민의 앉은 채 답 — 고정 풀에서만 고른다 */
+const SEATGREET_LINES = ['morning.', 'lovely out.', 'not bad today.', 'off somewhere?', 'busy one, this.'];
+const SEATGREET_REPLY_LINES = ['mm.', 'that it is.', 'just resting.', 'not particularly.', 'so it is.'];
+const SEATGREET_WINDOW = 6, SEATGREET_R = 30, SEATGREET_PCT = 35; // 창(초)·거리(px)·확률(%) — wave와 같은 시계+해시 요령, 동기화 없음
 const dy = (d: number) => TOP + d * DEPTH_PX; const ds = (d: number) => 0.7 + 0.3 * d;
 const dist = (ax: number, ad: number, bx: number, bd: number) => Math.hypot(ax - bx, (ad - bd) * 400);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -920,6 +924,19 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           if (hash(`wave:${Math.min(n1.who, n2.who)}:${Math.max(n1.who, n2.who)}:${waveBucket}`) % 100 >= WAVE_PCT) continue;
           n1.waveBucket = waveBucket; n2.waveBucket = waveBucket; n1.waveUntil = now + 500; n2.waveUntil = now + 500; break;
         }
+      }
+      // Passing words(A greeting near someone seated) — 앉아 쉬는 주민 곁을 다른 '일과' 주민이 지나가면 인사를 건네고, 앉은 이는 자리에서 그대로 짧게 답한다.
+      // 새 자세 없음(앉은 자세 그대로 말만), murmur·wave와 같은 시계+해시 요령이라 화면마다 새로 계산해도 같은 답 — 동기화 없음
+      const seatGreetBucket = Math.floor(t / SEATGREET_WINDOW);
+      for (const seated of npcs.current) {
+        if (!here(seated) || seated.mode !== 'routine' || seated.act !== 'sit' || seated.seatGreetBucket === seatGreetBucket) continue;
+        if (!seatAt(cur, seated.x, seated.d)) continue;
+        const walker = npcs.current.find((n) => n !== seated && here(n) && n.mode === 'routine' && n.moving && n.seatGreetBucket !== seatGreetBucket && dist(n.x, n.d, seated.x, seated.d) < SEATGREET_R);
+        if (!walker) continue;
+        if (hash(`seatgreet:${walker.who}:${seated.who}:${seatGreetBucket}`) % 100 >= SEATGREET_PCT) continue;
+        seated.seatGreetBucket = seatGreetBucket; walker.seatGreetBucket = seatGreetBucket;
+        walker.say = SEATGREET_LINES[hash(`seatgreet:line:${walker.who}:${seated.who}:${seatGreetBucket}`) % SEATGREET_LINES.length]; walker.sayUntil = now + 1800;
+        seated.say = SEATGREET_REPLY_LINES[hash(`seatgreet:reply:${walker.who}:${seated.who}:${seatGreetBucket}`) % SEATGREET_REPLY_LINES.length]; seated.sayUntil = now + 1800;
       }
       if (!spectator && now - npcSent > 200 && ws.current?.readyState === 1) { npcSent = now; for (const n of mineOff) ws.current.send(JSON.stringify({ t: 'ev', ev: { k: 'npcpos', who: n.who, x: Math.round(n.x), d: Math.round(n.d * 100) / 100, face: n.face, moving: n.moving, m: n.map, swing: n.swing > 0.15 ? 1 : 0, sk: n.swingKind ?? 'punch' } })); }
       for (const th of [...thrown.current]) {
