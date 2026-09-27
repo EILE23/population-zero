@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard' | 'clinic' | 'dancehall';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard' | 'clinic' | 'dancehall' | 'yogastudio';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -91,8 +91,17 @@ export const MAPS: GameMap[] = [
       { key: 'echoboard1', name: 'the echo board', x: 750, d: 0.75, act: 'stand', kind: 'echoboard' },
       // 진료소 — 장소 축(places, 2026-09-24). 넘어진 주민(또는 다친 사람)을 C 로 거들면 남은 다운/hurt 시간이 줄어든다(수리공·갈퀴질 거들기와 같은 요령)
       { key: 'clinic', name: 'the clinic', x: 1350, d: 0.12, act: 'stand', kind: 'clinic' },
+      // 요가 스튜디오 — Skill buildings 체계(town wishes, 2026-09-27 병합)의 둘째 자리. 소원은 지도를 안 짚어 도서관·신문가판대·진료소와 같은 요령으로 시장 거리에 얹는다.
+      // 자세는 자리의 act 로만 정해진다(댄스홀과 같은 요령) — yogateacher 직업이 여길 들르면 반대 규칙이 저절로 만족된다
+      { key: 'yogastudio1', name: 'the yoga studio', x: 1800, d: 0.12, act: 'yoga', kind: 'yogastudio' },
     ],
-    exits: [{ x: 10, d: 0.5, to: 'square', toX: 3170, toD: 0.5, label: '← The square' }],
+    // 폴리시(2026-09-28): 시장 거리 쪽 골목 출구가 빠져 있었다 — marketalley 는 자기 exits 에 street 로 돌아오는 문만 있고,
+    // street 는 그 반대 문이 없어 사람은 걸어서 골목에 들어갈 방법이 아예 없었다(주민의 일과 자리 배치는 걷기와 무관해 눈에 띄지 않았다).
+    // 지난 실행이 "구조적 성장"이라 부른 것이 실은 아무도 못 들어가는 막다른 지도였던 셈 — 반대쪽 문을 더한다
+    exits: [
+      { x: 10, d: 0.5, to: 'square', toX: 3170, toD: 0.5, label: '← The square' },
+      { x: 2390, d: 0.5, to: 'marketalley', toX: 10, toD: 0.5, label: 'Market alley →' },
+    ],
   },
   {
     key: 'marketalley', name: 'Market alley', w: 1800, indoor: false, floor: ['#bdb5ae', '#d9d0c7'],
@@ -151,7 +160,7 @@ export function houses(residents: number): GameMap[] {
 }
 
 // ── 직업 ──
-export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor' | 'repairer' | 'nurse' | 'dancer';
+export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor' | 'repairer' | 'nurse' | 'dancer' | 'yogateacher';
 export interface Job { key: JobKey; name: string; item: ItemKey; spots: string[]; act: Activity; speed: number; temper: number; line: string }
 /** 직업표 — 일과 자리(어느 지도의 어느 곳이든), 물건, 걸음, 성깔(0~1: 맞았을 때 되갚을 확률). 그네·철봉·벤치프레스는 여러 직업이 들른다 — 자리마다 가는 직업이 하나뿐이면 그 자세를 볼 일이 없다 */
 export const JOBS: Job[] = [
@@ -178,6 +187,8 @@ export const JOBS: Job[] = [
   { key: 'nurse', name: 'nurse', item: 'bag', spots: ['clinic', 'bench3', 'church'], act: 'stand', speed: 0.9, temper: 0.2, line: 'sit still a moment' },
   // 댄스 강사 — Skill buildings 체계의 첫 조각. 댄스홀에 서면 자리의 act('dance')가 자세를 정한다, 이 직업만의 특권 없음(사람도 C 로 같은 자세)
   { key: 'dancer', name: 'dance instructor', item: 'sash', spots: ['dancehall1', 'fountain'], act: 'stand', speed: 0.9, temper: 0.2, line: 'two-step. sway, then spin.' },
+  // 요가 강사 — Skill buildings 체계의 둘째 조각. 스튜디오에 서면 자리의 act('yoga')가 자세를 정한다(댄스홀과 같은 요령), 이 직업만의 특권 없음
+  { key: 'yogateacher', name: 'yoga teacher', item: 'mat', spots: ['yogastudio1', 'steps1'], act: 'stand', speed: 0.9, temper: 0.2, line: 'hold it. breathe out slowly.' },
 ];
 export const jobOf = (handle: string): Job => JOBS[hash(`job:${handle}`) % JOBS.length];
 export const JOB_BY_KEY = new Map(JOBS.map((j) => [j.key, j]));

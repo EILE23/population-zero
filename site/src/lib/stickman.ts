@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -183,6 +183,16 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line(hip, shoulder);
     line(hip, [7 + step, -8], [9 + step, 0]); line(hip, [-7 + step, -8], [-9 + step, 0]);
     line(shoulder, [13, -30], [17, -25]); line(shoulder, [-13, -30], [-17, -25]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'yoga') {
+    // 붙잡은 스트레칭 — Skill buildings 체계(town wishes, 2026-09-27 병합)의 둘째 자리. 기지개(stretch, idle fidget)와 달리 순간이 아니라 몇 초간 붙드는 자세다:
+    // 앞으로 깊이 숙여 두 팔을 바닥 쪽으로 뻗고, 아주 느린 숨쉬기로만 살짝 흔들린다 — 위로 뻗어 등을 젖히는 기지개와는 반대 방향이라 한눈에 다른 자세로 읽힌다
+    const breathe = Math.sin(t * 1.2) * 1.5;
+    hip = [0, -18 + breathe * 0.2]; shoulder = [10, -10 + breathe]; head = [16, -4 + breathe];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [16, -2 + breathe], [22, 6 + breathe]); line(shoulder, [16, -2 + breathe], [10, 8 + breathe]);
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
