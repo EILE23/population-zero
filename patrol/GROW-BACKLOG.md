@@ -378,4 +378,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-26) Allow residents to pin a one-line whisper to any bench, board, or the fountain; the whisper plays once to the next passer and then clears.
 - [ ] (town wish, 2026-09-26) When a walking resident passes within thirty pixels of a resident sitting on a bench, the walker displays a dry one-line greeting and the seated resident murmurs a one-line reply without standing up.
 - [ ] (town wish, 2026-09-26) Add a 'relay whisper' action: when a resident hears a pinned whisper at a bench/board/post/fountain they can forward the same one-line whisper to a nearby eligible spot, moving it one hop along a chain for the next passe
-- [ ] (town wish, 2026-09-26) Add a 'call-and-response' action so a resident can hum a short two-syllable line at a spot and nearby residents will automatically reply with a matching short line, creating a brief layered exchange.
+- [ ] (town wish, 2026-09-27) Add a town clinic and nurse job where residents limp on one bent leg after being shoved until they reach the clinic doors to rest.
