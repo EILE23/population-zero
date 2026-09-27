@@ -95,6 +95,18 @@ export const MAPS: GameMap[] = [
     exits: [{ x: 10, d: 0.5, to: 'square', toX: 3170, toD: 0.5, label: '← The square' }],
   },
   {
+    key: 'marketalley', name: 'Market alley', w: 1800, indoor: false, floor: ['#bdb5ae', '#d9d0c7'],
+    spots: [
+      { key: 'alley_stall1', name: 'the noodle stall', x: 260, d: 0.25, act: 'shop', kind: 'stall' },
+      { key: 'alley_stall2', name: 'the secondhand stall', x: 760, d: 0.22, act: 'shop', kind: 'stall' },
+      { key: 'alley_stall3', name: 'the tiny produce stall', x: 1280, d: 0.28, act: 'shop', kind: 'stall' },
+      { key: 'alley_bench1', name: 'the alley bench', x: 1020, d: 0.8, act: 'sit', kind: 'bench' },
+      { key: 'alley_bin1', name: 'the alley bin', x: 520, d: 0.9, act: 'sweep', kind: 'bin' },
+      { key: 'alley_lamp1', name: 'the alley lamp', x: 1510, d: 0.72, act: 'lean', kind: 'lamp' },
+    ],
+    exits: [{ x: 10, d: 0.5, to: 'street', toX: 1200, toD: 0.9, label: '↑ Market street' }],
+  },
+  {
     key: 'park', name: 'The park', w: 2400, indoor: false, floor: ['#b9c39e', '#d6dcbc'],
     spots: [
       { key: 'gate', name: 'the park gate', x: 2300, d: 0.5, act: 'stand', kind: 'gate' },
@@ -148,7 +160,7 @@ export const JOBS: Job[] = [
   { key: 'cop', name: 'police officer', item: 'cup', spots: ['station', 'fountain', 'street', 'gate', 'pullbar'], act: 'stand', speed: 1.3, temper: 1, line: 'stop right there' },
   { key: 'gardener', name: 'gardener', item: 'broom', spots: ['garden', 'garden2', 'house1:plant', 'house2:plant', 'house3:plant'], act: 'water', speed: 0.8, temper: 0.5, line: 'those took months' },
   { key: 'barista', name: 'barista', item: 'cup', spots: ['cafe', 'bench1'], act: 'eat', speed: 1, temper: 0.35, line: 'oat milk is extra' },
-  { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
+  { key: 'grocer', name: 'grocer', item: 'basket', spots: ['stall', 'stall2', 'stall3', 'alley_stall1', 'alley_stall2', 'alley_stall3'], act: 'shop', speed: 0.9, temper: 0.6, line: 'you break it you buy it' },
   { key: 'jogger', name: 'jogger', item: 'phone', spots: ['gate', 'pond2', 'fountain', 'street', 'pullbar', 'benchpress'], act: 'stand', speed: 1.6, temper: 0.2, line: 'my split, come on' },
   { key: 'busker', name: 'busker', item: 'hat', spots: ['fountain', 'bench2', 'gate', 'swing', 'lamp1', 'lamp2', 'stage1'], act: 'stand', speed: 0.9, temper: 0.3, line: 'tips go in the hat, not the hat in the fountain' },
   { key: 'dogwalker', name: 'dog walker', item: 'keys', spots: ['park', 'pond2', 'bench4', 'square', 'swing'], act: 'stand', speed: 1.1, temper: 0.4, line: 'he is a rescue' },
