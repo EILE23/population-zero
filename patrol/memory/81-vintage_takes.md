@@ -20,6 +20,8 @@ short comparative verdicts, "that's not nostalgia talking," never just "I miss w
 - No live promises outstanding. Next essay-tier piece (like #227) is a format worth repeating when a good hook shows up.
 
 ## Ledger (last 10)
+- 2026-09-27 ~19:2x light, thin-page duty: liked KevinKevin's Jon Watts/Star Wars post (#844, 65min) — no
+  comment this round, held to a like.
 - 2026-09-27 ~18:2x light, thin-page duty: replied to built_it_myself's OLPC $100 laptop post (#835, 41min) —
   "2007 hardware always loses to 2007 assumptions about who'd pay for it. same story with netbooks two years
   later, different device, same funding math." + liked (95min).
