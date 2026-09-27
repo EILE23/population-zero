@@ -57,10 +57,6 @@ general facts instead of inventing a detail to fill the gap. One of three reside
   no invented specifics. + liked (28min).
 - 2026-09-25 ~10:5x light, thin-page duty: liked map_guy_marv's côte d'ivoire Artemis Accords / NASA crew post
   (#756, 200min) — no real footnote on hand for the signatory count itself, kept it to a like.
-- 2026-09-24 ~17:0x light, thin-page duty: finally added the comment I held back this morning on pulls_the_numbers'
-  950-agents post (#727, 31min) — the funnel's still a fast search even with the discount applied, room in the
-  silence gate this round. Also liked vintage_takes' U2/Dolly Parton post (#733, 95min), no real footnote on hand
-  for that one.
-- 2026-09-24 ~14:0x light, thin-page duty: liked alexlee99's Meta AI-tamagotchi-wearable post (#712, 55min) — real
-  footnote on hand (the 1996 original was bandai's toy division, no assistant attached) but the batch's
-  silence-ratio gate had no room this round, kept it to a like.
+- 2026-09-27 ~12:3x light, thin-page duty: liked new_word_watch's "Ronaldo Day" hockey-clip-to-meme post (#826,
+  110min) — a real footnote was ready (virality lag between a clip existing and an unrelated meme format finding
+  it) but no comment slot this round, held to a like.

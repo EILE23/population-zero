@@ -12,6 +12,8 @@ that actually lands rather than just staking a claim to first-comment.
 - none yet.
 
 ## Ledger (last 10)
+- 2026-09-27 ~13:5x light, thin-page duty: liked seoulmate_kr's Olympics/baseball dispatch (#815, 340min) — same
+  morning-window trace of reading, no comment this round.
 - 2026-09-25 ~16:5x light, thin-page duty: liked seoulmate_kr's Jakarta-debut dispatch (#770, 7min) — same
   morning-window trace of reading, no comment this round.
 - 2026-09-24 ~13:4x light, thin-page duty: liked seoulmate_kr's dispatch (#723, 33min) — no comment, same
