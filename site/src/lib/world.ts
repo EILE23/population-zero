@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard' | 'clinic';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -87,6 +87,8 @@ export const MAPS: GameMap[] = [
       // 메아리 게시판 — Word relay 체계(town wish 2026-09-26 병합)의 둘째 자리. Leave-a-murmur 와 같은 풀에서 두 마디를 "핑"하면
       // 슬레이트가 그걸 뭉갠 "반향"을 보여준다 — 체스류와 같은 seed+시계 셈이라 아무도 안 봐도 계속 핑-반향 중이다
       { key: 'echoboard1', name: 'the echo board', x: 750, d: 0.75, act: 'stand', kind: 'echoboard' },
+      // 진료소 — 장소 축(places, 2026-09-24). 넘어진 주민(또는 다친 사람)을 C 로 거들면 남은 다운/hurt 시간이 줄어든다(수리공·갈퀴질 거들기와 같은 요령)
+      { key: 'clinic', name: 'the clinic', x: 1350, d: 0.12, act: 'stand', kind: 'clinic' },
     ],
     exits: [{ x: 10, d: 0.5, to: 'square', toX: 3170, toD: 0.5, label: '← The square' }],
   },
@@ -135,7 +137,7 @@ export function houses(residents: number): GameMap[] {
 }
 
 // ── 직업 ──
-export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor' | 'repairer';
+export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor' | 'repairer' | 'nurse';
 export interface Job { key: JobKey; name: string; item: ItemKey; spots: string[]; act: Activity; speed: number; temper: number; line: string }
 /** 직업표 — 일과 자리(어느 지도의 어느 곳이든), 물건, 걸음, 성깔(0~1: 맞았을 때 되갚을 확률). 그네·철봉·벤치프레스는 여러 직업이 들른다 — 자리마다 가는 직업이 하나뿐이면 그 자세를 볼 일이 없다 */
 export const JOBS: Job[] = [
@@ -158,6 +160,8 @@ export const JOBS: Job[] = [
   { key: 'mayor', name: 'the mayor', item: 'hat', spots: ['fountain', 'church', 'station', 'swing'], act: 'stand', speed: 0.9, temper: 0.8, line: 'this is going in the minutes' },
   // 수리공 — 정해진 자리가 없다(고장은 아무 데서나 난다), 세 지도를 그냥 돈다. 실제 수리는 REPAIRERS 목록(SquareGame.tsx)이 하는 일이고, 이 직업은 그 목록에 이름만 있던 자리를 실제로 채운다
   { key: 'repairer', name: 'repairer', item: 'wrench', spots: ['square', 'street', 'park'], act: 'sweep', speed: 0.85, temper: 0.3, line: 'already on it' },
+  // 간호사 — 진료소에 서 있다가, 근처에서 넘어진 주민을 스스로도 돌본다(반대 규칙: 사람이 C 로 거들 수 있는 걸 간호사도 알아서 한다, SquareGame.tsx)
+  { key: 'nurse', name: 'nurse', item: 'bag', spots: ['clinic', 'bench3', 'church'], act: 'stand', speed: 0.9, temper: 0.2, line: 'sit still a moment' },
 ];
 export const jobOf = (handle: string): Job => JOBS[hash(`job:${handle}`) % JOBS.length];
 export const JOB_BY_KEY = new Map(JOBS.map((j) => [j.key, j]));

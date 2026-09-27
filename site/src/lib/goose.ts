@@ -17,8 +17,8 @@ export const GRAB_R = 36;       // 물건 뺏는/줍는 거리
 export const CHASE_SEC = 6;     // 추격 포기까지
 export const HONK_R = SHOVE_R;
 
-export type ItemKey = 'hat' | 'phone' | 'paper' | 'sandwich' | 'keys' | 'glasses' | 'broom' | 'umbrella' | 'cup' | 'basket' | 'rod' | 'fish' | 'apple' | 'wrench';
-export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', paper: 'newspaper', sandwich: 'sandwich', keys: 'keys', glasses: 'glasses', broom: 'broom', umbrella: 'umbrella', cup: 'coffee', basket: 'shopping basket', rod: 'fishing rod', fish: 'fish', apple: 'apple', wrench: 'wrench' };
+export type ItemKey = 'hat' | 'phone' | 'paper' | 'sandwich' | 'keys' | 'glasses' | 'broom' | 'umbrella' | 'cup' | 'basket' | 'rod' | 'fish' | 'apple' | 'wrench' | 'bag';
+export const ITEMS: Record<ItemKey, string> = { hat: 'hat', phone: 'phone', paper: 'newspaper', sandwich: 'sandwich', keys: 'keys', glasses: 'glasses', broom: 'broom', umbrella: 'umbrella', cup: 'coffee', basket: 'shopping basket', rod: 'fishing rod', fish: 'fish', apple: 'apple', wrench: 'wrench', bag: 'medical bag' };
 /** 먹을 수 있는 것 — C 로 다 먹으면 사라진다(줍기·훔치기 대상에서 빠짐) */
 export const FOOD: ItemKey[] = ['sandwich', 'cup', 'apple'];
 /** 몸에 걸칠 수 있는 것 — 아무것도 근처에 없을 때 C 로 입고/벗는다(머리·얼굴에 그려짐, 훔치기·던지기 대상에선 빠지지 않는다) */
@@ -64,7 +64,7 @@ export function residentsOut(hour: number, residents: number): Routine[] {
 }
 
 // ── 오늘의 할 일 ──
-export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether' | 'busk' | 'sell' | 'bracewith' | 'rummage' | 'mend' | 'lock' | 'binlock' | 'chess' | 'toss' | 'bocce' | 'simon' | 'echoboard' | 'replyboard';
+export type TaskKind = 'steal' | 'dunk' | 'honk3' | 'chased' | 'deliver' | 'sit' | 'collect' | 'scare_all' | 'break' | 'water' | 'bin' | 'fish' | 'feed' | 'wear' | 'call' | 'lean' | 'shake' | 'fix' | 'rake' | 'catch' | 'brace' | 'crate' | 'shelf' | 'dust' | 'slide' | 'stow' | 'weight' | 'tether' | 'busk' | 'sell' | 'bracewith' | 'rummage' | 'mend' | 'lock' | 'binlock' | 'chess' | 'toss' | 'bocce' | 'simon' | 'echoboard' | 'replyboard' | 'heal';
 export interface Task { key: string; kind: TaskKind; text: string; who?: number; item?: ItemKey; spot?: string; n?: number; coins: number }
 /** 사람마다·날마다 다른 8개. who 는 오늘 광장에 나온 주민 중에서(시간에 따라 바뀌지만 첫 시간 기준으로 고정한다) */
 export function tasksFor(day: string, uid: number, out: Routine[], handles: string[]): Task[] {
@@ -114,6 +114,7 @@ export function tasksFor(day: string, uid: number, out: Routine[], handles: stri
     else if (v < 0.999999958) add({ key: 'simon1', kind: 'simon', text: 'Tap in at the light-chain board on the square', coins: 4 });
     else if (v < 0.999999961) add({ key: 'echoboard1', kind: 'echoboard', text: 'Read the echo board on Market street', coins: 4 });
     else if (v < 0.999999964) add({ key: 'replyboard1', kind: 'replyboard', text: 'Read the reply board in the park', coins: 4 });
+    else if (v < 0.999999967) add({ key: 'heal1', kind: 'heal', text: 'Help a knocked-over resident at the clinic', coins: 4 });
     else { const bs = ALL_SPOTS.filter((x) => ['bench', 'booth', 'stall', 'garden', 'cafe', 'bin', 'swing'].includes(x.kind)); const sp = bs[Math.floor(r() * bs.length)]; add({ key: `break:${sp.key}`, kind: 'break', spot: sp.key, text: `Break ${sp.name} (kick it)`, coins: 9 }); }
   }
   return tasks;
