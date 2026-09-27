@@ -395,3 +395,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-27) Add a small sprung‑floor community dance hall on the square with a dance instructor job that teaches a two‑step sway-and-spin animation (including a short partnered hold).
 - [ ] (town wish, 2026-09-27) Add an open-air yoga terrace in the park with a yoga-instructor job that teaches a short sun‑salutation full-body stretch animation (reach, fold, and guided breaths) residents can perform to recover balance.
 - [ ] (town wish, 2026-09-27) Add a compact bouldering gym on the riverpath with a climbing instructor job so residents can learn a reach-and-pull climbing animation to scale short walls and recover from high knocks.
+- [ ] (town wish, 2026-09-27) Add a small public bathhouse with a bath attendant job so residents can take a supervised cold plunge that triggers a short 'shiver' animation and a warm-up interaction afterward.
