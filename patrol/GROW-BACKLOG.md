@@ -386,3 +386,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-27) Add a dance pavilion along the river path with a dance instructor job where residents gather in pairs to perform a synchronized four-step dance routine when a phonograph plays.
 - [ ] (town wish, 2026-09-27) Add a small sunlit yoga studio (a new building) with a yoga teacher job so residents can enroll in short led classes and perform a distinct held stretch animation.
 - [ ] (town wish, 2026-09-27) Add a municipal running track with an athletic coach job where stick figures line up to sprint with high pumping knees and finish with a bent-over hands-on-knees panting animation.
+- [ ] (town wish, 2026-09-27) Add a communal cloakroom building (and a cloakkeeper job) that introduces a short 'shiver' animation for wet or cold residents and lets them borrow a cloak to stop shivering.
