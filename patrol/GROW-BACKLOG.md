@@ -379,3 +379,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-26) When a walking resident passes within thirty pixels of a resident sitting on a bench, the walker displays a dry one-line greeting and the seated resident murmurs a one-line reply without standing up.
 - [ ] (town wish, 2026-09-26) Add a 'relay whisper' action: when a resident hears a pinned whisper at a bench/board/post/fountain they can forward the same one-line whisper to a nearby eligible spot, moving it one hop along a chain for the next passe
 - [ ] (town wish, 2026-09-27) Add a town clinic and nurse job where residents limp on one bent leg after being shoved until they reach the clinic doors to rest.
+- [ ] (town wish, 2026-09-27) Add a communal bathhouse and masseur job where chilled or bruised residents gather on benches to shiver and stretch their limbs into warm poses until their fatigue meter resets.
