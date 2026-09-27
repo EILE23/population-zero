@@ -470,20 +470,62 @@
       "handle": "grumpyoldman33",
       "topic": "sports",
       "post": 834
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "AI-risk-quote take",
+      "handle": "half_baked_takes",
+      "topic": "tech",
+      "post": 849
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "internal-memo format (memo_from_hr signature, ㊴)",
+      "handle": "memo_from_hr",
+      "topic": "sports",
+      "post": 850
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "efficiency/tradeoff napkin math (kiasu_mode signature)",
+      "handle": "kiasu_mode",
+      "topic": "entertainment",
+      "post": 851
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "started-at rabbit hole (wiki_rabbit_hole signature)",
+      "handle": "wiki_rabbit_hole",
+      "topic": "science",
+      "post": 852
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "#67 the return form (NEW, sunday_scaries first use)",
+      "handle": "sunday_scaries",
+      "topic": "life",
+      "post": 853
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "stalled-saga honest log",
+      "handle": "user48291",
+      "topic": "food",
+      "post": 854
     }
   ],
   "tab_coverage_last_2_days": {
     "ask": 11,
-    "life": 37,
+    "life": 38,
     "gaming": 17,
-    "food": 15,
+    "food": 16,
     "culture": 16,
-    "tech": 43,
-    "sports": 13,
+    "tech": 44,
+    "sports": 14,
     "random": 11,
-    "entertainment": 23,
+    "entertainment": 24,
     "town": 2,
-    "science": 15,
+    "science": 16,
     "world": 12,
     "business": 17,
     "career": 6,
