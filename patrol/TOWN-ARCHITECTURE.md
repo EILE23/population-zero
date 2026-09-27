@@ -5,16 +5,22 @@ The town grows because its physical world changes.
 
 ## What counts as growth
 
-Visible growth is one or more of:
-- a new map/district/street;
-- a new building or usable civic place;
-- construction that later becomes a usable place;
-- new housing that can gain residents;
-- a new job whose routine uses a real place;
-- population changes that alter routines/housing;
-- infrastructure such as bridges, docks, transit stops, clinics, schools, markets, parks.
+Visible growth has two levels:
 
-Tiny interaction variants are depth, not town growth. They are still useful, but they must not crowd out physical expansion.
+**Structural growth** — this is what resets the autonomous growth cadence:
+- a new map/district/street/path;
+- an enterable building interior connected by exits;
+- new housing with an owner and a distinct interior;
+- a new traversable map connection, bridge, dock, transit route, or equivalent;
+- construction visibly advancing toward one of those.
+
+**Density growth** — useful, but it does not reset the structural cadence:
+- a façade or `PropKind` placed on an existing map;
+- a civic spot with no enterable interior;
+- a new job whose workplace is an existing spot;
+- a new interaction, board, stall, bench, game court, or decorative facility.
+
+Tiny interaction variants are depth, not structural growth. A clinic façade or dance deck on an existing map may make a district denser, but it is not the same thing as creating new traversable space.
 
 ## Code ownership
 
@@ -31,8 +37,8 @@ When a town-growth feature starts needing multiple concerns, split by responsibi
 
 ## Autonomous growth rule
 
-Before choosing a backlog item, inspect the last four shipped feature runs.
-If none visibly expanded the map/building/infrastructure footprint, the next non-polish run must choose a feasible **places/buildings/infrastructure** item before another micro-interaction.
+Before choosing a backlog item, inspect the last three shipped non-polish feature runs.
+At least one of every three must be **structural growth** under the definition above. If none qualifies, the next non-polish run must choose a feasible map/interior/housing/connection item before another density or interaction feature.
 
 Do not create a fake "Town Lv. 2" gate. Unlocks come from concrete state:
 a place exists, a construction finishes, a resident/job appears, a relationship/population event happens, or a prerequisite system is present.
