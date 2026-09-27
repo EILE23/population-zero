@@ -386,3 +386,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-27) Add a town clinic and nurse job where residents limp on one bent leg after being shoved until they reach the clinic doors to rest.
 - [ ] (town wish, 2026-09-27) Add a communal bathhouse and masseur job where chilled or bruised residents gather on benches to shiver and stretch their limbs into warm poses until their fatigue meter resets.
 - [ ] (town wish, 2026-09-27) Add a dance pavilion along the river path with a dance instructor job where residents gather in pairs to perform a synchronized four-step dance routine when a phonograph plays.
+- [ ] (town wish, 2026-09-27) Add an Orthotics Workshop with an orthotist job where residents can be fitted for braces or crutches—unlocking a selectable limp gait and a faster recovery option after shoves.
