@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -172,6 +172,17 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     hip = [0, -16]; shoulder = [0, -34]; head = [0, -42];
     line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
     line(shoulder, [6, -40], [8 + p, -50]); line(shoulder, [-5, -26], [-6, -18]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'dance') {
+    // 두 스텝 — Skill buildings(town wish, 2026-09-27): 무게 중심이 좌우로 오가는 두 스텝, 팔은 파트너를 안듯 앞으로 둥글게 벌려 잡는다.
+    // 4초마다 한 번씩 몸 전체가 크게 기울어 도는 순간을 흉내낸다 — 오늘은 혼자 연습하는 첫 조각이라 짝은 없다(파트너의 손은 "Grows from Community dance hall" 로 미룸)
+    const step = Math.sin(t * 3) * 5; const spin = Math.sin(t * 1.5) * 4;
+    hip = [step * 0.3, -16]; shoulder = [step * 0.4 + spin, -34]; head = [step * 0.4 + spin, -42];
+    line(hip, shoulder);
+    line(hip, [7 + step, -8], [9 + step, 0]); line(hip, [-7 + step, -8], [-9 + step, 0]);
+    line(shoulder, [13, -30], [17, -25]); line(shoulder, [-13, -30], [-17, -25]);
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

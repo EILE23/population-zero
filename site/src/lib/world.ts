@@ -9,7 +9,7 @@ import type { Activity, ItemKey } from './goose';
 
 export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'cafe' | 'booth' | 'pond' | 'tree' | 'lamp'
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
-  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard' | 'clinic';
+  | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard' | 'clinic' | 'dancehall';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
 export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
@@ -56,6 +56,8 @@ export const MAPS: GameMap[] = [
       // 빛 이어가기 판 — Resident-run rounds 체계(town wishes, 2026-09-25 병합)의 첫 자리. 세 칸이 seed+6초-버킷으로 차례로 빛나고
       // 이어진 길이는 체스류와 같은 12-버킷 창으로 센다 — 아무 직업도 안 들른다(체스와 같은 이유: 시계가 이미 계속 "놀고" 있다)
       { key: 'simon1', name: 'the light-chain board', x: 2020, d: 0.8, act: 'stand', kind: 'simon' },
+      // 댄스홀 — Skill buildings 체계(town wishes, 2026-09-27 병합)의 첫 자리. 자세는 자리의 act 로만 정해진다(가로등 기대기와 같은 요령) — dancer 직업이 여길 들르면 반대 규칙이 저절로 만족된다
+      { key: 'dancehall1', name: 'the dance hall', x: 3050, d: 0.6, act: 'dance', kind: 'dancehall' },
     ],
     exits: [
       { x: 150, d: 0.12, to: 'house1', toX: 480, toD: 0.9, label: 'the blue house' },
@@ -137,7 +139,7 @@ export function houses(residents: number): GameMap[] {
 }
 
 // ── 직업 ──
-export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor' | 'repairer' | 'nurse';
+export type JobKey = 'baker' | 'postie' | 'cop' | 'gardener' | 'barista' | 'grocer' | 'jogger' | 'busker' | 'dogwalker' | 'sweeper' | 'priest' | 'office' | 'painter' | 'kid' | 'retired' | 'courier' | 'mayor' | 'repairer' | 'nurse' | 'dancer';
 export interface Job { key: JobKey; name: string; item: ItemKey; spots: string[]; act: Activity; speed: number; temper: number; line: string }
 /** 직업표 — 일과 자리(어느 지도의 어느 곳이든), 물건, 걸음, 성깔(0~1: 맞았을 때 되갚을 확률). 그네·철봉·벤치프레스는 여러 직업이 들른다 — 자리마다 가는 직업이 하나뿐이면 그 자세를 볼 일이 없다 */
 export const JOBS: Job[] = [
@@ -162,6 +164,8 @@ export const JOBS: Job[] = [
   { key: 'repairer', name: 'repairer', item: 'wrench', spots: ['square', 'street', 'park'], act: 'sweep', speed: 0.85, temper: 0.3, line: 'already on it' },
   // 간호사 — 진료소에 서 있다가, 근처에서 넘어진 주민을 스스로도 돌본다(반대 규칙: 사람이 C 로 거들 수 있는 걸 간호사도 알아서 한다, SquareGame.tsx)
   { key: 'nurse', name: 'nurse', item: 'bag', spots: ['clinic', 'bench3', 'church'], act: 'stand', speed: 0.9, temper: 0.2, line: 'sit still a moment' },
+  // 댄스 강사 — Skill buildings 체계의 첫 조각. 댄스홀에 서면 자리의 act('dance')가 자세를 정한다, 이 직업만의 특권 없음(사람도 C 로 같은 자세)
+  { key: 'dancer', name: 'dance instructor', item: 'sash', spots: ['dancehall1', 'fountain'], act: 'stand', speed: 0.9, temper: 0.2, line: 'two-step. sway, then spin.' },
 ];
 export const jobOf = (handle: string): Job => JOBS[hash(`job:${handle}`) % JOBS.length];
 export const JOB_BY_KEY = new Map(JOBS.map((j) => [j.key, j]));
