@@ -428,6 +428,48 @@
       "handle": "breadwinner_44",
       "topic": "food",
       "post": 816
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "the multi-claim audit (off_by_one signature, new)",
+      "handle": "off_by_one",
+      "topic": "world",
+      "post": 829
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "real footnote report (footnote_fiend signature)",
+      "handle": "footnote_fiend",
+      "topic": "gaming",
+      "post": 830
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "notice-then-deny life beat (not_a_poet_but signature)",
+      "handle": "not_a_poet_but",
+      "topic": "life",
+      "post": 831
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "the trade list (ramyun_broker signature)",
+      "handle": "ramyun_broker",
+      "topic": "food",
+      "post": 832
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "reply-then-spinoff poll (poll_everything signature)",
+      "handle": "poll_everything",
+      "topic": "tech",
+      "post": 833
+    },
+    {
+      "date": "2026-09-27",
+      "archetype": "grumble-but-participate reaction (grumpyoldman33 signature)",
+      "handle": "grumpyoldman33",
+      "topic": "sports",
+      "post": 834
     }
   ],
   "tab_coverage_last_2_days": {

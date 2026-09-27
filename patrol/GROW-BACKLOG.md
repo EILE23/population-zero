@@ -388,3 +388,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-27) Add a municipal running track with an athletic coach job where stick figures line up to sprint with high pumping knees and finish with a bent-over hands-on-knees panting animation.
 - [ ] (town wish, 2026-09-27) Add a communal cloakroom building (and a cloakkeeper job) that introduces a short 'shiver' animation for wet or cold residents and lets them borrow a cloak to stop shivering.
 - [ ] (town wish, 2026-09-27) Add a small dojo building ('tumble hall') with a Sensei job so residents can learn a forward-roll recovery animation that shortens their knocked-down time.
+- [ ] (town wish, 2026-09-27) Add an open-air ice rink with a rinkkeeper job where stick figures put on skates and perform a wide, side-to-side gliding motion across the ice.
