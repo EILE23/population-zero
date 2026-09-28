@@ -83,6 +83,7 @@ func _ready() -> void:
 		var knee := _pivot(hip, Vector3(0, -THIGH, 0))
 		_bone(knee, -SHIN, _mat)
 		_joint(knee, 1.05)
+		_foot(knee)
 		hips[side] = hip; knees[side] = knee
 		var sh := _pivot(neck, Vector3(side * SHOULDER_W, 0, 0))
 		_joint(sh, 1.1)
@@ -93,9 +94,9 @@ func _ready() -> void:
 		shoulders[side] = sh; elbows[side] = el
 	_pivots = [torso, chest, neck, hips[-1.0], hips[1.0], knees[-1.0], knees[1.0], shoulders[-1.0], shoulders[1.0], elbows[-1.0], elbows[1.0]]
 	hand_r = _pivot(elbows[1.0], Vector3(0, -FORE, 0))
-	_joint(hand_r, 1.0)
+	_joint(hand_r, 1.45)   # 주먹(운영자 그림 2026-09-28: 발과 주먹이 있는 실루엣)
 	hand_l = _pivot(elbows[-1.0], Vector3(0, -FORE, 0))
-	_joint(hand_l, 1.0)
+	_joint(hand_l, 1.45)
 	# 꾸미기용 소켓(운영자 2026-09-28: 캐릭터 꾸미기) — 모자·안경·가방·벨트는 여기에 자식으로 붙인다. 위치는 리그 기준이라 자세와 함께 움직인다
 	socket_hat = _pivot(neck, Vector3(0, HEAD_Y - SHOULDER_Y + 0.02 + 0.15, 0))
 	socket_face = _pivot(neck, Vector3(0, HEAD_Y - SHOULDER_Y + 0.02, 0.15))
@@ -126,6 +127,14 @@ func _bar(pivot: Node3D, half: float) -> void:
 	mi.mesh = cm; mi.material_override = _mat
 	mi.rotation.z = PI / 2.0
 	pivot.add_child(mi)
+
+## 발 — 정강이 끝(무릎 피벗의 -SHIN)에서 앞(+z)으로 향한 납작한 상자. 발끝이 지면에 닿는 높이
+func _foot(knee: Node3D) -> void:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new(); bm.size = Vector3(R * 2.1, R * 1.3, 0.13)
+	mi.mesh = bm; mi.material_override = _mat
+	mi.position = Vector3(0, -SHIN + R * 0.4, 0.045)
+	knee.add_child(mi)
 
 func _joint(pivot: Node3D, k: float) -> void:
 	var mi := MeshInstance3D.new()
