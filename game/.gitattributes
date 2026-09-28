@@ -1,0 +1,7 @@
+# Godot project files are written with LF by the generator and the editor; keep them that way on every OS.
+* text=auto eol=lf
+*.svg text eol=lf
+*.import text eol=lf
+*.gd text eol=lf
+*.tscn text eol=lf
+*.json text eol=lf

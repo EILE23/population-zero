@@ -64,6 +64,18 @@ static func figure_color(id: int) -> Color:
 	var lit := 34 + ((id * 7) % 5) * 4
 	return Color.from_hsv(h / 360.0, sat / 100.0, minf(1.0, lit / 100.0 * 1.6))
 
+## 인사받음 — 손을 흔들어 답하고 한마디(일과 중이면 잠깐 멈춘다)
+func greet(from: Node3D) -> void:
+	if state == "down" or state == "getup" or state == "chase":
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	fig.seated = false
+	fig.pose_request = "wave"
+	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
+	state = "busy"; busy_until = now + 1.4
+	spot = { "kind": "greet" }
+	say(["Hello.", "Afternoon.", "Yes, hello.", "Good day."][uid % 4], 1.6)
+
 func say(text: String, secs := 2.2) -> void:
 	say_label.text = text; say_label.visible = true
 	say_until = Time.get_ticks_msec() / 1000.0 + secs

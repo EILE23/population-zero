@@ -537,12 +537,21 @@ func _physics_process(delta: float) -> void:
 		player.action = ""; player.action_t = 0.0
 	if shake_until > 0.0 and now >= shake_until:
 		shake_until = -1.0; player.pose_request = ""
+	if use_until > 0.0 and now >= use_until:
+		use_until = -1.0
+		if player.pose_request in ["eat", "drink", "wave"]: player.pose_request = ""
+	if (reading or leaning) and dir != Vector3.ZERO:
+		reading = false; leaning = false; player.pose_request = ""
 	_interact_check(now)
 	_fly(delta)
 	_cutaway()
 
 var cam_kick := 0.0
 var shake_until := -1.0
+var bites := 0            # 사과 한입 수(3입이면 사라진다)
+var use_until := -1.0     # 먹기·마시기 자세가 끝나는 시각
+var reading := false      # 신문 읽는 중(움직이면 끝)
+var leaning := false      # 가로등에 기댄 중(움직이면 끝)
 
 ## 앞 부채꼴(70°) 안, 사거리 안의 주민을 맞힌다. 무거운 한 방(제트킥·점프 주먹·훅)은 바로 넘어진다
 func _strike(kind: String) -> void:
@@ -620,6 +629,19 @@ func _interact_check(now: float) -> void:
 	var p := body.global_position
 	var fwd := Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
 	if player.carrying:
+		var kind := String(player.carrying.get_meta("kind", ""))
+		if kind == "apple":
+			# 먹기: 한 번에 한입, 세 입이면 사라진다(운영자: 상호작용은 끝까지)
+			bites += 1; player.pose_request = "eat"; use_until = now + 0.9; action_until = now + 0.9
+			if bites >= 3:
+				bites = 0; var core := player.carrying; player.release(self, Vector3.ZERO); core.queue_free()
+			return
+		if kind == "cup":
+			player.pose_request = "drink"; use_until = now + 1.2; action_until = now + 1.2
+			return
+		if kind == "paper":
+			reading = not reading; player.pose_request = "read" if reading else ""
+			return
 		var item := player.release(self, p + fwd * 0.5 + Vector3(0, 0.08, 0))
 		items.append(item)
 		player.action = "grab"; action_until = now + 0.4
@@ -635,12 +657,25 @@ func _interact_check(now: float) -> void:
 		var d := p.distance_to(b["pos"])
 		if d < 1.0 and d < best_d: best = { "kind": "bench", "bench": b }; best_d = d
 	for sp in spots:
-		if sp["kind"] != "tree": continue
+		if sp["kind"] != "tree" and sp["kind"] != "lamp": continue
 		var d2: float = p.distance_to(sp["pos"])
-		if d2 < 1.0 and d2 < best_d: best = { "kind": "tree", "spot": sp }; best_d = d2
+		if d2 < 1.0 and d2 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d2
+	for r in residents:
+		var d3: float = p.distance_to(r.global_position)
+		if d3 < 1.3 and d3 < best_d and r.state != "down": best = { "kind": "resident", "node": r }; best_d = d3
 	if best.is_empty():
 		return
 	match best["kind"]:
+		"lamp":
+			# 가로등에 기대기(2D lean) — 움직이면 풀린다
+			var sp: Dictionary = best["spot"]
+			leaning = true; player.pose_request = "lean"; player.face(sp["yaw"])
+		"resident":
+			# 인사: 손을 흔들면 주민이 돌아보고 답한다
+			var r: Node3D = best["node"]
+			player.pose_request = "wave"; use_until = now + 1.2; action_until = now + 0.3
+			player.face(atan2(r.global_position.x - p.x, r.global_position.z - p.z))
+			r.greet(body)
 		"tree":
 			var sp: Dictionary = best["spot"]
 			player.face(atan2(sp["pos"].x - p.x, sp["pos"].z - p.z))

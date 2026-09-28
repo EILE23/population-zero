@@ -203,6 +203,12 @@ func _process(delta: float) -> void:
 		lean = -0.2
 	if pose_request == "shake" and not moving:
 		lean = sin(_t * 9.0) * 0.12
+	if pose_request == "read" and not moving:
+		lean = 0.12
+	if pose_request == "drink" and not moving:
+		lean = -0.12
+	if pose_request == "eat" and not moving:
+		lean = 0.08
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
@@ -227,6 +233,27 @@ func _process(delta: float) -> void:
 			# 나무 흔들기(2D shake): 두 팔을 위로 뻗어 가지를 잡고 몸통째 좌우로
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.1)
 			sh.rotation.x = -(2.9 + sin(_t * 9.0) * 0.15); sh.rotation.z = -s * 0.25; el.rotation.x = -(0.2)
+		elif pose_request == "eat":
+			# 서서 먹기(2D chew): 오른손이 입으로 오르내리고 고개가 살짝 숙여진다
+			var m := (sin(_t * 4.0) + 1.0) / 2.0
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			if s > 0.0: sh.rotation.x = -(0.55 + m * 0.5); sh.rotation.z = -0.25; el.rotation.x = -(1.9 + m * 0.5)
+			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
+		elif pose_request == "drink":
+			# 마시기: 컵을 든 손이 입까지 올라가 머물고 고개가 뒤로 젖혀진다
+			var m := clampf(sin(_t * 1.6) * 0.5 + 0.5, 0.0, 1.0)
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			if s > 0.0: sh.rotation.x = -(0.7 + m * 0.4); sh.rotation.z = -0.3; el.rotation.x = -(2.2 + m * 0.3)
+			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
+		elif pose_request == "read":
+			# 서서 읽기(2D read): 두 손이 가슴 앞, 고개 숙임
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			sh.rotation.x = -(0.5); sh.rotation.z = -s * 0.15; el.rotation.x = -(1.7)
+		elif pose_request == "wave":
+			# 손 흔들기(2D wave): 오른팔을 머리 위로 들어 좌우로
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			if s > 0.0: sh.rotation.x = -(2.7); sh.rotation.z = -0.35 + sin(_t * 9.0) * 0.25; el.rotation.x = -(0.5)
+			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
 		elif seated:
 			# 벤치: 허벅지 앞으로 수평, 정강이 아래로, 손은 무릎 위
 			hip.rotation.x = -(1.5); knee.rotation.x = -(-1.45)
