@@ -529,3 +529,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-28) Add a wary fox NPC that slips between Old Court/Market Alley/Park at dusk, nicks wearable textiles from knocked or distracted residents to stash in den spots, can be distracted with food to drop loot, and can be coaxed t
+- [ ] (town wish, 2026-09-28) Add a stray cat NPC that naps on warm surfaces across Square/Street/Park, curls onto knocked residents to delay human pick-up, bats small shiny items into nearby stash spots, and can be coaxed to return stolen items when
