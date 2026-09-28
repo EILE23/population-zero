@@ -54,10 +54,10 @@ func _ready() -> void:
 	_solid_floor()
 	_path(Vector3(-14, 0, 2), Vector3(14, 0, 2), 2.4)
 	_path(Vector3(0, 0, 2), Vector3(0, 0, -10), 2.0)
-	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "accent-deep")
-	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick")
-	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true)  # 계단집 — 옥상까지 걸어 올라간다
-	_house(Vector3(-12, 0, -8), Vector3(3.6, 2.8, 3.2), Color("b56a5a"), "wood")
+	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "accent-deep", false, 1)
+	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
+	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다
+	_house(Vector3(-12, 0, -8), Vector3(3.6, 2.8, 3.2), Color("b56a5a"), "wood", false, 4)
 	for p in [Vector3(-11, 0, -1), Vector3(-3.5, 0, -1.5), Vector3(4, 0, -1), Vector3(11, 0, -1.5), Vector3(-9, 0, 5), Vector3(9, 0, 5.5), Vector3(13, 0, -7)]:
 		_tree(p, 1.0 + fmod(absf(p.x) * 0.37, 0.5))
 	_bench(Vector3(-4, 0, 4.2)); _bench(Vector3(4, 0, 4.2))
@@ -161,60 +161,134 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 	mi.rotation.y = -atan2(d.z, d.x)
 	add_child(mi)
 
-## 속이 빈 집 — 벽 네 장(정면은 문틀 양쪽 + 상인방), 창은 기하(틀+유리), 경첩 달린 문짝(C 로 연다), 지붕은 기와 텍스처 삼각기둥, 굴뚝, 계단
-func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false) -> void:
-	var wm := _mat(wall)
-	var trim := _mat(Color("efe9e2"))
+## 집 — 시드로 정하는 사양(진짜 집처럼, 운영자 2026-09-28): 층수 1~2, 박공/평지붕, 벽 재질(널빤지·벽돌·회벽·색벽), 트림 색, 창 배치와 덧문·창턱,
+## 처마·홈통·굴뚝·현관 지붕·계단·화단·우체통. 속은 비어 있고(벽 네 장) 경첩 문으로 들어간다. 들어가면 지붕·앞벽·천장이 사라져 안이 보인다(컷어웨이).
+func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false, seed := 0) -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 1000 + seed + int(at.x * 7.0 + at.z * 13.0)
+	var storeys := 2 if (rng.randf() < 0.35 and not flat_roof) else 1
+	size.y = size.y * (1.7 if storeys == 2 else 1.0)
+	var mats := ["plank", "brick", "stucco", "colour"]
+	var material: String = mats[rng.randi() % mats.size()]
+	var trim_c: Color = [Color("efe9e2"), Color("f7f4ef"), Color("cfc7c2")][rng.randi() % 3]
+	var wm: StandardMaterial3D
+	match material:
+		"plank": wm = _mat(Color.WHITE, _tex("faces/wall-plank"), Vector3(2.2, 2.2, 1)); wm.uv1_triplanar = true
+		"brick": wm = _mat(Color.WHITE, _tex("faces/wall-brick"), Vector3(1.6, 1.6, 1)); wm.uv1_triplanar = true
+		"stucco": wm = _mat(wall, _tex("faces/wall-stucco"), Vector3(1.4, 1.4, 1)); wm.uv1_triplanar = true
+		_: wm = _mat(wall)
+	var trim := _mat(trim_c)
 	var hw := size.x / 2.0; var hd := size.z / 2.0
 	var door_w := 0.9; var door_h := 1.9
-	# 정면(문 좌우 + 상인방)
+	var parts: Array[Node3D] = []   # 컷어웨이 대상(지붕·앞벽·천장·차양·앞창)
 	var seg := (size.x - door_w) / 2.0
-	_box(Vector3(seg, size.y, WALL), at + Vector3(-hw + seg / 2.0, 0, hd - WALL / 2.0), wm)
-	_box(Vector3(seg, size.y, WALL), at + Vector3(hw - seg / 2.0, 0, hd - WALL / 2.0), wm)
-	_box(Vector3(door_w + 0.02, size.y - door_h, WALL), at + Vector3(0, door_h, hd - WALL / 2.0), wm)
-	# 뒷벽·옆벽
+	parts.append(_box(Vector3(seg, size.y, WALL), at + Vector3(-hw + seg / 2.0, 0, hd - WALL / 2.0), wm))
+	parts.append(_box(Vector3(seg, size.y, WALL), at + Vector3(hw - seg / 2.0, 0, hd - WALL / 2.0), wm))
+	parts.append(_box(Vector3(door_w + 0.02, size.y - door_h, WALL), at + Vector3(0, door_h, hd - WALL / 2.0), wm))
 	_box(Vector3(size.x, size.y, WALL), at + Vector3(0, 0, -hd + WALL / 2.0), wm)
 	_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(-hw + WALL / 2.0, 0, 0), wm)
 	_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(hw - WALL / 2.0, 0, 0), wm)
-	# 창: 정면 좌우 하나씩, 옆벽 하나씩 — 틀(밝은) + 유리(하늘) + 창턱
-	for wx in [-hw + seg / 2.0, hw - seg / 2.0]:
-		_window(at + Vector3(wx, 1.1, hd), 0.0)
-	_window(at + Vector3(-hw, 1.1, 0), PI / 2.0)
-	_window(at + Vector3(hw, 1.1, 0), -PI / 2.0)
-	# 문틀 + 경첩 + 문짝(손잡이 포함). 경첩은 문 왼쪽 기둥, 문짝은 경첩의 자식이라 열면 같이 돈다
+	# 창: 층마다 정면 좌우 + 옆벽. 덧문은 집마다 있거나 없다
+	var shutters := rng.randf() < 0.5
+	var shutter_c: Color = [Color("7b526c"), Color("3f6b2f"), Color("4a4a52"), Color("b56a5a")][rng.randi() % 4]
+	for st in storeys:
+		var wy := 1.1 + st * (size.y / storeys)
+		for wx in [-hw + seg / 2.0, hw - seg / 2.0]:
+			parts.append(_window(at + Vector3(wx, wy, hd), 0.0, shutters, shutter_c))
+		_window(at + Vector3(-hw, wy, 0), PI / 2.0, shutters, shutter_c)
+		_window(at + Vector3(hw, wy, 0), -PI / 2.0, shutters, shutter_c)
+	# 문틀·경첩·문짝(손잡이)
 	_box(Vector3(0.08, door_h, WALL + 0.04), at + Vector3(-door_w / 2.0 - 0.04, 0, hd - WALL / 2.0), trim)
 	_box(Vector3(0.08, door_h, WALL + 0.04), at + Vector3(door_w / 2.0 + 0.04, 0, hd - WALL / 2.0), trim)
 	var hinge := Node3D.new()
 	hinge.position = at + Vector3(-door_w / 2.0, 0, hd - WALL / 2.0)
 	add_child(hinge)
-	var leaf := _box(Vector3(door_w, door_h - 0.02, 0.07), Vector3(door_w / 2.0, 0, 0), _mat(Color("7b526c")), true, hinge)
+	var door_c: Color = [Color("7b526c"), Color("8a6a4a"), Color("3f6b2f"), Color("1b0c15")][rng.randi() % 4]
+	var leaf := _box(Vector3(door_w, door_h - 0.02, 0.07), Vector3(door_w / 2.0, 0, 0), _mat(door_c), true, hinge)
 	var knob := MeshInstance3D.new(); var ks := SphereMesh.new(); ks.radius = 0.035; ks.height = 0.07; knob.mesh = ks
 	knob.material_override = _mat(Color("e8c766")); knob.position = Vector3(door_w * 0.38, 0.0, 0.06); leaf.add_child(knob)
-	doors.append({ "hinge": hinge, "open": false, "pos": hinge.position + Vector3(door_w / 2.0, 0, 0) })
-	spots.append({ "pos": hinge.position + Vector3(door_w / 2.0, 0, 0.9), "kind": "door", "yaw": PI })
-	if flat_roof:
-		# 옥상: 걸어 올라가 설 수 있는 평지붕(막힘) + 낮은 난간, 옆에 계단
-		_box(Vector3(size.x + 0.2, 0.16, size.z + 0.2), at + Vector3(0, size.y, 0), _mat(Color("cfc7c2")))
-		var par := _mat(wall)
-		_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, hd + 0.04), par)
-		_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, -hd - 0.04), par)
-		_box(Vector3(0.12, 0.5, size.z + 0.2), at + Vector3(-hw - 0.04, size.y + 0.16, 0), par)
-		_stairs(at + Vector3(hw + 0.55, 0, hd - 0.4), size.y + 0.16, 0.9)
-		_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, size.y - 0.06, 0), trim, false)
-		_box(Vector3(1.3, 0.12, 0.5), at + Vector3(0, 0, hd + 0.25), _mat(Color("cfc7c2")))
-		return
-	# 지붕: PrismMesh 는 XY 삼각형을 Z 로 뽑는다 → 용마루가 x 방향이 되게 y 로 90° 돌린다. 처마는 벽보다 0.35 더 나온다
-	var r := MeshInstance3D.new()
-	var pr := PrismMesh.new(); pr.size = Vector3(size.z + 0.7, size.y * 0.42, size.x + 0.7)
-	r.mesh = pr; r.material_override = _mat(Color.WHITE, _tex("faces/roof-%s" % roof), Vector3(2.0, 1.5, 1))
-	r.material_override.uv1_triplanar = true
-	r.position = at + Vector3(0, size.y + pr.size.y / 2.0, 0)
-	r.rotation.y = PI / 2.0
-	add_child(r)
-	# 천장(안에서 하늘이 안 보이게) · 굴뚝 · 문 앞 계단
-	_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, size.y - 0.06, 0), trim, false)
-	_box(Vector3(0.36, 0.7, 0.36), at + Vector3(size.x * 0.28, size.y + pr.size.y * 0.55, -0.3), _mat(Color("b56a5a")), false)
+	var door_pos := hinge.position + Vector3(door_w / 2.0, 0, 0)
+	doors.append({ "hinge": hinge, "open": false, "pos": door_pos })
+	spots.append({ "pos": door_pos + Vector3(0, 0, 0.9), "kind": "door", "yaw": PI })
+	# 현관 차양 + 계단 + 화단/우체통
+	if rng.randf() < 0.6:
+		var awn := _box(Vector3(door_w + 0.6, 0.06, 0.55), at + Vector3(0, door_h + 0.12, hd + 0.25), _mat(door_c), false)
+		awn.rotation.x = 0.18
+		parts.append(awn)
 	_box(Vector3(1.3, 0.12, 0.5), at + Vector3(0, 0, hd + 0.25), _mat(Color("cfc7c2")))
+	if rng.randf() < 0.5:
+		_box(Vector3(0.9, 0.3, 0.3), at + Vector3(-hw + 0.7, 0, hd + 0.35), _mat(Color("8a6a4a")))
+		_box(Vector3(0.8, 0.08, 0.2), at + Vector3(-hw + 0.7, 0.3, hd + 0.35), _mat(Color("5f8a3e")), false)
+		for fx in [-0.25, 0.0, 0.25]:
+			var fl := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.05; fs.height = 0.1; fl.mesh = fs
+			fl.material_override = _mat([Color("ff2d55"), Color("e8c766"), Color("ad7096")][rng.randi() % 3]); fl.position = at + Vector3(-hw + 0.7 + fx, 0.44, hd + 0.35); add_child(fl)
+	if rng.randf() < 0.5:
+		_box(Vector3(0.06, 0.8, 0.06), at + Vector3(hw - 0.4, 0, hd + 0.9), _mat(Color("4a4a52")))
+		_box(Vector3(0.22, 0.16, 0.14), at + Vector3(hw - 0.4, 0.8, hd + 0.9), _mat(Color("ad7096")), false)
+	# 지붕: 평지붕(옥상) 또는 박공(처마 돌출 + 홈통 + 굴뚝)
+	var ceiling_y := size.y
+	if flat_roof:
+		parts.append(_box(Vector3(size.x + 0.2, 0.16, size.z + 0.2), at + Vector3(0, size.y, 0), _mat(Color("cfc7c2"))))
+		parts.append(_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, hd + 0.04), trim))
+		parts.append(_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, -hd - 0.04), trim))
+		parts.append(_box(Vector3(0.12, 0.5, size.z + 0.2), at + Vector3(-hw - 0.04, size.y + 0.16, 0), trim))
+		_stairs(at + Vector3(hw + 0.55, 0, hd - 0.4), size.y + 0.16, 0.9)
+	else:
+		var r := MeshInstance3D.new()
+		var pr := PrismMesh.new(); pr.size = Vector3(size.z + 0.7, size.y * (0.42 if storeys == 1 else 0.28), size.x + 0.7)
+		var roof_tex := "faces/roof-%s" % roof if rng.randf() < 0.6 else "faces/roof-shingle"
+		r.mesh = pr; r.material_override = _mat(Color.WHITE, _tex(roof_tex), Vector3(2.0, 1.5, 1))
+		r.material_override.uv1_triplanar = true
+		r.position = at + Vector3(0, size.y + pr.size.y / 2.0, 0)
+		r.rotation.y = PI / 2.0
+		add_child(r); parts.append(r)
+		parts.append(_box(Vector3(size.x + 0.7, 0.07, 0.09), at + Vector3(0, size.y - 0.02, hd + 0.33), _mat(Color("4a4a52")), false))
+		_box(Vector3(size.x + 0.7, 0.07, 0.09), at + Vector3(0, size.y - 0.02, -hd - 0.33), _mat(Color("4a4a52")), false)
+		var chim := _box(Vector3(0.36, 0.7, 0.36), at + Vector3(size.x * (0.28 if rng.randf() < 0.5 else -0.28), size.y + pr.size.y * 0.55, -0.3), _mat(Color("b56a5a")), false)
+		var cap := _box(Vector3(0.44, 0.06, 0.44), Vector3.ZERO, _mat(Color("cfc7c2")), false)
+		cap.position = chim.position + Vector3(0, 0.35, 0)
+		parts.append(chim); parts.append(cap)
+	parts.append(_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, ceiling_y - 0.06, 0), trim, false))
+	_interior(at, size, rng)
+	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false })
+
+var houses: Array = []
+
+## 실내 가구 — 집마다 조금씩 다르게. 전부 원시 도형: 널빤지 바닥, 러그, 침대, 식탁+의자, 선반+책, 램프
+func _interior(at: Vector3, size: Vector3, rng: RandomNumberGenerator) -> void:
+	var hw := size.x / 2.0 - WALL; var hd := size.z / 2.0 - WALL
+	var floor_m := _mat(Color.WHITE, _tex("faces/wall-plank"), Vector3(size.x / 1.2, size.z / 1.2, 1)); floor_m.uv1_triplanar = true
+	_box(Vector3(hw * 2.0, 0.03, hd * 2.0), at, floor_m, false)
+	var rug_c: Color = [Color("ad7096"), Color("8fb8cc"), Color("e6d3a5")][rng.randi() % 3]
+	_box(Vector3(1.4, 0.02, 1.0), at + Vector3(0, 0.03, 0.2), _mat(rug_c), false)
+	var bx := -hw + 0.55; var bz := -hd + 0.85
+	_box(Vector3(0.9, 0.35, 1.6), at + Vector3(bx, 0, bz), _mat(Color("8a6a4a")))
+	_box(Vector3(0.84, 0.12, 1.5), at + Vector3(bx, 0.35, bz), _mat([Color("f7f4ef"), Color("dfe6ea"), Color("e6d3a5")][rng.randi() % 3]), false)
+	_box(Vector3(0.6, 0.1, 0.35), at + Vector3(bx, 0.47, bz - 0.5), _mat(Color("f7f4ef")), false)
+	var tx := hw - 0.9; var tz := -hd + 1.2
+	_box(Vector3(0.9, 0.05, 0.7), at + Vector3(tx, 0.7, tz), _mat(Color("b48a5a")))
+	for c in [Vector3(-0.35, 0, 0.2), Vector3(0.35, 0, 0.2), Vector3(-0.35, 0, -0.2), Vector3(0.35, 0, -0.2)]:
+		_box(Vector3(0.05, 0.7, 0.05), at + Vector3(tx, 0, tz) + c, _mat(Color("8a6a4a")), false)
+	for cx in [-0.75, 0.75]:
+		_box(Vector3(0.4, 0.45, 0.4), at + Vector3(tx + cx, 0, tz), _mat(Color("8a6a4a")))
+		_box(Vector3(0.4, 0.5, 0.05), at + Vector3(tx + cx, 0.45, tz - 0.18), _mat(Color("8a6a4a")), false)
+		spots.append({ "pos": at + Vector3(tx + cx, 0, tz + 0.0), "kind": "chair", "yaw": 0.0 })
+	_box(Vector3(1.2, 0.05, 0.3), at + Vector3(0.2, 1.4, -hd + 0.16), _mat(Color("8a6a4a")), false)
+	for i in 5:
+		_box(Vector3(0.06, 0.24, 0.2), at + Vector3(-0.2 + i * 0.13, 1.45, -hd + 0.16), _mat([Color("ad7096"), Color("7a9b4e"), Color("d98a2a"), Color("4a4a52"), Color("8fb8cc")][i]), false)
+	_box(Vector3(0.05, 1.3, 0.05), at + Vector3(hw - 0.35, 0, hd - 0.4), _mat(Color("4a4a52")), false)
+	_box(Vector3(0.3, 0.22, 0.3), at + Vector3(hw - 0.35, 1.3, hd - 0.4), _mat(Color("e8c766")), false)
+	var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.7; l.omni_range = 3.5
+	l.position = at + Vector3(hw - 0.35, 1.5, hd - 0.4); add_child(l)
+
+## 컷어웨이 — 플레이어가 집 안에 있으면 지붕·앞벽·천장·차양·앞창을 감춘다(운영자: 들어가면 캐릭터가 가려져 안 보였다)
+func _cutaway() -> void:
+	var p := body.global_position
+	for h in houses:
+		var inside: bool = p.x > h["min"].x and p.x < h["max"].x and p.z > h["min"].z and p.z < h["max"].z and p.y < h["max"].y
+		if inside != h["inside"]:
+			h["inside"] = inside
+			for n in h["parts"]:
+				n.visible = not inside
 
 ## 계단 — 집 오른쪽 벽을 따라 뒤로(−z) 오른다. 한 단 18cm×30cm, 폭 w. 꼭대기에서 옥상으로 이어진다
 func _stairs(at: Vector3, height: float, w: float) -> void:
@@ -223,15 +297,19 @@ func _stairs(at: Vector3, height: float, w: float) -> void:
 	var stone := _mat(Color("bfb6b0"))
 	for i in n:
 		_box(Vector3(w, rise * (i + 1), 0.3), at + Vector3(0, 0, -i * 0.3), stone)
-	_box(Vector3(0.06, 0.9, n * 0.3), at + Vector3(w / 2.0 + 0.03, 0, -(n - 1) * 0.15), _mat(Color("4a4a52")), false)  # 난간 기둥 대신 얇은 판
+	_box(Vector3(0.06, 0.9, n * 0.3), at + Vector3(w / 2.0 + 0.03, 0, -(n - 1) * 0.15), _mat(Color("4a4a52")), false)
 
-func _window(at: Vector3, yaw: float) -> void:
+func _window(at: Vector3, yaw: float, shutters := false, shutter_c := Color("7b526c")) -> Node3D:
 	var n := Node3D.new(); n.position = at; n.rotation.y = yaw; add_child(n)
 	_box(Vector3(0.74, 0.84, 0.06), Vector3(0, 0, 0), _mat(Color("efe9e2")), false, n)
 	_box(Vector3(0.6, 0.7, 0.08), Vector3(0, 0.07, 0), _mat(Color("dfe6ea")), false, n)
 	_box(Vector3(0.04, 0.7, 0.09), Vector3(0, 0.07, 0), _mat(Color("efe9e2")), false, n)
 	_box(Vector3(0.6, 0.04, 0.09), Vector3(0, 0.40, 0), _mat(Color("efe9e2")), false, n)
 	_box(Vector3(0.84, 0.06, 0.16), Vector3(0, -0.04, 0.02), _mat(Color("cfc7c2")), false, n)
+	if shutters:
+		_box(Vector3(0.22, 0.8, 0.05), Vector3(-0.5, 0.02, 0.0), _mat(shutter_c), false, n)
+		_box(Vector3(0.22, 0.8, 0.05), Vector3(0.5, 0.02, 0.0), _mat(shutter_c), false, n)
+	return n
 
 ## 나무 — 기둥 + 구 셋(잎 두 톤). 크기 k 로 서로 다르게. 줄기만 막힌다
 func _tree(at: Vector3, k: float) -> void:
@@ -461,6 +539,7 @@ func _physics_process(delta: float) -> void:
 		shake_until = -1.0; player.pose_request = ""
 	_interact_check(now)
 	_fly(delta)
+	_cutaway()
 
 var cam_kick := 0.0
 var shake_until := -1.0

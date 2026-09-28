@@ -500,6 +500,38 @@
    "tile": true
   },
   {
+   "id": "faces/wall-plank",
+   "cat": "faces",
+   "name": "wall-plank",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-brick",
+   "cat": "faces",
+   "name": "wall-brick",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-stucco",
+   "cat": "faces",
+   "name": "wall-stucco",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/roof-shingle",
+   "cat": "faces",
+   "name": "roof-shingle",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
    "id": "faces/chibi-face",
    "cat": "faces",
    "name": "chibi-face",

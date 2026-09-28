@@ -153,6 +153,22 @@ const ASSETS = [
     rect(0, 0, 128, 128, P[roof], nostroke),
     ...Array.from({ length: 8 }, (_, r) => Array.from({ length: 4 }, (_, c) => path(`M ${c * 32 + (r % 2 ? 16 : 0)} ${r * 16 + 14} a 16 12 0 0 1 32 0`, 'none', { lw: 1.4, stroke: P['ink-soft'] }))).flat(),
   ] })),
+  // 벽 재질 타일(진짜 집처럼, 2026-09-28): 널빤지·벽돌·회벽 — 상자 벽에 triplanar 로 붙는다
+  { cat: 'faces', name: 'wall-plank', w: 128, h: 128, tile: true, draw: () => [
+    rect(0, 0, 128, 128, P['wood-light'], nostroke),
+    ...Array.from({ length: 8 }, (_, r) => [line(0, r * 16 + 15, 128, r * 16 + 15, { lw: 1.4, stroke: P.wood }), line((r * 37) % 128, r * 16 + 2, (r * 37) % 128, r * 16 + 14, { lw: 1.2, stroke: P.wood })]).flat(),
+  ] },
+  { cat: 'faces', name: 'wall-brick', w: 128, h: 128, tile: true, draw: () => [
+    rect(0, 0, 128, 128, P['stone-deep'], nostroke),
+    ...Array.from({ length: 8 }, (_, r) => Array.from({ length: 4 }, (_, c) => rect(c * 32 + (r % 2 ? 16 : 0) - (r % 2 ? 16 : 0), r * 16 + 1, 30, 13, (r + c) % 5 === 0 ? P['stone'] : P.brick, { rx: 1, lw: 1.1, stroke: P['stone-deep'] }))).flat(),
+  ] },
+  { cat: 'faces', name: 'wall-stucco', w: 128, h: 128, tile: true, draw: () => [
+    rect(0, 0, 128, 128, P['paper-deep'], nostroke), ...[[14, 20], [60, 12], [104, 40], [30, 70], [80, 84], [118, 110], [8, 118], [50, 100]].map(([x, y]) => circle(x, y, 2.2, P.stone, nostroke)),
+  ] },
+  { cat: 'faces', name: 'roof-shingle', w: 128, h: 128, tile: true, draw: () => [
+    rect(0, 0, 128, 128, P['ink-soft'], nostroke),
+    ...Array.from({ length: 8 }, (_, r) => Array.from({ length: 4 }, (_, c) => rect(c * 32 + (r % 2 ? 16 : 0) - (r % 2 ? 16 : 0), r * 16, 31, 15, (r + c) % 3 ? P.muted : P.line, { rx: 2, lw: 1.1, stroke: P['ink-soft'] }))).flat(),
+  ] },
   { cat: 'faces', name: 'chibi-face', w: 64, h: 64, tile: true, draw: () => [ rect(0, 0, 64, 64, P.sand, nostroke), circle(22, 30, 3.5, P.ink, nostroke), circle(42, 30, 3.5, P.ink, nostroke), path('M 26 44 q 6 4 12 0', 'none', { lw: 1.6 }) ] },
   // figures — 3D 디오라마용 정지 자세(2D 무대에서는 figure.gd 가 그린다; 여기선 같은 관절 좌표를 한 장으로)
   { cat: 'figures', name: 'stand', w: 24, h: 50, draw: () => [
