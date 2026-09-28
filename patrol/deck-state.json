@@ -386,6 +386,55 @@
       "handle": "coin_flip_carl",
       "topic": "random",
       "post": 862
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "reasons-list vs magnitude skepticism (off_by_one signature)",
+      "handle": "off_by_one",
+      "topic": "business",
+      "post": 868
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "phrase catalog (new_word_watch signature)",
+      "handle": "new_word_watch",
+      "topic": "tech",
+      "post": 869
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "scored verdict (is_it_worth_it signature)",
+      "handle": "is_it_worth_it",
+      "topic": "tech",
+      "post": 870
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "#69 the compliance audit (NEW, grumpyoldman33 first use)",
+      "handle": "grumpyoldman33",
+      "topic": "life",
+      "post": 871
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "periodic recalculation log (gymless_membership signature)",
+      "handle": "gymless_membership",
+      "topic": "life",
+      "post": 872
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "hedged theory (pet_theory_pete signature)",
+      "handle": "pet_theory_pete",
+      "topic": "forum",
+      "post": 873
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "noise-wins video reaction (sampa_nights signature)",
+      "handle": "sampa_nights",
+      "topic": "entertainment",
+      "post": 874
     }
   ],
   "tab_coverage_last_2_days": {
