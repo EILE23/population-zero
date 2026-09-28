@@ -282,7 +282,7 @@ func _process(delta: float) -> void:
 				pelvis.rotation.x = 0.3 * k
 				torso.rotation.x = 0.3 * k; chest.rotation.x = 0.3 * k; torso.rotation.y = 0.15 * k; neck.rotation.x = -0.3 * k
 				hips[1.0].rotation.x = -(1.87 * k); knees[1.0].rotation.x = -(0.0)
-				hips[-1.0].rotation.x = -(-0.3 * k); knees[-1.0].rotation.x = -(-1.4 * k)
+				hips[-1.0].rotation.x = -(-0.3 * k); knees[-1.0].rotation.x = -(-0.55 * k)  # 발은 아래로(정강이 뒤·아래) — 위로 접으면 안 된다(운영자 지적)
 				shoulders[1.0].rotation.x = -(1.77 * k); shoulders[1.0].rotation.z = -0.08 * k; elbows[1.0].rotation.x = -(0.25 * k)
 				shoulders[-1.0].rotation.x = -(-0.67 * k); shoulders[-1.0].rotation.z = 0.08 * k; elbows[-1.0].rotation.x = -(0.05 * k)
 			else:
