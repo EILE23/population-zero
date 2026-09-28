@@ -580,7 +580,7 @@ func _daylight(delta: float) -> void:
 	_sun.light_color = Color(1.0, 0.86 + 0.14 * day, 0.72 + 0.28 * day)
 	var env := ($WorldEnvironment as WorldEnvironment).environment
 	env.ambient_light_energy = 0.22 + 0.4 * day
-	env.background_color = Color(0.875, 0.902, 0.918, 1).lerp(Color(0.12, 0.10, 0.16, 1), 1.0 - day)
+	env.background_color = Color(0.93, 0.94, 0.92, 1).lerp(Color(0.12, 0.10, 0.16, 1), 1.0 - day)
 	var night := day < 0.35
 	for l in lamps:
 		l.visible = night; l.light_energy = 1.3 if night else 0.0
@@ -598,7 +598,7 @@ func _tree(at: Vector3, k: float) -> void:
 		var s := MeshInstance3D.new()
 		var sm := SphereMesh.new(); var rr := (0.75 - i * 0.12) * k
 		sm.radius = rr; sm.height = rr * 2.0; sm.radial_segments = 14; sm.rings = 8
-		s.mesh = sm; s.material_override = _mat(Color("7a9b4e") if i % 2 == 0 else Color("5f8a3e"))
+		s.mesh = sm; s.material_override = _mat(Color("8fb06a") if i % 2 == 0 else Color("6e9a55"))
 		s.position = at + Vector3((i - 1) * 0.28 * k, (1.25 + i * 0.32) * k, (i - 1) * 0.12 * k)
 		add_child(s)
 
@@ -1068,13 +1068,31 @@ func _hud(now: float) -> void:
 	for r in residents: c[r.state] = c.get(r.state, 0) + 1
 	var hour := int(fmod(clock * 24.0 + 6.0, 24.0))
 	var leg := get_node_or_null("UI/Legend") as Label
-	if leg: leg.text = "← → ↑ ↓ move · dash · SPACE jump (hold: higher) · X punch · Z kick · C use   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
+	if leg: leg.text = "← → ↑ ↓ move · SPACE jump (hold: higher) · X punch · Z kick · C use · V view   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
+
+var view_25d := true   # V 로 전환: true = 2.5D 옆시점(낮은 카메라·직교 투영, 웹 광장 느낌) / false = 3/4 내려다보기
+var _v_down := false
 
 func _process(delta: float) -> void:
 	_hud(Time.get_ticks_msec() / 1000.0)
-	# 3/4 시점: 플레이어 뒤·위에서 내려다본다. 부드럽게 따라오고 세계 끝에서 멈춘다
-	var want := Vector3(clampf(body.position.x, -WORLD_X + 6.0, WORLD_X - 6.0), 0, clampf(body.position.z, -WORLD_Z + 6.0, WORLD_Z - 4.0)) + Vector3(0, 8.5, 7.5)
-	cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
-	if cam_kick > 0.0:
-		cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)
-	cam.look_at(Vector3(cam.position.x, 0.6, cam.position.z - 7.5), Vector3.UP)
+	if Input.is_key_pressed(KEY_V) and not _v_down:
+		view_25d = not view_25d
+	_v_down = Input.is_key_pressed(KEY_V)
+	var px := clampf(body.position.x, -WORLD_X + 6.0, WORLD_X - 6.0)
+	if view_25d:
+		# 2.5D: 앞에서 살짝 위(약 13°)에서 보는 낮은 옆시점, 직교 투영이라 원근 왜곡이 없다 — 깊이(앞뒤)는 화면 위아래로만 읽힌다
+		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		cam.size = lerpf(cam.size, 9.5, minf(1.0, delta * 4.0))
+		var want := Vector3(px, 3.4, clampf(body.position.z, -WORLD_Z + 2.0, WORLD_Z) + 11.0)
+		cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
+		if cam_kick > 0.0:
+			cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)
+		cam.look_at(Vector3(cam.position.x, 0.9, cam.position.z - 11.0), Vector3.UP)
+	else:
+		# 3/4 시점: 플레이어 뒤·위에서 내려다본다
+		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+		var want := Vector3(px, 0, clampf(body.position.z, -WORLD_Z + 6.0, WORLD_Z - 4.0)) + Vector3(0, 8.5, 7.5)
+		cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
+		if cam_kick > 0.0:
+			cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)
+		cam.look_at(Vector3(cam.position.x, 0.6, cam.position.z - 7.5), Vector3.UP)

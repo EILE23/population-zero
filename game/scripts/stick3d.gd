@@ -76,7 +76,7 @@ func _ready() -> void:
 	_bar(neck, SHOULDER_W)                               # 쇄골
 	_joint(neck, 1.0)
 	var head := MeshInstance3D.new()
-	var sm := SphereMesh.new(); sm.radius = 0.16; sm.height = 0.32; sm.radial_segments = 24; sm.rings = 12
+	var sm := SphereMesh.new(); sm.radius = 0.19; sm.height = 0.38; sm.radial_segments = 24; sm.rings = 12  # 캐주얼: 머리를 더 크게(운영자 2026-09-28)
 	head.mesh = sm; head.material_override = _head_mat
 	head.position = Vector3(0, HEAD_Y - SHOULDER_Y + 0.02, 0)
 	neck.add_child(head)
