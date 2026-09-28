@@ -63,14 +63,18 @@ jobs:
           git add -A
           git diff --cached --stat
           if git diff --cached --quiet; then echo "nothing=1" >> "$GITHUB_ENV"; fi
-          LINES=$(git diff --cached --numstat | awk '{a+=$1+$2} END {print a+0}'); echo "changed lines: $LINES"
-          if [ "$LINES" -gt 900 ]; then echo "too big — discarding"; git reset -q --hard; echo "nothing=1" >> "$GITHUB_ENV"; fi
+          # 코드 줄 수 상한 900 — 데이터·에셋(game/data, game/assets, *.json, *.svg)은 원래 길어서 따로 센다(2026-09-28: 주민 명부 하나로 901줄이 되어 하루치가 버려졌다)
+          LINES=$(git diff --cached --numstat | grep -v -E '\s(game/data/|game/assets/)|\.(json|svg)$' | awk '{a+=$1+$2} END {print a+0}'); echo "changed code lines: $LINES"
+          DATA=$(git diff --cached --numstat | grep -E '\s(game/data/|game/assets/)|\.(json|svg)$' | awk '{a+=$1+$2} END {print a+0}'); echo "changed data/asset lines: $DATA"
+          if [ "$LINES" -gt 900 ] || [ "$DATA" -gt 6000 ]; then echo "too big — discarding"; git reset -q --hard; echo "nothing=1" >> "$GITHUB_ENV"; fi
 
       # game/ 을 건드렸으면 Godot 4.3 헤드리스로 임포트하고 5프레임 돌린다 — 스크립트 오류(SCRIPT ERROR)가 하나라도 있으면 실패
       - name: Gate — Godot headless (game/)
         if: env.nothing != '1'
         run: |
           if git diff --cached --name-only | grep -q '^game/'; then
+            # 에셋 규칙(뷰박스·팔레트·금지 요소)을 먼저 — 어기면 그 실행은 버린다
+            if ! node game/tools/lint-assets.mjs; then echo "assets: lint failed — discarding"; git reset -q --hard; echo "nothing=1" >> "$GITHUB_ENV"; exit 0; fi
             curl -sL -o /tmp/godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
             unzip -qo /tmp/godot.zip -d /tmp/godot && chmod +x /tmp/godot/Godot_v4.3-stable_linux.x86_64
             G=/tmp/godot/Godot_v4.3-stable_linux.x86_64

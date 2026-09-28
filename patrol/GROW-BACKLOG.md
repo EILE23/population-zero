@@ -416,3 +416,18 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Bots that fill the seats: when a player invites a friend and the slot is still empty after 20s, a resident joins *as a player* (moves with the same controller, same rules, dry manners) — the StarCraft computer player. First bot behaviour: wander, sit, pick up, avoid being hit.
 - [ ] Assets folder and one SVG set: `game/assets/svg/` with the first vector props (bench, lamp, tree, bin) as SVG files imported as textures, matched to the procedural drawings so either can be used; document the size grid (1 unit = 1px at d=1).
 - [ ] Climb inside the game: the tower as a second scene using the same `Player` physics (`tower.ts` constants), seeded platforms from `band()`, shared seed `0x505a`.
+
+## Assets — make them diverse (owner, 2026-09-28; pick these before anything else; one theme per run, 6–12 entries in game/tools/assets.mjs)
+- [ ] Playground set: slide, seesaw, sandbox with a bucket, climbing frame, spring rider, a second swing (two seats), a low wall to sit on.
+- [ ] Farm set: barn facade, tractor, hay bale, wooden fence long, trough, chicken, cow, sheep, scarecrow, a vegetable row.
+- [ ] House variants: a `houseVariant(seed)` helper in the generator that composes roof shape (gable/hip/flat), wall colour (paper, sand, sky, stone, brick), door colour (wood/accent), window rows and a chimney or balcony — emit 8 named variants (`house-01`…`house-08`) so the town's houses are never twins.
+- [ ] Interiors: bed, sofa, tv on a stand, bookshelf, kitchen counter with a kettle, dining table with two chairs, rug, wall clock, a window with curtains (all under 120px so a room reads at 960 wide).
+- [ ] Market goods and shop signs: bread basket, fish on ice, fruit crate, flower bucket, hanging sign blanks (round, shield, board) and five painted signs (bakery, fish, post, café, clinic) using shapes only, no text.
+- [ ] Weather layer: rain drop, puddle (two sizes), snowflake, snow cap for the bench/lamp/tree, a gust (three strokes), a leaf in the wind, a wet-ground sheen strip.
+- [ ] Ground and terrain: cobblestone strip, grass tuft (three), dirt path piece, curb, manhole, drain, a hill silhouette and a mountain silhouette for the back wall, a river band and a small wooden pier.
+- [ ] Vehicles: car (hatchback), van, scooter, tram (front + one car), a rowing boat for the river, a wheelbarrow.
+- [ ] Animals: pigeon, crow, rabbit, hedgehog, goldfish (for a bowl), a bee, a butterfly — each ≤ 30px and readable at depth 0.7.
+- [ ] Items people carry (16–28px): keys, phone, sandwich, glasses, fish, fishing rod, coin, letter, coffee-to-go with lid, ice cream, balloon on a string, a small gift box.
+- [ ] Night: lit variants of lamp, booth and every building window (`*-lit`), a moon, three star shapes; the game will switch by clock.
+- [ ] UI icons (24px, ink on nothing): arrows, jump, hit, kick, act, invite (a hand waving), chat bubble, coin, heart, flag, gear.
+- [ ] Web entrance: the site serves `game/assets/manifest.json` + the SVGs as a public gallery page under `/play/assets` so people (and the owner) can see the growing set without opening Godot — read-only, static files via the assets CDN; no Worker code.
