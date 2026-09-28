@@ -258,6 +258,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		awn.rotation.x = 0.18
 		parts.append(awn)
 	_box(Vector3(1.3, 0.12, 0.5), at + Vector3(0, 0, hd + 0.25), _mat(Color("cfc7c2")))
+	_ramp(at + Vector3(0, 0, hd + 0.5), 1.3, 0.12, 0.45)   # 계단 앞 경사(보이지 않음) — 사람도 주민도 걸어 넘는다
 	if rng.randf() < 0.5:
 		_box(Vector3(0.9, 0.3, 0.3), at + Vector3(-hw + 0.7, 0, hd + 0.35), _mat(Color("8a6a4a")))
 		_box(Vector3(0.8, 0.08, 0.2), at + Vector3(-hw + 0.7, 0.3, hd + 0.35), _mat(Color("5f8a3e")), false)
@@ -360,6 +361,14 @@ func _interior(at: Vector3, size: Vector3, rng: RandomNumberGenerator) -> void:
 	for i in 5:
 		_box(Vector3(0.06, 0.24, 0.2), at + Vector3(-0.2 + i * 0.13, 1.45, -hd + 0.16), _mat([Color("ad7096"), Color("7a9b4e"), Color("d98a2a"), Color("4a4a52"), Color("8fb8cc")][i]), false)
 	_furniture("lamp", at + Vector3(hw - 0.35, 0, hd - 0.4))
+
+## 보이지 않는 경사면 — at 은 아래쪽 끝(앞), 뒤(−z)로 length 만큼 가며 height 만큼 오른다
+func _ramp(at: Vector3, w: float, height: float, length: float) -> void:
+	var ramp := StaticBody3D.new(); var rc := CollisionShape3D.new(); var rb := BoxShape3D.new()
+	rb.size = Vector3(w, 0.06, sqrt(length * length + height * height)); rc.shape = rb; ramp.add_child(rc)
+	ramp.position = at + Vector3(0, height / 2.0 - 0.02, -length / 2.0)
+	ramp.rotation.x = atan2(height, length)
+	_add(ramp)
 
 ## 컷어웨이 — 플레이어가 집 안에 있으면 지붕·앞벽·천장·차양·앞창을 감춘다(운영자: 들어가면 캐릭터가 가려져 안 보였다)
 func _cutaway() -> void:
@@ -893,21 +902,25 @@ func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 const STEP := 0.42
 ## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
 func _step_up(motion: Vector3) -> void:
-	var xf := body.global_transform
-	if not body.test_move(xf, motion):
+	step_up(body, motion)
+
+## 공용: 사람도 주민도 같은 턱 오르기(운영자 2026-09-28: 주민이 문 앞 계단에서 막혀 집에 못 들어갔다)
+static func step_up(b: CharacterBody3D, motion: Vector3) -> void:
+	if motion.length() < 0.0005: return
+	var xf := b.global_transform
+	if not b.test_move(xf, motion):
 		return
 	var up := xf.translated(Vector3(0, STEP, 0))
-	if body.test_move(up, motion):
+	if b.test_move(up, motion):
 		return
-	# 올린 자리에서 앞으로 간 뒤 아래로 내려 바닥 높이를 찾는다
 	var ahead := up.translated(motion + motion.normalized() * 0.06)
 	var probe := PhysicsTestMotionParameters3D.new()
 	probe.from = ahead; probe.motion = Vector3(0, -STEP, 0)
 	var res := PhysicsTestMotionResult3D.new()
-	if body.test_move(ahead, Vector3(0, -STEP, 0)) and PhysicsServer3D.body_test_motion(body.get_rid(), probe, res):
+	if b.test_move(ahead, Vector3(0, -STEP, 0)) and PhysicsServer3D.body_test_motion(b.get_rid(), probe, res):
 		var rise := STEP - res.get_travel().length()
 		if rise > 0.02 and rise <= STEP:
-			body.global_position += Vector3(0, rise + 0.01, 0)
+			b.global_position += Vector3(0, rise + 0.01, 0)
 
 func fwd_dir() -> Vector3:
 	return Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))

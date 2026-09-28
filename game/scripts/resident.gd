@@ -168,6 +168,8 @@ func _physics_process(delta: float) -> void:
 						fig.action = "punch"; fig.action_t = 0.0; busy_until = now + 0.28
 						town.resident_hits_player(self, dir)
 	velocity = v
+	if is_on_floor() and Vector2(v.x, v.z).length() > 0.1:
+		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
 	move_and_slide()
 
 var weather := "clear"
