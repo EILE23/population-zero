@@ -360,7 +360,7 @@ func _physics_process(delta: float) -> void:
 				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
 				jet = true; player.action = "kick"; action_until = now + 9.0
 				var f := fwd_dir()
-				v = Vector3(f.x * 9.0, (2.6 if grounded else maxf(v.y, 1.2)), f.z * 9.0)
+				v = Vector3(f.x * 9.0, (4.2 if grounded else maxf(v.y, 1.6)), f.z * 9.0)  # 땅에서 시작하면 0.4m 쯤 떠서 날아간다
 				hv = Vector3(v.x, 0, v.z)
 			else:
 				player.action = "kick"; action_until = now + 0.34
