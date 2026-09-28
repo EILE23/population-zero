@@ -44,6 +44,7 @@ var _mat: StandardMaterial3D
 var _head_mat: StandardMaterial3D
 var pelvis: Node3D
 var torso: Node3D
+var chest: Node3D
 var neck: Node3D
 var hand_r: Node3D
 var hand_l: Node3D
@@ -62,8 +63,12 @@ func _ready() -> void:
 	pelvis = _pivot(self, Vector3(0, HIP_Y, 0))
 	_bar(pelvis, HIP_W)                                  # 골반대
 	torso = _pivot(pelvis, Vector3.ZERO)
-	_bone(torso, SHOULDER_Y - HIP_Y, _mat)
-	neck = _pivot(torso, Vector3(0, SHOULDER_Y - HIP_Y, 0))
+	var half := (SHOULDER_Y - HIP_Y) / 2.0
+	_bone(torso, half, _mat)                              # 허리
+	chest = _pivot(torso, Vector3(0, half, 0))
+	_joint(chest, 0.95)
+	_bone(chest, half, _mat)                              # 가슴 — 여기서 한 번 더 굽어 척추가 곡선이 된다
+	neck = _pivot(chest, Vector3(0, half, 0))
 	_bar(neck, SHOULDER_W)                               # 쇄골
 	_joint(neck, 1.0)
 	var head := MeshInstance3D.new()
@@ -86,7 +91,7 @@ func _ready() -> void:
 		_bone(el, -FORE, _mat)
 		_joint(el, 1.05)
 		shoulders[side] = sh; elbows[side] = el
-	_pivots = [torso, neck, hips[-1.0], hips[1.0], knees[-1.0], knees[1.0], shoulders[-1.0], shoulders[1.0], elbows[-1.0], elbows[1.0]]
+	_pivots = [torso, chest, neck, hips[-1.0], hips[1.0], knees[-1.0], knees[1.0], shoulders[-1.0], shoulders[1.0], elbows[-1.0], elbows[1.0]]
 	hand_r = _pivot(elbows[1.0], Vector3(0, -FORE, 0))
 	_joint(hand_r, 1.0)
 	hand_l = _pivot(elbows[-1.0], Vector3(0, -FORE, 0))
@@ -94,7 +99,7 @@ func _ready() -> void:
 	# 꾸미기용 소켓(운영자 2026-09-28: 캐릭터 꾸미기) — 모자·안경·가방·벨트는 여기에 자식으로 붙인다. 위치는 리그 기준이라 자세와 함께 움직인다
 	socket_hat = _pivot(neck, Vector3(0, HEAD_Y - SHOULDER_Y + 0.02 + 0.15, 0))
 	socket_face = _pivot(neck, Vector3(0, HEAD_Y - SHOULDER_Y + 0.02, 0.15))
-	socket_back = _pivot(torso, Vector3(0, (SHOULDER_Y - HIP_Y) * 0.7, -R * 1.6))
+	socket_back = _pivot(chest, Vector3(0, (SHOULDER_Y - HIP_Y) * 0.2, -R * 1.6))
 	socket_belt = _pivot(pelvis, Vector3(0, 0.02, 0))
 
 func _material(c: Color) -> StandardMaterial3D:
@@ -181,9 +186,11 @@ func _process(delta: float) -> void:
 		lean = 0.18 if vertical > 0.0 else 0.08  # 도약은 살짝 앞으로
 	if seated:
 		lean = -0.05
-	torso.rotation.x = lean
+	torso.rotation.x = lean * 0.45
+	chest.rotation.x = lean * 0.55 + (0.18 * run_k if moving and not airborne else 0.0)  # 달리면 등이 둥글게 말린다
 	torso.rotation.y = -sw * 0.10 * run_k if moving else 0.0
-	neck.rotation.x = -lean * 0.6  # 고개는 앞을 본다
+	chest.rotation.y = 0.0
+	neck.rotation.x = -(torso.rotation.x + chest.rotation.x) * 0.7  # 고개는 앞을 본다
 	for side in [-1.0, 1.0]:
 		var s: float = side
 		var hip: Node3D = hips[s]; var knee: Node3D = knees[s]
@@ -266,7 +273,7 @@ func _process(delta: float) -> void:
 				pelvis.rotation.x = 0.05 * k
 				torso.rotation.x = 0.05 * k; torso.rotation.y = 0.25 * k; neck.rotation.x = -0.15 * k
 				hips[1.0].rotation.x = -(1.35 * k); knees[1.0].rotation.x = -(0.0)
-				hips[-1.0].rotation.x = -(-0.35 * k); knees[-1.0].rotation.x = -(-0.15 * k)
+				hips[-1.0].rotation.x = -(0.95 * k); knees[-1.0].rotation.x = -(-1.75 * k)  # 반대 다리는 찬 방향으로 짧게 접어 당긴다(실제 날아차기)
 				shoulders[-1.0].rotation.x = -(0.75 * k); shoulders[-1.0].rotation.z = 0.2 * k; elbows[-1.0].rotation.x = -(0.25 * k)
 				shoulders[1.0].rotation.x = -(-2.2 * k); shoulders[1.0].rotation.z = -0.35 * k; elbows[1.0].rotation.x = -(0.15 * k)
 			else:
