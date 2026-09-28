@@ -113,10 +113,12 @@ func _physics_process(delta: float) -> void:
 		var held := minf(THROW_MAX, now - throw_charge)
 		player.action_t = minf(0.44, held / 0.25 * 0.44)
 		if Input.is_action_just_released("hit") or not player.carrying:
-			var power := held / THROW_MAX
 			throw_charge = -1.0
-			action_until = now + 0.28; throw_at = now + 0.06
-			throw_power = power
+			if player.carrying:
+				action_until = now + 0.28; throw_at = now + 0.06
+				throw_power = held / THROW_MAX
+			else:
+				player.action = ""; player.action_t = 0.0   # 감는 동안 손이 비면(마지막 한입·모자 씀) 던질 게 없다 — 전엔 throw_at 이 남아 다음에 집는 것이 곧장 날아갔다
 	if action_until < now and throw_charge < 0.0:
 		if Input.is_action_just_pressed("hit"):
 			if grounded and not running:
@@ -145,10 +147,11 @@ func _physics_process(delta: float) -> void:
 				# 달리는 중 Z 는 강한 러닝 킥(넘어뜨림, 앞으로 크게 밀림); 공중은 점프킥; 서서는 보통 발차기
 				hit_kind = "runkick" if (grounded and running) else "kick"
 				push_at = now + 0.34 * 0.15; push_amount = 2.6 if hit_kind == "runkick" else (1.6 if not grounded else 1.0); push_lift = 0.0
-	if throw_at >= 0.0 and now >= throw_at and player.carrying:
+	if throw_at >= 0.0 and now >= throw_at:
 		throw_at = -1.0
-		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
-		flying.append({ "node": it, "vel": fwd_dir() * lerpf(4.0, 11.0, throw_power) + Vector3(0, lerpf(2.2, 4.2, throw_power), 0) + Vector3(body.velocity.x, 0, body.velocity.z) * 0.5, "spin": randf_range(4.0, 9.0) })
+		if player.carrying:
+			var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
+			flying.append({ "node": it, "vel": fwd_dir() * lerpf(4.0, 11.0, throw_power) + Vector3(0, lerpf(2.2, 4.2, throw_power), 0) + Vector3(body.velocity.x, 0, body.velocity.z) * 0.5, "spin": randf_range(4.0, 9.0) })
 	if throw_charge >= 0.0:
 		pass  # 감는 중 — action_t 는 위에서
 	elif action_until >= now:
@@ -183,6 +186,7 @@ func _physics_process(delta: float) -> void:
 	_animals(delta)
 	_swings(delta)
 	_wind(delta)
+	_flow(delta)
 
 ## 가구 들기(C 길게) — 두 손에 들고 옮긴다(carry 자세). 든 동안 충돌은 끈다
 func _pick_furniture(now: float) -> void:
@@ -293,10 +297,13 @@ func _interact_check(now: float) -> void:
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind == "apple" or kind == "bread":
-			# 먹기: 한 번에 한입, 세 입이면 사라진다(운영자: 상호작용은 끝까지)
-			bites += 1; player.pose_request = "eat"; use_until = now + 0.9; action_until = now + 0.9
+			# 먹기: 한 번에 한입, 한입마다 작아지고 세 입이면 사라진다(운영자: 상호작용은 끝까지). 한입 수는 물건에 붙는다 — 전엔 전역이라 사과를 바꿔 들어도 이어졌다
+			var food := player.carrying
+			var bites := int(food.get_meta("bites", 0)) + 1
+			food.set_meta("bites", bites); food.scale = Vector3.ONE * (1.0 - bites * 0.27)
+			player.pose_request = "eat"; use_until = now + 0.9; action_until = now + 0.9
 			if bites >= 3:
-				bites = 0; var core := player.carrying; player.release(self, Vector3.ZERO); core.queue_free()
+				player.release(self, Vector3.ZERO); food.queue_free()
 			return
 		if kind == "cup":
 			player.pose_request = "drink"; use_until = now + 1.2; action_until = now + 1.2
@@ -368,7 +375,7 @@ func _interact_check(now: float) -> void:
 		"swing":
 			var sw: Dictionary = best["swing"]
 			if not riding.is_empty():
-				riding = {}; player.pose_request = ""; body.velocity = Vector3(0, 1.5, 0.8)
+				dismount(); body.velocity = Vector3(0, 1.5, 0.8)
 			elif sw["rider"] is Node:
 				# 주민이 타고 있다 → 뒤에 서서 밀어 준다
 				pushing = sw; sw["pusher"] = "player"
@@ -436,16 +443,22 @@ func _interact_check(now: float) -> void:
 			set_door(best["door"], not best["door"]["open"])
 		"bench":
 			var b: Dictionary = best["bench"]
+			# 세 자리(왼·가운데·오른쪽) 중 주민이 안 앉은 칸에서 지금 선 곳에 가장 가까운 자리 — 가운데만 고집하지 않고, 주민 무릎 위에도 앉지 않는다
+			var taken: Array = []
+			for sp in spots:
+				if sp["kind"] == "bench" and sp["pos"] == b["pos"]: taken = sp.get("taken", []); break
+			var best_slot: Vector3 = b["pos"]; var bd := 99.0
+			for i in 3:
+				if i < taken.size() and taken[i] != null: continue
+				var off: float = [-0.45, 0.0, 0.45][i]
+				var slot: Vector3 = b["pos"] + Vector3(cos(b["yaw"]) * off, 0, -sin(b["yaw"]) * off)
+				var d := body.global_position.distance_to(slot)
+				if d < bd: bd = d; best_slot = slot
+			if bd == 99.0: return   # 꽉 찬 벤치
 			seat = b
 			player.seated = true
 			player.move_dir = Vector3.ZERO; player.speed = 0.0
 			body.velocity = Vector3.ZERO
-			# 세 자리(왼·가운데·오른쪽) 중 지금 선 곳에서 가장 가까운 자리에 앉는다 — 가운데만 고집하지 않는다
-			var best_slot: Vector3 = b["pos"]; var bd := 99.0
-			for off in [-0.45, 0.0, 0.45]:
-				var slot: Vector3 = b["pos"] + Vector3(cos(b["yaw"]) * off, 0, -sin(b["yaw"]) * off)
-				var d := body.global_position.distance_to(slot)
-				if d < bd: bd = d; best_slot = slot
 			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
 			tw.tween_property(body, "position", best_slot + Vector3(0, 0.05, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
 			player.face(b["yaw"])

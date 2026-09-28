@@ -120,7 +120,7 @@ func _physics_process(delta: float) -> void:
 				var step: Dictionary = route.pop_front() if not route.is_empty() else {}
 				if step.get("act", "") == "open": town.set_door(door_ref, true)
 				elif step.get("act", "") == "close": town.set_door(door_ref, false)
-				detours = 0
+				detours = 0; stuck_since = -1.0   # 경유지가 바뀌면 막힘 판정도 새로 — 다음 경유지가 더 멀면 '못 다가갔다'로 읽혀 헛우회했다
 				if route.is_empty():
 					if step.get("act", "") == "close":
 						state = "routine"; busy_until = now + randf_range(0.5, 2.0)
@@ -221,9 +221,25 @@ func on_weather(w: String) -> void:
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.0, 1.5)
 	say(["Rain.", "Of course.", "Inside, then."][uid % 3], 1.5)
 
+## 집 안에서 자리를 잃었으면(안에서 인사받거나 맞아서) 다음 자리를 고르기 전에 문으로 나온다 — 전엔 벽을 향해 곧장 걷다 막혀 포기하기를 되풀이했다
+func _exit_house() -> bool:
+	var p := global_position
+	for h in town.houses:
+		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
+		if p.x <= mn.x or p.x >= mx.x or p.z <= mn.z or p.z >= mx.z or p.y >= mx.y: continue
+		for dr in town.doors:
+			var dp: Vector3 = dr["pos"]
+			if dp.x > mn.x and dp.x < mx.x and absf(dp.z - mx.z) < 0.5:
+				door_ref = dr; spot = { "kind": "exit" }
+				route = [{ "pos": dp + Vector3(0, 0, -0.6), "act": "open" }, { "pos": dp + Vector3(0, 0, 0.8), "act": "close" }]
+				target = route[0]["pos"]; state = "walk"
+				return true
+	return false
+
 func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
+	if _exit_house(): return
 	if town.is_night() and not home_door.is_empty():
 		# 밤: 집으로 가서 침대에 눕는다(집에 침대가 있으면), 아니면 의자
 		var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door and sp["kind"] == "bed")
@@ -233,7 +249,7 @@ func _pick_spot() -> void:
 			spot = mine[0]; slot = 0; _claim(spot, 0)
 			door_ref = home_door
 			var dp: Vector3 = door_ref["pos"]
-			route = _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+			route = town.river_route(global_position, dp) + _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	var pool: Array = town.spots
 	if weather == "rain":
@@ -262,6 +278,7 @@ func _pick_spot() -> void:
 		route = (_approach(near_door) if not near_door.is_empty() else []) + [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.2), "act": "" }]
 	else:
 		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
+	route = town.river_route(global_position, spot["pos"]) + route   # 강 건너 자리면 다리로(곧장 가면 물 위 벽에 막혀 포기했다)
 	target = route[0]["pos"]
 	state = "walk"
 
@@ -330,8 +347,17 @@ func _free_slot(sp: Dictionary) -> int:
 	var n := 3 if sp["kind"] == "bench" else 1
 	var taken: Array = sp.get("taken", [])
 	for i in n:
-		if i >= taken.size() or taken[i] == null or taken[i] == self: return i
+		if i < taken.size() and taken[i] != null and taken[i] != self: continue
+		if not _player_on(sp, i): return i
 	return -1
+
+## 사람이 앉아(누워) 있는 칸은 찬 자리 — 주민이 플레이어 무릎 위에 앉거나 같은 침대에 눕던 것
+func _player_on(sp: Dictionary, i: int) -> bool:
+	if town.seat.is_empty() and not town.resting: return false
+	var off: float = [-0.45, 0.0, 0.45][i] if sp["kind"] == "bench" else 0.0
+	var at: Vector3 = sp["pos"] + Vector3(off, 0, 0)
+	var p: Vector3 = town.body.global_position
+	return Vector2(p.x - at.x, p.z - at.z).length() < 0.35
 
 func _claim(sp: Dictionary, i: int) -> void:
 	var n := 3 if sp["kind"] == "bench" else 1
@@ -353,7 +379,7 @@ func go_push(sw: Dictionary) -> void:
 	_release()   # 걸어가던(또는 방금 잡은 그네) 자리를 비운다 — 안 비우면 그 칸이 영영 '찬 자리'
 	pushing_swing = sw; sw["pusher"] = self
 	spot = { "kind": "push", "swing": sw }
-	route = [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
+	route = town.river_route(global_position, sw["at"]) + [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
 	target = route[0]["pos"]; state = "walk"
 	say(["Hold on.", "Here.", "Higher?"][uid % 3], 1.5)
 
@@ -392,6 +418,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	fig.seated = false; fig.pose_request = ""
 	if state == "busy" and spot.get("kind", "") == "bench":
 		global_position += Vector3(0, 0, 0.3)
+	spot = { "kind": "hit" }   # 자리는 위에서 비웠다 — 남겨 두면 _leave 가 벤치에서 한 번 더 물러나고, 걸어가던 집의 문을 닫으러 갔다
 	if heavy or hits >= 3:
 		hits = 0
 		state = "down"; down_until = now + 1.6

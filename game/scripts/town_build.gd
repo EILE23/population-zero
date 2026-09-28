@@ -162,7 +162,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var before := spots.size()
 	_interior(at, size, rng)
 	for k in range(before, spots.size()):
-		if spots[k]["kind"] == "chair": spots[k]["door"] = doors[doors.size() - 1]
+		if spots[k]["kind"] in ["chair", "bed", "shelf"]: spots[k]["door"] = doors[doors.size() - 1]   # 의자만 달아 줬더니 침대·선반은 문 없이 벽을 향해 곧장 걷다 포기했고, 밤엔 아무도 침대에서 못 잤다
 	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false, "shell": shell, "behind": false })
 
 ## 옮길 수 있는 가구 — 의자(앉는 자리 포함)·화분·소형 램프. 들면 충돌을 끄고, 놓으면 다시 켠다

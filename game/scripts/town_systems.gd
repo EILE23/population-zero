@@ -1,5 +1,5 @@
 class_name TownSystems
-extends TownBuild
+extends TownPlaces
 ## 매 프레임 도는 세계 시스템 — 낮밤, 날씨, 바람(나무), 동물 습성, 그네 물리, 컷어웨이, 구역 스트리밍, 던져진 물건, 범례.
 
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
@@ -95,7 +95,11 @@ func _swings(delta: float) -> void:
 			# 뛰어내리기: 접선 속도 그대로 + 위로
 			var tang: Vector3 = Vector3(0, L * sin(sw["angle"]), -L * cos(sw["angle"])) * sw["vel"]
 			body.velocity = tang * 1.15 + Vector3(0, 3.8, 0)
-			riding = {}; player.pose_request = ""; sw["vel"] *= 0.35
+			dismount(); sw["vel"] *= 0.35
+
+## 그네에서 내리기 — 어느 길로 내리든 여기로. 타는 동안 그네 각도를 따라 기울인 몸을 바로 세운다(전엔 뛰어내린 각도로 영영 기운 채 걸었다)
+func dismount() -> void:
+	riding = {}; player.pose_request = ""; player.rotation.x = 0.0
 
 func _weather(delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -263,9 +267,17 @@ func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 	if down_until > now or getup_until > now: return
 	if now - my_last_hit > 3.0: my_hits = 0
 	my_hits += 1; my_last_hit = now
-	jet = false; throw_charge = -1.0; seat = {}; player.seated = false
+	jet = false; throw_charge = -1.0; throw_at = -1.0
+	if not seat.is_empty():
+		seat = {}; body.collision_layer = 1; body.collision_mask = 1   # 앉은 채 맞으면 앉기용으로 껐던 충돌이 꺼진 채 남아 바닥을 뚫고 떨어졌다
+	player.seated = false
 	if my_hits >= 3:
 		my_hits = 0
+		if not riding.is_empty(): dismount()
+		if not pushing.is_empty():
+			if pushing["pusher"] == "player": pushing["pusher"] = null
+			pushing = {}
+		resting = false; reading = false; leaning = false; player.pose_request = ""
 		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
 		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
 		if player.carrying:
