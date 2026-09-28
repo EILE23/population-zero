@@ -22,7 +22,8 @@ var action_until := 0.0
 var jump_at := -1.0
 var jump_from_speed := 0.0
 var was_airborne := false
-var land_until := -1.0   # 착지 반동(무릎 꺾임) 끝나는 시각
+var land_until := -1.0
+var jet := false           # 제트킥 비행 중 — 착지까지 자세 유지, 조작 불가   # 착지 반동(무릎 꺾임) 끝나는 시각
 var throw_at := -1.0
 var throw_charge := -1.0   # X 를 누르기 시작한 시각(들고 있을 때) — 누르는 동안 감고, 떼면 던진다
 const THROW_MAX := 0.8
@@ -291,10 +292,12 @@ func _physics_process(delta: float) -> void:
 		idle_since = -1.0
 	if now < dash_until: running = true
 	var speed := WALK * (2.4 if now < dash_until else (1.9 if running else 1.0))
-	var can_move := not (player.action == "throw" and (action_until >= now or throw_charge >= 0.0))
+	var can_move := not (player.action == "throw" and (action_until >= now or throw_charge >= 0.0)) and not jet
 	var v := body.velocity
 	var hv := Vector3(v.x, 0, v.z)
-	if can_move and dir != Vector3.ZERO:
+	if jet:
+		pass  # 제트킥: 쏘아진 속도 그대로
+	elif can_move and dir != Vector3.ZERO:
 		# 부드럽지만 빠른 반응: 땅에선 0.12초쯤에 목표 속도, 공중에선 더 느리게
 		var accel := 26.0 if grounded else 9.0
 		hv = hv.move_toward(dir * speed, accel * delta)
@@ -319,8 +322,11 @@ func _physics_process(delta: float) -> void:
 	body.position.z = clampf(body.position.z, -9.0, 9.0)
 	# 착지: 빠르게 떨어졌으면 0.12초 무릎 반동, 달려서 착지하면 속도는 그대로 이어진다
 	if was_airborne and body.is_on_floor():
-		if player.vertical < -4.5:
-			land_until = now + 0.12
+		if player.vertical < -4.5 or jet:
+			land_until = now + (0.2 if jet else 0.12)
+		if jet:
+			jet = false; action_until = now + 0.2  # 착지 마무리(발을 거두는 뒤 절반)
+			body.velocity = Vector3(body.velocity.x * 0.35, 0, body.velocity.z * 0.35)
 	was_airborne = not body.is_on_floor()
 	var land_k := clampf((land_until - now) / 0.12, 0.0, 1.0) * 0.6 if land_until > now else 0.0
 	player.crouch = 1.0 if jump_at >= 0.0 else land_k
@@ -341,10 +347,22 @@ func _physics_process(delta: float) -> void:
 	if action_until < now and throw_charge < 0.0:
 		if Input.is_action_just_pressed("hit"):
 			player.action = "punch"; action_until = now + 0.28
-		elif Input.is_action_just_pressed("kick"):
-			player.action = "kick"; action_until = now + 0.34
+			var f := fwd_dir()
 			if not grounded:
-				body.velocity += fwd_dir() * 1.5  # 점프킥은 앞으로 조금 실린다
+				# 점프 주먹(운영자 2026-09-28): 주먹이 앞으로 실린다 — 앞으로 4.5 밀리고 살짝 떠서 내리꽂는다
+				v += f * 4.5; v.y = maxf(v.y, 1.0)
+				hv = Vector3(v.x, 0, v.z)
+			elif running:
+				v += f * 1.8; hv = Vector3(v.x, 0, v.z)  # 러닝 펀치는 짧게 밀고 나간다
+		elif Input.is_action_just_pressed("kick"):
+			if not grounded or running:
+				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
+				jet = true; player.action = "kick"; action_until = now + 9.0
+				var f := fwd_dir()
+				v = Vector3(f.x * 9.0, (2.6 if grounded else maxf(v.y, 1.2)), f.z * 9.0)
+				hv = Vector3(v.x, 0, v.z)
+			else:
+				player.action = "kick"; action_until = now + 0.34
 	if throw_at >= 0.0 and now >= throw_at and player.carrying:
 		throw_at = -1.0
 		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
@@ -354,9 +372,13 @@ func _physics_process(delta: float) -> void:
 	elif action_until >= now:
 		if player.action == "throw":
 			player.action_t = 0.45 + (1.0 - (action_until - now) / 0.28) * 0.55  # 놓는 절반만
+		elif jet:
+			player.action_t = 0.35
 		else:
 			var dur := 0.28 if player.action == "punch" else (0.34 if player.action == "kick" else 0.4)
 			player.action_t = 1.0 - (action_until - now) / dur
+			if player.action == "kick" and player.action_t < 0.35 and action_until - now > 0.3:
+				player.action_t = 0.35 + (1.0 - (action_until - now) / 0.2) * 0.65  # 제트킥 착지 마무리: 뻗은 상태에서 거둔다
 	else:
 		player.action = ""; player.action_t = 0.0
 	_interact_check(now)
