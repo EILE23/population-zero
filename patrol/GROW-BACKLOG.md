@@ -551,3 +551,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Lights out: a resident who lies down in a bed at night turns that house's interior `_furniture("lamp")` off (`light.visible = false`) and the first one up in the morning turns it on — the lamp toggle already exists for the player (`C` on the lamp); residents get the same verb on the same object, and a house reads dark-because-asleep from outside once the windows glow (3D town / "Time of day").
 
 ## Wishes from the town (the town writes these itself, one per patrol)
+- [ ] (town wish, 2026-09-28) A stubborn park goat roams along the grass verge, headbutting anyone who sprints past to knock them flat, but quietly trailing behind walking residents who carry food.
