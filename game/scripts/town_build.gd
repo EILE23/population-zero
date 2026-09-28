@@ -256,11 +256,7 @@ func _stairs(at: Vector3, height: float, w: float) -> void:
 ## 서쪽 공원 — 연못(납작한 원반, 밝은 테두리), 놀이터(미끄럼틀·시소·그네·모래밭), 나무·벤치·화단, 자갈 산책로
 func _park(at: Vector3) -> void:
 	_path(at + Vector3(0, 0, 2.8), at + Vector3(0, 0, -8), 1.6)   # 큰길 가장자리(z 0.8)에서 시작 — 겹치면 이음새가 보였다
-	# 연못: 물 원반 + 테두리
-	var pond := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 3.2; cm.bottom_radius = 3.2; cm.height = 0.04
-	pond.mesh = cm; pond.material_override = _mat(Color("8fb8cc")); pond.position = at + Vector3(-6, 0.02, -3); _add(pond)
-	var rim := MeshInstance3D.new(); var rm := CylinderMesh.new(); rm.top_radius = 3.5; rm.bottom_radius = 3.5; rm.height = 0.03
-	rim.mesh = rm; rim.material_override = _mat(Color("bfb6b0")); rim.position = at + Vector3(-6, 0.01, -3); _add(rim)   # 돌 테두리(흰색이었다)
+	water.disc(at + Vector3(-6, 0, -3), 3.2)   # 연못 — 물 애셋(강과 같은 수면·판정: 걸어 들어가면 헤엄, 운영자 지적 2026-09-28)
 	spots.append({ "pos": at + Vector3(-6, 0, 0.9), "kind": "door", "yaw": PI })  # 연못가에 서기
 	for p in [Vector3(-10, 0, 2), Vector3(-9, 0, -7), Vector3(2, 0, -8), Vector3(6, 0, 1), Vector3(9, 0, -5), Vector3(-2, 0, 5)]:
 		_tree(at + p, 1.1 + fmod(absf(p.x) * 0.23, 0.6))
@@ -357,14 +353,7 @@ func _tree(at: Vector3, k: float) -> void:
 ## x=0 에 아치 돌다리(얇은 상판 일곱 토막이 호를 그린다 — 턱은 step_up 이 넘는다, 난간은 안 막아서 뛰어들 수 있다), 다리 앞뒤 자갈길,
 ## 초원엔 나무 셋과 풀밭 자리 셋(누워 하늘 보기 `sky`), 강가 자리 둘(서서 물 보기), 뒤 울타리. 구역이 아니라 항상 켜져 있다(강은 전체 폭)
 func _river() -> void:
-	var span := WORLD_X * 2.0 + 20.0
-	_box(Vector3(span, 0.04, RIVER_HW * 2.0), Vector3(0, 0, RIVER_Z), _mat(Color("8fb8cc")), false)
-	for zs in [-1.0, 1.0]:
-		_box(Vector3(span, 0.07, 0.3), Vector3(0, 0, RIVER_Z + zs * (RIVER_HW + 0.1)), _mat(Color("bfb6b0")), false)   # 돌 둑
-	var rr := RandomNumberGenerator.new(); rr.seed = 11
-	var foam := _mat(Color("c9dde6"))
-	for i in 40:
-		ripples.append(_box(Vector3(rr.randf_range(0.3, 0.7), 0.01, 0.05), Vector3(rr.randf_range(-WORLD_X - 6.0, WORLD_X + 6.0), 0.045, RIVER_Z + rr.randf_range(-1.1, 1.1)), foam, false))
+	water.band(Vector3(0, 0, RIVER_Z), WORLD_X * 2.0 + 20.0, RIVER_HW * 2.0, 0.35)   # 물 애셋: 수면·둑·물결·판정
 	var stone := _mat(Color("bfb6b0")); var dark := _mat(Color("8a7f86"))
 	var n := 7; var bspan := RIVER_HW * 2.0 + 1.4; var seg := bspan / n
 	for i in n:

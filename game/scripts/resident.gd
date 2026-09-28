@@ -197,9 +197,10 @@ func _physics_process(delta: float) -> void:
 	var wet: bool = town.in_water(global_position)
 	if wet and (state == "walk" or state == "chase"):
 		v.x *= 0.55; v.z *= 0.55
-		if fig.pose_request != "swim": fig.pose_request = "swim"; fig.position.y = -0.1
+		if fig.pose_request != "swim": fig.pose_request = "swim"; fig.position.y = -0.1; town.water.splash(global_position, true)
+		town.water.wake(self, true, delta)
 	elif fig.pose_request == "swim":
-		fig.pose_request = ""; fig.position.y = 0.0
+		fig.pose_request = ""; fig.position.y = 0.0; town.water.drip(self)
 	if state == "walk" or state == "chase":
 		for o in town.residents:
 			if o == self: continue

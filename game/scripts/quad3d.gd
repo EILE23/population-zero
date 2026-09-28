@@ -13,6 +13,9 @@ var state := "idle"
 var speed := 0.0            # m/s — walk/run 위상에 쓴다
 var look_at_pos := Vector3.ZERO
 var look := false
+var sulk := false            # 맞은 뒤: 꼬리 내림(town 이 켜고 끈다)
+var _bang: Label3D
+var _bang_until := -1.0
 var _t := 0.0
 var _phase := 0.0
 var _act_t := 0.0
@@ -117,10 +120,15 @@ func _build() -> void:
 	tail2 = Node3D.new(); tail2.position = Vector3(0, 0, -tl * 0.5); tail1.add_child(tail2)
 	_capsule(tail2, thick * (0.42 if bushy else 0.18), tl * 0.5, Vector3(0, 0, -tl * 0.25), Vector3(PI / 2.0, 0, 0), color if not bushy else (dark if kind == "squirrel" else Color("f7f4ef")))
 	tail1.rotation.x = -0.9 if kind == "dog" else (-1.3 if kind == "squirrel" else -0.2)
+	# 아플 때 머리 위 "!"
+	_bang = Label3D.new(); _bang.text = "!"; _bang.font_size = 64; _bang.pixel_size = 0.003; _bang.modulate = Color("ff2d55")
+	_bang.outline_size = 10; _bang.outline_modulate = Color("f7f4ef"); _bang.billboard = BaseMaterial3D.BILLBOARD_ENABLED; _bang.no_depth_test = true
+	_bang.position = Vector3(0, H + head_r * 2.0 + 0.3, L * 0.3); _bang.visible = false; add_child(_bang)
 
 ## 잠깐의 동작 시작(stretch·bow·roll·groom·yawn·arch)
 func act(name: String) -> void:
 	state = name; _act_t = 0.0
+	if name == "hurt": _bang.visible = true; _bang_until = _t + 0.8
 
 func _process(delta: float) -> void:
 	_t += delta; _act_t += delta
@@ -128,6 +136,7 @@ func _process(delta: float) -> void:
 	if _blink <= 0.0:
 		_blink = randf_range(2.0, 5.0)
 	var blink_k := 1.0 if _blink > 0.12 else 0.15   # 0.12초 눈 감음
+	if _bang.visible and _t > _bang_until: _bang.visible = false
 	for e in eyes: e.scale = Vector3(1.0, blink_k, 1.0)
 	var moving := speed > 0.05 and (state == "walk" or state == "run")
 	if moving:
@@ -180,6 +189,9 @@ func _process(delta: float) -> void:
 				target_hip = 0.0; target_knee = 0.1
 			"bite":
 				target_hip = (-0.6) if front else 0.4; target_knee = 0.4
+			"hurt":
+				# 아픔: 네 다리 굽혀 몸을 낮춘다
+				target_hip = 0.25 if front else -0.2; target_knee = 0.5
 		hip.rotation.x = lerp_angle(hip.rotation.x, target_hip, delta * 14.0)
 		knee.rotation.x = lerp_angle(knee.rotation.x, target_knee, delta * 14.0)
 	# 몸통 자세(앉기·엎드리기·기지개·놀자·구르기·등 세우기)
@@ -211,6 +223,10 @@ func _process(delta: float) -> void:
 			if _act_t > 0.55: state = "idle"
 		"yawn":
 			if _act_t > 1.0: state = "idle"
+		"hurt":
+			# 움찔: 몸이 내려앉으며 엉덩이가 뒤로 빠지고(0.5초) 고개를 든다
+			var k := sin(minf(_act_t, 0.5) / 0.5 * PI); body_y = H - 0.25 * H * k; body_pitch = -0.3 * k
+			if _act_t > 0.5: state = "idle"
 	if not moving and state != "run" and state != "walk":
 		rump.position.y = lerpf(rump.position.y, body_y + sin(_t * 2.0) * 0.006, delta * 8.0)   # 숨
 		if state != "arch": rump.rotation.x = lerpf(rump.rotation.x, body_pitch, delta * 8.0)
@@ -222,6 +238,7 @@ func _process(delta: float) -> void:
 		hy = clampf(atan2(to.x, to.z), -1.0, 1.0); hp = clampf(-atan2(to.y, Vector2(to.x, to.z).length()), -0.6, 0.5)
 	if state == "groom": hy = 1.4; hp = 0.7
 	elif state == "yawn": hp = -0.6
+	elif state == "hurt": hp = -0.7
 	elif state == "stalk": hp = 0.35
 	elif state == "bite": hp = 0.5 * sin(minf(_act_t, 0.5) / 0.5 * PI) - 0.3
 	elif moving: hp = sin(_phase) * 0.08
@@ -231,12 +248,14 @@ func _process(delta: float) -> void:
 	# 귀: 가끔 움찔, 플레이어 보면 세움
 	for i in ears.size():
 		var flick := 0.3 if fmod(_t * 0.7 + i, 4.0) < 0.15 else 0.0
-		(ears[i] as Node3D).rotation.x = lerpf((ears[i] as Node3D).rotation.x, -0.25 * (1.0 if look else 0.0) + flick, delta * 10.0)
+		(ears[i] as Node3D).rotation.x = lerpf((ears[i] as Node3D).rotation.x, -0.25 * (1.0 if look else 0.0) + flick + (0.8 if (state == "hurt" or sulk) else 0.0), delta * 10.0)   # 아프면·삐치면 귀를 눕힌다
 	# 꼬리: 개는 흔들고(기쁘면 빨리), 고양이는 느리게 휘고, 다람쥐는 세워서 떨림
 	match kind:
 		"dog":
 			var wag := 8.0 if (look or state == "bow") else 3.0
+			if sulk or state == "hurt": wag = 0.0
 			tail1.rotation.y = sin(_t * wag) * (0.7 if wag > 5.0 else 0.35); tail2.rotation.y = sin(_t * wag - 0.6) * 0.5
+			tail1.rotation.x = lerpf(tail1.rotation.x, 0.5 if (sulk or state == "hurt") else -0.9, delta * 6.0)   # 꼬리를 다리 사이로
 		"cat", "marten", "fox":
 			# 여우가 다람쥐 가지(꼬리 세움)로 떨어지던 버그 — 고양이처럼 낮게 휜다
 			tail1.rotation.y = sin(_t * 1.3) * 0.4; tail2.rotation.y = sin(_t * 1.3 - 1.0) * 0.6; tail1.rotation.x = (-0.2 if kind != "fox" else 0.1) + (0.8 if state == "arch" else 0.0)

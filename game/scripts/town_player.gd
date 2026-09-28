@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownSystems
+extends TownCombat
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -43,8 +43,10 @@ func _physics_process(delta: float) -> void:
 		swimming = wet; player.position.y = -0.1 if wet else 0.0   # 수면(0.04) 위로 등·팔이 보이게 — -0.22 는 머리만 떠 있었다
 		if wet:
 			player.pose_request = "swim"; jet = false; running = false; dash_until = -1.0; reading = false; leaning = false; resting = false
-		elif player.pose_request == "swim":
-			player.pose_request = ""
+			water.splash(body.global_position, true)   # 첨벙
+		else:
+			if player.pose_request == "swim": player.pose_request = ""
+			water.drip(body)   # 나오면 물이 뚝뚝
 	for a in ["move_left", "move_right", "move_up", "move_down"]:
 		if Input.is_action_just_pressed(a):
 			if a == last_tap and now - last_tap_at < 0.25 and grounded:
@@ -73,6 +75,7 @@ func _physics_process(delta: float) -> void:
 		hv = hv.move_toward(Vector3.ZERO, (30.0 if grounded else 3.0) * delta)
 		player.move_dir = Vector3.ZERO; player.speed = 0.0
 	v.x = hv.x; v.z = hv.z
+	if swimming: water.wake(body, hv.length() > 0.2, delta)   # 헤엄 자국
 	if grounded and hv.length() > 0.1:
 		_step_up(hv * delta)
 	if not grounded:
@@ -210,38 +213,6 @@ func _pick_furniture(now: float) -> void:
 	carrying_big = best; player.pose_request = "carry"
 	player.action = "grab"; action_until = now + 0.4
 
-## 앞 부채꼴(70°) 안, 사거리 안의 주민을 맞힌다. 무거운 한 방(제트킥·점프 주먹·훅)은 바로 넘어진다
-func _strike(kind: String) -> void:
-	var reach := 1.3 if kind == "jet" else (1.15 if kind == "kick" or kind == "runkick" else 0.95)
-	var heavy := kind == "jet" or kind == "air" or kind == "runkick" or (kind == "punch" and player.punch_kind == "hook")
-	var f := fwd_dir(); var p := body.global_position
-	var now := Time.get_ticks_msec() / 1000.0
-	for c in crowns:
-		var ct: Vector3 = c["at"] - p; ct.y = 0.0
-		if ct.length() < reach + 0.4 and f.dot(ct.normalized()) > 0.34:
-			c["hit_t"] = 1.2   # 잎이 크게 출렁
-			if not (c["fruit"] as Array).is_empty():
-				var fr: Node3D = (c["fruit"] as Array).pop_back(); var fp := fr.global_position; fr.queue_free()
-				var apple := make_item("apple", fp)
-				flying.append({ "node": apple, "vel": f * 1.2 + Vector3(0, 0.4, 0), "spin": 3.0 })
-			cam_kick = maxf(cam_kick, 0.02)
-	for a in animals:
-		if not a.has("quad"): continue
-		var an: Node3D = a["node"]
-		var ta: Vector3 = an.global_position - p; ta.y = 0.0
-		if ta.length() < reach and f.dot(ta.normalized()) > 0.34:
-			animal_hit(a, f); cam_kick = 0.03
-	for r in residents:
-		if r.state == "down" or (kind == "jet" and float(r.get_meta("jet_hit_at", -9.0)) > now - 1.0):
-			continue
-		var to: Vector3 = r.global_position - p; to.y = 0.0
-		var d := to.length()
-		if d < reach and d > 0.05 and f.dot(to.normalized()) > 0.34:
-			r.hit(f, body, heavy)
-			if kind == "jet": r.set_meta("jet_hit_at", now)
-			cam_kick = 0.06 if heavy else 0.03
-
-
 ## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
 func _step_up(motion: Vector3) -> void:
 	step_up(body, motion)
@@ -263,9 +234,6 @@ static func step_up(b: CharacterBody3D, motion: Vector3) -> void:
 		var rise := STEP - res.get_travel().length()
 		if rise > 0.02 and rise <= STEP:
 			b.global_position += Vector3(0, rise + 0.01, 0)
-
-func fwd_dir() -> Vector3:
-	return Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
 
 ## C — 들고 있으면 앞에 내려놓기; 아니면 가장 가까운 것: 물건(0.8m) · 문(1.3m) · 벤치(1.0m)
 func _interact_check(now: float) -> void:
@@ -322,12 +290,13 @@ func _interact_check(now: float) -> void:
 	for it in items:
 		var d := p.distance_to(it.global_position)
 		if d < 0.8 and d < best_d: best = { "kind": "item", "node": it }; best_d = d
+	var item_near := not best.is_empty()   # 손 닿는 곳에 물건이 있으면 줍기가 먼저 — 풀밭·벤치·침대 위 물건을 두고 눕지 않는다(운영자 2026-09-28)
 	for dr in doors:
 		var d := p.distance_to(dr["pos"])
 		if d < 1.3 and d < best_d: best = { "kind": "door", "door": dr }; best_d = d
 	for b in benches:
 		var d := p.distance_to(b["pos"])
-		if d < 1.0 and d < best_d: best = { "kind": "bench", "bench": b }; best_d = d
+		if d < 1.0 and d < best_d and not item_near: best = { "kind": "bench", "bench": b }; best_d = d
 	for sp in spots:
 		if sp["kind"] != "tree" and sp["kind"] != "lamp": continue
 		var d2: float = p.distance_to(sp["pos"])
@@ -354,7 +323,7 @@ func _interact_check(now: float) -> void:
 		var d6: float = p.distance_to(sw["at"])
 		if d6 < 1.2 and d6 < best_d: best = { "kind": "swing", "swing": sw }; best_d = d6
 	for sp in spots:
-		if not (sp["kind"] in ["bed", "shelf", "grass"]): continue
+		if not (sp["kind"] in ["bed", "shelf", "grass"]) or item_near: continue
 		var d5: float = Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()
 		if d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
 	if best.is_empty():
@@ -390,6 +359,11 @@ func _interact_check(now: float) -> void:
 		"dog":
 			# 쓰다듬기: 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세)
 			var a: Dictionary = best["animal"]
+			if a.get("sulk_until", 0.0) > a["t"]:
+				# 맞은 걸 기억한다 — 손을 내밀면 한 발 물러난다
+				a["flee_until"] = a["t"] + 1.0; a["wander"] = (a["node"] as Node3D).global_position + ((a["node"] as Node3D).global_position - p).normalized() * 2.0
+				player.action = "grab"; action_until = now + 0.6
+				return
 			a["pet_until"] = a["t"] + 2.5; a["follow_until"] = a["t"] + 6.0
 			player.face(atan2((a["node"] as Node3D).global_position.x - p.x, (a["node"] as Node3D).global_position.z - p.z))
 			player.action = "grab"; action_until = now + 1.2

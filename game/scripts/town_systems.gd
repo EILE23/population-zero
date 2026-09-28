@@ -194,6 +194,7 @@ func _animals(delta: float) -> void:
 						if a.get("wander_until", 0.0) < a["t"]:
 							a["wander_until"] = a["t"] + randf_range(3.0, 7.0); a["wander"] = a["home"] + Vector3(randf_range(-6, 6), 0, randf_range(-4, 4))
 						want = a.get("wander", a["home"]); spd = 1.3
+				if a.get("freeze_until", 0.0) > a["t"]: spd = 0.0
 				var to := want - n.global_position; to.y = 0.0
 				if to.length() > 0.4 and spd > 0.0:
 					n.global_position += to.normalized() * spd * delta
@@ -209,12 +210,14 @@ func _animals(delta: float) -> void:
 				var q: Quad3D = a["quad"]
 				var petted: bool = a.get("pet_until", 0.0) > a["t"]
 				var shy: bool = a["kind"] != "dog"
+				q.sulk = a.get("sulk_until", 0.0) > a["t"]   # 맞은 뒤 한동안 꼬리를 내리고 따라오지 않는다
+				var frozen: bool = a.get("freeze_until", 0.0) > a["t"]   # 아파하는 0.5초는 제자리
 				q.look = d < 4.0; q.look_at_pos = p + Vector3(0, 0.9, 0)
 				var want: Vector3 = a.get("wander", a["home"])
 				var spd := 0.0
 				if petted:
 					q.state = "sit"; q.look = true
-				elif a["kind"] == "dog" and d < 3.0 and a.get("follow_until", 0.0) < a["t"]:
+				elif a["kind"] == "dog" and d < 3.0 and a.get("follow_until", 0.0) < a["t"] and not q.sulk:
 					a["follow_until"] = a["t"] + 3.0
 				if not petted:
 					if a["kind"] == "dog" and a.get("follow_until", 0.0) > a["t"]:
@@ -235,6 +238,7 @@ func _animals(delta: float) -> void:
 								a["idle_act"] = acts[randi() % acts.size()]; a["wander"] = n.global_position
 								q.act(a["idle_act"])
 						want = a.get("wander", a["home"]); spd = 1.4
+					if frozen: spd = 0.0
 					var to := want - n.global_position; to.y = 0.0
 					if to.length() > 0.3 and spd > 0.0:
 						n.global_position += to.normalized() * spd * delta
@@ -265,30 +269,6 @@ func _animals(delta: float) -> void:
 						if step.length() > 0.0001: n.look_at(n.global_position + step, Vector3.UP, true)
 				bd.flying = a["fly"] > 0.0
 				bd.speed = 0.0 if bd.flying else Vector2(n.global_position.x - before.x, n.global_position.z - before.z).length() / maxf(delta, 0.001)
-
-## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
-func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
-	var now := Time.get_ticks_msec() / 1000.0
-	if down_until > now or getup_until > now: return
-	if now - my_last_hit > 3.0: my_hits = 0
-	my_hits += 1; my_last_hit = now
-	jet = false; throw_charge = -1.0; seat = {}; player.seated = false
-	if my_hits >= 3:
-		my_hits = 0
-		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
-		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
-		if player.carrying:
-			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); items.append(it)
-	else:
-		player.action = "flinch"; action_until = now + 0.3
-		body.velocity = dir * 1.6
-	cam_kick = 0.05
-
-## 사람이 동물을 때리면(타격 판정에서 호출) — 여우는 화난다, 나머지는 달아난다
-func animal_hit(a: Dictionary, dir: Vector3) -> void:
-	if a["kind"] == "fox": a["angry_until"] = a["t"] + 6.0
-	else: a["flee_until"] = a["t"] + 2.0
-	(a["node"] as Node3D).global_position += dir * 0.4
 
 ## 낮밤 — 해가 한 바퀴 돌고(12분), 저녁엔 빛이 붉어지며 가로등·실내 램프가 켜진다
 func _daylight(delta: float) -> void:
@@ -328,14 +308,12 @@ func _fly(delta: float) -> void:
 			flying.erase(f)
 			items.append(n)
 
-## 강 — 물결 조각이 +x 로 흐르고, 물에 떨어진 물건은 떠서 같이 흘러가다 세계 끝에서 사라진다(강가에서 건지지 않으면 잃는다)
+## 물에 떨어진 물건은 떠서 강물과 흘러가다 세계 끝에서 사라진다(강가에서 건지지 않으면 잃는다); 연못에선 제자리에 떠 있다
 func _water(delta: float) -> void:
-	for n in ripples:
-		n.position.x += 0.35 * delta
-		if n.position.x > WORLD_X + 8.0: n.position.x = -WORLD_X - 8.0
 	for it in items.duplicate():
 		if in_water(it.global_position):
-			it.global_position += Vector3(0.35 * delta, 0, 0)
+			var river: bool = absf(it.global_position.z - RIVER_Z) < RIVER_HW
+			if river: it.global_position += Vector3(0.35 * delta, 0, 0)
 			it.global_position.y = 0.06 + sin(wind_t * 3.0 + it.global_position.x) * 0.01
 			if it.global_position.x > WORLD_X + 6.0: items.erase(it); it.queue_free()
 
@@ -350,3 +328,21 @@ func _hud(now: float) -> void:
 	var hour := int(fmod(clock * 24.0 + 6.0, 24.0))
 	var leg := get_node_or_null("UI/Legend") as Label
 	if leg: leg.text = "← → ↑ ↓ move · SPACE jump (hold: higher) · X punch · Z kick · C use · V view   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
+
+## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
+func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if down_until > now or getup_until > now: return
+	if now - my_last_hit > 3.0: my_hits = 0
+	my_hits += 1; my_last_hit = now
+	jet = false; throw_charge = -1.0; seat = {}; player.seated = false
+	if my_hits >= 3:
+		my_hits = 0
+		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
+		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
+		if player.carrying:
+			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); items.append(it)
+	else:
+		player.action = "flinch"; action_until = now + 0.3
+		body.velocity = dir * 1.6
+	cam_kick = 0.05

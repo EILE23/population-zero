@@ -206,22 +206,24 @@ var wind_t := 0.0
 
 var petting_until := -1.0
 
-var ripples: Array[Node3D] = []   # 강 물결 조각 — _water 가 +x 로 흘린다
+var water: Water3D                # 물 애셋(강·연못의 수면·가장자리·물결·판정·물보라) — _ready 가 만들고 _park/_river 가 물을 붓는다
 
 var swimming := false            # 내가 물에 들어가 있는 동안(헤엄 자세, 느리고, 점프·타격 없음)
 
-## 물에 있나 — 강 띠 안이고 다리 위가 아니고 낮으면. 사람도 주민도 물건도 같은 규칙
+## 물에 있나 — 물 애셋이 답하고, 다리 위만 뺀다. 사람도 주민도 물건도 같은 규칙
 func in_water(p: Vector3) -> bool:
-	return absf(p.z - RIVER_Z) < RIVER_HW - 0.08 and absf(p.x) > BRIDGE_HW + 0.2 and p.y < 0.3
+	if water == null or not water.contains(p): return false
+	return not (absf(p.z - RIVER_Z) < RIVER_HW + 0.8 and absf(p.x) <= BRIDGE_HW + 0.2)   # 다리
 
 ## 강 건너로 가는 경로면 다리 양끝을 앞에 끼운다 — 주민은 옷 입고 헤엄치지 않는다(빠지면 헤엄치지만)
 func via_bridge(from: Vector3, route: Array) -> Array:
 	if route.is_empty(): return route
 	var dest: Vector3 = route[0]["pos"]
-	if (from.z < RIVER_Z) == (dest.z < RIVER_Z): return route
-	var north := { "pos": Vector3(0, 0, RIVER_Z - RIVER_HW - 1.0), "act": "" }
-	var south := { "pos": Vector3(0, 0, RIVER_Z + RIVER_HW + 1.0), "act": "" }
-	return ([north, south] if from.z < RIVER_Z else [south, north]) + route
+	if (from.z < RIVER_Z) != (dest.z < RIVER_Z):
+		var north := { "pos": Vector3(0, 0, RIVER_Z - RIVER_HW - 1.0), "act": "" }
+		var south := { "pos": Vector3(0, 0, RIVER_Z + RIVER_HW + 1.0), "act": "" }
+		route = ([north, south] if from.z < RIVER_Z else [south, north]) + route
+	return water.detour(from, route[0]["pos"]) + route   # 연못을 가로지르면 옆으로 돈다
 
 var pet_dog: Dictionary = {}
 

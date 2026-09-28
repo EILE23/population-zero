@@ -6,6 +6,7 @@ func _ready() -> void:
 	_light()
 	_ground()
 	_solid_floor()
+	water = Water3D.new(); add_child(water)   # 물 애셋 — 공원(연못)과 강이 여기에 붓는다
 	_path(Vector3(-WORLD_X, 0, 2), Vector3(WORLD_X, 0, 2), 2.4)  # 큰길: 공원 ↔ 마을 ↔ 시장
 	_district("park", Vector3(-31, 0, -2), _park)
 	_district("market", Vector3(31, 0, -2), _market)
