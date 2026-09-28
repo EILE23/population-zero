@@ -214,16 +214,16 @@ func _process(delta: float) -> void:
 			hip.rotation.x = -(a)
 			knee.rotation.x = -(-(1.4 if a < 0.0 else 0.2) * run_k)
 			# 팔: 다리와 반대 위상(2D: 1.05), 팔꿈치는 2D 의 1.7 에 가깝게 접혀 손이 가슴 앞을 오간다
-			sh.rotation.x = -(-s * sw * 1.05 * run_k)
-			sh.rotation.z = -s * 0.10
-			el.rotation.x = -(1.5 * run_k)
+			sh.rotation.x = -(-s * sw * 0.8 * run_k)
+			sh.rotation.z = -s * 0.04
+			el.rotation.x = -(0.35 + 0.75 * run_k)  # 걷기 0.9 근처, 달리면 더 접힘
 		else:
 			# 서 있음: 팔은 늘어뜨리고 숨 쉬듯 미세하게
 			hip.rotation.x = -(0.0)
 			knee.rotation.x = -(-0.05)
-			sh.rotation.x = -(sin(_t * 2.0 + s) * 0.03)
-			sh.rotation.z = -s * 0.10
-			el.rotation.x = -(0.12)
+			sh.rotation.x = -(sin(_t * 2.0 + s) * 0.03 - 0.08)  # 살짝 앞에 늘어뜨림
+			sh.rotation.z = -s * 0.04                              # 몸에 붙임(평탄)
+			el.rotation.x = -(0.35)                                # 팔꿈치 살짝 굽힘
 	# 들고 있으면 오른팔은 앞으로 반쯤 들어 물건을 보인다(걸음 스윙 대신)
 	if carrying and not airborne:
 		shoulders[1.0].rotation.x = -(0.55)
