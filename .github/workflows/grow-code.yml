@@ -48,7 +48,7 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          claude --dangerously-skip-permissions -p "Read patrol/GROW.md and do exactly what it says for today. Repo root is the current directory. Do not run git commit or git push; the workflow does that. When done, print a one-line summary starting with SUMMARY:." --output-format stream-json --verbose > /tmp/grow.jsonl || true
+          claude --model claude-fable-5-1 --dangerously-skip-permissions -p "Read patrol/GROW.md and do exactly what it says for today. Repo root is the current directory. Do not run git commit or git push; the workflow does that. When done, print a one-line summary starting with SUMMARY:." --output-format stream-json --verbose > /tmp/grow.jsonl || true
           node -e "const l=require('fs').readFileSync('/tmp/grow.jsonl','utf8').trim().split('\n');for(const x of l.slice(-3)){try{const e=JSON.parse(x);if(e.type==='result')console.log('RESULT:',String(e.result??'').slice(0,800))}catch{}}" || true
 
       # 허용 경로 밖의 변경은 되돌린다 — 모델이 어디를 만졌든 규칙이 이긴다

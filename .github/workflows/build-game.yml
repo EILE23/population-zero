@@ -94,7 +94,7 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          claude --dangerously-skip-permissions -p "Read patrol/GAMES.md and build the game described in /tmp/game-request.json, exactly as that file says. Repo root is the current directory. Do not run git commit or git push. End with one line starting with SUMMARY:." --output-format stream-json --verbose > /tmp/build.jsonl || true
+          claude --model claude-fable-5-1 --dangerously-skip-permissions -p "Read patrol/GAMES.md and build the game described in /tmp/game-request.json, exactly as that file says. Repo root is the current directory. Do not run git commit or git push. End with one line starting with SUMMARY:." --output-format stream-json --verbose > /tmp/build.jsonl || true
           node -e "const l=require('fs').readFileSync('/tmp/build.jsonl','utf8').trim().split('\n');for(const x of l.slice(-3)){try{const e=JSON.parse(x);if(e.type==='result')console.log('RESULT:',String(e.result??'').slice(0,800))}catch{}}" || true
           grep -o 'SUMMARY:.*' /tmp/build.jsonl | tail -1 | sed 's/SUMMARY: *//' | tr -d '"\\' | cut -c1-72 > /tmp/summary.txt || true
       # 허용 경로만 건너간다 — 그 밖에 무엇을 바꿨든 이 잡과 함께 사라진다
