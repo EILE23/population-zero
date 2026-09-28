@@ -148,7 +148,7 @@ func _animals(delta: float) -> void:
 		match a["kind"]:
 			"duck":
 				# 연못을 빙빙 헤엄치고, 사람이 2m 안이면 날개 치며 반대쪽으로 도망친다. 사과가 근처에 떨어져 있으면 먹으러 간다
-				var bd: Bird3D = a["bird"]
+				var bd = a["bird"]   # Bird3D 또는 Animal3D — 같은 속성
 				var ph: float = a["phase"] + a["t"] * 0.35
 				var c: Vector3 = a["center"]
 				var want := c + Vector3(cos(ph) * 2.0, 0, sin(ph) * 2.0)
@@ -168,7 +168,7 @@ func _animals(delta: float) -> void:
 				bd.flying = scared; bd.swimming = not scared and n.global_position.distance_to(c) < 3.0; bd.feed = a.get("fed", 0.0) > a["t"]
 			"fox":
 				# 육식동물(운영자 2026-09-28): 새(비둘기·오리)를 살금살금 다가가 덮친다 — 새는 날아 도망. 사람이 때리면 6초간 쫓아와 문다
-				var q: Quad3D = a["quad"]
+				var q = a["quad"]   # Quad3D 또는 Animal3D — 같은 상태 API
 				q.look = d < 5.0; q.look_at_pos = p + Vector3(0, 0.9, 0)
 				var angry: bool = a.get("angry_until", 0.0) > a["t"]
 				var want: Vector3 = a.get("wander", a["home"]); var spd := 0.0
@@ -204,10 +204,10 @@ func _animals(delta: float) -> void:
 				else:
 					q.speed = 0.0
 					if q.state in ["walk", "run", "stalk"]: q.state = "idle"
-			"dog", "cat", "marten", "squirrel":
+			"dog", "cat", "marten", "squirrel", "wolf", "deer", "corgi":
 				# 네발 동물 습성: 집 주변을 어슬렁(걷기/뛰기), 가끔 앉기·엎드리기·기지개·(개)놀자·구르기·(고양이)그루밍·등 세우기·하품,
 				# 사람이 가까우면 쳐다보고: 개는 3초 따라오고, 고양이·담비는 1.4m 안이면 달아난다. 쓰다듬으면 앉아서 꼬리
-				var q: Quad3D = a["quad"]
+				var q = a["quad"]   # Quad3D 또는 Animal3D — 같은 상태 API
 				var petted: bool = a.get("pet_until", 0.0) > a["t"]
 				var shy: bool = a["kind"] != "dog"
 				q.sulk = a.get("sulk_until", 0.0) > a["t"]   # 맞은 뒤 한동안 꼬리를 내리고 따라오지 않는다
@@ -250,7 +250,7 @@ func _animals(delta: float) -> void:
 						if q.state in ["walk", "run"]: q.state = "idle"
 			_:
 				# 비둘기: 바닥을 쫀다(리그가 스스로), 1.6m 안이면 날아올라 3m 옆으로 갔다 내려앉는다, 가끔 종종걸음
-				var bd: Bird3D = a["bird"]
+				var bd = a["bird"]   # Bird3D 또는 Animal3D — 같은 속성
 				if d < 1.6 and a["fly"] <= 0.0:
 					a["fly"] = 1.6; a["land"] = a["home"] + Vector3(randf_range(-3, 3), 0, randf_range(-2, 2))
 				var before := n.global_position

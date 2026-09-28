@@ -301,49 +301,41 @@ func _market(at: Vector3) -> void:
 func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 	var n := Node3D.new(); n.position = at; _add(n)
 	match kind:
-		"duck", "pigeon":
-			# 새 공용 리그(bird3d.gd) — 전엔 구 두 개였다(운영자 2026-09-28: 동물이 덩어리로 보인다)
-			var bd := Bird3D.new()
-			if kind == "duck": bd.setup("duck", Color("e6d3a5"), Color("b48a5a"))
-			else: bd.setup("pigeon", Color("8a7f86"), Color("5b4f56"))
-			n.add_child(bd); data["bird"] = bd
-		"dog", "cat", "marten", "squirrel", "fox":
-			# 네발 동물 공용 리그(quad3d.gd) — 크기·색만 다르다
+		"duck":
+			# 외부 모델(Gobkit Duck, CC0) — Bird3D 와 같은 속성(speed·flying·swimming·feed)
+			var bd := Animal3D.new(); bd.setup("duck"); n.add_child(bd); data["bird"] = bd
+		"pigeon":
+			# 비둘기는 아직 CC0 모델이 없어 절차 리그(bird3d.gd)
+			var bd := Bird3D.new(); bd.setup("pigeon", Color("8a7f86"), Color("5b4f56")); n.add_child(bd); data["bird"] = bd
+		"dog", "fox", "marten", "wolf", "deer":
+			# 외부 모델(Quaternius Ultimate Animated Animals / Gobkit, CC0) — Quad3D 와 같은 상태 API(운영자 2026-09-28: 외부 에셋으로)
+			var q := Animal3D.new(); q.setup(kind); n.add_child(q); data["quad"] = q
+		"cat", "squirrel":
+			# 고양이·다람쥐는 아직 CC0 애니메이션 모델이 없어 절차 리그(quad3d.gd)
 			var q := Quad3D.new()
-			match kind:
-				"fox": q.setup("fox", Color("d98a2a"), Color("3a2f36"), 1.0)
-				"cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
-				"marten": q.setup("marten", Color("8a6a4a"), Color("5b4f56"), 1.0)
-				"squirrel": q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)
-				_: q.setup("dog", Color("c9a27a"), Color("9a6a3f"), 1.0)
+			if kind == "cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
+			else: q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)
 			n.add_child(q); data["quad"] = q
 	data["kind"] = kind; data["node"] = n; data["t"] = randf() * 10.0; data["fly"] = 0.0
 	animals.append(data)
 
-## 나무 — 기둥 + 구 셋(잎 두 톤). 크기 k 로 서로 다르게. 줄기만 막힌다
+## 나무 — Kenney Nature Kit(CC0) 모델. 시드로 종류를 고르고 2.4~3.4m 로 키운다(사람 1m). 줄기 충돌체, 흔들기용 crowns 등록, 사과 셋은 크라운 높이에
+const TREE_KINDS := ["tree_default", "tree_oak", "tree_fat", "tree_detailed", "tree_simple", "tree_plateau", "tree_tall"]
 func _tree(at: Vector3, k: float) -> void:
-	# 동물의 숲 식(운영자 기준 2026-09-28): 굵고 짧은 줄기, 납작한 잎 덩어리 4~5개가 겹쳐 둥근 한 덩어리, 열매(사과)가 열려 있고 흔들면 떨어진다
-	var trunk := MeshInstance3D.new()
-	var cm := CylinderMesh.new(); cm.top_radius = 0.16 * k; cm.bottom_radius = 0.24 * k; cm.height = 0.9 * k; cm.radial_segments = 10
-	trunk.mesh = cm; trunk.material_override = _mat(Color("8a6a4a"))
-	trunk.position = at + Vector3(0, 0.45 * k, 0)
-	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.22 * k; sh.height = 0.9 * k; cs.shape = sh; sb.add_child(cs); trunk.add_child(sb)
-	_add(trunk)
+	var rng := RandomNumberGenerator.new(); rng.seed = int(at.x * 13.0 + at.z * 7.0) + 5
+	var which: String = TREE_KINDS[rng.randi() % TREE_KINDS.size()]
+	var model := _model("nature/" + which)
+	var h := _model_height(model)
+	var sc := (2.4 + 1.0 * (k - 0.9)) / maxf(h, 0.5)
+	var crown := Node3D.new(); crown.position = at; crown.rotation.y = rng.randf_range(0.0, TAU); _add(crown)
+	model.scale = Vector3.ONE * sc; crown.add_child(model)
+	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.2 * k; sh.height = 1.0; cs.shape = sh; cs.position.y = 0.5; sb.add_child(cs); crown.add_child(sb)
 	spots.append({ "pos": at, "kind": "tree", "yaw": 0.0 })
-	var crown := Node3D.new(); crown.position = at + Vector3(0, 0.85 * k, 0); _add(crown)
-	var blobs := [Vector3(0, 0.55, 0), Vector3(0.55, 0.35, 0.1), Vector3(-0.5, 0.4, -0.15), Vector3(0.1, 0.45, 0.55), Vector3(-0.15, 0.5, -0.5)]
-	for i in blobs.size():
-		var s := MeshInstance3D.new()
-		var sm := SphereMesh.new(); var rr := (0.72 if i == 0 else 0.55) * k
-		sm.radius = rr; sm.height = rr * 1.6; sm.radial_segments = 16; sm.rings = 8   # 납작하게(height < 2r)
-		s.mesh = sm; s.material_override = _mat(Color("7fb05a") if i % 2 == 0 else Color("6aa04c"))
-		s.position = (blobs[i] as Vector3) * k
-		crown.add_child(s)
-	# 열매: 크라운 아래쪽에 사과 셋 — 흔들면 떨어져 줍는다
 	var fruit: Array = []
+	var top := h * sc
 	for i in 3:
-		var f := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.09 * k; fs.height = 0.18 * k; f.mesh = fs; f.material_override = _mat(Color("ff2d55"))
-		f.position = Vector3(cos(i * 2.1) * 0.6, 0.15 + (i % 2) * 0.12, sin(i * 2.1) * 0.6) * k
+		var f := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.08; fs.height = 0.16; f.mesh = fs; f.material_override = _mat(Color("ff2d55"))
+		f.position = Vector3(cos(i * 2.1) * 0.45 * sc, top * (0.55 + (i % 2) * 0.12), sin(i * 2.1) * 0.45 * sc)
 		crown.add_child(f); fruit.append(f)
 	crowns.append({ "node": crown, "phase": at.x * 0.7 + at.z * 0.3, "k": k, "fruit": fruit, "at": at })
 

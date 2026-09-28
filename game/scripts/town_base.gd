@@ -273,3 +273,17 @@ var _hud_at := 0.0
 var view_25d := true   # V 로 전환: true = 2.5D 옆시점(낮은 카메라·직교 투영, 웹 광장 느낌) / false = 3/4 내려다보기
 
 var _v_down := false
+
+## 외부 모델 인스턴스(res://assets/models/<id>.glb|gltf)
+func _model(id: String) -> Node3D:
+	var p := "res://assets/models/%s.glb" % id
+	if not ResourceLoader.exists(p): p = "res://assets/models/%s.gltf" % id
+	return (load(p) as PackedScene).instantiate()
+
+## 모델 높이(m, 스케일 전) — 메시 AABB 로
+func _model_height(n: Node3D) -> float:
+	var hi := 0.0
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var b: AABB = (mi as MeshInstance3D).get_aabb()
+		hi = maxf(hi, b.position.y + b.size.y)
+	return hi

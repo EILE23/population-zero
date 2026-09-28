@@ -81,24 +81,17 @@ func _stall(at: Vector3, awning: Color) -> void:
 		g.material_override = _mat([Color("d98a2a"), Color("ff2d55"), Color("e8c766")][i]); g.position = at + Vector3(-0.6 + i * 0.6, 1.02, -0.1); _add(g)
 	spots.append({ "pos": at + Vector3(0, 0, 1.0), "kind": "door", "yaw": PI })   # 손님 자리(서서 고른다)
 
-## 꽃 한 송이 — 줄기(가는 초록 캡슐), 잎 둘, 꽃잎 다섯(납작한 구가 둥글게), 가운데 노란 점. 전엔 색 구 하나였다(운영자 2026-09-28: "꽃들도 그냥 동그라미")
+## 꽃 한 송이 — Kenney Nature Kit(CC0) 모델. 색은 red·yellow·purple 중 가까운 것, 종류 A/B/C 는 시드
 func _flower(at: Vector3, c: Color, seed := 0) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed + int(at.x * 31.0 + at.z * 17.0)
-	var n := Node3D.new(); n.position = at; n.rotation.y = rng.randf_range(0.0, TAU); n.rotation.z = rng.randf_range(-0.12, 0.12); _add(n)
-	var h := rng.randf_range(0.16, 0.26)
-	var stem := MeshInstance3D.new(); var sm := CapsuleMesh.new(); sm.radius = 0.008; sm.height = h; sm.radial_segments = 6; sm.rings = 2
-	stem.mesh = sm; stem.material_override = _mat(Color("5f8a3e")); stem.position = Vector3(0, h / 2.0, 0); n.add_child(stem)
-	for lx in [-1.0, 1.0]:
-		var leaf := _box(Vector3(0.05, 0.008, 0.025), Vector3(lx * 0.03, h * 0.4, 0), _mat(Color("7a9b4e")), false, n)
-		leaf.rotation.z = lx * 0.5
-	var head := Node3D.new(); head.position = Vector3(0, h, 0); head.rotation.x = rng.randf_range(-0.3, 0.1); n.add_child(head)
-	var petals := 5 + rng.randi() % 2
-	for i in petals:
-		var a := i * TAU / petals
-		var p := MeshInstance3D.new(); var ps := SphereMesh.new(); ps.radius = 0.028; ps.height = 0.02; ps.radial_segments = 8; ps.rings = 4
-		p.mesh = ps; p.material_override = _mat(c); p.position = Vector3(cos(a) * 0.03, 0.0, sin(a) * 0.03); head.add_child(p)
-	var mid := MeshInstance3D.new(); var ms := SphereMesh.new(); ms.radius = 0.014; ms.height = 0.02; ms.radial_segments = 8; ms.rings = 4
-	mid.mesh = ms; mid.material_override = _mat(Color("e8c766")); mid.position = Vector3(0, 0.008, 0); head.add_child(mid)
+	var hue := "red" if c.r > c.g and c.r > c.b and c.g < 0.6 else ("yellow" if c.r > 0.7 and c.g > 0.6 else "purple")
+	var id := "nature/flower_%s%s" % [hue, ["A", "B"][rng.randi() % 2]]
+	var m := _model(id); m.position = at; m.rotation.y = rng.randf_range(0.0, TAU); m.scale = Vector3.ONE * rng.randf_range(1.1, 1.5); _add(m)
+
+## 풀 포기·덤불·돌 — 초원과 길가에 흩뿌리는 작은 것들(Kenney)
+func _scatter(id: String, at: Vector3, sc := 1.0, yaw := -1.0) -> Node3D:
+	var m := _model("nature/" + id); m.position = at; m.rotation.y = (randf_range(0.0, TAU) if yaw < 0.0 else yaw); m.scale = Vector3.ONE * sc; _add(m)
+	return m
 
 ## 쓰레기통 — 통 + 어두운 뚜껑 테
 func _bin(at: Vector3) -> void:
@@ -140,9 +133,8 @@ func _lamp(at: Vector3) -> void:
 	lamps.append(l)
 
 func _fence(at: Vector3, len: float) -> void:
-	var paper := _mat(Color("efe9e2"))
-	var n := int(len / 0.5)
-	for i in n + 1:
-		_box(Vector3(0.08, 0.7, 0.05), at + Vector3(i * 0.5, 0, 0), paper)
-	_box(Vector3(len + 0.08, 0.06, 0.04), at + Vector3(len / 2.0, 0.25, 0), paper)
-	_box(Vector3(len + 0.08, 0.06, 0.04), at + Vector3(len / 2.0, 0.5, 0), paper)
+	# Kenney fence_simple(1m 토막, 원점이 왼끝 아님: -0.5..0.5) — +x 로 이어 붙인다
+	var n := int(round(len))
+	for i in n:
+		var m := _model("nature/fence_simple"); m.position = at + Vector3(i + 0.5, 0, 0); m.scale = Vector3(1.0, 1.15, 1.0); _add(m)
+	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = Vector3(n, 0.5, 0.1); cs.shape = bs; cs.position = at + Vector3(n / 2.0, 0.25, 0); sb.add_child(cs); _add(sb)

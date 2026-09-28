@@ -79,7 +79,7 @@ func _dust(at: Vector3) -> void:
 ## 사람이 동물을 때리면(타격 판정에서 호출) — 여우는 화난다, 나머지는 달아난다
 func animal_hit(a: Dictionary, dir: Vector3) -> void:
 	# 아파한다(운영자 2026-09-28): 0.5초 움찔(몸 낮추고 고개 들고 귀 접고 "!"), 20초 동안 꼬리 내리고 따라오지도 쓰다듬게 두지도 않는다. 여우는 화낸다
-	var q: Quad3D = a["quad"]
+	var q = a["quad"]   # Quad3D 또는 Animal3D
 	q.act("hurt"); q.sulk = true
 	a["sulk_until"] = a["t"] + 20.0; a["freeze_until"] = a["t"] + 0.5
 	a["follow_until"] = 0.0; a["pet_until"] = 0.0
