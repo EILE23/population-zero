@@ -57,14 +57,27 @@ jobs:
           git add -A
           CHANGED=$(git diff --cached --name-only)
           echo "$CHANGED"
-          # 엔진(stickman·tower·world·goose·games/engine) + 그 위의 두 게임(square·climb) + 뱃지 + 백로그. 사람이 만든 게임 폴더·registry 는 건드리지 못한다
-          BAD=$(echo "$CHANGED" | grep -v -E '^(site/src/features/square/|site/src/features/climb/|site/src/features/games/engine/|site/src/lib/goose\.ts|site/src/lib/world\.ts|site/src/lib/stickman\.ts|site/src/lib/tower\.ts|site/src/lib/pond\.ts|patrol/GROW-BACKLOG\.md|patrol/GROW-LOG\.md|patrol/GROW-DONE\.md|patrol/growth/)' || true)
+          # 2026-09-28 컨셉 전환: 성장의 주 무대는 game/ (Godot). 웹 엔진·광장·Climb 은 유지 보수만(GROW.md). 사람이 만든 게임 폴더·registry 는 건드리지 못한다
+          BAD=$(echo "$CHANGED" | grep -v -E '^(game/|site/src/features/square/|site/src/features/climb/|site/src/features/games/engine/|site/src/lib/goose\.ts|site/src/lib/world\.ts|site/src/lib/stickman\.ts|site/src/lib/tower\.ts|site/src/lib/pond\.ts|patrol/GROW-BACKLOG\.md|patrol/GROW-LOG\.md|patrol/GROW-DONE\.md|patrol/growth/)' || true)
           if [ -n "$BAD" ]; then echo "reverting out-of-scope changes:"; echo "$BAD"; echo "$BAD" | xargs -r git checkout HEAD -- ; echo "$BAD" | xargs -r git rm -q --cached --ignore-unmatch; fi
           git add -A
           git diff --cached --stat
           if git diff --cached --quiet; then echo "nothing=1" >> "$GITHUB_ENV"; fi
           LINES=$(git diff --cached --numstat | awk '{a+=$1+$2} END {print a+0}'); echo "changed lines: $LINES"
           if [ "$LINES" -gt 900 ]; then echo "too big — discarding"; git reset -q --hard; echo "nothing=1" >> "$GITHUB_ENV"; fi
+
+      # game/ 을 건드렸으면 Godot 4.3 헤드리스로 임포트하고 5프레임 돌린다 — 스크립트 오류(SCRIPT ERROR)가 하나라도 있으면 실패
+      - name: Gate — Godot headless (game/)
+        if: env.nothing != '1'
+        run: |
+          if git diff --cached --name-only | grep -q '^game/'; then
+            curl -sL -o /tmp/godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+            unzip -qo /tmp/godot.zip -d /tmp/godot && chmod +x /tmp/godot/Godot_v4.3-stable_linux.x86_64
+            G=/tmp/godot/Godot_v4.3-stable_linux.x86_64
+            $G --headless --path game --import 2>&1 | tee /tmp/godot-import.log | tail -20
+            $G --headless --path game --quit-after 5 2>&1 | tee /tmp/godot-run.log | tail -20
+            if grep -q -E 'SCRIPT ERROR|Parse Error|Compile Error' /tmp/godot-import.log /tmp/godot-run.log; then echo "godot: script errors — discarding"; git reset -q --hard; echo "nothing=1" >> "$GITHUB_ENV"; fi
+          else echo "game/ untouched"; fi
 
       - name: Gate — typecheck, tests, build
         if: env.nothing != '1'
@@ -88,10 +101,12 @@ jobs:
           git config user.name "square-grow"
           git config user.email "square-grow@population.town"
           SUMMARY=$(grep -o 'SUMMARY:.*' /tmp/grow.jsonl | tail -1 | sed 's/SUMMARY: *//' | tr -d '"\\' | cut -c1-72)
-          git commit -q -m "feat(square): ${SUMMARY:-daily growth} [grow]"
+          AREA=$(git diff --cached --name-only | grep -q '^game/' && echo game || echo square)
+          git commit -q -m "feat(${AREA}): ${SUMMARY:-daily growth} [grow]"
           # 같은 시간에 사람이 main 을 밀었을 수 있다(백로그 편집 등). rebase 가 충돌하면 버리지 말고 병합한다 — 충돌 구간은 이 커밋(ours) 우선.
           # 예전엔 `pull --rebase || true` 였는데, 충돌하면 조용히 삼키고 빈 push 를 해서 하루치 작업이 러너에서 사라졌다.
           git fetch -q origin main
           if ! git rebase -q origin/main; then git rebase --abort; git merge -q -X ours origin/main -m "merge: main into the day's growth"; fi
           git push origin HEAD:main
-          cd site && npx wrangler deploy # 위 게이트가 만든 .open-next 를 그대로 올린다 (opennextjs deploy 는 pnpm build 를 다시 불러 lockfile 검사로 죽는다)
+          # 사이트를 건드린 날만 배포한다 — game/ 만 자란 날은 올릴 게 없다
+          if git diff --name-only HEAD~1 HEAD | grep -q '^site/'; then cd site && npx wrangler deploy; else echo "site untouched — no deploy"; fi # 위 게이트가 만든 .open-next 를 그대로 올린다 (opennextjs deploy 는 pnpm build 를 다시 불러 lockfile 검사로 죽는다)
