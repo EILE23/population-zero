@@ -28,6 +28,9 @@ var throw_at := -1.0
 var throw_charge := -1.0   # X 를 누르기 시작한 시각(들고 있을 때) — 누르는 동안 감고, 떼면 던진다
 const THROW_MAX := 0.8
 var throw_power := 0.0
+var push_at := -1.0
+var push_amount := 0.0
+var push_lift := 0.0
 var flying: Array = []   # 던져진 것 {node, vel, spin} — 포물선으로 날다 바닥에 떨어져 다시 집을 수 있다
 var seat: Dictionary = {}       # 앉아 있는 벤치 {pos, yaw}
 var items: Array[Node3D] = []   # 바닥에 있는 집을 수 있는 것
@@ -316,6 +319,10 @@ func _physics_process(delta: float) -> void:
 		# 관성: 달리던 속도의 12% 만큼 더 높이(마리오식). 수평 속도는 그대로 실려 멀리 간다
 		v.y = HOP + hv.length() * 0.12; jump_at = -1.0
 		jump_from_speed = hv.length()
+	if push_at >= 0.0 and now >= push_at:
+		var f := fwd_dir()
+		v += f * push_amount; v.y = maxf(v.y, push_lift) if push_lift > 0.0 else v.y
+		push_at = -1.0
 	body.velocity = v
 	body.move_and_slide()
 	body.position.x = clampf(body.position.x, -15.0, 15.0)
@@ -348,15 +355,8 @@ func _physics_process(delta: float) -> void:
 	if action_until < now and throw_charge < 0.0:
 		if Input.is_action_just_pressed("hit"):
 			player.action = "punch"; action_until = now + 0.28
-			var f := fwd_dir()
-			if not grounded:
-				# 점프 주먹(운영자 2026-09-28): 주먹이 앞으로 실린다 — 앞으로 4.5 밀리고 살짝 떠서 내리꽂는다
-				v += f * 4.5; v.y = maxf(v.y, 1.0)
-				hv = Vector3(v.x, 0, v.z)
-			elif running:
-				v += f * 1.8; hv = Vector3(v.x, 0, v.z)  # 러닝 펀치는 짧게 밀고 나간다
-			else:
-				v += f * 1.1; hv = Vector3(v.x, 0, v.z)  # 서서 쳐도 체중이 앞으로 한 발짝
+			# 체중 이동은 뻗는 순간(0.15 지점)에 실린다: 공중 4.5(살짝 뜸), 달리며 1.8, 서서 1.1
+			push_at = now + 0.28 * 0.15; push_amount = 4.5 if not grounded else (1.8 if running else 1.1); push_lift = 1.0 if not grounded else 0.0
 		elif Input.is_action_just_pressed("kick"):
 			if not grounded or running:
 				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
@@ -366,7 +366,7 @@ func _physics_process(delta: float) -> void:
 				hv = Vector3(v.x, 0, v.z)
 			else:
 				player.action = "kick"; action_until = now + 0.34
-				v += fwd_dir() * 1.0; hv = Vector3(v.x, 0, v.z)  # 차면 몸이 앞으로 쏠린다
+				push_at = now + 0.34 * 0.15; push_amount = 1.0; push_lift = 0.0  # 차는 순간 몸이 앞으로 쏠린다
 	if throw_at >= 0.0 and now >= throw_at and player.carrying:
 		throw_at = -1.0
 		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
