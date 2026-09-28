@@ -38,6 +38,7 @@ var punch_side := 1.0          # 연속기: 1.0 오른손, -1.0 왼손
 var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
 var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "" 
+var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
 
 var _phase := 0.0
 var _t := 0.0
@@ -190,10 +191,10 @@ func _process(delta: float) -> void:
 	var cw := cos(_phase)
 	var run_k := clampf(speed / 3.0, 0.0, 1.4)  # 걷기 1.0 근처, 대시 1.4
 	var breathe := sin(_t * 2.0) * 0.006
-	var bob := absf(cw) * 0.035 * run_k if moving and not airborne else 0.0
+	var bob := absf(cw) * 0.06 * run_k if moving and not airborne else 0.0   # 2D 와 같은 6%
 	pelvis.position.y = HIP_Y + bob + breathe - crouch * 0.16
 	# 상체: 달리면 앞으로 기울고 골반과 반대로 살짝 비틀림; 웅크리면 더 숙임; 공중이면 뒤로 살짝; 앉으면 곧게
-	var lean := 0.28 * run_k if moving and not airborne else 0.0
+	var lean := 0.32 * run_k if moving and not airborne else 0.0   # 2D 와 같은 0.32
 	lean += crouch * 0.35
 	if airborne:
 		lean = 0.18 if vertical > 0.0 else 0.08  # 도약은 살짝 앞으로
@@ -209,6 +210,8 @@ func _process(delta: float) -> void:
 		lean = -0.12
 	if pose_request == "eat" and not moving:
 		lean = 0.08
+	if pose_request == "swing":
+		lean = -0.15 - swing_k * 0.25
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
@@ -252,6 +255,10 @@ func _process(delta: float) -> void:
 			# 서서 읽기(2D read): 두 손이 가슴 앞, 고개 숙임
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			sh.rotation.x = -(0.5); sh.rotation.z = -s * 0.15; el.rotation.x = -(1.7)
+		elif pose_request == "swing":
+			# 그네(2D swing): 두 손은 위로 줄을 잡고, 앞으로 갈 때 다리를 뻗고 돌아올 때 접는다. 엉덩이는 좌석에
+			hip.rotation.x = -(1.4 - swing_k * 0.5); knee.rotation.x = -(-1.2 + swing_k * 1.0)
+			sh.rotation.x = -(2.6); sh.rotation.z = -s * 0.32; el.rotation.x = -(0.3)
 		elif pose_request == "rest":
 			# 침대에 눕기(2D sit): 등을 대고 다리는 뻗고, 한 팔은 머리 뒤, 한 팔은 배 위
 			hip.rotation.x = -(0.1 + 0.05 * s); knee.rotation.x = -(-0.15 if s > 0.0 else -0.5)
@@ -408,7 +415,7 @@ func _process(delta: float) -> void:
 			shoulders[1.0].rotation.x = -(1.3 * k)
 			elbows[1.0].rotation.x = -(0.2 * k)
 	# 블렌딩 속도: 동작 중엔 아주 빠르게(주먹이 0.28초라 뭉개지면 안 된다), 앉기·웅크림은 느리게, 걷기는 중간
-	var rate := 34.0 if action != "" else (9.0 if seated or crouch > 0.0 else 18.0)
+	var rate := 34.0 if action != "" else (9.0 if seated or crouch > 0.0 else 30.0)  # 걷기는 거의 즉답
 	var k := minf(1.0, delta * rate)
 	for pv in _pivots:
 		var want: Vector3 = pv.rotation

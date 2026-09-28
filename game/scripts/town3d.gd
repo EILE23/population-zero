@@ -8,6 +8,7 @@ const WALK := 2.6
 const G := 22.0
 ## 점프는 짧은 홉(Climb 의 힘 모으기는 마을에 안 맞는다) — 벤치(0.45m)·계단·낮은 담 위에 올라설 만큼, 집 벽은 못 넘는다
 const HOP := 5.4
+const JUMP_FULL := 7.4   # 꽉 찬 점프(약 1.25m). 톡 치면 상승이 끊겨 홉이 된다
 const JUMP_HOLD := 0.28   # 점프 홀드 최대(초) — 누르는 동안 더 높이·멀리(가변 점프)
 const WALL := 0.16
 const WORLD_X := 46.0    # 세계 반폭(m): 서쪽 공원(-46..-16) · 마을(-16..16) · 동쪽 시장(16..46)
@@ -25,6 +26,7 @@ var idle_since := -1.0
 var action_until := 0.0
 var jump_at := -1.0
 var jump_hold_until := -1.0
+var jump_cut_ok := false
 var jump_from_speed := 0.0
 var dash_jump := false     # 대시 중에 뛴 점프인가 — 제트킥은 이때만
 var was_airborne := false
@@ -97,6 +99,7 @@ func _residents(n: int) -> void:
 		var r := Resident.new()
 		add_child(r)
 		r.setup(self, int(row["id"]), String(row["handle"]))
+		r.home_door = doors[i % doors.size()] if not doors.is_empty() else {}
 		r.position = Vector3(rng.randf_range(-WORLD_X + 4.0, WORLD_X - 4.0), 0.02, rng.randf_range(-2.0, 7.0))
 		residents.append(r)
 
@@ -185,11 +188,23 @@ func _solid_floor() -> void:
 
 func _ground() -> void:
 	var g := MeshInstance3D.new()
-	var pm := PlaneMesh.new(); pm.size = Vector2(WORLD_X * 2.0, WORLD_Z * 2.0 + 8.0)
+	var pm := PlaneMesh.new(); pm.size = Vector2(400, 400)   # 놀 수 있는 범위 밖까지 멀리 — 끝이 사각으로 안 보이게
 	g.mesh = pm
-	g.material_override = _mat(Color.WHITE, _tex("ground/grass"), Vector3(WORLD_X * 2.0 / TILE, (WORLD_Z * 2.0 + 8.0) / TILE, 1))
+	g.material_override = _mat(Color.WHITE, _tex("ground/grass"), Vector3(400.0 / TILE, 400.0 / TILE, 1))
 	g.position = Vector3(0, 0, -2)
 	add_child(g)
+	# 먼 언덕 실루엣(납작한 구) — 뒤쪽과 양옆에, 두 톤
+	var hr := RandomNumberGenerator.new(); hr.seed = 7
+	for i in 14:
+		var h := MeshInstance3D.new(); var hs := SphereMesh.new(); var rr := hr.randf_range(14.0, 30.0)
+		hs.radius = rr; hs.height = rr * hr.randf_range(0.5, 0.9); hs.radial_segments = 24; hs.rings = 10
+		h.mesh = hs; h.material_override = _mat(Color("6e9a55") if i % 2 == 0 else Color("5f8a3e"))
+		var ang := -0.2 + i * (3.5 / 14.0)
+		h.position = Vector3(cos(ang) * 95.0 * (1.0 if i % 3 else 1.3), -rr * 0.55, -25.0 - sin(ang) * 60.0)
+		add_child(h)
+	# 안개: 하늘색으로 멀리가 녹아든다
+	var env := ($WorldEnvironment as WorldEnvironment).environment
+	env.fog_enabled = true; env.fog_light_color = Color(0.93, 0.94, 0.92); env.fog_density = 0.006; env.fog_sky_affect = 0.0
 
 ## 자갈길 — 바닥보다 2cm 높은 납작한 상자(가장자리가 선으로 읽혀 길이 된다)
 func _path(a: Vector3, b: Vector3, w: float) -> void:
@@ -275,7 +290,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		parts.append(_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, hd + 0.04), trim))
 		parts.append(_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, -hd - 0.04), trim))
 		parts.append(_box(Vector3(0.12, 0.5, size.z + 0.2), at + Vector3(-hw - 0.04, size.y + 0.16, 0), trim))
-		_stairs(at + Vector3(hw + 0.55, 0, hd - 0.4), size.y + 0.16, 0.9)
+		_stairs(at + Vector3(hw + 0.55, 0, hd + 0.4), size.y + 0.16, 0.9)  # 집 앞에서 시작해 옆벽을 따라 뒤로
 	else:
 		var r := MeshInstance3D.new()
 		var pr := PrismMesh.new(); pr.size = Vector3(size.z + 0.7, size.y * (0.42 if storeys == 1 else 0.28), size.x + 0.7)
@@ -374,7 +389,10 @@ func _ramp(at: Vector3, w: float, height: float, length: float) -> void:
 func _cutaway() -> void:
 	var p := body.global_position
 	for h in houses:
-		var inside: bool = p.x > h["min"].x and p.x < h["max"].x and p.z > h["min"].z and p.z < h["max"].z and p.y < h["max"].y
+		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
+		var inside: bool = p.x > mn.x and p.x < mx.x and p.z > mn.z and p.z < mx.z and p.y < mx.y
+		var near: bool = p.x > mn.x - 2.0 and p.x < mx.x + 2.0 and p.z > mn.z - 1.0 and p.z < mx.z + 2.5 and p.y < mx.y
+		inside = inside or near   # 집 가까이 가면 열린다 — 안에서 쉬는 주민이 보이게(운영자: 들어가면 사라진다)
 		if inside != h["inside"]:
 			h["inside"] = inside
 			for n in h["parts"]:
@@ -382,7 +400,7 @@ func _cutaway() -> void:
 
 ## 계단 — 집 오른쪽 벽을 따라 뒤로(−z) 오른다. 한 단 18cm×30cm, 폭 w. 꼭대기에서 옥상으로 이어진다
 func _stairs(at: Vector3, height: float, w: float) -> void:
-	var n := int(ceil(height / 0.18))
+	var n := int(ceil(height / 0.25))   # 한 단 25cm — 집 깊이 안에 꼭대기가 오게(0.18 이면 3.8m 집을 넘어가 지붕과 못 만났다)
 	var rise := height / n
 	var stone := _mat(Color("bfb6b0"))
 	for i in n:
@@ -431,11 +449,7 @@ func _park(at: Vector3) -> void:
 	_box(Vector3(0.6, 1.6, 0.06), at + Vector3(4.3, 0, -5.4), iron); _box(Vector3(0.7, 0.06, 0.7), at + Vector3(4.3, 1.6, -5.6), wood)
 	var plank := _box(Vector3(3.0, 0.08, 0.3), at + Vector3(8.5, 0.5, -7.5), wood); plank.rotation.z = 0.2   # 시소
 	_box(Vector3(0.3, 0.5, 0.3), at + Vector3(8.5, 0, -7.5), iron)
-	_box(Vector3(0.08, 2.2, 0.08), at + Vector3(8.6, 0, -3.0), iron); _box(Vector3(0.08, 2.2, 0.08), at + Vector3(10.6, 0, -3.0), iron)  # 그네
-	_box(Vector3(2.2, 0.08, 0.08), at + Vector3(9.6, 2.2, -3.0), iron, false)
-	_box(Vector3(0.02, 1.5, 0.02), at + Vector3(9.35, 0.7, -3.0), iron, false); _box(Vector3(0.02, 1.5, 0.02), at + Vector3(9.85, 0.7, -3.0), iron, false)
-	_box(Vector3(0.6, 0.05, 0.25), at + Vector3(9.6, 0.66, -3.0), wood)
-	benches.append({ "pos": at + Vector3(9.6, 0.24, -3.0), "yaw": 0.0 }); spots.append({ "pos": at + Vector3(9.6, 0.24, -3.0), "kind": "bench", "yaw": 0.0 })  # 그네 좌석에도 앉는다
+	_swing(at + Vector3(9.6, 0, -3.0))
 	for fx in [-4.0, 4.0]:
 		_box(Vector3(1.6, 0.25, 0.5), at + Vector3(fx, 0, 6), _mat(Color("8a6a4a")))
 		for i in 4:
@@ -458,6 +472,56 @@ func _market(at: Vector3) -> void:
 	_bench(at + Vector3(0, 0, 5.5))
 	for i in 5: _animal("pigeon", at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2), { "home": at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2) })
 	_item("apple", at + Vector3(-7.5, 0.95, -1.3)); _item("cup", at + Vector3(2.5, 0.95, -1.3)); _item("paper", at + Vector3(7.5, 0.95, -1.3))
+
+var swings: Array = []      # {pivot, len, angle, vel, seat_pos(at), riding}
+var riding: Dictionary = {}  # 내가 타고 있는 그네
+
+## 그네 — 틀은 고정, 줄과 좌석은 윗봉의 피벗 아래에 매달려 진자로 흔들린다. 사람은 C 로 타고 ← → 로 밀고 SPACE 로 뛰어내린다
+func _swing(at: Vector3) -> void:
+	var iron := _mat(Color("4a4a52")); var wood := _mat(Color("b48a5a"))
+	_box(Vector3(0.08, 2.2, 0.08), at + Vector3(-1.0, 0, 0), iron); _box(Vector3(0.08, 2.2, 0.08), at + Vector3(1.0, 0, 0), iron)
+	_box(Vector3(2.2, 0.08, 0.08), at + Vector3(0, 2.2, 0), iron, false)
+	var pivot := Node3D.new(); pivot.position = at + Vector3(0, 2.2, 0); _add(pivot)
+	var L := 1.55
+	for rx in [-0.25, 0.25]:
+		var rope := MeshInstance3D.new(); var rm := BoxMesh.new(); rm.size = Vector3(0.02, L, 0.02); rope.mesh = rm; rope.material_override = iron
+		rope.position = Vector3(rx, -L / 2.0, 0); pivot.add_child(rope)
+	var seat := MeshInstance3D.new(); var sm := BoxMesh.new(); sm.size = Vector3(0.6, 0.05, 0.25); seat.mesh = sm; seat.material_override = wood
+	seat.position = Vector3(0, -L, 0); pivot.add_child(seat)
+	swings.append({ "pivot": pivot, "len": L, "angle": 0.0, "vel": 0.0, "at": at })
+	spots.append({ "pos": at + Vector3(0, 0, 0.6), "kind": "door", "yaw": PI })  # 주민은 아직 구경만(다음 조각: 주민도 탄다)
+
+## 진자 물리 — 매 프레임. 타고 있으면 몸이 좌석을 따라가고 ← → 가 흔들림 방향으로 밀어 준다
+func _swings(delta: float) -> void:
+	for sw in swings:
+		var g := 9.8; var L: float = sw["len"]
+		var acc := -g / L * sin(sw["angle"])
+		if not riding.is_empty() and riding == sw:
+			var pump := Input.get_axis("move_up", "move_down")   # ↓ = 앞으로 밀기(+z), ↑ = 뒤로
+			if absf(pump) > 0.1 and absf(sw["vel"]) > 0.05:
+				acc += signf(sw["vel"]) * 2.2 * absf(pump) if (signf(pump) == signf(sw["vel"])) else 0.0
+			elif absf(pump) > 0.1:
+				acc += pump * 1.2   # 정지 상태에서 시동
+		sw["vel"] += acc * delta
+		sw["vel"] *= 1.0 - 0.15 * delta   # 공기 저항
+		sw["angle"] += sw["vel"] * delta
+		sw["angle"] = clampf(sw["angle"], -1.3, 1.3)
+		(sw["pivot"] as Node3D).rotation.x = sw["angle"]
+	if not riding.is_empty():
+		var sw: Dictionary = riding
+		var L: float = sw["len"]
+		var pv: Node3D = sw["pivot"]
+		var seat_world: Vector3 = pv.global_position + Vector3(0, -L * cos(sw["angle"]), L * sin(sw["angle"]))
+		body.global_position = seat_world + Vector3(0, -0.42 + 0.03, 0)   # 엉덩이가 좌석에
+		body.velocity = Vector3.ZERO
+		player.seated = false; player.pose_request = "swing"; player.swing_k = clampf(sw["vel"] / 3.0, -1.0, 1.0)
+		player.face(0.0)
+		player.rotation.x = 0.0
+		if Input.is_action_just_pressed("jump"):
+			# 뛰어내리기: 접선 속도 그대로 + 위로
+			var tang: Vector3 = Vector3(0, L * sin(sw["angle"]), L * cos(sw["angle"])) * sw["vel"]
+			body.velocity = tang * 1.15 + Vector3(0, 3.8, 0)
+			riding = {}; player.pose_request = ""; sw["vel"] *= 0.35
 
 func _stall(at: Vector3, awning: Color) -> void:
 	var wood := _mat(Color("8a6a4a"))
@@ -508,6 +572,21 @@ func _apply_weather() -> void:
 	for r in residents: r.on_weather(weather)
 
 var animals: Array = []
+var crowns: Array = []   # 흔들리는 잎 뭉치 {node, phase, k}
+var wind_t := 0.0
+
+## 살아 있는 것은 움직인다 — 나무 잎이 바람에 흔들린다. 비·흐림이면 세게, 나무를 흔들면(shake_until) 그 나무가 크게
+func _wind(delta: float) -> void:
+	wind_t += delta
+	var gust := 0.03 + (0.06 if weather == "cloudy" else (0.1 if weather == "rain" else 0.0))
+	for c in crowns:
+		var n: Node3D = c["node"]
+		if not n.is_visible_in_tree(): continue
+		var ph: float = c["phase"]
+		var near := body.global_position.distance_to(n.global_position) < 1.6 and shake_until > 0.0
+		var amp: float = gust * (1.0 / float(c["k"])) + (0.12 if near else 0.0)
+		n.rotation.z = sin(wind_t * 1.7 + ph) * amp + sin(wind_t * 4.3 + ph * 2.0) * amp * 0.3 * (3.0 if near else 1.0)
+		n.rotation.x = cos(wind_t * 1.3 + ph) * amp * 0.6
 
 ## 동물 — 원시 도형 몸 + 아주 단순한 습성. 전부 코드
 func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
@@ -515,21 +594,43 @@ func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 	match kind:
 		"duck":
 			var b := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 0.16; bs.height = 0.22; b.mesh = bs; b.material_override = _mat(Color("e6d3a5")); b.position.y = 0.1; n.add_child(b)
-			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.08; hs.height = 0.16; h.mesh = hs; h.material_override = _mat(Color("e6d3a5")); h.position = Vector3(0, 0.26, 0.14); n.add_child(h)
-			var bk := _box(Vector3(0.04, 0.03, 0.1), Vector3(0, 0.24, 0.24), _mat(Color("d98a2a")), false, n)
-			bk.position.y = 0.245
+			var head := Node3D.new(); head.position = Vector3(0, 0.26, 0.14); n.add_child(head); data["head"] = head
+			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.08; hs.height = 0.16; h.mesh = hs; h.material_override = _mat(Color("e6d3a5")); head.add_child(h)
+			var bk := _box(Vector3(0.04, 0.03, 0.1), Vector3(0, -0.02, 0.1), _mat(Color("d98a2a")), false, head)
+			_eyes(head, 0.06, 0.02, 0.05, 0.016)
+			var tail := _box(Vector3(0.06, 0.03, 0.08), Vector3(0, 0.16, -0.16), _mat(Color("e6d3a5")), false, n); tail.rotation.x = 0.5; data["tail"] = tail
 		"dog":
 			var b := MeshInstance3D.new(); var bs := CapsuleMesh.new(); bs.radius = 0.16; bs.height = 0.7; b.mesh = bs; b.material_override = _mat(Color("c9a27a")); b.rotation.x = PI / 2.0; b.position.y = 0.32; n.add_child(b)
 			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.13; hs.height = 0.26; h.mesh = hs; h.material_override = _mat(Color("c9a27a")); h.position = Vector3(0, 0.45, 0.4); n.add_child(h)
+			data["legs"] = []
 			for lx in [-0.09, 0.09]:
 				for lz in [-0.22, 0.22]:
-					_box(Vector3(0.06, 0.24, 0.06), Vector3(lx, 0, lz), _mat(Color("9a6a3f")), false, n)
-			var t := _box(Vector3(0.05, 0.05, 0.28), Vector3(0, 0.36, -0.45), _mat(Color("9a6a3f")), false, n); t.rotation.x = -0.6
+					var leg := Node3D.new(); leg.position = Vector3(lx, 0.24, lz); n.add_child(leg)
+					_box(Vector3(0.06, 0.24, 0.06), Vector3(0, -0.24, 0), _mat(Color("9a6a3f")), false, leg)
+					data["legs"].append(leg)
+			var tp := Node3D.new(); tp.position = Vector3(0, 0.38, -0.34); n.add_child(tp); data["tail"] = tp
+			var t := _box(Vector3(0.05, 0.05, 0.26), Vector3(0, 0, -0.13), _mat(Color("9a6a3f")), false, tp); t.rotation.x = -0.6
+			_eyes(h, 0.07, 0.03, 0.1, 0.022)
+			for ex in [-0.09, 0.09]:
+				var ear := _box(Vector3(0.05, 0.12, 0.03), Vector3(ex, 0.02, -0.02), _mat(Color("9a6a3f")), false, h); ear.rotation.x = -0.3
+			data["head"] = h
 		_:
 			var b := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 0.09; bs.height = 0.14; b.mesh = bs; b.material_override = _mat(Color("8a7f86")); b.position.y = 0.09; n.add_child(b)
 			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.045; hs.height = 0.09; h.mesh = hs; h.material_override = _mat(Color("5b4f56")); h.position = Vector3(0, 0.17, 0.08); n.add_child(h)
+			_eyes(h, 0.03, 0.01, 0.03, 0.009)
+			_box(Vector3(0.015, 0.012, 0.03), Vector3(0, -0.005, 0.05), _mat(Color("d98a2a")), false, h)
+			data["head"] = h
 	data["kind"] = kind; data["node"] = n; data["t"] = randf() * 10.0; data["fly"] = 0.0
 	animals.append(data)
+
+## 눈알 두 개 — 머리 노드 기준(x 간격, y, z 앞, 반지름). 흰자 없이 잉크 점(캐주얼)
+func _eyes(head: Node3D, dx: float, y: float, z: float, r: float) -> void:
+	for ex in [-dx, dx]:
+		var e := MeshInstance3D.new(); var es := SphereMesh.new(); es.radius = r; es.height = r * 2.0; es.radial_segments = 8; es.rings = 4
+		e.mesh = es; e.material_override = _mat(Color("1b0c15")); e.position = Vector3(ex, y, z); head.add_child(e)
+
+var petting_until := -1.0
+var pet_dog: Dictionary = {}
 
 func _animals(delta: float) -> void:
 	var p := body.global_position
@@ -546,9 +647,18 @@ func _animals(delta: float) -> void:
 				var want := c + Vector3(cos(ph) * 2.0, 0, sin(ph) * 2.0)
 				if d < 2.0: want = c + (n.global_position - p).normalized() * 2.6; n.position.y = 0.03 + absf(sin(a["t"] * 18.0)) * 0.12
 				else: n.position.y = 0.03 + sin(a["t"] * 3.0) * 0.015
+				# 사과가 근처에 떨어져 있으면 먹으러 간다(먹이)
+				for it in items:
+					if String(it.get_meta("kind", "")) == "apple" and it.global_position.distance_to(n.global_position) < 4.0:
+						want = it.global_position
+						if it.global_position.distance_to(n.global_position) < 0.35:
+							items.erase(it); it.queue_free(); a["fed"] = a["t"] + 2.0
+						break
 				n.global_position = Vector3(lerpf(n.global_position.x, want.x, delta * 1.5), n.position.y, lerpf(n.global_position.z, want.z, delta * 1.5))
 				if want.distance_to(n.global_position) > 0.05:
 					n.look_at(Vector3(want.x, n.global_position.y, want.z), Vector3.UP, true)
+				var hd: Node3D = a["head"]; hd.rotation.x = sin(a["t"] * 6.0) * 0.18 + (0.5 if a.get("fed", 0.0) > a["t"] else 0.0)   # 고개 까딱, 먹을 땐 숙임
+				(a["tail"] as Node3D).rotation.x = 0.5 + sin(a["t"] * 9.0) * 0.25
 			"dog":
 				# 어슬렁(집 주변 4m), 사람이 3m 안이면 3초 따라오다 만다, 뛸 땐 몸이 들썩
 				if d < 3.0 and a.get("follow_until", 0.0) < a["t"]: a["follow_until"] = a["t"] + 3.0
@@ -557,12 +667,27 @@ func _animals(delta: float) -> void:
 				else:
 					if a.get("wander_until", 0.0) < a["t"]: a["wander_until"] = a["t"] + randf_range(2.0, 5.0); a["wander"] = a["home"] + Vector3(randf_range(-4, 4), 0, randf_range(-3, 3))
 					want = a.get("wander", a["home"])
+				var petted: bool = a.get("pet_until", 0.0) > a["t"]
 				var to := want - n.global_position; to.y = 0.0
-				if to.length() > 0.3:
+				var legs: Array = a["legs"]
+				if petted:
+					# 쓰다듬는 중: 앉아서(뒷다리 접힘, 몸 뒤로 기움) 꼬리를 빠르게
+					n.position.y = -0.08
+					for i in legs.size(): (legs[i] as Node3D).rotation.x = (0.0 if i < 2 else 1.3)
+					(a["tail"] as Node3D).rotation.y = sin(a["t"] * 22.0) * 0.8
+					(a["head"] as Node3D).rotation.x = -0.25
+				elif to.length() > 0.3:
 					n.global_position += to.normalized() * 1.9 * delta
 					n.look_at(n.global_position + to, Vector3.UP, true)
 					n.position.y = absf(sin(a["t"] * 12.0)) * 0.06
-				else: n.position.y = lerpf(n.position.y, 0.0, 0.2)
+					for i in legs.size(): (legs[i] as Node3D).rotation.x = sin(a["t"] * 12.0 + (0.0 if i % 3 == 0 else PI)) * 0.6   # 대각선 다리 짝
+					(a["tail"] as Node3D).rotation.y = sin(a["t"] * 8.0) * 0.5
+					(a["head"] as Node3D).rotation.x = sin(a["t"] * 12.0) * 0.08
+				else:
+					n.position.y = lerpf(n.position.y, 0.0, 0.2)
+					for l in legs: (l as Node3D).rotation.x = lerpf((l as Node3D).rotation.x, 0.0, 0.2)
+					(a["tail"] as Node3D).rotation.y = sin(a["t"] * 4.0) * 0.35
+					(a["head"] as Node3D).rotation.x = sin(a["t"] * 1.5) * 0.1
 			_:
 				# 비둘기: 바닥을 쫀다, 1.6m 안이면 날아올라 3m 옆으로 갔다 내려앉는다
 				if d < 1.6 and a["fly"] <= 0.0:
@@ -574,7 +699,9 @@ func _animals(delta: float) -> void:
 					n.global_position = Vector3(lerpf(n.global_position.x, land.x, delta * 2.5), sin(k * PI) * 1.4, lerpf(n.global_position.z, land.z, delta * 2.5))
 					if a["fly"] <= 0.0: a["home"] = land; n.position.y = 0.0
 				else:
-					n.position.y = 0.0; n.rotation.x = absf(sin(a["t"] * 5.0)) * 0.25  # 쪼기
+					n.position.y = 0.0; n.rotation.x = 0.0
+					(a["head"] as Node3D).rotation.x = absf(sin(a["t"] * 5.0)) * 0.6  # 고개로 쪼기
+					if fmod(a["t"], 4.0) < 1.2: n.global_position += Vector3(sin(a["t"] * 3.0), 0, cos(a["t"] * 2.0)) * 0.3 * delta  # 종종걸음
 
 ## 낮밤 — 해가 한 바퀴 돌고(12분), 저녁엔 빛이 붉어지며 가로등·실내 램프가 켜진다
 func _daylight(delta: float) -> void:
@@ -596,20 +723,30 @@ func _daylight(delta: float) -> void:
 
 ## 나무 — 기둥 + 구 셋(잎 두 톤). 크기 k 로 서로 다르게. 줄기만 막힌다
 func _tree(at: Vector3, k: float) -> void:
+	# 동물의 숲 식(운영자 기준 2026-09-28): 굵고 짧은 줄기, 납작한 잎 덩어리 4~5개가 겹쳐 둥근 한 덩어리, 열매(사과)가 열려 있고 흔들면 떨어진다
 	var trunk := MeshInstance3D.new()
-	var cm := CylinderMesh.new(); cm.top_radius = 0.09 * k; cm.bottom_radius = 0.14 * k; cm.height = 1.0 * k
+	var cm := CylinderMesh.new(); cm.top_radius = 0.16 * k; cm.bottom_radius = 0.24 * k; cm.height = 0.9 * k; cm.radial_segments = 10
 	trunk.mesh = cm; trunk.material_override = _mat(Color("8a6a4a"))
-	trunk.position = at + Vector3(0, 0.5 * k, 0)
-	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.16 * k; sh.height = 1.0 * k; cs.shape = sh; sb.add_child(cs); trunk.add_child(sb)
+	trunk.position = at + Vector3(0, 0.45 * k, 0)
+	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.22 * k; sh.height = 0.9 * k; cs.shape = sh; sb.add_child(cs); trunk.add_child(sb)
 	_add(trunk)
 	spots.append({ "pos": at, "kind": "tree", "yaw": 0.0 })
-	for i in 3:
+	var crown := Node3D.new(); crown.position = at + Vector3(0, 0.85 * k, 0); _add(crown)
+	var blobs := [Vector3(0, 0.55, 0), Vector3(0.55, 0.35, 0.1), Vector3(-0.5, 0.4, -0.15), Vector3(0.1, 0.45, 0.55), Vector3(-0.15, 0.5, -0.5)]
+	for i in blobs.size():
 		var s := MeshInstance3D.new()
-		var sm := SphereMesh.new(); var rr := (0.75 - i * 0.12) * k
-		sm.radius = rr; sm.height = rr * 2.0; sm.radial_segments = 14; sm.rings = 8
-		s.mesh = sm; s.material_override = _mat(Color("8fb06a") if i % 2 == 0 else Color("6e9a55"))
-		s.position = at + Vector3((i - 1) * 0.28 * k, (1.25 + i * 0.32) * k, (i - 1) * 0.12 * k)
-		add_child(s)
+		var sm := SphereMesh.new(); var rr := (0.72 if i == 0 else 0.55) * k
+		sm.radius = rr; sm.height = rr * 1.6; sm.radial_segments = 16; sm.rings = 8   # 납작하게(height < 2r)
+		s.mesh = sm; s.material_override = _mat(Color("7fb05a") if i % 2 == 0 else Color("6aa04c"))
+		s.position = (blobs[i] as Vector3) * k
+		crown.add_child(s)
+	# 열매: 크라운 아래쪽에 사과 셋 — 흔들면 떨어져 줍는다
+	var fruit: Array = []
+	for i in 3:
+		var f := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.09 * k; fs.height = 0.18 * k; f.mesh = fs; f.material_override = _mat(Color("ff2d55"))
+		f.position = Vector3(cos(i * 2.1) * 0.6, 0.15 + (i % 2) * 0.12, sin(i * 2.1) * 0.6) * k
+		crown.add_child(f); fruit.append(f)
+	crowns.append({ "node": crown, "phase": at.x * 0.7 + at.z * 0.3, "k": k, "fruit": fruit, "at": at })
 
 func _bench(at: Vector3) -> void:
 	var wood := _mat(Color("8a6a4a")); var iron := _mat(Color("4a4a52"))
@@ -670,6 +807,10 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
+	# 그네 타는 중: 몸은 그네가 움직인다(_swings), 여기선 C 만 본다
+	if not riding.is_empty():
+		_interact_check(now)
+		return
 	# 넘어짐: 1.6초 누웠다가 0.6초에 걸쳐 일어난다. 그동안 입력은 없다
 	if down_until > now:
 		body.velocity = Vector3(lerpf(body.velocity.x, 0.0, 0.2), body.velocity.y - G * delta, lerpf(body.velocity.z, 0.0, 0.2))
@@ -723,17 +864,15 @@ func _physics_process(delta: float) -> void:
 	if not grounded:
 		v.y -= G * delta
 	elif Input.is_action_just_pressed("jump"):
-		# 가변 점프(운영자: 톡 = 살짝, 길게 = 높이): 누르는 즉시 최소 홉으로 뜨고, 누르고 있는 동안 JUMP_HOLD 초까지 위로 더 밀어 올린다
-		v.y = HOP + hv.length() * 0.12
-		jump_hold_until = now + JUMP_HOLD
+		# 마리오식: 누르면 꽉 찬 점프로 뜨고, 일찍 떼면 상승을 끊어 짧은 홉이 된다(위로 밀어 올리는 방식은 붕 떴다 — 운영자 2026-09-28)
+		v.y = JUMP_FULL + hv.length() * 0.12
+		if hv.length() > 0.5:
+			var f := hv.normalized(); v.x += f.x * 1.2; v.z += f.z * 1.2
+		jump_cut_ok = true
 		jump_from_speed = hv.length(); dash_jump = running or now < dash_until
 		jump_at = -1.0
-	if jump_hold_until > now and Input.is_action_pressed("jump") and v.y > 0.0:
-		v.y += 13.0 * delta   # 0.28초 다 누르면 약 +3.6 → 최대 높이 두 배 남짓
-		if hv.length() > 0.5:
-			var f := hv.normalized(); v.x += f.x * 5.0 * delta; v.z += f.z * 5.0 * delta
-	elif not Input.is_action_pressed("jump"):
-		jump_hold_until = -1.0
+	if jump_cut_ok and not grounded and Input.is_action_just_released("jump") and v.y > 2.0:
+		v.y = 2.0; jump_cut_ok = false
 	if push_at >= 0.0 and now >= push_at:
 		var f := fwd_dir()
 		v += f * push_amount; v.y = maxf(v.y, push_lift) if push_lift > 0.0 else v.y
@@ -794,7 +933,7 @@ func _physics_process(delta: float) -> void:
 				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
 				jet = true; player.action = "kick"; action_until = now + 9.0; hit_kind = "jet"
 				var f := fwd_dir()
-				body.velocity = Vector3(f.x * 6.0, maxf(body.velocity.y, 1.6), f.z * 6.0)  # 비거리 9→6(너무 멀리 나갔다)  # 그 자리에서 몸에 적용(버그: move_and_slide 뒤라 v 만 바꾸면 뜨지 못했다)
+				body.velocity = Vector3(f.x * 7.5, maxf(body.velocity.y, 1.6), f.z * 7.5)  # 비거리 7.5
 				was_airborne = true
 			else:
 				player.action = "kick"; action_until = now + 0.34
@@ -834,6 +973,8 @@ func _physics_process(delta: float) -> void:
 	_stream()
 	_weather(delta)
 	_animals(delta)
+	_swings(delta)
+	_wind(delta)
 
 var cam_kick := 0.0
 var shake_until := -1.0
@@ -1003,6 +1144,13 @@ func _interact_check(now: float) -> void:
 	for m in movables:
 		var d4: float = p.distance_to(m["node"].global_position)
 		if d4 < 0.9 and d4 < best_d: best = { "kind": "furniture", "entry": m }; best_d = d4
+	for a in animals:
+		if a["kind"] != "dog": continue
+		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
+		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
+	for sw in swings:
+		var d6: float = p.distance_to(sw["at"])
+		if d6 < 1.2 and d6 < best_d: best = { "kind": "swing", "swing": sw }; best_d = d6
 	for sp in spots:
 		if sp["kind"] != "bed" and sp["kind"] != "shelf": continue
 		var d5: float = Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()
@@ -1010,6 +1158,15 @@ func _interact_check(now: float) -> void:
 	if best.is_empty():
 		return
 	match best["kind"]:
+		"dog":
+			# 쓰다듬기: 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세)
+			var a: Dictionary = best["animal"]
+			a["pet_until"] = a["t"] + 2.5; a["follow_until"] = a["t"] + 6.0
+			player.face(atan2((a["node"] as Node3D).global_position.x - p.x, (a["node"] as Node3D).global_position.z - p.z))
+			player.action = "grab"; action_until = now + 1.2
+		"swing":
+			riding = best["swing"]; body.velocity = Vector3.ZERO
+			player.move_dir = Vector3.ZERO; player.speed = 0.0
 		"furniture":
 			var e: Dictionary = best["entry"]
 			var n: Node3D = e["node"]
@@ -1048,8 +1205,12 @@ func _interact_check(now: float) -> void:
 			var sp: Dictionary = best["spot"]
 			player.face(atan2(sp["pos"].x - p.x, sp["pos"].z - p.z))
 			player.pose_request = "shake"; shake_until = now + 1.2; action_until = now + 1.2
-			var apple := make_item("apple", sp["pos"] + Vector3(randf_range(-0.5, 0.5), 1.6, randf_range(0.2, 0.7)))
-			flying.append({ "node": apple, "vel": Vector3(0, 0.5, 0), "spin": 3.0 })  # 흔들면 사과가 떨어진다
+			for c in crowns:
+				if c["at"] != sp["pos"] or (c["fruit"] as Array).is_empty(): continue
+				var f: Node3D = (c["fruit"] as Array).pop_back(); var fp := f.global_position; f.queue_free()
+				var apple := make_item("apple", fp)
+				flying.append({ "node": apple, "vel": Vector3(randf_range(-0.6, 0.6), 0.3, randf_range(0.2, 0.8)), "spin": 3.0 })  # 열린 사과가 떨어진다
+				break
 		"item":
 			var it: Node3D = best["node"]
 			items.erase(it)
@@ -1074,6 +1235,9 @@ func _interact_check(now: float) -> void:
 			player.face(b["yaw"])
 
 var _hud_at := 0.0
+func is_night() -> bool:
+	return sin(clock * TAU) * 1.6 + 0.2 < 0.35
+
 func _hud(now: float) -> void:
 	if now - _hud_at < 0.5: return
 	_hud_at = now

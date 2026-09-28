@@ -22,6 +22,8 @@ var down_until := 0.0
 var chase_until := 0.0
 var next_punch := 0.0
 var stuck_since := -1.0
+var stuck_dist := 0.0
+var detours := 0
 var hits := 0
 var last_hit := -9.0
 var quarry: Node3D = null
@@ -108,6 +110,7 @@ func _physics_process(delta: float) -> void:
 				var step: Dictionary = route.pop_front() if not route.is_empty() else {}
 				if step.get("act", "") == "open": town.set_door(door_ref, true)
 				elif step.get("act", "") == "close": town.set_door(door_ref, false)
+				detours = 0
 				if route.is_empty():
 					if step.get("act", "") == "close":
 						state = "routine"; busy_until = now + randf_range(0.5, 2.0)
@@ -119,12 +122,19 @@ func _physics_process(delta: float) -> void:
 				var dir := to.normalized()
 				var spd := WALK * (1.7 if weather == "rain" else 1.0)  # 비 오면 서두른다
 				v.x = dir.x * spd; v.z = dir.z * spd
-				fig.move_dir = dir; fig.speed = spd
-				if Vector2(velocity.x, velocity.z).length() < 0.3:
-					if stuck_since < 0.0: stuck_since = now
-					elif now - stuck_since > 1.5:  # 벽에 막힘 — 다른 자리
-						stuck_since = -1.0; state = "routine"; busy_until = now
-				else:
+				fig.move_dir = dir; fig.speed = Vector2(velocity.x, velocity.z).length()   # 걸음은 실제 속도로 — 벽에 막히면 제자리 뛰기가 안 난다
+				# 막힘은 진행 거리로 판단: 1.2초 동안 목표에 0.15m 도 못 다가가면 옆으로 우회 지점을 하나 두고, 두 번째면 포기
+				if stuck_since < 0.0:
+					stuck_since = now; stuck_dist = to.length()
+				elif now - stuck_since > 1.2:
+					if stuck_dist - to.length() < 0.15:
+						if detours < 2:
+							detours += 1
+							var side := Vector3(-dir.z, 0, dir.x) * (1.6 if (uid + detours) % 2 == 0 else -1.6)
+							route.push_front({ "pos": global_position + side + dir * 0.8, "act": "" })
+							target = route[0]["pos"]
+						else:
+							detours = 0; state = "routine"; busy_until = now; route = []
 					stuck_since = -1.0
 		"busy":
 			v.x = 0.0; v.z = 0.0
@@ -173,6 +183,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 var weather := "clear"
+var home_door: Dictionary = {}   # 내 집의 문 — 밤엔 여기로 가서 침대에서 잔다
 
 ## 날씨 바뀜 — 비면 지금 하던 걸 접고 실내로 서두른다(밖 자리에 있었으면 바로 다시 고른다)
 func on_weather(w: String) -> void:
@@ -186,6 +197,16 @@ func on_weather(w: String) -> void:
 func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
+	if town.is_night() and not home_door.is_empty():
+		# 밤: 집으로 가서 침대에 눕는다(집에 침대가 있으면), 아니면 의자
+		var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door and sp["kind"] == "bed")
+		if mine.is_empty(): mine = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door)
+		if not mine.is_empty():
+			spot = mine[0]
+			door_ref = home_door
+			var dp: Vector3 = door_ref["pos"]
+			route = [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+			target = route[0]["pos"]; state = "walk"; return
 	if weather == "rain":
 		# 비: 실내(의자·침대·선반) 아니면 차양 아래(문 앞)만 고른다
 		var dry: Array = town.spots.filter(func(sp): return sp["kind"] in ["chair", "bed", "shelf", "door"])
@@ -223,7 +244,7 @@ func _arrive(now: float) -> void:
 			fig.pose_request = "rest"
 			global_position = spot["pos"] + Vector3(0, 0.02, 0)
 			fig.face(spot.get("yaw", 0.0))
-			busy_until = now + randf_range(8.0, 16.0)
+			busy_until = now + (randf_range(60.0, 120.0) if town.is_night() else randf_range(8.0, 16.0))
 		"shelf":
 			fig.pose_request = "read"; fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(4.0, 8.0)
