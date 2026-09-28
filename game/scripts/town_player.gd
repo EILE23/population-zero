@@ -179,8 +179,10 @@ func _physics_process(delta: float) -> void:
 		shake_until = -1.0; player.pose_request = ""
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
-		if player.pose_request in ["eat", "drink", "wave"]: player.pose_request = ""
+		if player.pose_request in ["eat", "drink", "wave", "pet"]: player.pose_request = ""
 	if (reading or leaning or resting) and dir != Vector3.ZERO:
+		if resting and player.pose_request in ["sky", "rest"]:
+			getup_until = now + 0.6; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 한 손으로 짚고 무릎을 세우는 0.6초(맞고 일어날 때와 같은 동작)
 		reading = false; leaning = false; resting = false; player.pose_request = ""
 	if not pushing.is_empty() and dir != Vector3.ZERO:
 		if pushing["pusher"] == "player": pushing["pusher"] = null
@@ -196,6 +198,18 @@ func _physics_process(delta: float) -> void:
 	_animals(delta)
 	_swings(delta)
 	_wind(delta)
+
+## 쓰다듬기 — 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세). 맞은 걸 기억하는 개는 손을 내밀면 한 발 물러난다
+func _pet_dog(a: Dictionary, now: float) -> void:
+	var p := body.global_position
+	var an: Node3D = a["node"]
+	if a.get("sulk_until", 0.0) > a["t"]:
+		a["flee_until"] = a["t"] + 1.0; a["wander"] = an.global_position + (an.global_position - p).normalized() * 2.0
+		player.action = "grab"; action_until = now + 0.6
+		return
+	a["pet_until"] = a["t"] + 2.5; a["follow_until"] = a["t"] + 6.0
+	player.face(atan2(an.global_position.x - p.x, an.global_position.z - p.z))
+	player.pose_request = "pet"; use_until = now + 2.2; action_until = now + 0.3   # 쪼그려 앉아 등을 쓸어 준다(전엔 허리만 숙였다)
 
 ## 가구 들기(C 길게) — 두 손에 들고 옮긴다(carry 자세). 든 동안 충돌은 끈다
 func _pick_furniture(now: float) -> void:
@@ -282,8 +296,17 @@ func _interact_check(now: float) -> void:
 		if kind == "paper":
 			reading = not reading; player.pose_request = "read" if reading else ""
 			return
+		# 들고 있어도 손 닿는 곳에 다른 물건이 있으면 그것부터 줍는다(셋까지); 없으면 맨 위 것을 앞에 내려놓는다
+		var near_it: Node3D = null; var nd := 0.8
+		for it in items:
+			var d0 := p.distance_to(it.global_position)
+			if d0 < nd: near_it = it; nd = d0
+		if near_it and player.pocket.size() < 2:
+			items.erase(near_it); player.hold(near_it); bites = 0
+			player.action = "grab"; action_until = now + 0.4
+			return
 		var item := player.release(self, p + fwd * 0.5 + Vector3(0, 0.08, 0))
-		items.append(item)
+		items.append(item); bites = 0
 		player.action = "grab"; action_until = now + 0.4
 		return
 	var best: Dictionary = {}; var best_d := 9.0
@@ -325,7 +348,9 @@ func _interact_check(now: float) -> void:
 	for sp in spots:
 		if not (sp["kind"] in ["bed", "shelf", "grass"]) or item_near: continue
 		var d5: float = Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()
-		if d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
+		if sp["kind"] == "grass":
+			if d5 < float(sp.get("r", 1.1)) and best.is_empty(): best = { "kind": "grass", "spot": sp }; best_d = 9.0   # 구역: 안에 있으면 되고, 다른 것이 더 가까우면 그것이 먼저
+		elif d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
 	if best.is_empty():
 		# 근처에 아무것도 없고 빈손이면 모자를 벗어 손에 든다
 		if not player.carrying and player.worn.has("hat"):
@@ -357,16 +382,7 @@ func _interact_check(now: float) -> void:
 				riding = sw; body.velocity = Vector3.ZERO
 				player.move_dir = Vector3.ZERO; player.speed = 0.0
 		"dog":
-			# 쓰다듬기: 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세)
-			var a: Dictionary = best["animal"]
-			if a.get("sulk_until", 0.0) > a["t"]:
-				# 맞은 걸 기억한다 — 손을 내밀면 한 발 물러난다
-				a["flee_until"] = a["t"] + 1.0; a["wander"] = (a["node"] as Node3D).global_position + ((a["node"] as Node3D).global_position - p).normalized() * 2.0
-				player.action = "grab"; action_until = now + 0.6
-				return
-			a["pet_until"] = a["t"] + 2.5; a["follow_until"] = a["t"] + 6.0
-			player.face(atan2((a["node"] as Node3D).global_position.x - p.x, (a["node"] as Node3D).global_position.z - p.z))
-			player.action = "grab"; action_until = now + 1.2
+			_pet_dog(best["animal"], now)
 		"furniture":
 			var e: Dictionary = best["entry"]
 			var n: Node3D = e["node"]
@@ -388,12 +404,9 @@ func _interact_check(now: float) -> void:
 			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
 			tw.tween_property(body, "position", sp["pos"] + Vector3(0, 0.02, 0), 0.35)
 		"grass":
-			# 초원 풀밭에 누워 하늘 보기(sky) — 방향키로 일어난다. 주민도 같은 자리에서 같은 자세
-			var sp: Dictionary = best["spot"]
-			resting = true; player.pose_request = "sky"; player.face(sp["yaw"])
+			# 초원 풀밭 구역 안 아무 데서나, 선 자리 그대로 눕는다(전엔 가운데로 끌려갔다). 방향키로 일어난다. 주민도 같은 자세
+			resting = true; player.pose_request = "sky"
 			body.velocity = Vector3.ZERO
-			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
-			tw.tween_property(body, "position", sp["pos"] + Vector3(0, 0.02, 0), 0.35)
 		"shelf":
 			# 선반에서 책을 꺼내 읽는다(움직이면 끝)
 			var sp: Dictionary = best["spot"]
@@ -420,8 +433,7 @@ func _interact_check(now: float) -> void:
 				break
 		"item":
 			var it: Node3D = best["node"]
-			items.erase(it)
-			player.hold(it)
+			if player.hold(it): items.erase(it); bites = 0
 			player.action = "grab"; action_until = now + 0.4
 		"door":
 			set_door(best["door"], not best["door"]["open"])

@@ -63,7 +63,7 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	if id % 4 == 1:
 		carrying_kind = ["apple", "cup", "paper"][id % 3]
 		var it: MeshInstance3D = town.make_item(carrying_kind, Vector3.ZERO)
-		fig.hold(it)  # hold() 가 부모에서 떼어 손에 붙인다
+		fig.hold(it)  # hold() 가 부모에서 떼어 손에 붙인다(true/false 는 무시 — 빈손이다)
 	busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 4.0)
 
 ## 웹 tower.ts figureColor(uid) 와 같은 색 — 사이트와 게임에서 같은 사람은 같은 색
@@ -263,6 +263,9 @@ func _pick_spot() -> void:
 		route = _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 	elif spot["kind"] == "bench":
 		route = [{ "pos": spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0, 0.45), "act": "" }]
+	elif spot["kind"] == "grass":
+		var gr: float = spot.get("r", 1.0); var ga := randf_range(0.0, TAU); var gd := sqrt(randf()) * (gr - 0.3)
+		route = [{ "pos": spot["pos"] + Vector3(cos(ga) * gd, 0, sin(ga) * gd), "act": "" }]
 	elif spot["kind"] == "door":
 		var near_door: Dictionary = {}
 		for dr in town.doors:
@@ -303,8 +306,8 @@ func _arrive(now: float) -> void:
 			fig.face(spot.get("yaw", 0.0))
 			busy_until = now + (randf_range(60.0, 120.0) if town.is_night() else randf_range(8.0, 16.0))
 		"grass":
-			# 초원 풀밭에 누워 하늘 보기 — 사람이 C 로 하는 것과 같은 자세(sky)
-			fig.pose_request = "sky"; global_position = spot["pos"] + Vector3(0, 0.02, 0); fig.face(spot.get("yaw", PI))
+			# 초원 풀밭 구역 안 아무 데나 — 도착한 그 자리에서 눕는다(사람이 C 로 하는 것과 같은 자세 sky)
+			fig.pose_request = "sky"; fig.face(randf_range(0.0, TAU))
 			busy_until = now + randf_range(10.0, 22.0)
 		"shelf":
 			fig.pose_request = "read"; fig.face(spot.get("yaw", PI))
@@ -321,6 +324,13 @@ func _arrive(now: float) -> void:
 		_:
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
+			# 개가 곁에 있으면 쪼그려 앉아 쓰다듬는다(사람이 C 로 하는 것과 같은 자세·같은 개 반응)
+			for a in town.animals:
+				if a["kind"] == "dog" and a.get("sulk_until", 0.0) < a["t"] and (a["node"] as Node3D).global_position.distance_to(global_position) < 1.5:
+					a["pet_until"] = a["t"] + 2.5
+					fig.pose_request = "pet"; fig.face(atan2((a["node"] as Node3D).global_position.x - global_position.x, (a["node"] as Node3D).global_position.z - global_position.z))
+					busy_until = now + 2.5
+					break
 
 ## 집 앞이 아닌 곳(옆·뒤)에서 출발하면 집 모서리를 돌아 앞길로 나오는 경유지 — 벽 모서리에 막혀 문을 못 찾던 것(운영자 지적, 비 오는 날)
 func _approach(dr: Dictionary) -> Array:
@@ -412,8 +422,8 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		fig.face(atan2(-from_dir.x, -from_dir.z))  # 때린 쪽을 보고 눕는다
 		velocity = from_dir * 3.5 + Vector3(0, 2.0, 0)
 		say(LINES_DOWN[uid % LINES_DOWN.size()], 1.6)
-		if fig.carrying:
-			var it: Node3D = fig.release(town, global_position + from_dir * 0.6 + Vector3(0, 0.1, 0))
+		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
+			var it: Node3D = fig.release(town, global_position + from_dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0))
 			town.items.append(it); carrying_kind = ""
 	else:
 		fig.action = "flinch"; fig.action_t = 0.0

@@ -151,15 +151,33 @@ func take_off(slot: String) -> Node3D:
 	return it
 
 ## 손에 들기 — item 은 hand_r 의 자식이 되고, 놓으면 다시 세계로
-func hold(item: Node3D) -> void:
-	if carrying:
-		return
-	item.get_parent().remove_child(item)
-	hand_r.add_child(item)
-	item.position = Vector3(0, -0.06, 0.06)
-	item.rotation = Vector3.ZERO
-	carrying = item
+var pocket: Array[Node3D] = []   # 두 번째·세 번째 것(왼손·허리) — 최대 셋(운영자 2026-09-28: "여러 개 주울 수 있어야")
 
+## 손에 들기 — 새것이 오른손(맨 위), 들고 있던 건 왼손으로, 왼손 것은 허리로. 셋이면 못 든다(false)
+func hold(item: Node3D) -> bool:
+	if carrying and pocket.size() >= 2:
+		return false
+	if carrying:
+		pocket.push_front(carrying)
+	if item.get_parent(): item.get_parent().remove_child(item)
+	hand_r.add_child(item)
+	item.position = Vector3(0, -0.06, 0.06); item.rotation = Vector3.ZERO
+	carrying = item
+	_place_pocket()
+	return true
+
+## 왼손·허리 자리 다시 붙이기
+func _place_pocket() -> void:
+	for i in pocket.size():
+		var it := pocket[i]
+		var sock: Node3D = hand_l if i == 0 else socket_belt
+		if it.get_parent() != sock:
+			if it.get_parent(): it.get_parent().remove_child(it)
+			sock.add_child(it)
+		it.rotation = Vector3.ZERO
+		it.position = Vector3(0, -0.06, 0.06) if i == 0 else Vector3(0.12, -0.02, -0.1)
+
+## 맨 위 것을 놓는다 — 왼손 것이 오른손으로, 허리 것이 왼손으로 올라온다
 func release(into: Node3D, at: Vector3) -> Node3D:
 	var item := carrying
 	if item == null:
@@ -168,4 +186,10 @@ func release(into: Node3D, at: Vector3) -> Node3D:
 	into.add_child(item)
 	item.global_position = at
 	carrying = null
+	if not pocket.is_empty():
+		var nxt: Node3D = pocket.pop_front()
+		nxt.get_parent().remove_child(nxt); hand_r.add_child(nxt)
+		nxt.position = Vector3(0, -0.06, 0.06); nxt.rotation = Vector3.ZERO
+		carrying = nxt
+		_place_pocket()
 	return item

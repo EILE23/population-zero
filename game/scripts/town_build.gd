@@ -141,9 +141,8 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	if rng.randf() < 0.5:
 		_box(Vector3(0.9, 0.3, 0.3), at + Vector3(-hw + 0.7, 0, hd + 0.35), _mat(Color("8a6a4a")))
 		_box(Vector3(0.8, 0.08, 0.2), at + Vector3(-hw + 0.7, 0.3, hd + 0.35), _mat(Color("5f8a3e")), false)
-		for fx in [-0.25, 0.0, 0.25]:
-			var fl := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.05; fs.height = 0.1; fl.mesh = fs
-			fl.material_override = _mat([Color("ff2d55"), Color("e8c766"), Color("ad7096")][rng.randi() % 3]); fl.position = at + Vector3(-hw + 0.7 + fx, 0.44, hd + 0.35); add_child(fl)
+		for fx in [-0.28, -0.1, 0.1, 0.28]:
+			_flower(at + Vector3(-hw + 0.7 + fx, 0.38, hd + 0.35), [Color("ff2d55"), Color("e8c766"), Color("ad7096")][rng.randi() % 3], seed)
 	if rng.randf() < 0.5:
 		_box(Vector3(0.06, 0.8, 0.06), at + Vector3(hw - 0.4, 0, hd + 0.9), _mat(Color("4a4a52")))
 		_box(Vector3(0.22, 0.16, 0.14), at + Vector3(hw - 0.4, 0.8, hd + 0.9), _mat(Color("ad7096")), false)
@@ -272,9 +271,8 @@ func _park(at: Vector3) -> void:
 	_swing(at + Vector3(9.6, 0, -3.0))
 	for fx in [-4.0, 4.0]:
 		_box(Vector3(1.6, 0.25, 0.5), at + Vector3(fx, 0, 6), _mat(Color("8a6a4a")))
-		for i in 4:
-			var fl := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.07; fs.height = 0.14; fl.mesh = fs
-			fl.material_override = _mat([Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("ffffff")][i]); fl.position = at + Vector3(fx - 0.6 + i * 0.4, 0.35, 6); _add(fl)
+		for i in 7:
+			_flower(at + Vector3(fx - 0.65 + i * 0.22, 0.25, 6 + (0.08 if i % 2 == 0 else -0.08)), [Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("f7f4ef")][i % 4], i)
 	_fence(at + Vector3(-12, 0, 8), 24.0)
 	for i in 4: _animal("duck", at + Vector3(-6, 0.03, -3) + Vector3(cos(i * 1.57) * 2.0, 0, sin(i * 1.57) * 2.0), { "center": at + Vector3(-6, 0.03, -3), "phase": i * 1.57 })
 	_animal("dog", at + Vector3(2, 0, 1), { "home": at + Vector3(2, 0, 1) })
@@ -368,11 +366,12 @@ func _river() -> void:
 	_path(Vector3(0, 0, 3.2), Vector3(0, 0, RIVER_Z - bspan / 2.0 - 0.4), 2.0)
 	_path(Vector3(0, 0, RIVER_Z + bspan / 2.0 + 0.4), Vector3(0, 0, RIVER_Z + bspan / 2.0 + 4.0), 2.0)
 	_tree(Vector3(-9, 0, 17.5), 1.25); _tree(Vector3(10, 0, 18.5), 1.1); _tree(Vector3(3, 0, 21), 0.95)
+	# 풀밭: 자리가 아니라 구역(반지름 r) — 그 안 아무 데서나 눕는다(운영자: 가운데로 걸어가 눕는 게 어색). 들꽃이 흩어져 있어 눈에 띈다
+	var frng := RandomNumberGenerator.new(); frng.seed = 3
 	for g in [Vector3(-3.5, 0, 16.5), Vector3(4.5, 0, 17.5), Vector3(-0.5, 0, 19.5)]:
-		spots.append({ "pos": g, "kind": "grass", "yaw": PI })
-		for i in 4:   # 꽃 몇 송이로 풀밭 자리를 눈에 띄게
-			var fl := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.06; fs.height = 0.12; fl.mesh = fs
-			fl.material_override = _mat([Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("ffffff")][i]); fl.position = g + Vector3(cos(i * 1.7) * 0.9, 0.06, sin(i * 1.7) * 0.7); _add(fl)
+		spots.append({ "pos": g, "kind": "grass", "yaw": PI, "r": 1.8 })
+		for i in 9:
+			_flower(g + Vector3(frng.randf_range(-1.9, 1.9), 0, frng.randf_range(-1.6, 1.6)), [Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("f7f4ef"), Color("8fb8cc")][frng.randi() % 5], i)
 	spots.append({ "pos": Vector3(-5, 0, RIVER_Z + RIVER_HW + 0.6), "kind": "bank", "yaw": PI })
 	spots.append({ "pos": Vector3(6, 0, RIVER_Z - RIVER_HW - 0.6), "kind": "bank", "yaw": 0.0 })
 	_fence(Vector3(-16, 0, 22.5), 32.0)

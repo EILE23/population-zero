@@ -81,6 +81,25 @@ func _stall(at: Vector3, awning: Color) -> void:
 		g.material_override = _mat([Color("d98a2a"), Color("ff2d55"), Color("e8c766")][i]); g.position = at + Vector3(-0.6 + i * 0.6, 1.02, -0.1); _add(g)
 	spots.append({ "pos": at + Vector3(0, 0, 1.0), "kind": "door", "yaw": PI })   # 손님 자리(서서 고른다)
 
+## 꽃 한 송이 — 줄기(가는 초록 캡슐), 잎 둘, 꽃잎 다섯(납작한 구가 둥글게), 가운데 노란 점. 전엔 색 구 하나였다(운영자 2026-09-28: "꽃들도 그냥 동그라미")
+func _flower(at: Vector3, c: Color, seed := 0) -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = seed + int(at.x * 31.0 + at.z * 17.0)
+	var n := Node3D.new(); n.position = at; n.rotation.y = rng.randf_range(0.0, TAU); n.rotation.z = rng.randf_range(-0.12, 0.12); _add(n)
+	var h := rng.randf_range(0.16, 0.26)
+	var stem := MeshInstance3D.new(); var sm := CapsuleMesh.new(); sm.radius = 0.008; sm.height = h; sm.radial_segments = 6; sm.rings = 2
+	stem.mesh = sm; stem.material_override = _mat(Color("5f8a3e")); stem.position = Vector3(0, h / 2.0, 0); n.add_child(stem)
+	for lx in [-1.0, 1.0]:
+		var leaf := _box(Vector3(0.05, 0.008, 0.025), Vector3(lx * 0.03, h * 0.4, 0), _mat(Color("7a9b4e")), false, n)
+		leaf.rotation.z = lx * 0.5
+	var head := Node3D.new(); head.position = Vector3(0, h, 0); head.rotation.x = rng.randf_range(-0.3, 0.1); n.add_child(head)
+	var petals := 5 + rng.randi() % 2
+	for i in petals:
+		var a := i * TAU / petals
+		var p := MeshInstance3D.new(); var ps := SphereMesh.new(); ps.radius = 0.028; ps.height = 0.02; ps.radial_segments = 8; ps.rings = 4
+		p.mesh = ps; p.material_override = _mat(c); p.position = Vector3(cos(a) * 0.03, 0.0, sin(a) * 0.03); head.add_child(p)
+	var mid := MeshInstance3D.new(); var ms := SphereMesh.new(); ms.radius = 0.014; ms.height = 0.02; ms.radial_segments = 8; ms.rings = 4
+	mid.mesh = ms; mid.material_override = _mat(Color("e8c766")); mid.position = Vector3(0, 0.008, 0); head.add_child(mid)
+
 ## 쓰레기통 — 통 + 어두운 뚜껑 테
 func _bin(at: Vector3) -> void:
 	var b := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.28; cm.bottom_radius = 0.24; cm.height = 0.8

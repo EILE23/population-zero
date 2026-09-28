@@ -216,7 +216,8 @@ func _animals(delta: float) -> void:
 				var want: Vector3 = a.get("wander", a["home"])
 				var spd := 0.0
 				if petted:
-					q.state = "sit"; q.look = true
+					if q.state != "pet": q.act("pet")
+					q.look = true
 				elif a["kind"] == "dog" and d < 3.0 and a.get("follow_until", 0.0) < a["t"] and not q.sulk:
 					a["follow_until"] = a["t"] + 3.0
 				if not petted:
@@ -234,7 +235,7 @@ func _animals(delta: float) -> void:
 								a["wander"] = a["home"] + Vector3(randf_range(-4, 4), 0, randf_range(-3, 3)); a["idle_act"] = ""
 							else:
 								# 서서 하는 동작 하나
-								var acts: Array = ["sit", "lie", "stretch", "yawn"] + (["bow", "roll"] if a["kind"] == "dog" else ["groom", "arch"])
+								var acts: Array = ["sit", "lie", "stretch", "yawn", "scratch"] + (["bow", "roll", "sniff", "sniff", "shake"] if a["kind"] == "dog" else ["groom", "arch"])
 								a["idle_act"] = acts[randi() % acts.size()]; a["wander"] = n.global_position
 								q.act(a["idle_act"])
 						want = a.get("wander", a["home"]); spd = 1.4

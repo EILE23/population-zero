@@ -134,6 +134,14 @@ func _draw() -> void:
 			_ln(Vector2(-2, -4), Vector2(8, -5), Vector2(18, -3)); _ln(Vector2(-2, -4), Vector2(6, -12), Vector2(14, -3))
 			_ln(Vector2(-24, -5 - br), Vector2(-20, -13 - br), Vector2(-31, -12 - br)); _ln(Vector2(-24, -5 - br), Vector2(-26, -13 - br), Vector2(-35, -10 - br))
 			_head(Vector2(-33, -9 - br))
+		"pet":
+			# 쓰다듬기 — stickman.ts 와 같은 점
+			var st := sin(t * 5.5) * 3.0
+			hip = Vector2(-2, -9); shoulder = Vector2(5, -24); head = Vector2(8, -31)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(7, -11), Vector2(5, 0)); _ln(hip, Vector2(3, -12), Vector2(1, 0))
+			_ln(shoulder, Vector2(12 + st, -16), Vector2(16 + st, -7)); _ln(shoulder, Vector2(2, -18), Vector2(6, -12))
+			_head(head)
 		"sit":
 			var br := sin(t * 1.6) * 0.8
 			_ln(Vector2(-2, -4), Vector2(-24, -5 - br))

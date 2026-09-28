@@ -30,6 +30,8 @@ var _fidget_t := 0.0
 var _fidget_next := randf_range(3.0, 8.0)   # 다음 기지개까지 남은 시간(초) — 인스턴스마다 무작위라 여럿이 동시에 하품하지 않는다
 
 var _phase := 0.0
+var _pose_prev := ""
+var _pose_since := 0.0
 var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0
@@ -89,6 +91,8 @@ func _process(delta: float) -> void:
 		lean = -0.12
 	if pose_request == "eat" and not moving:
 		lean = 0.08
+	if pose_request == "pet" and not moving:
+		lean = 0.55; pelvis.position.y = HIP_Y - 0.3   # 쪼그림: 엉덩이가 내려간다
 	if pose_request == "swing":
 		lean = -0.15 - swing_k * 0.25
 	if pose_request == "push":
@@ -99,16 +103,19 @@ func _process(delta: float) -> void:
 		# town 이 몸을 -0.22 내려 하반신은 물속에 감춰진다
 		pelvis.rotation.x = 1.4; lean = 0.0
 		pelvis.position.y = 0.3 + sin(_t * 2.2) * 0.01
-	if pose_request == "sky":
-		# 풀밭에 누워 하늘 보기(2D sky): 등을 대고 한 무릎 세우고 두 손은 머리 뒤, 숨결
-		pelvis.rotation.x = -1.5; lean = 0.05 + sin(_t * 1.6) * 0.02
-		pelvis.position.y = 0.12
+	if pose_request != _pose_prev:
+		_pose_prev = pose_request; _pose_since = _t
+	var pt := clampf((_t - _pose_since) / 0.8, 0.0, 1.0)   # 자세 진입 진행 0..1 (눕기 전환에 쓴다)
+	if pose_request == "sky" or pose_request == "rest":
+		# 눕기(2D sky·rest): 먼저 0.35초 쪼그려 앉듯 엉덩이를 내리고, 그다음 등을 굴려 눕는다 — 전엔 선 채로 툭 넘어갔다
+		var down := smoothstep(0.0, 1.0, (pt - 0.3) / 0.7)
+		var crouch_k := sin(clampf(pt / 0.45, 0.0, 1.0) * PI) * (1.0 - down)
+		pelvis.rotation.x = -1.5 * down
+		pelvis.position.y = lerpf(HIP_Y - 0.22 * crouch_k, 0.12 if pose_request == "sky" else 0.16, down)
+		lean = (0.6 * crouch_k) * (1.0 - down) + ((0.05 if pose_request == "sky" else 0.25) + sin(_t * 1.6) * 0.02) * down
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
-	if pose_request == "rest":
-		pelvis.rotation.x = -1.5; lean = 0.25 + sin(_t * 1.6) * 0.02
-		pelvis.position.y = 0.16
 	torso.rotation.x = lean * 0.45
 	chest.rotation.x = lean * 0.55 + (0.18 * run_k if moving and not airborne else 0.0)  # 달리면 등이 둥글게 말린다
 	torso.rotation.y = -sw * 0.10 * run_k if moving else 0.0
@@ -130,6 +137,10 @@ func _process(delta: float) -> void:
 			var arm := _t * (4.0 + minf(speed, 2.0) * 2.0) + (PI if s < 0.0 else 0.0)
 			hip.rotation.x = -(s * sin(_t * 9.0) * 0.28); knee.rotation.x = -(-0.25)
 			sh.rotation.x = arm; sh.rotation.z = -s * 0.25; el.rotation.x = -(0.5)
+		elif (pose_request == "sky" or pose_request == "rest") and pt < 0.35:
+			# 눕기 전환 앞 절반: 쪼그려 앉는다(무릎 깊이, 손은 앞에 짚을 듯)
+			hip.rotation.x = -(1.2); knee.rotation.x = -(-1.9)
+			sh.rotation.x = -(0.8); sh.rotation.z = -s * 0.15; el.rotation.x = -(0.6)
 		elif pose_request == "sky":
 			# 누워 하늘 보기: 오른 무릎 세움, 왼다리 쭉, 두 팔은 머리 뒤로 접음
 			hip.rotation.x = -(0.95 if s > 0.0 else 0.05); knee.rotation.x = -(-1.7 if s > 0.0 else -0.1)
@@ -184,6 +195,12 @@ func _process(delta: float) -> void:
 			else:
 				hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			sh.rotation.x = -(0.95); sh.rotation.z = -s * 0.12; el.rotation.x = -(1.35)
+		elif pose_request == "pet":
+			# 쓰다듬기: 쪼그려 앉아(두 무릎 깊이 굽힘, 상체 앞으로) 오른손이 등을 앞뒤로 쓸고, 왼손은 무릎에
+			var stroke := sin(_t * 5.5) * 0.25
+			hip.rotation.x = -(1.35); knee.rotation.x = -(-2.1)
+			if s > 0.0: sh.rotation.x = -(1.15 + stroke); sh.rotation.z = -0.2; el.rotation.x = -(0.25)
+			else: sh.rotation.x = -(0.8); sh.rotation.z = 0.1; el.rotation.x = -(1.2)
 		elif pose_request == "wave":
 			# 손 흔들기(2D wave): 오른팔을 머리 위로 들어 좌우로
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
