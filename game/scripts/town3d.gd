@@ -8,6 +8,7 @@ const WALK := 2.6
 const G := 22.0
 ## 점프는 짧은 홉(Climb 의 힘 모으기는 마을에 안 맞는다) — 벤치(0.45m)·계단·낮은 담 위에 올라설 만큼, 집 벽은 못 넘는다
 const HOP := 5.4
+const JUMP_HOLD := 0.35   # 점프 홀드 최대(초) — 누르는 만큼 더 높이·멀리
 const WALL := 0.16
 
 var player: Stick3D
@@ -21,6 +22,7 @@ var idle_since := -1.0
 var action_until := 0.0
 var jump_at := -1.0
 var jump_from_speed := 0.0
+var dash_jump := false     # 대시 중에 뛴 점프인가 — 제트킥은 이때만
 var was_airborne := false
 var land_until := -1.0
 var jet := false           # 제트킥 비행 중 — 착지까지 자세 유지, 조작 불가   # 착지 반동(무릎 꺾임) 끝나는 시각
@@ -359,11 +361,17 @@ func _physics_process(delta: float) -> void:
 	if not grounded:
 		v.y -= G * delta
 	elif Input.is_action_just_pressed("jump") and jump_at < 0.0:
-		jump_at = now + 0.1  # 0.1초 웅크렸다 뛴다 — 2D 의 charge 자세처럼 점프가 읽힌다
-	if jump_at >= 0.0 and now >= jump_at:
-		# 관성: 달리던 속도의 12% 만큼 더 높이(마리오식). 수평 속도는 그대로 실려 멀리 간다
-		v.y = HOP + hv.length() * 0.12; jump_at = -1.0
-		jump_from_speed = hv.length()
+		jump_at = now  # 누르기 시작 — 누르는 동안 웅크려 힘을 모은다(최대 JUMP_HOLD), 떼면 뛴다
+	if jump_at >= 0.0 and grounded:
+		var held := minf(JUMP_HOLD, now - jump_at)
+		if Input.is_action_just_released("jump") or held >= JUMP_HOLD:
+			var k := held / JUMP_HOLD
+			# 짧게: 홉. 길게: 더 높이(+35%)와 더 멀리(달리던 방향으로 +2.2). 관성: 달리던 속도의 12% 만큼 더 높이
+			v.y = HOP * (1.0 + 0.35 * k) + hv.length() * 0.12
+			if hv.length() > 0.5:
+				var f := hv.normalized(); v.x += f.x * 2.2 * k; v.z += f.z * 2.2 * k
+			jump_from_speed = hv.length(); dash_jump = running or now < dash_until
+			jump_at = -1.0
 	if push_at >= 0.0 and now >= push_at:
 		var f := fwd_dir()
 		v += f * push_amount; v.y = maxf(v.y, push_lift) if push_lift > 0.0 else v.y
@@ -379,6 +387,7 @@ func _physics_process(delta: float) -> void:
 	if jet and body.is_on_floor() and body.velocity.y <= 0.0 and not was_airborne:
 		was_airborne = true  # 뜨지 못한 제트킥은 이번 프레임에 착지로 처리(안전장치)
 	if was_airborne and body.is_on_floor():
+		dash_jump = false
 		if player.vertical < -4.5 or jet:
 			land_until = now + (0.2 if jet else 0.12)
 		if jet:
@@ -386,7 +395,7 @@ func _physics_process(delta: float) -> void:
 			body.velocity = Vector3(body.velocity.x * 0.35, 0, body.velocity.z * 0.35)
 	was_airborne = not body.is_on_floor()
 	var land_k := clampf((land_until - now) / 0.12, 0.0, 1.0) * 0.6 if land_until > now else 0.0
-	player.crouch = 1.0 if jump_at >= 0.0 else land_k
+	player.crouch = (minf(1.0, (now - jump_at) / JUMP_HOLD) * 0.8 + 0.2) if jump_at >= 0.0 else land_k
 	player.airborne = not body.is_on_floor()
 	player.jet = jet
 	player.vertical = body.velocity.y
@@ -419,15 +428,17 @@ func _physics_process(delta: float) -> void:
 				hit_kind = "air" if not grounded else "punch"
 			player.action = "punch"
 		elif Input.is_action_just_pressed("kick"):
-			if not grounded or hv.length() > 0.8:  # 움직이는 중이면 무조건 제트킥(운영자: 발차기는 그림의 형태)
+			if not grounded and dash_jump:  # 제트킥은 대시 중 점프 → 공중에서 Z 일 때만(운영자 2026-09-28)
 				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
 				jet = true; player.action = "kick"; action_until = now + 9.0; hit_kind = "jet"
 				var f := fwd_dir()
-				body.velocity = Vector3(f.x * 9.0, (4.2 if grounded else maxf(body.velocity.y, 1.6)), f.z * 9.0)  # 그 자리에서 몸에 적용(버그: move_and_slide 뒤라 v 만 바꾸면 뜨지 못했다)
+				body.velocity = Vector3(f.x * 6.0, maxf(body.velocity.y, 1.6), f.z * 6.0)  # 비거리 9→6(너무 멀리 나갔다)  # 그 자리에서 몸에 적용(버그: move_and_slide 뒤라 v 만 바꾸면 뜨지 못했다)
 				was_airborne = true
 			else:
-				player.action = "kick"; action_until = now + 0.34; hit_kind = "kick"
-				push_at = now + 0.34 * 0.15; push_amount = 1.0; push_lift = 0.0  # 차는 순간 몸이 앞으로 쏠린다
+				player.action = "kick"; action_until = now + 0.34
+				# 달리는 중 Z 는 강한 러닝 킥(넘어뜨림, 앞으로 크게 밀림); 공중은 점프킥; 서서는 보통 발차기
+				hit_kind = "runkick" if (grounded and running) else "kick"
+				push_at = now + 0.34 * 0.15; push_amount = 2.6 if hit_kind == "runkick" else (1.6 if not grounded else 1.0); push_lift = 0.0
 	if throw_at >= 0.0 and now >= throw_at and player.carrying:
 		throw_at = -1.0
 		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
@@ -456,8 +467,8 @@ var shake_until := -1.0
 
 ## 앞 부채꼴(70°) 안, 사거리 안의 주민을 맞힌다. 무거운 한 방(제트킥·점프 주먹·훅)은 바로 넘어진다
 func _strike(kind: String) -> void:
-	var reach := 1.3 if kind == "jet" else (1.1 if kind == "kick" else 0.95)
-	var heavy := kind == "jet" or kind == "air" or (kind == "punch" and player.punch_kind == "hook")
+	var reach := 1.3 if kind == "jet" else (1.15 if kind == "kick" or kind == "runkick" else 0.95)
+	var heavy := kind == "jet" or kind == "air" or kind == "runkick" or (kind == "punch" and player.punch_kind == "hook")
 	var f := fwd_dir(); var p := body.global_position
 	var now := Time.get_ticks_msec() / 1000.0
 	for r in residents:
