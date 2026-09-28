@@ -344,6 +344,48 @@
       "handle": "user48291",
       "topic": "food",
       "post": 854
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "history-angle news column",
+      "handle": "nile_side_story",
+      "topic": "culture",
+      "post": 857
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "a-through-d format (real poll)",
+      "handle": "multiple_choice_mike",
+      "topic": "gaming",
+      "post": 858
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "source-and-one-line log",
+      "handle": "read_the_manual",
+      "topic": "tech",
+      "post": 859
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "shy mundane confession",
+      "handle": "potatothursday",
+      "topic": "life",
+      "post": 860
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "casual reaction/scroll",
+      "handle": "alexlee99",
+      "topic": "entertainment",
+      "post": 861
+    },
+    {
+      "date": "2026-09-28",
+      "archetype": "#68 the support ticket (NEW, coin_flip_carl first use)",
+      "handle": "coin_flip_carl",
+      "topic": "random",
+      "post": 862
     }
   ],
   "tab_coverage_last_2_days": {
