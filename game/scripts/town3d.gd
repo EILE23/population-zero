@@ -17,6 +17,9 @@ var last_tap := ""
 var last_tap_at := -1.0
 var dash_until := -1.0
 var action_until := 0.0
+var jump_at := -1.0
+var throw_at := -1.0
+var flying: Array = []   # 던져진 것 {node, vel, spin} — 포물선으로 날다 바닥에 떨어져 다시 집을 수 있다
 var seat: Dictionary = {}       # 앉아 있는 벤치 {pos, yaw}
 var items: Array[Node3D] = []   # 바닥에 있는 집을 수 있는 것
 var benches: Array = []         # {pos: Vector3, yaw: float}
@@ -242,7 +245,8 @@ func _physics_process(delta: float) -> void:
 	if not seat.is_empty():
 		if dir != Vector3.ZERO or Input.is_action_just_pressed("jump"):
 			seat = {}; player.seated = false
-			body.position = Vector3(body.position.x, 0.02, body.position.z + 0.45)
+			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_QUAD)
+			tw.tween_property(body, "position", Vector3(body.position.x, 0.02, body.position.z + 0.45), 0.25)
 		else:
 			_interact_check(now)
 			return
@@ -252,7 +256,7 @@ func _physics_process(delta: float) -> void:
 				dash_until = now + 0.18
 			last_tap = a; last_tap_at = now
 	var speed := WALK * (2.2 if now < dash_until else 1.0)
-	var can_move := action_until < now
+	var can_move := not (player.action == "throw" and action_until >= now)
 	var v := body.velocity
 	if can_move and dir != Vector3.ZERO:
 		v.x = dir.x * speed; v.z = dir.z * speed
@@ -263,26 +267,55 @@ func _physics_process(delta: float) -> void:
 		player.move_dir = Vector3.ZERO; player.speed = 0.0
 	if not grounded:
 		v.y -= G * delta
-	elif Input.is_action_just_pressed("jump"):
-		v.y = HOP
+	elif Input.is_action_just_pressed("jump") and jump_at < 0.0:
+		jump_at = now + 0.1  # 0.1초 웅크렸다 뛴다 — 2D 의 charge 자세처럼 점프가 읽힌다
+	if jump_at >= 0.0 and now >= jump_at:
+		v.y = HOP; jump_at = -1.0
 	body.velocity = v
 	body.move_and_slide()
 	body.position.x = clampf(body.position.x, -15.0, 15.0)
 	body.position.z = clampf(body.position.z, -9.0, 9.0)
-	player.crouch = 0.0
+	player.crouch = 1.0 if jump_at >= 0.0 else 0.0
 	player.airborne = not body.is_on_floor()
 	player.vertical = body.velocity.y
-	if grounded and action_until < now:
+	# X·Z 는 공중에서도 된다(점프킥·점프 주먹). 들고 있을 때 X 는 던지기(웹 규칙)
+	if action_until < now:
 		if Input.is_action_just_pressed("hit"):
-			player.action = "punch"; action_until = now + 0.28
+			if player.carrying:
+				player.action = "throw"; action_until = now + 0.42; throw_at = now + 0.42 * 0.5
+			else:
+				player.action = "punch"; action_until = now + 0.28
 		elif Input.is_action_just_pressed("kick"):
-			player.action = "kick"; action_until = now + 0.32
+			player.action = "kick"; action_until = now + 0.34
+			if not grounded:
+				body.velocity += fwd_dir() * 1.5  # 점프킥은 앞으로 조금 실린다
+	if throw_at >= 0.0 and now >= throw_at and player.carrying:
+		throw_at = -1.0
+		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
+		flying.append({ "node": it, "vel": fwd_dir() * 7.5 + Vector3(0, 3.2, 0) + Vector3(body.velocity.x, 0, body.velocity.z) * 0.5, "spin": randf_range(4.0, 9.0) })
 	if action_until >= now:
-		var dur := 0.28 if player.action == "punch" else (0.32 if player.action == "kick" else 0.4)
+		var dur := 0.28 if player.action == "punch" else (0.34 if player.action == "kick" else (0.42 if player.action == "throw" else 0.4))
 		player.action_t = 1.0 - (action_until - now) / dur
 	else:
 		player.action = ""; player.action_t = 0.0
 	_interact_check(now)
+	_fly(delta)
+
+func fwd_dir() -> Vector3:
+	return Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
+
+## 던져진 것의 포물선 — 중력, 바닥에 닿으면 멈추고 다시 집을 수 있는 목록으로
+func _fly(delta: float) -> void:
+	for f in flying.duplicate():
+		var n: Node3D = f["node"]
+		f["vel"] += Vector3(0, -G, 0) * delta
+		n.global_position += f["vel"] * delta
+		n.rotation.x += f["spin"] * delta
+		if n.global_position.y <= 0.06:
+			n.global_position.y = 0.06
+			n.rotation = Vector3.ZERO
+			flying.erase(f)
+			items.append(n)
 
 ## C — 들고 있으면 앞에 내려놓기; 아니면 가장 가까운 것: 물건(0.8m) · 문(1.3m) · 벤치(1.0m)
 func _interact_check(now: float) -> void:
@@ -324,8 +357,9 @@ func _interact_check(now: float) -> void:
 			player.seated = true
 			player.move_dir = Vector3.ZERO; player.speed = 0.0
 			body.velocity = Vector3.ZERO
-			body.position = b["pos"] + Vector3(0, 0.03, 0.02)
-			player.rotation.y = b["yaw"]
+			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+			tw.tween_property(body, "position", b["pos"] + Vector3(0, 0.03, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
+			player.face(b["yaw"])
 
 func _process(delta: float) -> void:
 	# 3/4 시점: 플레이어 뒤·위에서 내려다본다. 부드럽게 따라오고 세계 끝에서 멈춘다

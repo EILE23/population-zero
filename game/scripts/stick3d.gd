@@ -37,6 +37,8 @@ var carrying: Node3D = null    # 오른손에 든 것(hand_r 의 자식)
 var _phase := 0.0
 var _t := 0.0
 var _yaw := 0.0
+var _yaw_target := 0.0
+var _pivots: Array[Node3D] = []   # 블렌딩 대상 관절 전부
 var _mat: StandardMaterial3D
 var _head_mat: StandardMaterial3D
 var pelvis: Node3D
@@ -83,6 +85,7 @@ func _ready() -> void:
 		_bone(el, -FORE, _mat)
 		_joint(el, 1.05)
 		shoulders[side] = sh; elbows[side] = el
+	_pivots = [torso, neck, hips[-1.0], hips[1.0], knees[-1.0], knees[1.0], shoulders[-1.0], shoulders[1.0], elbows[-1.0], elbows[1.0]]
 	hand_r = _pivot(elbows[1.0], Vector3(0, -FORE, 0))
 	_joint(hand_r, 1.0)
 	hand_l = _pivot(elbows[-1.0], Vector3(0, -FORE, 0))
@@ -96,9 +99,7 @@ func _ready() -> void:
 func _material(c: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
-	m.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
-	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	m.roughness = 1.0
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED  # 잉크 선처럼 평평하게(운영자: 2D 느낌) — 툰 명암을 주면 튜브로 보였다
 	return m
 
 func _pivot(parent: Node3D, at: Vector3) -> Node3D:
@@ -151,9 +152,14 @@ func _process(delta: float) -> void:
 	var moving := move_dir.length_squared() > 0.0001 and speed > 0.05 and not seated
 	# 몸 방향 — 이동 방향으로 부드럽게(초당 약 10rad 로 수렴). 서 있으면 마지막 방향 유지
 	if moving:
-		var want := atan2(move_dir.x, move_dir.z)
-		_yaw = lerp_angle(_yaw, want, minf(1.0, delta * 10.0))
+		_yaw_target = atan2(move_dir.x, move_dir.z)
+	_yaw = lerp_angle(_yaw, _yaw_target, minf(1.0, delta * 10.0))
 	rotation.y = _yaw
+	# 자세 블렌딩 — 이 프레임의 목표 각도를 아래에서 곧장 대입한 뒤, 끝에서 이전 각도와 섞는다(앉기·일어서기가 딱딱하지 않게)
+	var prev := {}
+	for pv in _pivots:
+		prev[pv] = pv.rotation
+	var prev_pelvis_y := pelvis.position.y
 	# 걸음 위상은 거리로 — 빠르면 빨리, 멈추면 멈춘다
 	if moving and not airborne:
 		_phase += speed * delta / STRIDE * TAU
@@ -186,11 +192,13 @@ func _process(delta: float) -> void:
 		elif airborne:
 			# 점프: 오를 땐 무릎을 당기고 팔을 위로, 내릴 땐 다리를 내리고 팔을 벌린다
 			var up := vertical > 0.0
-			hip.rotation.x = -(0.9 if up else 0.2)
-			knee.rotation.x = -(-1.4 if up else -0.5)
-			sh.rotation.x = -(2.4 if up else 1.0)
-			sh.rotation.z = -s * (0.25 if up else 0.9)
-			el.rotation.x = -(0.3 if up else 0.6)
+			var fl := sin(_t * 22.0) * 0.5
+			if up:
+				hip.rotation.x = -(1.1); knee.rotation.x = -(-1.6)            # 무릎 바싹
+				sh.rotation.x = -(2.9); sh.rotation.z = -s * 0.2; el.rotation.x = -(0.15)  # 팔 머리 위로 쭉
+			else:
+				hip.rotation.x = -(0.5 * s); knee.rotation.x = -(-0.3)        # 한 다리 앞, 한 다리 뒤
+				sh.rotation.x = -(2.5); sh.rotation.z = -s * (0.6 + fl); el.rotation.x = -(0.3 - fl * 0.4)  # 허우적
 		elif crouch > 0.0:
 			hip.rotation.x = -(1.0 * crouch)
 			knee.rotation.x = -(-1.7 * crouch)
@@ -199,13 +207,13 @@ func _process(delta: float) -> void:
 			el.rotation.x = -(1.0 * crouch)
 		elif moving:
 			# 다리: 허벅지 ±43°·뒤로 갈 때 무릎 접힘(2D 와 같은 규칙)
-			var a := s * sw * 0.75 * run_k
+			var a := s * sw * 0.9 * run_k
 			hip.rotation.x = -(a)
-			knee.rotation.x = -(-(1.35 if a < 0.0 else 0.15) * run_k)
-			# 팔: 다리와 반대 위상, 팔꿈치 90° 근처로 접혀 손이 앞·위로
-			sh.rotation.x = -(-a * 1.1)
+			knee.rotation.x = -(-(1.4 if a < 0.0 else 0.2) * run_k)
+			# 팔: 다리와 반대 위상(2D: 1.05), 팔꿈치는 2D 의 1.7 에 가깝게 접혀 손이 가슴 앞을 오간다
+			sh.rotation.x = -(-s * sw * 1.05 * run_k)
 			sh.rotation.z = -s * 0.10
-			el.rotation.x = -(1.25 * run_k)
+			el.rotation.x = -(1.5 * run_k)
 		else:
 			# 서 있음: 팔은 늘어뜨리고 숨 쉬듯 미세하게
 			hip.rotation.x = -(0.0)
@@ -217,20 +225,49 @@ func _process(delta: float) -> void:
 	if carrying and not airborne:
 		shoulders[1.0].rotation.x = -(0.55)
 		elbows[1.0].rotation.x = -(1.15)
-	# 잠깐의 동작 — 오른팔 주먹 / 오른다리 발차기 / 허리 숙여 집기(진행 0→1: 나갔다 돌아온다)
+	# 잠깐의 동작 — 2D 자세를 그대로: 빨리 나갔다(35%) 천천히 돌아온다(65%). 공중에서도 된다(점프킥·점프 주먹)
 	if action != "":
-		var k := sin(clampf(action_t, 0.0, 1.0) * PI)
+		var a := clampf(action_t, 0.0, 1.0)
+		var k := smoothstep(0.0, 1.0, a / 0.35) if a < 0.35 else 1.0 - smoothstep(0.0, 1.0, (a - 0.35) / 0.65)
 		if action == "punch":
-			shoulders[1.0].rotation.x = -(1.55 * k)
-			elbows[1.0].rotation.x = -(1.2 * (1.0 - k) + 0.05 * k)
-			torso.rotation.y = -0.35 * k
+			# 2D punch: 상체 앞으로, 뻗은 팔 수평으로 쭉, 뒷팔 당김, 다리 벌림
+			shoulders[1.0].rotation.x = -(1.6 * k); elbows[1.0].rotation.x = -(0.05 * k + 0.12 * (1.0 - k)); shoulders[1.0].rotation.z = -0.05
+			shoulders[-1.0].rotation.x = -(-0.7 * k); elbows[-1.0].rotation.x = -(0.9 * k)
+			torso.rotation.y = -0.45 * k; torso.rotation.x = 0.15 * k
+			if not airborne:
+				hips[1.0].rotation.x = -(0.35 * k); hips[-1.0].rotation.x = -(-0.35 * k)
 		elif action == "kick":
-			hips[1.0].rotation.x = -(1.4 * k)
-			knees[1.0].rotation.x = -(-0.2 * k)
-			torso.rotation.x = -0.25 * k
+			# 2D kick: 디딤발 하나, 찬 발이 앞으로 높이 쭉, 몸은 뒤로 기움, 팔은 균형
+			hips[1.0].rotation.x = -(1.5 * k); knees[1.0].rotation.x = -(-0.1 * k)
+			torso.rotation.x = -0.3 * k
+			shoulders[1.0].rotation.x = -(-0.6 * k); shoulders[-1.0].rotation.x = -(0.8 * k); elbows[-1.0].rotation.x = -(0.6 * k)
+			if not airborne:
+				knees[-1.0].rotation.x = -(-0.25 * k)
+		elif action == "throw":
+			# 2D throw: 앞 절반은 팔을 뒤로 높이 감고(뒷다리에 체중), 뒤 절반은 앞으로 쭉 뻗어 놓는다
+			var back := a < 0.45
+			var w := smoothstep(0.0, 1.0, a / 0.45) if back else smoothstep(0.0, 1.0, (a - 0.45) / 0.3)
+			shoulders[1.0].rotation.x = -(-2.4 * w) if back else -(lerpf(-2.4, 1.3, w))
+			elbows[1.0].rotation.x = -(1.0 * w) if back else -(lerpf(1.0, 0.1, w))
+			torso.rotation.y = (0.5 * w) if back else lerpf(0.5, -0.4, w)
+			torso.rotation.x = (-0.15 * w) if back else lerpf(-0.15, 0.3, w)
+			if not airborne:
+				hips[1.0].rotation.x = -(-0.3); hips[-1.0].rotation.x = -(0.3)
 		elif action == "grab":
 			torso.rotation.x = 0.9 * k
 			hips[1.0].rotation.x = -(0.35 * k); hips[-1.0].rotation.x = -(0.35 * k)
 			knees[1.0].rotation.x = -(-0.7 * k); knees[-1.0].rotation.x = -(-0.7 * k)
 			shoulders[1.0].rotation.x = -(1.3 * k)
 			elbows[1.0].rotation.x = -(0.2 * k)
+	# 블렌딩 속도: 동작 중엔 아주 빠르게(주먹이 0.28초라 뭉개지면 안 된다), 앉기·웅크림은 느리게, 걷기는 중간
+	var rate := 34.0 if action != "" else (9.0 if seated or crouch > 0.0 else 18.0)
+	var k := minf(1.0, delta * rate)
+	for pv in _pivots:
+		var want: Vector3 = pv.rotation
+		var was: Vector3 = prev[pv]
+		pv.rotation = Vector3(lerp_angle(was.x, want.x, k), lerp_angle(was.y, want.y, k), lerp_angle(was.z, want.z, k))
+	pelvis.position.y = lerpf(prev_pelvis_y, pelvis.position.y, k)
+
+## 바깥에서 방향을 정한다(벤치에 앉을 때 등) — 부드럽게 돌아간다
+func face(yaw: float) -> void:
+	_yaw_target = yaw
