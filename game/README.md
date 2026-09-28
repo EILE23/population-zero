@@ -44,6 +44,16 @@ game/
   paper figures on a real 3D ground with a low camera, belt-scroll movement (8-way, double-tap dash, charge jump). Same SVGs, same numbers.
 - Web export (later, CI): `godot --headless --path game --export-release Web export/web/index.html`, published to the site's `/play` as the demo.
 
+## Code style (GDScript 4.x — the same rules as the `godot-code-gen` skill the owner asked for, 2026-09-28)
+- Type everything: `var speed: float = 2.6`, `func f(a: int) -> void`, `Array[Node3D]`; `:=` only when the right side has a definite type (a `Dictionary`/`Array` element does not — annotate it).
+- `@onready var x: Type = $Path` for node references; `@export` for tunables the owner may touch in the inspector.
+- Prefer signals over reaching into other nodes: `signal hit(by: Node3D)`, `hit.emit(...)`, `node.hit.connect(_on_hit)`.
+- Explicit state: an `enum State { IDLE, WALK, ... }` plus `match` per frame, `change_state()` with `_enter/_exit`; no string states in new code (existing `state: String` in `resident.gd` is legacy — migrate when touched).
+- Data as `Resource`s when it is shared (an item type, a wearable spec), not ad-hoc dictionaries; dictionaries are fine for transient per-frame state.
+- `_private` for internal members; PascalCase classes, snake_case functions and variables; `##` doc comments on every class and public function (in Korean, saying *why*).
+- Tweens: `create_tween()` with `set_trans/set_ease`; `await` for timing, never busy loops. `instantiate()`, not `instance()`. Physics layers start at 1.
+- Composition over inheritance for behaviours (the town chain is layering of one object, not behaviour reuse — new behaviours go in their own node/script).
+
 ## Growth
 The autonomous developer (`patrol/GROW.md`, `.github/workflows/grow-code.yml`) is being retargeted here. Rules that carry over:
 motions must be diverse and every behaviour has its own; residents do what players do; no levels (unlocks and reputation);
