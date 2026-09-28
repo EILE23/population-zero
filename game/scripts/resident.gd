@@ -117,8 +117,9 @@ func _physics_process(delta: float) -> void:
 					target = route[0]["pos"]
 			else:
 				var dir := to.normalized()
-				v.x = dir.x * WALK; v.z = dir.z * WALK
-				fig.move_dir = dir; fig.speed = WALK
+				var spd := WALK * (1.7 if weather == "rain" else 1.0)  # 비 오면 서두른다
+				v.x = dir.x * spd; v.z = dir.z * spd
+				fig.move_dir = dir; fig.speed = spd
 				if Vector2(velocity.x, velocity.z).length() < 0.3:
 					if stuck_since < 0.0: stuck_since = now
 					elif now - stuck_since > 1.5:  # 벽에 막힘 — 다른 자리
@@ -169,10 +170,26 @@ func _physics_process(delta: float) -> void:
 	velocity = v
 	move_and_slide()
 
+var weather := "clear"
+
+## 날씨 바뀜 — 비면 지금 하던 걸 접고 실내로 서두른다(밖 자리에 있었으면 바로 다시 고른다)
+func on_weather(w: String) -> void:
+	weather = w
+	if w == "rain" and state in ["busy", "walk", "routine"] and not (spot.get("kind", "") in ["chair", "bed", "shelf"]):
+		fig.seated = false; fig.pose_request = ""
+		if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
+		state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.0, 1.5)
+		say(["Rain.", "Of course.", "Inside, then."][uid % 3], 1.5)
+
 func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
-	spot = town.spots[randi() % town.spots.size()]
+	if weather == "rain":
+		# 비: 실내(의자·침대·선반) 아니면 차양 아래(문 앞)만 고른다
+		var dry: Array = town.spots.filter(func(sp): return sp["kind"] in ["chair", "bed", "shelf", "door"])
+		spot = dry[randi() % dry.size()] if not dry.is_empty() else town.spots[randi() % town.spots.size()]
+	else:
+		spot = town.spots[randi() % town.spots.size()]
 	route = []
 	if (spot["kind"] == "chair" or spot["kind"] == "bed" or spot["kind"] == "shelf") and spot.has("door"):
 		# 집 안 의자: 문 앞 → 문 열기 → 의자. 나올 땐 _leave 가 반대로
