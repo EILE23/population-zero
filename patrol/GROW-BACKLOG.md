@@ -453,4 +453,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] 3D town — reaching roofs: stairs at the side of one house, a ladder on another, crates you can hop up; rooftops solid so you can stand on them (the owner asked "건물 위 같은 건 올라가지지도 않고").
 - [ ] 3D town — interiors: floor, a bed, a table and chairs inside each house you can walk into; the door closes behind residents; a resident owns each house.
 - [ ] 3D town — items in hands: apple can be eaten (`eat` pose, three bites, core dropped), cup drunk then binned, newspaper read on a bench (`read` pose); throw with X while carrying (the web's rule) with a real arc and a knock-down on hit.
-- [ ] (town wish, 2026-09-28) Add a raccoon NPC that raids open bins, tugs at pockets of recently knocked residents to grab small props (interruptible by shooing or offering food), and sleeps in alley den spots so players can shoo or befriend it.
+- [ ] (town wish, 2026-09-28) Add a stray dog NPC that wanders the riverpath and street, sits beside shoved residents to bark at approaching humans, and trots after anyone carrying a bakery item until fed.
