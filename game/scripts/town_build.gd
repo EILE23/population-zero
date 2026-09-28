@@ -291,6 +291,8 @@ func _market(at: Vector3) -> void:
 		_stall(at + Vector3(-7.5 + i * 5.0, 0, -1.5), [Color("ad7096"), Color("7a9b4e"), Color("e8c766"), Color("8fb8cc")][i])
 	_house(at + Vector3(-6, 0, -8), Vector3(5.0, 2.8, 3.6), Color("e6d3a5"), "accent-deep", false, 11)  # 빵집(집 생성기)
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
+	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"))   # 빵집 창구(정면 왼쪽)
+	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
 	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
 	_bin(at + Vector3(-9.5, 0, -0.5)); _bin(at + Vector3(9.5, 0, -0.5))
 	_bench(at + Vector3(0, 0, 5.5))
@@ -310,8 +312,17 @@ func _swing(at: Vector3) -> void:
 		rope.position = Vector3(rx, -L / 2.0, 0); pivot.add_child(rope)
 	var seat := MeshInstance3D.new(); var sm := BoxMesh.new(); sm.size = Vector3(0.6, 0.05, 0.25); seat.mesh = sm; seat.material_override = wood
 	seat.position = Vector3(0, -L, 0); pivot.add_child(seat)
-	swings.append({ "pivot": pivot, "len": L, "angle": 0.0, "vel": 0.0, "at": at })
-	spots.append({ "pos": at + Vector3(0, 0, 0.6), "kind": "door", "yaw": PI })  # 주민은 아직 구경만(다음 조각: 주민도 탄다)
+	var sw := { "pivot": pivot, "len": L, "angle": 0.0, "vel": 0.0, "at": at, "rider": null, "pusher": null, "push_at": 0.0 }
+	swings.append(sw)
+	spots.append({ "pos": at, "kind": "swing", "yaw": 0.0, "swing": sw })  # 주민도 탄다(한 명), 누가 타면 다른 주민이 뒤에서 밀어 준다
+
+## 창구 — 벽 앞의 작은 카운터와 차양, 진열된 물건. C 로 물건을 받는다(spots kind "counter")
+func _counter(at: Vector3, item: String, c: Color) -> void:
+	_box(Vector3(1.2, 0.95, 0.5), at, _mat(c))
+	var awn := _box(Vector3(1.4, 0.05, 0.7), at + Vector3(0, 1.9, 0.15), _mat(Color("ad7096")), false); awn.rotation.x = 0.2
+	for i in 3:
+		var g := make_item(item, at + Vector3(-0.35 + i * 0.35, 0.95, 0.05)); items.erase(g)   # 진열용(집을 수 없음)
+	spots.append({ "pos": at + Vector3(0, 0, 0.8), "kind": "counter", "yaw": PI, "item": item })
 
 func _stall(at: Vector3, awning: Color) -> void:
 	var wood := _mat(Color("8a6a4a"))

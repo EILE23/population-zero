@@ -39,6 +39,7 @@ var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
 var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "" 
 var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
+var push_t := 9.0              # 밀기: 0 에서 시작해 1 까지(팔을 뻗었다 거둔다), 9 = 쉼
 
 var _phase := 0.0
 var _t := 0.0
@@ -212,6 +213,9 @@ func _process(delta: float) -> void:
 		lean = 0.08
 	if pose_request == "swing":
 		lean = -0.15 - swing_k * 0.25
+	if pose_request == "push":
+		push_t += delta * 1.6
+		lean = 0.25 if push_t < 0.3 else 0.08
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
@@ -255,6 +259,11 @@ func _process(delta: float) -> void:
 			# 서서 읽기(2D read): 두 손이 가슴 앞, 고개 숙임
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			sh.rotation.x = -(0.5); sh.rotation.z = -s * 0.15; el.rotation.x = -(1.7)
+		elif pose_request == "push":
+			# 그네 밀기: 두 팔을 앞으로 내밀어 좌석을 밀고(0→0.3) 거둔다(0.3→1). 쉴 땐 팔을 앞에 반쯤 든 채 기다린다
+			var k := (smoothstep(0.0, 1.0, push_t / 0.3) if push_t < 0.3 else 1.0 - smoothstep(0.0, 1.0, (push_t - 0.3) / 0.7)) if push_t < 1.0 else 0.0
+			hip.rotation.x = -(0.15 * k * (1.0 if s > 0.0 else -1.0)); knee.rotation.x = -(-0.1)
+			sh.rotation.x = -(0.9 + 0.8 * k); sh.rotation.z = -s * 0.1; el.rotation.x = -(1.1 - 0.9 * k)
 		elif pose_request == "swing":
 			# 그네(2D swing): 두 손은 위로 줄을 잡고, 앞으로 갈 때 다리를 뻗고 돌아올 때 접는다. 엉덩이는 좌석에
 			hip.rotation.x = -(1.4 - swing_k * 0.5); knee.rotation.x = -(-1.2 + swing_k * 1.0)

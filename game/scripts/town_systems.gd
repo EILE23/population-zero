@@ -27,16 +27,50 @@ func _cutaway() -> void:
 				n.visible = not inside
 
 ## 진자 물리 — 매 프레임. 타고 있으면 몸이 좌석을 따라가고 ← → 가 흔들림 방향으로 밀어 준다
+## 좌석의 세계 위치와 각도(주민이 탈 때 쓴다)
+func swing_seat(sw: Dictionary) -> Vector3:
+	var pv: Node3D = sw["pivot"]; var L: float = sw["len"]
+	return pv.global_position + Vector3(0, -L * cos(sw["angle"]), -L * sin(sw["angle"]))
+
+## 밀어 줄 주민 부르기 — 8m 안의 한가한 주민 하나
+func _call_pusher(sw: Dictionary) -> void:
+	for r in residents:
+		if r.state in ["routine", "walk"] and r.global_position.distance_to(sw["at"]) < 8.0 and r.spot.get("kind", "") != "swing":
+			r.go_push(sw); sw["pusher"] = r; return
+
 func _swings(delta: float) -> void:
 	for sw in swings:
 		var g := 9.8; var L: float = sw["len"]
 		var acc := -g / L * sin(sw["angle"])
-		if not riding.is_empty() and riding == sw:
+		var me_on: bool = not riding.is_empty() and riding == sw
+		if me_on:
+			sw["rider"] = "player"
 			var pump := Input.get_axis("move_up", "move_down")   # ↓ = 앞으로 밀기(+z), ↑ = 뒤로
 			if absf(pump) > 0.1 and absf(sw["vel"]) > 0.05:
 				acc += signf(sw["vel"]) * 2.2 * absf(pump) if (signf(pump) == signf(sw["vel"])) else 0.0
 			elif absf(pump) > 0.1:
 				acc += pump * 1.2   # 정지 상태에서 시동
+			elif absf(sw["vel"]) > 0.05:
+				acc += signf(sw["vel"]) * 0.35   # 조작 안 해도 몸이 저절로 조금 굴러 죽지 않는다
+			# 아무도 안 밀면 8m 안의 한가한 주민을 불러 밀게 한다
+			if sw["pusher"] == null and absf(Input.get_axis("move_up", "move_down")) < 0.1:
+				_call_pusher(sw)
+		elif sw["rider"] is Node and is_instance_valid(sw["rider"]):
+			# 주민이 탐: 스스로 굴러 민다
+			if absf(sw["vel"]) > 0.05: acc += signf(sw["vel"]) * 1.4
+			else: acc += 1.0
+		elif sw["rider"] == "player":
+			sw["rider"] = null
+		# 미는 사람: 좌석이 뒤(−z, 각 < 0)로 돌아와 멈추는 순간 앞으로 민다
+		var pusher = sw["pusher"]
+		if pusher != null:
+			if not (pusher is Node and is_instance_valid(pusher)) and pusher != "player":
+				sw["pusher"] = null
+			elif sw["angle"] < -0.2 and sw["vel"] > -0.3 and sw["vel"] < 0.3 and Time.get_ticks_msec() / 1000.0 - sw["push_at"] > 1.0:
+				acc += 2.6 * 60.0 * delta / delta * 0.0 + 0.0
+				sw["vel"] += 1.3; sw["push_at"] = Time.get_ticks_msec() / 1000.0
+				if pusher is Node: pusher.fig.push_t = 0.0
+				else: player.push_t = 0.0
 		sw["vel"] += acc * delta
 		sw["vel"] *= 1.0 - 0.15 * delta   # 공기 저항
 		sw["angle"] += sw["vel"] * delta

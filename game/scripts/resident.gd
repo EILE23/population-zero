@@ -140,6 +140,12 @@ func _physics_process(delta: float) -> void:
 		"busy":
 			v.x = 0.0; v.z = 0.0
 			fig.move_dir = Vector3.ZERO; fig.speed = 0.0
+			if not riding_swing.is_empty():
+				global_position = town.swing_seat(riding_swing) + Vector3(0, -0.39, 0)
+				fig.swing_k = clampf(riding_swing["vel"] / 3.0, -1.0, 1.0); fig.rotation.x = riding_swing["angle"]
+				v.y = 0.0
+			else:
+				fig.rotation.x = 0.0
 			if now >= busy_until:
 				_leave()
 		"down":
@@ -186,6 +192,8 @@ func _physics_process(delta: float) -> void:
 			if dl < 0.5 and dl > 0.001:
 				v += dv.normalized() * (0.5 - dl) * 6.0   # 가까울수록 세게 비킨다
 	velocity = v
+	if fig.seated or not riding_swing.is_empty():
+		return   # 앉거나 그네를 탈 땐 물리로 밀리지 않는다
 	if is_on_floor() and Vector2(v.x, v.z).length() > 0.1:
 		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
 	move_and_slide()
@@ -246,13 +254,22 @@ func _arrive(now: float) -> void:
 	fig.pose_request = ""
 	match spot["kind"]:
 		"bench":
-			fig.seated = true
-			global_position = spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0.03, 0.02)
+			fig.seated = true; collision_layer = 0; collision_mask = 0
+			global_position = spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0.05, 0.02)
 			fig.face(spot.get("yaw", 0.0))
 			busy_until = now + randf_range(6.0, 14.0)
+		"swing":
+			var sw: Dictionary = spot["swing"]
+			if sw["rider"] == null:
+				sw["rider"] = self; riding_swing = sw
+				fig.pose_request = "swing"; fig.face(0.0)
+				busy_until = now + randf_range(10.0, 25.0)
+			else:
+				# 누가 타고 있으면 뒤에서 밀어 준다
+				go_push(sw)
 		"chair":
-			fig.seated = true
-			global_position = spot["pos"] + Vector3(0, 0.03, 0.02)
+			fig.seated = true; collision_layer = 0; collision_mask = 0
+			global_position = spot["pos"] + Vector3(0, 0.05, 0.02)
 			fig.face(spot.get("yaw", 0.0))
 			busy_until = now + randf_range(6.0, 12.0)
 		"bed":
@@ -263,6 +280,9 @@ func _arrive(now: float) -> void:
 		"shelf":
 			fig.pose_request = "read"; fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(4.0, 8.0)
+		"push":
+			fig.pose_request = "push"; fig.face(0.0)
+			busy_until = now + randf_range(12.0, 20.0)
 		"lamp":
 			fig.pose_request = "lean"; fig.face(spot.get("yaw", 0.0))
 			busy_until = now + randf_range(4.0, 9.0)
@@ -293,8 +313,26 @@ func _release() -> void:
 		for i in arr.size():
 			if arr[i] == self: arr[i] = null
 
+var riding_swing: Dictionary = {}
+var pushing_swing: Dictionary = {}
+
+## 그네 뒤로 가서 밀어 주기(사람이 타는데 안 밀 때 town 이 부르거나, 주민이 그네 자리에 왔는데 차 있을 때)
+func go_push(sw: Dictionary) -> void:
+	pushing_swing = sw; sw["pusher"] = self
+	spot = { "kind": "push", "swing": sw }
+	route = [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
+	target = route[0]["pos"]; state = "walk"
+	say(["Hold on.", "Here.", "Higher?"][uid % 3], 1.5)
+
 func _leave() -> void:
 	_release()
+	collision_layer = 1; collision_mask = 1
+	if not riding_swing.is_empty():
+		riding_swing["rider"] = null; riding_swing = {}
+		global_position = spot["swing"]["at"] + Vector3(0, 0.02, 0.9); fig.pose_request = ""
+	if not pushing_swing.is_empty():
+		if pushing_swing["pusher"] == self: pushing_swing["pusher"] = null
+		pushing_swing = {}; fig.pose_request = ""
 	fig.seated = false; fig.pose_request = ""
 	if spot.get("kind", "") == "bench":
 		global_position += Vector3(0, 0, 0.45)
@@ -312,7 +350,9 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	if state == "down" or state == "getup":
 		return
 	quarry = by
-	_release()
+	_release(); collision_layer = 1; collision_mask = 1
+	if not riding_swing.is_empty(): riding_swing["rider"] = null; riding_swing = {}; fig.rotation.x = 0.0
+	if not pushing_swing.is_empty(): pushing_swing["pusher"] = null; pushing_swing = {}
 	if now - last_hit > 3.0: hits = 0
 	hits += 1; last_hit = now
 	fig.seated = false; fig.pose_request = ""

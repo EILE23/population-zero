@@ -28,8 +28,10 @@ func _physics_process(delta: float) -> void:
 		getup_until = -1.0; player.action = ""; player.action_t = 0.0
 	# 앉아 있으면 아무 방향키로 일어난다
 	if not seat.is_empty():
+		body.collision_layer = 0; body.collision_mask = 0   # 앉는 동안 충돌 끔 — 의자 상자에 밀려 엉덩이가 박히던 것
 		if dir != Vector3.ZERO or Input.is_action_just_pressed("jump"):
 			seat = {}; player.seated = false
+			body.collision_layer = 1; body.collision_mask = 1
 			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_QUAD)
 			tw.tween_property(body, "position", Vector3(body.position.x, 0.02, body.position.z + 0.45), 0.25)
 		else:
@@ -168,6 +170,9 @@ func _physics_process(delta: float) -> void:
 		if player.pose_request in ["eat", "drink", "wave"]: player.pose_request = ""
 	if (reading or leaning or resting) and dir != Vector3.ZERO:
 		reading = false; leaning = false; resting = false; player.pose_request = ""
+	if not pushing.is_empty() and dir != Vector3.ZERO:
+		if pushing["pusher"] == "player": pushing["pusher"] = null
+		pushing = {}; player.pose_request = ""
 	if not carrying_big.is_empty() and player.pose_request == "": player.pose_request = "carry"
 	_interact_check(now)
 	_fly(delta)
@@ -283,7 +288,7 @@ func _interact_check(now: float) -> void:
 		return
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
-		if kind == "apple":
+		if kind == "apple" or kind == "bread":
 			# 먹기: 한 번에 한입, 세 입이면 사라진다(운영자: 상호작용은 끝까지)
 			bites += 1; player.pose_request = "eat"; use_until = now + 0.9; action_until = now + 0.9
 			if bites >= 3:
@@ -323,6 +328,10 @@ func _interact_check(now: float) -> void:
 		if not (a["kind"] in ["dog", "cat", "marten"]): continue
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
+	for sp in spots:
+		if sp["kind"] != "counter": continue
+		var d8: float = p.distance_to(sp["pos"])
+		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "counter", "spot": sp }; best_d = d8
 	for sw in swings:
 		var d6: float = p.distance_to(sw["at"])
 		if d6 < 1.2 and d6 < best_d: best = { "kind": "swing", "swing": sw }; best_d = d6
@@ -333,11 +342,23 @@ func _interact_check(now: float) -> void:
 	if best.is_empty():
 		return
 	match best["kind"]:
+		"counter":
+			# 창구: 커피(카페) 또는 빵(빵집)을 받는다 — 지금은 공짜, 코인 결제는 다음 조각
+			var sp: Dictionary = best["spot"]
+			player.face(sp["yaw"])
+			var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
+			player.hold(it); player.action = "grab"; action_until = now + 0.4
 		"swing":
+			var sw: Dictionary = best["swing"]
 			if not riding.is_empty():
 				riding = {}; player.pose_request = ""; body.velocity = Vector3(0, 1.5, 0.8)
+			elif sw["rider"] is Node:
+				# 주민이 타고 있다 → 뒤에 서서 밀어 준다
+				pushing = sw; sw["pusher"] = "player"
+				var tw := create_tween(); tw.tween_property(body, "position", sw["at"] + Vector3(0, 0.02, -1.1), 0.3)
+				player.face(0.0); player.pose_request = "push"
 			else:
-				riding = best["swing"]; body.velocity = Vector3.ZERO
+				riding = sw; body.velocity = Vector3.ZERO
 				player.move_dir = Vector3.ZERO; player.speed = 0.0
 		"dog":
 			# 쓰다듬기: 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세)
@@ -353,7 +374,7 @@ func _interact_check(now: float) -> void:
 				seat = { "pos": n.global_position, "yaw": n.rotation.y, "chair": true }
 				player.seated = true; player.move_dir = Vector3.ZERO; player.speed = 0.0; body.velocity = Vector3.ZERO
 				var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
-				tw.tween_property(body, "position", n.global_position + Vector3(0, 0.03, 0.02), 0.3)
+				tw.tween_property(body, "position", n.global_position + Vector3(0, 0.05, 0.02), 0.3)
 				player.face(n.rotation.y)
 			elif e["kind"] == "lamp":
 				var l: OmniLight3D = n.get_meta("light"); l.visible = not l.visible
@@ -409,5 +430,5 @@ func _interact_check(now: float) -> void:
 				var d := body.global_position.distance_to(slot)
 				if d < bd: bd = d; best_slot = slot
 			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
-			tw.tween_property(body, "position", best_slot + Vector3(0, 0.03, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
+			tw.tween_property(body, "position", best_slot + Vector3(0, 0.05, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
 			player.face(b["yaw"])

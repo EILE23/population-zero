@@ -213,6 +213,9 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 		"cup":
 			var c := CylinderMesh.new(); c.top_radius = 0.06; c.bottom_radius = 0.05; c.height = 0.13; mi.mesh = c; mi.material_override = _mat(Color("f7f4ef"))
 			mi.position = at + Vector3(0, 0.065, 0)
+		"bread":
+			var b2 := CapsuleMesh.new(); b2.radius = 0.06; b2.height = 0.24; mi.mesh = b2; mi.material_override = _mat(Color("b48a5a"))
+			mi.rotation.z = PI / 2.0; mi.position = at + Vector3(0, 0.06, 0)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)
@@ -221,6 +224,7 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 	return mi
 
 var cam_kick := 0.0
+var pushing: Dictionary = {}   # 내가 밀어 주는 그네
 
 var shake_until := -1.0
 
