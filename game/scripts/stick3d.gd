@@ -4,7 +4,8 @@ extends Node3D
 ## 2D figure.gd 와 같은 관절 논리를 3D 각도로 옮겼다: 걸음 위상은 이동 거리에 걸려 발이 미끄러지지 않고, 팔은 다리와 반대 위상,
 ## 무릎은 뒤로 갈 때 접히고, 상체는 달릴 때 앞으로 기울고, 엉덩이는 보폭마다 살짝 뜬다. 몸은 이동 방향으로 부드럽게 돈다.
 ## 회전 부호 약속(2026-09-28 수정 — 처음엔 팔꿈치가 뒤로, 무릎이 앞으로 꺾여 "팔이 따로 놀았다"):
-##   피벗의 rotation.x 가 +면 매달린 뼈 끝이 앞(+z, 얼굴 방향)으로 간다. 다리·팔 앞으로 = +, 무릎 접힘 = −(정강이가 뒤로), 팔꿈치 접힘 = +(손이 앞·위로).
+##   매달린 뼈(팔다리)는 rotation.x 가 −면 끝이 앞(+z, 얼굴 방향)으로 간다(Godot 오른손 좌표계). 코드는 '앞 = 양수' 로 읽히게 쓰고 대입에서 -( ) 로 뒤집는다.
+##   2026-09-28 두 번째 수정: 처음엔 + 가 앞인 줄 알고 넣어서 다리가 진행 방향과 반대로 저었다(운영자: "지금 무슨 문워크 하냐"). 위로 뻗는 몸통(torso)은 + 가 앞이 맞다.
 ## 크기: 키 1.0m(2D 의 42px). 발끝이 원점. 두께는 3/4 카메라 거리에서 읽히게 2D 보다 굵다.
 
 @export var color: Color = Color("1b0c15")
@@ -180,56 +181,56 @@ func _process(delta: float) -> void:
 		var sh: Node3D = shoulders[s]; var el: Node3D = elbows[s]
 		if seated:
 			# 벤치: 허벅지 앞으로 수평, 정강이 아래로, 손은 무릎 위
-			hip.rotation.x = 1.5; knee.rotation.x = -1.45
-			sh.rotation.x = 0.55; sh.rotation.z = -s * 0.1; el.rotation.x = 0.9
+			hip.rotation.x = -(1.5); knee.rotation.x = -(-1.45)
+			sh.rotation.x = -(0.55); sh.rotation.z = -s * 0.1; el.rotation.x = -(0.9)
 		elif airborne:
 			# 점프: 오를 땐 무릎을 당기고 팔을 위로, 내릴 땐 다리를 내리고 팔을 벌린다
 			var up := vertical > 0.0
-			hip.rotation.x = 0.9 if up else 0.2
-			knee.rotation.x = -1.4 if up else -0.5
-			sh.rotation.x = 2.4 if up else 1.0
+			hip.rotation.x = -(0.9 if up else 0.2)
+			knee.rotation.x = -(-1.4 if up else -0.5)
+			sh.rotation.x = -(2.4 if up else 1.0)
 			sh.rotation.z = -s * (0.25 if up else 0.9)
-			el.rotation.x = 0.3 if up else 0.6
+			el.rotation.x = -(0.3 if up else 0.6)
 		elif crouch > 0.0:
-			hip.rotation.x = 1.0 * crouch
-			knee.rotation.x = -1.7 * crouch
-			sh.rotation.x = -0.5 * crouch
+			hip.rotation.x = -(1.0 * crouch)
+			knee.rotation.x = -(-1.7 * crouch)
+			sh.rotation.x = -(-0.5 * crouch)
 			sh.rotation.z = -s * 0.15
-			el.rotation.x = 1.0 * crouch
+			el.rotation.x = -(1.0 * crouch)
 		elif moving:
 			# 다리: 허벅지 ±43°·뒤로 갈 때 무릎 접힘(2D 와 같은 규칙)
 			var a := s * sw * 0.75 * run_k
-			hip.rotation.x = a
-			knee.rotation.x = -(1.35 if a < 0.0 else 0.15) * run_k
+			hip.rotation.x = -(a)
+			knee.rotation.x = -(-(1.35 if a < 0.0 else 0.15) * run_k)
 			# 팔: 다리와 반대 위상, 팔꿈치 90° 근처로 접혀 손이 앞·위로
-			sh.rotation.x = -a * 1.1
+			sh.rotation.x = -(-a * 1.1)
 			sh.rotation.z = -s * 0.10
-			el.rotation.x = 1.25 * run_k
+			el.rotation.x = -(1.25 * run_k)
 		else:
 			# 서 있음: 팔은 늘어뜨리고 숨 쉬듯 미세하게
-			hip.rotation.x = 0.0
-			knee.rotation.x = -0.05
-			sh.rotation.x = sin(_t * 2.0 + s) * 0.03
+			hip.rotation.x = -(0.0)
+			knee.rotation.x = -(-0.05)
+			sh.rotation.x = -(sin(_t * 2.0 + s) * 0.03)
 			sh.rotation.z = -s * 0.10
-			el.rotation.x = 0.12
+			el.rotation.x = -(0.12)
 	# 들고 있으면 오른팔은 앞으로 반쯤 들어 물건을 보인다(걸음 스윙 대신)
 	if carrying and not airborne:
-		shoulders[1.0].rotation.x = 0.55
-		elbows[1.0].rotation.x = 1.15
+		shoulders[1.0].rotation.x = -(0.55)
+		elbows[1.0].rotation.x = -(1.15)
 	# 잠깐의 동작 — 오른팔 주먹 / 오른다리 발차기 / 허리 숙여 집기(진행 0→1: 나갔다 돌아온다)
 	if action != "":
 		var k := sin(clampf(action_t, 0.0, 1.0) * PI)
 		if action == "punch":
-			shoulders[1.0].rotation.x = 1.55 * k
-			elbows[1.0].rotation.x = 1.2 * (1.0 - k) + 0.05 * k
+			shoulders[1.0].rotation.x = -(1.55 * k)
+			elbows[1.0].rotation.x = -(1.2 * (1.0 - k) + 0.05 * k)
 			torso.rotation.y = -0.35 * k
 		elif action == "kick":
-			hips[1.0].rotation.x = 1.4 * k
-			knees[1.0].rotation.x = -0.2 * k
+			hips[1.0].rotation.x = -(1.4 * k)
+			knees[1.0].rotation.x = -(-0.2 * k)
 			torso.rotation.x = -0.25 * k
 		elif action == "grab":
 			torso.rotation.x = 0.9 * k
-			hips[1.0].rotation.x = 0.35 * k; hips[-1.0].rotation.x = 0.35 * k
-			knees[1.0].rotation.x = -0.7 * k; knees[-1.0].rotation.x = -0.7 * k
-			shoulders[1.0].rotation.x = 1.3 * k
-			elbows[1.0].rotation.x = 0.2 * k
+			hips[1.0].rotation.x = -(0.35 * k); hips[-1.0].rotation.x = -(0.35 * k)
+			knees[1.0].rotation.x = -(-0.7 * k); knees[-1.0].rotation.x = -(-0.7 * k)
+			shoulders[1.0].rotation.x = -(1.3 * k)
+			elbows[1.0].rotation.x = -(0.2 * k)
