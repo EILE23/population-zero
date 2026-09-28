@@ -20,6 +20,9 @@ var running := false        # 더블탭 뒤 방향키를 계속 누르는 동안
 var idle_since := -1.0
 var action_until := 0.0
 var jump_at := -1.0
+var jump_from_speed := 0.0
+var was_airborne := false
+var land_until := -1.0   # 착지 반동(무릎 꺾임) 끝나는 시각
 var throw_at := -1.0
 var throw_charge := -1.0   # X 를 누르기 시작한 시각(들고 있을 때) — 누르는 동안 감고, 떼면 던진다
 const THROW_MAX := 0.8
@@ -307,12 +310,20 @@ func _physics_process(delta: float) -> void:
 	elif Input.is_action_just_pressed("jump") and jump_at < 0.0:
 		jump_at = now + 0.1  # 0.1초 웅크렸다 뛴다 — 2D 의 charge 자세처럼 점프가 읽힌다
 	if jump_at >= 0.0 and now >= jump_at:
-		v.y = HOP; jump_at = -1.0
+		# 관성: 달리던 속도의 12% 만큼 더 높이(마리오식). 수평 속도는 그대로 실려 멀리 간다
+		v.y = HOP + hv.length() * 0.12; jump_at = -1.0
+		jump_from_speed = hv.length()
 	body.velocity = v
 	body.move_and_slide()
 	body.position.x = clampf(body.position.x, -15.0, 15.0)
 	body.position.z = clampf(body.position.z, -9.0, 9.0)
-	player.crouch = 1.0 if jump_at >= 0.0 else 0.0
+	# 착지: 빠르게 떨어졌으면 0.12초 무릎 반동, 달려서 착지하면 속도는 그대로 이어진다
+	if was_airborne and body.is_on_floor():
+		if player.vertical < -4.5:
+			land_until = now + 0.12
+	was_airborne = not body.is_on_floor()
+	var land_k := clampf((land_until - now) / 0.12, 0.0, 1.0) * 0.6 if land_until > now else 0.0
+	player.crouch = 1.0 if jump_at >= 0.0 else land_k
 	player.airborne = not body.is_on_floor()
 	player.vertical = body.velocity.y
 	# X·Z 는 공중에서도 된다(점프킥·점프 주먹). 들고 있을 때 X 는 던지기(웹 규칙)
