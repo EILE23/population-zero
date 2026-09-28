@@ -432,3 +432,17 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Night: lit variants of lamp, booth and every building window (`*-lit`), a moon, three star shapes; the game will switch by clock.
 - [ ] UI icons (24px, ink on nothing): arrows, jump, hit, kick, act, invite (a hand waving), chat bubble, coin, heart, flag, gear.
 - [ ] Web entrance: the site serves `game/assets/manifest.json` + the SVGs as a public gallery page under `/play/assets` so people (and the owner) can see the growing set without opening Godot — read-only, static files via the assets CDN; no Worker code.
+
+## 3D town — the Omega Ruby bar (owner, 2026-09-28; `game/scenes/town3d.tscn` + `scripts/stick3d.gd` are the reference; build here before the Assets and Game sections)
+- [ ] Stick3D poses: port the 2D pose library one by one as joint-angle functions in `stick3d.gd` (seat, sit, lean, read, phone, sweep, water, shake, throw, trip, hurt, brace, wave, laugh, dance, yoga…) — each a named state with its own timing, never a still frame; keep the 2D names.
+- [ ] Stick3D feel: foot planting (IK-lite: keep the grounded foot's world position fixed between steps), turn-in-place animation when the direction flips by >120°, idle fidgets (yawn, look, shrug) on a clock, hit reaction with knockback and a get-up.
+- [ ] Ink outline: an inverted-hull outline pass (or a screen-space edge shader) so buildings, trees and the figure read as drawn — the POZ look in 3D. Must work on the GL Compatibility renderer (web export).
+- [ ] Face sets: `faces/` for more building kinds — bakery (awning stripe, display window), post office, clinic (cross), café, church (arched windows), shop — and a `houseSpec(seed)` in the generator that picks wall/roof/door/window layout so no two houses are twins; town3d reads the spec.
+- [ ] Props as primitives: bench, lamp, bin, fountain (basin cylinder + water disc + jet), stall (poles + awning prism + counter), booth, swing (frame + seat + ropes), sign, fence, rock, flowerpot, well — each a `_prop_<kind>(at)` in a new `props3d.gd`, sized against the 1.0m figure.
+- [ ] Ground: tiles for grass/cobble/dirt/sand/water; paths with curbs (2–4cm lips); grass tufts and flowers as tiny crossed quads; a pond as a flat disc with a lighter rim; the square's fountain plaza in cobble.
+- [ ] Trees and flora in 3D: round, tall, willow (hanging strands as thin quads), bush, hedge (box), flower beds (box + coloured dots), a sapling; leaves two-tone toon; slight per-tree scale and yaw variance.
+- [ ] Residents in 3D: spawn the roster as Stick3D figures with their colours, walking between spots on the same seeded routine clock as the web; sit on benches (seat pose), lean on lamps, shop at stalls.
+- [ ] Interactions in 3D: `C` near a bench sits, near a tree shakes it (apples drop as small spheres), `X`/`Z` knocks a resident over (hurt pose, drops item), chase with the walk cycle.
+- [ ] Camera: 3/4 follow with look-ahead in the move direction, gentle zoom-out at speed, no clipping through buildings (raise when behind a house).
+- [ ] Time of day: sun angle and colour over a 24-minute cycle, lamps turn on at dusk (OmniLight energy), windows glow via emissive face texture variants.
+- [ ] Web export of town3d as the site's demo (GL Compatibility, no SSAO), replacing the 2D Square on the home page when it runs at 60fps on a phone.

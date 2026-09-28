@@ -380,6 +380,134 @@
    "h": 60
   },
   {
+   "id": "ground/grass",
+   "cat": "ground",
+   "name": "grass",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "ground/cobble",
+   "cat": "ground",
+   "name": "cobble",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "ground/dirt",
+   "cat": "ground",
+   "name": "dirt",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-front-sky",
+   "cat": "faces",
+   "name": "wall-front-sky",
+   "w": 200,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-side-sky",
+   "cat": "faces",
+   "name": "wall-side-sky",
+   "w": 140,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-front-sand",
+   "cat": "faces",
+   "name": "wall-front-sand",
+   "w": 200,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-side-sand",
+   "cat": "faces",
+   "name": "wall-side-sand",
+   "w": 140,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-front-paper",
+   "cat": "faces",
+   "name": "wall-front-paper",
+   "w": 200,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-side-paper",
+   "cat": "faces",
+   "name": "wall-side-paper",
+   "w": 140,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-front-brick",
+   "cat": "faces",
+   "name": "wall-front-brick",
+   "w": 200,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/wall-side-brick",
+   "cat": "faces",
+   "name": "wall-side-brick",
+   "w": 140,
+   "h": 140,
+   "tile": true
+  },
+  {
+   "id": "faces/roof-accent-deep",
+   "cat": "faces",
+   "name": "roof-accent-deep",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/roof-brick",
+   "cat": "faces",
+   "name": "roof-brick",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/roof-iron",
+   "cat": "faces",
+   "name": "roof-iron",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/roof-wood",
+   "cat": "faces",
+   "name": "roof-wood",
+   "w": 128,
+   "h": 128,
+   "tile": true
+  },
+  {
+   "id": "faces/chibi-face",
+   "cat": "faces",
+   "name": "chibi-face",
+   "w": 64,
+   "h": 64,
+   "tile": true
+  },
+  {
    "id": "figures/stand",
    "cat": "figures",
    "name": "stand",

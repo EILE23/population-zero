@@ -11,6 +11,14 @@ account, invites, community, and the web export as a playable demo. Decided 2026
 - **Multiplayer at zero cost**: Godot's high-level multiplayer over WebSocket, relayed by the existing Cloudflare Durable Object room. No dedicated servers.
 - **Editor and map sharing come later.** First a game that is fun alone and with three friends.
 
+## The bar (owner, 2026-09-28): at least Pokémon Omega Ruby
+That means a **real low-poly 3D world** seen from a 3/4 camera, not paper cut-outs: box buildings with painted faces, trunk-and-sphere
+trees, tiled ground with paths, one sun with soft shadows, toon-flat shading, and a **3D stick figure** whose walk is computed every frame
+(no flip-books). `scenes/town3d.tscn` is the first cut of exactly that; `scripts/stick3d.gd` is the figure (capsule bones, sphere joints,
+walk phase driven by distance so feet never slide, arms opposite legs, knees fold on the back swing, torso leans with speed, smooth turning).
+Everything is still generated from code: geometry from primitives in GDScript, textures from `tools/assets.mjs` (`faces/`, `ground/`).
+`main.tscn` (2D stage) and `diorama.tscn` (paper cut-outs) stay as references only.
+
 ## Assets policy
 Everything visual is **vector or procedural** (`_draw()`, SVG under `assets/svg/`), paper background, ink lines, the brand mauve
 (`#AD7096`) only as an accent. Text assets diff in git, so the CI developer can make and fix them; the style cannot drift; the cost is zero.

@@ -51,7 +51,8 @@ func _props() -> void:
 	var x := -14.0
 	var row := 0
 	for a in data.get("assets", []):
-		if a["cat"] in ["items", "ui", "figures"]:
+		# 소지품·아이콘·졸라맨 판은 세우지 않는다; 타일·벽면(tile)은 3D 마을의 텍스처라 여기 없다
+		if a["cat"] in ["items", "ui", "figures"] or a.get("tile", false):
 			continue
 		var z: float = ROWS[row % ROWS.size()]
 		var y := 0.0

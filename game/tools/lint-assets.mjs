@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 const palette = new Set(Object.entries(JSON.parse(readFileSync(join(ROOT, 'palette.json'), 'utf8'))).filter(([k]) => k !== '_').map(([, v]) => String(v).toLowerCase()));
-const LIMITS = { buildings: [420, 320], sky: [400, 200], default: [260, 260] };
+const LIMITS = { buildings: [420, 320], sky: [400, 200], ground: [256, 256], faces: [256, 256], default: [260, 260] };
+const TILED = new Set(['ground', 'faces']); // 타일·벽면 — 원점이 왼쪽 위(viewBox 0 0 w h); 3D 상자에 늘려 붙인다
 
 function* walk(dir) { for (const e of readdirSync(dir)) { const p = join(dir, e); if (statSync(p).isDirectory()) yield* walk(p); else if (p.endsWith('.svg')) yield p; } }
 
@@ -25,7 +26,8 @@ for (const file of walk(join(ROOT, 'svg'))) {
   if (!vb) errs.push('no viewBox');
   else {
     const [x, y, vw, vh] = vb.slice(1).map(Number);
-    if (Math.abs(x + vw / 2) > 0.01 || Math.abs(y + vh) > 0.01) errs.push(`origin must be the foot point: viewBox should be "${-vw / 2} ${-vh} ${vw} ${vh}"`);
+    if (TILED.has(cat)) { if (x !== 0 || y !== 0) errs.push(`tiles/faces start at the top-left: viewBox should be "0 0 ${vw} ${vh}"`); }
+    else if (Math.abs(x + vw / 2) > 0.01 || Math.abs(y + vh) > 0.01) errs.push(`origin must be the foot point: viewBox should be "${-vw / 2} ${-vh} ${vw} ${vh}"`);
     if (vw !== w || vh !== h) errs.push('width/height must equal the viewBox size');
     const [mw, mh] = LIMITS[cat] ?? LIMITS.default;
     if (vw > mw || vh > mh) errs.push(`too big for ${cat}: ${vw}×${vh} > ${mw}×${mh}`);

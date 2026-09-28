@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=4 format=3 uid="uid://b61p0ojsppyhm"]
 
 [ext_resource type="Script" path="res://scripts/diorama.gd" id="1_diorama"]
 
@@ -6,7 +6,6 @@
 background_mode = 1
 background_color = Color(0.969, 0.957, 0.937, 1)
 ambient_light_source = 1
-tonemap_mode = 0
 
 [sub_resource type="LabelSettings" id="LabelSettings_legend"]
 font_size = 11
@@ -20,8 +19,8 @@ environment = SubResource("Environment_paper")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.978, 0.208, 0, -0.208, 0.978, 0, 3.2, 11)
-fov = 36.0
 current = true
+fov = 36.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 
