@@ -552,3 +552,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-28) A stubborn park goat roams along the grass verge, headbutting anyone who sprints past to knock them flat, but quietly trailing behind walking residents who carry food.
+- [ ] (town wish, 2026-09-28) Add a small red fox that skulks the river and hedgerows, nabs unattended shiny trinkets from slow walkers, and can be coaxed to drop them if a human tosses food into its path.
