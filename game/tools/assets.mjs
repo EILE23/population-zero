@@ -63,6 +63,34 @@ const ASSETS = [
   { cat: 'props', name: 'flowerpot', w: 24, h: 40, draw: () => [ poly([[-10, -16], [10, -16], [8, 0], [-8, 0]], P.brick), rect(-11, -19, 22, 4, P.brick), line(0, -16, 0, -30, { lw: FINE, stroke: P['leaf-deep'] }), circle(0, -33, 5, P.accent, nostroke), circle(-5, -26, 3, P.leaf, nostroke), circle(5, -27, 3, P.leaf, nostroke) ] },
   { cat: 'props', name: 'well', w: 60, h: 80, draw: () => [ rect(-24, -24, 48, 24, P.stone), line(-24, -24, 24, -24), line(-20, -24, -20, -60), line(20, -24, 20, -60), poly([[-28, -60], [28, -60], [0, -78]], P['accent-deep']), line(0, -58, 0, -36, { lw: FINE }), rect(-5, -40, 10, 8, P.wood, { lw: FINE }) ] },
   { cat: 'props', name: 'busstop', w: 90, h: 96, draw: () => [ rect(-40, -90, 80, 6, P.iron), line(-36, -84, -36, 0), line(36, -84, 36, 0), rect(-30, -22, 60, 4, P.wood), line(-28, -18, -28, 0), line(28, -18, 28, 0), rect(-24, -76, 48, 40, P.sky, { lw: FINE }) ] },
+  // props — 놀이터(2026-09-28, 백로그 "Playground set"): 미끄럼틀·시소·모래밭·정글짐·스프링라이더·2인용 그네·낮은 담
+  { cat: 'props', name: 'slide', w: 100, h: 110, draw: () => [
+    rect(-15, -108, 30, 8, P.wood), line(-30, -100, -30, 0), line(-18, -100, -18, 0),
+    ...[-84, -64, -44, -24].map((y) => line(-30, y, -18, y, { lw: FINE })),
+    path('M 15 -104 Q 56 -70 40 0', P['wood-light']), line(40, 0, 52, 0),
+  ] },
+  { cat: 'props', name: 'seesaw', w: 116, h: 40, draw: () => [
+    poly([[-9, 0], [9, 0], [0, -20]], P.stone), line(-52, -10, 52, -30, { stroke: P.wood }),
+    rect(-58, -14, 14, 4, P.wood), rect(44, -34, 14, 4, P.wood),
+  ] },
+  { cat: 'props', name: 'sandbox', w: 120, h: 30, draw: () => [
+    rect(-40, -14, 80, 14, P.wood, { rx: 2 }), ellipse(-2, -14, 38, 6, P.sand),
+    poly([[42, -10], [54, -10], [52, 0], [44, 0]], P.red, { lw: FINE }), path('M 44 -10 q 4 -6 8 0', 'none', { lw: FINE }),
+  ] },
+  { cat: 'props', name: 'climbing-frame', w: 130, h: 90, draw: () => [
+    line(-55, 0, -40, -80), line(-25, 0, -40, -80), line(55, 0, 40, -80), line(25, 0, 40, -80), line(-40, -80, 40, -80),
+    ...[-24, -8, 8, 24].map((x) => line(x, -80, x, -72, { lw: FINE })),
+  ] },
+  { cat: 'props', name: 'spring-rider', w: 40, h: 55, draw: () => [
+    path('M -3 0 L 3 -8 L -3 -16 L 3 -24 L -3 -32 L 3 -40', 'none', { stroke: P.iron }),
+    ellipse(0, -44, 14, 6, P.accent), line(-10, -44, -14, -50, { lw: FINE }), line(10, -44, 14, -50, { lw: FINE }),
+  ] },
+  { cat: 'props', name: 'swing-double', w: 140, h: 100, draw: () => [
+    line(-70, 0, -52, -92), line(-34, 0, -52, -92), line(70, 0, 52, -92), line(34, 0, 52, -92), line(-52, -92, 52, -92),
+    line(-36, -92, -36, -20, { lw: FINE }), line(-16, -92, -16, -20, { lw: FINE }), rect(-40, -20, 28, 4, P.wood),
+    line(16, -92, 16, -20, { lw: FINE }), line(36, -92, 36, -20, { lw: FINE }), rect(12, -20, 28, 4, P.wood),
+  ] },
+  { cat: 'props', name: 'low-wall', w: 90, h: 26, draw: () => [ rect(-40, -22, 80, 22, P.stone), rect(-42, -24, 84, 4, P['stone-deep']) ] },
   // flora — 나무·덤불·꽃밭
   { cat: 'flora', name: 'tree-round', w: 90, h: 120, draw: () => [ rect(-5, -46, 10, 46, P.wood), circle(0, -80, 34, P.leaf), circle(-22, -66, 20, P['leaf-deep']), circle(20, -70, 22, P['leaf-deep']), circle(0, -92, 20, P.leaf) ] },
   { cat: 'flora', name: 'tree-tall', w: 70, h: 160, draw: () => [ rect(-4, -60, 8, 60, P.wood), ellipse(0, -110, 28, 46, P['leaf-deep']), ellipse(-8, -122, 16, 28, P.leaf, nostroke) ] },

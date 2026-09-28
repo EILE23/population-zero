@@ -142,6 +142,55 @@
    "h": 96
   },
   {
+   "id": "props/slide",
+   "cat": "props",
+   "name": "slide",
+   "w": 100,
+   "h": 110
+  },
+  {
+   "id": "props/seesaw",
+   "cat": "props",
+   "name": "seesaw",
+   "w": 116,
+   "h": 40
+  },
+  {
+   "id": "props/sandbox",
+   "cat": "props",
+   "name": "sandbox",
+   "w": 120,
+   "h": 30
+  },
+  {
+   "id": "props/climbing-frame",
+   "cat": "props",
+   "name": "climbing-frame",
+   "w": 130,
+   "h": 90
+  },
+  {
+   "id": "props/spring-rider",
+   "cat": "props",
+   "name": "spring-rider",
+   "w": 40,
+   "h": 55
+  },
+  {
+   "id": "props/swing-double",
+   "cat": "props",
+   "name": "swing-double",
+   "w": 140,
+   "h": 100
+  },
+  {
+   "id": "props/low-wall",
+   "cat": "props",
+   "name": "low-wall",
+   "w": 90,
+   "h": 26
+  },
+  {
    "id": "flora/tree-round",
    "cat": "flora",
    "name": "tree-round",
