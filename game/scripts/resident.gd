@@ -78,6 +78,12 @@ func _physics_process(delta: float) -> void:
 	else:
 		v.y = 0.0
 	fig.airborne = not is_on_floor(); fig.vertical = v.y
+	# 동작(주먹·집기)은 상태와 무관하게 끝나면 지운다 — 쫓다가 포기하면 주먹 자세가 남던 버그
+	if fig.action == "punch" or fig.action == "grab":
+		if now >= busy_until:
+			fig.action = ""; fig.action_t = 0.0
+		else:
+			fig.action_t = 1.0 - (busy_until - now) / 0.28
 	match state:
 		"routine":
 			if now >= busy_until:
@@ -119,6 +125,7 @@ func _physics_process(delta: float) -> void:
 		"chase":
 			if quarry == null or now >= chase_until:
 				say(LINES_GIVEUP[uid % LINES_GIVEUP.size()]); quarry = null
+				fig.action = ""; fig.action_t = 0.0
 				state = "routine"; busy_until = now + 1.0
 			else:
 				var to := quarry.global_position - global_position; to.y = 0.0
@@ -136,9 +143,6 @@ func _physics_process(delta: float) -> void:
 						fig.punch_side = -fig.punch_side; fig.punch_kind = "jab" if fig.punch_side < 0.0 else "cross"
 						fig.action = "punch"; fig.action_t = 0.0; busy_until = now + 0.28
 						town.resident_hits_player(self, dir)
-				if fig.action == "punch":
-					fig.action_t = 1.0 - (busy_until - now) / 0.28
-					if now >= busy_until: fig.action = ""; fig.action_t = 0.0
 	velocity = v
 	move_and_slide()
 
