@@ -403,3 +403,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-27) Add a small public conservatory called The Warmhouse plus a warming-attendant job that introduces a new short 'shiver' motion for chilled residents and runs brief group warming sessions.
 - [ ] (town wish, 2026-09-27) Add a small public Kneeling Terrace with a caretaker job that teaches residents a short 'kneel' motion and runs brief group kneel/rest sessions.
 - [ ] (town wish, 2026-09-27) Add a community yoga studio called the Sun Room with a yoga-instructor job that teaches residents a new synchronized 'deep-breath' motion and runs short group breath-and-stretch sessions.
+- [ ] (town wish, 2026-09-27) Add a small Trampoline Pavilion in the park called the Spring Loft plus a jump-instructor job that teaches residents a short 'jump' motion so they can hop to reach higher and avoid grabs.
