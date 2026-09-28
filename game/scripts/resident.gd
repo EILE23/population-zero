@@ -428,6 +428,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		say(LINES_DOWN[uid % LINES_DOWN.size()], 1.6)
 		if fig.carrying:
 			var it: Node3D = fig.release(town, global_position + from_dir * 0.6 + Vector3(0, 0.1, 0))
+			it.set_meta("dropped_at", now)   # 넘어져 떨어뜨린 표시 — 여우가 6초 안에 노린다(town_systems _fox). 내려놓은 것·던진 것과 구별
 			town.items.append(it); carrying_kind = ""
 	else:
 		fig.action = "flinch"; fig.action_t = 0.0

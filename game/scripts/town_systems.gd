@@ -170,42 +170,7 @@ func _animals(delta: float) -> void:
 				var hd: Node3D = a["head"]; hd.rotation.x = sin(a["t"] * 6.0) * 0.18 + (0.5 if a.get("fed", 0.0) > a["t"] else 0.0)   # 고개 까딱, 먹을 땐 숙임
 				(a["tail"] as Node3D).rotation.x = 0.5 + sin(a["t"] * 9.0) * 0.25
 			"fox":
-				# 육식동물(운영자 2026-09-28): 새(비둘기·오리)를 살금살금 다가가 덮친다 — 새는 날아 도망. 사람이 때리면 6초간 쫓아와 문다
-				var q: Quad3D = a["quad"]
-				q.look = d < 5.0; q.look_at_pos = p + Vector3(0, 0.9, 0)
-				var angry: bool = a.get("angry_until", 0.0) > a["t"]
-				var want: Vector3 = a.get("wander", a["home"]); var spd := 0.0
-				var stalking := false
-				if angry:
-					want = p; spd = 4.2
-					if d < 0.9 and a.get("bite_at", 0.0) < a["t"]:
-						a["bite_at"] = a["t"] + 1.1; q.act("bite"); resident_hits_player(n, (p - n.global_position).normalized())
-				else:
-					var prey: Dictionary = {}; var pd := 4.5
-					for b in animals:
-						if b["kind"] in ["pigeon", "duck"] and b.get("fly", 0.0) <= 0.0:
-							var dd: float = (b["node"] as Node3D).global_position.distance_to(n.global_position)
-							if dd < pd: pd = dd; prey = b
-					if not prey.is_empty():
-						want = (prey["node"] as Node3D).global_position
-						stalking = pd > 1.8
-						spd = 1.0 if stalking else 4.0   # 멀면 살금살금, 가까우면 덮친다
-						if pd < 0.9:
-							prey["fly"] = 1.6; prey["land"] = prey.get("home", want) + Vector3(randf_range(-3, 3), 0, randf_range(-2, 2)); q.act("bite")
-							a["wander_until"] = a["t"] + 3.0; a["wander"] = n.global_position
-					else:
-						if a.get("wander_until", 0.0) < a["t"]:
-							a["wander_until"] = a["t"] + randf_range(3.0, 7.0); a["wander"] = a["home"] + Vector3(randf_range(-6, 6), 0, randf_range(-4, 4))
-						want = a.get("wander", a["home"]); spd = 1.3
-				var to := want - n.global_position; to.y = 0.0
-				if to.length() > 0.4 and spd > 0.0:
-					n.global_position += to.normalized() * spd * delta
-					n.look_at(n.global_position + to, Vector3.UP, true)
-					q.speed = spd
-					if q.state != "bite": q.state = "run" if spd > 2.5 else ("stalk" if stalking else "walk")
-				else:
-					q.speed = 0.0
-					if q.state in ["walk", "run", "stalk"]: q.state = "idle"
+				_fox(a, delta)
 			"dog", "cat", "marten", "squirrel":
 				# 네발 동물 습성: 집 주변을 어슬렁(걷기/뛰기), 가끔 앉기·엎드리기·기지개·(개)놀자·구르기·(고양이)그루밍·등 세우기·하품,
 				# 사람이 가까우면 쳐다보고: 개는 3초 따라오고, 고양이·담비는 1.4m 안이면 달아난다. 쓰다듬으면 앉아서 꼬리
@@ -261,6 +226,101 @@ func _animals(delta: float) -> void:
 					(a["head"] as Node3D).rotation.x = absf(sin(a["t"] * 5.0)) * 0.6  # 고개로 쪼기
 					if fmod(a["t"], 4.0) < 1.2: n.global_position += Vector3(sin(a["t"] * 3.0), 0, cos(a["t"] * 2.0)) * 0.3 * delta  # 종종걸음
 
+## 여우 — 육식동물(운영자 2026-09-28): 새(비둘기·오리)를 살금살금 다가가 덮친다 — 새는 날아 도망. 사람이 때리면 6초간 쫓아와 문다.
+## 노획(2026-09-28, 마을 소원 열두 개가 한 시스템 "쓰러진 사람 곁의 동물"이었다 — 그 첫 조각): 8m 안에서 넘어진 사람이 떨어뜨린 것(dropped_at, 6초 안)을
+## 달려가 물고 굴로 가져가 놓는다 — 굴 앞에 놓이니 찾아가 다시 집을 수 있다. 물고 가는 동안 6m 안에 사과가 있으면 그리로 가서 물건을 놓고 사과를 먹는다(먹이로 유인).
+## 한 번에 하나만 물고, 누가 먼저 집으면 그만둔다 — 넘어진 사람 곁에 서 있는 쪽이 늘 먼저다(핵심 동작은 그대로 되어야 한다는 규칙)
+func _fox(a: Dictionary, delta: float) -> void:
+	var n: Node3D = a["node"]; var q: Quad3D = a["quad"]
+	var p := body.global_position; var d := p.distance_to(n.global_position)
+	q.look = d < 5.0; q.look_at_pos = p + Vector3(0, 0.9, 0)
+	var angry: bool = a.get("angry_until", 0.0) > a["t"]
+	var want: Vector3 = a.get("wander", a["home"]); var spd := 0.0
+	var stalking := false
+	var lv: Variant = a.get("loot", null)   # 풀린(먹힌) 노드를 타입 변수에 바로 넣으면 런타임 오류 — 먼저 확인
+	var loot: Node3D = lv if is_instance_valid(lv) else null
+	a["loot"] = loot
+	q.carry = loot != null
+	if angry:
+		want = p; spd = 4.2
+		if d < 0.9 and a.get("bite_at", 0.0) < a["t"]:
+			a["bite_at"] = a["t"] + 1.1; q.act("bite"); resident_hits_player(n, (p - n.global_position).normalized())
+	elif loot != null:
+		var bait := _near_item(n.global_position, "apple", 6.0)
+		want = bait.global_position if bait else (a["home"] as Vector3) + Vector3(0.5, 0, 0.3); spd = 3.2
+		if want.distance_to(n.global_position) < 0.5:
+			_fox_drop(a, loot, n); q.act("bite")
+			if bait: items.erase(bait); bait.queue_free(); a["wander_until"] = a["t"] + 3.0; a["wander"] = n.global_position
+	else:
+		var mv: Variant = a.get("mark", null)
+		var mark: Node3D = mv if is_instance_valid(mv) and items.has(mv) else null   # 누가 먼저 집었다(또는 먹었다) — 그만둔다
+		if mark == null: mark = _fresh_drop(n.global_position, 8.0)
+		a["mark"] = mark
+		if mark != null:
+			want = mark.global_position; spd = 4.0
+			if want.distance_to(n.global_position) < 0.6: _fox_grab(a, mark, q)
+		else:
+			var prey: Dictionary = {}; var pd := 4.5
+			for b in animals:
+				if b["kind"] in ["pigeon", "duck"] and b.get("fly", 0.0) <= 0.0:
+					var dd: float = (b["node"] as Node3D).global_position.distance_to(n.global_position)
+					if dd < pd: pd = dd; prey = b
+			if not prey.is_empty():
+				want = (prey["node"] as Node3D).global_position
+				stalking = pd > 1.8
+				spd = 1.0 if stalking else 4.0   # 멀면 살금살금, 가까우면 덮친다
+				if pd < 0.9:
+					prey["fly"] = 1.6; prey["land"] = prey.get("home", want) + Vector3(randf_range(-3, 3), 0, randf_range(-2, 2)); q.act("bite")
+					a["wander_until"] = a["t"] + 3.0; a["wander"] = n.global_position
+			else:
+				if a.get("wander_until", 0.0) < a["t"]:
+					a["wander_until"] = a["t"] + randf_range(3.0, 7.0); a["wander"] = a["home"] + Vector3(randf_range(-6, 6), 0, randf_range(-4, 4))
+				want = a.get("wander", a["home"]); spd = 1.3
+	var to := want - n.global_position; to.y = 0.0
+	if to.length() > 0.4 and spd > 0.0:
+		n.global_position += to.normalized() * spd * delta
+		n.look_at(n.global_position + to, Vector3.UP, true)
+		q.speed = spd
+		if q.state != "bite": q.state = "run" if spd > 2.5 else ("stalk" if stalking else "walk")
+	else:
+		q.speed = 0.0
+		if q.state in ["walk", "run", "stalk"]: q.state = "idle"
+
+## 물기 — 물건을 바닥 목록에서 빼 여우 머리(입 앞)에 붙인다. 곁에 쓰러져 있던 사람이 한마디
+func _fox_grab(a: Dictionary, mark: Node3D, q: Quad3D) -> void:
+	items.erase(mark); a["mark"] = null; a["loot"] = mark; q.act("bite")
+	mark.get_parent().remove_child(mark); q.head.add_child(mark)
+	mark.position = Vector3(0, -q.head_r * 0.4, q.head_r * 1.6); mark.rotation = Vector3.ZERO
+	for r in residents:
+		if r.state in ["down", "getup"] and r.global_position.distance_to(mark.global_position) < 3.0:
+			r.say(["The fox.", "That was mine.", "Noted. The fox."][r.uid % 3], 2.5); break
+
+## 내려놓기 — 입에서 떼어 코앞 바닥에(_fly 가 내려놓는 높이와 같은 0.06). dropped_at 을 지워 제가 놓은 걸 다시 물지 않는다
+func _fox_drop(a: Dictionary, loot: Node3D, n: Node3D) -> void:
+	loot.get_parent().remove_child(loot); add_child(loot)
+	loot.global_position = n.global_position + n.global_transform.basis.z * 0.35 + Vector3(0, 0.06, 0); loot.rotation = Vector3.ZERO
+	if loot.has_meta("dropped_at"): loot.remove_meta("dropped_at")
+	items.append(loot); a["loot"] = null
+
+## 가장 가까운 그 종류의 바닥 물건(r 안), 없으면 null
+func _near_item(from: Vector3, kind: String, r: float) -> Node3D:
+	var best: Node3D = null
+	for it in items:
+		if String(it.get_meta("kind", "")) != kind: continue
+		var dd := it.global_position.distance_to(from)
+		if dd < r: r = dd; best = it
+	return best
+
+## 방금(6초 안) 넘어져 떨어진 물건(r 안) — Resident.hit 과 resident_hits_player 가 dropped_at 을 찍는다. 던진 것·내려놓은 것은 아니다
+func _fresh_drop(from: Vector3, r: float) -> Node3D:
+	var now := Time.get_ticks_msec() / 1000.0
+	var best: Node3D = null
+	for it in items:
+		if float(it.get_meta("dropped_at", -99.0)) < now - 6.0: continue
+		var dd := it.global_position.distance_to(from)
+		if dd < r: r = dd; best = it
+	return best
+
 ## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
 func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -281,7 +341,7 @@ func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
 		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
 		if player.carrying:
-			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); items.append(it)
+			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); it.set_meta("dropped_at", now); items.append(it)   # 여우가 노리는 표시(_fox)
 	else:
 		player.action = "flinch"; action_until = now + 0.3
 		body.velocity = dir * 1.6

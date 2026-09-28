@@ -13,6 +13,7 @@ var state := "idle"
 var speed := 0.0            # m/s — walk/run 위상에 쓴다
 var look_at_pos := Vector3.ZERO
 var look := false
+var carry := false          # 입에 뭔가 물고 간다(여우의 노획) — 고개를 들고 귀를 뒤로: 뛰는 사이클은 그대로, 머리만 다르다
 var _t := 0.0
 var _phase := 0.0
 var _act_t := 0.0
@@ -199,6 +200,7 @@ func _process(delta: float) -> void:
 	elif state == "yawn": hp = -0.6
 	elif state == "stalk": hp = 0.35
 	elif state == "bite": hp = 0.5 * sin(minf(_act_t, 0.5) / 0.5 * PI) - 0.3
+	elif carry: hp = -0.3
 	elif moving: hp = sin(_phase) * 0.08
 	elif state == "sit": hp = -0.1
 	head.rotation.x = lerp_angle(head.rotation.x, hp, delta * 8.0)
@@ -206,7 +208,7 @@ func _process(delta: float) -> void:
 	# 귀: 가끔 움찔, 플레이어 보면 세움
 	for i in ears.size():
 		var flick := 0.3 if fmod(_t * 0.7 + i, 4.0) < 0.15 else 0.0
-		(ears[i] as Node3D).rotation.x = lerpf((ears[i] as Node3D).rotation.x, -0.25 * (1.0 if look else 0.0) + flick, delta * 10.0)
+		(ears[i] as Node3D).rotation.x = lerpf((ears[i] as Node3D).rotation.x, -0.25 * (1.0 if look else 0.0) + (0.4 if carry else 0.0) + flick, delta * 10.0)
 	# 꼬리: 개는 흔들고(기쁘면 빨리), 고양이는 느리게 휘고, 다람쥐는 세워서 떨림
 	match kind:
 		"dog":

@@ -367,7 +367,11 @@ func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 			# 네발 동물 공용 리그(quad3d.gd) — 크기·색만 다르다
 			var q := Quad3D.new()
 			match kind:
-				"fox": q.setup("cat", Color("d98a2a"), Color("f7f4ef"), 1.1); q.kind = "fox"
+				"fox":
+					q.setup("cat", Color("d98a2a"), Color("f7f4ef"), 1.1); q.kind = "fox"
+					# 굴(2026-09-28, "쓰러진 사람 곁의 동물" 1조각): 집 자리 뒤에 흙 둔덕과 검은 입구 — 여우가 물어 간 것은 이 앞에 놓이니 사람이 찾아갈 곳이 있다
+					var mound := MeshInstance3D.new(); var ms := SphereMesh.new(); ms.radius = 0.7; ms.height = 0.5; mound.mesh = ms; mound.material_override = _mat(Color("8a6a4a")); mound.position = at + Vector3(0, -0.02, -0.8); _add(mound)
+					var hole := MeshInstance3D.new(); var hs2 := SphereMesh.new(); hs2.radius = 0.24; hs2.height = 0.36; hole.mesh = hs2; hole.material_override = _mat(Color("1b0c15")); hole.position = at + Vector3(0, 0.1, -0.35); _add(hole)
 				"cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
 				"marten": q.setup("marten", Color("8a6a4a"), Color("5b4f56"), 1.0)
 				"squirrel": q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)
