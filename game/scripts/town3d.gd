@@ -355,6 +355,8 @@ func _physics_process(delta: float) -> void:
 				hv = Vector3(v.x, 0, v.z)
 			elif running:
 				v += f * 1.8; hv = Vector3(v.x, 0, v.z)  # 러닝 펀치는 짧게 밀고 나간다
+			else:
+				v += f * 1.1; hv = Vector3(v.x, 0, v.z)  # 서서 쳐도 체중이 앞으로 한 발짝
 		elif Input.is_action_just_pressed("kick"):
 			if not grounded or running:
 				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
@@ -364,6 +366,7 @@ func _physics_process(delta: float) -> void:
 				hv = Vector3(v.x, 0, v.z)
 			else:
 				player.action = "kick"; action_until = now + 0.34
+				v += fwd_dir() * 1.0; hv = Vector3(v.x, 0, v.z)  # 차면 몸이 앞으로 쏠린다
 	if throw_at >= 0.0 and now >= throw_at and player.carrying:
 		throw_at = -1.0
 		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
