@@ -36,6 +36,15 @@ var seat: Dictionary = {}       # 앉아 있는 벤치 {pos, yaw}
 var items: Array[Node3D] = []   # 바닥에 있는 집을 수 있는 것
 var benches: Array = []         # {pos: Vector3, yaw: float}
 var doors: Array = []           # {hinge: Node3D, open: bool, pos: Vector3}
+var spots: Array = []           # 주민 일과 자리 {pos, kind: bench|lamp|tree|door, yaw}
+var residents: Array = []
+var combo := 0                  # 연속기 단계(0 왼 잽 → 1 오른 스트레이트 → 2 왼 훅)
+var combo_open_until := -1.0    # 이 시각 안에 다시 누르면 다음 타
+var hit_kind := ""              # 이번 타격의 종류(맞히기 판정용): punch | kick | jet | air
+var my_hits := 0
+var my_last_hit := -9.0
+var down_until := -1.0          # 내가 넘어져 있는 동안
+var getup_until := -1.0
 
 func _ready() -> void:
 	_light()
@@ -64,6 +73,23 @@ func _ready() -> void:
 	body.add_child(player)
 	add_child(body)
 	cam = $Camera3D
+	_residents(24)
+
+## 명부(data/residents.json)에서 n 명 — 색은 웹과 같은 규칙, 자리는 무작위
+func _residents(n: int) -> void:
+	var f := FileAccess.open("res://data/residents.json", FileAccess.READ)
+	if f == null:
+		push_error("town3d: data/residents.json missing"); return
+	var data: Dictionary = JSON.parse_string(f.get_as_text())
+	var roster: Array = data.get("residents", [])
+	var rng := RandomNumberGenerator.new(); rng.seed = 20260928
+	for i in mini(n, roster.size()):
+		var row: Dictionary = roster[(i * 7) % roster.size()]
+		var r := Resident.new()
+		add_child(r)
+		r.setup(self, int(row["id"]), String(row["handle"]))
+		r.position = Vector3(rng.randf_range(-13.0, 13.0), 0.02, rng.randf_range(-2.0, 7.0))
+		residents.append(r)
 
 # ── 재료 ──
 func _mat(color: Color, tex: Texture2D = null, uv := Vector3.ONE) -> StandardMaterial3D:
@@ -163,6 +189,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var knob := MeshInstance3D.new(); var ks := SphereMesh.new(); ks.radius = 0.035; ks.height = 0.07; knob.mesh = ks
 	knob.material_override = _mat(Color("e8c766")); knob.position = Vector3(door_w * 0.38, 0.0, 0.06); leaf.add_child(knob)
 	doors.append({ "hinge": hinge, "open": false, "pos": hinge.position + Vector3(door_w / 2.0, 0, 0) })
+	spots.append({ "pos": hinge.position + Vector3(door_w / 2.0, 0, 0.9), "kind": "door", "yaw": PI })
 	if flat_roof:
 		# 옥상: 걸어 올라가 설 수 있는 평지붕(막힘) + 낮은 난간, 옆에 계단
 		_box(Vector3(size.x + 0.2, 0.16, size.z + 0.2), at + Vector3(0, size.y, 0), _mat(Color("cfc7c2")))
@@ -212,6 +239,7 @@ func _tree(at: Vector3, k: float) -> void:
 	trunk.position = at + Vector3(0, 0.5 * k, 0)
 	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.16 * k; sh.height = 1.0 * k; cs.shape = sh; sb.add_child(cs); trunk.add_child(sb)
 	add_child(trunk)
+	spots.append({ "pos": at, "kind": "tree", "yaw": 0.0 })
 	for i in 3:
 		var s := MeshInstance3D.new()
 		var sm := SphereMesh.new(); var rr := (0.75 - i * 0.12) * k
@@ -229,6 +257,7 @@ func _bench(at: Vector3) -> void:
 		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, 0.15), iron)
 		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, -0.15), iron)
 	benches.append({ "pos": at, "yaw": 0.0 })
+	spots.append({ "pos": at, "kind": "bench", "yaw": 0.0 })
 
 func _lamp(at: Vector3) -> void:
 	var post := MeshInstance3D.new()
@@ -237,6 +266,7 @@ func _lamp(at: Vector3) -> void:
 	post.position = at + Vector3(0, 1.1, 0)
 	add_child(post)
 	_box(Vector3(0.26, 0.3, 0.26), at + Vector3(0, 2.2, 0), _mat(Color("e8c766")), false)
+	spots.append({ "pos": at + Vector3(0.25, 0, 0), "kind": "lamp", "yaw": -PI / 2.0 })
 	var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.6; l.omni_range = 4.0
 	l.position = at + Vector3(0, 2.3, 0)
 	add_child(l)
@@ -251,6 +281,9 @@ func _fence(at: Vector3, len: float) -> void:
 
 ## 집을 수 있는 것 — 작은 기하 하나씩(사과 = 구, 컵 = 원기둥, 신문 = 납작한 상자). 손에 들면 hand_r 의 자식이 된다
 func _item(kind: String, at: Vector3) -> void:
+	items.append(make_item(kind, at))
+
+func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	match kind:
 		"apple":
@@ -264,7 +297,7 @@ func _item(kind: String, at: Vector3) -> void:
 			mi.position = at + Vector3(0, 0.01, 0)
 	mi.set_meta("kind", kind)
 	add_child(mi)
-	items.append(mi)
+	return mi
 
 # ── 조작 ──
 func _physics_process(delta: float) -> void:
@@ -273,6 +306,18 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
+	# 넘어짐: 1.6초 누웠다가 0.6초에 걸쳐 일어난다. 그동안 입력은 없다
+	if down_until > now:
+		body.velocity = Vector3(lerpf(body.velocity.x, 0.0, 0.2), body.velocity.y - G * delta, lerpf(body.velocity.z, 0.0, 0.2))
+		body.move_and_slide(); player.lying = true; player.move_dir = Vector3.ZERO; player.speed = 0.0
+		return
+	if down_until > 0.0 and down_until <= now and getup_until < 0.0:
+		down_until = -1.0; getup_until = now + 0.6; player.lying = false; player.action = "getup"; player.action_t = 0.0
+	if getup_until > now:
+		player.action_t = 1.0 - (getup_until - now) / 0.6; body.velocity = Vector3.ZERO
+		return
+	if getup_until > 0.0 and getup_until <= now:
+		getup_until = -1.0; player.action = ""; player.action_t = 0.0
 	# 앉아 있으면 아무 방향키로 일어난다
 	if not seat.is_empty():
 		if dir != Vector3.ZERO or Input.is_action_just_pressed("jump"):
@@ -323,11 +368,16 @@ func _physics_process(delta: float) -> void:
 		var f := fwd_dir()
 		v += f * push_amount; v.y = maxf(v.y, push_lift) if push_lift > 0.0 else v.y
 		push_at = -1.0
+		_strike(hit_kind)
+	if jet:
+		_strike("jet")
 	body.velocity = v
 	body.move_and_slide()
 	body.position.x = clampf(body.position.x, -15.0, 15.0)
 	body.position.z = clampf(body.position.z, -9.0, 9.0)
 	# 착지: 빠르게 떨어졌으면 0.12초 무릎 반동, 달려서 착지하면 속도는 그대로 이어진다
+	if jet and body.is_on_floor() and body.velocity.y <= 0.0 and not was_airborne:
+		was_airborne = true  # 뜨지 못한 제트킥은 이번 프레임에 착지로 처리(안전장치)
 	if was_airborne and body.is_on_floor():
 		if player.vertical < -4.5 or jet:
 			land_until = now + (0.2 if jet else 0.12)
@@ -354,18 +404,29 @@ func _physics_process(delta: float) -> void:
 			throw_power = power
 	if action_until < now and throw_charge < 0.0:
 		if Input.is_action_just_pressed("hit"):
-			player.action = "punch"; action_until = now + 0.28
-			# 체중 이동은 뻗는 순간(0.15 지점)에 실린다: 공중 4.5(살짝 뜸), 달리며 1.8, 서서 1.1
-			push_at = now + 0.28 * 0.15; push_amount = 2.2 if not grounded else (1.8 if running else 0.55)  # 점프 주먹 4.5→2.2(운영자: 너무 많이 나간다); push_lift = 1.0 if not grounded else 0.0
+			if grounded and not running:
+				# 연속기: 왼 잽 → 오른 스트레이트 → 왼 훅. 0.45초 안에 이어 누르면 다음 타, 늦으면 처음부터
+				if now > combo_open_until: combo = 0
+				player.punch_side = [-1.0, 1.0, -1.0][combo]; player.punch_kind = ["jab", "cross", "hook"][combo]
+				var dur: float = [0.22, 0.28, 0.32][combo]
+				action_until = now + dur; push_at = now + dur * 0.15; push_amount = [0.35, 0.6, 0.5][combo]; push_lift = 0.0
+				hit_kind = "punch"
+				combo_open_until = action_until + 0.45; combo = (combo + 1) % 3
+			else:
+				player.punch_side = 1.0; player.punch_kind = "cross"
+				action_until = now + 0.28
+				push_at = now + 0.28 * 0.15; push_amount = 2.2 if not grounded else 1.8; push_lift = 1.0 if not grounded else 0.0
+				hit_kind = "air" if not grounded else "punch"
+			player.action = "punch"
 		elif Input.is_action_just_pressed("kick"):
 			if not grounded or hv.length() > 0.8:  # 움직이는 중이면 무조건 제트킥(운영자: 발차기는 그림의 형태)
 				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
-				jet = true; player.action = "kick"; action_until = now + 9.0
+				jet = true; player.action = "kick"; action_until = now + 9.0; hit_kind = "jet"
 				var f := fwd_dir()
-				v = Vector3(f.x * 9.0, (4.2 if grounded else maxf(v.y, 1.6)), f.z * 9.0)  # 땅에서 시작하면 0.4m 쯤 떠서 날아간다
-				hv = Vector3(v.x, 0, v.z)
+				body.velocity = Vector3(f.x * 9.0, (4.2 if grounded else maxf(body.velocity.y, 1.6)), f.z * 9.0)  # 그 자리에서 몸에 적용(버그: move_and_slide 뒤라 v 만 바꾸면 뜨지 못했다)
+				was_airborne = true
 			else:
-				player.action = "kick"; action_until = now + 0.34
+				player.action = "kick"; action_until = now + 0.34; hit_kind = "kick"
 				push_at = now + 0.34 * 0.15; push_amount = 1.0; push_lift = 0.0  # 차는 순간 몸이 앞으로 쏠린다
 	if throw_at >= 0.0 and now >= throw_at and player.carrying:
 		throw_at = -1.0
@@ -385,8 +446,47 @@ func _physics_process(delta: float) -> void:
 				player.action_t = 0.35 + (1.0 - (action_until - now) / 0.2) * 0.65  # 제트킥 착지 마무리: 뻗은 상태에서 거둔다
 	else:
 		player.action = ""; player.action_t = 0.0
+	if shake_until > 0.0 and now >= shake_until:
+		shake_until = -1.0; player.pose_request = ""
 	_interact_check(now)
 	_fly(delta)
+
+var cam_kick := 0.0
+var shake_until := -1.0
+
+## 앞 부채꼴(70°) 안, 사거리 안의 주민을 맞힌다. 무거운 한 방(제트킥·점프 주먹·훅)은 바로 넘어진다
+func _strike(kind: String) -> void:
+	var reach := 1.3 if kind == "jet" else (1.1 if kind == "kick" else 0.95)
+	var heavy := kind == "jet" or kind == "air" or (kind == "punch" and player.punch_kind == "hook")
+	var f := fwd_dir(); var p := body.global_position
+	var now := Time.get_ticks_msec() / 1000.0
+	for r in residents:
+		if r.state == "down" or (kind == "jet" and float(r.get_meta("jet_hit_at", -9.0)) > now - 1.0):
+			continue
+		var to: Vector3 = r.global_position - p; to.y = 0.0
+		var d := to.length()
+		if d < reach and d > 0.05 and f.dot(to.normalized()) > 0.34:
+			r.hit(f, body, heavy)
+			if kind == "jet": r.set_meta("jet_hit_at", now)
+			cam_kick = 0.06 if heavy else 0.03
+
+## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
+func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if down_until > now or getup_until > now: return
+	if now - my_last_hit > 3.0: my_hits = 0
+	my_hits += 1; my_last_hit = now
+	jet = false; throw_charge = -1.0; seat = {}; player.seated = false
+	if my_hits >= 3:
+		my_hits = 0
+		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
+		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
+		if player.carrying:
+			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); items.append(it)
+	else:
+		player.action = "flinch"; action_until = now + 0.3
+		body.velocity = dir * 1.6
+	cam_kick = 0.05
 
 const STEP := 0.42
 ## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
@@ -444,9 +544,19 @@ func _interact_check(now: float) -> void:
 	for b in benches:
 		var d := p.distance_to(b["pos"])
 		if d < 1.0 and d < best_d: best = { "kind": "bench", "bench": b }; best_d = d
+	for sp in spots:
+		if sp["kind"] != "tree": continue
+		var d2: float = p.distance_to(sp["pos"])
+		if d2 < 1.0 and d2 < best_d: best = { "kind": "tree", "spot": sp }; best_d = d2
 	if best.is_empty():
 		return
 	match best["kind"]:
+		"tree":
+			var sp: Dictionary = best["spot"]
+			player.face(atan2(sp["pos"].x - p.x, sp["pos"].z - p.z))
+			player.pose_request = "shake"; shake_until = now + 1.2; action_until = now + 1.2
+			var apple := make_item("apple", sp["pos"] + Vector3(randf_range(-0.5, 0.5), 1.6, randf_range(0.2, 0.7)))
+			flying.append({ "node": apple, "vel": Vector3(0, 0.5, 0), "spin": 3.0 })  # 흔들면 사과가 떨어진다
 		"item":
 			var it: Node3D = best["node"]
 			items.erase(it)
@@ -477,4 +587,6 @@ func _process(delta: float) -> void:
 	# 3/4 시점: 플레이어 뒤·위에서 내려다본다. 부드럽게 따라오고 세계 끝에서 멈춘다
 	var want := Vector3(clampf(body.position.x, -9.0, 9.0), 0, clampf(body.position.z, -5.0, 6.0)) + Vector3(0, 8.5, 7.5)
 	cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
+	if cam_kick > 0.0:
+		cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)
 	cam.look_at(Vector3(cam.position.x, 0.6, cam.position.z - 7.5), Vector3.UP)

@@ -34,6 +34,10 @@ var jet := false               # 제트킥 비행 중(온몸이 앞으로 쏠린
 var action := ""               # "punch" | "kick" | "grab" | "" — 잠깐의 동작
 var action_t := 0.0            # 동작 진행 0..1
 var carrying: Node3D = null    # 오른손에 든 것(hand_r 의 자식)
+var punch_side := 1.0          # 연속기: 1.0 오른손, -1.0 왼손
+var punch_kind := "jab"        # "jab" | "cross" | "hook"
+var lying := false             # 맞아서 누움(등을 바닥에)
+var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "" 
 
 var _phase := 0.0
 var _t := 0.0
@@ -195,6 +199,13 @@ func _process(delta: float) -> void:
 		lean = 0.18 if vertical > 0.0 else 0.08  # 도약은 살짝 앞으로
 	if seated:
 		lean = -0.05
+	if pose_request == "lean" and not moving:
+		lean = -0.2
+	if pose_request == "shake" and not moving:
+		lean = sin(_t * 9.0) * 0.12
+	if lying:
+		pelvis.rotation.x = -1.45; lean = 0.1
+		pelvis.position.y = 0.12
 	torso.rotation.x = lean * 0.45
 	chest.rotation.x = lean * 0.55 + (0.18 * run_k if moving and not airborne else 0.0)  # 달리면 등이 둥글게 말린다
 	torso.rotation.y = -sw * 0.10 * run_k if moving else 0.0
@@ -204,7 +215,19 @@ func _process(delta: float) -> void:
 		var s: float = side
 		var hip: Node3D = hips[s]; var knee: Node3D = knees[s]
 		var sh: Node3D = shoulders[s]; var el: Node3D = elbows[s]
-		if seated:
+		if lying:
+			# 맞아서 등을 바닥에 — 골반을 뒤로 눕히고(pelvis −1.45) 팔다리는 살짝 벌린 채 힘없이
+			hip.rotation.x = -(0.25 + 0.1 * s); knee.rotation.x = -(-0.4)
+			sh.rotation.x = -(0.5 * s); sh.rotation.z = -s * 0.9; el.rotation.x = -(0.3)
+		elif pose_request == "lean":
+			# 가로등에 기대서기(2D lean): 어깨가 뒤로 빠지고 한쪽 발은 발끝만 걸쳐 꼬고 팔짱
+			hip.rotation.x = -(0.15 if s > 0.0 else -0.35); knee.rotation.x = -(-0.1 if s > 0.0 else -0.6)
+			sh.rotation.x = -(0.45); sh.rotation.z = -s * 0.05; el.rotation.x = -(1.9)
+		elif pose_request == "shake":
+			# 나무 흔들기(2D shake): 두 팔을 위로 뻗어 가지를 잡고 몸통째 좌우로
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.1)
+			sh.rotation.x = -(2.9 + sin(_t * 9.0) * 0.15); sh.rotation.z = -s * 0.25; el.rotation.x = -(0.2)
+		elif seated:
 			# 벤치: 허벅지 앞으로 수평, 정강이 아래로, 손은 무릎 위
 			hip.rotation.x = -(1.5); knee.rotation.x = -(-1.45)
 			sh.rotation.x = -(0.55); sh.rotation.z = -s * 0.1; el.rotation.x = -(0.9)
@@ -253,7 +276,7 @@ func _process(delta: float) -> void:
 		elif a < 0.30: k = smoothstep(0.0, 1.0, (a - 0.15) / 0.15)
 		elif a < 0.55: k = 1.0
 		else: k = 1.0 - smoothstep(0.0, 1.0, (a - 0.55) / 0.45)
-		if action == "grab":
+		if action == "grab" or action == "flinch":
 			k = sin(a * PI)
 		if action == "punch":
 			# 운영자 그림(2026-09-28): 힘줘서 온몸이 앞으로 쏠리는 주먹 — 골반·상체 앞으로, 앞다리(왼) 무릎 굽혀 내딛고 뒷다리(오른) 뒤로 끌림,
@@ -262,18 +285,26 @@ func _process(delta: float) -> void:
 				# 점프 주먹: 온몸이 앞으로 쏠려 내리꽂는다
 				pelvis.rotation.x = 0.24 * k
 				torso.rotation.x = 0.55 * k; torso.rotation.y = -0.5 * k; neck.rotation.x = -0.3 * k
-				shoulders[1.0].rotation.x = -(1.75 * k); elbows[1.0].rotation.x = -(0.05 * k + 0.12 * (1.0 - k)); shoulders[1.0].rotation.z = -0.05
+				shoulders[1.0].rotation.x = -(1.75 * k); elbows[1.0].rotation.x = -(0.05 * k + 0.12 * (1.0 - k)); shoulders[1.0].rotation.z = -0.34 * k
 				shoulders[-1.0].rotation.x = -(-1.0 * k); elbows[-1.0].rotation.x = -(0.7 * k)
 				hips[-1.0].rotation.x = -(0.75 * k); knees[-1.0].rotation.x = -(-0.95 * k)
 				hips[1.0].rotation.x = -(-0.65 * k); knees[1.0].rotation.x = -(-0.25 * k)
 			else:
-				# 서서 치기(운영자: 권투처럼) — 자세 좁게: 앞발 조금, 뒷발 제자리, 무릎 살짝 굽힘. 힘은 허리 회전·어깨에서, 뒷팔은 턱 앞 가드
+				# 서서 치기(운영자: 권투처럼) — 자세 좁게, 힘은 허리 회전·어깨에서. 연속기: 왼 잽 → 오른 스트레이트 → 왼 훅
+				var ps := punch_side; var os := -punch_side
 				pelvis.rotation.x = 0.06 * k
-				torso.rotation.x = 0.22 * k; torso.rotation.y = -0.7 * k; neck.rotation.x = -0.1 * k
-				shoulders[1.0].rotation.x = -(1.7 * k); elbows[1.0].rotation.x = -(0.05 * k + 0.35 * (1.0 - k)); shoulders[1.0].rotation.z = -0.05
-				shoulders[-1.0].rotation.x = -(0.9); elbows[-1.0].rotation.x = -(1.9); shoulders[-1.0].rotation.z = 0.15  # 가드
-				hips[-1.0].rotation.x = -(0.28 * k); knees[-1.0].rotation.x = -(-0.35)
-				hips[1.0].rotation.x = -(-0.18 * k); knees[1.0].rotation.x = -(-0.3)
+				neck.rotation.x = -0.1 * k
+				if punch_kind == "hook":
+					# 훅: 팔꿈치 굽힌 채 옆에서 돌아 들어온다 — 어깨는 옆으로 들리고 허리가 크게 돈다
+					torso.rotation.x = 0.12 * k; torso.rotation.y = -ps * 1.0 * k
+					shoulders[ps].rotation.x = -(1.4 * k); shoulders[ps].rotation.z = -ps * (1.3 - 0.9 * k); elbows[ps].rotation.x = -(1.5)
+				else:
+					var reach := 1.45 if punch_kind == "jab" else 1.75
+					torso.rotation.x = (0.12 if punch_kind == "jab" else 0.25) * k; torso.rotation.y = -ps * (0.35 if punch_kind == "jab" else 0.75) * k
+					shoulders[ps].rotation.x = -(reach * k); elbows[ps].rotation.x = -(0.05 * k + 0.35 * (1.0 - k)); shoulders[ps].rotation.z = -ps * 0.34 * k  # 안쪽으로 모아 정중앙 타점(운영자 지적)
+				shoulders[os].rotation.x = -(0.9); elbows[os].rotation.x = -(1.9); shoulders[os].rotation.z = -os * 0.15  # 가드
+				hips[os].rotation.x = -(0.28 * k); knees[os].rotation.x = -(-0.35)
+				hips[ps].rotation.x = -(-0.18 * k); knees[ps].rotation.x = -(-0.3)
 		elif action == "kick":
 			# 발차기도 앞으로 쏠린다(운영자: 발에 힘이 들어가면 몸이 앞으로 간다) — 골반·상체 앞으로, 찬 발 앞으로 높이 쭉, 팔은 앞·뒤로 균형
 			hips[1.0].rotation.x = -(1.5 * k); knees[1.0].rotation.x = -(-0.1 * k)
@@ -311,6 +342,22 @@ func _process(delta: float) -> void:
 			torso.rotation.x = (-0.15 * w) if back else lerpf(-0.15, 0.3, w)
 			if not airborne:
 				hips[1.0].rotation.x = -(-0.3); hips[-1.0].rotation.x = -(0.3)
+		elif action == "flinch":
+			# 맞음: 머리가 뒤로 젖혀지고 상체가 뒤로 밀리며 무릎이 살짝 꺾이고 팔이 반사적으로 올라온다(0.25초)
+			var f := sin(a * PI)
+			pelvis.rotation.x = -0.12 * f
+			torso.rotation.x = -0.4 * f; torso.rotation.y = 0.25 * f; neck.rotation.x = -0.5 * f
+			hips[1.0].rotation.x = -(0.2 * f); hips[-1.0].rotation.x = -(-0.25 * f); knees[1.0].rotation.x = -(-0.5 * f); knees[-1.0].rotation.x = -(-0.4 * f)
+			shoulders[1.0].rotation.x = -(0.7 * f); shoulders[-1.0].rotation.x = -(0.5 * f); elbows[1.0].rotation.x = -(1.6 * f); elbows[-1.0].rotation.x = -(1.4 * f)
+		elif action == "getup":
+			# 일어나기: 누운 골반이 세워지며 한 손으로 바닥을 짚고 무릎을 세운다
+			var g := clampf(a, 0.0, 1.0)
+			pelvis.rotation.x = -1.45 * (1.0 - g)
+			pelvis.position.y = lerpf(0.12, HIP_Y, g)
+			torso.rotation.x = 0.7 * sin(g * PI)
+			hips[1.0].rotation.x = -(1.2 * (1.0 - g)); knees[1.0].rotation.x = -(-1.6 * (1.0 - g))
+			hips[-1.0].rotation.x = -(0.4 * (1.0 - g)); knees[-1.0].rotation.x = -(-0.6 * (1.0 - g))
+			shoulders[1.0].rotation.x = -(-1.2 * sin(g * PI)); elbows[1.0].rotation.x = -(0.2)
 		elif action == "grab":
 			torso.rotation.x = 0.9 * k
 			hips[1.0].rotation.x = -(0.35 * k); hips[-1.0].rotation.x = -(0.35 * k)
