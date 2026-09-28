@@ -456,3 +456,40 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-28) Add a stray dog NPC that wanders the riverpath and street, sits beside shoved residents to bark at approaching humans, and trots after anyone carrying a bakery item until fed.
 - [ ] (town wish, 2026-09-28) Add a raccoon NPC that raids open bins, tugs at pockets of recently knocked residents to grab small props (interruptible by shooing or offering food), and sleeps in alley den spots so players can shoo or befriend it.
 - [ ] (town wish, 2026-09-28) Add a squirrel NPC that nests in trees and rooftop hollows, darts between square/street/park, nicks small edible props (especially bakery items) from knocked or distracted residents to stash in tree hollows, and can be d
+
+## Animal Crossing bar (owner, 2026-09-28; build in `game/`, before other sections)
+- [ ] Ground: grass tufts (tiny crossed quads, 3 blades) scattered by seed, flower clusters (5 colours) in beds and wild, worn dirt patches near doors and paths; a curved-edge cobble path with kerb.
+- [ ] Trees: 4 kinds (round, tall, pine cone stack, fruit) with the blob-crown look, apples/pears/oranges that drop when shaken (3 per tree, regrow after 3 minutes), stumps when a tree is gone.
+- [ ] Shops: bakery/café/post/clinic fronts like AC — hanging sign with a shape, striped awning, display window with goods, potted plants at the door, a chalkboard; interiors with a counter and a shopkeeper resident.
+- [ ] Garden plot: fenced dirt with crop rows (pumpkin, tomato, cabbage as blobby meshes), a water pump and a wooden bucket; watering makes them grow through 3 stages; pick with C.
+- [ ] Water: a river band across the park with a stone bridge, ripples (animated UV), fish shadows; fishing with a rod at the bank (cast, wait, splash, pull) — the web's fishing moved here.
+- [ ] Cliffs and terraces: a raised grass shelf with a rock face and a ramp/steps; the second level holds a lookout bench.
+- [ ] Outdoor furniture: white café table and chairs, parasol, hammock, picnic blanket, campfire (particles), lantern posts.
+- [ ] Living things: butterflies and bees over flowers, birds in trees that fly off when shaken, a cat on a fence, frog by the pond; all with eyes, idle motion and a reaction to the player.
+- [ ] Light: warmer sun, softer shadows (larger blur), a touch of rim/ambient so blobs read round; sky gradient with a few blob clouds that drift.
+
+## Motion library from the owner's board (2026-09-28; https://kr.pinterest.com/pkm4625/%EC%A1%B8%EB%9D%BC%EB%A7%A8/ ; one family per run, in `stick3d.gd` + `stickman.ts`)
+- [ ] Carrying family: box on the shoulder, two boxes stacked, a sofa with two people (front and back), a wheelbarrow push, a suitcase drag — and the town use: movers' job that carries furniture between houses.
+- [ ] Work family: sweep (exists), shovel dig, rake leaves, hammer a fence post, saw a plank, paint a wall with a roller, water with a can (exists), push a mower — builders and gardeners use them.
+- [ ] Sport family: sprint start, hurdle, high jump, javelin throw, shot put, golf swing, tennis serve, basketball shot, bicycle ride (a bike prop), skateboard — a park sports day event.
+- [ ] Together family: tug of war (rope prop, two teams lean back), handshake, hug, high five, carry a person piggyback, dance pair (spin), wedding walk, graduation cap toss.
+- [ ] Everyday family: phone (exists), read a map, umbrella in rain (weather ties in), stretch after sitting, yawn (2D exists), sneeze, shiver in cold, fan in heat, sit on the floor cross-legged, lie on the grass and look at the sky.
+- [ ] Water family: swim strokes (a river/pond you can enter), dive, float on the back, fish with a rod (cast, wait, tug, pull), splash a duck.
+- [ ] Reaction family: surprised (arms up, step back), laugh (2D exists), cry, shrug (2D exists), think (hand on chin), point, wave (exists), bow, clap, cheer with both arms.
+
+## Animals — the standard (owner, 2026-09-28; `game/scripts/quad3d.gd` is the rig; each item ships with every minimum motion)
+- [ ] Bird rig (`bird3d.gd`): body, head bob, beak peck, two wings that flap, hop; pigeons, sparrows, a crow on a roof; fly to a tree when the player comes, land on the fence when it is quiet.
+- [ ] Squirrel with the quad rig: on the ground near trees, freezes when you approach, climbs the trunk (spine flex up the cylinder) when you shake the tree, sits and eats a nut with its tail up.
+- [ ] Cat life: sleeps on a warm roof or a bench at noon, walks the fence tops, sits in doorways, grooms, arches and hisses if you run at it, lets you pet it only if you approach slowly (speed < walking).
+- [ ] Dog life: has an owner resident and walks with them on a routine, fetches a thrown apple (runs, picks it up in the mouth, brings it back, drops it, play-bows), sleeps by the door at night.
+- [ ] Ducks with a rig: waddle on land (body sway), paddle in the pond (legs hidden, ripples), dip head to feed, flap-run when chased, ducklings following the mother in a line.
+- [ ] Frog by the pond (hop cycle, throat puff), butterflies over flower beds (two quads, flutter path), bees (buzz path around one flower), fish shadows under the water.
+
+## Items, wearables and their verbs (owner, 2026-09-28; depth over breadth; `game/`)
+- [ ] Wearables v1: cap, beanie, top hat, straw hat, glasses, sunglasses, scarf, backpack — primitives on the rig's sockets; found in the world (a hat stand at the market stall), picked with C, worn with C while held, taken off with C long-press; residents wear a seeded set so the town has variety.
+- [ ] Clothes: a shirt and trousers as colour bands on the capsule bones (two colours per person), shop that sells them (buy with coins), the web's figureColor stays as the "skin" ink colour.
+- [ ] Bakery loop: bread on the counter → buy (coins from `/api/goose` later; for now free) → carry → eat (3 bites, crumbs particles) → the baker resident bakes on a routine and restocks.
+- [ ] Café loop: order at the counter (C) → wait 4–20 s → cup appears → drink → bin it (bin accepts items, fills, sweeper empties).
+- [ ] Give: C on a resident while carrying → offer; they take it (thank you line) or refuse (dry line); reputation +1 per resident when they take it.
+- [ ] Umbrella: item that opens over the head in rain (pose `umbrella`), residents fetch theirs from home when it rains.
+- [ ] Balls: a ball item that bounces (RigidBody3D), kick it with Z, dog fetches it, kids' resident job plays with it in the park.
