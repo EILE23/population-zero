@@ -258,13 +258,22 @@ func _process(delta: float) -> void:
 		if action == "punch":
 			# 운영자 그림(2026-09-28): 힘줘서 온몸이 앞으로 쏠리는 주먹 — 골반·상체 앞으로, 앞다리(왼) 무릎 굽혀 내딛고 뒷다리(오른) 뒤로 끌림,
 			# 주먹 팔은 살짝 위로 쭉, 반대팔은 뒤로. 공중이면 더 쏠린다
-			var air := 1.35 if airborne else 1.0
-			pelvis.rotation.x = 0.18 * k * air
-			torso.rotation.x = 0.42 * k * air; torso.rotation.y = -0.5 * k; neck.rotation.x = -0.25 * k * air
-			shoulders[1.0].rotation.x = -(1.75 * k); elbows[1.0].rotation.x = -(0.05 * k + 0.12 * (1.0 - k)); shoulders[1.0].rotation.z = -0.05
-			shoulders[-1.0].rotation.x = -(-1.0 * k); elbows[-1.0].rotation.x = -(0.7 * k)
-			hips[-1.0].rotation.x = -(0.75 * k); knees[-1.0].rotation.x = -(-0.95 * k)
-			hips[1.0].rotation.x = -(-0.65 * k); knees[1.0].rotation.x = -(-0.25 * k)
+			if airborne:
+				# 점프 주먹: 온몸이 앞으로 쏠려 내리꽂는다
+				pelvis.rotation.x = 0.24 * k
+				torso.rotation.x = 0.55 * k; torso.rotation.y = -0.5 * k; neck.rotation.x = -0.3 * k
+				shoulders[1.0].rotation.x = -(1.75 * k); elbows[1.0].rotation.x = -(0.05 * k + 0.12 * (1.0 - k)); shoulders[1.0].rotation.z = -0.05
+				shoulders[-1.0].rotation.x = -(-1.0 * k); elbows[-1.0].rotation.x = -(0.7 * k)
+				hips[-1.0].rotation.x = -(0.75 * k); knees[-1.0].rotation.x = -(-0.95 * k)
+				hips[1.0].rotation.x = -(-0.65 * k); knees[1.0].rotation.x = -(-0.25 * k)
+			else:
+				# 서서 치기(운영자: 권투처럼) — 자세 좁게: 앞발 조금, 뒷발 제자리, 무릎 살짝 굽힘. 힘은 허리 회전·어깨에서, 뒷팔은 턱 앞 가드
+				pelvis.rotation.x = 0.06 * k
+				torso.rotation.x = 0.22 * k; torso.rotation.y = -0.7 * k; neck.rotation.x = -0.1 * k
+				shoulders[1.0].rotation.x = -(1.7 * k); elbows[1.0].rotation.x = -(0.05 * k + 0.35 * (1.0 - k)); shoulders[1.0].rotation.z = -0.05
+				shoulders[-1.0].rotation.x = -(0.9); elbows[-1.0].rotation.x = -(1.9); shoulders[-1.0].rotation.z = 0.15  # 가드
+				hips[-1.0].rotation.x = -(0.28 * k); knees[-1.0].rotation.x = -(-0.35)
+				hips[1.0].rotation.x = -(-0.18 * k); knees[1.0].rotation.x = -(-0.3)
 		elif action == "kick":
 			# 발차기도 앞으로 쏠린다(운영자: 발에 힘이 들어가면 몸이 앞으로 간다) — 골반·상체 앞으로, 찬 발 앞으로 높이 쭉, 팔은 앞·뒤로 균형
 			hips[1.0].rotation.x = -(1.5 * k); knees[1.0].rotation.x = -(-0.1 * k)
