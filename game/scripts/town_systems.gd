@@ -46,15 +46,15 @@ func _swings(delta: float) -> void:
 		var sw: Dictionary = riding
 		var L: float = sw["len"]
 		var pv: Node3D = sw["pivot"]
-		var seat_world: Vector3 = pv.global_position + Vector3(0, -L * cos(sw["angle"]), L * sin(sw["angle"]))
+		var seat_world: Vector3 = pv.global_position + Vector3(0, -L * cos(sw["angle"]), -L * sin(sw["angle"]))   # x 축 회전: z 는 −L·sin(부호 버그 수정 — 몸이 그네와 반대로 갔다)
 		body.global_position = seat_world + Vector3(0, -0.42 + 0.03, 0)   # 엉덩이가 좌석에
 		body.velocity = Vector3.ZERO
 		player.seated = false; player.pose_request = "swing"; player.swing_k = clampf(sw["vel"] / 3.0, -1.0, 1.0)
 		player.face(0.0)
-		player.rotation.x = 0.0
+		player.rotation.x = sw["angle"]
 		if Input.is_action_just_pressed("jump"):
 			# 뛰어내리기: 접선 속도 그대로 + 위로
-			var tang: Vector3 = Vector3(0, L * sin(sw["angle"]), L * cos(sw["angle"])) * sw["vel"]
+			var tang: Vector3 = Vector3(0, L * sin(sw["angle"]), -L * cos(sw["angle"])) * sw["vel"]
 			body.velocity = tang * 1.15 + Vector3(0, 3.8, 0)
 			riding = {}; player.pose_request = ""; sw["vel"] *= 0.35
 
