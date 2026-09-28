@@ -1,0 +1,5 @@
+# Godot 4 import cache and local editor state
+.godot/
+# Exports land here (CI publishes them elsewhere)
+export/
+*.tmp

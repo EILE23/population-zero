@@ -1,0 +1,270 @@
+class_name Figure
+extends Node2D
+## 졸라맨 — 발끝이 원점. site/src/lib/stickman.ts 의 이식(좌표·길이·위상 그대로).
+## 관절: 엉덩이(0,-16) · 어깨(0,-34) · 머리(0,-42). face 는 draw 변환으로 뒤집고, 깊이 배율은 노드 scale 로 준다.
+## 자세 이름은 웹과 같다(6자 이하). 여기 없는 이름은 'stand' 로 그린다 — 새 자세는 여기 match 에 한 가지씩 더한다.
+
+@export var pose: String = "stand"
+@export var face: int = 1
+@export var color: Color = Color("1b0c15")
+@export var arms: bool = false
+## 초 단위 시간 — 걸음·숨쉬기 위상. 방(멀티)에서는 벽시계로 맞춘다
+var t: float = 0.0
+
+const LW := 2.4
+const THIGH := 11.0
+const SHIN := 10.0
+const UPPER := 9.0
+const FORE := 9.0
+const D := PI / 2.0
+const SEATED := ["sit", "seat", "swing", "eat"]
+
+func _process(delta: float) -> void:
+	t += delta
+	queue_redraw()
+
+static func seg(p: Vector2, len: float, ang: float) -> Vector2:
+	return p + Vector2(cos(ang), sin(ang)) * len
+
+func _ln(a: Vector2, b: Vector2, c = null) -> void:
+	draw_line(a, b, color, LW, true)
+	if c != null:
+		draw_line(b, c, color, LW, true)
+
+func _head(p: Vector2) -> void:
+	draw_circle(p, 7.0, color)
+
+func _legs_stand(hip: Vector2) -> void:
+	_ln(hip, Vector2(-4, -8), Vector2(-5, 0))
+	_ln(hip, Vector2(4, -8), Vector2(5, 0))
+
+func _draw() -> void:
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(float(face), 1.0))
+	var hip := Vector2(0, -16)
+	var shoulder := Vector2(0, -34)
+	var head := Vector2(0, -42)
+	match pose:
+		"run":
+			var ph := t * 13.0
+			var sw := sin(ph)
+			var cw := cos(ph)
+			var bob := absf(cw) * 2.6
+			var lean := 0.32
+			hip = Vector2(0, -16 - bob)
+			shoulder = seg(hip, 18.0, -D + lean)
+			head = seg(shoulder, 8.0, -D + lean)
+			_ln(hip, shoulder)
+			for side: float in [1.0, -1.0]:
+				var a := D + side * sw * 0.9
+				var knee := seg(hip, THIGH, a)
+				var bend := 1.4 if side * sw < 0.0 else 0.2
+				_ln(hip, knee, seg(knee, SHIN, a + bend))
+			for side: float in [1.0, -1.0]:
+				var a := D - side * sw * 1.05 + lean
+				var elbow := seg(shoulder, UPPER, a)
+				_ln(shoulder, elbow, seg(elbow, FORE, a - 1.7))
+			_head(head)
+		"charge":
+			hip = Vector2(0, -11); shoulder = Vector2(3, -27); head = Vector2(4, -35)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(7, -6), Vector2(5, 0)); _ln(hip, Vector2(-5, -6), Vector2(-6, 0))
+			_ln(shoulder, Vector2(-2, -20), Vector2(-6, -12)); _ln(shoulder, Vector2(8, -21), Vector2(10, -13))
+			_head(head)
+		"jump":
+			hip = Vector2(0, -18); shoulder = Vector2(1, -36); head = Vector2(2, -44)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(7, -12), Vector2(4, -4)); _ln(hip, Vector2(-2, -10), Vector2(-6, -2))
+			_ln(shoulder, Vector2(7, -44), Vector2(10, -52)); _ln(shoulder, Vector2(-6, -42), Vector2(-8, -50))
+			_head(head)
+		"fall", "hurt":
+			var fl := sin(t * 22.0) * 0.5
+			hip = Vector2(0, -16); shoulder = Vector2(-1, -34); head = Vector2(-2, -42)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(8, -6), Vector2(10, 2)); _ln(hip, Vector2(-9, -8), Vector2(-12, 0))
+			_ln(shoulder, seg(shoulder, 8.0, -D - 0.6 + fl), seg(shoulder, 15.0, -D - 0.9 + fl))
+			_ln(shoulder, seg(shoulder, 8.0, -D + 0.9 - fl), seg(shoulder, 15.0, -D + 1.3 - fl))
+			_head(head)
+			if pose == "hurt":
+				draw_arc(head, 12.0, 0.0, TAU, 24, Color("ff2d55"), LW, true)
+		"punch":
+			hip = Vector2(0, -16); shoulder = Vector2(4, -34); head = Vector2(5, -42)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-7, -8), Vector2(-9, 0)); _ln(hip, Vector2(8, -8), Vector2(10, 0))
+			_ln(shoulder, Vector2(12, -34), Vector2(24, -35))
+			_ln(shoulder, Vector2(-4, -28), Vector2(-8, -22))
+			_head(head)
+		"kick":
+			hip = Vector2(0, -16); shoulder = Vector2(-5, -34); head = Vector2(-6, -42)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-4, -8), Vector2(-6, 0))
+			_ln(hip, Vector2(10, -18), Vector2(24, -20))
+			_ln(shoulder, Vector2(-12, -30), Vector2(-16, -22)); _ln(shoulder, Vector2(3, -30), Vector2(8, -26))
+			_head(head)
+		"throw":
+			var p := fmod(t * 3.3, 1.0)
+			var back := p < 0.45
+			hip = Vector2(-3, -16) if back else Vector2(3, -16)
+			shoulder = Vector2(-8, -33) if back else Vector2(7, -33)
+			head = Vector2(-9, -41) if back else Vector2(10, -40)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-9, -8), Vector2(-12, 0)); _ln(hip, Vector2(6, -8), Vector2(9, 0))
+			if back:
+				_ln(shoulder, Vector2(-16, -40), Vector2(-22, -50)); _ln(shoulder, Vector2(0, -28), Vector2(4, -22))
+			else:
+				_ln(shoulder, Vector2(16, -38), Vector2(26, -44)); _ln(shoulder, Vector2(-2, -28), Vector2(-6, -20))
+			_head(head)
+		"trip":
+			hip = Vector2(-2, -7); shoulder = Vector2(-16, -6); head = Vector2(-23, -5)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(7, -16), Vector2(12, -24)); _ln(hip, Vector2(4, -14), Vector2(7, -22))
+			_ln(shoulder, Vector2(-20, -12), Vector2(-26, -18)); _ln(shoulder, Vector2(-18, 0), Vector2(-12, 5))
+			_head(head)
+		"sit":
+			var br := sin(t * 1.6) * 0.8
+			_ln(Vector2(-2, -4), Vector2(-24, -5 - br))
+			_ln(Vector2(-2, -4), Vector2(8, -5), Vector2(18, -3))
+			_ln(Vector2(-2, -4), Vector2(6, -9), Vector2(14, -3))
+			_ln(Vector2(-24, -5 - br), Vector2(-18, -11 - br), Vector2(-30, -12 - br))
+			_ln(Vector2(-24, -5 - br), Vector2(-14, -7 - br))
+			_head(Vector2(-33, -9 - br))
+		"seat", "eat":
+			var br := sin(t * 1.6) * 0.6
+			hip = Vector2(0, -15); shoulder = Vector2(-1, -33 - br); head = Vector2(-1, -41 - br)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(11, -15), Vector2(12, 0)); _ln(hip, Vector2(9, -14), Vector2(8, 0))
+			_ln(shoulder, Vector2(3, -26 - br), Vector2(10, -18 - br))
+			if pose == "eat":
+				var m := (sin(t * 4.0) + 1.0) / 2.0
+				_ln(shoulder, Vector2(6, -28 - br), Vector2(10 - m * 5, -18 - m * 18 - br))
+			else:
+				_ln(shoulder, Vector2(1, -27 - br), Vector2(8, -19 - br))
+			_head(head)
+		"chew":
+			var m := (sin(t * 4.0) + 1.0) / 2.0
+			head = Vector2(1, -42)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(7, -29), Vector2(9 - m * 5, -22 - m * 15)); _ln(shoulder, Vector2(-5, -26), Vector2(-6, -18))
+			_head(head)
+		"read":
+			shoulder = Vector2(1, -34); head = Vector2(4, -41)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(7, -28), Vector2(11, -31)); _ln(shoulder, Vector2(5, -27), Vector2(11, -29))
+			draw_rect(Rect2(9, -36, 9, 8), color, false, 1.6)
+			_head(head)
+		"lean":
+			var br := sin(t * 1.4) * 0.5
+			hip = Vector2(3, -16); shoulder = Vector2(-3, -34 - br); head = Vector2(-4, -42 - br)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(9, -7), Vector2(12, 1)); _ln(hip, Vector2(-6, -9), Vector2(-14, -6))
+			_ln(shoulder, Vector2(4, -27 - br), Vector2(-5, -25 - br)); _ln(shoulder, Vector2(-9, -27 - br), Vector2(-1, -26 - br))
+			_head(head)
+		"watch":
+			var nod := sin(t * 1.3) * 1.2
+			head = Vector2(3, -41 + nod)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(6, -28), Vector2(-3, -25)); _ln(shoulder, Vector2(-5, -28), Vector2(4, -25))
+			_head(head)
+		"phone":
+			head = Vector2(2, -42)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(7, -29), Vector2(6, -40)); _ln(shoulder, Vector2(-5, -27), Vector2(-3, -20))
+			_head(head)
+		"water":
+			shoulder = Vector2(8, -30); head = Vector2(13, -36)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-4, -8), Vector2(-5, 0)); _ln(hip, Vector2(5, -8), Vector2(6, 0))
+			_ln(shoulder, Vector2(15, -24), Vector2(18, -16)); _ln(shoulder, Vector2(4, -24), Vector2(6, -18))
+			draw_polyline(PackedVector2Array([Vector2(15, -16), Vector2(25, -16), Vector2(23, -8), Vector2(17, -8), Vector2(15, -16)]), color, LW, true)
+			for k in 3:
+				var p := fmod(t * 2.0 + float(k) / 3.0, 1.0)
+				draw_circle(Vector2(27 + k * 3, -10 + p * 10), 1.4, Color("8fb8cc"))
+			_head(head)
+		"sweep":
+			var p := sin(t * 5.0) * 6.0
+			shoulder = Vector2(6, -31); head = Vector2(9, -39)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-5, -8), Vector2(-7, 0)); _ln(hip, Vector2(5, -8), Vector2(6, 0))
+			_ln(shoulder, Vector2(11 + p * 0.5, -26), Vector2(13 + p, -22)); _ln(shoulder, Vector2(9 + p * 0.5, -22), Vector2(16 + p, -16))
+			draw_line(Vector2(9 + p, -28), Vector2(24 + p, 4), color, 1.6, true)
+			draw_colored_polygon(PackedVector2Array([Vector2(20 + p, 2), Vector2(30 + p, 0), Vector2(27 + p, 6), Vector2(19 + p, 7)]), color)
+			_head(head)
+		"shake":
+			var sw := sin(t * 9.0) * 4.0
+			hip = Vector2(sw * 0.3, -16); shoulder = Vector2(sw * 0.6, -34); head = Vector2(sw * 0.7, -42)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(10 + sw, -44), Vector2(15 + sw, -53)); _ln(shoulder, Vector2(-9 + sw, -44), Vector2(-14 + sw, -53))
+			for k in 3:
+				var p := fmod(t * 2.2 + float(k) / 3.0, 1.0)
+				draw_circle(Vector2(6 - k * 6, -50 + p * 42), 1.6, Color("7a9b4e"))
+			_head(head)
+		"brace":
+			var br := sin(t * 3.0) * 0.6
+			hip = Vector2(-2, -14); shoulder = Vector2(-5, -31); head = Vector2(-6, -39)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(9, -5), Vector2(15, 2)); _ln(hip, Vector2(-10, -6), Vector2(-15, 0))
+			_ln(shoulder, Vector2(4, -24 + br), Vector2(9, -19 + br)); _ln(shoulder, Vector2(-1, -23 + br), Vector2(4, -18 + br))
+			_head(head)
+		"catch":
+			hip = Vector2(0, -14); shoulder = Vector2(0, -31); head = Vector2(0, -39)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-6, -7), Vector2(-8, 0)); _ln(hip, Vector2(6, -7), Vector2(8, 0))
+			_ln(shoulder, Vector2(8, -42), Vector2(11, -52)); _ln(shoulder, Vector2(-8, -42), Vector2(-11, -52))
+			_head(head)
+		"wave":
+			var p := sin(t * 9.0) * 7.0
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(6, -40), Vector2(8 + p, -50)); _ln(shoulder, Vector2(-5, -26), Vector2(-6, -18))
+			_head(head)
+		"laugh":
+			var p := sin(t * 16.0) * 1.5
+			shoulder = Vector2(p, -33); head = Vector2(-4, -45)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(8, -29), Vector2(12, -23)); _ln(shoulder, Vector2(-8, -29), Vector2(-12, -23))
+			_head(head)
+		"shrug":
+			var p := (sin(t * 3.0) + 1.0) / 2.0
+			shoulder = Vector2(0, -34 - p * 2); head = Vector2(0, -42 - p * 2)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(7, -30 - p * 4), Vector2(10, -24 - p * 2)); _ln(shoulder, Vector2(-7, -30 - p * 4), Vector2(-10, -24 - p * 2))
+			_head(head)
+		"yawn":
+			head = Vector2(3, -45)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(7, -32), Vector2(12, -41)); _ln(shoulder, Vector2(-5, -26), Vector2(-6, -18))
+			_head(head)
+		"stretch":
+			var p := sin(t * 2.0) * 1.5
+			hip = Vector2(1, -16); shoulder = Vector2(2, -33 + p); head = Vector2(3, -42 + p)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(9, -44 + p), Vector2(12, -53 + p)); _ln(shoulder, Vector2(-5, -44 + p), Vector2(-8, -53 + p))
+			_head(head)
+		"look":
+			var g := sin(t * 2.2) * 4.0
+			head = Vector2(g, -42)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(-5, -26), Vector2(-6, -18)); _ln(shoulder, Vector2(5, -26), Vector2(6, -18))
+			_head(head)
+		"dance":
+			var step := sin(t * 3.0) * 5.0
+			var spin := sin(t * 1.5) * 4.0
+			hip = Vector2(step * 0.3, -16); shoulder = Vector2(step * 0.4 + spin, -34); head = Vector2(step * 0.4 + spin, -42)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(7 + step, -8), Vector2(9 + step, 0)); _ln(hip, Vector2(-7 + step, -8), Vector2(-9 + step, 0))
+			_ln(shoulder, Vector2(13, -30), Vector2(17, -25)); _ln(shoulder, Vector2(-13, -30), Vector2(-17, -25))
+			_head(head)
+		"yoga":
+			var b := sin(t * 1.2) * 1.5
+			hip = Vector2(0, -18 + b * 0.2); shoulder = Vector2(10, -10 + b); head = Vector2(16, -4 + b)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(16, -2 + b), Vector2(22, 6 + b)); _ln(shoulder, Vector2(16, -2 + b), Vector2(10, 8 + b))
+			_head(head)
+		_:
+			# 서 있음: 숨 쉬듯 미세하게, 팔짱(arms) 이면 앞으로
+			var br := sin(t * 2.0) * 0.6
+			shoulder = Vector2(0, -34 - br); head = Vector2(0, -42 - br)
+			_ln(hip, shoulder); _legs_stand(hip)
+			if arms:
+				_ln(shoulder, Vector2(7, -28), Vector2(-3, -25)); _ln(shoulder, Vector2(-6, -28), Vector2(4, -26))
+			else:
+				_ln(shoulder, Vector2(-5, -26), Vector2(-6, -18)); _ln(shoulder, Vector2(5, -26), Vector2(6, -18))
+			_head(head)
