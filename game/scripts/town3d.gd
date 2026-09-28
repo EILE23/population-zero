@@ -6,25 +6,22 @@ extends Node3D
 const TILE := 2.0  # 바닥 타일 한 장 = 2m
 
 var player: Stick3D
+var body: CharacterBody3D
 var cam: Camera3D
-var vel := Vector3.ZERO
-var y := 0.0
-var vy := 0.0
-var charging := -1.0
 var last_tap := ""
 var last_tap_at := -1.0
 var dash_until := -1.0
 var action_until := 0.0
 
 const WALK := 2.6
-const G := 24.0
-const JUMP_V := 8.6
-const JUMP_MIN := 4.3
-const CHARGE := 0.7
+const G := 22.0
+## 점프는 짧은 홉(운영자 2026-09-28: Climb 의 힘 모으기 점프는 마을에 안 맞는다) — 벤치(0.45m)·계단·낮은 담 위에 올라설 만큼, 집 벽은 못 넘는다
+const HOP := 5.4
 
 func _ready() -> void:
 	_light()
 	_ground()
+	_solid_floor()
 	_path(Vector3(-14, 0, 2), Vector3(14, 0, 2), 2.4)
 	_path(Vector3(0, 0, 2), Vector3(0, 0, -10), 2.0)
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.2), "sky", "accent-deep")
@@ -37,9 +34,16 @@ func _ready() -> void:
 	_bench(Vector3(4, 0, 4.2), 0.0)
 	_lamp(Vector3(-1.6, 0, 3.6)); _lamp(Vector3(1.6, 0, 3.6)); _lamp(Vector3(-8, 0, 0.6)); _lamp(Vector3(8, 0, 0.6))
 	_fence(Vector3(-13, 0, 7), 6.0); _fence(Vector3(9, 0, 7.5), 5.0)
+	# 플레이어 = 충돌체(캡슐) + 그 안의 입체 졸라맨. 상자·계단·벤치는 StaticBody 라 위에 올라설 수 있다
+	body = CharacterBody3D.new()
+	body.position = Vector3(0, 0.02, 4)
+	var col := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95
+	col.shape = cap; col.position.y = 0.5
+	body.add_child(col)
 	player = Stick3D.new()
-	player.position = Vector3(0, 0, 4)
-	add_child(player)
+	body.add_child(player)
+	add_child(body)
 	cam = $Camera3D
 
 # ── 세계 ──
@@ -69,13 +73,23 @@ func _light() -> void:
 	sun.shadow_blur = 1.6
 	add_child(sun)
 
-func _box(size: Vector3, at: Vector3, mat: Material) -> MeshInstance3D:
+func _box(size: Vector3, at: Vector3, mat: Material, solid := true) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var bm := BoxMesh.new(); bm.size = size
 	mi.mesh = bm; mi.material_override = mat
 	mi.position = at + Vector3(0, size.y / 2.0, 0)
+	if solid:
+		var sb := StaticBody3D.new()
+		var cs := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = size; cs.shape = bs
+		sb.add_child(cs); mi.add_child(sb)  # 메시의 자식이라 회전·이동을 같이 따른다
 	add_child(mi)
 	return mi
+
+func _solid_floor() -> void:
+	var sb := StaticBody3D.new()
+	var cs := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = Vector3(80, 1, 80); cs.shape = bs
+	sb.add_child(cs); sb.position.y = -0.5
+	add_child(sb)
 
 func _ground() -> void:
 	var g := MeshInstance3D.new()
@@ -128,6 +142,7 @@ func _tree(at: Vector3, k: float) -> void:
 	var cm := CylinderMesh.new(); cm.top_radius = 0.09 * k; cm.bottom_radius = 0.14 * k; cm.height = 1.0 * k
 	trunk.mesh = cm; trunk.material_override = _mat(Color("8a6a4a"))
 	trunk.position = at + Vector3(0, 0.5 * k, 0)
+	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.16 * k; sh.height = 1.0 * k; cs.shape = sh; sb.add_child(cs); trunk.add_child(sb)
 	add_child(trunk)
 	for i in 3:
 		var s := MeshInstance3D.new()
@@ -169,7 +184,7 @@ func _fence(at: Vector3, len: float) -> void:
 # ── 조작과 카메라 ──
 func _physics_process(delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	var grounded := y <= 0.0
+	var grounded := body.is_on_floor()
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
@@ -179,30 +194,27 @@ func _physics_process(delta: float) -> void:
 				dash_until = now + 0.18
 			last_tap = a; last_tap_at = now
 	var speed := WALK * (2.2 if now < dash_until else 1.0)
-	var can_move := charging < 0.0 and action_until < now
+	var can_move := action_until < now
+	var v := body.velocity
 	if can_move and dir != Vector3.ZERO:
-		player.position += dir * speed * delta
-		player.position.x = clampf(player.position.x, -15.0, 15.0)
-		player.position.z = clampf(player.position.z, -9.0, 9.0)
+		v.x = dir.x * speed; v.z = dir.z * speed
 		player.move_dir = dir; player.speed = speed
 	else:
+		# 땅에선 바로 멈추고 공중에선 관성을 조금 남긴다
+		var k := 1.0 if grounded else 0.98
+		v.x = lerpf(v.x, 0.0, k); v.z = lerpf(v.z, 0.0, k)
 		player.move_dir = Vector3.ZERO; player.speed = 0.0
-	if grounded and Input.is_action_just_pressed("jump"):
-		charging = 0.0
-	if charging >= 0.0:
-		charging = minf(CHARGE, charging + delta)
-		if Input.is_action_just_released("jump"):
-			vy = lerpf(JUMP_MIN, JUMP_V, charging / CHARGE)
-			y = 0.001; charging = -1.0
-	if not grounded or vy > 0.0:
-		vy -= G * delta
-		y = maxf(0.0, y + vy * delta)
-		if y <= 0.0:
-			vy = 0.0
-	player.crouch = (charging / CHARGE) if charging >= 0.0 else 0.0
-	player.airborne = y > 0.0
-	player.vertical = vy
-	player.position.y = y
+	if not grounded:
+		v.y -= G * delta
+	elif Input.is_action_just_pressed("jump"):
+		v.y = HOP
+	body.velocity = v
+	body.move_and_slide()
+	body.position.x = clampf(body.position.x, -15.0, 15.0)
+	body.position.z = clampf(body.position.z, -9.0, 9.0)
+	player.crouch = 0.0
+	player.airborne = not body.is_on_floor()
+	player.vertical = body.velocity.y
 	if grounded and action_until < now:
 		if Input.is_action_just_pressed("hit"):
 			player.action = "punch"; action_until = now + 0.28
@@ -215,6 +227,6 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	# 3/4 시점: 플레이어 뒤·위에서 내려다본다. 부드럽게 따라오고 세계 끝에서 멈춘다
-	var want := Vector3(clampf(player.position.x, -9.0, 9.0), 0, clampf(player.position.z, -5.0, 6.0)) + Vector3(0, 8.5, 7.5)
+	var want := Vector3(clampf(body.position.x, -9.0, 9.0), 0, clampf(body.position.z, -5.0, 6.0)) + Vector3(0, 8.5, 7.5)
 	cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
 	cam.look_at(Vector3(cam.position.x, 0.6, cam.position.z - 7.5), Vector3.UP)

@@ -17,7 +17,8 @@ trees, tiled ground with paths, one sun with soft shadows, toon-flat shading, an
 (no flip-books). `scenes/town3d.tscn` is the first cut of exactly that; `scripts/stick3d.gd` is the figure (capsule bones, sphere joints,
 walk phase driven by distance so feet never slide, arms opposite legs, knees fold on the back swing, torso leans with speed, smooth turning).
 Everything is still generated from code: geometry from primitives in GDScript, textures from `tools/assets.mjs` (`faces/`, `ground/`).
-`main.tscn` (2D stage) and `diorama.tscn` (paper cut-outs) stay as references only.
+`scenes/reference/main.tscn` (2D stage) and `scenes/reference/diorama.tscn` (paper cut-outs) stay as references only; F5 runs `town3d.tscn`.
+Jumping in the town is a short hop (no charge — that was Climb's), and the world has real collision: you can stand on benches, steps and low walls.
 
 ## Assets policy
 Everything visual is **vector or procedural** (`_draw()`, SVG under `assets/svg/`), paper background, ink lines, the brand mauve

@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=4 format=3 uid="uid://bpmah7pdqycxk"]
 
 [ext_resource type="Script" path="res://scripts/town3d.gd" id="1_town3d"]
 
@@ -8,7 +8,6 @@ background_color = Color(0.875, 0.902, 0.918, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.969, 0.957, 0.937, 1)
 ambient_light_energy = 0.55
-tonemap_mode = 0
 ssao_enabled = true
 ssao_radius = 0.6
 ssao_intensity = 1.2
@@ -25,8 +24,8 @@ environment = SubResource("Environment_town")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.66, 0.75, 0, -0.75, 0.66, 0, 8.5, 11.5)
-fov = 32.0
 current = true
+fov = 32.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 
@@ -35,5 +34,5 @@ offset_left = 12.0
 offset_top = 446.0
 offset_right = 948.0
 offset_bottom = 466.0
-text = "3D town · ← → ↑ ↓ move · double-tap dash · SPACE hold, release to jump · X punch · Z kick"
+text = "← → ↑ ↓ move · double-tap dash · SPACE hop · X punch · Z kick"
 label_settings = SubResource("LabelSettings_legend")

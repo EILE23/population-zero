@@ -12,7 +12,7 @@ config_version=5
 
 config/name="POZ"
 config/description="A stick-figure town you can walk into. 2.5D indie game; the web site is its home."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/town3d.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [display]
