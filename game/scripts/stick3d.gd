@@ -41,6 +41,11 @@ var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(�
 var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
 var push_t := 9.0              # 밀기: 0 에서 시작해 1 까지(팔을 뻗었다 거둔다), 9 = 쉼
 
+## 대기 기지개(운영자 2026-09-28, "Stick3D feel"): 가만히 서 있을 때만 저절로 — 2D figure.gd 의 yawn·shrug·look 을 그대로
+var _fidget := ""              # "" | "yawn" | "shrug" | "look" — 서 있을 때만, 걷거나 동작 중이면 즉시 취소
+var _fidget_t := 0.0
+var _fidget_next := 0.0        # 다음 기지개까지 남은 시간(초) — 인스턴스마다 무작위라 여럿이 동시에 하품하지 않는다
+
 var _phase := 0.0
 var _t := 0.0
 var _yaw := 0.0
@@ -108,6 +113,7 @@ func _ready() -> void:
 	socket_face = _pivot(neck, Vector3(0, HEAD_Y - SHOULDER_Y + 0.02, 0.15))
 	socket_back = _pivot(chest, Vector3(0, (SHOULDER_Y - HIP_Y) * 0.2, -R * 1.6))
 	socket_belt = _pivot(pelvis, Vector3(0, 0.02, 0))
+	_fidget_next = randf_range(3.0, 8.0)
 
 func _material(c: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -176,6 +182,18 @@ func _process(delta: float) -> void:
 		_yaw_target = atan2(move_dir.x, move_dir.z)
 	_yaw = lerp_angle(_yaw, _yaw_target, minf(1.0, delta * 10.0))
 	rotation.y = _yaw
+	# 대기 기지개 — 가만히 서 있을 때만(다른 자세·동작·이동이 끼어들면 바로 취소, 어색하게 이어붙지 않는다)
+	var idle_now := not moving and not airborne and not seated and not lying and crouch <= 0.0 and action == "" and pose_request == ""
+	if not idle_now:
+		_fidget = ""; _fidget_next = randf_range(3.0, 8.0)
+	elif _fidget != "":
+		_fidget_t += delta
+		if _fidget_t > (1.3 if _fidget == "yawn" else (1.0 if _fidget == "shrug" else 1.6)):
+			_fidget = ""; _fidget_t = 0.0; _fidget_next = randf_range(4.0, 9.0)
+	else:
+		_fidget_next -= delta
+		if _fidget_next <= 0.0:
+			_fidget = ["yawn", "shrug", "look"][randi() % 3]; _fidget_t = 0.0
 	# 자세 블렌딩 — 이 프레임의 목표 각도를 아래에서 곧장 대입한 뒤, 끝에서 이전 각도와 섞는다(앉기·일어서기가 딱딱하지 않게)
 	var prev := {}
 	for pv in _pivots:
@@ -227,6 +245,11 @@ func _process(delta: float) -> void:
 	torso.rotation.y = -sw * 0.10 * run_k if moving else 0.0
 	chest.rotation.y = 0.0
 	neck.rotation.x = -(torso.rotation.x + chest.rotation.x) * 0.7  # 고개는 앞을 본다
+	neck.rotation.y = 0.0  # 매 프레임 다시 정면으로 — look 기지개가 끝나도 고개가 돌아간 채 남지 않게
+	if _fidget == "yawn":
+		neck.rotation.x -= 0.35  # 고개를 젖힌다(2D yawn 과 같은 방향)
+	elif _fidget == "look":
+		neck.rotation.y = sin(_fidget_t * 2.2) * 0.35  # 좌우로 둘러본다(2D look)
 	for side in [-1.0, 1.0]:
 		var s: float = side
 		var hip: Node3D = hips[s]; var knee: Node3D = knees[s]
@@ -286,6 +309,20 @@ func _process(delta: float) -> void:
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			if s > 0.0: sh.rotation.x = -(2.7); sh.rotation.z = -0.35 + sin(_t * 9.0) * 0.25; el.rotation.x = -(0.5)
 			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
+		elif _fidget == "yawn":
+			# 하품(2D yawn): 한 팔이 입 쪽으로, 다른 팔은 늘어뜨린 채
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			if s > 0.0: sh.rotation.x = -(1.1); sh.rotation.z = -0.3; el.rotation.x = -(1.6)
+			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
+		elif _fidget == "shrug":
+			# 어깨 으쓱(2D shrug): 두 어깨가 함께 들렸다 내려간다
+			var m := (sin(_fidget_t * 6.0) + 1.0) / 2.0
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			sh.rotation.x = -(0.55 + m * 0.35); sh.rotation.z = -s * (0.15 + m * 0.1); el.rotation.x = -(0.9 + m * 0.3)
+		elif _fidget == "look":
+			# 둘러보기(2D look): 팔은 그대로 늘어뜨리고 고개만(위에서 neck.rotation.y 로 처리)
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
 		elif seated:
 			# 벤치: 허벅지 앞으로 수평, 정강이 아래로, 손은 무릎 위
 			hip.rotation.x = -(1.5); knee.rotation.x = -(-1.45)
