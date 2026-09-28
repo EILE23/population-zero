@@ -270,7 +270,7 @@ func _process(delta: float) -> void:
 			hips[1.0].rotation.x = -(1.5 * k); knees[1.0].rotation.x = -(-0.1 * k)
 			pelvis.rotation.x = 0.12 * k
 			torso.rotation.x = 0.3 * k; torso.rotation.y = 0.2 * k; neck.rotation.x = -0.15 * k
-			shoulders[1.0].rotation.x = -(-0.7 * k); shoulders[-1.0].rotation.x = -(0.9 * k); elbows[-1.0].rotation.x = -(0.5 * k)
+			shoulders[1.0].rotation.x = -(-0.9 * k); shoulders[-1.0].rotation.x = -(-0.5 * k); elbows[-1.0].rotation.x = -(0.3 * k); elbows[1.0].rotation.x = -(0.2 * k)
 			if not airborne:
 				knees[-1.0].rotation.x = -(-0.3 * k)
 			elif jet:
@@ -283,7 +283,7 @@ func _process(delta: float) -> void:
 				torso.rotation.x = 0.3 * k; chest.rotation.x = 0.3 * k; torso.rotation.y = 0.15 * k; neck.rotation.x = -0.3 * k
 				hips[1.0].rotation.x = -(1.87 * k); knees[1.0].rotation.x = -(0.0)
 				hips[-1.0].rotation.x = -(-0.3 * k); knees[-1.0].rotation.x = -(-0.55 * k)  # 발은 아래로(정강이 뒤·아래) — 위로 접으면 안 된다(운영자 지적)
-				shoulders[1.0].rotation.x = -(1.77 * k); shoulders[1.0].rotation.z = -0.08 * k; elbows[1.0].rotation.x = -(0.25 * k)
+				shoulders[1.0].rotation.x = -(2.47 * k); shoulders[1.0].rotation.z = -0.08 * k; elbows[1.0].rotation.x = -(0.1 * k)  # 앞팔 수평(그림)
 				shoulders[-1.0].rotation.x = -(-0.67 * k); shoulders[-1.0].rotation.z = 0.08 * k; elbows[-1.0].rotation.x = -(0.05 * k)
 			else:
 				# 비행 킥: 찬 다리 앞으로 쭉, 반대 다리는 접어 뒤로, 상체는 뒤로 젖혀 비틀고, 양팔은 벌려 균형

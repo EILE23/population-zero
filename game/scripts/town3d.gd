@@ -358,7 +358,7 @@ func _physics_process(delta: float) -> void:
 			# 체중 이동은 뻗는 순간(0.15 지점)에 실린다: 공중 4.5(살짝 뜸), 달리며 1.8, 서서 1.1
 			push_at = now + 0.28 * 0.15; push_amount = 4.5 if not grounded else (1.8 if running else 1.1); push_lift = 1.0 if not grounded else 0.0
 		elif Input.is_action_just_pressed("kick"):
-			if not grounded or running:
+			if not grounded or hv.length() > 0.8:  # 움직이는 중이면 무조건 제트킥(운영자: 발차기는 그림의 형태)
 				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
 				jet = true; player.action = "kick"; action_until = now + 9.0
 				var f := fwd_dir()
