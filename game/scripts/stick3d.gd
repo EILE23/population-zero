@@ -154,6 +154,28 @@ func _joint(pivot: Node3D, k: float) -> void:
 	mi.mesh = sm; mi.material_override = _mat
 	pivot.add_child(mi)
 
+var worn := {}   # slot → Node3D (hat · face · back)
+
+## 입기 — 소켓에 붙인다. 같은 슬롯에 있던 건 돌려준다(없으면 null)
+func wear(item: Node3D) -> Node3D:
+	var slot := String(item.get_meta("slot", "hat"))
+	var prev: Node3D = worn.get(slot, null)
+	if prev: prev.get_parent().remove_child(prev)
+	if item.get_parent(): item.get_parent().remove_child(item)
+	var sock: Node3D = { "hat": socket_hat, "face": socket_face, "back": socket_back }[slot]
+	sock.add_child(item); item.position = Vector3.ZERO; item.rotation = Vector3.ZERO; item.scale = Vector3.ONE
+	if slot == "face": item.position = Vector3(0, 0.02, 0.03)
+	worn[slot] = item
+	if carrying == item: carrying = null
+	return prev
+
+## 벗기 — 그 슬롯의 것을 떼어 돌려준다
+func take_off(slot: String) -> Node3D:
+	var it: Node3D = worn.get(slot, null)
+	if it == null: return null
+	it.get_parent().remove_child(it); worn.erase(slot)
+	return it
+
 ## 손에 들기 — item 은 hand_r 의 자식이 되고, 놓으면 다시 세계로
 func hold(item: Node3D) -> void:
 	if carrying:

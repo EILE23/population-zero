@@ -117,7 +117,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var knob := MeshInstance3D.new(); var ks := SphereMesh.new(); ks.radius = 0.035; ks.height = 0.07; knob.mesh = ks
 	knob.material_override = _mat(Color("e8c766")); knob.position = Vector3(door_w * 0.38, 0.0, 0.06); leaf.add_child(knob)
 	var door_pos := hinge.position + Vector3(door_w / 2.0, 0, 0)
-	doors.append({ "hinge": hinge, "open": false, "pos": door_pos })
+	doors.append({ "hinge": hinge, "open": false, "pos": door_pos, "hw": hw, "hd": hd })
 	spots.append({ "pos": door_pos + Vector3(0, 0, 0.9), "kind": "door", "yaw": PI })
 	# 현관 차양 + 계단 + 화단/우체통
 	if rng.randf() < 0.6:
@@ -200,7 +200,7 @@ func _interior(at: Vector3, size: Vector3, rng: RandomNumberGenerator) -> void:
 	_box(Vector3(0.9, 0.35, 1.6), at + Vector3(bx, 0, bz), _mat(Color("8a6a4a")))
 	_box(Vector3(0.84, 0.12, 1.5), at + Vector3(bx, 0.35, bz), _mat([Color("f7f4ef"), Color("dfe6ea"), Color("e6d3a5")][rng.randi() % 3]), false)
 	_box(Vector3(0.6, 0.1, 0.35), at + Vector3(bx, 0.47, bz - 0.5), _mat(Color("f7f4ef")), false)
-	spots.append({ "pos": at + Vector3(bx, 0.47, bz + 0.1), "kind": "bed", "yaw": PI })
+	spots.append({ "pos": at + Vector3(bx, 0.47, bz + 0.1), "kind": "bed", "yaw": 0.0 })  # yaw 0: 누우면 머리가 −z(베개) 쪽 — PI 였을 땐 거꾸로 잤다
 	var tx := hw - 0.9; var tz := -hd + 1.2
 	_box(Vector3(0.9, 0.05, 0.7), at + Vector3(tx, 0.7, tz), _mat(Color("b48a5a")))
 	for c in [Vector3(-0.35, 0, 0.2), Vector3(0.35, 0, 0.2), Vector3(-0.35, 0, -0.2), Vector3(0.35, 0, -0.2)]:
@@ -283,6 +283,7 @@ func _park(at: Vector3) -> void:
 	for i in 4: _animal("duck", at + Vector3(-6, 0.03, -3) + Vector3(cos(i * 1.57) * 2.0, 0, sin(i * 1.57) * 2.0), { "center": at + Vector3(-6, 0.03, -3), "phase": i * 1.57 })
 	_animal("dog", at + Vector3(2, 0, 1), { "home": at + Vector3(2, 0, 1) })
 	_animal("marten", at + Vector3(-10, 0, -6), { "home": at + Vector3(-10, 0, -6) })
+	_animal("fox", at + Vector3(12, 0, -8), { "home": at + Vector3(12, 0, -8) })   # 육식동물 — 새를 노리고, 건드리면 문다
 
 ## 동쪽 시장 거리 — 노점(기둥+차양+판매대+물건), 상점 정면 둘(빵집·카페: 집 생성기에 간판 색만 다르게), 쓰레기통, 가로등, 자갈 광장
 func _market(at: Vector3) -> void:
@@ -294,6 +295,7 @@ func _market(at: Vector3) -> void:
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
 	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"))   # 빵집 창구(정면 왼쪽)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
+	_hatstand(at + Vector3(-9.6, 0, 4.5))   # 모자 거치대 — C 로 하나 집어 쓴다
 	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
 	_bin(at + Vector3(-9.5, 0, -0.5)); _bin(at + Vector3(9.5, 0, -0.5))
 	_bench(at + Vector3(0, 0, 5.5))
@@ -316,6 +318,15 @@ func _swing(at: Vector3) -> void:
 	var sw := { "pivot": pivot, "len": L, "angle": 0.0, "vel": 0.0, "at": at, "rider": null, "pusher": null, "push_at": 0.0 }
 	swings.append(sw)
 	spots.append({ "pos": at, "kind": "swing", "yaw": 0.0, "swing": sw })  # 주민도 탄다(한 명), 누가 타면 다른 주민이 뒤에서 밀어 준다
+
+## 모자 거치대 — 기둥 하나에 가지 넷, 가지마다 모자(집으면 새 것이 걸린다)
+func _hatstand(at: Vector3) -> void:
+	_box(Vector3(0.06, 1.7, 0.06), at, _mat(Color("8a6a4a")))
+	for i in 4:
+		var a := i * PI / 2.0
+		var arm := _box(Vector3(0.04, 0.04, 0.3), at + Vector3(0, 1.5 - i * 0.12, 0), _mat(Color("8a6a4a")), false); arm.rotation.y = a; arm.position += Vector3(sin(a) * 0.15, 0, cos(a) * 0.15)
+		var h := Wear.make(["cap", "straw", "tophat", "beanie"][i], Wear.palette(i * 7)); h.position = at + Vector3(sin(a) * 0.3, 1.58 - i * 0.12, cos(a) * 0.3); h.rotation.x = 0.3; _add(h)
+	spots.append({ "pos": at + Vector3(0, 0, 0.7), "kind": "hatstand", "yaw": PI })
 
 ## 창구 — 벽 앞의 작은 카운터와 차양, 진열된 물건. C 로 물건을 받는다(spots kind "counter")
 func _counter(at: Vector3, item: String, c: Color) -> void:
@@ -352,10 +363,11 @@ func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 			var bk := _box(Vector3(0.04, 0.03, 0.1), Vector3(0, -0.02, 0.1), _mat(Color("d98a2a")), false, head)
 			_eyes(head, 0.06, 0.02, 0.05, 0.016)
 			var tail := _box(Vector3(0.06, 0.03, 0.08), Vector3(0, 0.16, -0.16), _mat(Color("e6d3a5")), false, n); tail.rotation.x = 0.5; data["tail"] = tail
-		"dog", "cat", "marten", "squirrel":
+		"dog", "cat", "marten", "squirrel", "fox":
 			# 네발 동물 공용 리그(quad3d.gd) — 크기·색만 다르다
 			var q := Quad3D.new()
 			match kind:
+				"fox": q.setup("cat", Color("d98a2a"), Color("f7f4ef"), 1.1); q.kind = "fox"
 				"cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
 				"marten": q.setup("marten", Color("8a6a4a"), Color("5b4f56"), 1.0)
 				"squirrel": q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)

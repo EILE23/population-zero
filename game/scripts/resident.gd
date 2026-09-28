@@ -55,6 +55,10 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	say_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED; say_label.no_depth_test = true
 	say_label.position = Vector3(0, 1.5, 0); say_label.visible = false
 	add_child(say_label)
+	# 꾸미기(시드): 5명 중 2명은 모자, 5명 중 1명은 안경, 6명 중 1명은 가방 — 마을에 변화가 보이게
+	if id % 5 < 2: fig.wear(Wear.make(["cap", "beanie", "tophat", "straw"][id % 4], Wear.palette(id)))
+	if id % 5 == 3: fig.wear(Wear.make("glasses" if id % 2 == 0 else "sunglasses"))
+	if id % 6 == 1: fig.wear(Wear.make("backpack", Wear.palette(id + 2)))
 	# 넷 중 하나는 뭔가 들고 다닌다(뺏을 거리)
 	if id % 4 == 1:
 		carrying_kind = ["apple", "cup", "paper"][id % 3]
@@ -229,7 +233,7 @@ func _pick_spot() -> void:
 			spot = mine[0]; slot = 0; _claim(spot, 0)
 			door_ref = home_door
 			var dp: Vector3 = door_ref["pos"]
-			route = [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+			route = _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	var pool: Array = town.spots
 	if weather == "rain":
@@ -245,12 +249,17 @@ func _pick_spot() -> void:
 	_claim(spot, slot)
 	route = []
 	if (spot["kind"] == "chair" or spot["kind"] == "bed" or spot["kind"] == "shelf") and spot.has("door"):
-		# 집 안 의자: 문 앞 → 문 열기 → 의자. 나올 땐 _leave 가 반대로
+		# 집 안 의자: (집 앞이 아니면 모서리를 돌아) 문 앞 → 문 열기 → 의자. 나올 땐 _leave 가 반대로
 		door_ref = spot["door"]
 		var dp: Vector3 = door_ref["pos"]
-		route = [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+		route = _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 	elif spot["kind"] == "bench":
 		route = [{ "pos": spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0, 0.45), "act": "" }]
+	elif spot["kind"] == "door":
+		var near_door: Dictionary = {}
+		for dr in town.doors:
+			if (dr["pos"] as Vector3).distance_to(spot["pos"]) < 1.2: near_door = dr; break
+		route = (_approach(near_door) if not near_door.is_empty() else []) + [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.2), "act": "" }]
 	else:
 		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
 	target = route[0]["pos"]
@@ -299,6 +308,22 @@ func _arrive(now: float) -> void:
 		_:
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
+
+## 집 앞이 아닌 곳(옆·뒤)에서 출발하면 집 모서리를 돌아 앞길로 나오는 경유지 — 벽 모서리에 막혀 문을 못 찾던 것(운영자 지적, 비 오는 날)
+func _approach(dr: Dictionary) -> Array:
+	var dp: Vector3 = dr["pos"]
+	var hw: float = dr.get("hw", 2.0); var hd: float = dr.get("hd", 1.8)
+	var front_z := dp.z + 0.3
+	if global_position.z > front_z + 0.2 and absf(global_position.x - dp.x) < hw + 1.0:
+		return []   # 이미 집 앞
+	var side := 1.0 if global_position.x >= dp.x else -1.0
+	var out := []
+	if global_position.z <= front_z + 0.2:
+		# 옆이나 뒤: 그쪽 옆면을 따라 앞으로 나온다
+		out.append({ "pos": Vector3(dp.x + side * (hw + 1.1), 0, global_position.z), "act": "" })
+		out.append({ "pos": Vector3(dp.x + side * (hw + 1.1), 0, front_z + 1.6), "act": "" })
+	out.append({ "pos": Vector3(dp.x, 0, front_z + 1.6), "act": "" })
+	return out
 
 ## 자리 점유 — 벤치는 3칸, 나머지는 1칸. 비어 있는 칸 번호를 돌려주고 없으면 -1
 func _free_slot(sp: Dictionary) -> int:

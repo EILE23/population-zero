@@ -1,0 +1,45 @@
+name: build-game-web
+
+# 게임(game/)을 Godot 웹으로 내보내 GitHub Pages 에 올린다 — 사이트의 /play/poz 가 이걸 iframe 으로 띄운다.
+# 무료: Pages 는 파일 크기 제한이 넉넉하고(워커 정적 자산은 25MB/파일), 호환 렌더러·스레드 없음이라 COOP/COEP 헤더가 필요 없다.
+on:
+  push:
+    branches: [main]
+    paths: ['game/**', '.github/workflows/build-game-web.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: build-game-web
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import and export (Web)
+        run: |
+          # 이미지의 템플릿은 /root 아래에 있고 액션은 다른 HOME 으로 돈다 — 이미지 문서대로 옮긴다
+          mkdir -p ~/.local/share/godot/export_templates/
+          if [ ! -d ~/.local/share/godot/export_templates/4.3.stable ]; then mv /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/ 2>/dev/null || cp -r /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/; fi
+          ls ~/.local/share/godot/export_templates/
+          mkdir -p game/export/web
+          godot --headless --path game --import 2>&1 | tail -5 || true
+          godot --headless --path game --export-release Web export/web/index.html 2>&1 | tail -20
+          ls -la game/export/web
+          test -f game/export/web/index.html
+          # 404 를 피하려고 index.html 을 그대로 두고, 캐시 무효화용 버전 파일
+          date -u +%Y-%m-%dT%H:%MZ > game/export/web/VERSION
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: game/export/web
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "game web export ${{ github.sha }}"

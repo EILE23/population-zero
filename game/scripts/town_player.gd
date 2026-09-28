@@ -206,6 +206,21 @@ func _strike(kind: String) -> void:
 	var heavy := kind == "jet" or kind == "air" or kind == "runkick" or (kind == "punch" and player.punch_kind == "hook")
 	var f := fwd_dir(); var p := body.global_position
 	var now := Time.get_ticks_msec() / 1000.0
+	for c in crowns:
+		var ct: Vector3 = c["at"] - p; ct.y = 0.0
+		if ct.length() < reach + 0.4 and f.dot(ct.normalized()) > 0.34:
+			c["hit_t"] = 1.2   # 잎이 크게 출렁
+			if not (c["fruit"] as Array).is_empty():
+				var fr: Node3D = (c["fruit"] as Array).pop_back(); var fp := fr.global_position; fr.queue_free()
+				var apple := make_item("apple", fp)
+				flying.append({ "node": apple, "vel": f * 1.2 + Vector3(0, 0.4, 0), "spin": 3.0 })
+			cam_kick = maxf(cam_kick, 0.02)
+	for a in animals:
+		if not a.has("quad"): continue
+		var an: Node3D = a["node"]
+		var ta: Vector3 = an.global_position - p; ta.y = 0.0
+		if ta.length() < reach and f.dot(ta.normalized()) > 0.34:
+			animal_hit(a, f); cam_kick = 0.03
 	for r in residents:
 		if r.state == "down" or (kind == "jet" and float(r.get_meta("jet_hit_at", -9.0)) > now - 1.0):
 			continue
@@ -216,23 +231,6 @@ func _strike(kind: String) -> void:
 			if kind == "jet": r.set_meta("jet_hit_at", now)
 			cam_kick = 0.06 if heavy else 0.03
 
-## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
-func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
-	var now := Time.get_ticks_msec() / 1000.0
-	if down_until > now or getup_until > now: return
-	if now - my_last_hit > 3.0: my_hits = 0
-	my_hits += 1; my_last_hit = now
-	jet = false; throw_charge = -1.0; seat = {}; player.seated = false
-	if my_hits >= 3:
-		my_hits = 0
-		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
-		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
-		if player.carrying:
-			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); items.append(it)
-	else:
-		player.action = "flinch"; action_until = now + 0.3
-		body.velocity = dir * 1.6
-	cam_kick = 0.05
 
 ## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
 func _step_up(motion: Vector3) -> void:
@@ -286,6 +284,12 @@ func _interact_check(now: float) -> void:
 		carrying_big = {}; player.pose_request = ""
 		player.action = "grab"; action_until = now + 0.4
 		return
+	if player.carrying and player.carrying.get_meta("wearable", false):
+		# 입는 것을 든 채 C → 쓴다. 같은 슬롯에 있던 건 손으로 온다
+		var prev := player.wear(player.carrying)
+		if prev: player.hold(prev)
+		player.action = "grab"; action_until = now + 0.35
+		return
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind == "apple" or kind == "bread":
@@ -329,6 +333,10 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
+		if sp["kind"] != "hatstand": continue
+		var d9: float = p.distance_to(sp["pos"])
+		if d9 < 1.1 and d9 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "hatstand", "spot": sp }; best_d = d9
+	for sp in spots:
 		if sp["kind"] != "counter": continue
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "counter", "spot": sp }; best_d = d8
@@ -340,8 +348,17 @@ func _interact_check(now: float) -> void:
 		var d5: float = Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()
 		if d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
 	if best.is_empty():
+		# 근처에 아무것도 없고 빈손이면 모자를 벗어 손에 든다
+		if not player.carrying and player.worn.has("hat"):
+			var h := player.take_off("hat"); player.hold(h); player.action = "grab"; action_until = now + 0.35
 		return
 	match best["kind"]:
+		"hatstand":
+			var sp: Dictionary = best["spot"]
+			player.face(sp["yaw"])
+			var kinds := ["cap", "straw", "tophat", "beanie", "glasses", "sunglasses", "backpack", "scarf"]
+			var h := make_wearable(kinds[randi() % kinds.size()], body.global_position, Wear.palette(randi() % 6))
+			player.hold(h); player.action = "grab"; action_until = now + 0.4
 		"counter":
 			# 창구: 커피(카페) 또는 빵(빵집)을 받는다 — 지금은 공짜, 코인 결제는 다음 조각
 			var sp: Dictionary = best["spot"]

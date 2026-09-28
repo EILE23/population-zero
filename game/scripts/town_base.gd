@@ -204,6 +204,13 @@ var petting_until := -1.0
 
 var pet_dog: Dictionary = {}
 
+## 입는 것(모자·안경·가방) — Wear 가 만든 노드를 세계에 두고 집을 수 있게 한다
+func make_wearable(kind: String, at: Vector3, color := Color("ad7096")) -> Node3D:
+	var n := Wear.make(kind, color)
+	n.position = at + Vector3(0, 0.08, 0)
+	add_child(n)
+	return n
+
 func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	match kind:

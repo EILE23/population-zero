@@ -132,8 +132,10 @@ func _wind(delta: float) -> void:
 		if not n.is_visible_in_tree(): continue
 		var ph: float = c["phase"]
 		var near := body.global_position.distance_to(n.global_position) < 1.6 and shake_until > 0.0
-		var amp: float = gust * (1.0 / float(c["k"])) + (0.12 if near else 0.0)
-		n.rotation.z = sin(wind_t * 1.7 + ph) * amp + sin(wind_t * 4.3 + ph * 2.0) * amp * 0.3 * (3.0 if near else 1.0)
+		var hit_t: float = c.get("hit_t", 0.0)
+		if hit_t > 0.0: c["hit_t"] = hit_t - delta
+		var amp: float = gust * (1.0 / float(c["k"])) + (0.12 if near else 0.0) + hit_t * 0.14   # 맞으면 잠깐 크게
+		n.rotation.z = sin(wind_t * 1.7 + ph) * amp + sin(wind_t * 4.3 + ph * 2.0) * amp * 0.3 * (3.0 if (near or hit_t > 0.0) else 1.0)
 		n.rotation.x = cos(wind_t * 1.3 + ph) * amp * 0.6
 
 func _animals(delta: float) -> void:
@@ -163,6 +165,43 @@ func _animals(delta: float) -> void:
 					n.look_at(Vector3(want.x, n.global_position.y, want.z), Vector3.UP, true)
 				var hd: Node3D = a["head"]; hd.rotation.x = sin(a["t"] * 6.0) * 0.18 + (0.5 if a.get("fed", 0.0) > a["t"] else 0.0)   # 고개 까딱, 먹을 땐 숙임
 				(a["tail"] as Node3D).rotation.x = 0.5 + sin(a["t"] * 9.0) * 0.25
+			"fox":
+				# 육식동물(운영자 2026-09-28): 새(비둘기·오리)를 살금살금 다가가 덮친다 — 새는 날아 도망. 사람이 때리면 6초간 쫓아와 문다
+				var q: Quad3D = a["quad"]
+				q.look = d < 5.0; q.look_at_pos = p + Vector3(0, 0.9, 0)
+				var angry: bool = a.get("angry_until", 0.0) > a["t"]
+				var want: Vector3 = a.get("wander", a["home"]); var spd := 0.0
+				var stalking := false
+				if angry:
+					want = p; spd = 4.2
+					if d < 0.9 and a.get("bite_at", 0.0) < a["t"]:
+						a["bite_at"] = a["t"] + 1.1; q.act("bite"); resident_hits_player(n, (p - n.global_position).normalized())
+				else:
+					var prey: Dictionary = {}; var pd := 4.5
+					for b in animals:
+						if b["kind"] in ["pigeon", "duck"] and b.get("fly", 0.0) <= 0.0:
+							var dd: float = (b["node"] as Node3D).global_position.distance_to(n.global_position)
+							if dd < pd: pd = dd; prey = b
+					if not prey.is_empty():
+						want = (prey["node"] as Node3D).global_position
+						stalking = pd > 1.8
+						spd = 1.0 if stalking else 4.0   # 멀면 살금살금, 가까우면 덮친다
+						if pd < 0.9:
+							prey["fly"] = 1.6; prey["land"] = prey.get("home", want) + Vector3(randf_range(-3, 3), 0, randf_range(-2, 2)); q.act("bite")
+							a["wander_until"] = a["t"] + 3.0; a["wander"] = n.global_position
+					else:
+						if a.get("wander_until", 0.0) < a["t"]:
+							a["wander_until"] = a["t"] + randf_range(3.0, 7.0); a["wander"] = a["home"] + Vector3(randf_range(-6, 6), 0, randf_range(-4, 4))
+						want = a.get("wander", a["home"]); spd = 1.3
+				var to := want - n.global_position; to.y = 0.0
+				if to.length() > 0.4 and spd > 0.0:
+					n.global_position += to.normalized() * spd * delta
+					n.look_at(n.global_position + to, Vector3.UP, true)
+					q.speed = spd
+					if q.state != "bite": q.state = "run" if spd > 2.5 else ("stalk" if stalking else "walk")
+				else:
+					q.speed = 0.0
+					if q.state in ["walk", "run", "stalk"]: q.state = "idle"
 			"dog", "cat", "marten", "squirrel":
 				# 네발 동물 습성: 집 주변을 어슬렁(걷기/뛰기), 가끔 앉기·엎드리기·기지개·(개)놀자·구르기·(고양이)그루밍·등 세우기·하품,
 				# 사람이 가까우면 쳐다보고: 개는 3초 따라오고, 고양이·담비는 1.4m 안이면 달아난다. 쓰다듬으면 앉아서 꼬리
@@ -217,6 +256,30 @@ func _animals(delta: float) -> void:
 					n.position.y = 0.0; n.rotation.x = 0.0
 					(a["head"] as Node3D).rotation.x = absf(sin(a["t"] * 5.0)) * 0.6  # 고개로 쪼기
 					if fmod(a["t"], 4.0) < 1.2: n.global_position += Vector3(sin(a["t"] * 3.0), 0, cos(a["t"] * 2.0)) * 0.3 * delta  # 종종걸음
+
+## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
+func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if down_until > now or getup_until > now: return
+	if now - my_last_hit > 3.0: my_hits = 0
+	my_hits += 1; my_last_hit = now
+	jet = false; throw_charge = -1.0; seat = {}; player.seated = false
+	if my_hits >= 3:
+		my_hits = 0
+		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
+		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
+		if player.carrying:
+			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); items.append(it)
+	else:
+		player.action = "flinch"; action_until = now + 0.3
+		body.velocity = dir * 1.6
+	cam_kick = 0.05
+
+## 사람이 동물을 때리면(타격 판정에서 호출) — 여우는 화난다, 나머지는 달아난다
+func animal_hit(a: Dictionary, dir: Vector3) -> void:
+	if a["kind"] == "fox": a["angry_until"] = a["t"] + 6.0
+	else: a["flee_until"] = a["t"] + 2.0
+	(a["node"] as Node3D).global_position += dir * 0.4
 
 ## 낮밤 — 해가 한 바퀴 돌고(12분), 저녁엔 빛이 붉어지며 가로등·실내 램프가 켜진다
 func _daylight(delta: float) -> void:
