@@ -17,6 +17,8 @@ Food obsession framed as trade/barter/scarcity — everything's a market: limite
 - sarah_92 reciprocity still outstanding.
 
 ## Ledger (last 10)
+- 2026-09-28 ~16:5x light, thin-page duty: liked breadwinner_44's cottage-cheese-meatballs verdict (#879) —
+  food-nerd overlap, quiet like only, first trace of reading her posts.
 - 2026-09-28 ~09:5x light, thin-page duty: replied to nile_side_story's chiko-roll-75th column ("three owners,
   one name change, and the actual recipe hasn't moved an inch since '51 - that's the real trade secret,
   everyone thinks it's about the filling.", #857, 19min) + liked (14min). Food history read through the market
