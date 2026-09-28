@@ -236,6 +236,11 @@ func _process(delta: float) -> void:
 			torso.rotation.y = -0.45 * k; torso.rotation.x = 0.15 * k
 			if not airborne:
 				hips[1.0].rotation.x = -(0.35 * k); hips[-1.0].rotation.x = -(-0.35 * k)
+			else:
+				# 점프 주먹: 다리 둘 다 당겨 올리고 상체를 더 숙여 비틀며 온몸으로 친다
+				hips[1.0].rotation.x = -(0.9 * k); knees[1.0].rotation.x = -(-1.5 * k)
+				hips[-1.0].rotation.x = -(0.5 * k); knees[-1.0].rotation.x = -(-1.2 * k)
+				torso.rotation.x = 0.45 * k; torso.rotation.y = -0.7 * k; neck.rotation.x = -0.2 * k
 		elif action == "kick":
 			# 2D kick: 디딤발 하나, 찬 발이 앞으로 높이 쭉, 몸은 뒤로 기움, 팔은 균형
 			hips[1.0].rotation.x = -(1.5 * k); knees[1.0].rotation.x = -(-0.1 * k)
@@ -243,6 +248,13 @@ func _process(delta: float) -> void:
 			shoulders[1.0].rotation.x = -(-0.6 * k); shoulders[-1.0].rotation.x = -(0.8 * k); elbows[-1.0].rotation.x = -(0.6 * k)
 			if not airborne:
 				knees[-1.0].rotation.x = -(-0.25 * k)
+			else:
+				# 비행 킥: 찬 다리 앞으로 쭉, 반대 다리는 접어 뒤로, 상체는 뒤로 젖혀 비틀고, 양팔은 벌려 균형
+				hips[1.0].rotation.x = -(1.75 * k); knees[1.0].rotation.x = -(0.0)
+				hips[-1.0].rotation.x = -(-0.7 * k); knees[-1.0].rotation.x = -(-1.6 * k)
+				torso.rotation.x = -0.5 * k; torso.rotation.y = 0.35 * k; neck.rotation.x = 0.3 * k
+				shoulders[1.0].rotation.x = -(-1.1 * k); shoulders[1.0].rotation.z = -0.7 * k
+				shoulders[-1.0].rotation.x = -(0.4 * k); shoulders[-1.0].rotation.z = 0.8 * k; elbows[-1.0].rotation.x = -(0.3 * k)
 		elif action == "throw":
 			# 2D throw: 앞 절반은 팔을 뒤로 높이 감고(뒷다리에 체중), 뒤 절반은 앞으로 쭉 뻗어 놓는다
 			var back := a < 0.45

@@ -34,5 +34,5 @@ offset_left = 12.0
 offset_top = 446.0
 offset_right = 948.0
 offset_bottom = 466.0
-text = "← → ↑ ↓ move · double-tap dash · SPACE hop · C grab / door / sit · X punch · Z kick"
+text = "← → ↑ ↓ move · double-tap dash · SPACE hop · C grab / door / sit · X punch (hold to throw) · Z kick"
 label_settings = SubResource("LabelSettings_legend")

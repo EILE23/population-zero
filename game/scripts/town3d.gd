@@ -16,9 +16,14 @@ var cam: Camera3D
 var last_tap := ""
 var last_tap_at := -1.0
 var dash_until := -1.0
+var running := false        # 더블탭 뒤 방향키를 계속 누르는 동안 달린다
+var idle_since := -1.0
 var action_until := 0.0
 var jump_at := -1.0
 var throw_at := -1.0
+var throw_charge := -1.0   # X 를 누르기 시작한 시각(들고 있을 때) — 누르는 동안 감고, 떼면 던진다
+const THROW_MAX := 0.8
+var throw_power := 0.0
 var flying: Array = []   # 던져진 것 {node, vel, spin} — 포물선으로 날다 바닥에 떨어져 다시 집을 수 있다
 var seat: Dictionary = {}       # 앉아 있는 벤치 {pos, yaw}
 var items: Array[Node3D] = []   # 바닥에 있는 집을 수 있는 것
@@ -33,7 +38,7 @@ func _ready() -> void:
 	_path(Vector3(0, 0, 2), Vector3(0, 0, -10), 2.0)
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "accent-deep")
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick")
-	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron")
+	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true)  # 계단집 — 옥상까지 걸어 올라간다
 	_house(Vector3(-12, 0, -8), Vector3(3.6, 2.8, 3.2), Color("b56a5a"), "wood")
 	for p in [Vector3(-11, 0, -1), Vector3(-3.5, 0, -1.5), Vector3(4, 0, -1), Vector3(11, 0, -1.5), Vector3(-9, 0, 5), Vector3(9, 0, 5.5), Vector3(13, 0, -7)]:
 		_tree(p, 1.0 + fmod(absf(p.x) * 0.37, 0.5))
@@ -122,7 +127,7 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 	add_child(mi)
 
 ## 속이 빈 집 — 벽 네 장(정면은 문틀 양쪽 + 상인방), 창은 기하(틀+유리), 경첩 달린 문짝(C 로 연다), 지붕은 기와 텍스처 삼각기둥, 굴뚝, 계단
-func _house(at: Vector3, size: Vector3, wall: Color, roof: String) -> void:
+func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false) -> void:
 	var wm := _mat(wall)
 	var trim := _mat(Color("efe9e2"))
 	var hw := size.x / 2.0; var hd := size.z / 2.0
@@ -151,6 +156,17 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String) -> void:
 	var knob := MeshInstance3D.new(); var ks := SphereMesh.new(); ks.radius = 0.035; ks.height = 0.07; knob.mesh = ks
 	knob.material_override = _mat(Color("e8c766")); knob.position = Vector3(door_w * 0.38, 0.0, 0.06); leaf.add_child(knob)
 	doors.append({ "hinge": hinge, "open": false, "pos": hinge.position + Vector3(door_w / 2.0, 0, 0) })
+	if flat_roof:
+		# 옥상: 걸어 올라가 설 수 있는 평지붕(막힘) + 낮은 난간, 옆에 계단
+		_box(Vector3(size.x + 0.2, 0.16, size.z + 0.2), at + Vector3(0, size.y, 0), _mat(Color("cfc7c2")))
+		var par := _mat(wall)
+		_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, hd + 0.04), par)
+		_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, -hd - 0.04), par)
+		_box(Vector3(0.12, 0.5, size.z + 0.2), at + Vector3(-hw - 0.04, size.y + 0.16, 0), par)
+		_stairs(at + Vector3(hw + 0.55, 0, hd - 0.4), size.y + 0.16, 0.9)
+		_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, size.y - 0.06, 0), trim, false)
+		_box(Vector3(1.3, 0.12, 0.5), at + Vector3(0, 0, hd + 0.25), _mat(Color("cfc7c2")))
+		return
 	# 지붕: PrismMesh 는 XY 삼각형을 Z 로 뽑는다 → 용마루가 x 방향이 되게 y 로 90° 돌린다. 처마는 벽보다 0.35 더 나온다
 	var r := MeshInstance3D.new()
 	var pr := PrismMesh.new(); pr.size = Vector3(size.z + 0.7, size.y * 0.42, size.x + 0.7)
@@ -163,6 +179,15 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String) -> void:
 	_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, size.y - 0.06, 0), trim, false)
 	_box(Vector3(0.36, 0.7, 0.36), at + Vector3(size.x * 0.28, size.y + pr.size.y * 0.55, -0.3), _mat(Color("b56a5a")), false)
 	_box(Vector3(1.3, 0.12, 0.5), at + Vector3(0, 0, hd + 0.25), _mat(Color("cfc7c2")))
+
+## 계단 — 집 오른쪽 벽을 따라 뒤로(−z) 오른다. 한 단 18cm×30cm, 폭 w. 꼭대기에서 옥상으로 이어진다
+func _stairs(at: Vector3, height: float, w: float) -> void:
+	var n := int(ceil(height / 0.18))
+	var rise := height / n
+	var stone := _mat(Color("bfb6b0"))
+	for i in n:
+		_box(Vector3(w, rise * (i + 1), 0.3), at + Vector3(0, 0, -i * 0.3), stone)
+	_box(Vector3(0.06, 0.9, n * 0.3), at + Vector3(w / 2.0 + 0.03, 0, -(n - 1) * 0.15), _mat(Color("4a4a52")), false)  # 난간 기둥 대신 얇은 판
 
 func _window(at: Vector3, yaw: float) -> void:
 	var n := Node3D.new(); n.position = at; n.rotation.y = yaw; add_child(n)
@@ -255,16 +280,28 @@ func _physics_process(delta: float) -> void:
 			if a == last_tap and now - last_tap_at < 0.25 and grounded:
 				dash_until = now + 0.18
 			last_tap = a; last_tap_at = now
-	var speed := WALK * (2.2 if now < dash_until else 1.0)
-	var can_move := not (player.action == "throw" and action_until >= now)
-	var v := body.velocity
-	if can_move and dir != Vector3.ZERO:
-		v.x = dir.x * speed; v.z = dir.z * speed
-		player.move_dir = dir; player.speed = speed
+	# 더블탭 순간은 대시(2.4배 0.18초), 그 뒤 방향키를 놓지 않는 한 달리기(1.9배) 유지. 0.12초 이상 놓으면 걷기로
+	if dir == Vector3.ZERO:
+		if idle_since < 0.0: idle_since = now
+		if now - idle_since > 0.12: running = false
 	else:
-		var k := 1.0 if grounded else 0.98
-		v.x = lerpf(v.x, 0.0, k); v.z = lerpf(v.z, 0.0, k)
+		idle_since = -1.0
+	if now < dash_until: running = true
+	var speed := WALK * (2.4 if now < dash_until else (1.9 if running else 1.0))
+	var can_move := not (player.action == "throw" and (action_until >= now or throw_charge >= 0.0))
+	var v := body.velocity
+	var hv := Vector3(v.x, 0, v.z)
+	if can_move and dir != Vector3.ZERO:
+		# 부드럽지만 빠른 반응: 땅에선 0.12초쯤에 목표 속도, 공중에선 더 느리게
+		var accel := 26.0 if grounded else 9.0
+		hv = hv.move_toward(dir * speed, accel * delta)
+		player.move_dir = dir; player.speed = hv.length()
+	else:
+		hv = hv.move_toward(Vector3.ZERO, (30.0 if grounded else 3.0) * delta)
 		player.move_dir = Vector3.ZERO; player.speed = 0.0
+	v.x = hv.x; v.z = hv.z
+	if grounded and hv.length() > 0.1:
+		_step_up(hv * delta)
 	if not grounded:
 		v.y -= G * delta
 	elif Input.is_action_just_pressed("jump") and jump_at < 0.0:
@@ -279,12 +316,20 @@ func _physics_process(delta: float) -> void:
 	player.airborne = not body.is_on_floor()
 	player.vertical = body.velocity.y
 	# X·Z 는 공중에서도 된다(점프킥·점프 주먹). 들고 있을 때 X 는 던지기(웹 규칙)
-	if action_until < now:
+	# 던지기: 들고 있을 때 X 를 누르는 동안 팔을 뒤로 감고(action_t 가 0.44 에서 멈춤), 떼면 앞으로 던진다. 오래 누를수록 멀리
+	if player.carrying and throw_charge < 0.0 and action_until < now and Input.is_action_just_pressed("hit"):
+		throw_charge = now; player.action = "throw"
+	if throw_charge >= 0.0:
+		var held := minf(THROW_MAX, now - throw_charge)
+		player.action_t = minf(0.44, held / 0.25 * 0.44)
+		if Input.is_action_just_released("hit") or not player.carrying:
+			var power := held / THROW_MAX
+			throw_charge = -1.0
+			action_until = now + 0.28; throw_at = now + 0.06
+			throw_power = power
+	if action_until < now and throw_charge < 0.0:
 		if Input.is_action_just_pressed("hit"):
-			if player.carrying:
-				player.action = "throw"; action_until = now + 0.42; throw_at = now + 0.42 * 0.5
-			else:
-				player.action = "punch"; action_until = now + 0.28
+			player.action = "punch"; action_until = now + 0.28
 		elif Input.is_action_just_pressed("kick"):
 			player.action = "kick"; action_until = now + 0.34
 			if not grounded:
@@ -292,14 +337,38 @@ func _physics_process(delta: float) -> void:
 	if throw_at >= 0.0 and now >= throw_at and player.carrying:
 		throw_at = -1.0
 		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
-		flying.append({ "node": it, "vel": fwd_dir() * 7.5 + Vector3(0, 3.2, 0) + Vector3(body.velocity.x, 0, body.velocity.z) * 0.5, "spin": randf_range(4.0, 9.0) })
-	if action_until >= now:
-		var dur := 0.28 if player.action == "punch" else (0.34 if player.action == "kick" else (0.42 if player.action == "throw" else 0.4))
-		player.action_t = 1.0 - (action_until - now) / dur
+		flying.append({ "node": it, "vel": fwd_dir() * lerpf(4.0, 11.0, throw_power) + Vector3(0, lerpf(2.2, 4.2, throw_power), 0) + Vector3(body.velocity.x, 0, body.velocity.z) * 0.5, "spin": randf_range(4.0, 9.0) })
+	if throw_charge >= 0.0:
+		pass  # 감는 중 — action_t 는 위에서
+	elif action_until >= now:
+		if player.action == "throw":
+			player.action_t = 0.45 + (1.0 - (action_until - now) / 0.28) * 0.55  # 놓는 절반만
+		else:
+			var dur := 0.28 if player.action == "punch" else (0.34 if player.action == "kick" else 0.4)
+			player.action_t = 1.0 - (action_until - now) / dur
 	else:
 		player.action = ""; player.action_t = 0.0
 	_interact_check(now)
 	_fly(delta)
+
+const STEP := 0.42
+## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
+func _step_up(motion: Vector3) -> void:
+	var xf := body.global_transform
+	if not body.test_move(xf, motion):
+		return
+	var up := xf.translated(Vector3(0, STEP, 0))
+	if body.test_move(up, motion):
+		return
+	# 올린 자리에서 앞으로 간 뒤 아래로 내려 바닥 높이를 찾는다
+	var ahead := up.translated(motion + motion.normalized() * 0.06)
+	var probe := PhysicsTestMotionParameters3D.new()
+	probe.from = ahead; probe.motion = Vector3(0, -STEP, 0)
+	var res := PhysicsTestMotionResult3D.new()
+	if body.test_move(ahead, Vector3(0, -STEP, 0)) and PhysicsServer3D.body_test_motion(body.get_rid(), probe, res):
+		var rise := STEP - res.get_travel().length()
+		if rise > 0.02 and rise <= STEP:
+			body.global_position += Vector3(0, rise + 0.01, 0)
 
 func fwd_dir() -> Vector3:
 	return Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
@@ -350,15 +419,21 @@ func _interact_check(now: float) -> void:
 			var dr: Dictionary = best["door"]
 			dr["open"] = not dr["open"]
 			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_CUBIC)
-			tw.tween_property(dr["hinge"], "rotation:y", -1.85 if dr["open"] else 0.0, 0.45)
+			tw.tween_property(dr["hinge"], "rotation:y", 1.85 if dr["open"] else 0.0, 0.45)
 		"bench":
 			var b: Dictionary = best["bench"]
 			seat = b
 			player.seated = true
 			player.move_dir = Vector3.ZERO; player.speed = 0.0
 			body.velocity = Vector3.ZERO
+			# 세 자리(왼·가운데·오른쪽) 중 지금 선 곳에서 가장 가까운 자리에 앉는다 — 가운데만 고집하지 않는다
+			var best_slot: Vector3 = b["pos"]; var bd := 99.0
+			for off in [-0.45, 0.0, 0.45]:
+				var slot: Vector3 = b["pos"] + Vector3(cos(b["yaw"]) * off, 0, -sin(b["yaw"]) * off)
+				var d := body.global_position.distance_to(slot)
+				if d < bd: bd = d; best_slot = slot
 			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
-			tw.tween_property(body, "position", b["pos"] + Vector3(0, 0.03, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
+			tw.tween_property(body, "position", best_slot + Vector3(0, 0.03, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
 			player.face(b["yaw"])
 
 func _process(delta: float) -> void:
