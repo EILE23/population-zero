@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'swim' | 'sky';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -236,6 +236,25 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line(hip, [10, -18], [24, -20]);               // 찬 발
     line(shoulder, [-12, -30], [-16, -22]); line(shoulder, [3, -30], [8, -26]);
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'swim') {
+    // 헤엄(크롤) — 몸이 수면에 눕고(발끝이 뒤, 머리가 앞), 팔은 번갈아 풍차, 다리는 발장구, 고개는 들어 앞을 본다. 게임 town3d 의 강과 같은 이름
+    const a = t * 5, k = Math.sin(t * 9) * 2;
+    line([-2, -3], [22, -5]);                                                                       // 몸통(엉덩이 → 어깨)
+    line([-2, -3], [-10, -2 + k], [-19, -1 - k]); line([-2, -3], [-10, -4 - k], [-19, -5 + k]);       // 다리 발장구
+    const s1 = seg(22, -5, 9, a), s2 = seg(22, -5, 9, a + Math.PI);
+    line([22, -5], s1, seg(s1[0], s1[1], 8, a + 0.6)); line([22, -5], s2, seg(s2[0], s2[1], 8, a + Math.PI + 0.6));
+    ctx.beginPath(); ctx.arc(30, -9, 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'sky') {
+    // 풀밭에 누워 하늘 보기 — 등을 대고, 한 무릎 세우고, 두 손은 머리 뒤. 초원의 풀밭 자리에서(게임과 같은 이름)
+    const br = Math.sin(t * 1.6) * 0.8;
+    line([-2, -4], [-24, -5 - br]);
+    line([-2, -4], [8, -5], [18, -3]); line([-2, -4], [6, -12], [14, -3]);
+    line([-24, -5 - br], [-20, -13 - br], [-31, -12 - br]); line([-24, -5 - br], [-26, -13 - br], [-35, -10 - br]);
+    ctx.beginPath(); ctx.arc(-33, -9 - br, 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }
   if (pose === 'sit') {

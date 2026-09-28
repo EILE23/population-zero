@@ -94,6 +94,15 @@ func _process(delta: float) -> void:
 	if pose_request == "push":
 		push_t += delta * 1.6
 		lean = 0.25 if push_t < 0.3 else 0.08
+	if pose_request == "swim":
+		# 헤엄(크롤, 운영자 모션 보드의 물 가족 첫 자세): 엎드려 몸이 수면에 눕고(골반 +1.4 = 얼굴이 아래), 팔은 번갈아 풍차, 다리는 발장구.
+		# town 이 몸을 -0.22 내려 하반신은 물속에 감춰진다
+		pelvis.rotation.x = 1.4; lean = 0.0
+		pelvis.position.y = 0.3 + sin(_t * 2.2) * 0.01
+	if pose_request == "sky":
+		# 풀밭에 누워 하늘 보기(2D sky): 등을 대고 한 무릎 세우고 두 손은 머리 뒤, 숨결
+		pelvis.rotation.x = -1.5; lean = 0.05 + sin(_t * 1.6) * 0.02
+		pelvis.position.y = 0.12
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
@@ -106,6 +115,8 @@ func _process(delta: float) -> void:
 	chest.rotation.y = 0.0
 	neck.rotation.x = -(torso.rotation.x + chest.rotation.x) * 0.7  # 고개는 앞을 본다
 	neck.rotation.y = 0.0  # 매 프레임 다시 정면으로 — look 기지개가 끝나도 고개가 돌아간 채 남지 않게
+	if pose_request == "swim":
+		neck.rotation.x = -0.9; neck.rotation.y = sin(_t * 2.0) * 0.5   # 고개를 들어 앞을 보고 숨 쉴 때 옆으로
 	if _fidget == "yawn":
 		neck.rotation.x -= 0.35  # 고개를 젖힌다(2D yawn 과 같은 방향)
 	elif _fidget == "look":
@@ -114,7 +125,16 @@ func _process(delta: float) -> void:
 		var s: float = side
 		var hip: Node3D = hips[s]; var knee: Node3D = knees[s]
 		var sh: Node3D = shoulders[s]; var el: Node3D = elbows[s]
-		if lying:
+		if pose_request == "swim":
+			# 팔: 한 바퀴 돌며 뒤→위→앞→아래(물속에서 당김) — 엎드린 몸 기준으로 +x 회전이 그 순서다. 다리: 작은 발장구
+			var arm := _t * (4.0 + minf(speed, 2.0) * 2.0) + (PI if s < 0.0 else 0.0)
+			hip.rotation.x = -(s * sin(_t * 9.0) * 0.28); knee.rotation.x = -(-0.25)
+			sh.rotation.x = arm; sh.rotation.z = -s * 0.25; el.rotation.x = -(0.5)
+		elif pose_request == "sky":
+			# 누워 하늘 보기: 오른 무릎 세움, 왼다리 쭉, 두 팔은 머리 뒤로 접음
+			hip.rotation.x = -(0.95 if s > 0.0 else 0.05); knee.rotation.x = -(-1.7 if s > 0.0 else -0.1)
+			sh.rotation.x = -(2.8); sh.rotation.z = -s * 0.7; el.rotation.x = -(2.1)
+		elif lying:
 			# 맞아서 등을 바닥에 — 골반을 뒤로 눕히고(pelvis −1.45) 팔다리는 살짝 벌린 채 힘없이
 			hip.rotation.x = -(0.25 + 0.1 * s); knee.rotation.x = -(-0.4)
 			sh.rotation.x = -(0.5 * s); sh.rotation.z = -s * 0.9; el.rotation.x = -(0.3)

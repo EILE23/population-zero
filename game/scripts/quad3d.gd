@@ -174,7 +174,8 @@ func _process(delta: float) -> void:
 				var k := minf(_act_t / 0.4, 1.0)
 				target_hip = (-1.2 * k) if front else 0.1; target_knee = (0.9 * k) if front else 0.05
 			"roll":
-				target_hip = -0.8; target_knee = 1.2
+				# 구르기: 다리는 몸에 붙여 접고 살짝 허우적
+				target_hip = -0.8 + sin(_act_t * 9.0) * 0.2; target_knee = 1.2
 			"arch":
 				target_hip = 0.0; target_knee = 0.1
 			"bite":
@@ -213,7 +214,7 @@ func _process(delta: float) -> void:
 	if not moving and state != "run" and state != "walk":
 		rump.position.y = lerpf(rump.position.y, body_y + sin(_t * 2.0) * 0.006, delta * 8.0)   # 숨
 		if state != "arch": rump.rotation.x = lerpf(rump.rotation.x, body_pitch, delta * 8.0)
-	rotation.z = lerp_angle(rotation.z, roll, delta * 10.0)
+	rump.rotation.z = lerp_angle(rump.rotation.z, roll, delta * 10.0)   # 몸통 축으로 구른다 — 루트(원점 = 발끝)를 돌리면 몸이 땅 밑으로 들어갔다(운영자 지적 2026-09-28)
 	# 머리: 플레이어 보기, 그루밍(고개 옆구리로), 하품(입 대신 고개 젖힘), 걸을 때 까딱
 	var hp := 0.0; var hy := 0.0
 	if look:

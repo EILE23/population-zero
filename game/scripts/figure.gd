@@ -119,6 +119,21 @@ func _draw() -> void:
 			_ln(hip, Vector2(7, -16), Vector2(12, -24)); _ln(hip, Vector2(4, -14), Vector2(7, -22))
 			_ln(shoulder, Vector2(-20, -12), Vector2(-26, -18)); _ln(shoulder, Vector2(-18, 0), Vector2(-12, 5))
 			_head(head)
+		"swim":
+			# 헤엄(크롤) — stickman.ts 와 같은 점
+			var a := t * 5.0; var k := sin(t * 9.0) * 2.0
+			_ln(Vector2(-2, -3), Vector2(22, -5))
+			_ln(Vector2(-2, -3), Vector2(-10, -2 + k), Vector2(-19, -1 - k)); _ln(Vector2(-2, -3), Vector2(-10, -4 - k), Vector2(-19, -5 + k))
+			var s1 := seg(Vector2(22, -5), 9.0, a); var s2 := seg(Vector2(22, -5), 9.0, a + PI)
+			_ln(Vector2(22, -5), s1, seg(s1, 8.0, a + 0.6)); _ln(Vector2(22, -5), s2, seg(s2, 8.0, a + PI + 0.6))
+			_head(Vector2(30, -9))
+		"sky":
+			# 풀밭에 누워 하늘 보기 — 한 무릎 세우고 두 손은 머리 뒤
+			var br := sin(t * 1.6) * 0.8
+			_ln(Vector2(-2, -4), Vector2(-24, -5 - br))
+			_ln(Vector2(-2, -4), Vector2(8, -5), Vector2(18, -3)); _ln(Vector2(-2, -4), Vector2(6, -12), Vector2(14, -3))
+			_ln(Vector2(-24, -5 - br), Vector2(-20, -13 - br), Vector2(-31, -12 - br)); _ln(Vector2(-24, -5 - br), Vector2(-26, -13 - br), Vector2(-35, -10 - br))
+			_head(Vector2(-33, -9 - br))
 		"sit":
 			var br := sin(t * 1.6) * 0.8
 			_ln(Vector2(-2, -4), Vector2(-24, -5 - br))

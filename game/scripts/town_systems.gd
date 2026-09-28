@@ -328,6 +328,17 @@ func _fly(delta: float) -> void:
 			flying.erase(f)
 			items.append(n)
 
+## 강 — 물결 조각이 +x 로 흐르고, 물에 떨어진 물건은 떠서 같이 흘러가다 세계 끝에서 사라진다(강가에서 건지지 않으면 잃는다)
+func _water(delta: float) -> void:
+	for n in ripples:
+		n.position.x += 0.35 * delta
+		if n.position.x > WORLD_X + 8.0: n.position.x = -WORLD_X - 8.0
+	for it in items.duplicate():
+		if in_water(it.global_position):
+			it.global_position += Vector3(0.35 * delta, 0, 0)
+			it.global_position.y = 0.06 + sin(wind_t * 3.0 + it.global_position.x) * 0.01
+			if it.global_position.x > WORLD_X + 6.0: items.erase(it); it.queue_free()
+
 func is_night() -> bool:
 	return sin(clock * TAU) * 1.6 + 0.2 < 0.35
 

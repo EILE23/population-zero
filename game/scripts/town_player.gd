@@ -37,6 +37,14 @@ func _physics_process(delta: float) -> void:
 		else:
 			_interact_check(now)
 			return
+	# 강물: 들어가면 헤엄(느리고, 점프·타격 없음, 몸이 수면 높이로 내려간다), 나오면 다시 걷는다. 주민도 같은 규칙(resident.gd)
+	var wet := in_water(body.global_position)
+	if wet != swimming:
+		swimming = wet; player.position.y = -0.1 if wet else 0.0   # 수면(0.04) 위로 등·팔이 보이게 — -0.22 는 머리만 떠 있었다
+		if wet:
+			player.pose_request = "swim"; jet = false; running = false; dash_until = -1.0; reading = false; leaning = false; resting = false
+		elif player.pose_request == "swim":
+			player.pose_request = ""
 	for a in ["move_left", "move_right", "move_up", "move_down"]:
 		if Input.is_action_just_pressed(a):
 			if a == last_tap and now - last_tap_at < 0.25 and grounded:
@@ -50,6 +58,7 @@ func _physics_process(delta: float) -> void:
 		idle_since = -1.0
 	if now < dash_until: running = true
 	var speed := WALK * (2.4 if now < dash_until else (1.9 if running else 1.0))
+	if swimming: speed = WALK * 0.55
 	var can_move := not (player.action == "throw" and (action_until >= now or throw_charge >= 0.0)) and not jet and not resting
 	var v := body.velocity
 	var hv := Vector3(v.x, 0, v.z)
@@ -68,7 +77,7 @@ func _physics_process(delta: float) -> void:
 		_step_up(hv * delta)
 	if not grounded:
 		v.y -= G * delta
-	elif Input.is_action_just_pressed("jump"):
+	elif Input.is_action_just_pressed("jump") and not swimming:
 		# 마리오식: 누르면 꽉 찬 점프로 뜨고, 일찍 떼면 상승을 끊어 짧은 홉이 된다(위로 밀어 올리는 방식은 붕 떴다 — 운영자 2026-09-28)
 		v.y = JUMP_FULL + hv.length() * 0.12
 		if hv.length() > 0.5:
@@ -117,7 +126,7 @@ func _physics_process(delta: float) -> void:
 			throw_charge = -1.0
 			action_until = now + 0.28; throw_at = now + 0.06
 			throw_power = power
-	if action_until < now and throw_charge < 0.0:
+	if action_until < now and throw_charge < 0.0 and not swimming:
 		if Input.is_action_just_pressed("hit"):
 			if grounded and not running:
 				# 연속기: 왼 잽 → 오른 스트레이트 → 왼 훅. 0.45초 안에 이어 누르면 다음 타, 늦으면 처음부터
@@ -176,6 +185,7 @@ func _physics_process(delta: float) -> void:
 	if not carrying_big.is_empty() and player.pose_request == "": player.pose_request = "carry"
 	_interact_check(now)
 	_fly(delta)
+	_water(delta)
 	_cutaway()
 	_daylight(delta)
 	_stream()
@@ -344,7 +354,7 @@ func _interact_check(now: float) -> void:
 		var d6: float = p.distance_to(sw["at"])
 		if d6 < 1.2 and d6 < best_d: best = { "kind": "swing", "swing": sw }; best_d = d6
 	for sp in spots:
-		if sp["kind"] != "bed" and sp["kind"] != "shelf": continue
+		if not (sp["kind"] in ["bed", "shelf", "grass"]): continue
 		var d5: float = Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()
 		if d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
 	if best.is_empty():
@@ -400,6 +410,13 @@ func _interact_check(now: float) -> void:
 			# 눕기: 침대 위에서 쉬는 자세. 방향키로 일어난다
 			var sp: Dictionary = best["spot"]
 			resting = true; player.pose_request = "rest"; player.face(sp["yaw"])
+			body.velocity = Vector3.ZERO
+			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+			tw.tween_property(body, "position", sp["pos"] + Vector3(0, 0.02, 0), 0.35)
+		"grass":
+			# 초원 풀밭에 누워 하늘 보기(sky) — 방향키로 일어난다. 주민도 같은 자리에서 같은 자세
+			var sp: Dictionary = best["spot"]
+			resting = true; player.pose_request = "sky"; player.face(sp["yaw"])
 			body.velocity = Vector3.ZERO
 			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
 			tw.tween_property(body, "position", sp["pos"] + Vector3(0, 0.02, 0), 0.35)

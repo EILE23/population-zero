@@ -193,6 +193,13 @@ func _physics_process(delta: float) -> void:
 						fig.punch_side = -fig.punch_side; fig.punch_kind = "jab" if fig.punch_side < 0.0 else "cross"
 						fig.action = "punch"; fig.action_t = 0.0; busy_until = now + 0.28
 						town.resident_hits_player(self, dir)
+	# 강물: 걷거나 쫓다 빠지면 사람과 같은 규칙으로 헤엄친다(느리게, 수면 높이로). 길은 다리로 짜니 보통은 빠진 경우뿐
+	var wet: bool = town.in_water(global_position)
+	if wet and (state == "walk" or state == "chase"):
+		v.x *= 0.55; v.z *= 0.55
+		if fig.pose_request != "swim": fig.pose_request = "swim"; fig.position.y = -0.1
+	elif fig.pose_request == "swim":
+		fig.pose_request = ""; fig.position.y = 0.0
 	if state == "walk" or state == "chase":
 		for o in town.residents:
 			if o == self: continue
@@ -233,7 +240,7 @@ func _pick_spot() -> void:
 			spot = mine[0]; slot = 0; _claim(spot, 0)
 			door_ref = home_door
 			var dp: Vector3 = door_ref["pos"]
-			route = _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+			route = town.via_bridge(global_position, _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }])
 			target = route[0]["pos"]; state = "walk"; return
 	var pool: Array = town.spots
 	if weather == "rain":
@@ -262,6 +269,7 @@ func _pick_spot() -> void:
 		route = (_approach(near_door) if not near_door.is_empty() else []) + [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.2), "act": "" }]
 	else:
 		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
+	route = town.via_bridge(global_position, route)   # 강 건너면 다리로
 	target = route[0]["pos"]
 	state = "walk"
 
@@ -293,6 +301,10 @@ func _arrive(now: float) -> void:
 			global_position = spot["pos"] + Vector3(0, 0.02, 0)
 			fig.face(spot.get("yaw", 0.0))
 			busy_until = now + (randf_range(60.0, 120.0) if town.is_night() else randf_range(8.0, 16.0))
+		"grass":
+			# 초원 풀밭에 누워 하늘 보기 — 사람이 C 로 하는 것과 같은 자세(sky)
+			fig.pose_request = "sky"; global_position = spot["pos"] + Vector3(0, 0.02, 0); fig.face(spot.get("yaw", PI))
+			busy_until = now + randf_range(10.0, 22.0)
 		"shelf":
 			fig.pose_request = "read"; fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(4.0, 8.0)

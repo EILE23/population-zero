@@ -353,6 +353,41 @@ func _tree(at: Vector3, k: float) -> void:
 		crown.add_child(f); fruit.append(f)
 	crowns.append({ "node": crown, "phase": at.x * 0.7 + at.z * 0.3, "k": k, "fruit": fruit, "at": at })
 
+## 강과 돌다리와 남쪽 초원(비전 2단계, 2026-09-28 — 마을은 매달 눈에 띄게 넓어져야 한다): 물 띠(세계 끝까지), 돌 둑, 흐르는 물결 조각,
+## x=0 에 아치 돌다리(얇은 상판 일곱 토막이 호를 그린다 — 턱은 step_up 이 넘는다, 난간은 안 막아서 뛰어들 수 있다), 다리 앞뒤 자갈길,
+## 초원엔 나무 셋과 풀밭 자리 셋(누워 하늘 보기 `sky`), 강가 자리 둘(서서 물 보기), 뒤 울타리. 구역이 아니라 항상 켜져 있다(강은 전체 폭)
+func _river() -> void:
+	var span := WORLD_X * 2.0 + 20.0
+	_box(Vector3(span, 0.04, RIVER_HW * 2.0), Vector3(0, 0, RIVER_Z), _mat(Color("8fb8cc")), false)
+	for zs in [-1.0, 1.0]:
+		_box(Vector3(span, 0.07, 0.3), Vector3(0, 0, RIVER_Z + zs * (RIVER_HW + 0.1)), _mat(Color("bfb6b0")), false)   # 돌 둑
+	var rr := RandomNumberGenerator.new(); rr.seed = 11
+	var foam := _mat(Color("c9dde6"))
+	for i in 40:
+		ripples.append(_box(Vector3(rr.randf_range(0.3, 0.7), 0.01, 0.05), Vector3(rr.randf_range(-WORLD_X - 6.0, WORLD_X + 6.0), 0.045, RIVER_Z + rr.randf_range(-1.1, 1.1)), foam, false))
+	var stone := _mat(Color("bfb6b0")); var dark := _mat(Color("8a7f86"))
+	var n := 7; var bspan := RIVER_HW * 2.0 + 1.4; var seg := bspan / n
+	for i in n:
+		var h := 0.16 + 0.34 * sin(PI * (i + 0.5) / n)
+		var z := RIVER_Z - bspan / 2.0 + seg * (i + 0.5)
+		var slope := atan2(0.34 * PI / n * cos(PI * (i + 0.5) / n), seg)   # 토막을 호의 기울기로 눕혀 계단이 아니라 아치로 읽히게(충돌체도 같이 기울어 경사로가 된다)
+		_box(Vector3(BRIDGE_HW * 2.0, 0.16, seg + 0.06), Vector3(0, h - 0.16, z), stone).rotation.x = -slope
+		for xs in [-1.0, 1.0]:
+			_box(Vector3(0.12, 0.34, seg + 0.06), Vector3(xs * (BRIDGE_HW - 0.06), h, z), dark, false).rotation.x = -slope   # 난간
+	for zs in [-1.0, 1.0]:
+		_box(Vector3(BRIDGE_HW * 2.0 + 0.3, 0.14, 0.5), Vector3(0, 0, RIVER_Z + zs * (bspan / 2.0 + 0.2)), dark)   # 교대(발치)
+	_path(Vector3(0, 0, 3.2), Vector3(0, 0, RIVER_Z - bspan / 2.0 - 0.4), 2.0)
+	_path(Vector3(0, 0, RIVER_Z + bspan / 2.0 + 0.4), Vector3(0, 0, RIVER_Z + bspan / 2.0 + 4.0), 2.0)
+	_tree(Vector3(-9, 0, 17.5), 1.25); _tree(Vector3(10, 0, 18.5), 1.1); _tree(Vector3(3, 0, 21), 0.95)
+	for g in [Vector3(-3.5, 0, 16.5), Vector3(4.5, 0, 17.5), Vector3(-0.5, 0, 19.5)]:
+		spots.append({ "pos": g, "kind": "grass", "yaw": PI })
+		for i in 4:   # 꽃 몇 송이로 풀밭 자리를 눈에 띄게
+			var fl := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.06; fs.height = 0.12; fl.mesh = fs
+			fl.material_override = _mat([Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("ffffff")][i]); fl.position = g + Vector3(cos(i * 1.7) * 0.9, 0.06, sin(i * 1.7) * 0.7); _add(fl)
+	spots.append({ "pos": Vector3(-5, 0, RIVER_Z + RIVER_HW + 0.6), "kind": "bank", "yaw": PI })
+	spots.append({ "pos": Vector3(6, 0, RIVER_Z - RIVER_HW - 0.6), "kind": "bank", "yaw": 0.0 })
+	_fence(Vector3(-16, 0, 22.5), 32.0)
+
 ## 집을 수 있는 것 — 작은 기하 하나씩(사과 = 구, 컵 = 원기둥, 신문 = 납작한 상자). 손에 들면 hand_r 의 자식이 된다
 func _item(kind: String, at: Vector3) -> void:
 	items.append(make_item(kind, at))

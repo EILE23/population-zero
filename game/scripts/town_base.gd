@@ -23,7 +23,11 @@ const WALL := 0.16
 
 const WORLD_X := 46.0    # 세계 반폭(m): 서쪽 공원(-46..-16) · 마을(-16..16) · 동쪽 시장(16..46)
 
-const WORLD_Z := 20.0    # 세계 반깊이(m): 큰길 z≈2 · 북쪽 골목 z≈-13(집 세 채, 2026-09-28 비전 런) · 남쪽은 아직 풀밭
+const WORLD_Z := 24.0    # 세계 반깊이(m): 큰길 z≈2 · 북쪽 골목 z≈-13(집 세 채) · 남쪽 강 z≈11.5 와 돌다리 · 그 너머 초원 z 14..23(비전 2단계, 2026-09-28)
+
+const RIVER_Z := 11.5    # 강 중심선(z). 동서로 세계 끝까지 흐른다(+x 로)
+const RIVER_HW := 1.5    # 강 반폭(m)
+const BRIDGE_HW := 1.0   # 돌다리 반폭(m), x=0 에 걸린다
 
 const DAY_LEN := 720.0   # 낮밤 한 바퀴(초) = 12분
 
@@ -201,6 +205,23 @@ var crowns: Array = []   # 흔들리는 잎 뭉치 {node, phase, k}
 var wind_t := 0.0
 
 var petting_until := -1.0
+
+var ripples: Array[Node3D] = []   # 강 물결 조각 — _water 가 +x 로 흘린다
+
+var swimming := false            # 내가 물에 들어가 있는 동안(헤엄 자세, 느리고, 점프·타격 없음)
+
+## 물에 있나 — 강 띠 안이고 다리 위가 아니고 낮으면. 사람도 주민도 물건도 같은 규칙
+func in_water(p: Vector3) -> bool:
+	return absf(p.z - RIVER_Z) < RIVER_HW - 0.08 and absf(p.x) > BRIDGE_HW + 0.2 and p.y < 0.3
+
+## 강 건너로 가는 경로면 다리 양끝을 앞에 끼운다 — 주민은 옷 입고 헤엄치지 않는다(빠지면 헤엄치지만)
+func via_bridge(from: Vector3, route: Array) -> Array:
+	if route.is_empty(): return route
+	var dest: Vector3 = route[0]["pos"]
+	if (from.z < RIVER_Z) == (dest.z < RIVER_Z): return route
+	var north := { "pos": Vector3(0, 0, RIVER_Z - RIVER_HW - 1.0), "act": "" }
+	var south := { "pos": Vector3(0, 0, RIVER_Z + RIVER_HW + 1.0), "act": "" }
+	return ([north, south] if from.z < RIVER_Z else [south, north]) + route
 
 var pet_dog: Dictionary = {}
 
