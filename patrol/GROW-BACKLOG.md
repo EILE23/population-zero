@@ -538,3 +538,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-28) Add a small 'raccoon' NPC that can spawn near bins at dusk and will snatch small dropped items unless a player uses a one-button 'offer snack' action at a nearby bin or pond to distract it and retrieve the item.
+- [ ] (town wish, 2026-09-28) Add a quick squirrel NPC that appears by trees and bins, will snatch small dropped items and dash up a tree, and give players a one-button 'follow' action that makes a nearby resident chase it along a short scripted rout
