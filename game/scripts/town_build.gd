@@ -89,13 +89,14 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var hw := size.x / 2.0; var hd := size.z / 2.0
 	var door_w := 0.9; var door_h := 1.9
 	var parts: Array[Node3D] = []   # 컷어웨이 대상(지붕·앞벽·천장·차양·앞창)
+	var shell: Array[Node3D] = []   # 뒷벽·옆벽·옆창 — 2.5D 옆시점에서 카메라와 나 사이에 이 집이 있으면 이것까지 감춘다(북쪽 골목이 가운데 집들에 가려졌다)
 	var seg := (size.x - door_w) / 2.0
 	parts.append(_box(Vector3(seg, size.y, WALL), at + Vector3(-hw + seg / 2.0, 0, hd - WALL / 2.0), wm))
 	parts.append(_box(Vector3(seg, size.y, WALL), at + Vector3(hw - seg / 2.0, 0, hd - WALL / 2.0), wm))
 	parts.append(_box(Vector3(door_w + 0.02, size.y - door_h, WALL), at + Vector3(0, door_h, hd - WALL / 2.0), wm))
-	_box(Vector3(size.x, size.y, WALL), at + Vector3(0, 0, -hd + WALL / 2.0), wm)
-	_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(-hw + WALL / 2.0, 0, 0), wm)
-	_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(hw - WALL / 2.0, 0, 0), wm)
+	shell.append(_box(Vector3(size.x, size.y, WALL), at + Vector3(0, 0, -hd + WALL / 2.0), wm))
+	shell.append(_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(-hw + WALL / 2.0, 0, 0), wm))
+	shell.append(_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(hw - WALL / 2.0, 0, 0), wm))
 	# 창: 층마다 정면 좌우 + 옆벽. 덧문은 집마다 있거나 없다
 	var shutters := rng.randf() < 0.5
 	var shutter_c: Color = [Color("7b526c"), Color("3f6b2f"), Color("4a4a52"), Color("b56a5a")][rng.randi() % 4]
@@ -103,8 +104,8 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		var wy := 1.1 + st * (size.y / storeys)
 		for wx in [-hw + seg / 2.0, hw - seg / 2.0]:
 			parts.append(_window(at + Vector3(wx, wy, hd), 0.0, shutters, shutter_c))
-		_window(at + Vector3(-hw, wy, 0), PI / 2.0, shutters, shutter_c)
-		_window(at + Vector3(hw, wy, 0), -PI / 2.0, shutters, shutter_c)
+		shell.append(_window(at + Vector3(-hw, wy, 0), PI / 2.0, shutters, shutter_c))
+		shell.append(_window(at + Vector3(hw, wy, 0), -PI / 2.0, shutters, shutter_c))
 	# 문틀·경첩·문짝(손잡이)
 	_box(Vector3(0.08, door_h, WALL + 0.04), at + Vector3(-door_w / 2.0 - 0.04, 0, hd - WALL / 2.0), trim)
 	_box(Vector3(0.08, door_h, WALL + 0.04), at + Vector3(door_w / 2.0 + 0.04, 0, hd - WALL / 2.0), trim)
@@ -162,7 +163,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	_interior(at, size, rng)
 	for k in range(before, spots.size()):
 		if spots[k]["kind"] == "chair": spots[k]["door"] = doors[doors.size() - 1]
-	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false })
+	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false, "shell": shell, "behind": false })
 
 ## 옮길 수 있는 가구 — 의자(앉는 자리 포함)·화분·소형 램프. 들면 충돌을 끄고, 놓으면 다시 켠다
 func _furniture(kind: String, at: Vector3, yaw := 0.0) -> Node3D:

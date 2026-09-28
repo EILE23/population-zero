@@ -74,6 +74,10 @@ func greet(from: Node3D) -> void:
 	if state == "down" or state == "getup" or state == "chase":
 		return
 	var now := Time.get_ticks_msec() / 1000.0
+	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
+	# 그네를 타던 중이면 _leave 가 spot["swing"] 을 찾다 죽었다. 그네·밀기는 riding_swing/pushing_swing 이 기억하니 _leave 가 마저 정리한다
+	if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
+	_release(); collision_layer = 1; collision_mask = 1
 	fig.seated = false
 	fig.pose_request = "wave"
 	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
@@ -103,6 +107,7 @@ func _physics_process(delta: float) -> void:
 			fig.action_t = 1.0 - (busy_until - now) / 0.28
 	match state:
 		"routine":
+			v.x = 0.0; v.z = 0.0; fig.move_dir = Vector3.ZERO; fig.speed = 0.0   # 쫓다 포기한 뒤 달리던 속도가 남아 1초 더 미끄러지던 것
 			if now >= busy_until:
 				_pick_spot()
 		"walk":
@@ -204,11 +209,13 @@ var home_door: Dictionary = {}   # 내 집의 문 — 밤엔 여기로 가서 �
 ## 날씨 바뀜 — 비면 지금 하던 걸 접고 실내로 서두른다(밖 자리에 있었으면 바로 다시 고른다)
 func on_weather(w: String) -> void:
 	weather = w
-	if w == "rain" and state in ["busy", "walk", "routine"] and not (spot.get("kind", "") in ["chair", "bed", "shelf"]):
-		fig.seated = false; fig.pose_request = ""
-		if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
-		state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.0, 1.5)
-		say(["Rain.", "Of course.", "Inside, then."][uid % 3], 1.5)
+	if w != "rain" or not (state in ["busy", "walk", "routine"]) or spot.get("kind", "") in ["chair", "bed", "shelf"]:
+		return
+	# _leave 로 자리를 제대로 비운다 — 전엔 seated 만 풀어서 그네 rider 가 남아 비 온 뒤 그네가 영영 차 있었고, 걸어가던 목표 칸도 새어 나갔다
+	if state == "busy": _leave()
+	else: _release()
+	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.0, 1.5)
+	say(["Rain.", "Of course.", "Inside, then."][uid % 3], 1.5)
 
 func _pick_spot() -> void:
 	if town.spots.is_empty():
@@ -318,6 +325,7 @@ var pushing_swing: Dictionary = {}
 
 ## 그네 뒤로 가서 밀어 주기(사람이 타는데 안 밀 때 town 이 부르거나, 주민이 그네 자리에 왔는데 차 있을 때)
 func go_push(sw: Dictionary) -> void:
+	_release()   # 걸어가던(또는 방금 잡은 그네) 자리를 비운다 — 안 비우면 그 칸이 영영 '찬 자리'
 	pushing_swing = sw; sw["pusher"] = self
 	spot = { "kind": "push", "swing": sw }
 	route = [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
@@ -328,8 +336,9 @@ func _leave() -> void:
 	_release()
 	collision_layer = 1; collision_mask = 1
 	if not riding_swing.is_empty():
-		riding_swing["rider"] = null; riding_swing = {}
-		global_position = spot["swing"]["at"] + Vector3(0, 0.02, 0.9); fig.pose_request = ""
+		riding_swing["rider"] = null
+		global_position = riding_swing["at"] + Vector3(0, 0.02, 0.9); fig.pose_request = ""; fig.rotation.x = 0.0
+		riding_swing = {}
 	if not pushing_swing.is_empty():
 		if pushing_swing["pusher"] == self: pushing_swing["pusher"] = null
 		pushing_swing = {}; fig.pose_request = ""

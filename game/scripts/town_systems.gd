@@ -14,17 +14,23 @@ func _stream() -> void:
 			n.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
 
 ## 컷어웨이 — 플레이어가 집 안에 있으면 지붕·앞벽·천장·차양·앞창을 감춘다(운영자: 들어가면 캐릭터가 가려져 안 보였다)
+## 2.5D 옆시점(카메라가 +z 에서 −z 를 본다)에서 집 **뒤**(더 −z, 같은 x 폭)에 서면 뒷벽·옆벽까지 감춘다 — 북쪽 골목이 가운데 집들에 가려져 안 보였다
 func _cutaway() -> void:
 	var p := body.global_position
 	for h in houses:
 		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
 		var inside: bool = p.x > mn.x and p.x < mx.x and p.z > mn.z and p.z < mx.z and p.y < mx.y
 		var near: bool = p.x > mn.x - 2.0 and p.x < mx.x + 2.0 and p.z > mn.z - 1.0 and p.z < mx.z + 2.5 and p.y < mx.y
-		inside = inside or near   # 집 가까이 가면 열린다 — 안에서 쉬는 주민이 보이게(운영자: 들어가면 사라진다)
-		if inside != h["inside"]:
-			h["inside"] = inside
+		var behind: bool = view_25d and p.z < mn.z and p.x > mn.x - 1.5 and p.x < mx.x + 1.5 and p.y < mx.y
+		var open := inside or near or behind   # 집 가까이 가면 열린다 — 안에서 쉬는 주민이 보이게(운영자: 들어가면 사라진다)
+		if open != h["inside"]:
+			h["inside"] = open
 			for n in h["parts"]:
-				n.visible = not inside
+				n.visible = not open
+		if behind != h["behind"]:
+			h["behind"] = behind
+			for n in h["shell"]:
+				n.visible = not behind
 
 ## 진자 물리 — 매 프레임. 타고 있으면 몸이 좌석을 따라가고 ← → 가 흔들림 방향으로 밀어 준다
 ## 좌석의 세계 위치와 각도(주민이 탈 때 쓴다)
@@ -67,7 +73,6 @@ func _swings(delta: float) -> void:
 			if not (pusher is Node and is_instance_valid(pusher)) and pusher != "player":
 				sw["pusher"] = null
 			elif sw["angle"] < -0.2 and sw["vel"] > -0.3 and sw["vel"] < 0.3 and Time.get_ticks_msec() / 1000.0 - sw["push_at"] > 1.0:
-				acc += 2.6 * 60.0 * delta / delta * 0.0 + 0.0
 				sw["vel"] += 1.3; sw["push_at"] = Time.get_ticks_msec() / 1000.0
 				if pusher is Node: pusher.fig.push_t = 0.0
 				else: player.push_t = 0.0

@@ -10,12 +10,14 @@ func _ready() -> void:
 	_district("park", Vector3(-31, 0, -2), _park)
 	_district("market", Vector3(31, 0, -2), _market)
 	_sun = get_node_or_null("Sun")
-	_path(Vector3(0, 0, 2), Vector3(0, 0, -10), 2.0)
+	_path(Vector3(0, 0, 2), Vector3(0, 0, -3.6), 2.0)      # 가운데 집 현관까지(전엔 집 밑을 지나 -10 까지 갔다)
+	_path(Vector3(3.35, 0, 2), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
+	_district("lane", Vector3(0, 0, -15), _lane)
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "accent-deep", false, 1)
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
 	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다
 	_house(Vector3(-12, 0, -8), Vector3(3.6, 2.8, 3.2), Color("b56a5a"), "wood", false, 4)
-	for p in [Vector3(-11, 0, -1), Vector3(-3.5, 0, -1.5), Vector3(4, 0, -1), Vector3(11, 0, -1.5), Vector3(-9, 0, 5), Vector3(9, 0, 5.5), Vector3(13, 0, -7)]:
+	for p in [Vector3(-11, 0, -1), Vector3(-3.5, 0, -1.5), Vector3(5.6, 0, -0.8), Vector3(11, 0, -1.5), Vector3(-9, 0, 5), Vector3(9, 0, 5.5), Vector3(13, 0, -7)]:   # (4,-1) 나무는 골목길 틈에서 비켜 났다
 		_tree(p, 1.0 + fmod(absf(p.x) * 0.37, 0.5))
 	_bench(Vector3(-4, 0, 4.2)); _bench(Vector3(4, 0, 4.2))
 	_lamp(Vector3(-1.6, 0, 3.6)); _lamp(Vector3(1.6, 0, 3.6)); _lamp(Vector3(-8, 0, 0.6)); _lamp(Vector3(8, 0, 0.6))
@@ -33,6 +35,18 @@ func _ready() -> void:
 	add_child(body)
 	cam = $Camera3D
 	_residents(24)
+
+## 북쪽 골목(2026-09-28 월요일 비전 런의 첫 조각 — 마을은 매달 눈에 띄게 넓어져야 한다): x=0 길이 북으로 이어져 동서 골목(z≈-13)과 만나고,
+## 남향 집 세 채가 골목을 본다. 집 생성기가 문·침대·의자·선반을 등록하니 주민 명부의 집 배정(home_door = doors[i % n])에 저절로 들어가
+## 밤에 여기서 자는 주민이 생긴다 — 새 집은 주인이 있어야 한다는 규칙. 골목 뒤는 담(세계 끝이 안 보이게)
+func _lane(at: Vector3) -> void:
+	_path(at + Vector3(-14, 0, 2), at + Vector3(14, 0, 2), 2.0)
+	_house(at + Vector3(-8, 0, -1.5), Vector3(4.2, 2.7, 3.4), Color("8fb8cc"), "wood", false, 5)
+	_house(at + Vector3(0, 0, -2), Vector3(3.8, 2.9, 3.2), Color("efe9e2"), "brick", false, 6)
+	_house(at + Vector3(8, 0, -1.5), Vector3(4.6, 2.5, 3.6), Color("e6d3a5"), "accent-deep", false, 7)
+	_bench(at + Vector3(4, 0, 3.6)); _lamp(at + Vector3(-3.5, 0, 3.4))
+	_tree(at + Vector3(-12.5, 0, -1), 1.2); _tree(at + Vector3(12.5, 0, -1), 1.05)
+	_fence(at + Vector3(-13, 0, -4), 26.0)
 
 func _process(delta: float) -> void:
 	_hud(Time.get_ticks_msec() / 1000.0)
