@@ -31,6 +31,7 @@ var quarry: Node3D = null
 var say_label: Label3D
 var say_until := 0.0
 var carrying_kind := ""      # 손에 든 것(넘어지면 떨어뜨린다)
+var can_mine := false        # 텃밭에서 제 물뿌리개를 든 중(떠날 때 치운다 — 맞아서 떨어뜨리면 그대로 바닥에 남아 누구든 집는다)
 
 const LINES_HIT := ["Excuse me.", "That was uncalled for.", "I felt that.", "Really."]
 const LINES_GIVEUP := ["Fine.", "I am tired.", "This is noted.", "Have it your way."]
@@ -249,7 +250,7 @@ func _pick_spot() -> void:
 			spot = mine[0]; slot = 0; _claim(spot, 0)
 			door_ref = home_door
 			var dp: Vector3 = door_ref["pos"]
-			route = town.river_route(global_position, dp) + _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+			route = town.crossings(global_position, dp) + _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	var pool: Array = town.spots
 	if weather == "rain":
@@ -278,7 +279,7 @@ func _pick_spot() -> void:
 		route = (_approach(near_door) if not near_door.is_empty() else []) + [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.2), "act": "" }]
 	else:
 		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
-	route = town.river_route(global_position, spot["pos"]) + route   # 강 건너 자리면 다리로(곧장 가면 물 위 벽에 막혀 포기했다)
+	route = town.crossings(global_position, spot["pos"]) + route   # 강 건너 자리면 다리로(곧장 가면 물 위 벽에 막혀 포기했다)
 	target = route[0]["pos"]
 	state = "walk"
 
@@ -322,6 +323,19 @@ func _arrive(now: float) -> void:
 		"tree":
 			fig.pose_request = "shake"; fig.face(atan2(spot["pos"].x - global_position.x, spot["pos"].z - global_position.z))
 			busy_until = now + randf_range(1.5, 3.0)
+		"plot":
+			# 텃밭(run 70): 빈손이고 익었으면 딴다, 빈손이면 물뿌리개를 꺼내 들고 물을 준다(사람과 같은 water 자세·같은 효과), 뭘 들고 있으면 구경만
+			var row: Dictionary = town.rows[int(spot["row"])]
+			fig.face(spot.get("yaw", PI))
+			if not fig.carrying and int(row["stage"]) >= 3:
+				carrying_kind = town.pick_row(row); fig.hold(town.make_item(carrying_kind, Vector3.ZERO))
+				fig.action = "grab"; fig.action_t = 0.0; busy_until = now + 0.28; say("Ripe.", 1.4)
+			elif not fig.carrying:
+				fig.hold(town.make_item("can", Vector3.ZERO)); can_mine = true
+				fig.pose_request = "water"; town.water_row(row, now); busy_until = now + StickPoses.WATER_T + 0.3
+				say(["Mind the rows.", "Dry week.", "There."][uid % 3], 1.6)
+			else:
+				busy_until = now + randf_range(2.0, 4.0)
 		_:
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
@@ -379,13 +393,15 @@ func go_push(sw: Dictionary) -> void:
 	_release()   # 걸어가던(또는 방금 잡은 그네) 자리를 비운다 — 안 비우면 그 칸이 영영 '찬 자리'
 	pushing_swing = sw; sw["pusher"] = self
 	spot = { "kind": "push", "swing": sw }
-	route = town.river_route(global_position, sw["at"]) + [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
+	route = town.crossings(global_position, sw["at"]) + [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
 	target = route[0]["pos"]; state = "walk"
 	say(["Hold on.", "Here.", "Higher?"][uid % 3], 1.5)
 
 func _leave() -> void:
 	_release()
 	collision_layer = 1; collision_mask = 1
+	if can_mine and fig.carrying:
+		fig.release(town, Vector3.ZERO).queue_free(); can_mine = false   # 물뿌리개는 밭의 것 — 들고 돌아다니지 않는다
 	if not riding_swing.is_empty():
 		riding_swing["rider"] = null
 		global_position = riding_swing["at"] + Vector3(0, 0.02, 0.9); fig.pose_request = ""; fig.rotation.x = 0.0
@@ -429,7 +445,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		if fig.carrying:
 			var it: Node3D = fig.release(town, global_position + from_dir * 0.6 + Vector3(0, 0.1, 0))
 			it.set_meta("dropped_at", now)   # 넘어져 떨어뜨린 표시 — 여우가 6초 안에 노린다(town_systems _fox). 내려놓은 것·던진 것과 구별
-			town.items.append(it); carrying_kind = ""
+			town.items.append(it); carrying_kind = ""; can_mine = false
 	else:
 		fig.action = "flinch"; fig.action_t = 0.0
 		state = "busy"; busy_until = now + 0.3

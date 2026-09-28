@@ -170,8 +170,8 @@ func _physics_process(delta: float) -> void:
 		shake_until = -1.0; player.pose_request = ""
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
-		if player.pose_request in ["eat", "drink", "wave"]: player.pose_request = ""
-	if (reading or leaning or resting) and dir != Vector3.ZERO:
+		if player.pose_request in ["eat", "drink", "wave", "water"]: player.pose_request = ""
+	if (reading or leaning or resting or player.pose_request == "water") and dir != Vector3.ZERO:
 		reading = false; leaning = false; resting = false; player.pose_request = ""
 	if not pushing.is_empty() and dir != Vector3.ZERO:
 		if pushing["pusher"] == "player": pushing["pusher"] = null
@@ -187,6 +187,7 @@ func _physics_process(delta: float) -> void:
 	_swings(delta)
 	_wind(delta)
 	_flow(delta)
+	_crops(now)
 
 ## 가구 들기(C 길게) — 두 손에 들고 옮긴다(carry 자세). 든 동안 충돌은 끈다
 func _pick_furniture(now: float) -> void:
@@ -296,7 +297,7 @@ func _interact_check(now: float) -> void:
 		return
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
-		if kind == "apple" or kind == "bread":
+		if kind in FOOD:
 			# 먹기: 한 번에 한입, 한입마다 작아지고 세 입이면 사라진다(운영자: 상호작용은 끝까지). 한입 수는 물건에 붙는다 — 전엔 전역이라 사과를 바꿔 들어도 이어졌다
 			var food := player.carrying
 			var bites := int(food.get_meta("bites", 0)) + 1
@@ -307,6 +308,9 @@ func _interact_check(now: float) -> void:
 			return
 		if kind == "cup":
 			player.pose_request = "drink"; use_until = now + 1.2; action_until = now + 1.2
+			return
+		if kind == "can" and not near_plot(p).is_empty():
+			garden_use(near_plot(p), now)   # 물뿌리개 들고 이랑 앞 C = 물 주기(전엔 아래 '내려놓기'가 먼저 잡아 물뿌리개를 바닥에 떨궜다)
 			return
 		if kind == "paper":
 			reading = not reading; player.pose_request = "read" if reading else ""
@@ -347,6 +351,8 @@ func _interact_check(now: float) -> void:
 		if sp["kind"] != "counter": continue
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "counter", "spot": sp }; best_d = d8
+	var pl := near_plot(p)
+	if not pl.is_empty() and plot_dist(p, pl) < best_d: best = { "kind": "plot", "spot": pl }; best_d = plot_dist(p, pl)
 	for sw in swings:
 		var d6: float = p.distance_to(sw["at"])
 		if d6 < 1.2 and d6 < best_d: best = { "kind": "swing", "swing": sw }; best_d = d6
@@ -366,6 +372,8 @@ func _interact_check(now: float) -> void:
 			var kinds := ["cap", "straw", "tophat", "beanie", "glasses", "sunglasses", "backpack", "scarf"]
 			var h := make_wearable(kinds[randi() % kinds.size()], body.global_position, Wear.palette(randi() % 6))
 			player.hold(h); player.action = "grab"; action_until = now + 0.4
+		"plot":
+			garden_use(best["spot"], now)   # 텃밭: 물뿌리개를 들었으면 물 주기, 빈손이면 익은 것 따기(town_places)
 		"counter":
 			# 창구: 커피(카페) 또는 빵(빵집)을 받는다 — 지금은 공짜, 코인 결제는 다음 조각
 			var sp: Dictionary = best["spot"]

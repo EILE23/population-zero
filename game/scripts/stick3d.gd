@@ -37,9 +37,11 @@ var carrying: Node3D = null    # 오른손에 든 것(hand_r 의 자식)
 var punch_side := 1.0          # 연속기: 1.0 오른손, -1.0 왼손
 var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
-var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "" 
+var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "water"(텃밭) | ... | "" — 자세 자체는 stick3d_poses.gd
 var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
 var push_t := 9.0              # 밀기: 0 에서 시작해 1 까지(팔을 뻗었다 거둔다), 9 = 쉼
+var pose_t := 0.0              # 지금 pose_request 가 시작된 뒤 흐른 시간 — 자세마다 예비·유지·회수 타이밍(StickPoses). 자세가 바뀌면 0
+var _pose_prev := ""
 
 ## 대기 기지개(운영자 2026-09-28, "Stick3D feel"): 가만히 서 있을 때만 저절로 — 2D figure.gd 의 yawn·shrug·look 을 그대로
 var _fidget := ""              # "" | "yawn" | "shrug" | "look" — 서 있을 때만, 걷거나 동작 중이면 즉시 취소
@@ -198,6 +200,11 @@ func release(into: Node3D, at: Vector3) -> Node3D:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if pose_request != _pose_prev:
+		if _pose_prev == "water": StickPoses.drops(self, false)   # 붓다 말고 자세가 풀리면 물방울도 끈다
+		_pose_prev = pose_request; pose_t = 0.0
+	else:
+		pose_t += delta
 	var moving := move_dir.length_squared() > 0.0001 and speed > 0.05 and not seated
 	# 몸 방향 — 이동 방향으로 부드럽게(초당 약 10rad 로 수렴). 서 있으면 마지막 방향 유지
 	if moving:
@@ -241,27 +248,10 @@ func _process(delta: float) -> void:
 		lean = 0.18 if vertical > 0.0 else 0.08  # 도약은 살짝 앞으로
 	if seated:
 		lean = -0.05
-	if pose_request == "lean" and not moving:
-		lean = -0.2
-	if pose_request == "shake" and not moving:
-		lean = sin(_t * 9.0) * 0.12
-	if pose_request == "read" and not moving:
-		lean = 0.12
-	if pose_request == "drink" and not moving:
-		lean = -0.12
-	if pose_request == "eat" and not moving:
-		lean = 0.08
-	if pose_request == "swing":
-		lean = -0.15 - swing_k * 0.25
-	if pose_request == "push":
-		push_t += delta * 1.6
-		lean = 0.25 if push_t < 0.3 else 0.08
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
-	if pose_request == "rest":
-		pelvis.rotation.x = -1.5; lean = 0.25 + sin(_t * 1.6) * 0.02
-		pelvis.position.y = 0.16
+	lean = StickPoses.lean(self, moving, delta, lean)   # pose_request 별 기울기(lean·shake·read·drink·eat·swing·push·water·rest) — stick3d_poses.gd
 	torso.rotation.x = lean * 0.45
 	chest.rotation.x = lean * 0.55 + (0.18 * run_k if moving and not airborne else 0.0)  # 달리면 등이 둥글게 말린다
 	torso.rotation.y = -sw * 0.10 * run_k if moving else 0.0
@@ -272,6 +262,7 @@ func _process(delta: float) -> void:
 		neck.rotation.x -= 0.35  # 고개를 젖힌다(2D yawn 과 같은 방향)
 	elif _fidget == "look":
 		neck.rotation.y = sin(_fidget_t * 2.2) * 0.35  # 좌우로 둘러본다(2D look)
+	hand_r.rotation = Vector3.ZERO   # 손목은 블렌딩 대상이 아니다 — 물주기가 기울인 걸 프레임마다 되돌린다
 	for side in [-1.0, 1.0]:
 		var s: float = side
 		var hip: Node3D = hips[s]; var knee: Node3D = knees[s]
@@ -280,57 +271,8 @@ func _process(delta: float) -> void:
 			# 맞아서 등을 바닥에 — 골반을 뒤로 눕히고(pelvis −1.45) 팔다리는 살짝 벌린 채 힘없이
 			hip.rotation.x = -(0.25 + 0.1 * s); knee.rotation.x = -(-0.4)
 			sh.rotation.x = -(0.5 * s); sh.rotation.z = -s * 0.9; el.rotation.x = -(0.3)
-		elif pose_request == "lean":
-			# 가로등에 기대서기(2D lean): 어깨가 뒤로 빠지고 한쪽 발은 발끝만 걸쳐 꼬고 팔짱
-			hip.rotation.x = -(0.15 if s > 0.0 else -0.35); knee.rotation.x = -(-0.1 if s > 0.0 else -0.6)
-			sh.rotation.x = -(0.45); sh.rotation.z = -s * 0.05; el.rotation.x = -(1.9)
-		elif pose_request == "shake":
-			# 나무 흔들기(2D shake): 두 팔을 위로 뻗어 가지를 잡고 몸통째 좌우로
-			hip.rotation.x = 0.0; knee.rotation.x = -(-0.1)
-			sh.rotation.x = -(2.9 + sin(_t * 9.0) * 0.15); sh.rotation.z = -s * 0.25; el.rotation.x = -(0.2)
-		elif pose_request == "eat":
-			# 서서 먹기(2D chew): 오른손이 입으로 오르내리고 고개가 살짝 숙여진다
-			var m := (sin(_t * 4.0) + 1.0) / 2.0
-			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
-			if s > 0.0: sh.rotation.x = -(0.55 + m * 0.5); sh.rotation.z = -0.25; el.rotation.x = -(1.9 + m * 0.5)
-			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
-		elif pose_request == "drink":
-			# 마시기: 컵을 든 손이 입까지 올라가 머물고 고개가 뒤로 젖혀진다
-			var m := clampf(sin(_t * 1.6) * 0.5 + 0.5, 0.0, 1.0)
-			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
-			if s > 0.0: sh.rotation.x = -(0.7 + m * 0.4); sh.rotation.z = -0.3; el.rotation.x = -(2.2 + m * 0.3)
-			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
-		elif pose_request == "read":
-			# 서서 읽기(2D read): 두 손이 가슴 앞, 고개 숙임
-			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
-			sh.rotation.x = -(0.5); sh.rotation.z = -s * 0.15; el.rotation.x = -(1.7)
-		elif pose_request == "push":
-			# 그네 밀기: 두 팔을 앞으로 내밀어 좌석을 밀고(0→0.3) 거둔다(0.3→1). 쉴 땐 팔을 앞에 반쯤 든 채 기다린다
-			var k := (smoothstep(0.0, 1.0, push_t / 0.3) if push_t < 0.3 else 1.0 - smoothstep(0.0, 1.0, (push_t - 0.3) / 0.7)) if push_t < 1.0 else 0.0
-			hip.rotation.x = -(0.15 * k * (1.0 if s > 0.0 else -1.0)); knee.rotation.x = -(-0.1)
-			sh.rotation.x = -(0.9 + 0.8 * k); sh.rotation.z = -s * 0.1; el.rotation.x = -(1.1 - 0.9 * k)
-		elif pose_request == "swing":
-			# 그네(2D swing): 두 손은 위로 줄을 잡고, 앞으로 갈 때 다리를 뻗고 돌아올 때 접는다. 엉덩이는 좌석에
-			hip.rotation.x = -(1.4 - swing_k * 0.5); knee.rotation.x = -(-1.2 + swing_k * 1.0)
-			sh.rotation.x = -(2.6); sh.rotation.z = -s * 0.32; el.rotation.x = -(0.3)
-		elif pose_request == "rest":
-			# 침대에 눕기(2D sit): 등을 대고 다리는 뻗고, 한 팔은 머리 뒤, 한 팔은 배 위
-			hip.rotation.x = -(0.1 + 0.05 * s); knee.rotation.x = -(-0.15 if s > 0.0 else -0.5)
-			if s > 0.0: sh.rotation.x = -(2.6); sh.rotation.z = -0.5; el.rotation.x = -(1.6)
-			else: sh.rotation.x = -(0.9); sh.rotation.z = 0.1; el.rotation.x = -(1.5)
-		elif pose_request == "carry":
-			# 가구 들기: 두 팔을 앞으로 내밀어 허리 높이에서 받쳐 든다, 걸음은 다리만
-			if moving:
-				var a := s * sw * 0.55 * run_k
-				hip.rotation.x = -(a); knee.rotation.x = -(-(1.0 if a < 0.0 else 0.15) * run_k)
-			else:
-				hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
-			sh.rotation.x = -(0.95); sh.rotation.z = -s * 0.12; el.rotation.x = -(1.35)
-		elif pose_request == "wave":
-			# 손 흔들기(2D wave): 오른팔을 머리 위로 들어 좌우로
-			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
-			if s > 0.0: sh.rotation.x = -(2.7); sh.rotation.z = -0.35 + sin(_t * 9.0) * 0.25; el.rotation.x = -(0.5)
-			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
+		elif StickPoses.limbs(self, s, moving, sw, run_k):
+			pass   # pose_request 자세(lean·shake·eat·drink·read·push·swing·rest·carry·wave·water) — stick3d_poses.gd
 		elif _fidget == "yawn":
 			# 하품(2D yawn): 한 팔이 입 쪽으로, 다른 팔은 늘어뜨린 채
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
@@ -382,7 +324,7 @@ func _process(delta: float) -> void:
 			sh.rotation.z = -s * 0.04                              # 몸에 붙임(평탄)
 			el.rotation.x = -(0.35)                                # 팔꿈치 살짝 굽힘
 	# 들고 있으면 오른팔은 앞으로 반쯤 들어 물건을 보인다(걸음 스윙 대신)
-	if carrying and not airborne:
+	if carrying and not airborne and not StickPoses.owns_right_arm(pose_request):   # 먹기·마시기·물주기는 오른손을 제 자리에 둔다(전엔 이 덮어쓰기가 입까지 가던 손을 도로 내렸다)
 		shoulders[1.0].rotation.x = -(0.55)
 		elbows[1.0].rotation.x = -(1.15)
 	# 잠깐의 동작 — 2D 자세를 그대로: 빨리 나갔다(35%) 천천히 돌아온다(65%). 공중에서도 된다(점프킥·점프 주먹)

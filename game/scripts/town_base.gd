@@ -223,6 +223,23 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 		"bread":
 			var b2 := CapsuleMesh.new(); b2.radius = 0.06; b2.height = 0.24; mi.mesh = b2; mi.material_override = _mat(Color("b48a5a"))
 			mi.rotation.z = PI / 2.0; mi.position = at + Vector3(0, 0.06, 0)
+		"tomato", "cabbage", "pumpkin":
+			# 텃밭 작물(run 70) — 사과와 같은 구, 종류마다 색과 크기. 세 입에 먹는다(FOOD)
+			var cs := SphereMesh.new(); var cr: float = { "tomato": 0.07, "cabbage": 0.11, "pumpkin": 0.13 }[kind]; cs.radius = cr; cs.height = cr * 1.7
+			var cc: Color = { "tomato": Color("ff2d55"), "cabbage": Color("7fb05a"), "pumpkin": Color("d98a2a") }[kind]
+			mi.mesh = cs; mi.material_override = _mat(cc)
+			mi.position = at + Vector3(0, cr * 0.85, 0)
+		"can":
+			# 물뿌리개(run 70): 양철 몸통 + 앞으로 숙인 주둥이 + 손잡이, 주둥이 끝에 물방울 입자(붓는 동안만 — StickPoses.drops)
+			var cb := CylinderMesh.new(); cb.top_radius = 0.065; cb.bottom_radius = 0.075; cb.height = 0.15; mi.mesh = cb; mi.material_override = _mat(Color("6f8fa0"))
+			mi.position = at + Vector3(0, 0.075, 0)
+			var sp := _box(Vector3(0.03, 0.03, 0.2), Vector3(0, 0.02, 0.12), _mat(Color("6f8fa0")), false, mi); sp.rotation.x = -0.6
+			_box(Vector3(0.025, 0.025, 0.12), Vector3(0, 0.1, 0.0), _mat(Color("4a4a52")), false, mi)
+			var dr := CPUParticles3D.new(); dr.amount = 24; dr.lifetime = 0.55; dr.emitting = false; dr.local_coords = false
+			dr.direction = Vector3(0, -0.6, 0.6); dr.spread = 8.0; dr.initial_velocity_min = 0.5; dr.initial_velocity_max = 0.8; dr.gravity = Vector3(0, -7, 0)
+			dr.mesh = SphereMesh.new(); (dr.mesh as SphereMesh).radius = 0.012; (dr.mesh as SphereMesh).height = 0.024
+			var dm := StandardMaterial3D.new(); dm.albedo_color = Color("8fb8cc"); dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; dr.material_override = dm
+			dr.position = Vector3(0, 0.08, 0.24); mi.add_child(dr); mi.set_meta("drops", dr)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)
@@ -242,6 +259,8 @@ var reading := false      # 신문 읽는 중(움직이면 끝)
 var leaning := false      # 가로등에 기댄 중(움직이면 끝)
 
 const STEP := 0.42
+
+const FOOD := ["apple", "bread", "tomato", "cabbage", "pumpkin"]   # C 로 한입씩 먹는 것 — 텃밭 작물도(run 70)
 
 var _hud_at := 0.0
 

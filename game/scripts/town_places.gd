@@ -10,6 +10,13 @@ const BRIDGE_H := 0.35    # 다리 꼭대기 높이 — 오르막 1.4m 에 0.35m
 
 var glints: Array = []    # 물 위를 흘러가는 반짝임(흐르는 강이 멈춘 파란 띠로 안 읽히게)
 
+const CROPS := ["tomato", "cabbage", "pumpkin"]   # 텃밭 세 이랑, 앞에서부터
+const GROW_T := 30.0                              # 물 준 뒤 한 단계 자라는 데 걸리는 시간(초)
+const STAGE_K := [0.3, 0.55, 0.8, 1.0]            # 단계별 풀 크기 — 3 이면 열매가 보인다(익음)
+
+var rows: Array = []      # 텃밭 이랑 {kind, stage, plants: Array, fruit: Array, wet: MeshInstance3D, grow_at}
+var garden_at := Vector3.INF   # 텃밭 가운데 — 울타리 안팎 판정과 문(앞쪽 가운데) 경유에 쓴다
+
 ## 북쪽 골목(2026-09-28 월요일 비전 런의 첫 조각 — 마을은 매달 눈에 띄게 넓어져야 한다): x=0 길이 북으로 이어져 동서 골목(z≈-13)과 만나고,
 ## 남향 집 세 채가 골목을 본다. 집 생성기가 문·침대·의자·선반을 등록하니 주민 명부의 집 배정(home_door = doors[i % n])에 저절로 들어가
 ## 밤에 여기서 자는 주민이 생긴다 — 새 집은 주인이 있어야 한다는 규칙. 골목 뒤는 담(세계 끝이 안 보이게)
@@ -75,6 +82,77 @@ func _meadow(at: Vector3) -> void:
 			fl.material_override = _mat([Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("ffffff"), Color("e8c766")][i])
 			fl.position = at + c + Vector3(cos(i * 1.3) * 0.35, 0.08, sin(i * 1.3) * 0.25); _add(fl)
 	spots.append({ "pos": Vector3(-3, 0, RIVER_S + 0.7), "kind": "bank", "yaw": PI })   # 남쪽 물가 — 북쪽을(강을) 보고 선다
+	_garden(at + Vector3(-11.5, 0, 3.5))   # 텃밭(비전 3단계) — 다리 건너 왼쪽 끝, 꽃 무더기(x −7) 서쪽
+
+## 텃밭(동물의 숲 기준, run 70): 울타리 친 흙, 세 이랑이 세 단계(갓 심은·자란·익은)로 시작해 물을 주면 30초 뒤 한 단계 자라고, 익으면 C 로 딴다.
+## 펌프 옆에 물뿌리개(item "can")가 놓여 있다 — 들고 이랑 앞에서 C. 주민도 같은 자리(spots "plot")에 와서 같은 자세로 물을 주고 익은 걸 딴다(resident.gd)
+func _garden(at: Vector3) -> void:
+	garden_at = at
+	_box(Vector3(6.4, 0.05, 3.6), at, _mat(Color("6b4a35")), false)
+	var paper := _mat(Color("efe9e2"))
+	_fence(at + Vector3(-3.3, 0, -1.9), 6.6); _fence(at + Vector3(-3.3, 0, 1.9), 2.4); _fence(at + Vector3(0.9, 0, 1.9), 2.4)   # 앞쪽 가운데(x −0.9..0.9)가 문
+	for sx in [-3.3, 3.3]:
+		for z in [-1.4, -0.5, 0.5, 1.4]: _box(Vector3(0.08, 0.7, 0.05), at + Vector3(sx, 0, z), paper)
+		for y in [0.25, 0.5]:
+			var rail := _box(Vector3(3.8, 0.06, 0.04), at + Vector3(sx, y, 0), paper, false); rail.rotation.y = PI / 2.0
+	for i in 3:
+		var z := -1.15 + i * 1.15
+		var wet := _box(Vector3(5.4, 0.012, 0.8), at + Vector3(0, 0.05, z), _mat(Color("4e3526")), false); wet.visible = false
+		var row := { "kind": CROPS[i], "stage": 0, "plants": [], "fruit": [], "wet": wet, "grow_at": -1.0 }
+		for j in 4:
+			var pl := Node3D.new(); pl.position = at + Vector3(-1.8 + j * 1.2, 0.05, z); _add(pl)
+			var leaf := MeshInstance3D.new(); var ls := SphereMesh.new(); ls.radius = 0.2; ls.height = 0.3; leaf.mesh = ls
+			leaf.material_override = _mat(Color("7fb05a") if (i + j) % 2 == 0 else Color("6aa04c")); leaf.position.y = 0.12; pl.add_child(leaf)
+			var fr := MeshInstance3D.new(); var fs := SphereMesh.new(); var frr: float = [0.07, 0.11, 0.14][i]; fs.radius = frr; fs.height = frr * 1.8; fr.mesh = fs
+			fr.material_override = _mat([Color("ff2d55"), Color("a9c96a"), Color("d98a2a")][i]); fr.position = Vector3(0.12, frr * 0.8, 0.1); pl.add_child(fr)
+			(row["plants"] as Array).append(pl); (row["fruit"] as Array).append(fr)
+		_set_stage(row, i)   # 세 이랑이 세 단계 — 처음부터 "자라는 밭"으로 읽힌다
+		rows.append(row)
+		spots.append({ "pos": at + Vector3(0, 0, z), "kind": "plot", "yaw": PI, "row": i })
+	# 펌프: 돌 받침 + 쇠기둥 + 앞으로 숙인 주둥이 + 뒤로 든 손잡이. 물뿌리개는 그 옆 바닥에
+	var iron := _mat(Color("4a4a52"))
+	_box(Vector3(0.5, 0.15, 0.5), at + Vector3(2.2, 0, 2.6), _mat(Color("bfb6b0")))
+	_box(Vector3(0.12, 0.9, 0.12), at + Vector3(2.2, 0.15, 2.6), iron, false)
+	var spout := _box(Vector3(0.07, 0.07, 0.32), at + Vector3(2.2, 0.85, 2.75), iron, false); spout.rotation.x = -0.35
+	var handle := _box(Vector3(0.05, 0.05, 0.4), at + Vector3(2.2, 0.98, 2.45), iron, false); handle.rotation.x = 0.7
+	_item("can", at + Vector3(2.75, 0, 2.7))
+
+## 이랑의 단계 — 풀 크기와 열매 보임
+func _set_stage(row: Dictionary, stage: int) -> void:
+	row["stage"] = stage
+	for pl in row["plants"]: (pl as Node3D).scale = Vector3.ONE * STAGE_K[stage]
+	for fr in row["fruit"]: (fr as MeshInstance3D).visible = stage >= 3
+
+## 물 주기 — 사람도 주민도 이걸 부른다. 젖은 표시가 생기고 GROW_T 뒤에 한 단계(_crops). 익었거나 이미 젖었으면 아무 일 없음(자세는 그래도 나온다)
+func water_row(row: Dictionary, now: float) -> bool:
+	if int(row["stage"]) >= 3 or float(row["grow_at"]) > 0.0: return false
+	row["grow_at"] = now + GROW_T; (row["wet"] as MeshInstance3D).visible = true
+	return true
+
+## 따기 — 익은 이랑에서 작물 종류를 돌려주고 이랑은 처음(갓 심음)으로. 안 익었으면 ""
+func pick_row(row: Dictionary) -> String:
+	if int(row["stage"]) < 3: return ""
+	_set_stage(row, 0)
+	return String(row["kind"])
+
+## 매 프레임: 젖은 이랑이 시간이 되면 자란다. 비가 오면 밭 전체에 물이 간다(하늘이 물뿌리개)
+func _crops(now: float) -> void:
+	for row in rows:
+		if weather == "rain": water_row(row, now)
+		if float(row["grow_at"]) > 0.0 and now >= float(row["grow_at"]):
+			row["grow_at"] = -1.0; (row["wet"] as MeshInstance3D).visible = false
+			_set_stage(row, mini(3, int(row["stage"]) + 1))
+
+## 사람이 이랑 앞에서 C(town_player) — 물뿌리개를 들었으면 물 주기(water 자세 2.4초), 빈손이고 익었으면 따서 손에. 그 밖엔 아무 일도 없다
+func garden_use(sp: Dictionary, now: float) -> void:
+	var row: Dictionary = rows[int(sp["row"])]
+	player.face(sp["yaw"])
+	if player.carrying and String(player.carrying.get_meta("kind", "")) == "can":
+		player.pose_request = "water"; use_until = now + StickPoses.WATER_T; action_until = now + StickPoses.WATER_T
+		water_row(row, now)
+	elif not player.carrying and carrying_big.is_empty() and int(row["stage"]) >= 3:
+		var it := make_item(pick_row(row), body.global_position + Vector3(0, 0.9, 0))
+		player.hold(it); player.action = "grab"; action_until = now + 0.4
 
 ## 강물 흐름 — 반짝임이 동쪽으로 흘러가고 끝에서 서쪽으로 돌아온다. 바람이 세면(비) 조금 빨라진다
 func _flow(delta: float) -> void:
@@ -84,10 +162,32 @@ func _flow(delta: float) -> void:
 		n.position.x += float(g["v"]) * k * delta
 		if n.position.x > WORLD_X: n.position.x -= WORLD_X * 2.0
 
-## 강 건너기 경유지 — 출발과 도착이 강의 다른 편이면 다리 두 발치를 거친다(곧장 가면 보이지 않는 벽에 막혀 우회하다 포기했다)
-func river_route(from: Vector3, to: Vector3) -> Array:
+## 경유지 — 출발과 도착이 강의 다른 편이면 다리 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을 거친다
+## (곧장 가면 물 위 벽이나 울타리 기둥에 막혀 우회하다 포기했다 — polish run 71: 주민이 텃밭 이랑에 한 번도 못 닿았다)
+func crossings(from: Vector3, to: Vector3) -> Array:
+	var out := _gate_steps(from, false); var inn := _gate_steps(to, true)
 	var mid := (RIVER_N + RIVER_S) / 2.0
-	if (from.z < mid) == (to.z < mid): return []
+	if (from.z < mid) == (to.z < mid): return out + inn
 	var n := { "pos": Vector3(randf_range(-0.4, 0.4), 0, RIVER_N - 1.1), "act": "" }
 	var s := { "pos": Vector3(randf_range(-0.4, 0.4), 0, RIVER_S + 1.1), "act": "" }
-	return [n, s] if from.z < mid else [s, n]
+	return out + ([n, s] if from.z < mid else [s, n]) + inn
+
+## 텃밭 안(울타리 3.3×1.9 안쪽)의 점이면 문 안쪽·바깥쪽 두 점, 아니면 없음. inward 면 바깥 → 안 순서
+func _gate_steps(p: Vector3, inward: bool) -> Array:
+	if garden_at == Vector3.INF or absf(p.x - garden_at.x) > 3.3 or absf(p.z - garden_at.z) > 1.9: return []
+	var o := { "pos": garden_at + Vector3(0, 0, 2.7), "act": "" }; var i := { "pos": garden_at + Vector3(0, 0, 1.3), "act": "" }
+	return [o, i] if inward else [i, o]
+
+## 사람 쪽 이랑 거리 — 이랑 가운데가 아니라 이랑 줄(x ±2.2)까지. 가운데만 재면 끝의 포기 앞에서 C 가 안 먹었다
+func plot_dist(p: Vector3, sp: Dictionary) -> float:
+	var c: Vector3 = sp["pos"]
+	return Vector2(p.x - clampf(p.x, c.x - 2.2, c.x + 2.2), p.z - c.z).length()
+
+## 가장 가까운 이랑(1.2m 안), 없으면 {}
+func near_plot(p: Vector3) -> Dictionary:
+	var best: Dictionary = {}; var best_d := 1.2
+	for sp in spots:
+		if sp["kind"] != "plot": continue
+		var d := plot_dist(p, sp)
+		if d < best_d: best = sp; best_d = d
+	return best
