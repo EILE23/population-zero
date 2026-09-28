@@ -475,3 +475,11 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] Everyday family: phone (exists), read a map, umbrella in rain (weather ties in), stretch after sitting, yawn (2D exists), sneeze, shiver in cold, fan in heat, sit on the floor cross-legged, lie on the grass and look at the sky.
 - [ ] Water family: swim strokes (a river/pond you can enter), dive, float on the back, fish with a rod (cast, wait, tug, pull), splash a duck.
 - [ ] Reaction family: surprised (arms up, step back), laugh (2D exists), cry, shrug (2D exists), think (hand on chin), point, wave (exists), bow, clap, cheer with both arms.
+
+## Animals — the standard (owner, 2026-09-28; `game/scripts/quad3d.gd` is the rig; each item ships with every minimum motion)
+- [ ] Bird rig (`bird3d.gd`): body, head bob, beak peck, two wings that flap, hop; pigeons, sparrows, a crow on a roof; fly to a tree when the player comes, land on the fence when it is quiet.
+- [ ] Squirrel with the quad rig: on the ground near trees, freezes when you approach, climbs the trunk (spine flex up the cylinder) when you shake the tree, sits and eats a nut with its tail up.
+- [ ] Cat life: sleeps on a warm roof or a bench at noon, walks the fence tops, sits in doorways, grooms, arches and hisses if you run at it, lets you pet it only if you approach slowly (speed < walking).
+- [ ] Dog life: has an owner resident and walks with them on a routine, fetches a thrown apple (runs, picks it up in the mouth, brings it back, drops it, play-bows), sleeps by the door at night.
+- [ ] Ducks with a rig: waddle on land (body sway), paddle in the pond (legs hidden, ripples), dip head to feed, flap-run when chased, ducklings following the mother in a line.
+- [ ] Frog by the pond (hop cycle, throat puff), butterflies over flower beds (two quads, flutter path), bees (buzz path around one flower), fish shadows under the water.

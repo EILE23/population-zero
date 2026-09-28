@@ -21,6 +21,7 @@ var busy_until := 0.0
 var down_until := 0.0
 var chase_until := 0.0
 var next_punch := 0.0
+var slot := 0
 var stuck_since := -1.0
 var stuck_dist := 0.0
 var detours := 0
@@ -134,7 +135,7 @@ func _physics_process(delta: float) -> void:
 							route.push_front({ "pos": global_position + side + dir * 0.8, "act": "" })
 							target = route[0]["pos"]
 						else:
-							detours = 0; state = "routine"; busy_until = now; route = []
+							detours = 0; _release(); state = "routine"; busy_until = now; route = []
 					stuck_since = -1.0
 		"busy":
 			v.x = 0.0; v.z = 0.0
@@ -177,6 +178,13 @@ func _physics_process(delta: float) -> void:
 						fig.punch_side = -fig.punch_side; fig.punch_kind = "jab" if fig.punch_side < 0.0 else "cross"
 						fig.action = "punch"; fig.action_t = 0.0; busy_until = now + 0.28
 						town.resident_hits_player(self, dir)
+	if state == "walk" or state == "chase":
+		for o in town.residents:
+			if o == self: continue
+			var dv: Vector3 = global_position - o.global_position; dv.y = 0.0
+			var dl := dv.length()
+			if dl < 0.5 and dl > 0.001:
+				v += dv.normalized() * (0.5 - dl) * 6.0   # 가까울수록 세게 비킨다
 	velocity = v
 	if is_on_floor() and Vector2(v.x, v.z).length() > 0.1:
 		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
@@ -201,18 +209,25 @@ func _pick_spot() -> void:
 		# 밤: 집으로 가서 침대에 눕는다(집에 침대가 있으면), 아니면 의자
 		var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door and sp["kind"] == "bed")
 		if mine.is_empty(): mine = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door)
+		mine = mine.filter(func(sp): return _free_slot(sp) >= 0)
 		if not mine.is_empty():
-			spot = mine[0]
+			spot = mine[0]; slot = 0; _claim(spot, 0)
 			door_ref = home_door
 			var dp: Vector3 = door_ref["pos"]
 			route = [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
+	var pool: Array = town.spots
 	if weather == "rain":
 		# 비: 실내(의자·침대·선반) 아니면 차양 아래(문 앞)만 고른다
-		var dry: Array = town.spots.filter(func(sp): return sp["kind"] in ["chair", "bed", "shelf", "door"])
-		spot = dry[randi() % dry.size()] if not dry.is_empty() else town.spots[randi() % town.spots.size()]
-	else:
-		spot = town.spots[randi() % town.spots.size()]
+		pool = town.spots.filter(func(sp): return sp["kind"] in ["chair", "bed", "shelf", "door"])
+		if pool.is_empty(): pool = town.spots
+	# 찬 자리는 빼고 고른다(운영자: 주민끼리 겹쳐 있으면 안 된다)
+	var free: Array = pool.filter(func(sp): return _free_slot(sp) >= 0)
+	if free.is_empty():
+		busy_until = Time.get_ticks_msec() / 1000.0 + 2.0; return
+	spot = free[randi() % free.size()]
+	slot = _free_slot(spot)
+	_claim(spot, slot)
 	route = []
 	if (spot["kind"] == "chair" or spot["kind"] == "bed" or spot["kind"] == "shelf") and spot.has("door"):
 		# 집 안 의자: 문 앞 → 문 열기 → 의자. 나올 땐 _leave 가 반대로
@@ -220,7 +235,7 @@ func _pick_spot() -> void:
 		var dp: Vector3 = door_ref["pos"]
 		route = [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 	elif spot["kind"] == "bench":
-		route = [{ "pos": spot["pos"] + Vector3([-0.45, 0.0, 0.45][uid % 3], 0, 0.45), "act": "" }]
+		route = [{ "pos": spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0, 0.45), "act": "" }]
 	else:
 		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
 	target = route[0]["pos"]
@@ -232,7 +247,7 @@ func _arrive(now: float) -> void:
 	match spot["kind"]:
 		"bench":
 			fig.seated = true
-			global_position = spot["pos"] + Vector3([-0.45, 0.0, 0.45][uid % 3], 0.03, 0.02)
+			global_position = spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0.03, 0.02)
 			fig.face(spot.get("yaw", 0.0))
 			busy_until = now + randf_range(6.0, 14.0)
 		"chair":
@@ -258,7 +273,28 @@ func _arrive(now: float) -> void:
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
 
+## 자리 점유 — 벤치는 3칸, 나머지는 1칸. 비어 있는 칸 번호를 돌려주고 없으면 -1
+func _free_slot(sp: Dictionary) -> int:
+	var n := 3 if sp["kind"] == "bench" else 1
+	var taken: Array = sp.get("taken", [])
+	for i in n:
+		if i >= taken.size() or taken[i] == null or taken[i] == self: return i
+	return -1
+
+func _claim(sp: Dictionary, i: int) -> void:
+	var n := 3 if sp["kind"] == "bench" else 1
+	if not sp.has("taken") or (sp["taken"] as Array).size() < n:
+		var arr := []; arr.resize(n); sp["taken"] = arr
+	sp["taken"][i] = self
+
+func _release() -> void:
+	if spot.has("taken"):
+		var arr: Array = spot["taken"]
+		for i in arr.size():
+			if arr[i] == self: arr[i] = null
+
 func _leave() -> void:
+	_release()
 	fig.seated = false; fig.pose_request = ""
 	if spot.get("kind", "") == "bench":
 		global_position += Vector3(0, 0, 0.45)
@@ -276,6 +312,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	if state == "down" or state == "getup":
 		return
 	quarry = by
+	_release()
 	if now - last_hit > 3.0: hits = 0
 	hits += 1; last_hit = now
 	fig.seated = false; fig.pose_request = ""

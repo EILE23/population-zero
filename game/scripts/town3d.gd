@@ -458,6 +458,7 @@ func _park(at: Vector3) -> void:
 	_fence(at + Vector3(-12, 0, 8), 24.0)
 	for i in 4: _animal("duck", at + Vector3(-6, 0.03, -3) + Vector3(cos(i * 1.57) * 2.0, 0, sin(i * 1.57) * 2.0), { "center": at + Vector3(-6, 0.03, -3), "phase": i * 1.57 })
 	_animal("dog", at + Vector3(2, 0, 1), { "home": at + Vector3(2, 0, 1) })
+	_animal("marten", at + Vector3(-10, 0, -6), { "home": at + Vector3(-10, 0, -6) })
 
 ## 동쪽 시장 거리 — 노점(기둥+차양+판매대+물건), 상점 정면 둘(빵집·카페: 집 생성기에 간판 색만 다르게), 쓰레기통, 가로등, 자갈 광장
 func _market(at: Vector3) -> void:
@@ -470,6 +471,7 @@ func _market(at: Vector3) -> void:
 	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
 	_bin(at + Vector3(-9.5, 0, -0.5)); _bin(at + Vector3(9.5, 0, -0.5))
 	_bench(at + Vector3(0, 0, 5.5))
+	_animal("cat", at + Vector3(8.5, 0, 6.0), { "home": at + Vector3(8.5, 0, 6.0) })
 	for i in 5: _animal("pigeon", at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2), { "home": at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2) })
 	_item("apple", at + Vector3(-7.5, 0.95, -1.3)); _item("cup", at + Vector3(2.5, 0.95, -1.3)); _item("paper", at + Vector3(7.5, 0.95, -1.3))
 
@@ -599,21 +601,15 @@ func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 			var bk := _box(Vector3(0.04, 0.03, 0.1), Vector3(0, -0.02, 0.1), _mat(Color("d98a2a")), false, head)
 			_eyes(head, 0.06, 0.02, 0.05, 0.016)
 			var tail := _box(Vector3(0.06, 0.03, 0.08), Vector3(0, 0.16, -0.16), _mat(Color("e6d3a5")), false, n); tail.rotation.x = 0.5; data["tail"] = tail
-		"dog":
-			var b := MeshInstance3D.new(); var bs := CapsuleMesh.new(); bs.radius = 0.16; bs.height = 0.7; b.mesh = bs; b.material_override = _mat(Color("c9a27a")); b.rotation.x = PI / 2.0; b.position.y = 0.32; n.add_child(b)
-			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.13; hs.height = 0.26; h.mesh = hs; h.material_override = _mat(Color("c9a27a")); h.position = Vector3(0, 0.45, 0.4); n.add_child(h)
-			data["legs"] = []
-			for lx in [-0.09, 0.09]:
-				for lz in [-0.22, 0.22]:
-					var leg := Node3D.new(); leg.position = Vector3(lx, 0.24, lz); n.add_child(leg)
-					_box(Vector3(0.06, 0.24, 0.06), Vector3(0, -0.24, 0), _mat(Color("9a6a3f")), false, leg)
-					data["legs"].append(leg)
-			var tp := Node3D.new(); tp.position = Vector3(0, 0.38, -0.34); n.add_child(tp); data["tail"] = tp
-			var t := _box(Vector3(0.05, 0.05, 0.26), Vector3(0, 0, -0.13), _mat(Color("9a6a3f")), false, tp); t.rotation.x = -0.6
-			_eyes(h, 0.07, 0.03, 0.1, 0.022)
-			for ex in [-0.09, 0.09]:
-				var ear := _box(Vector3(0.05, 0.12, 0.03), Vector3(ex, 0.02, -0.02), _mat(Color("9a6a3f")), false, h); ear.rotation.x = -0.3
-			data["head"] = h
+		"dog", "cat", "marten", "squirrel":
+			# 네발 동물 공용 리그(quad3d.gd) — 크기·색만 다르다
+			var q := Quad3D.new()
+			match kind:
+				"cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
+				"marten": q.setup("marten", Color("8a6a4a"), Color("5b4f56"), 1.0)
+				"squirrel": q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)
+				_: q.setup("dog", Color("c9a27a"), Color("9a6a3f"), 1.0)
+			n.add_child(q); data["quad"] = q
 		_:
 			var b := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 0.09; bs.height = 0.14; b.mesh = bs; b.material_override = _mat(Color("8a7f86")); b.position.y = 0.09; n.add_child(b)
 			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.045; hs.height = 0.09; h.mesh = hs; h.material_override = _mat(Color("5b4f56")); h.position = Vector3(0, 0.17, 0.08); n.add_child(h)
@@ -659,35 +655,46 @@ func _animals(delta: float) -> void:
 					n.look_at(Vector3(want.x, n.global_position.y, want.z), Vector3.UP, true)
 				var hd: Node3D = a["head"]; hd.rotation.x = sin(a["t"] * 6.0) * 0.18 + (0.5 if a.get("fed", 0.0) > a["t"] else 0.0)   # 고개 까딱, 먹을 땐 숙임
 				(a["tail"] as Node3D).rotation.x = 0.5 + sin(a["t"] * 9.0) * 0.25
-			"dog":
-				# 어슬렁(집 주변 4m), 사람이 3m 안이면 3초 따라오다 만다, 뛸 땐 몸이 들썩
-				if d < 3.0 and a.get("follow_until", 0.0) < a["t"]: a["follow_until"] = a["t"] + 3.0
-				var want: Vector3
-				if a.get("follow_until", 0.0) > a["t"]: want = p + (n.global_position - p).normalized() * 1.1
-				else:
-					if a.get("wander_until", 0.0) < a["t"]: a["wander_until"] = a["t"] + randf_range(2.0, 5.0); a["wander"] = a["home"] + Vector3(randf_range(-4, 4), 0, randf_range(-3, 3))
-					want = a.get("wander", a["home"])
+			"dog", "cat", "marten", "squirrel":
+				# 네발 동물 습성: 집 주변을 어슬렁(걷기/뛰기), 가끔 앉기·엎드리기·기지개·(개)놀자·구르기·(고양이)그루밍·등 세우기·하품,
+				# 사람이 가까우면 쳐다보고: 개는 3초 따라오고, 고양이·담비는 1.4m 안이면 달아난다. 쓰다듬으면 앉아서 꼬리
+				var q: Quad3D = a["quad"]
 				var petted: bool = a.get("pet_until", 0.0) > a["t"]
-				var to := want - n.global_position; to.y = 0.0
-				var legs: Array = a["legs"]
+				var shy: bool = a["kind"] != "dog"
+				q.look = d < 4.0; q.look_at_pos = p + Vector3(0, 0.9, 0)
+				var want: Vector3 = a.get("wander", a["home"])
+				var spd := 0.0
 				if petted:
-					# 쓰다듬는 중: 앉아서(뒷다리 접힘, 몸 뒤로 기움) 꼬리를 빠르게
-					n.position.y = -0.08
-					for i in legs.size(): (legs[i] as Node3D).rotation.x = (0.0 if i < 2 else 1.3)
-					(a["tail"] as Node3D).rotation.y = sin(a["t"] * 22.0) * 0.8
-					(a["head"] as Node3D).rotation.x = -0.25
-				elif to.length() > 0.3:
-					n.global_position += to.normalized() * 1.9 * delta
-					n.look_at(n.global_position + to, Vector3.UP, true)
-					n.position.y = absf(sin(a["t"] * 12.0)) * 0.06
-					for i in legs.size(): (legs[i] as Node3D).rotation.x = sin(a["t"] * 12.0 + (0.0 if i % 3 == 0 else PI)) * 0.6   # 대각선 다리 짝
-					(a["tail"] as Node3D).rotation.y = sin(a["t"] * 8.0) * 0.5
-					(a["head"] as Node3D).rotation.x = sin(a["t"] * 12.0) * 0.08
-				else:
-					n.position.y = lerpf(n.position.y, 0.0, 0.2)
-					for l in legs: (l as Node3D).rotation.x = lerpf((l as Node3D).rotation.x, 0.0, 0.2)
-					(a["tail"] as Node3D).rotation.y = sin(a["t"] * 4.0) * 0.35
-					(a["head"] as Node3D).rotation.x = sin(a["t"] * 1.5) * 0.1
+					q.state = "sit"; q.look = true
+				elif a["kind"] == "dog" and d < 3.0 and a.get("follow_until", 0.0) < a["t"]:
+					a["follow_until"] = a["t"] + 3.0
+				if not petted:
+					if a["kind"] == "dog" and a.get("follow_until", 0.0) > a["t"]:
+						want = p + (n.global_position - p).normalized() * 1.1; spd = 2.6
+					elif shy and d < 1.4:
+						want = n.global_position + (n.global_position - p).normalized() * 3.0; spd = 3.4; a["flee_until"] = a["t"] + 1.5
+					elif a.get("flee_until", 0.0) > a["t"]:
+						spd = 3.4
+					else:
+						if a.get("wander_until", 0.0) < a["t"]:
+							a["wander_until"] = a["t"] + randf_range(2.5, 6.0)
+							var r := randf()
+							if r < 0.55:
+								a["wander"] = a["home"] + Vector3(randf_range(-4, 4), 0, randf_range(-3, 3)); a["idle_act"] = ""
+							else:
+								# 서서 하는 동작 하나
+								var acts: Array = ["sit", "lie", "stretch", "yawn"] + (["bow", "roll"] if a["kind"] == "dog" else ["groom", "arch"])
+								a["idle_act"] = acts[randi() % acts.size()]; a["wander"] = n.global_position
+								q.act(a["idle_act"])
+						want = a.get("wander", a["home"]); spd = 1.4
+					var to := want - n.global_position; to.y = 0.0
+					if to.length() > 0.3 and spd > 0.0:
+						n.global_position += to.normalized() * spd * delta
+						n.look_at(n.global_position + to, Vector3.UP, true)
+						q.speed = spd; q.state = "run" if spd > 2.2 else "walk"
+					else:
+						q.speed = 0.0
+						if q.state in ["walk", "run"]: q.state = "idle"
 			_:
 				# 비둘기: 바닥을 쫀다, 1.6m 안이면 날아올라 3m 옆으로 갔다 내려앉는다
 				if d < 1.6 and a["fly"] <= 0.0:
@@ -807,8 +814,9 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	# 그네 타는 중: 몸은 그네가 움직인다(_swings), 여기선 C 만 본다
+	# 그네 타는 중: 몸은 그네가 움직인다(_swings) — 여기서 먼저 돌리고 C 만 본다(뒤의 _swings 호출 전에 return 되어 안 돌던 버그)
 	if not riding.is_empty():
+		_swings(delta)
 		_interact_check(now)
 		return
 	# 넘어짐: 1.6초 누웠다가 0.6초에 걸쳐 일어난다. 그동안 입력은 없다
@@ -1145,7 +1153,7 @@ func _interact_check(now: float) -> void:
 		var d4: float = p.distance_to(m["node"].global_position)
 		if d4 < 0.9 and d4 < best_d: best = { "kind": "furniture", "entry": m }; best_d = d4
 	for a in animals:
-		if a["kind"] != "dog": continue
+		if not (a["kind"] in ["dog", "cat", "marten"]): continue
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sw in swings:
@@ -1158,15 +1166,18 @@ func _interact_check(now: float) -> void:
 	if best.is_empty():
 		return
 	match best["kind"]:
+		"swing":
+			if not riding.is_empty():
+				riding = {}; player.pose_request = ""; body.velocity = Vector3(0, 1.5, 0.8)
+			else:
+				riding = best["swing"]; body.velocity = Vector3.ZERO
+				player.move_dir = Vector3.ZERO; player.speed = 0.0
 		"dog":
 			# 쓰다듬기: 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세)
 			var a: Dictionary = best["animal"]
 			a["pet_until"] = a["t"] + 2.5; a["follow_until"] = a["t"] + 6.0
 			player.face(atan2((a["node"] as Node3D).global_position.x - p.x, (a["node"] as Node3D).global_position.z - p.z))
 			player.action = "grab"; action_until = now + 1.2
-		"swing":
-			riding = best["swing"]; body.velocity = Vector3.ZERO
-			player.move_dir = Vector3.ZERO; player.speed = 0.0
 		"furniture":
 			var e: Dictionary = best["entry"]
 			var n: Node3D = e["node"]
