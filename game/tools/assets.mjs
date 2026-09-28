@@ -123,6 +123,15 @@ const ASSETS = [
   { cat: 'sky', name: 'cloud-1', w: 120, h: 44, draw: () => [ path('M -50 -6 a 14 14 0 0 1 20 -18 a 18 18 0 0 1 34 -6 a 14 14 0 0 1 26 10 a 10 10 0 0 1 12 14 z', P.white, { lw: FINE, stroke: P.stone }) ] },
   { cat: 'sky', name: 'cloud-2', w: 90, h: 34, draw: () => [ path('M -40 -4 a 12 12 0 0 1 18 -14 a 14 14 0 0 1 26 -4 a 12 12 0 0 1 22 8 a 8 8 0 0 1 6 10 z', P.white, { lw: FINE, stroke: P.stone }) ] },
   { cat: 'sky', name: 'sun', w: 60, h: 60, draw: () => [ circle(0, -30, 16, P.yellow, { lw: FINE, stroke: P.orange }), ...[0, 45, 90, 135, 180, 225, 270, 315].map((a) => { const r = (a * Math.PI) / 180; return line(Math.cos(r) * 20, -30 + Math.sin(r) * 20, Math.cos(r) * 27, -30 + Math.sin(r) * 27, { lw: FINE, stroke: P.orange }); }) ] },
+  // figures — 3D 디오라마용 정지 자세(2D 무대에서는 figure.gd 가 그린다; 여기선 같은 관절 좌표를 한 장으로)
+  { cat: 'figures', name: 'stand', w: 24, h: 50, draw: () => [
+    line(0, -16, 0, -34), line(0, -16, -4, -8), line(-4, -8, -5, 0), line(0, -16, 4, -8), line(4, -8, 5, 0),
+    line(0, -34, -5, -26), line(-5, -26, -6, -18), line(0, -34, 5, -26), line(5, -26, 6, -18), circle(0, -42, 7, P.ink, { stroke: P.ink }),
+  ] },
+  { cat: 'figures', name: 'run', w: 40, h: 50, draw: () => [
+    line(0, -18, 6, -35), line(0, -18, 9, -12), line(9, -12, 12, -2), line(0, -18, -8, -10), line(-8, -10, -14, -4),
+    line(6, -35, 14, -30), line(14, -30, 16, -22), line(6, -35, -2, -28), line(-2, -28, -6, -34), circle(8, -43, 7, P.ink, { stroke: P.ink }),
+  ] },
   // items — 손에 드는 것(16~28px)
   { cat: 'items', name: 'hat', w: 24, h: 12, draw: () => [ rect(-12, -3, 24, 3, P.ink, nostroke), rect(-7, -12, 14, 9, P.ink, { rx: 2, ...nostroke }) ] },
   { cat: 'items', name: 'cup', w: 14, h: 16, draw: () => [ rect(-5, -14, 10, 14, P.paper, { lw: FINE }), path('M 5 -11 h 3 a 3 3 0 0 1 0 6 h -3', 'none', { lw: FINE }) ] },

@@ -380,6 +380,20 @@
    "h": 60
   },
   {
+   "id": "figures/stand",
+   "cat": "figures",
+   "name": "stand",
+   "w": 24,
+   "h": 50
+  },
+  {
+   "id": "figures/run",
+   "cat": "figures",
+   "name": "run",
+   "w": 40,
+   "h": 50
+  },
+  {
    "id": "items/hat",
    "cat": "items",
    "name": "hat",

@@ -9,6 +9,13 @@ Paper and ink. A `#3a2f36` ink line (2.4px at scale 1, 1.6px for fine parts), fl
 no shadows, no filters, no text. The brand mauve (`#ad7096`, `#7b526c`) is an accent: a door, a roof edge, a sign — never a wall.
 Shapes are simple and a little crooked on purpose; nothing is pixel-perfect symmetrical.
 
+## Low-fi, never unnatural (owner, 2026-09-28)
+The drawings are simple on purpose. What must never happen is the *scene* looking wrong: things that float, sizes that
+disagree, a line weight that changes between neighbours, light coming from two directions, a sprite that reads as a
+card pasted on. So: one line weight and one palette (the lint), the foot point on the ground with a contact shadow under
+everything that stands, sizes checked against the 42px figure, far things fading toward paper, and sprites that face the
+camera in the 3D stage. Wobble is fine — it is the same wobble everywhere. Detail is not the goal; coherence is.
+
 ## The grid
 - 1 SVG unit = 1 screen px at depth `d = 1` (the front). The engine scales by `0.7 + 0.3·d`, the same as the web.
 - **Origin is the foot point**: `viewBox="-w/2 -h w h"`, so `(0, 0)` is where the thing touches the ground, centred.

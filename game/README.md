@@ -30,6 +30,9 @@ game/
 ## Run / check
 - Editor: open `game/` in Godot 4.3.
 - Headless check (what CI does): `godot --headless --path game --import` then `godot --headless --path game --quit-after 5`.
+  Headless has no renderer: 3D scenes (`diorama.tscn`) print harmless `Parameter "m" is null` lines from meshes; only `SCRIPT ERROR` / `Parse Error` count.
+- Two stages to compare (owner, 2026-09-28): `scenes/main.tscn` is the 2D depth-scaled stage (like the web); `scenes/diorama.tscn` is the same assets as
+  paper figures on a real 3D ground with a low camera, belt-scroll movement (8-way, double-tap dash, charge jump). Same SVGs, same numbers.
 - Web export (later, CI): `godot --headless --path game --export-release Web export/web/index.html`, published to the site's `/play` as the demo.
 
 ## Growth

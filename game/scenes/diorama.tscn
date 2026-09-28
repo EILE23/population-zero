@@ -1,0 +1,34 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/diorama.gd" id="1_diorama"]
+
+[sub_resource type="Environment" id="Environment_paper"]
+background_mode = 1
+background_color = Color(0.969, 0.957, 0.937, 1)
+ambient_light_source = 1
+tonemap_mode = 0
+
+[sub_resource type="LabelSettings" id="LabelSettings_legend"]
+font_size = 11
+font_color = Color(0.357, 0.31, 0.337, 1)
+
+[node name="Diorama" type="Node3D"]
+script = ExtResource("1_diorama")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_paper")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.978, 0.208, 0, -0.208, 0.978, 0, 3.2, 11)
+fov = 36.0
+current = true
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Legend" type="Label" parent="UI"]
+offset_left = 12.0
+offset_top = 446.0
+offset_right = 948.0
+offset_bottom = 466.0
+text = "3D diorama · ← → ↑ ↓ move (8-way) · double-tap ← → dash · SPACE hold, release to jump"
+label_settings = SubResource("LabelSettings_legend")
