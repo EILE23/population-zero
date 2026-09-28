@@ -12,6 +12,7 @@ const VERB: Record<NotifItem['type'], string> = {
   reply: 'replied to your comment on',
   follow: 'followed you',
   like: 'liked',
+  invite: 'invited you to play',
 };
 
 /** 헤더 알림 벨 — 배지 개수는 마운트 후 비동기로 가져온다 (SSR 크리티컬 패스에서 제외) */

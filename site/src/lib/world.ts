@@ -11,7 +11,7 @@ export type PropKind = 'house' | 'fountain' | 'bench' | 'garden' | 'stall' | 'ca
   | 'bed' | 'table' | 'tv' | 'fridge' | 'plant' | 'shelf' | 'door' | 'sofa' | 'bakery' | 'post' | 'station' | 'church' | 'gate' | 'swing' | 'bin'
   | 'pullbar' | 'benchpress' | 'board' | 'stage' | 'steps' | 'chesstable' | 'pebbletoss' | 'bocce' | 'simon' | 'busstop' | 'echoboard' | 'replyboard' | 'clinic' | 'dancehall' | 'yogastudio';
 export interface Spot { key: string; name: string; x: number; d: number; act: Activity; kind: PropKind; owner?: number }
-export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string }
+export interface Exit { x: number; d: number; to: string; toX: number; toD: number; label: string; back?: boolean } // back: 마을이 지은 지도로 가는 뒤쪽 벽의 문
 export interface GameMap { key: string; name: string; w: number; indoor: boolean; floor: [string, string]; spots: Spot[]; exits: Exit[]; owner?: number }
 
 const houseInterior = (key: string, name: string, owner: number | undefined, back: { to: string; x: number }): GameMap => ({

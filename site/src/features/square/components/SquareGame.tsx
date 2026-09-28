@@ -109,9 +109,12 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
     const grown: GameMap[] = extraMaps.map((em) => ({ key: em.key, name: em.name, w: em.w, indoor: !em.outdoor, floor: em.floor, spots: em.spots.map(toSpot), exits: [] }));
     for (const em of extraMaps) {
       const from = [...base, ...grown].find((m) => m.key === em.connect) ?? base[0]; const to = grown.find((m) => m.key === em.key)!;
-      const taken = from.exits.filter((e) => e.x > from.w - 40).length; // 같은 쪽에 여러 지도가 붙으면 깊이를 나눠 쓴다
-      from.exits.push({ x: from.w - 10, d: 0.25 + taken * 0.25, to: to.key, toX: 30, toD: 0.5, label: `${to.name} →` });
-      to.exits.push({ x: 10, d: 0.5, to: from.key, toX: from.w - 40, toD: 0.25 + taken * 0.25, label: `← ${from.name}` });
+      // 마을이 지은 지도의 입구는 뒤쪽 벽을 따라 가로로 흩는다 — 예전엔 전부 오른쪽 끝에 깊이만 달리해 쌓여서
+      // 글자가 겹치고 어디로 가는 문인지 알 수 없었다(운영자 2026-09-28). 지도 폭을 n+1 등분한 자리에 하나씩.
+      const mine = from.exits.filter((e) => e.back).length; // 이 지도 뒤쪽에 이미 난 문 수 — 18%·40%·62%·84% 자리에 하나씩
+      const gx = Math.round(from.w * Math.min(0.84, 0.18 + mine * 0.22));
+      from.exits.push({ x: gx, d: 0.1, to: to.key, toX: 30, toD: 0.5, label: to.name, back: true });
+      to.exits.push({ x: 10, d: 0.5, to: from.key, toX: gx, toD: 0.22, label: from.name });
     }
     return [...base, ...grown, ...houses(residents.length)];
   })());
@@ -191,6 +194,13 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
           loose.current.clear(); for (const [id, l] of Object.entries(w.loose ?? {})) { loose.current.set(id, { id, item: l.item as ItemKey, map: String(l.m), x: Number(l.x), d: Number(l.d), from: l.from === null ? null : Number(l.from), dunked: l.dunked ? String(l.dunked) : undefined, board: l.board ? String(l.board) : undefined, shelf: l.shelf ? String(l.shelf) : undefined, note: l.note ? String(l.note) : undefined, origin: l.origin === undefined || l.origin === null ? undefined : Number(l.origin), weight: !!l.weight, mend: !!l.mend, sort: !!l.sort }); if (l.dunked) dunkedAt.current.set(id, performance.now()); } // 이미 빠져 있던 것 — 지금 처음 본 걸로 친다(다른 화면 반응들과 같은 방식)
           broken.current.clear(); for (const [k, v] of Object.entries(w.broken ?? {})) broken.current.set(k, { hp: v.hp, brokeAt: v.brokeAt ? performance.now() - Math.max(0, wall() - v.brokeAt) : 0 });
           for (const [who, o] of Object.entries(w.npc ?? {})) apply({ k: 'npc', who: Number(who), ...o }, false);
+          // 초대 링크(?with=handle)로 왔으면 부른 사람 옆에서 시작한다 — 그 사람이 지금 없으면 평소 자리
+          if (!ready.current && me) {
+            const want = (new URLSearchParams(window.location.search).get('with') || '').toLowerCase();
+            const host = want ? [...map.values()].find((o) => o.handle.toLowerCase() === want && o.status === 'active') : undefined;
+            if (host) { if (maps.current.some((mm) => mm.key === host.map)) mapKey.current = host.map; body.current.x = host.tx + 48; body.current.d = host.td; cam.current = body.current.x - VIEW_W / 2; said.current.set(me.id, { body: `Here for ${host.handle}.`, until: performance.now() + 2200 }); }
+            else if (want) said.current.set(me.id, { body: `${want} is not here right now.`, until: performance.now() + 2600 });
+          }
           if (!ready.current) { ready.current = true; setLoading(false); }
         }
         else if (m.t === 'user') put(m.u as Record<string, unknown>);
@@ -1063,7 +1073,26 @@ export function SquareGame({ residents, me, tasks, done, content, extra = [], ex
       else { ctx.fillStyle = '#dcd8db'; for (let k = 0; k < 40; k++) { const bx = ((k * 173 - cam.current * 0.4) % (cur.w + 400) + cur.w + 400) % (cur.w + 400) - 200; const bh = 40 + (k * 37) % 60; ctx.fillRect(bx * s, (TOP - bh) * s, 90 * s, bh * s); } }
       const g = ctx.createLinearGradient(0, TOP * s, 0, (GROUND + 40) * s); g.addColorStop(0, cur.floor[0]); g.addColorStop(1, cur.floor[1]); ctx.fillStyle = g; ctx.fillRect(0, TOP * s, W, (GROUND + 40 - TOP) * s);
       ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 1; for (let k = 0; k < 6; k++) { const yy = dy(k / 5) * s; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
-      for (const e of cur.exits) { const ex = sx(e.x); if (ex < -80 || ex > W + 80) continue; ctx.fillStyle = '#5b4f56'; ctx.font = `bold ${10.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`↑ ${e.label}`, ex, (dy(e.d) - 64) * s); }
+      // 출구는 글자가 아니라 문으로 보인다 — 뒤쪽 벽의 아치, 그 위에 이름. 가까이 가면 진해진다
+      for (const e of cur.exits) {
+        const ex = sx(e.x); if (ex < -120 || ex > W + 120) continue;
+        const ey = dy(e.d) * s, es = ds(e.d) * s, near = dist(b.x, b.d, e.x, e.d) < 120;
+        ctx.save();
+        ctx.globalAlpha = near ? 1 : 0.55;
+        ctx.fillStyle = '#5b4f56'; ctx.strokeStyle = '#3a2f36'; ctx.lineWidth = 1.4 * s;
+        const arch = e.back || e.x < 60 || e.x > cur.w - 60;
+        if (arch) {
+        ctx.beginPath(); // 아치 — 기둥 둘과 위를 잇는 반원
+        ctx.moveTo(ex - 22 * es, ey); ctx.lineTo(ex - 22 * es, ey - 46 * es);
+        ctx.arc(ex, ey - 46 * es, 22 * es, Math.PI, 0); ctx.lineTo(ex + 22 * es, ey);
+        ctx.stroke();
+        ctx.fillStyle = '#efe9e2'; ctx.beginPath(); ctx.moveTo(ex - 20 * es, ey); ctx.lineTo(ex - 20 * es, ey - 46 * es); ctx.arc(ex, ey - 46 * es, 20 * es, Math.PI, 0); ctx.lineTo(ex + 20 * es, ey); ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = near ? '#1b0c15' : '#5b4f56'; ctx.font = `bold ${(near ? 11.5 : 10) * s}px ui-monospace, monospace`; ctx.textAlign = 'center';
+        ctx.fillText(e.label, ex, ey - 76 * es);
+        if (near) { ctx.font = `${9.5 * s}px ui-monospace, monospace`; ctx.fillStyle = '#7b526c'; ctx.fillText('walk in', ex, ey - 64 * es); }
+        ctx.restore();
+      }
       type Draw = { d: number; f: () => void }; const layer: Draw[] = [];
       for (const p of props) { const fx = sx(p.x); if (fx < -200 || fx > W + 200) continue; const bs = broken.current.get(p.key); const fl = flicker.current.get(p.key); layer.push({ d: p.d, f: () => { prop(ctx, p.kind, fx, dy(p.d) * s, ds(p.d) * s, p.seed, t, [...loose.current.values()].filter((l) => l.dunked === p.key || l.board === p.key || l.shelf === p.key), bs ? (bs.brokeAt ? 'broken' : bs.hp < 3 ? 'cracked' : 'ok') : 'ok', !!fl && now < fl); if (fresh.current.has(p.key)) { ctx.fillStyle = '#7b526c'; ctx.font = `bold ${9.5 * s}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(`new · ${p.name}`, fx, (dy(p.d) + 14) * s); } } }); }
       for (const l of loose.current.values()) {

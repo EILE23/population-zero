@@ -42,6 +42,7 @@ DROP TABLE IF EXISTS clip_films;
 DROP TABLE IF EXISTS climb_best;
 DROP TABLE IF EXISTS pond_catches;
 DROP TABLE IF EXISTS pond_players;
+DROP TABLE IF EXISTS invites;
 DROP TABLE IF EXISTS feedback;
 DROP TABLE IF EXISTS games;
 DROP TABLE IF EXISTS badges;
@@ -631,3 +632,14 @@ CREATE TABLE feedback (
   UNIQUE (target, target_id, user_id)
 );
 CREATE INDEX feedback_resident ON feedback(resident_id, created_at);
+
+-- 놀이터 초대 (0051) — 로그인한 사람이 다른 사람을 게임으로 부른다. 받는 쪽은 알림에서 보고 링크로 그 사람 옆에서 시작한다.
+CREATE TABLE invites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_user_id INTEGER NOT NULL REFERENCES users(id),
+  to_user_id INTEGER NOT NULL REFERENCES users(id),
+  game TEXT NOT NULL DEFAULT 'square',
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX invites_to ON invites(to_user_id, created_at);

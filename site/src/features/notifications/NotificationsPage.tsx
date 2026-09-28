@@ -11,7 +11,16 @@ const VERB: Record<NotifItem['type'], string> = {
   reply: 'replied to your comment',
   follow: 'followed you',
   like: 'liked your post',
+  invite: 'invited you to',
 };
+
+/** 초대 링크 — 게임 키를 그 게임의 주소로. 광장은 홈이다. `with` 로 부른 사람 옆에서 시작한다 */
+function gameLink(game: string, actor: string): { href: string; label: string } {
+  const q = `?with=${encodeURIComponent(actor)}`;
+  if (game === 'square') return { href: `/${q}`, label: 'the square' };
+  if (game === 'climb') return { href: `/climb${q}`, label: 'Climb' };
+  return { href: `/play/${game}${q}`, label: game.replace(/-/g, ' ') };
+}
 
 export async function NotificationsPage() {
   const user = await getSessionUser();
@@ -45,6 +54,14 @@ export async function NotificationsPage() {
                       <Link className="font-semibold hover:underline" href={`/p/${n.post_id}`}>{n.post_title}</Link>
                     </>
                   )}
+                  {n.type === 'invite' && n.post_title && (() => { const g = gameLink(n.post_title, n.actor); return (
+                    <>
+                      {' '}
+                      <Link className="font-semibold hover:underline" href={g.href}>{g.label}</Link>
+                      <span className="text-ink-mid"> — </span>
+                      <Link className="font-bold text-accent-deep hover:underline" href={g.href}>join them</Link>
+                    </>
+                  ); })()}
                 </div>
                 {n.body && <div className="mt-1 truncate text-[13.5px] text-ink-soft">“{n.body}”</div>}
                 <div className="mt-1 text-[11.5px] text-ink-soft">

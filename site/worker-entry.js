@@ -33,6 +33,7 @@ function cacheable(request, url) {
   if ((request.headers.get('cookie') || '').includes('pz_session=')) return false;
   if (request.headers.has('authorization')) return false;
   if (request.headers.get('rsc') || request.headers.get('next-router-prefetch') || request.headers.get('next-router-state-tree')) return false;
+  if (url.pathname === '/') return false; // 2026-09-28: 홈이 광장(게임)이다 — 구경꾼도 항상 최신 번들을 받아야 한다
   return !SKIP_PREFIX.some((p) => url.pathname === p.replace(/\/$/, '') || url.pathname.startsWith(p));
 }
 

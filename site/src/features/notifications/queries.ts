@@ -4,7 +4,8 @@ import type { SessionUser } from '@/types/db';
 
 /** 알림 한 줄 — 이벤트 테이블 없이 기존 데이터(댓글·팔로우·좋아요)에서 읽기 시점에 계산한다 */
 export interface NotifItem {
-  type: 'comment' | 'reply' | 'follow' | 'like';
+  /** invite: 놀이터 초대 — post_title 에 게임 키('square' | 'climb' | slug), body 에 한 줄 메모 */
+  type: 'comment' | 'reply' | 'follow' | 'like' | 'invite';
   created_at: string;
   actor: string;
   actor_avatar?: string | null;
@@ -25,7 +26,7 @@ export interface NotificationsData {
 const LIMIT = 50;
 
 async function queryAll(db: D1Database, userId: number): Promise<NotifItem[]> {
-  const [onMyPosts, onMyComments, follows, likes, residentLikes] = await Promise.all([
+  const [onMyPosts, onMyComments, follows, likes, residentLikes, invites] = await Promise.all([
     // 내 글에 달린 댓글 (내가 단 건 제외, 예약 발행분은 시간이 되어야 보인다)
     db.prepare(`
       SELECT 'comment' AS type, c.created_at, COALESCE(r.handle, u.handle, c.visitor_name, '?') AS actor, u.avatar_url AS actor_avatar,
@@ -63,10 +64,16 @@ async function queryAll(db: D1Database, userId: number): Promise<NotifItem[]> {
       FROM resident_likes rl JOIN posts p ON p.id = rl.post_id JOIN residents r ON r.id = rl.resident_id
       WHERE p.user_id = ?1 AND rl.created_at <= datetime('now')
       ORDER BY rl.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),
+    // 놀이터 초대 — 지난 7일. 게임 키는 post_title 에, 메모는 body 에 싣는다(열은 다른 알림과 같게)
+    db.prepare(`
+      SELECT 'invite' AS type, i.created_at, u.handle AS actor, u.avatar_url AS actor_avatar, 0 AS actor_is_resident, NULL AS post_id, i.game AS post_title, NULLIF(i.note, '') AS body
+      FROM invites i JOIN users u ON u.id = i.from_user_id
+      WHERE i.to_user_id = ?1 AND i.created_at > datetime('now', '-7 days')
+      ORDER BY i.created_at DESC LIMIT ${LIMIT}`).bind(userId).all<NotifItem>(),
   ]);
 
   const blocked = await blockedHandles(userId);
-  return [...onMyPosts.results, ...onMyComments.results, ...follows.results, ...likes.results, ...residentLikes.results]
+  return [...onMyPosts.results, ...onMyComments.results, ...follows.results, ...likes.results, ...residentLikes.results, ...invites.results]
     .filter(n => !blocked.has(n.actor))
     .map((n) => ({ ...n, actor_is_resident: !!n.actor_is_resident }))
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
@@ -102,6 +109,7 @@ export async function fetchUnreadCount(user: SessionUser): Promise<number> {
         + (SELECT COUNT(*) FROM likes l JOIN posts p ON p.id = l.post_id WHERE p.user_id = ?1 AND l.user_id != ?1 AND l.created_at > ?2 AND ${visibleTo(user.id, 'l.user_id', 'NULL')})
         + (SELECT COUNT(*) FROM resident_likes rl JOIN posts p ON p.id = rl.post_id
           WHERE p.user_id = ?1 AND rl.created_at <= datetime('now') AND rl.created_at > ?2 AND ${visibleTo(user.id, 'NULL', 'rl.resident_id')})
+        + (SELECT COUNT(*) FROM invites i WHERE i.to_user_id = ?1 AND i.created_at > ?2 AND ${visibleTo(user.id, 'i.from_user_id', 'NULL')})
       ) AS n`)
       .bind(user.id, await seenOf(db, user.id)).first<{ n: number }>();
     return row?.n ?? 0;

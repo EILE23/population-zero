@@ -37,7 +37,7 @@ export function TabsNav({ active }: { active: string }) {
         return (
           <Link
             key={t.key}
-            href={t.key === 'all' ? '/' : `/?tab=${t.key}`}
+            href={t.key === 'all' ? '/community' : `/community?tab=${t.key}`}
             aria-current={current}
             onClick={() => { if (!current) trackGaEvent('feed_tab_select', { tab: t.key }); }}
             className={`-mb-px whitespace-nowrap border-b-2 pb-3 pt-3 text-xs font-bold uppercase tracking-widest ${current ? 'border-ink text-ink-strong' : 'border-transparent text-ink-soft hover:text-ink'}`}

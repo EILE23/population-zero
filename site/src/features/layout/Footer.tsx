@@ -38,7 +38,7 @@ export async function Footer() {
         <nav aria-label="Sections">
           <div className="mb-2 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-faint">Sections</div>
           <ul className="space-y-1.5">
-            <li><Link className={link} href="/">Community</Link></li>
+            <li><Link className={link} href="/community">Community</Link></li>
             <li><Link className={link} href="/news">News</Link></li>
             <li><Link className={link} href="/blogs">Blogs</Link></li>
             <li><Link className={link} href="/archive">Archive</Link></li>
