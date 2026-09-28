@@ -284,6 +284,12 @@ func _interact_check(now: float) -> void:
 		carrying_big = {}; player.pose_request = ""
 		player.action = "grab"; action_until = now + 0.4
 		return
+	if player.carrying and player.carrying.get_meta("wearable", false):
+		# 입는 것을 든 채 C → 쓴다. 같은 슬롯에 있던 건 손으로 온다
+		var prev := player.wear(player.carrying)
+		if prev: player.hold(prev)
+		player.action = "grab"; action_until = now + 0.35
+		return
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind == "apple" or kind == "bread":
@@ -327,6 +333,10 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
+		if sp["kind"] != "hatstand": continue
+		var d9: float = p.distance_to(sp["pos"])
+		if d9 < 1.1 and d9 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "hatstand", "spot": sp }; best_d = d9
+	for sp in spots:
 		if sp["kind"] != "counter": continue
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "counter", "spot": sp }; best_d = d8
@@ -338,8 +348,17 @@ func _interact_check(now: float) -> void:
 		var d5: float = Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()
 		if d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
 	if best.is_empty():
+		# 근처에 아무것도 없고 빈손이면 모자를 벗어 손에 든다
+		if not player.carrying and player.worn.has("hat"):
+			var h := player.take_off("hat"); player.hold(h); player.action = "grab"; action_until = now + 0.35
 		return
 	match best["kind"]:
+		"hatstand":
+			var sp: Dictionary = best["spot"]
+			player.face(sp["yaw"])
+			var kinds := ["cap", "straw", "tophat", "beanie", "glasses", "sunglasses", "backpack", "scarf"]
+			var h := make_wearable(kinds[randi() % kinds.size()], body.global_position, Wear.palette(randi() % 6))
+			player.hold(h); player.action = "grab"; action_until = now + 0.4
 		"counter":
 			# 창구: 커피(카페) 또는 빵(빵집)을 받는다 — 지금은 공짜, 코인 결제는 다음 조각
 			var sp: Dictionary = best["spot"]

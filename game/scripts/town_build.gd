@@ -294,6 +294,7 @@ func _market(at: Vector3) -> void:
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
 	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"))   # 빵집 창구(정면 왼쪽)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
+	_hatstand(at + Vector3(-9.6, 0, 4.5))   # 모자 거치대 — C 로 하나 집어 쓴다
 	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
 	_bin(at + Vector3(-9.5, 0, -0.5)); _bin(at + Vector3(9.5, 0, -0.5))
 	_bench(at + Vector3(0, 0, 5.5))
@@ -316,6 +317,15 @@ func _swing(at: Vector3) -> void:
 	var sw := { "pivot": pivot, "len": L, "angle": 0.0, "vel": 0.0, "at": at, "rider": null, "pusher": null, "push_at": 0.0 }
 	swings.append(sw)
 	spots.append({ "pos": at, "kind": "swing", "yaw": 0.0, "swing": sw })  # 주민도 탄다(한 명), 누가 타면 다른 주민이 뒤에서 밀어 준다
+
+## 모자 거치대 — 기둥 하나에 가지 넷, 가지마다 모자(집으면 새 것이 걸린다)
+func _hatstand(at: Vector3) -> void:
+	_box(Vector3(0.06, 1.7, 0.06), at, _mat(Color("8a6a4a")))
+	for i in 4:
+		var a := i * PI / 2.0
+		var arm := _box(Vector3(0.04, 0.04, 0.3), at + Vector3(0, 1.5 - i * 0.12, 0), _mat(Color("8a6a4a")), false); arm.rotation.y = a; arm.position += Vector3(sin(a) * 0.15, 0, cos(a) * 0.15)
+		var h := Wear.make(["cap", "straw", "tophat", "beanie"][i], Wear.palette(i * 7)); h.position = at + Vector3(sin(a) * 0.3, 1.58 - i * 0.12, cos(a) * 0.3); h.rotation.x = 0.3; _add(h)
+	spots.append({ "pos": at + Vector3(0, 0, 0.7), "kind": "hatstand", "yaw": PI })
 
 ## 창구 — 벽 앞의 작은 카운터와 차양, 진열된 물건. C 로 물건을 받는다(spots kind "counter")
 func _counter(at: Vector3, item: String, c: Color) -> void:

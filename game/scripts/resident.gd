@@ -55,6 +55,10 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	say_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED; say_label.no_depth_test = true
 	say_label.position = Vector3(0, 1.5, 0); say_label.visible = false
 	add_child(say_label)
+	# 꾸미기(시드): 5명 중 2명은 모자, 5명 중 1명은 안경, 6명 중 1명은 가방 — 마을에 변화가 보이게
+	if id % 5 < 2: fig.wear(Wear.make(["cap", "beanie", "tophat", "straw"][id % 4], Wear.palette(id)))
+	if id % 5 == 3: fig.wear(Wear.make("glasses" if id % 2 == 0 else "sunglasses"))
+	if id % 6 == 1: fig.wear(Wear.make("backpack", Wear.palette(id + 2)))
 	# 넷 중 하나는 뭔가 들고 다닌다(뺏을 거리)
 	if id % 4 == 1:
 		carrying_kind = ["apple", "cup", "paper"][id % 3]
