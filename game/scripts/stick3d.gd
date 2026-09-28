@@ -268,14 +268,14 @@ func _process(delta: float) -> void:
 				# 제트킥(운영자 스케치): 몸 전체가 앞으로 쏠려 거의 수평 — 골반을 앞으로 70° 눕히고, 찬 다리는 몸 선을 따라 앞으로 쭉,
 				# 반대 다리는 접어 뒤로, 팔은 몸 선을 따라 옆·뒤로, 고개는 들어 앞을 본다
 				# (두 번째 수정: 처음엔 70° 눕혀 바닥에 누운 꼴이 됐다) 몸통은 20° 만 앞으로, 찬 다리는 정확히 수평 앞, 반대 다리 접어 뒤, 팔은 옆으로 수평, 고개 앞
-				# (세 번째, 운영자 그림 2026-09-28): 몸통 곧게, 찬 다리는 수평보다 살짝 아래로 길게 앞, 뒷다리 거의 편 채 살짝 뒤,
-				# 앞팔(왼)은 앞·아래, 뒷팔(오른)은 뒤·위로 치켜, 고개는 앞
-				pelvis.rotation.x = 0.05 * k
-				torso.rotation.x = 0.05 * k; torso.rotation.y = 0.25 * k; neck.rotation.x = -0.15 * k
-				hips[1.0].rotation.x = -(1.35 * k); knees[1.0].rotation.x = -(0.0)
-				hips[-1.0].rotation.x = -(0.95 * k); knees[-1.0].rotation.x = -(-1.75 * k)  # 반대 다리는 찬 방향으로 짧게 접어 당긴다(실제 날아차기)
-				shoulders[-1.0].rotation.x = -(0.75 * k); shoulders[-1.0].rotation.z = 0.2 * k; elbows[-1.0].rotation.x = -(0.25 * k)
-				shoulders[1.0].rotation.x = -(-2.2 * k); shoulders[1.0].rotation.z = -0.35 * k; elbows[1.0].rotation.x = -(0.15 * k)
+				# (네 번째, 운영자 그림 2026-09-28 승인용): 척추가 굽어 앞으로(골반 0.3·허리 0.3·가슴 0.3), 찬 다리 수평 앞, 뒷다리 짧게 뒤로 접힘,
+				# 앞팔은 앞·아래 40°, 뒷팔은 곧게 뒤로 수평, 고개는 살짝 들어 앞. 옆으로 벌리지 않는다(앞에서 보면 팔이 앞쪽)
+				pelvis.rotation.x = 0.3 * k
+				torso.rotation.x = 0.3 * k; chest.rotation.x = 0.3 * k; torso.rotation.y = 0.15 * k; neck.rotation.x = -0.3 * k
+				hips[1.0].rotation.x = -(1.87 * k); knees[1.0].rotation.x = -(0.0)
+				hips[-1.0].rotation.x = -(-0.3 * k); knees[-1.0].rotation.x = -(-1.4 * k)
+				shoulders[1.0].rotation.x = -(1.77 * k); shoulders[1.0].rotation.z = -0.08 * k; elbows[1.0].rotation.x = -(0.25 * k)
+				shoulders[-1.0].rotation.x = -(-0.67 * k); shoulders[-1.0].rotation.z = 0.08 * k; elbows[-1.0].rotation.x = -(0.05 * k)
 			else:
 				# 비행 킥: 찬 다리 앞으로 쭉, 반대 다리는 접어 뒤로, 상체는 뒤로 젖혀 비틀고, 양팔은 벌려 균형
 				hips[1.0].rotation.x = -(1.75 * k); knees[1.0].rotation.x = -(0.0)
