@@ -24,7 +24,7 @@ func _light() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-52, 28, 0)
-	sun.light_energy = 1.15
+	sun.light_energy = 0.72   # 1.15 였을 땐 해+앰비언트가 1.7배라 밝은 색이 전부 흰색으로 날아갔다(진갈색 벤치가 살구색, 연못이 흰색 — 2026-09-28 스크린샷)
 	sun.shadow_enabled = true
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	sun.directional_shadow_max_distance = 60.0
@@ -356,37 +356,24 @@ func _bin(at: Vector3) -> void:
 func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 	var n := Node3D.new(); n.position = at; _add(n)
 	match kind:
-		"duck":
-			var b := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 0.16; bs.height = 0.22; b.mesh = bs; b.material_override = _mat(Color("e6d3a5")); b.position.y = 0.1; n.add_child(b)
-			var head := Node3D.new(); head.position = Vector3(0, 0.26, 0.14); n.add_child(head); data["head"] = head
-			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.08; hs.height = 0.16; h.mesh = hs; h.material_override = _mat(Color("e6d3a5")); head.add_child(h)
-			var bk := _box(Vector3(0.04, 0.03, 0.1), Vector3(0, -0.02, 0.1), _mat(Color("d98a2a")), false, head)
-			_eyes(head, 0.06, 0.02, 0.05, 0.016)
-			var tail := _box(Vector3(0.06, 0.03, 0.08), Vector3(0, 0.16, -0.16), _mat(Color("e6d3a5")), false, n); tail.rotation.x = 0.5; data["tail"] = tail
+		"duck", "pigeon":
+			# 새 공용 리그(bird3d.gd) — 전엔 구 두 개였다(운영자 2026-09-28: 동물이 덩어리로 보인다)
+			var bd := Bird3D.new()
+			if kind == "duck": bd.setup("duck", Color("e6d3a5"), Color("b48a5a"))
+			else: bd.setup("pigeon", Color("8a7f86"), Color("5b4f56"))
+			n.add_child(bd); data["bird"] = bd
 		"dog", "cat", "marten", "squirrel", "fox":
 			# 네발 동물 공용 리그(quad3d.gd) — 크기·색만 다르다
 			var q := Quad3D.new()
 			match kind:
-				"fox": q.setup("cat", Color("d98a2a"), Color("f7f4ef"), 1.1); q.kind = "fox"
+				"fox": q.setup("fox", Color("d98a2a"), Color("3a2f36"), 1.0)
 				"cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
 				"marten": q.setup("marten", Color("8a6a4a"), Color("5b4f56"), 1.0)
 				"squirrel": q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)
 				_: q.setup("dog", Color("c9a27a"), Color("9a6a3f"), 1.0)
 			n.add_child(q); data["quad"] = q
-		_:
-			var b := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 0.09; bs.height = 0.14; b.mesh = bs; b.material_override = _mat(Color("8a7f86")); b.position.y = 0.09; n.add_child(b)
-			var h := MeshInstance3D.new(); var hs := SphereMesh.new(); hs.radius = 0.045; hs.height = 0.09; h.mesh = hs; h.material_override = _mat(Color("5b4f56")); h.position = Vector3(0, 0.17, 0.08); n.add_child(h)
-			_eyes(h, 0.03, 0.01, 0.03, 0.009)
-			_box(Vector3(0.015, 0.012, 0.03), Vector3(0, -0.005, 0.05), _mat(Color("d98a2a")), false, h)
-			data["head"] = h
 	data["kind"] = kind; data["node"] = n; data["t"] = randf() * 10.0; data["fly"] = 0.0
 	animals.append(data)
-
-## 눈알 두 개 — 머리 노드 기준(x 간격, y, z 앞, 반지름). 흰자 없이 잉크 점(캐주얼)
-func _eyes(head: Node3D, dx: float, y: float, z: float, r: float) -> void:
-	for ex in [-dx, dx]:
-		var e := MeshInstance3D.new(); var es := SphereMesh.new(); es.radius = r; es.height = r * 2.0; es.radial_segments = 8; es.rings = 4
-		e.mesh = es; e.material_override = _mat(Color("1b0c15")); e.position = Vector3(ex, y, z); head.add_child(e)
 
 ## 나무 — 기둥 + 구 셋(잎 두 톤). 크기 k 로 서로 다르게. 줄기만 막힌다
 func _tree(at: Vector3, k: float) -> void:

@@ -7,10 +7,7 @@ background_mode = 1
 background_color = Color(0.875, 0.902, 0.918, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.969, 0.957, 0.937, 1)
-ambient_light_energy = 0.55
-ssao_enabled = true
-ssao_radius = 0.6
-ssao_intensity = 1.2
+ambient_light_energy = 0.3
 
 [sub_resource type="LabelSettings" id="LabelSettings_legend"]
 font_size = 11

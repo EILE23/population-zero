@@ -147,24 +147,25 @@ func _animals(delta: float) -> void:
 		var d := p.distance_to(n.global_position)
 		match a["kind"]:
 			"duck":
-				# 연못을 빙빙, 사람이 2m 안이면 날갯짓(위아래로 들썩)하며 반대쪽으로
+				# 연못을 빙빙 헤엄치고, 사람이 2m 안이면 날개 치며 반대쪽으로 도망친다. 사과가 근처에 떨어져 있으면 먹으러 간다
+				var bd: Bird3D = a["bird"]
 				var ph: float = a["phase"] + a["t"] * 0.35
 				var c: Vector3 = a["center"]
 				var want := c + Vector3(cos(ph) * 2.0, 0, sin(ph) * 2.0)
-				if d < 2.0: want = c + (n.global_position - p).normalized() * 2.6; n.position.y = 0.03 + absf(sin(a["t"] * 18.0)) * 0.12
-				else: n.position.y = 0.03 + sin(a["t"] * 3.0) * 0.015
-				# 사과가 근처에 떨어져 있으면 먹으러 간다(먹이)
+				var scared := d < 2.0
+				if scared: want = c + (n.global_position - p).normalized() * 2.6
 				for it in items:
 					if String(it.get_meta("kind", "")) == "apple" and it.global_position.distance_to(n.global_position) < 4.0:
 						want = it.global_position
 						if it.global_position.distance_to(n.global_position) < 0.35:
 							items.erase(it); it.queue_free(); a["fed"] = a["t"] + 2.0
 						break
-				n.global_position = Vector3(lerpf(n.global_position.x, want.x, delta * 1.5), n.position.y, lerpf(n.global_position.z, want.z, delta * 1.5))
+				var before := n.global_position
+				n.global_position = Vector3(lerpf(n.global_position.x, want.x, delta * (3.0 if scared else 1.5)), 0.03, lerpf(n.global_position.z, want.z, delta * (3.0 if scared else 1.5)))
 				if want.distance_to(n.global_position) > 0.05:
 					n.look_at(Vector3(want.x, n.global_position.y, want.z), Vector3.UP, true)
-				var hd: Node3D = a["head"]; hd.rotation.x = sin(a["t"] * 6.0) * 0.18 + (0.5 if a.get("fed", 0.0) > a["t"] else 0.0)   # 고개 까딱, 먹을 땐 숙임
-				(a["tail"] as Node3D).rotation.x = 0.5 + sin(a["t"] * 9.0) * 0.25
+				bd.speed = n.global_position.distance_to(before) / maxf(delta, 0.001)
+				bd.flying = scared; bd.swimming = not scared and n.global_position.distance_to(c) < 3.0; bd.feed = a.get("fed", 0.0) > a["t"]
 			"fox":
 				# 육식동물(운영자 2026-09-28): 새(비둘기·오리)를 살금살금 다가가 덮친다 — 새는 날아 도망. 사람이 때리면 6초간 쫓아와 문다
 				var q: Quad3D = a["quad"]
@@ -243,19 +244,27 @@ func _animals(delta: float) -> void:
 						q.speed = 0.0
 						if q.state in ["walk", "run"]: q.state = "idle"
 			_:
-				# 비둘기: 바닥을 쫀다, 1.6m 안이면 날아올라 3m 옆으로 갔다 내려앉는다
+				# 비둘기: 바닥을 쫀다(리그가 스스로), 1.6m 안이면 날아올라 3m 옆으로 갔다 내려앉는다, 가끔 종종걸음
+				var bd: Bird3D = a["bird"]
 				if d < 1.6 and a["fly"] <= 0.0:
 					a["fly"] = 1.6; a["land"] = a["home"] + Vector3(randf_range(-3, 3), 0, randf_range(-2, 2))
+				var before := n.global_position
 				if a["fly"] > 0.0:
 					a["fly"] -= delta
 					var k: float = 1.0 - a["fly"] / 1.6
 					var land: Vector3 = a["land"]
 					n.global_position = Vector3(lerpf(n.global_position.x, land.x, delta * 2.5), sin(k * PI) * 1.4, lerpf(n.global_position.z, land.z, delta * 2.5))
+					var to := land - n.global_position; to.y = 0.0
+					if to.length() > 0.1: n.look_at(n.global_position + to, Vector3.UP, true)
 					if a["fly"] <= 0.0: a["home"] = land; n.position.y = 0.0
 				else:
-					n.position.y = 0.0; n.rotation.x = 0.0
-					(a["head"] as Node3D).rotation.x = absf(sin(a["t"] * 5.0)) * 0.6  # 고개로 쪼기
-					if fmod(a["t"], 4.0) < 1.2: n.global_position += Vector3(sin(a["t"] * 3.0), 0, cos(a["t"] * 2.0)) * 0.3 * delta  # 종종걸음
+					n.position.y = 0.0
+					if fmod(a["t"], 4.0) < 1.2:
+						var step := Vector3(sin(a["t"] * 3.0), 0, cos(a["t"] * 2.0)) * 0.3 * delta
+						n.global_position += step
+						if step.length() > 0.0001: n.look_at(n.global_position + step, Vector3.UP, true)
+				bd.flying = a["fly"] > 0.0
+				bd.speed = 0.0 if bd.flying else Vector2(n.global_position.x - before.x, n.global_position.z - before.z).length() / maxf(delta, 0.001)
 
 ## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
 func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
@@ -290,10 +299,10 @@ func _daylight(delta: float) -> void:
 	var day := clampf(sin(ang) * 1.6 + 0.2, 0.0, 1.0)
 	if weather == "rain": day *= 0.55
 	elif weather == "cloudy": day *= 0.8
-	_sun.light_energy = 0.15 + 1.0 * day
+	_sun.light_energy = 0.12 + 0.6 * day   # 낮 최대 0.72 — 앰비언트와 합쳐 1.1배 근처(그 위는 밝은 색이 흰색으로 클리핑)
 	_sun.light_color = Color(1.0, 0.86 + 0.14 * day, 0.72 + 0.28 * day)
 	var env := ($WorldEnvironment as WorldEnvironment).environment
-	env.ambient_light_energy = 0.22 + 0.4 * day
+	env.ambient_light_energy = 0.15 + 0.15 * day
 	env.background_color = Color(0.93, 0.94, 0.92, 1).lerp(Color(0.12, 0.10, 0.16, 1), 1.0 - day)
 	var night := day < 0.35
 	for l in lamps:

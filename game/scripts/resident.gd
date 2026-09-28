@@ -46,12 +46,12 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	fig.color = figure_color(id); fig.head_color = fig.color
 	add_child(fig)
 	var nl := Label3D.new()
-	nl.text = h; nl.font_size = 22; nl.pixel_size = 0.004; nl.modulate = Color("5b4f56")
+	nl.text = h; nl.font_size = 44; nl.pixel_size = 0.002; nl.modulate = Color("5b4f56"); nl.outline_size = 8; nl.outline_modulate = Color("f7f4ef")   # 22px/0.004 는 흐릿했다 — 같은 크기, 두 배 해상도, 종이색 테두리
 	nl.billboard = BaseMaterial3D.BILLBOARD_ENABLED; nl.no_depth_test = true
 	nl.position = Vector3(0, 1.32, 0)
 	add_child(nl)
 	say_label = Label3D.new()
-	say_label.font_size = 26; say_label.pixel_size = 0.004; say_label.modulate = Color("1b0c15")
+	say_label.font_size = 52; say_label.pixel_size = 0.002; say_label.modulate = Color("1b0c15"); say_label.outline_size = 10; say_label.outline_modulate = Color("f7f4ef")
 	say_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED; say_label.no_depth_test = true
 	say_label.position = Vector3(0, 1.5, 0); say_label.visible = false
 	add_child(say_label)

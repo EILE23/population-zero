@@ -40,6 +40,7 @@ func setup(k: String, c: Color, d: Color, scale_k := 1.0) -> void:
 		"cat": L = 0.5; H = 0.28; leg = 0.24; head_r = 0.11
 		"marten": L = 0.52; H = 0.2; leg = 0.16; head_r = 0.085
 		"squirrel": L = 0.24; H = 0.12; leg = 0.09; head_r = 0.06
+		"fox": L = 0.58; H = 0.32; leg = 0.27; head_r = 0.11
 		_: L = 0.62; H = 0.36; leg = 0.3; head_r = 0.13
 	scale = Vector3.ONE * scale_k
 	_build()
@@ -53,45 +54,68 @@ func _capsule(parent: Node3D, r: float, h: float, at: Vector3, rot: Vector3, c: 
 	var mi := MeshInstance3D.new(); var cm := CapsuleMesh.new(); cm.radius = r; cm.height = maxf(h, r * 2.0); cm.radial_segments = 10; cm.rings = 4
 	mi.mesh = cm; mi.material_override = _mat(c); mi.position = at; mi.rotation = rot; parent.add_child(mi); return mi
 
+func _mesh(parent: Node3D, mesh: Mesh, at: Vector3, rot: Vector3, c: Color) -> MeshInstance3D:
+	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.material_override = _mat(c); mi.position = at; mi.rotation = rot; parent.add_child(mi); return mi
+
 func _sphere(parent: Node3D, r: float, at: Vector3, c: Color) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = r; sm.height = r * 2.0; sm.radial_segments = 12; sm.rings = 6
 	mi.mesh = sm; mi.material_override = _mat(c); mi.position = at; parent.add_child(mi); return mi
 
 func _build() -> void:
-	var thick := L * 0.24
+	# 2026-09-28 스크린샷 검토(운영자: "동물 퀄리티 이상") — 몸통이 소시지처럼 굵고 목이 없어 양처럼 보였다. 굵기 0.24→0.19, 목 마디, 종별 주둥이·귀, 개 목걸이, 눈 하이라이트
+	var thick := L * 0.19
 	rump = Node3D.new(); rump.position = Vector3(0, H, -L * 0.25); add_child(rump)
 	_capsule(rump, thick, L * 0.45, Vector3(0, 0, 0), Vector3(PI / 2.0, 0, 0), color)
 	spine = Node3D.new(); spine.position = Vector3(0, 0, L * 0.22); rump.add_child(spine)
 	chest = Node3D.new(); chest.position = Vector3(0, 0, L * 0.22); spine.add_child(chest)
 	_capsule(chest, thick * 1.05, L * 0.45, Vector3.ZERO, Vector3(PI / 2.0, 0, 0), color)
-	# 머리: 가슴 앞·위. 귀 둘, 눈 둘, 주둥이
-	head = Node3D.new(); head.position = Vector3(0, thick * 0.9, L * 0.3); chest.add_child(head)
+	# 목: 가슴 앞·위에서 머리로 비스듬히(위로 뻗는 뼈는 rotation.x + 가 앞). 여우·고양이는 길고 개는 짧다
+	var neck_l := L * (0.3 if kind in ["cat", "fox", "marten"] else 0.22)
+	_capsule(chest, thick * 0.6, neck_l, Vector3(0, thick * 0.35, L * 0.24) + Vector3(0, cos(0.85), sin(0.85)) * neck_l * 0.5, Vector3(0.85, 0, 0), color)
+	head = Node3D.new(); head.position = Vector3(0, thick * 0.35, L * 0.24) + Vector3(0, cos(0.85), sin(0.85)) * neck_l; chest.add_child(head)
 	_sphere(head, head_r, Vector3.ZERO, color)
-	_capsule(head, head_r * 0.45, head_r * 0.8, Vector3(0, -head_r * 0.25, head_r * 0.9), Vector3(PI / 2.0, 0, 0), color)  # 주둥이
-	_sphere(head, head_r * 0.16, Vector3(0, -head_r * 0.2, head_r * 1.35), Color("1b0c15"))  # 코
+	# 주둥이: 개·여우는 길고, 고양이는 짧고 둥글게. 코는 잉크 점
+	var mz := 1.0 if kind in ["dog", "fox"] else (0.75 if kind == "marten" else 0.55)
+	var mz_c := Color("f7f4ef") if kind == "fox" else color
+	_capsule(head, head_r * 0.42, head_r * mz, Vector3(0, -head_r * 0.3, head_r * (0.6 + mz * 0.35)), Vector3(PI / 2.0, 0, 0), mz_c)
+	_sphere(head, head_r * 0.16, Vector3(0, -head_r * 0.25, head_r * (0.6 + mz * 0.85)), Color("1b0c15"))  # 코
 	for ex in [-1.0, 1.0]:
-		var e := Node3D.new(); e.position = Vector3(ex * head_r * 0.45, head_r * 0.25, head_r * 0.75); head.add_child(e)
-		_sphere(e, head_r * 0.16, Vector3.ZERO, Color("1b0c15")); eyes.append(e)
-		var ear := Node3D.new(); ear.position = Vector3(ex * head_r * 0.6, head_r * 0.75, -head_r * 0.1); head.add_child(ear)
-		var er := _capsule(ear, head_r * 0.22, head_r * 0.7, Vector3(0, head_r * 0.3, 0), Vector3(0.2, 0, -ex * 0.35), dark)
-		if kind == "cat" or kind == "marten": er.scale = Vector3(0.8, 0.8, 0.5)
-		ears.append(ear)
-	# 다리: 어깨·엉덩이에서 아래로. 위·아래 두 마디
+		var e := Node3D.new(); e.position = Vector3(ex * head_r * 0.48, head_r * 0.28, head_r * 0.72); head.add_child(e)
+		_sphere(e, head_r * 0.17, Vector3.ZERO, Color("1b0c15")); eyes.append(e)
+		_sphere(e, head_r * 0.06, Vector3(ex * head_r * 0.04, head_r * 0.06, head_r * 0.13), Color("f7f4ef"))  # 눈 하이라이트
+		var ear := Node3D.new(); head.add_child(ear); ears.append(ear)
+		if kind == "dog":
+			# 처진 귀: 머리 옆에서 아래로 늘어진 납작한 캡슐
+			ear.position = Vector3(ex * head_r * 0.8, head_r * 0.45, -head_r * 0.05)
+			var er := _capsule(ear, head_r * 0.24, head_r * 0.85, Vector3(ex * head_r * 0.12, -head_r * 0.35, 0), Vector3(0, 0, ex * 0.35), dark)
+			er.scale = Vector3(1.0, 1.0, 0.45)
+		else:
+			# 뾰족 귀: 원뿔. 여우는 크게
+			var big := 1.35 if kind == "fox" else 1.0
+			ear.position = Vector3(ex * head_r * 0.55, head_r * 0.8, -head_r * 0.05)
+			var cone := CylinderMesh.new(); cone.top_radius = 0.0; cone.bottom_radius = head_r * 0.26 * big; cone.height = head_r * 0.62 * big; cone.radial_segments = 8
+			_mesh(ear, cone, Vector3(0, head_r * 0.25 * big, 0), Vector3(0.15, 0, ex * -0.25), dark if kind != "fox" else Color("3a2f36"))
+	if kind == "dog":
+		# 목걸이 — 반려견으로 읽히게(운영자: AC 느낌)
+		var ring := TorusMesh.new(); ring.inner_radius = thick * 0.62; ring.outer_radius = thick * 0.78
+		_mesh(chest, ring, Vector3(0, thick * 0.35, L * 0.24) + Vector3(0, cos(0.85), sin(0.85)) * neck_l * 0.35, Vector3(0.85, 0, 0), Color("ff2d55"))
+	# 다리: 어깨·엉덩이에서 아래로. 위·아래 두 마디, 한 색, 발만 어둡게(전엔 아랫마디가 어두워 장화처럼 보였다)
 	for key in ["fl", "fr", "bl", "br"]:
 		var front: bool = key.begins_with("f"); var side := -1.0 if key.ends_with("l") else 1.0
 		var parent := chest if front else rump
-		var hip := Node3D.new(); hip.position = Vector3(side * thick * 0.7, -thick * 0.3, (L * 0.12 if front else -L * 0.12)); parent.add_child(hip)
-		_capsule(hip, thick * 0.34, leg * 0.5, Vector3(0, -leg * 0.25, 0), Vector3.ZERO, color)
+		var hip := Node3D.new(); hip.position = Vector3(side * thick * 0.72, -thick * 0.3, (L * 0.12 if front else -L * 0.12)); parent.add_child(hip)
+		_capsule(hip, thick * 0.3, leg * 0.5, Vector3(0, -leg * 0.25, 0), Vector3.ZERO, color)
 		var knee := Node3D.new(); knee.position = Vector3(0, -leg * 0.5, 0); hip.add_child(knee)
-		_capsule(knee, thick * 0.3, leg * 0.5, Vector3(0, -leg * 0.25, 0), Vector3.ZERO, dark)
-		_sphere(knee, thick * 0.32, Vector3(0, -leg * 0.5, thick * 0.1), dark)  # 발
+		_capsule(knee, thick * 0.26, leg * 0.5, Vector3(0, -leg * 0.25, 0), Vector3.ZERO, color if kind != "fox" else Color("3a2f36"))
+		_sphere(knee, thick * 0.3, Vector3(0, -leg * 0.5, thick * 0.1), dark if kind != "fox" else Color("3a2f36"))  # 발
 		legs[key] = { "hip": hip, "knee": knee }
-	# 꼬리 두 마디
+	# 꼬리 두 마디 — 여우·다람쥐는 굵고 끝이 다른 색
 	tail1 = Node3D.new(); tail1.position = Vector3(0, thick * 0.4, -L * 0.28); rump.add_child(tail1)
-	var tl := L * (0.5 if kind == "cat" or kind == "marten" else 0.35)
-	_capsule(tail1, thick * 0.22, tl * 0.5, Vector3(0, 0, -tl * 0.25), Vector3(PI / 2.0, 0, 0), color)
+	var tl := L * (0.55 if kind in ["cat", "marten", "fox"] else 0.35)
+	var bushy := kind in ["squirrel", "fox"]
+	_capsule(tail1, thick * (0.4 if bushy else 0.22), tl * 0.5, Vector3(0, 0, -tl * 0.25), Vector3(PI / 2.0, 0, 0), color)
 	tail2 = Node3D.new(); tail2.position = Vector3(0, 0, -tl * 0.5); tail1.add_child(tail2)
-	_capsule(tail2, thick * (0.4 if kind == "squirrel" else 0.18), tl * 0.5, Vector3(0, 0, -tl * 0.25), Vector3(PI / 2.0, 0, 0), color if kind != "squirrel" else dark)
+	_capsule(tail2, thick * (0.42 if bushy else 0.18), tl * 0.5, Vector3(0, 0, -tl * 0.25), Vector3(PI / 2.0, 0, 0), color if not bushy else (dark if kind == "squirrel" else Color("f7f4ef")))
 	tail1.rotation.x = -0.9 if kind == "dog" else (-1.3 if kind == "squirrel" else -0.2)
 
 ## 잠깐의 동작 시작(stretch·bow·roll·groom·yawn·arch)
@@ -212,7 +236,8 @@ func _process(delta: float) -> void:
 		"dog":
 			var wag := 8.0 if (look or state == "bow") else 3.0
 			tail1.rotation.y = sin(_t * wag) * (0.7 if wag > 5.0 else 0.35); tail2.rotation.y = sin(_t * wag - 0.6) * 0.5
-		"cat", "marten":
-			tail1.rotation.y = sin(_t * 1.3) * 0.4; tail2.rotation.y = sin(_t * 1.3 - 1.0) * 0.6; tail1.rotation.x = -0.2 + (0.8 if state == "arch" else 0.0)
+		"cat", "marten", "fox":
+			# 여우가 다람쥐 가지(꼬리 세움)로 떨어지던 버그 — 고양이처럼 낮게 휜다
+			tail1.rotation.y = sin(_t * 1.3) * 0.4; tail2.rotation.y = sin(_t * 1.3 - 1.0) * 0.6; tail1.rotation.x = (-0.2 if kind != "fox" else 0.1) + (0.8 if state == "arch" else 0.0)
 		_:
 			tail1.rotation.x = -1.3 + sin(_t * 10.0) * 0.08; tail2.rotation.x = -0.5

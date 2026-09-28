@@ -15,6 +15,10 @@ config/description="A stick-figure town you can walk into. 2.5D indie game; the 
 run/main_scene="res://scenes/town3d.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
+[autoload]
+
+GodotAIBridgeRuntime="*res://addons/godot_ai_bridge/runtime_bridge.gd"
+
 [display]
 
 window/size/viewport_width=960
