@@ -1,6 +1,6 @@
 class_name TownBuild
-extends TownBase
-## 세계를 짓는다 — 집(사양·실내·계단·창·문), 공원, 시장, 나무, 벤치, 가로등, 울타리, 노점, 그네, 가구, 물건, 동물 몸, 주민 배치.
+extends TownProps
+## 세계를 짓는다 — 집(사양·실내·계단·문), 공원, 시장, 나무, 가구, 물건, 동물 몸, 주민 배치. 작은 소품(창·가로등·벤치·노점·창구·그네…)은 town_props.gd 에.
 ## 전부 원시 도형 + SVG 텍스처. 놓인 것은 base 의 목록(spots/doors/houses/...)에 등록된다.
 
 ## 명부(data/residents.json)에서 n 명 — 색은 웹과 같은 규칙, 자리는 무작위
@@ -63,10 +63,10 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 	var mi := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	var along := d.length()
-	bm.size = Vector3(along, 0.04, w)
+	bm.size = Vector3(along, 0.02, w)   # 0.04 는 옆면이 보여 단처럼 읽혔다
 	mi.mesh = bm
-	mi.material_override = _mat(Color.WHITE, _tex("ground/cobble"), Vector3(along / 1.6, w / 1.6, 1))
-	mi.position = (a + b) / 2.0 + Vector3(0, 0.02, 0)
+	mi.material_override = _mat(Color("d8d2cc"), _tex("ground/cobble"), Vector3(along / 0.8, w / 0.8, 1))   # 돌 한 개 ≈ 19cm(1.6 이면 40cm)
+	mi.position = (a + b) / 2.0 + Vector3(0, 0.01, 0)
 	mi.rotation.y = -atan2(d.z, d.x)
 	add_child(mi)
 
@@ -81,8 +81,8 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var trim_c: Color = [Color("efe9e2"), Color("f7f4ef"), Color("cfc7c2")][rng.randi() % 3]
 	var wm: StandardMaterial3D
 	match material:
-		"plank": wm = _mat(Color.WHITE, _tex("faces/wall-plank"), Vector3(2.2, 2.2, 1)); wm.uv1_triplanar = true
-		"brick": wm = _mat(Color.WHITE, _tex("faces/wall-brick"), Vector3(1.6, 1.6, 1)); wm.uv1_triplanar = true
+		"plank": wm = _mat(Color.WHITE, _tex("faces/wall-plank"), Vector3(2.8, 2.8, 1)); wm.uv1_triplanar = true
+		"brick": wm = _mat(Color.WHITE, _tex("faces/wall-brick"), Vector3(2.4, 2.4, 1)); wm.uv1_triplanar = true   # 1.6 은 벽돌 한 장이 머리만 했다
 		"stucco": wm = _mat(wall, _tex("faces/wall-stucco"), Vector3(1.4, 1.4, 1)); wm.uv1_triplanar = true
 		_: wm = _mat(wall)
 	var trim := _mat(trim_c)
@@ -97,6 +97,18 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	shell.append(_box(Vector3(size.x, size.y, WALL), at + Vector3(0, 0, -hd + WALL / 2.0), wm))
 	shell.append(_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(-hw + WALL / 2.0, 0, 0), wm))
 	shell.append(_box(Vector3(WALL, size.y, size.z - WALL * 2.0), at + Vector3(hw - WALL / 2.0, 0, 0), wm))
+	# 기단(돌 띠)과 모서리 트림 — 벽이 잔디에 그냥 꽂혀 보이던 것(2026-09-28 검토). 앞은 문을 비워 두 토막
+	var plinth := _mat(Color("bfb6b0"))
+	_box(Vector3(seg, 0.2, 0.07), at + Vector3(-hw + seg / 2.0, 0, hd + 0.035), plinth, false)
+	_box(Vector3(seg, 0.2, 0.07), at + Vector3(hw - seg / 2.0, 0, hd + 0.035), plinth, false)
+	shell.append(_box(Vector3(size.x + 0.14, 0.2, 0.07), at + Vector3(0, 0, -hd - 0.035), plinth, false))
+	shell.append(_box(Vector3(0.07, 0.2, size.z + 0.14), at + Vector3(-hw - 0.035, 0, 0), plinth, false))
+	shell.append(_box(Vector3(0.07, 0.2, size.z + 0.14), at + Vector3(hw + 0.035, 0, 0), plinth, false))
+	for cx in [-1.0, 1.0]:
+		for cz in [-1.0, 1.0]:
+			var board := _box(Vector3(0.1, size.y, 0.1), at + Vector3(cx * hw, 0, cz * hd), trim, false)
+			if cz < 0.0: shell.append(board)
+			else: parts.append(board)
 	# 창: 층마다 정면 좌우 + 옆벽. 덧문은 집마다 있거나 없다
 	var shutters := rng.randf() < 0.5
 	var shutter_c: Color = [Color("7b526c"), Color("3f6b2f"), Color("4a4a52"), Color("b56a5a")][rng.randi() % 4]
@@ -147,7 +159,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		var r := MeshInstance3D.new()
 		var pr := PrismMesh.new(); pr.size = Vector3(size.z + 0.7, size.y * (0.42 if storeys == 1 else 0.28), size.x + 0.7)
 		var roof_tex := "faces/roof-%s" % roof if rng.randf() < 0.6 else "faces/roof-shingle"
-		r.mesh = pr; r.material_override = _mat(Color.WHITE, _tex(roof_tex), Vector3(2.0, 1.5, 1))
+		r.mesh = pr; r.material_override = _mat(Color.WHITE, _tex(roof_tex), Vector3(3.2, 2.4, 1))   # (2.0, 1.5) 는 벽지처럼 보였다
 		r.material_override.uv1_triplanar = true
 		r.position = at + Vector3(0, size.y + pr.size.y / 2.0, 0)
 		r.rotation.y = PI / 2.0
@@ -241,26 +253,14 @@ func _stairs(at: Vector3, height: float, w: float) -> void:
 	# 랜딩: 꼭대기 단에서 지붕 가장자리까지, 지붕 윗면(height)과 같은 높이의 발판 — 계단이 지붕으로 이어진다
 	_box(Vector3(w + 1.0, 0.12, 0.7), at + Vector3(-(w + 1.0) / 2.0 + w / 2.0, height - 0.12, -(n - 1) * 0.3), stone)
 
-func _window(at: Vector3, yaw: float, shutters := false, shutter_c := Color("7b526c")) -> Node3D:
-	var n := Node3D.new(); n.position = at; n.rotation.y = yaw; add_child(n)
-	_box(Vector3(0.74, 0.84, 0.06), Vector3(0, 0, 0), _mat(Color("efe9e2")), false, n)
-	_box(Vector3(0.6, 0.7, 0.08), Vector3(0, 0.07, 0), _mat(Color("dfe6ea")), false, n)
-	_box(Vector3(0.04, 0.7, 0.09), Vector3(0, 0.07, 0), _mat(Color("efe9e2")), false, n)
-	_box(Vector3(0.6, 0.04, 0.09), Vector3(0, 0.40, 0), _mat(Color("efe9e2")), false, n)
-	_box(Vector3(0.84, 0.06, 0.16), Vector3(0, -0.04, 0.02), _mat(Color("cfc7c2")), false, n)
-	if shutters:
-		_box(Vector3(0.22, 0.8, 0.05), Vector3(-0.5, 0.02, 0.0), _mat(shutter_c), false, n)
-		_box(Vector3(0.22, 0.8, 0.05), Vector3(0.5, 0.02, 0.0), _mat(shutter_c), false, n)
-	return n
-
 ## 서쪽 공원 — 연못(납작한 원반, 밝은 테두리), 놀이터(미끄럼틀·시소·그네·모래밭), 나무·벤치·화단, 자갈 산책로
 func _park(at: Vector3) -> void:
-	_path(at + Vector3(0, 0, 4), at + Vector3(0, 0, -8), 1.6)
+	_path(at + Vector3(0, 0, 2.8), at + Vector3(0, 0, -8), 1.6)   # 큰길 가장자리(z 0.8)에서 시작 — 겹치면 이음새가 보였다
 	# 연못: 물 원반 + 테두리
 	var pond := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 3.2; cm.bottom_radius = 3.2; cm.height = 0.04
 	pond.mesh = cm; pond.material_override = _mat(Color("8fb8cc")); pond.position = at + Vector3(-6, 0.02, -3); _add(pond)
 	var rim := MeshInstance3D.new(); var rm := CylinderMesh.new(); rm.top_radius = 3.5; rm.bottom_radius = 3.5; rm.height = 0.03
-	rim.mesh = rm; rim.material_override = _mat(Color("cfc7c2")); rim.position = at + Vector3(-6, 0.01, -3); _add(rim)
+	rim.mesh = rm; rim.material_override = _mat(Color("bfb6b0")); rim.position = at + Vector3(-6, 0.01, -3); _add(rim)   # 돌 테두리(흰색이었다)
 	spots.append({ "pos": at + Vector3(-6, 0, 0.9), "kind": "door", "yaw": PI })  # 연못가에 서기
 	for p in [Vector3(-10, 0, 2), Vector3(-9, 0, -7), Vector3(2, 0, -8), Vector3(6, 0, 1), Vector3(9, 0, -5), Vector3(-2, 0, 5)]:
 		_tree(at + p, 1.1 + fmod(absf(p.x) * 0.23, 0.6))
@@ -288,10 +288,10 @@ func _park(at: Vector3) -> void:
 ## 동쪽 시장 거리 — 노점(기둥+차양+판매대+물건), 상점 정면 둘(빵집·카페: 집 생성기에 간판 색만 다르게), 쓰레기통, 가로등, 자갈 광장
 func _market(at: Vector3) -> void:
 	var sq := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(22, 0.04, 12); sq.mesh = bm
-	sq.material_override = _mat(Color.WHITE, _tex("ground/cobble"), Vector3(22 / 1.6, 12 / 1.6, 1)); sq.position = at + Vector3(0, 0.02, 1); _add(sq)
+	sq.material_override = _mat(Color("d8d2cc"), _tex("ground/cobble"), Vector3(22 / 0.8, 12 / 0.8, 1)); sq.position = at + Vector3(0, 0.02, 1); _add(sq)
 	for i in 4:
 		_stall(at + Vector3(-7.5 + i * 5.0, 0, -1.5), [Color("ad7096"), Color("7a9b4e"), Color("e8c766"), Color("8fb8cc")][i])
-	_house(at + Vector3(-6, 0, -8), Vector3(5.0, 2.8, 3.6), Color("e6d3a5"), "accent-deep", false, 11)  # 빵집(집 생성기)
+	_house(at + Vector3(-6, 0, -8), Vector3(5.0, 2.8, 3.6), Color("e6d3a5"), "wood", false, 11)  # 빵집(집 생성기) — 지붕에 브랜드 분홍은 대면적 금지
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
 	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"))   # 빵집 창구(정면 왼쪽)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
@@ -302,55 +302,6 @@ func _market(at: Vector3) -> void:
 	_animal("cat", at + Vector3(8.5, 0, 6.0), { "home": at + Vector3(8.5, 0, 6.0) })
 	for i in 5: _animal("pigeon", at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2), { "home": at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2) })
 	_item("apple", at + Vector3(-7.5, 0.95, -1.3)); _item("cup", at + Vector3(2.5, 0.95, -1.3)); _item("paper", at + Vector3(7.5, 0.95, -1.3))
-
-## 그네 — 틀은 고정, 줄과 좌석은 윗봉의 피벗 아래에 매달려 진자로 흔들린다. 사람은 C 로 타고 ← → 로 밀고 SPACE 로 뛰어내린다
-func _swing(at: Vector3) -> void:
-	var iron := _mat(Color("4a4a52")); var wood := _mat(Color("b48a5a"))
-	_box(Vector3(0.08, 2.2, 0.08), at + Vector3(-1.0, 0, 0), iron); _box(Vector3(0.08, 2.2, 0.08), at + Vector3(1.0, 0, 0), iron)
-	_box(Vector3(2.2, 0.08, 0.08), at + Vector3(0, 2.2, 0), iron, false)
-	var pivot := Node3D.new(); pivot.position = at + Vector3(0, 2.2, 0); _add(pivot)
-	var L := 1.55
-	for rx in [-0.25, 0.25]:
-		var rope := MeshInstance3D.new(); var rm := BoxMesh.new(); rm.size = Vector3(0.02, L, 0.02); rope.mesh = rm; rope.material_override = iron
-		rope.position = Vector3(rx, -L / 2.0, 0); pivot.add_child(rope)
-	var seat := MeshInstance3D.new(); var sm := BoxMesh.new(); sm.size = Vector3(0.6, 0.05, 0.25); seat.mesh = sm; seat.material_override = wood
-	seat.position = Vector3(0, -L, 0); pivot.add_child(seat)
-	var sw := { "pivot": pivot, "len": L, "angle": 0.0, "vel": 0.0, "at": at, "rider": null, "pusher": null, "push_at": 0.0 }
-	swings.append(sw)
-	spots.append({ "pos": at, "kind": "swing", "yaw": 0.0, "swing": sw })  # 주민도 탄다(한 명), 누가 타면 다른 주민이 뒤에서 밀어 준다
-
-## 모자 거치대 — 기둥 하나에 가지 넷, 가지마다 모자(집으면 새 것이 걸린다)
-func _hatstand(at: Vector3) -> void:
-	_box(Vector3(0.06, 1.7, 0.06), at, _mat(Color("8a6a4a")))
-	for i in 4:
-		var a := i * PI / 2.0
-		var arm := _box(Vector3(0.04, 0.04, 0.3), at + Vector3(0, 1.5 - i * 0.12, 0), _mat(Color("8a6a4a")), false); arm.rotation.y = a; arm.position += Vector3(sin(a) * 0.15, 0, cos(a) * 0.15)
-		var h := Wear.make(["cap", "straw", "tophat", "beanie"][i], Wear.palette(i * 7)); h.position = at + Vector3(sin(a) * 0.3, 1.58 - i * 0.12, cos(a) * 0.3); h.rotation.x = 0.3; _add(h)
-	spots.append({ "pos": at + Vector3(0, 0, 0.7), "kind": "hatstand", "yaw": PI })
-
-## 창구 — 벽 앞의 작은 카운터와 차양, 진열된 물건. C 로 물건을 받는다(spots kind "counter")
-func _counter(at: Vector3, item: String, c: Color) -> void:
-	_box(Vector3(1.2, 0.95, 0.5), at, _mat(c))
-	var awn := _box(Vector3(1.4, 0.05, 0.7), at + Vector3(0, 1.9, 0.15), _mat(Color("ad7096")), false); awn.rotation.x = 0.2
-	for i in 3:
-		var g := make_item(item, at + Vector3(-0.35 + i * 0.35, 0.95, 0.05)); items.erase(g)   # 진열용(집을 수 없음)
-	spots.append({ "pos": at + Vector3(0, 0, 0.8), "kind": "counter", "yaw": PI, "item": item })
-
-func _stall(at: Vector3, awning: Color) -> void:
-	var wood := _mat(Color("8a6a4a"))
-	_box(Vector3(2.2, 0.9, 0.9), at, wood)                                                     # 판매대
-	for sx in [-1.0, 1.0]:
-		_box(Vector3(0.08, 2.2, 0.08), at + Vector3(sx, 0, -0.4), wood, false)
-	var awn := _box(Vector3(2.6, 0.06, 1.4), at + Vector3(0, 2.15, 0.1), _mat(awning), false); awn.rotation.x = 0.25
-	for i in 3:
-		var g := MeshInstance3D.new(); var gs := SphereMesh.new(); gs.radius = 0.09; gs.height = 0.18; g.mesh = gs
-		g.material_override = _mat([Color("d98a2a"), Color("ff2d55"), Color("e8c766")][i]); g.position = at + Vector3(-0.6 + i * 0.6, 0.98, -0.1); _add(g)
-	spots.append({ "pos": at + Vector3(0, 0, 1.0), "kind": "door", "yaw": PI })   # 손님 자리(서서 고른다)
-
-func _bin(at: Vector3) -> void:
-	var b := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.28; cm.bottom_radius = 0.24; cm.height = 0.8
-	b.mesh = cm; b.material_override = _mat(Color("4a4a52")); b.position = at + Vector3(0, 0.4, 0); _add(b)
-	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.28; sh.height = 0.8; cs.shape = sh; sb.add_child(cs); b.add_child(sb)
 
 ## 동물 — 원시 도형 몸 + 아주 단순한 습성. 전부 코드
 func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
@@ -401,38 +352,6 @@ func _tree(at: Vector3, k: float) -> void:
 		f.position = Vector3(cos(i * 2.1) * 0.6, 0.15 + (i % 2) * 0.12, sin(i * 2.1) * 0.6) * k
 		crown.add_child(f); fruit.append(f)
 	crowns.append({ "node": crown, "phase": at.x * 0.7 + at.z * 0.3, "k": k, "fruit": fruit, "at": at })
-
-func _bench(at: Vector3) -> void:
-	var wood := _mat(Color("8a6a4a")); var iron := _mat(Color("4a4a52"))
-	_box(Vector3(1.5, 0.06, 0.45), at + Vector3(0, 0.42, 0), wood)
-	var back := _box(Vector3(1.5, 0.06, 0.4), at + Vector3(0, 0.62, -0.2), wood)
-	back.rotation.x = -1.35
-	for sx in [-0.6, 0.6]:
-		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, 0.15), iron)
-		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, -0.15), iron)
-	benches.append({ "pos": at, "yaw": 0.0 })
-	spots.append({ "pos": at, "kind": "bench", "yaw": 0.0 })
-
-func _lamp(at: Vector3) -> void:
-	var post := MeshInstance3D.new()
-	var cm := CylinderMesh.new(); cm.top_radius = 0.035; cm.bottom_radius = 0.05; cm.height = 2.2
-	post.mesh = cm; post.material_override = _mat(Color("4a4a52"))
-	post.position = at + Vector3(0, 1.1, 0)
-	_add(post)
-	_box(Vector3(0.26, 0.3, 0.26), at + Vector3(0, 2.2, 0), _mat(Color("e8c766")), false)
-	spots.append({ "pos": at + Vector3(0.25, 0, 0), "kind": "lamp", "yaw": -PI / 2.0 })
-	var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.6; l.omni_range = 4.0
-	l.position = at + Vector3(0, 2.3, 0)
-	_add(l)
-	lamps.append(l)
-
-func _fence(at: Vector3, len: float) -> void:
-	var paper := _mat(Color("efe9e2"))
-	var n := int(len / 0.5)
-	for i in n + 1:
-		_box(Vector3(0.08, 0.7, 0.05), at + Vector3(i * 0.5, 0, 0), paper)
-	_box(Vector3(len + 0.08, 0.06, 0.04), at + Vector3(len / 2.0, 0.25, 0), paper)
-	_box(Vector3(len + 0.08, 0.06, 0.04), at + Vector3(len / 2.0, 0.5, 0), paper)
 
 ## 집을 수 있는 것 — 작은 기하 하나씩(사과 = 구, 컵 = 원기둥, 신문 = 납작한 상자). 손에 들면 hand_r 의 자식이 된다
 func _item(kind: String, at: Vector3) -> void:
