@@ -22,6 +22,10 @@ window/size/viewport_height=470
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep_width"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_ai_bridge/plugin.cfg")
+
 [input]
 
 move_left={
