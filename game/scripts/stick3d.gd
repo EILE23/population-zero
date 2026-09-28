@@ -30,6 +30,7 @@ var airborne := false
 var vertical := 0.0            # 공중 속도(+ 위)
 var crouch := 0.0              # 0..1 웅크림
 var seated := false            # 벤치에 앉음
+var jet := false               # 제트킥 비행 중(온몸이 앞으로 쏠린 자세)
 var action := ""               # "punch" | "kick" | "grab" | "" — 잠깐의 동작
 var action_t := 0.0            # 동작 진행 0..1
 var carrying: Node3D = null    # 오른손에 든 것(hand_r 의 자식)
@@ -160,6 +161,8 @@ func _process(delta: float) -> void:
 	for pv in _pivots:
 		prev[pv] = pv.rotation
 	var prev_pelvis_y := pelvis.position.y
+	var prev_pelvis_rot := pelvis.rotation
+	pelvis.rotation = Vector3.ZERO
 	# 걸음 위상은 거리로 — 빠르면 빨리, 멈추면 멈춘다
 	if moving and not airborne:
 		_phase += speed * delta / STRIDE * TAU
@@ -175,7 +178,7 @@ func _process(delta: float) -> void:
 	var lean := 0.28 * run_k if moving and not airborne else 0.0
 	lean += crouch * 0.35
 	if airborne:
-		lean = -0.08 if vertical > 0.0 else 0.12
+		lean = 0.18 if vertical > 0.0 else 0.08  # 도약은 살짝 앞으로
 	if seated:
 		lean = -0.05
 	torso.rotation.x = lean
@@ -191,14 +194,14 @@ func _process(delta: float) -> void:
 			sh.rotation.x = -(0.55); sh.rotation.z = -s * 0.1; el.rotation.x = -(0.9)
 		elif airborne:
 			# 점프: 오를 땐 무릎을 당기고 팔을 위로, 내릴 땐 다리를 내리고 팔을 벌린다
-			var up := vertical > 0.0
-			var fl := sin(_t * 22.0) * 0.5
-			if up:
-				hip.rotation.x = -(1.1); knee.rotation.x = -(-1.6)            # 무릎 바싹
-				sh.rotation.x = -(2.9); sh.rotation.z = -s * 0.2; el.rotation.x = -(0.15)  # 팔 머리 위로 쭉
+			# 보폭 도약(운영자 스케치 2026-09-28): 오른다리(s=1)가 앞, 왼다리가 뒤. 팔은 반대 — 왼팔 앞·위, 오른팔 뒤. 내려올수록 앞다리를 내려 착지 준비
+			var down := clampf(-vertical / 6.0, 0.0, 1.0)
+			if s > 0.0:
+				hip.rotation.x = -(lerpf(1.05, 0.55, down)); knee.rotation.x = -(lerpf(-1.25, -0.35, down))
+				sh.rotation.x = -(-0.95); sh.rotation.z = -0.25; el.rotation.x = -(0.35)
 			else:
-				hip.rotation.x = -(0.5 * s); knee.rotation.x = -(-0.3)        # 한 다리 앞, 한 다리 뒤
-				sh.rotation.x = -(2.5); sh.rotation.z = -s * (0.6 + fl); el.rotation.x = -(0.3 - fl * 0.4)  # 허우적
+				hip.rotation.x = -(lerpf(-0.75, -0.3, down)); knee.rotation.x = -(lerpf(-0.9, -0.5, down))
+				sh.rotation.x = -(1.45); sh.rotation.z = 0.15; el.rotation.x = -(0.5)
 		elif crouch > 0.0:
 			hip.rotation.x = -(1.0 * crouch)
 			knee.rotation.x = -(-1.7 * crouch)
@@ -248,6 +251,15 @@ func _process(delta: float) -> void:
 			shoulders[1.0].rotation.x = -(-0.6 * k); shoulders[-1.0].rotation.x = -(0.8 * k); elbows[-1.0].rotation.x = -(0.6 * k)
 			if not airborne:
 				knees[-1.0].rotation.x = -(-0.25 * k)
+			elif jet:
+				# 제트킥(운영자 스케치): 몸 전체가 앞으로 쏠려 거의 수평 — 골반을 앞으로 70° 눕히고, 찬 다리는 몸 선을 따라 앞으로 쭉,
+				# 반대 다리는 접어 뒤로, 팔은 몸 선을 따라 옆·뒤로, 고개는 들어 앞을 본다
+				pelvis.rotation.x = 1.2 * k
+				torso.rotation.x = 0.1 * k; torso.rotation.y = 0.15 * k; neck.rotation.x = -0.9 * k
+				hips[1.0].rotation.x = -(2.35 * k); knees[1.0].rotation.x = -(0.0)
+				hips[-1.0].rotation.x = -(-0.5 * k); knees[-1.0].rotation.x = -(-1.7 * k)
+				shoulders[1.0].rotation.x = -(-1.6 * k); shoulders[1.0].rotation.z = -1.1 * k; elbows[1.0].rotation.x = -(0.1)
+				shoulders[-1.0].rotation.x = -(-1.6 * k); shoulders[-1.0].rotation.z = 1.1 * k; elbows[-1.0].rotation.x = -(0.1)
 			else:
 				# 비행 킥: 찬 다리 앞으로 쭉, 반대 다리는 접어 뒤로, 상체는 뒤로 젖혀 비틀고, 양팔은 벌려 균형
 				hips[1.0].rotation.x = -(1.75 * k); knees[1.0].rotation.x = -(0.0)
@@ -279,6 +291,7 @@ func _process(delta: float) -> void:
 		var was: Vector3 = prev[pv]
 		pv.rotation = Vector3(lerp_angle(was.x, want.x, k), lerp_angle(was.y, want.y, k), lerp_angle(was.z, want.z, k))
 	pelvis.position.y = lerpf(prev_pelvis_y, pelvis.position.y, k)
+	pelvis.rotation.x = lerp_angle(prev_pelvis_rot.x, pelvis.rotation.x, k)
 
 ## 바깥에서 방향을 정한다(벤치에 앉을 때 등) — 부드럽게 돌아간다
 func face(yaw: float) -> void:

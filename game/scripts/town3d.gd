@@ -331,6 +331,7 @@ func _physics_process(delta: float) -> void:
 	var land_k := clampf((land_until - now) / 0.12, 0.0, 1.0) * 0.6 if land_until > now else 0.0
 	player.crouch = 1.0 if jump_at >= 0.0 else land_k
 	player.airborne = not body.is_on_floor()
+	player.jet = jet
 	player.vertical = body.velocity.y
 	# X·Z 는 공중에서도 된다(점프킥·점프 주먹). 들고 있을 때 X 는 던지기(웹 규칙)
 	# 던지기: 들고 있을 때 X 를 누르는 동안 팔을 뒤로 감고(action_t 가 0.44 에서 멈춤), 떼면 앞으로 던진다. 오래 누를수록 멀리
