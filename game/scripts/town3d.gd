@@ -248,10 +248,50 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		cap.position = chim.position + Vector3(0, 0.35, 0)
 		parts.append(chim); parts.append(cap)
 	parts.append(_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, ceiling_y - 0.06, 0), trim, false))
+	var before := spots.size()
 	_interior(at, size, rng)
+	for k in range(before, spots.size()):
+		if spots[k]["kind"] == "chair": spots[k]["door"] = doors[doors.size() - 1]
 	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false })
 
 var houses: Array = []
+var movables: Array = []       # 옮길 수 있는 가구 {node, kind, spot}
+
+## 옮길 수 있는 가구 — 의자(앉는 자리 포함)·화분·소형 램프. 들면 충돌을 끄고, 놓으면 다시 켠다
+func _furniture(kind: String, at: Vector3, yaw := 0.0) -> Node3D:
+	var n := Node3D.new(); n.position = at; n.rotation.y = yaw; add_child(n)
+	match kind:
+		"chair":
+			_box(Vector3(0.4, 0.45, 0.4), Vector3.ZERO, _mat(Color("8a6a4a")), true, n)
+			_box(Vector3(0.4, 0.5, 0.05), Vector3(0, 0.45, -0.18), _mat(Color("8a6a4a")), false, n)
+		"pot":
+			_box(Vector3(0.3, 0.3, 0.3), Vector3.ZERO, _mat(Color("b56a5a")), true, n)
+			var fl := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.16; fs.height = 0.32; fl.mesh = fs
+			fl.material_override = _mat(Color("7a9b4e")); fl.position = Vector3(0, 0.42, 0); n.add_child(fl)
+		_:
+			_box(Vector3(0.05, 1.3, 0.05), Vector3.ZERO, _mat(Color("4a4a52")), true, n)
+			_box(Vector3(0.3, 0.22, 0.3), Vector3(0, 1.3, 0), _mat(Color("e8c766")), false, n)
+			var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.7; l.omni_range = 3.5; l.position = Vector3(0, 1.5, 0); n.add_child(l)
+			n.set_meta("light", l)
+	n.set_meta("kind", kind)
+	var entry := { "node": n, "kind": kind, "spot": null }
+	if kind == "chair":
+		var sp := { "pos": at, "kind": "chair", "yaw": yaw, "node": n }
+		spots.append(sp); entry["spot"] = sp
+	movables.append(entry)
+	return n
+
+func _set_solid(n: Node3D, solid: bool) -> void:
+	for c in n.get_children():
+		for cc in c.get_children():
+			if cc is StaticBody3D:
+				(cc as StaticBody3D).process_mode = Node.PROCESS_MODE_INHERIT if solid else Node.PROCESS_MODE_DISABLED
+				for sh in cc.get_children():
+					if sh is CollisionShape3D: (sh as CollisionShape3D).disabled = not solid
+
+var carrying_big: Dictionary = {}   # 두 손에 든 가구(movables 항목)
+var act_down_at := -1.0
+var resting := false   # 침대에 누움
 
 ## 실내 가구 — 집마다 조금씩 다르게. 전부 원시 도형: 널빤지 바닥, 러그, 침대, 식탁+의자, 선반+책, 램프
 func _interior(at: Vector3, size: Vector3, rng: RandomNumberGenerator) -> void:
@@ -264,21 +304,19 @@ func _interior(at: Vector3, size: Vector3, rng: RandomNumberGenerator) -> void:
 	_box(Vector3(0.9, 0.35, 1.6), at + Vector3(bx, 0, bz), _mat(Color("8a6a4a")))
 	_box(Vector3(0.84, 0.12, 1.5), at + Vector3(bx, 0.35, bz), _mat([Color("f7f4ef"), Color("dfe6ea"), Color("e6d3a5")][rng.randi() % 3]), false)
 	_box(Vector3(0.6, 0.1, 0.35), at + Vector3(bx, 0.47, bz - 0.5), _mat(Color("f7f4ef")), false)
+	spots.append({ "pos": at + Vector3(bx, 0.47, bz + 0.1), "kind": "bed", "yaw": PI })
 	var tx := hw - 0.9; var tz := -hd + 1.2
 	_box(Vector3(0.9, 0.05, 0.7), at + Vector3(tx, 0.7, tz), _mat(Color("b48a5a")))
 	for c in [Vector3(-0.35, 0, 0.2), Vector3(0.35, 0, 0.2), Vector3(-0.35, 0, -0.2), Vector3(0.35, 0, -0.2)]:
 		_box(Vector3(0.05, 0.7, 0.05), at + Vector3(tx, 0, tz) + c, _mat(Color("8a6a4a")), false)
 	for cx in [-0.75, 0.75]:
-		_box(Vector3(0.4, 0.45, 0.4), at + Vector3(tx + cx, 0, tz), _mat(Color("8a6a4a")))
-		_box(Vector3(0.4, 0.5, 0.05), at + Vector3(tx + cx, 0.45, tz - 0.18), _mat(Color("8a6a4a")), false)
-		spots.append({ "pos": at + Vector3(tx + cx, 0, tz + 0.0), "kind": "chair", "yaw": 0.0 })
+		_furniture("chair", at + Vector3(tx + cx, 0, tz), 0.0)
+	_furniture("pot", at + Vector3(-hw + 0.3, 0, hd - 0.35))
 	_box(Vector3(1.2, 0.05, 0.3), at + Vector3(0.2, 1.4, -hd + 0.16), _mat(Color("8a6a4a")), false)
+	spots.append({ "pos": at + Vector3(0.2, 0, -hd + 0.5), "kind": "shelf", "yaw": PI })
 	for i in 5:
 		_box(Vector3(0.06, 0.24, 0.2), at + Vector3(-0.2 + i * 0.13, 1.45, -hd + 0.16), _mat([Color("ad7096"), Color("7a9b4e"), Color("d98a2a"), Color("4a4a52"), Color("8fb8cc")][i]), false)
-	_box(Vector3(0.05, 1.3, 0.05), at + Vector3(hw - 0.35, 0, hd - 0.4), _mat(Color("4a4a52")), false)
-	_box(Vector3(0.3, 0.22, 0.3), at + Vector3(hw - 0.35, 1.3, hd - 0.4), _mat(Color("e8c766")), false)
-	var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.7; l.omni_range = 3.5
-	l.position = at + Vector3(hw - 0.35, 1.5, hd - 0.4); add_child(l)
+	_furniture("lamp", at + Vector3(hw - 0.35, 0, hd - 0.4))
 
 ## 컷어웨이 — 플레이어가 집 안에 있으면 지붕·앞벽·천장·차양·앞창을 감춘다(운영자: 들어가면 캐릭터가 가려져 안 보였다)
 func _cutaway() -> void:
@@ -297,7 +335,9 @@ func _stairs(at: Vector3, height: float, w: float) -> void:
 	var stone := _mat(Color("bfb6b0"))
 	for i in n:
 		_box(Vector3(w, rise * (i + 1), 0.3), at + Vector3(0, 0, -i * 0.3), stone)
-	_box(Vector3(0.06, 0.9, n * 0.3), at + Vector3(w / 2.0 + 0.03, 0, -(n - 1) * 0.15), _mat(Color("4a4a52")), false)
+	_box(Vector3(0.06, 0.9, n * 0.3), at + Vector3(w / 2.0 + 0.03, 0, -(n - 1) * 0.15), _mat(Color("4a4a52")), false)  # 난간 기둥 대신 얇은 판
+	# 랜딩: 꼭대기 단에서 지붕 가장자리(왼쪽, 폭 w 만큼 안쪽)까지 지붕 높이의 발판 — 계단이 지붕으로 이어진다(운영자 지적)
+	_box(Vector3(w + 0.9, 0.12, 0.6), at + Vector3(-(w + 0.9) / 2.0 + w / 2.0, height - 0.12, -(n - 1) * 0.3), stone)
 
 func _window(at: Vector3, yaw: float, shutters := false, shutter_c := Color("7b526c")) -> Node3D:
 	var n := Node3D.new(); n.position = at; n.rotation.y = yaw; add_child(n)
@@ -420,7 +460,7 @@ func _physics_process(delta: float) -> void:
 		idle_since = -1.0
 	if now < dash_until: running = true
 	var speed := WALK * (2.4 if now < dash_until else (1.9 if running else 1.0))
-	var can_move := not (player.action == "throw" and (action_until >= now or throw_charge >= 0.0)) and not jet
+	var can_move := not (player.action == "throw" and (action_until >= now or throw_charge >= 0.0)) and not jet and not resting
 	var v := body.velocity
 	var hv := Vector3(v.x, 0, v.z)
 	if jet:
@@ -540,8 +580,9 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request in ["eat", "drink", "wave"]: player.pose_request = ""
-	if (reading or leaning) and dir != Vector3.ZERO:
-		reading = false; leaning = false; player.pose_request = ""
+	if (reading or leaning or resting) and dir != Vector3.ZERO:
+		reading = false; leaning = false; resting = false; player.pose_request = ""
+	if not carrying_big.is_empty() and player.pose_request == "": player.pose_request = "carry"
 	_interact_check(now)
 	_fly(delta)
 	_cutaway()
@@ -552,6 +593,29 @@ var bites := 0            # 사과 한입 수(3입이면 사라진다)
 var use_until := -1.0     # 먹기·마시기 자세가 끝나는 시각
 var reading := false      # 신문 읽는 중(움직이면 끝)
 var leaning := false      # 가로등에 기댄 중(움직이면 끝)
+
+## 가구 들기(C 길게) — 두 손에 들고 옮긴다(carry 자세). 든 동안 충돌은 끈다
+func _pick_furniture(now: float) -> void:
+	if not carrying_big.is_empty() or player.carrying: return
+	var p := body.global_position
+	var best: Dictionary = {}; var bd := 9.0
+	for m in movables:
+		var d: float = p.distance_to(m["node"].global_position)
+		if d < 0.9 and d < bd: best = m; bd = d
+	if best.is_empty(): return
+	var n: Node3D = best["node"]
+	_set_solid(n, false)
+	n.get_parent().remove_child(n); player.socket_belt.add_child(n)
+	n.position = Vector3(0, 0.45, 0.42); n.rotation = Vector3.ZERO
+	carrying_big = best; player.pose_request = "carry"
+	player.action = "grab"; action_until = now + 0.4
+
+## 문 열기/닫기 — 사람도 주민도 이걸 쓴다
+func set_door(dr: Dictionary, open: bool) -> void:
+	if dr["open"] == open: return
+	dr["open"] = open
+	var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(dr["hinge"], "rotation:y", 1.85 if open else 0.0, 0.45)
 
 ## 앞 부채꼴(70°) 안, 사거리 안의 주민을 맞힌다. 무거운 한 방(제트킥·점프 주먹·훅)은 바로 넘어진다
 func _strike(kind: String) -> void:
@@ -624,10 +688,31 @@ func _fly(delta: float) -> void:
 
 ## C — 들고 있으면 앞에 내려놓기; 아니면 가장 가까운 것: 물건(0.8m) · 문(1.3m) · 벤치(1.0m)
 func _interact_check(now: float) -> void:
-	if not Input.is_action_just_pressed("act") or action_until >= now:
+	# 짧게 누르면 상호작용, 0.45초 길게 누르면 가구 들기(의자는 앉는 것과 겹쳐서)
+	if Input.is_action_just_pressed("act") and action_until < now:
+		act_down_at = now
+	var long_press := act_down_at >= 0.0 and Input.is_action_pressed("act") and now - act_down_at >= 0.45
+	var tap := act_down_at >= 0.0 and Input.is_action_just_released("act") and now - act_down_at < 0.45
+	if long_press: act_down_at = -1.0
+	elif tap: act_down_at = -1.0
+	elif not Input.is_action_pressed("act"): act_down_at = -1.0
+	if not (long_press or tap) or action_until >= now:
+		return
+	if long_press:
+		_pick_furniture(now)
 		return
 	var p := body.global_position
 	var fwd := Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
+	if not carrying_big.is_empty():
+		# 내려놓기: 앞 0.7m, 바닥에. 주민 자리도 같이 옮긴다
+		var n: Node3D = carrying_big["node"]
+		n.get_parent().remove_child(n); add_child(n)
+		n.global_position = Vector3(p.x, 0.0, p.z) + fwd * 0.7; n.rotation = Vector3(0, player.rotation.y, 0)
+		_set_solid(n, true)
+		if carrying_big["spot"]: carrying_big["spot"]["pos"] = n.global_position; carrying_big["spot"]["yaw"] = player.rotation.y
+		carrying_big = {}; player.pose_request = ""
+		player.action = "grab"; action_until = now + 0.4
+		return
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind == "apple":
@@ -663,9 +748,40 @@ func _interact_check(now: float) -> void:
 	for r in residents:
 		var d3: float = p.distance_to(r.global_position)
 		if d3 < 1.3 and d3 < best_d and r.state != "down": best = { "kind": "resident", "node": r }; best_d = d3
+	for m in movables:
+		var d4: float = p.distance_to(m["node"].global_position)
+		if d4 < 0.9 and d4 < best_d: best = { "kind": "furniture", "entry": m }; best_d = d4
+	for sp in spots:
+		if sp["kind"] != "bed" and sp["kind"] != "shelf": continue
+		var d5: float = Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()
+		if d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
 	if best.is_empty():
 		return
 	match best["kind"]:
+		"furniture":
+			var e: Dictionary = best["entry"]
+			var n: Node3D = e["node"]
+			if e["kind"] == "chair":
+				# 의자에 앉기(벤치와 같은 규칙)
+				seat = { "pos": n.global_position, "yaw": n.rotation.y, "chair": true }
+				player.seated = true; player.move_dir = Vector3.ZERO; player.speed = 0.0; body.velocity = Vector3.ZERO
+				var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+				tw.tween_property(body, "position", n.global_position + Vector3(0, 0.03, 0.02), 0.3)
+				player.face(n.rotation.y)
+			elif e["kind"] == "lamp":
+				var l: OmniLight3D = n.get_meta("light"); l.visible = not l.visible
+				player.action = "grab"; action_until = now + 0.3
+		"bed":
+			# 눕기: 침대 위에서 쉬는 자세. 방향키로 일어난다
+			var sp: Dictionary = best["spot"]
+			resting = true; player.pose_request = "rest"; player.face(sp["yaw"])
+			body.velocity = Vector3.ZERO
+			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+			tw.tween_property(body, "position", sp["pos"] + Vector3(0, 0.02, 0), 0.35)
+		"shelf":
+			# 선반에서 책을 꺼내 읽는다(움직이면 끝)
+			var sp: Dictionary = best["spot"]
+			reading = true; player.pose_request = "read"; player.face(sp["yaw"])
 		"lamp":
 			# 가로등에 기대기(2D lean) — 움직이면 풀린다
 			var sp: Dictionary = best["spot"]
@@ -688,10 +804,7 @@ func _interact_check(now: float) -> void:
 			player.hold(it)
 			player.action = "grab"; action_until = now + 0.4
 		"door":
-			var dr: Dictionary = best["door"]
-			dr["open"] = not dr["open"]
-			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_CUBIC)
-			tw.tween_property(dr["hinge"], "rotation:y", 1.85 if dr["open"] else 0.0, 0.45)
+			set_door(best["door"], not best["door"]["open"])
 		"bench":
 			var b: Dictionary = best["bench"]
 			seat = b

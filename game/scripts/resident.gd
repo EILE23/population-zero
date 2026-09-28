@@ -15,6 +15,8 @@ var handle := ""
 var state := "routine"      # routine | walk | busy | down | getup | chase
 var spot: Dictionary = {}
 var target := Vector3.ZERO
+var route: Array = []          # 경유지 큐 [{pos, act}] — act: "open" | "close" | ""
+var door_ref: Dictionary = {}
 var busy_until := 0.0
 var down_until := 0.0
 var chase_until := 0.0
@@ -103,7 +105,16 @@ func _physics_process(delta: float) -> void:
 		"walk":
 			var to := target - global_position; to.y = 0.0
 			if to.length() < 0.35:
-				_arrive(now)
+				var step: Dictionary = route.pop_front() if not route.is_empty() else {}
+				if step.get("act", "") == "open": town.set_door(door_ref, true)
+				elif step.get("act", "") == "close": town.set_door(door_ref, false)
+				if route.is_empty():
+					if step.get("act", "") == "close":
+						state = "routine"; busy_until = now + randf_range(0.5, 2.0)
+					else:
+						_arrive(now)
+				else:
+					target = route[0]["pos"]
 			else:
 				var dir := to.normalized()
 				v.x = dir.x * WALK; v.z = dir.z * WALK
@@ -162,9 +173,17 @@ func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
 	spot = town.spots[randi() % town.spots.size()]
-	target = spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5 if spot["kind"] != "bench" else 0.45)
-	if spot["kind"] == "bench":
-		target = spot["pos"] + Vector3([-0.45, 0.0, 0.45][uid % 3], 0, 0.45)
+	route = []
+	if (spot["kind"] == "chair" or spot["kind"] == "bed" or spot["kind"] == "shelf") and spot.has("door"):
+		# 집 안 의자: 문 앞 → 문 열기 → 의자. 나올 땐 _leave 가 반대로
+		door_ref = spot["door"]
+		var dp: Vector3 = door_ref["pos"]
+		route = [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+	elif spot["kind"] == "bench":
+		route = [{ "pos": spot["pos"] + Vector3([-0.45, 0.0, 0.45][uid % 3], 0, 0.45), "act": "" }]
+	else:
+		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
+	target = route[0]["pos"]
 	state = "walk"
 
 func _arrive(now: float) -> void:
@@ -176,6 +195,19 @@ func _arrive(now: float) -> void:
 			global_position = spot["pos"] + Vector3([-0.45, 0.0, 0.45][uid % 3], 0.03, 0.02)
 			fig.face(spot.get("yaw", 0.0))
 			busy_until = now + randf_range(6.0, 14.0)
+		"chair":
+			fig.seated = true
+			global_position = spot["pos"] + Vector3(0, 0.03, 0.02)
+			fig.face(spot.get("yaw", 0.0))
+			busy_until = now + randf_range(6.0, 12.0)
+		"bed":
+			fig.pose_request = "rest"
+			global_position = spot["pos"] + Vector3(0, 0.02, 0)
+			fig.face(spot.get("yaw", 0.0))
+			busy_until = now + randf_range(8.0, 16.0)
+		"shelf":
+			fig.pose_request = "read"; fig.face(spot.get("yaw", PI))
+			busy_until = now + randf_range(4.0, 8.0)
 		"lamp":
 			fig.pose_request = "lean"; fig.face(spot.get("yaw", 0.0))
 			busy_until = now + randf_range(4.0, 9.0)
@@ -190,6 +222,12 @@ func _leave() -> void:
 	fig.seated = false; fig.pose_request = ""
 	if spot.get("kind", "") == "bench":
 		global_position += Vector3(0, 0, 0.45)
+	if spot.get("kind", "") in ["chair", "bed", "shelf"] and not door_ref.is_empty():
+		global_position += Vector3(0, 0, 0.35)
+		var dp: Vector3 = door_ref["pos"]
+		route = [{ "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": dp + Vector3(0, 0, 0.8), "act": "close" }]
+		target = route[0]["pos"]; state = "walk"
+		return
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 2.0)
 
 ## 맞음 — from_dir 은 때린 방향(밀리는 쪽). heavy 면 바로 넘어진다; 아니면 3초 안에 세 대째에 넘어진다

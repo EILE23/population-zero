@@ -212,6 +212,9 @@ func _process(delta: float) -> void:
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
+	if pose_request == "rest":
+		pelvis.rotation.x = -1.5; lean = 0.25 + sin(_t * 1.6) * 0.02
+		pelvis.position.y = 0.16
 	torso.rotation.x = lean * 0.45
 	chest.rotation.x = lean * 0.55 + (0.18 * run_k if moving and not airborne else 0.0)  # 달리면 등이 둥글게 말린다
 	torso.rotation.y = -sw * 0.10 * run_k if moving else 0.0
@@ -249,6 +252,19 @@ func _process(delta: float) -> void:
 			# 서서 읽기(2D read): 두 손이 가슴 앞, 고개 숙임
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			sh.rotation.x = -(0.5); sh.rotation.z = -s * 0.15; el.rotation.x = -(1.7)
+		elif pose_request == "rest":
+			# 침대에 눕기(2D sit): 등을 대고 다리는 뻗고, 한 팔은 머리 뒤, 한 팔은 배 위
+			hip.rotation.x = -(0.1 + 0.05 * s); knee.rotation.x = -(-0.15 if s > 0.0 else -0.5)
+			if s > 0.0: sh.rotation.x = -(2.6); sh.rotation.z = -0.5; el.rotation.x = -(1.6)
+			else: sh.rotation.x = -(0.9); sh.rotation.z = 0.1; el.rotation.x = -(1.5)
+		elif pose_request == "carry":
+			# 가구 들기: 두 팔을 앞으로 내밀어 허리 높이에서 받쳐 든다, 걸음은 다리만
+			if moving:
+				var a := s * sw * 0.55 * run_k
+				hip.rotation.x = -(a); knee.rotation.x = -(-(1.0 if a < 0.0 else 0.15) * run_k)
+			else:
+				hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			sh.rotation.x = -(0.95); sh.rotation.z = -s * 0.12; el.rotation.x = -(1.35)
 		elif pose_request == "wave":
 			# 손 흔들기(2D wave): 오른팔을 머리 위로 들어 좌우로
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
