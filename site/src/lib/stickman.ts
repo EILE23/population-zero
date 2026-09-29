@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead' | 'shade';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -110,6 +110,17 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     hip = [0, -16]; shoulder = [0, -34]; head = [g, -42];
     line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
     line(shoulder, [-5, -26], [-6, -18]); line(shoulder, [5, -26], [6, -18]);
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'shade') {
+    // 손차양 — 전망 자리(3D shade, run 73): 오른손을 이마 위에 얹고 왼손은 허리에, 둘러보는 동안 고개와 어깨가 천천히 좌우로. 6초 한 바퀴: 0.35 손이 올라가고(예비) · 둘러보고(유지) · 끝 0.4 내린다(회수)
+    const c = t % 6, k = c < 0.35 ? c / 0.35 : c > 5.6 ? 1 - (c - 5.6) / 0.4 : 1;
+    const g = Math.sin(t * 0.9) * 3 * k;
+    hip = [0, -16]; shoulder = [g * 0.4, -34]; head = [g, -42];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [5, -9 + k], [4, 0]);
+    line(shoulder, [-5 - 3 * k, -26 - k], [-6 + 3 * k, -18 - k]); // 왼손 허리
+    line(shoulder, [5 + 5 * k, -26 - 15 * k], [6 + (g - 3) * k, -18 - 30 * k]); // 오른손 이마
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

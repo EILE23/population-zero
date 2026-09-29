@@ -378,15 +378,19 @@ func set_door(dr: Dictionary, open: bool) -> void:
 	var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_CUBIC)
 	tw.tween_property(dr["hinge"], "rotation:y", 1.85 if open else 0.0, 0.45)
 
-## 던져진 것의 포물선 — 중력, 바닥에 닿으면 멈추고 다시 집을 수 있는 목록으로
+## 던져진 것의 포물선 — 중력, 바닥(전망 언덕 위면 선반, ground_y)에 닿으면 멈추고 다시 집을 수 있는 목록으로. 바위 낯에 부딪히면 그 자리에서 곧장 떨어진다
 func _fly(delta: float) -> void:
 	for f in flying.duplicate():
 		var n: Node3D = f["node"]
 		f["vel"] += Vector3(0, -G, 0) * delta
+		var prev := n.global_position
 		n.global_position += f["vel"] * delta
 		n.rotation.x += f["spin"] * delta
-		if n.global_position.y <= 0.06:
-			n.global_position.y = 0.06
+		var gy := ground_y(n.global_position)
+		if n.global_position.y < gy - 0.06 and ground_y(prev) < gy:
+			n.global_position.x = prev.x; n.global_position.z = prev.z; f["vel"].x = 0.0; f["vel"].z = 0.0; gy = ground_y(prev)
+		if n.global_position.y <= gy + 0.06:
+			n.global_position.y = gy + 0.06
 			n.rotation = Vector3.ZERO
 			flying.erase(f)
 			items.append(n)

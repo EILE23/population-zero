@@ -237,6 +237,11 @@ func _arrive(now: float) -> void:
 		"tree":
 			fig.pose_request = "shake"; fig.face(atan2(spot["pos"].x - global_position.x, spot["pos"].z - global_position.z))
 			busy_until = now + randf_range(1.5, 3.0)
+		"lookout":
+			# 전망 자리(run 73, 전망 언덕): 난간 앞에서 손차양을 하고 마을을 둘러본다 — 사람이 C 로 하는 것과 같은 shade 자세, 한두 바퀴
+			fig.pose_request = "shade"; fig.face(spot.get("yaw", PI))
+			busy_until = now + StickPoses.SHADE_T * (1 + randi() % 2) + 0.3
+			say(["Quite a view.", "There is the bridge.", "You can see the lane."][uid % 3], 1.8)
 		"oven":
 			# 화덕(run 72): 창구에 모자란 만큼(최대 셋) 반죽 — 한 바퀴(KNEAD_T)에 빵 하나가 창구에 오른다(town_places _bakery). 사람이 C 로 하는 것과 같은 자세·같은 효과
 			var n: int = maxi(1, 3 - int((town.oven["counter"] as Dictionary).get("stock", 0)))

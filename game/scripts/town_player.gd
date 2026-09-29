@@ -171,7 +171,7 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request in ["eat", "drink", "wave", "water", "knead"]: player.pose_request = ""
-	if (reading or leaning or resting or player.pose_request in ["water", "knead"]) and dir != Vector3.ZERO:
+	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade"]) and dir != Vector3.ZERO:
 		reading = false; leaning = false; resting = false; player.pose_request = ""
 	if not pushing.is_empty() and dir != Vector3.ZERO:
 		if pushing["pusher"] == "player": pushing["pusher"] = null
@@ -345,7 +345,7 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양)
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": sp["kind"], "spot": sp }; best_d = d8
 	var pl := near_plot(p)
@@ -421,6 +421,10 @@ func _interact_check(now: float) -> void:
 			# 가로등에 기대기(2D lean) — 움직이면 풀린다
 			var sp: Dictionary = best["spot"]
 			leaning = true; player.pose_request = "lean"; player.face(sp["yaw"])
+		"lookout":
+			# 전망 언덕의 전망 자리(run 73): 난간 앞에서 손차양(shade) — 움직이면 풀린다. 주민도 같은 자리에서 같은 자세(resident.gd)
+			var sp: Dictionary = best["spot"]
+			player.pose_request = "shade"; player.face(sp["yaw"])
 		"resident":
 			# 인사: 손을 흔들면 주민이 돌아보고 답한다
 			var r: Node3D = best["node"]

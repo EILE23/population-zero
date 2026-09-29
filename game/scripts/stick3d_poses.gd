@@ -6,6 +6,7 @@ extends RefCounted
 ## 타이밍: `f.pose_t` 는 지금 자세가 시작된 뒤 흐른 시간 — 새 자세는 이걸로 예비(windup)·유지(hold)·회수(recovery)를 갖는다. 정지화 한 장은 자세가 아니다.
 
 const WATER_T := 2.4   # 물주기 한 번: 0.35 들어올림 → 붓기 → 마지막 0.35 바로 서기. 그 뒤엔 pose_request 가 풀릴 때까지 물뿌리개를 든 채 선다
+const SHADE_T := 6.0   # 손차양 한 바퀴(run 73, 전망 자리): 0.35 손이 이마로(예비) → 둘러보기(유지: 고개·몸통이 천천히 좌우) → 마지막 0.4 손을 내림(회수). 자세가 풀릴 때까지 되풀이
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -35,6 +36,8 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		# 반죽: 낮은 판 위로 숙이고, 누를 때마다 어깨가 조금 더 내려간다
 		var k := knead_k(f.pose_t)
 		lean = 0.22 * k + absf(sin(f._t * 7.0)) * 0.05 * k
+	if p == "shade" and not moving:
+		lean = -0.08 * shade_k(f.pose_t)   # 손차양: 멀리 보느라 살짝 뒤로 젖힌다 — 고개·몸통 돌림은 limbs 에서(몸통 y 는 그 뒤에 정해진다)
 	if p == "rest":
 		f.pelvis.rotation.x = -1.5; lean = 0.25 + sin(f._t * 1.6) * 0.02
 		f.pelvis.position.y = 0.16
@@ -54,6 +57,13 @@ static func knead_k(t: float) -> float:
 	if c > KNEAD_T - 0.3: return 1.0 - smoothstep(0.0, 1.0, (c - (KNEAD_T - 0.3)) / 0.3)
 	return 1.0
 
+## 손차양 진행 0..1 — 한 바퀴 SHADE_T 마다: 0.35초 손을 이마로(예비), 둘러보기(유지), 끝 0.4초 손을 내린다(회수). 그 다음 바퀴는 처음부터
+static func shade_k(t: float) -> float:
+	var c := fmod(t, SHADE_T)
+	if c < 0.35: return smoothstep(0.0, 1.0, c / 0.35)
+	if c > SHADE_T - 0.4: return 1.0 - smoothstep(0.0, 1.0, (c - (SHADE_T - 0.4)) / 0.4)
+	return 1.0
+
 ## 물뿌리개 물방울 — 든 것에 "drops" 입자가 달려 있으면(town_base make_item "can") 붓는 동안만 켠다
 static func drops(f: Stick3D, on: bool) -> void:
 	if f.carrying == null or not f.carrying.has_meta("drops"): return
@@ -61,7 +71,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water"]
+	return p in ["eat", "drink", "water", "shade"]
 
 ## 한쪽(s = -1 왼, +1 오른) 팔다리 — pose_request 에 맞는 자세가 있으면 대입하고 true, 없으면 false(호출자가 기지개·앉기·걷기로 이어간다)
 static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -> bool:
@@ -139,6 +149,17 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			var pr := sin(t * 7.0) * s
 			hip.rotation.x = -(0.04 * s * k); knee.rotation.x = -(-0.05 - 0.08 * k)
 			sh.rotation.x = -(0.05 + (0.45 + 0.15 * pr) * k); sh.rotation.z = -s * (0.04 + 0.06 * k); el.rotation.x = -(0.35 + (0.05 - 0.18 * pr) * k)
+		"shade":
+			# 손차양(운영자 보드의 '지도 읽기·둘러보기' 일상 가족 — run 73, 전망 언덕의 전망 자리): 오른손을 이마 위에 얹고 왼손은 허리에, 무게는 왼다리에(오른 무릎 살짝).
+			# k 가 예비·유지·회수를 만든다(손이 올라가고, 둘러보고, 내려온다); 둘러보는 동안 고개와 몸통이 천천히 좌우로 돈다 — 정지화가 아니다. 주민도 사람도 같은 자세
+			var k := shade_k(f.pose_t)
+			var scan := sin(t * 0.9) * k
+			hip.rotation.x = -(0.06 * s * k); knee.rotation.x = -(-0.05 - (0.12 * k if s > 0.0 else 0.0))
+			if s > 0.0:
+				sh.rotation.x = -(0.05 + 1.95 * k); sh.rotation.z = -0.35 * k; el.rotation.x = -(0.35 + 1.4 * k)
+				f.torso.rotation.y = scan * 0.2; f.neck.rotation.y = scan * 0.3
+			else:
+				sh.rotation.x = -(0.05 + 0.25 * k); sh.rotation.z = -s * 0.42 * k; el.rotation.x = -(0.35 + 1.15 * k)
 		_:
 			return false
 	return true

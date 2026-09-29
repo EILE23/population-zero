@@ -17,6 +17,7 @@ func _ready() -> void:
 	_district("lane", Vector3(0, 0, -15), _lane)
 	_river()                                                 # 남쪽 강과 돌다리 — 다리 건너 풀밭
 	_district("meadow", Vector3(0, 0, 18), _meadow)
+	_district("terrace", TERR_AT, _terrace)                  # 전망 언덕(run 73) — 풀밭 동쪽 끝의 풀 선반, 돌계단으로 오른다
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "accent-deep", false, 1)
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
 	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다

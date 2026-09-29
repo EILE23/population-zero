@@ -1,6 +1,6 @@
 class_name TownPlaces
 extends TownBuild
-## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭, 텃밭, 빵집 화덕. 상속 사슬: base → build → **places** → systems → player → town3d.
+## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭, 텃밭, 빵집 화덕, 전망 언덕. 상속 사슬: base → build → **places** → systems → player → town3d.
 ## town_build.gd 가 500줄 한도에 닿아 장소(지도 조각) 단위로 떼어 냈다: 여기엔 "어디에 무엇이 있나"와 그 장소의 길찾기만 둔다.
 
 const RIVER_N := 9.0      # 강 북쪽 둑(z) — 큰길(z≈2)과 가운데 울타리(z≈7.5) 남쪽
@@ -16,6 +16,11 @@ const STAGE_K := [0.3, 0.55, 0.8, 1.0]            # 단계별 풀 크기 — 3 �
 
 var rows: Array = []      # 텃밭 이랑 {kind, stage, plants: Array, fruit: Array, wet: MeshInstance3D, grow_at}
 var garden_at := Vector3.INF   # 텃밭 가운데 — 울타리 안팎 판정과 문(앞쪽 가운데) 경유에 쓴다
+const TERR_AT := Vector3(17, 0, 18.5)   # 전망 언덕 가운데(풀밭 동쪽 끝, run 73) — 선반 x 13..21, z 15.5..21.5
+const TERR_W := 8.0; const TERR_D := 6.0
+const TERR_H := 1.4                     # 선반 높이 — 꽉 찬 점프(1.25m)로는 못 오른다, 남쪽 낯의 돌계단이 유일한 길
+var terr_steps: Array = []              # 계단 경유지 [발치 앞(땅), 꼭대기 안쪽(선반)] — crossings 가 끼운다
+
 var oven: Dictionary = {}      # 빵집 화덕(run 72) {spot, counter, fire, dough, queue: 남은 덩이, done_at: 다음 빵이 나오는 시각, by: 반죽하는 이("player" | 주민 | null)}
 
 ## 북쪽 골목(2026-09-28 월요일 비전 런의 첫 조각 — 마을은 매달 눈에 띄게 넓어져야 한다): x=0 길이 북으로 이어져 동서 골목(z≈-13)과 만나고,
@@ -118,6 +123,44 @@ func _garden(at: Vector3) -> void:
 	var handle := _box(Vector3(0.05, 0.05, 0.4), at + Vector3(2.2, 0.98, 2.45), iron, false); handle.rotation.x = 0.7
 	_item("can", at + Vector3(2.75, 0, 2.7))
 
+## 전망 언덕(run 73, 구조 성장 — 동물의 숲 기준 "절벽과 단"): 풀밭 동쪽 끝에 바위 낯을 가진 풀 선반(8×6m, 1.4m). 오르는 길은 남쪽 낯의 돌계단 하나 —
+## 보이는 단은 장식이고 충돌은 _ramp 의 보이지 않는 경사(계단집 _stairs 와 같은 요령: 단을 한 칸씩 넘는 방식은 가끔 걸렸다). 위엔 마을 쪽 난간 앞의 전망 자리(shade 자세),
+## 벤치, 나무 한 그루 — 올라올 이유 셋. 주민 일과에 자리가 등록되니 사람들이 계단을 올라온다(crossings 가 계단 두 발치를 끼운다 — 곧장 가면 바위 낯에 막혀 포기한다)
+func _terrace(at: Vector3) -> void:
+	var rock := _mat(Color("9a8f86")); var dark := _mat(Color("7f746c"))
+	_box(Vector3(TERR_W, TERR_H - 0.1, TERR_D), at, rock)   # 바위 몸통(충돌)
+	_box(Vector3(TERR_W, 0.1, TERR_D), at + Vector3(0, TERR_H - 0.1, 0), _mat(Color.WHITE, _tex("ground/grass"), Vector3(TERR_W / TILE, TERR_D / TILE, 1)))   # 풀 뚜껑
+	var rr := RandomNumberGenerator.new(); rr.seed = 73
+	for i in 7:   # 바위 낯의 혹 — 남쪽 낯에 다섯, 서쪽 낯에 둘, 크기·높이가 조금씩 달라 벽돌처럼 안 읽힌다
+		var b := MeshInstance3D.new(); var bs := SphereMesh.new(); var r := rr.randf_range(0.35, 0.6)
+		bs.radius = r; bs.height = r * 1.3; bs.radial_segments = 10; bs.rings = 5; b.mesh = bs
+		b.material_override = dark if i % 2 == 0 else rock
+		var y := rr.randf_range(0.2, TERR_H - 0.6)
+		b.position = at + (Vector3(-TERR_W / 2.0 + 2.9 + (i * 1.1), y, TERR_D / 2.0 - 0.1) if i < 5 else Vector3(-TERR_W / 2.0 - 0.1, y, -1.5 + (i - 5) * 2.2))
+		_add(b)
+	# 돌계단: 남쪽 낯 서쪽에서 북으로(−z) 오른다. 한 단 0.3 깊이, 꼭대기 단의 뒷면이 선반 남쪽 낯에 닿는다
+	var n := int(ceil(TERR_H / 0.25)); var rise := TERR_H / n
+	var foot := at + Vector3(-TERR_W / 2.0 + 1.5, 0, TERR_D / 2.0 + n * 0.3 - 0.15)
+	for i in n:
+		_box(Vector3(1.4, rise * (i + 1), 0.3), foot + Vector3(0, 0, -i * 0.3), _mat(Color("bfb6b0")), false)
+	_ramp(foot + Vector3(0, 0, 0.15), 1.4, TERR_H, n * 0.3)
+	terr_steps = [foot + Vector3(0, 0, 0.75), foot + Vector3(0, TERR_H, -n * 0.3 - 0.5)]
+	# 위: 마을 쪽(북) 가장자리의 난간, 그 앞의 전망 자리, 벤치와 나무
+	_fence(at + Vector3(-3.0, TERR_H, -TERR_D / 2.0 + 0.35), 6.0)
+	spots.append({ "pos": at + Vector3(0.4, TERR_H, -TERR_D / 2.0 + 0.7), "kind": "lookout", "yaw": PI })
+	_bench(at + Vector3(2.4, TERR_H, 1.4))
+	_tree(at + Vector3(-2.2, TERR_H, 0.6), 0.9)
+
+## 이 자리의 땅 높이 — 전망 언덕 선반 위면 TERR_H, 아니면 0. 던져진 것·떨어진 사과가 선반 위에 놓이게(_fly) — 바닥 0 까지 떨어지면 바위 속에 묻힌다
+func ground_y(p: Vector3) -> float:
+	return TERR_H if absf(p.x - TERR_AT.x) < TERR_W / 2.0 and absf(p.z - TERR_AT.z) < TERR_D / 2.0 else 0.0
+
+## 언덕 위의 점이면 계단 두 발치(꼭대기 안쪽·발치 앞), 아니면 없음. inward 면 발치 → 꼭대기 순서
+func _terr_steps(p: Vector3, inward: bool) -> Array:
+	if terr_steps.is_empty() or ground_y(p) <= 0.0: return []
+	var f := { "pos": terr_steps[0], "act": "" }; var t := { "pos": terr_steps[1], "act": "" }
+	return [f, t] if inward else [t, f]
+
 ## 이랑의 단계 — 풀 크기와 열매 보임
 func _set_stage(row: Dictionary, stage: int) -> void:
 	row["stage"] = stage
@@ -163,10 +206,10 @@ func _flow(delta: float) -> void:
 		n.position.x += float(g["v"]) * k * delta
 		if n.position.x > WORLD_X: n.position.x -= WORLD_X * 2.0
 
-## 경유지 — 출발과 도착이 강의 다른 편이면 다리 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을 거친다
-## (곧장 가면 물 위 벽이나 울타리 기둥에 막혀 우회하다 포기했다 — polish run 71: 주민이 텃밭 이랑에 한 번도 못 닿았다)
+## 경유지 — 출발과 도착이 강의 다른 편이면 다리 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을, 전망 언덕을 오르내리면 계단을 거친다
+## (곧장 가면 물 위 벽이나 울타리 기둥·바위 낯에 막혀 우회하다 포기했다 — polish run 71: 주민이 텃밭 이랑에 한 번도 못 닿았다)
 func crossings(from: Vector3, to: Vector3) -> Array:
-	var out := _gate_steps(from, false); var inn := _gate_steps(to, true)
+	var out := _gate_steps(from, false) + _terr_steps(from, false); var inn := _terr_steps(to, true) + _gate_steps(to, true)
 	var mid := (RIVER_N + RIVER_S) / 2.0
 	if (from.z < mid) == (to.z < mid): return out + inn
 	var n := { "pos": Vector3(randf_range(-0.4, 0.4), 0, RIVER_N - 1.1), "act": "" }
