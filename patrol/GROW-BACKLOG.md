@@ -593,3 +593,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-29) Add a lamplighter job and a small lamphouse building so one resident lights and tends street lamps at dusk/dawn and can relight player-held lanterns with a quick assist.
 - [ ] (town wish, 2026-09-29) Add covered 'shelter' booth and awning spots that residents detour to when it rains, gets hot, or after dusk and that accept a short 'wait-sheltered' player action to dry off/seek shade.
 - [ ] (town wish, 2026-09-29) Add a misting kiosk booth in the park that activates on hot days so residents detour to 'cool off' and players can use a short interactable 'cool' action.
+- [ ] (town wish, 2026-09-29) Add a community umbrella-rack booth in the square that dispenses a reusable umbrella prop players and residents can pick up and open; when rain starts residents grab umbrellas and enter a short 'covered' idle that blocks
