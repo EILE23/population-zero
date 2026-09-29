@@ -6,6 +6,7 @@ extends RefCounted
 ## 타이밍: `f.pose_t` 는 지금 자세가 시작된 뒤 흐른 시간 — 새 자세는 이걸로 예비(windup)·유지(hold)·회수(recovery)를 갖는다. 정지화 한 장은 자세가 아니다.
 
 const WATER_T := 2.4   # 물주기 한 번: 0.35 들어올림 → 붓기 → 마지막 0.35 바로 서기. 그 뒤엔 pose_request 가 풀릴 때까지 물뿌리개를 든 채 선다
+const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
 static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
@@ -30,6 +31,10 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		# 물주기(2D water): 앞으로 숙여 붓는다 — 붓는 동안 살짝 흔들린다(물뿌리개 무게)
 		var k := water_k(f.pose_t)
 		lean = 0.3 * k + sin(f._t * 3.0) * 0.03 * k
+	if p == "knead" and not moving:
+		# 반죽: 낮은 판 위로 숙이고, 누를 때마다 어깨가 조금 더 내려간다
+		var k := knead_k(f.pose_t)
+		lean = 0.22 * k + absf(sin(f._t * 7.0)) * 0.05 * k
 	if p == "rest":
 		f.pelvis.rotation.x = -1.5; lean = 0.25 + sin(f._t * 1.6) * 0.02
 		f.pelvis.position.y = 0.16
@@ -40,6 +45,13 @@ static func water_k(t: float) -> float:
 	if t >= WATER_T: return 0.0
 	if t < 0.35: return smoothstep(0.0, 1.0, t / 0.35)
 	if t > WATER_T - 0.35: return 1.0 - smoothstep(0.0, 1.0, (t - (WATER_T - 0.35)) / 0.35)
+	return 1.0
+
+## 반죽 진행 0..1 — 한 덩이(KNEAD_T)마다 되풀이: 0.3초 손을 판 위로(예비), 누르기(유지), 끝 0.3초 옆으로 밀어 놓기(회수). 그 다음 덩이는 처음부터
+static func knead_k(t: float) -> float:
+	var c := fmod(t, KNEAD_T)
+	if c < 0.3: return smoothstep(0.0, 1.0, c / 0.3)
+	if c > KNEAD_T - 0.3: return 1.0 - smoothstep(0.0, 1.0, (c - (KNEAD_T - 0.3)) / 0.3)
 	return 1.0
 
 ## 물뿌리개 물방울 — 든 것에 "drops" 입자가 달려 있으면(town_base make_item "can") 붓는 동안만 켠다
@@ -120,6 +132,13 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 				drops(f, k > 0.95)
 			else:
 				sh.rotation.x = -(0.15 + 0.25 * k); sh.rotation.z = 0.12; el.rotation.x = -(0.6)
+		"knead":
+			# 반죽(운영자 보드의 부엌·빵집 가족 — run 72, 빵집 화덕): 낮은 판 앞에 숙여 두 손이 번갈아 반죽을 누른다 — 누르는 손은 앞·아래로 뻗고 반대 손은 접혀 들린다.
+			# k 가 예비·유지·회수를 만든다(판에 손을 올리고, 누르고, 옆으로 밀어 놓는다); 발은 어깨 너비, 무릎은 살짝. 한 바퀴 KNEAD_T 에 빵 하나(town_places _bakery)
+			var k := knead_k(f.pose_t)
+			var pr := sin(t * 7.0) * s
+			hip.rotation.x = -(0.04 * s * k); knee.rotation.x = -(-0.05 - 0.08 * k)
+			sh.rotation.x = -(0.05 + (0.45 + 0.15 * pr) * k); sh.rotation.z = -s * (0.04 + 0.06 * k); el.rotation.x = -(0.35 + (0.05 - 0.18 * pr) * k)
 		_:
 			return false
 	return true

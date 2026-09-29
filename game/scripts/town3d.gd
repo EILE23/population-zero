@@ -9,6 +9,8 @@ func _ready() -> void:
 	_path(Vector3(-WORLD_X, 0, 2), Vector3(WORLD_X, 0, 2), 2.4)  # 큰길: 공원 ↔ 마을 ↔ 시장
 	_district("park", Vector3(-31, 0, -2), _park)
 	_district("market", Vector3(31, 0, -2), _market)
+	var bc: Dictionary = spots.filter(func(sp): return sp["kind"] == "counter" and sp.has("stock"))[0]   # 빵집 창구 — 재고가 있는 유일한 창구
+	_district("bakery", Vector3(31, 0, -2), func(c: Vector3) -> void: _oven(c + Vector3(-4.3, 0, -5.9), bc))   # 화덕(run 72) — 문 오른쪽 바깥, 창구·문·화덕이 한 줄. 시장과 같은 중심이라 같이 켜고 꺼진다
 	_sun = get_node_or_null("Sun")
 	_path(Vector3(0, 0, 2), Vector3(0, 0, -3.6), 2.0)      # 가운데 집 현관까지(전엔 집 밑을 지나 -10 까지 갔다)
 	_path(Vector3(3.35, 0, 2), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지

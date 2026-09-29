@@ -1,6 +1,6 @@
 class_name TownPlaces
 extends TownBuild
-## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭. 상속 사슬: base → build → **places** → systems → player → town3d.
+## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭, 텃밭, 빵집 화덕. 상속 사슬: base → build → **places** → systems → player → town3d.
 ## town_build.gd 가 500줄 한도에 닿아 장소(지도 조각) 단위로 떼어 냈다: 여기엔 "어디에 무엇이 있나"와 그 장소의 길찾기만 둔다.
 
 const RIVER_N := 9.0      # 강 북쪽 둑(z) — 큰길(z≈2)과 가운데 울타리(z≈7.5) 남쪽
@@ -16,6 +16,7 @@ const STAGE_K := [0.3, 0.55, 0.8, 1.0]            # 단계별 풀 크기 — 3 �
 
 var rows: Array = []      # 텃밭 이랑 {kind, stage, plants: Array, fruit: Array, wet: MeshInstance3D, grow_at}
 var garden_at := Vector3.INF   # 텃밭 가운데 — 울타리 안팎 판정과 문(앞쪽 가운데) 경유에 쓴다
+var oven: Dictionary = {}      # 빵집 화덕(run 72) {spot, counter, fire, dough, queue: 남은 덩이, done_at: 다음 빵이 나오는 시각, by: 반죽하는 이("player" | 주민 | null)}
 
 ## 북쪽 골목(2026-09-28 월요일 비전 런의 첫 조각 — 마을은 매달 눈에 띄게 넓어져야 한다): x=0 길이 북으로 이어져 동서 골목(z≈-13)과 만나고,
 ## 남향 집 세 채가 골목을 본다. 집 생성기가 문·침대·의자·선반을 등록하니 주민 명부의 집 배정(home_door = doors[i % n])에 저절로 들어가
@@ -191,3 +192,80 @@ func near_plot(p: Vector3) -> Dictionary:
 		var d := plot_dist(p, sp)
 		if d < best_d: best = sp; best_d = d
 	return best
+
+# ── 빵집(비전 4단계, run 72): 창구의 빵은 셋뿐이고 사면 준다. 비면 "Sold out." — 빵집 주인(문에 job 이 적힌 집의 주민)이 문 옆 화덕에서 반죽해 채운다.
+#    사람도 같은 화덕에서 C 로 반죽할 수 있고(주민만의 힘은 없다), 주민도 창구에서 빵을 받아 세 입에 먹는다(resident.gd "counter"). 빵은 누가 반죽하는 동안에만 나온다 ──
+
+## 화덕 — 문 옆 바깥(빵집 안은 침대·식탁·선반으로 꽉 찼다): 돌 받침(윗면 0.55 = 반죽판), 그 뒤 벽돌 아치와 검은 아궁이, 연통, 판 위의 반죽 덩이. 반죽하는 동안 아궁이가 달아오른다
+func _oven(at: Vector3, counter: Dictionary) -> void:
+	_box(Vector3(1.0, 0.55, 0.7), at, _mat(Color("bfb6b0")))
+	_box(Vector3(0.8, 0.55, 0.36), at + Vector3(0, 0.55, -0.17), _mat(Color("b56a5a")), false)
+	_box(Vector3(0.44, 0.3, 0.05), at + Vector3(0, 0.62, 0.02), _mat(Color("1b0c15")), false)
+	var fm := StandardMaterial3D.new(); fm.albedo_color = Color("d98a2a"); fm.emission_enabled = true; fm.emission = Color("d98a2a"); fm.emission_energy_multiplier = 1.6
+	var fire := _box(Vector3(0.36, 0.18, 0.03), at + Vector3(0, 0.65, 0.05), fm, false); fire.visible = false
+	_box(Vector3(0.14, 0.5, 0.14), at + Vector3(0.25, 1.1, -0.2), _mat(Color("4a4a52")), false)
+	var dough := MeshInstance3D.new(); var ds := SphereMesh.new(); ds.radius = 0.11; ds.height = 0.14; dough.mesh = ds
+	dough.material_override = _mat(Color("efe9e2")); dough.position = at + Vector3(0, 0.6, 0.15); _add(dough)
+	var sp := { "pos": at + Vector3(0, 0, 0.85), "kind": "oven", "yaw": PI }
+	spots.append(sp)
+	oven = { "spot": sp, "counter": counter, "fire": fire, "dough": dough, "queue": 0, "done_at": -1.0, "by": null }
+
+## 창구 재고 하나 줄이기 — 진열 빵이 하나 사라지고, 다 떨어지면 팻말. 없으면 false. 사람도 주민도 이걸 부른다
+func counter_take(sp: Dictionary) -> bool:
+	if int(sp.get("stock", 0)) <= 0: return false
+	sp["stock"] = int(sp["stock"]) - 1
+	_show_stock(sp)
+	return true
+
+func _show_stock(sp: Dictionary) -> void:
+	var shown: Array = sp.get("shown", [])
+	for i in shown.size(): (shown[i] as Node3D).visible = i < int(sp["stock"])
+	if sp.has("sign"): (sp["sign"] as Label3D).visible = int(sp["stock"]) <= 0
+
+## 반죽 시작 — by 가 n 덩이를 KNEAD_T 마다 하나씩 빵으로. 이미 누가 반죽 중이면 그 줄은 그대로(둘이 한 판을 쓰진 않는다)
+func bake(now: float, n: int, by: Variant) -> void:
+	if oven.is_empty() or (int(oven["queue"]) > 0 and oven["by"] != by): return
+	oven["queue"] = n; oven["by"] = by
+	if float(oven["done_at"]) < 0.0: oven["done_at"] = now + StickPoses.KNEAD_T
+	(oven["fire"] as Node3D).visible = true
+
+## 반죽하던 이가 판을 떠나면(맞거나, 걸어가거나) 남은 덩이는 없던 일 — 빵은 누가 반죽하는 동안에만 나온다
+func _oven_stop() -> void:
+	oven["queue"] = 0; oven["done_at"] = -1.0; oven["by"] = null
+	(oven["fire"] as Node3D).visible = false; (oven["dough"] as Node3D).scale = Vector3.ONE
+
+## 매 프레임: 반죽하는 이가 아직 판 앞에 있으면 덩이가 눌리고, 한 바퀴가 끝날 때마다 창구에 빵 하나(셋까지). 줄이 끝나면 불을 끈다
+func _bakery(now: float) -> void:
+	if oven.is_empty() or int(oven["queue"]) <= 0: return
+	var by: Variant = oven["by"]
+	var kneading: bool = player.pose_request == "knead" if by is String else (by is ResidentBase and (by as ResidentBase).fig.pose_request == "knead")
+	if not kneading:
+		_oven_stop(); return
+	var sq := absf(sin(now * 7.0))
+	(oven["dough"] as Node3D).scale = Vector3(1.0 + 0.25 * sq, 1.0 - 0.3 * sq, 1.0 + 0.25 * sq)
+	if now < float(oven["done_at"]): return
+	var c: Dictionary = oven["counter"]
+	c["stock"] = mini(3, int(c.get("stock", 0)) + 1); _show_stock(c)
+	var q := int(oven["queue"]) - 1
+	oven["queue"] = q; oven["done_at"] = now + StickPoses.KNEAD_T
+	if q <= 0: _oven_stop()
+
+## 빵집 주인이 화덕에 갈 이유(resident.gd _pick_spot) — 창구가 덜 찼고, 판이 비었고, 빈손이면 화덕 자리. 아니면 {}
+func bake_spot(r: ResidentBase) -> Dictionary:
+	if oven.is_empty() or r.fig.carrying or int(oven["queue"]) > 0: return {}
+	var sp: Dictionary = oven["spot"]
+	if int((oven["counter"] as Dictionary).get("stock", 0)) >= 3 or r._free_slot(sp) < 0: return {}
+	return sp
+
+## 사람이 화덕 앞에서 C(town_player) — 빈손이면 반죽 한 바퀴(knead 자세 KNEAD_T), 끝나면 창구에 빵 하나. 창구가 이미 셋이면 반죽만 하고 빵은 안 는다(자세는 그래도 나온다)
+func oven_use(sp: Dictionary, now: float) -> void:
+	player.face(sp["yaw"])
+	player.pose_request = "knead"; use_until = now + StickPoses.KNEAD_T + 0.15; action_until = now + StickPoses.KNEAD_T + 0.15   # 자세가 빵보다 먼저 풀리면 _bakery 가 '떠났다'로 읽어 빵이 안 나온다 — 0.15 뒤에 푼다
+	bake(now, 1, "player")
+
+## 사람이 창구 앞에서 C(town_player) — 재고가 있으면 빵(빵집)이나 컵(카페, 재고 없음 = 늘 있음)을 손에. 빵집이 비었으면 팻말이 답한다(코인 결제는 다음 조각)
+func counter_use(sp: Dictionary, now: float) -> void:
+	player.face(sp["yaw"])
+	if sp.has("stock") and not counter_take(sp): return
+	var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
+	player.hold(it); player.action = "grab"; action_until = now + 0.4

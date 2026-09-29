@@ -170,8 +170,8 @@ func _physics_process(delta: float) -> void:
 		shake_until = -1.0; player.pose_request = ""
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
-		if player.pose_request in ["eat", "drink", "wave", "water"]: player.pose_request = ""
-	if (reading or leaning or resting or player.pose_request == "water") and dir != Vector3.ZERO:
+		if player.pose_request in ["eat", "drink", "wave", "water", "knead"]: player.pose_request = ""
+	if (reading or leaning or resting or player.pose_request in ["water", "knead"]) and dir != Vector3.ZERO:
 		reading = false; leaning = false; resting = false; player.pose_request = ""
 	if not pushing.is_empty() and dir != Vector3.ZERO:
 		if pushing["pusher"] == "player": pushing["pusher"] = null
@@ -188,6 +188,7 @@ func _physics_process(delta: float) -> void:
 	_wind(delta)
 	_flow(delta)
 	_crops(now)
+	_bakery(now)
 
 ## 가구 들기(C 길게) — 두 손에 들고 옮긴다(carry 자세). 든 동안 충돌은 끈다
 func _pick_furniture(now: float) -> void:
@@ -344,13 +345,9 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if sp["kind"] != "hatstand": continue
-		var d9: float = p.distance_to(sp["pos"])
-		if d9 < 1.1 and d9 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "hatstand", "spot": sp }; best_d = d9
-	for sp in spots:
-		if sp["kind"] != "counter": continue
+		if not (sp["kind"] in ["hatstand", "counter", "oven"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽)
 		var d8: float = p.distance_to(sp["pos"])
-		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "counter", "spot": sp }; best_d = d8
+		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": sp["kind"], "spot": sp }; best_d = d8
 	var pl := near_plot(p)
 	if not pl.is_empty() and plot_dist(p, pl) < best_d: best = { "kind": "plot", "spot": pl }; best_d = plot_dist(p, pl)
 	for sw in swings:
@@ -375,11 +372,9 @@ func _interact_check(now: float) -> void:
 		"plot":
 			garden_use(best["spot"], now)   # 텃밭: 물뿌리개를 들었으면 물 주기, 빈손이면 익은 것 따기(town_places)
 		"counter":
-			# 창구: 커피(카페) 또는 빵(빵집)을 받는다 — 지금은 공짜, 코인 결제는 다음 조각
-			var sp: Dictionary = best["spot"]
-			player.face(sp["yaw"])
-			var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
-			player.hold(it); player.action = "grab"; action_until = now + 0.4
+			counter_use(best["spot"], now)   # 창구: 빵(재고 셋, 비면 "Sold out.")이나 컵을 받는다 — 지금은 공짜, 코인 결제는 다음 조각(town_places)
+		"oven":
+			oven_use(best["spot"], now)   # 화덕: 반죽 한 바퀴(knead 자세)로 창구에 빵 하나 — 빵집 주인이 하는 것과 같은 자세·같은 효과(town_places)
 		"swing":
 			var sw: Dictionary = best["swing"]
 			if not riding.is_empty():

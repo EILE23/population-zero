@@ -179,6 +179,15 @@ func _draw() -> void:
 				var p := fmod(t * 2.0 + float(k) / 3.0, 1.0)
 				draw_circle(Vector2(27 + k * 3, -10 + p * 10), 1.4, Color("8fb8cc"))
 			_head(head)
+		"knead":
+			var pr := (sin(t * 7.0) + 1.0) / 2.0
+			shoulder = Vector2(6, -31); head = Vector2(9, -38)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-4, -8), Vector2(-5, 0)); _ln(hip, Vector2(5, -8), Vector2(6, 0))
+			_ln(shoulder, Vector2(13, -25 + pr * 2.0), Vector2(17, -18 + pr * 3.0)); _ln(shoulder, Vector2(11, -25 + (1.0 - pr) * 2.0), Vector2(15, -18 + (1.0 - pr) * 3.0))
+			draw_line(Vector2(10, -14), Vector2(26, -14), color, 1.6, true)
+			draw_circle(Vector2(17, -16.5 + pr), 3.2 - pr * 0.6, Color("e6d3a5"))
+			_head(head)
 		"sweep":
 			var p := sin(t * 5.0) * 6.0
 			shoulder = Vector2(6, -31); head = Vector2(9, -39)

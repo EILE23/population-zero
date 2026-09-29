@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -326,6 +326,17 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     line(shoulder, [15, -24], [18, -16]); line(shoulder, [4, -24], [6, -18]);
     ctx.beginPath(); ctx.moveTo(15, -16); ctx.lineTo(25, -16); ctx.lineTo(23, -8); ctx.lineTo(17, -8); ctx.closePath(); ctx.stroke(); // 물뿌리개
     ctx.fillStyle = '#8fb8cc'; for (let k = 0; k < 3; k++) { const p = ((t * 2 + k / 3) % 1); ctx.beginPath(); ctx.arc(27 + k * 3, -10 + p * 10, 1.4, 0, 6.29); ctx.fill(); } ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'knead') {
+    // 반죽 — 낮은 판 앞에 숙여 두 손이 번갈아 반죽을 누른다(누르는 손은 앞·아래, 반대 손은 들림), 반죽은 눌릴 때 납작해진다. 3D 는 stick3d_poses.gd 'knead'
+    const pr = (Math.sin(t * 7) + 1) / 2;
+    hip = [0, -16]; shoulder = [6, -31]; head = [9, -38];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [5, -8], [6, 0]);
+    line(shoulder, [13, -25 + pr * 2], [17, -18 + pr * 3]); line(shoulder, [11, -25 + (1 - pr) * 2], [15, -18 + (1 - pr) * 3]);
+    ctx.lineWidth = 1.6; line([10, -14], [26, -14]); ctx.lineWidth = 2.4; // 반죽판
+    ctx.fillStyle = '#e6d3a5'; ctx.beginPath(); ctx.ellipse(17, -16.5 + pr, 4 + pr * 1.5, 2.6 - pr * 0.8, 0, 0, 6.29); ctx.fill(); ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

@@ -17,6 +17,7 @@ func _residents(n: int) -> void:
 		add_child(r)
 		r.setup(self, int(row["id"]), String(row["handle"]))
 		r.home_door = doors[i % doors.size()] if not doors.is_empty() else {}
+		r.job = String(r.home_door.get("job", ""))   # 문에 적힌 일자리(빵집 문 → "baker") — 일은 진짜 장소에 매인다(run 72)
 		r.position = Vector3(rng.randf_range(-WORLD_X + 4.0, WORLD_X - 4.0), 0.02, rng.randf_range(-2.0, 7.0))
 		residents.append(r)
 
@@ -292,8 +293,9 @@ func _market(at: Vector3) -> void:
 	for i in 4:
 		_stall(at + Vector3(-7.5 + i * 5.0, 0, -1.5), [Color("ad7096"), Color("7a9b4e"), Color("e8c766"), Color("8fb8cc")][i])
 	_house(at + Vector3(-6, 0, -8), Vector3(5.0, 2.8, 3.6), Color("e6d3a5"), "accent-deep", false, 11)  # 빵집(집 생성기)
+	doors[doors.size() - 1]["job"] = "baker"   # 이 문의 주민이 빵집 주인(_residents 가 읽는다) — 창구가 비면 화덕에서 반죽해 채운다(run 72)
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
-	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"))   # 빵집 창구(정면 왼쪽)
+	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"), 3)   # 빵집 창구(정면 왼쪽) — 빵 셋, 팔리면 준다. 화덕은 town3d._ready 가 문 오른쪽에(places 층이라 여선 못 부른다)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
 	_hatstand(at + Vector3(-9.6, 0, 4.5))   # 모자 거치대 — C 로 하나 집어 쓴다
 	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
@@ -328,13 +330,20 @@ func _hatstand(at: Vector3) -> void:
 		var h := Wear.make(["cap", "straw", "tophat", "beanie"][i], Wear.palette(i * 7)); h.position = at + Vector3(sin(a) * 0.3, 1.58 - i * 0.12, cos(a) * 0.3); h.rotation.x = 0.3; _add(h)
 	spots.append({ "pos": at + Vector3(0, 0, 0.7), "kind": "hatstand", "yaw": PI })
 
-## 창구 — 벽 앞의 작은 카운터와 차양, 진열된 물건. C 로 물건을 받는다(spots kind "counter")
-func _counter(at: Vector3, item: String, c: Color) -> void:
+## 창구 — 벽 앞의 작은 카운터와 차양, 진열된 물건. C 로 물건을 받는다(spots kind "counter"). stock > 0 이면 진열된 것이 곧 재고(run 72): 팔리면 하나씩 사라지고 비면 팻말
+func _counter(at: Vector3, item: String, c: Color, stock := 0) -> Dictionary:
 	_box(Vector3(1.2, 0.95, 0.5), at, _mat(c))
 	var awn := _box(Vector3(1.4, 0.05, 0.7), at + Vector3(0, 1.9, 0.15), _mat(Color("ad7096")), false); awn.rotation.x = 0.2
+	var shown: Array = []
 	for i in 3:
-		var g := make_item(item, at + Vector3(-0.35 + i * 0.35, 0.95, 0.05)); items.erase(g)   # 진열용(집을 수 없음)
-	spots.append({ "pos": at + Vector3(0, 0, 0.8), "kind": "counter", "yaw": PI, "item": item })
+		var g := make_item(item, at + Vector3(-0.35 + i * 0.35, 0.95, 0.05)); items.erase(g); shown.append(g)   # 진열용(집을 수 없음)
+	var sp := { "pos": at + Vector3(0, 0, 0.8), "kind": "counter", "yaw": PI, "item": item }
+	if stock > 0:
+		var sign := Label3D.new(); sign.text = "Sold out."; sign.font_size = 26; sign.pixel_size = 0.004; sign.modulate = Color("1b0c15")
+		sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED; sign.position = at + Vector3(0, 1.25, 0.3); sign.visible = false; _add(sign)
+		sp["stock"] = stock; sp["shown"] = shown; sp["sign"] = sign
+	spots.append(sp)
+	return sp
 
 func _stall(at: Vector3, awning: Color) -> void:
 	var wood := _mat(Color("8a6a4a"))
