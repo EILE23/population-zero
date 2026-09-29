@@ -7,15 +7,15 @@ extends Node3D
 const SPECS := {
 	"dog":    { "path": "res://assets/models/animals/quaternius/ShibaInu.gltf", "scale": 0.155, "yaw": 0.0, "walk_speed": 1.4, "run_speed": 3.2,
 		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "stalk": "Walk", "sit": "Idle_2", "lie": "Idle_2_HeadLow", "sniff": "Idle_2_HeadLow",
-			"eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack", "bow": "Idle_2_HeadLow", "roll": "Death", "stretch": "Idle_2_HeadLow", "yawn": "Idle_2", "pet": "Idle_2_HeadLow", "shake": "Idle_HitReact2", "scratch": "Idle_2", "jump": "Gallop_Jump",
+			"eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack", "bow": "Idle_2_HeadLow", "roll": "Death", "stun": "Death", "stretch": "Idle_2_HeadLow", "yawn": "Idle_2", "pet": "Idle_2_HeadLow", "shake": "Idle_HitReact2", "scratch": "Idle_2", "jump": "Gallop_Jump",
 			"nuzzle": "Idle_2_HeadLow", "hop": "Gallop_Jump", "beg": "Idle_2" } },
 	"fox":    { "path": "res://assets/models/animals/quaternius/Fox.gltf", "scale": 0.15, "yaw": 0.0, "walk_speed": 1.4, "run_speed": 3.6,
 		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "stalk": "Walk", "sit": "Idle_2", "lie": "Idle_2_HeadLow", "sniff": "Idle_2_HeadLow",
-			"eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack", "stretch": "Idle_2_HeadLow", "yawn": "Idle_2", "jump": "Gallop_Jump" } },
+			"eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack", "stretch": "Idle_2_HeadLow", "yawn": "Idle_2", "jump": "Gallop_Jump", "stun": "Death" } },
 	"wolf":   { "path": "res://assets/models/animals/quaternius/Wolf.gltf", "scale": 0.19, "yaw": 0.0, "walk_speed": 1.5, "run_speed": 4.0,
-		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "stalk": "Walk", "lie": "Idle_2_HeadLow", "eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack" } },
+		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "stalk": "Walk", "lie": "Idle_2_HeadLow", "eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack", "stun": "Death" } },
 	"deer":   { "path": "res://assets/models/animals/quaternius/Deer.gltf", "scale": 0.2, "yaw": 0.0, "walk_speed": 1.5, "run_speed": 4.5,
-		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "lie": "Idle_Headlow", "eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack_Headbutt", "jump": "Gallop_Jump" } },
+		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "lie": "Idle_Headlow", "eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack_Headbutt", "jump": "Gallop_Jump", "stun": "Death" } },
 }
 
 var kind := "dog"
@@ -39,7 +39,8 @@ var _cur := ""
 var _look: HeadLook
 var _roll_t := -1.0          # 뒹굴기 진행(초), -1 = 아님
 var _pivot: Node3D
-var _roll_back := false      # 뒹굴기 후반: Death 클립을 거꾸로 돌려 일어나는 중
+var _roll_back := false
+var _stun_t := -1.0      # 뒹굴기 후반: Death 클립을 거꾸로 돌려 일어나는 중
 var _pitch := 0.0            # 놀자 자세: 앞을 낮춘다(모델 노드 기울임)
 
 ## 모델을 불러 크기·방향을 맞춘다. 절차 리그와 같은 시그니처가 아니므로 town_build 가 kind 로 고른다
@@ -83,6 +84,9 @@ func act(name: String) -> void:
 		_roll_t = 0.0; _roll_back = false; _act_until = Time.get_ticks_msec() / 1000.0 + 3.4
 		var body_h := height()
 		_pivot.position.y = body_h * 0.14; _model.position.y = -body_h * 0.14
+	if name == "stun":
+		# 기절: 쓰러진 채(Death 끝 프레임) 1.6초 → 거꾸로 돌려 일어난다
+		_stun_t = 0.0; _act_until = Time.get_ticks_msec() / 1000.0 + _ap.current_animation_length * 2.0 + 1.6
 	if name == "bow": _act_until = Time.get_ticks_msec() / 1000.0 + 1.4
 	if name == "beg": _act_until = Time.get_ticks_msec() / 1000.0 + 1.8
 	if name == "hurt": _bang.visible = true; _bang_until = Time.get_ticks_msec() / 1000.0 + 0.8
@@ -109,10 +113,15 @@ func _process(delta: float) -> void:
 			_roll_back = true; _ap.play(_spec["map"]["roll"], -1, -1.0, true)   # 거꾸로 재생 → 일어난다
 		if _roll_t >= death_len * 2.0 + 1.2:
 			_roll_t = -1.0; _pivot.rotation.z = 0.0; _pivot.position.y = 0.0; _model.position.y = 0.0; _ap.speed_scale = 1.0
+	if _stun_t >= 0.0:
+		_stun_t += delta
+		var dl := _ap.get_animation(_spec["map"]["stun"]).length
+		if _stun_t >= dl + 1.6 and _ap.speed_scale > 0.0: _ap.play(_spec["map"]["stun"], -1, -1.0, true)
+		if _stun_t >= dl * 2.0 + 1.6: _stun_t = -1.0; _ap.speed_scale = 1.0
 	_pitch = lerpf(_pitch, (0.35 if state == "bow" else (-0.45 if state == "beg" else 0.0)), minf(1.0, delta * 8.0))
 	_model.rotation.x = _pitch
 	if _act_until > 0.0:
-		if moving and speed > 0.3 and state != "bite":
+		if moving and speed > 0.3 and not (state in ["bite", "stun"]):
 			_act_until = -1.0; state = "walk"; _roll_t = -1.0; _pivot.rotation.z = 0.0; _pivot.position.y = 0.0; _model.position.y = 0.0; _ap.speed_scale = 1.0   # 움직이면 동작을 접는다(맞은 개가 굳은 채 미끄러지던 리뷰 버그)
 		elif now < _act_until: return
 		else: _act_until = -1.0; state = "idle"

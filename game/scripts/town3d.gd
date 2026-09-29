@@ -17,6 +17,12 @@ func _ready() -> void:
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
 	_car("sedan", Vector3(19.5, 0, 4.6), PI / 2.0)      # 시장 앞 큰길가에 세단(운영자 2026-09-29: 차·운전)
 	_car("hatchback", Vector3(-19.5, 0, 4.6), -PI / 2.0)   # 공원 앞에 해치백
+	_car("race", Vector3(12.5, 0, 4.6), PI / 2.0); _car("suv", Vector3(-12.5, 0, 4.6), PI / 2.0); _car("truck", Vector3(26, 0, -9.5), 0.0); _car("tractor", Vector3(-6, 0, 18.5), 0.0)
+	# 교통: 주민이 모는 차 둘이 큰길을 오간다(동쪽 차선 z 2.6, 서쪽 차선 z 1.4, 끝에서 유턴)
+	for k in [["taxi", -30.0], ["delivery", 20.0]]:
+		var tc := _car(k[0], Vector3(k[1], 0, 2.6), -PI / 2.0)
+		tc.ai = true; tc.driver = tc
+		tc.route = [Vector3(40, 0, 2.6), Vector3(43, 0, 1.4), Vector3(-40, 0, 1.4), Vector3(-43, 0, 2.6)]
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "iron", false, 1)
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
 	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다

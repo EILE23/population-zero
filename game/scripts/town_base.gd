@@ -15,7 +15,7 @@ const G := 22.0
 ## 점프는 짧은 홉(Climb 의 힘 모으기는 마을에 안 맞는다) — 벤치(0.45m)·계단·낮은 담 위에 올라설 만큼, 집 벽은 못 넘는다
 const HOP := 5.4
 
-const JUMP_FULL := 7.4   # 꽉 찬 점프(약 1.25m). 톡 치면 상승이 끊겨 홉이 된다
+const JUMP_FULL := 8.0   # 꽉 찬 점프(약 1.25m). 톡 치면 상승이 끊겨 홉이 된다
 
 const JUMP_HOLD := 0.28   # 점프 홀드 최대(초) — 누르는 동안 더 높이·멀리(가변 점프)
 
@@ -213,6 +213,8 @@ var jumpf := Jump3D.new()   # jump feel (coyote, buffer, apex hang, heavy fall)
 var last_dropped: Node3D = null  # 방금 내려놓은 것 — 다음 C 가 도로 집지 않게
 
 var cars: Array[Car3D] = []       # 마을의 차들
+
+var cracks: Array = []            # 벽의 금 {node, house, at, out, by} — 수리공이 고친다
 var driving: Car3D = null         # 내가 모는 차(null 이면 걷는 중)
 
 ## 카메라·스트리밍이 따라갈 곳 — 차를 몰면 차

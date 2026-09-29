@@ -95,7 +95,10 @@ func _swings(delta: float) -> void:
 			# 뛰어내리기: 접선 속도 그대로 + 위로
 			var tang: Vector3 = Vector3(0, L * sin(sw["angle"]), -L * cos(sw["angle"])) * sw["vel"]
 			body.velocity = tang * 1.15 + Vector3(0, 3.8, 0)
-			riding = {}; player.pose_request = ""; sw["vel"] *= 0.35
+			riding = {}; player.pose_request = ""; player.rotation.x = 0.0; sw["vel"] *= 0.35   # 기울기 되돌림 — 안 하면 누운 채로 걸었다(운영자 버그)
+			if absf(sw["angle"]) > 0.8:
+				# 꼭대기에서 뛰면 몸이 뒤집혀 누운 채 떨어지고 잠깐 아파하다 일어난다(운영자 2026-09-29). 낮을 때 뛰면 보통 착지
+				down_until = Time.get_ticks_msec() / 1000.0 + 1.3; player.lying = true; player.action = ""
 
 func _weather(delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -144,6 +147,16 @@ func _animals(delta: float) -> void:
 		var n: Node3D = a["node"]
 		if not n.is_visible_in_tree(): continue
 		a["t"] += delta
+		if a.has("lv"):
+			# 차에 치여 날아간다: 포물선·공중 회전, 닿으면 기절했다 일어난다
+			var lv: Vector3 = a["lv"]; lv.y -= 18.0 * delta; n.global_position += lv * delta; n.rotation.z += delta * 9.0
+			if n.global_position.y <= 0.0 and lv.y < 0.0:
+				n.global_position.y = 0.0; lv = Vector3(lv.x * 0.4, 0.0, lv.z * 0.4)
+				if lv.length() < 0.5:
+					a.erase("lv"); n.rotation.z = 0.0; a["stun_until"] = a["t"] + float(a.get("stun_for", 2.0))
+					var qa = a["quad"]; qa.act("stun" if qa is Animal3D else "lie"); continue
+			a["lv"] = lv; continue
+		if a.get("stun_until", 0.0) > a["t"]: continue
 		var d := p.distance_to(n.global_position)
 		match a["kind"]:
 			"duck":

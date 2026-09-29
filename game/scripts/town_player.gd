@@ -25,7 +25,9 @@ func _physics_process(delta: float) -> void:
 		return
 	# 넘어짐: 1.6초 누웠다가 0.6초에 걸쳐 일어난다. 그동안 입력은 없다
 	if down_until > now:
-		body.velocity = Vector3(lerpf(body.velocity.x, 0.0, 0.2), body.velocity.y - G * delta, lerpf(body.velocity.z, 0.0, 0.2))
+		var fk := 0.2 if body.is_on_floor() else 0.0   # 날아가는 동안은 속도 유지(차에 치이면 포물선)
+		body.velocity = Vector3(lerpf(body.velocity.x, 0.0, fk), body.velocity.y - G * delta, lerpf(body.velocity.z, 0.0, fk))
+		player.rotation.x = 0.0 if body.is_on_floor() else player.rotation.x + delta * 7.0
 		body.move_and_slide(); player.lying = true; player.move_dir = Vector3.ZERO; player.speed = 0.0
 		return
 	if down_until > 0.0 and down_until <= now and getup_until < 0.0:

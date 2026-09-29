@@ -199,6 +199,12 @@ func _process(delta: float) -> void:
 			else:
 				hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			sh.rotation.x = -(0.95); sh.rotation.z = -s * 0.12; el.rotation.x = -(1.35)
+		elif pose_request == "fix":
+			# 수리: 벽 앞에서 한쪽 무릎 굽히고 오른손 망치질(빠르게 내려치고 천천히 올림), 왼손은 벽을 짚는다
+			var hm := fmod(_t * 3.0, 1.0); var hk := 1.0 - smoothstep(0.0, 0.25, hm) if hm < 0.25 else smoothstep(0.25, 1.0, hm)
+			hip.rotation.x = -(0.35 if s > 0.0 else -0.1); knee.rotation.x = -(-0.6 if s > 0.0 else -0.1)
+			if s > 0.0: sh.rotation.x = -(1.2 + hk * 1.3); sh.rotation.z = -0.15; el.rotation.x = -(0.4 + hk * 0.8)
+			else: sh.rotation.x = -(1.35); sh.rotation.z = 0.1; el.rotation.x = -(0.25)
 		elif pose_request == "pet":
 			# 쓰다듬기: 쪼그려 앉아(두 무릎 깊이 굽힘, 상체 앞으로) 오른손이 등을 앞뒤로 쓸고, 왼손은 무릎에
 			var stroke := sin(_t * 5.5) * 0.25
@@ -231,13 +237,14 @@ func _process(delta: float) -> void:
 		elif airborne:
 			# 점프: 오를 땐 무릎을 당기고 팔을 위로, 내릴 땐 다리를 내리고 팔을 벌린다
 			# 보폭 도약(운영자 스케치 2026-09-28): 오른다리(s=1)가 앞, 왼다리가 뒤. 팔은 반대 — 왼팔 앞·위, 오른팔 뒤. 내려올수록 앞다리를 내려 착지 준비
-			var down := clampf(-vertical / 6.0, 0.0, 1.0)
-			if s > 0.0:
-				hip.rotation.x = -(lerpf(1.05, 0.55, down)); knee.rotation.x = -(lerpf(-1.25, -0.35, down))
-				sh.rotation.x = -(-0.95); sh.rotation.z = -0.25; el.rotation.x = -(0.35)
-			else:
-				hip.rotation.x = -(lerpf(-0.75, -0.3, down)); knee.rotation.x = -(lerpf(-0.9, -0.5, down))
-				sh.rotation.x = -(1.45); sh.rotation.z = 0.15; el.rotation.x = -(0.5)
+			# 공중 세 단계(운영자 2026-09-29: 공중 자세가 한 모양으로 굳어 있었다): 오름 = 무릎을 가슴으로 당기고 두 팔을 위로 휘두름,
+			# 꼭대기 = 다리를 앞뒤로 벌리고 팔을 옆으로 펼침(체공), 내림 = 두 다리를 아래로 뻗어 착지 준비, 팔은 위로 들어 균형
+			var up := clampf(vertical / 5.0, 0.0, 1.0); var down := clampf(-vertical / 6.0, 0.0, 1.0)
+			var apex := 1.0 - maxf(up, down)
+			var hipf := (1.3 * up + 0.9 * apex + 0.35 * down) if s > 0.0 else (1.0 * up - 0.55 * apex + 0.2 * down)
+			var kneef := -(1.7 * up + 0.9 * apex + 0.25 * down) if s > 0.0 else -(1.4 * up + 0.8 * apex + 0.35 * down)
+			hip.rotation.x = -(hipf); knee.rotation.x = -(kneef)
+			sh.rotation.x = -(2.5 * up + 0.4 * apex + 1.2 * down); sh.rotation.z = -s * (0.2 * up + 1.2 * apex + 0.7 * down); el.rotation.x = -(0.4 * up + 0.2 * apex + 0.5 * down)
 		elif crouch > 0.0:
 			hip.rotation.x = -(1.0 * crouch)
 			knee.rotation.x = -(-1.7 * crouch)

@@ -158,7 +158,10 @@ func _physics_process(delta: float) -> void:
 			if now >= busy_until:
 				_leave()
 		"down":
-			v.x = lerpf(v.x, 0.0, 0.2); v.z = lerpf(v.z, 0.0, 0.2)
+			if is_on_floor():
+				v.x = lerpf(v.x, 0.0, 0.2); v.z = lerpf(v.z, 0.0, 0.2); fig.rotation.x = lerpf(fig.rotation.x, 0.0, 0.3)
+			else:
+				fig.rotation.x += delta * 7.0   # 공중에서 구른다
 			fig.move_dir = Vector3.ZERO; fig.speed = 0.0
 			if now >= down_until:
 				fig.lying = false; fig.action = "getup"; fig.action_t = 0.0
@@ -232,6 +235,19 @@ func on_weather(w: String) -> void:
 func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
+	# 수리공(uid 6명 중 1명): 벽에 금이 있으면 가서 고친다(운영자 2026-09-29: 주민이 알아서 복구)
+	if uid % 6 == 0 and not town.is_night():
+		var best: Dictionary = {}; var bd := 1e9
+		for c in town.cracks:
+			if c.get("by") != null: continue
+			var dd: float = global_position.distance_to(c["at"])
+			if dd < bd: bd = dd; best = c
+		if not best.is_empty():
+			best["by"] = self
+			spot = { "kind": "repair", "pos": best["at"] + best["out"] * 0.55, "crack": best }
+			route = town.via_bridge(global_position, [{ "pos": Vector3(spot["pos"].x, 0, spot["pos"].z), "act": "" }])
+			target = route[0]["pos"]; state = "walk"; say("I'll see to that.", 1.6)
+			return
 	if town.is_night() and not home_door.is_empty():
 		# 밤: 집으로 가서 침대에 눕는다(집에 침대가 있으면), 아니면 의자
 		var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door and sp["kind"] == "bed")
@@ -281,6 +297,10 @@ func _arrive(now: float) -> void:
 	state = "busy"
 	fig.pose_request = ""
 	match spot["kind"]:
+		"repair":
+			var c: Dictionary = spot["crack"]
+			fig.pose_request = "fix"; fig.face(atan2(-c["out"].x, -c["out"].z))
+			busy_until = now + 3.0
 		"bench":
 			fig.seated = true; collision_layer = 0; collision_mask = 0
 			global_position = spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0.05, 0.02)
@@ -382,6 +402,7 @@ func go_push(sw: Dictionary) -> void:
 
 func _leave() -> void:
 	_release()
+	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
 	collision_layer = 1; collision_mask = 1
 	if not riding_swing.is_empty():
 		riding_swing["rider"] = null
@@ -401,12 +422,19 @@ func _leave() -> void:
 		return
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 2.0)
 
+## 날아가기(차에 치임) — 속도 그대로 포물선을 그리고, 닿으면 stun 초 동안 기절했다 일어난다
+func launch(vel: Vector3, stun: float) -> void:
+	velocity = vel
+	down_until = Time.get_ticks_msec() / 1000.0 + stun
+	say(["Ow.", "Excuse me.", "I was walking."][uid % 3], 1.4)
+
 ## 맞음 — from_dir 은 때린 방향(밀리는 쪽). heavy 면 바로 넘어진다; 아니면 3초 안에 세 대째에 넘어진다
 func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if state == "down" or state == "getup":
 		return
 	quarry = by
+	if spot.get("kind", "") == "repair": (spot["crack"] as Dictionary)["by"] = null   # 수리 중 맞으면 금을 내려놓는다
 	_release(); collision_layer = 1; collision_mask = 1
 	if not riding_swing.is_empty(): riding_swing["rider"] = null; riding_swing = {}; fig.rotation.x = 0.0
 	if not pushing_swing.is_empty(): pushing_swing["pusher"] = null; pushing_swing = {}

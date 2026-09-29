@@ -63,8 +63,28 @@ func _crack_wall(f: Vector3, p: Vector3) -> bool:
 			seg.rotation.z = randf_range(-1.2, 1.2)
 		h["cracks"] = h.get("cracks", 0) + 1
 		(h["parts"] if face == 0 else h["shell"]).append(n)
+		var out: Vector3 = [Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(1, 0, 0), Vector3(-1, 0, 0)][face]
+		cracks.append({ "node": n, "house": h, "at": Vector3(at.x, 0, at.z), "out": out, "by": null })
 		return true
 	return false
+
+## 금 하나 고침 — 잉크 조각이 사라지고 먼지 한 줌
+func repair_crack(c: Dictionary) -> void:
+	if not cracks.has(c): return
+	cracks.erase(c)
+	var n: Node3D = c["node"]; var h: Dictionary = c["house"]
+	h["parts"].erase(n); h["shell"].erase(n); h["cracks"] = maxi(0, h.get("cracks", 1) - 1)
+	_dust(n.global_position); n.queue_free()
+
+## 차에 치임(나) — 속도만큼 날아가 누웠다 일어난다. 들고 있던 건 흩어진다
+func car_hits_player(vel: Vector3, stun: float) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if down_until > now or getup_until > now: return
+	jet = false; seat = {}; player.seated = false; resting = false; reading = false; leaning = false
+	down_until = now + stun; player.lying = true; player.action = ""; action_until = now
+	body.velocity = vel; cam_kick = 0.08
+	while player.carrying:
+		items.append(player.release(self, body.global_position + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6))))
 
 ## 먼지 한 줌 — 벽을 칠 때
 func _dust(at: Vector3) -> void:
