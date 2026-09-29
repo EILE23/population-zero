@@ -1,6 +1,6 @@
 extends TownPlayer
 ## 3D 마을 — 루트. 세계를 짓고(_ready) 프레임마다 카메라·범례를 돌린다(_process). 나머지는 상속 계층에 있다:
-##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_systems.gd(시스템) → town_player.gd(조작) → 여기.
+##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_systems.gd(시스템) → town_player.gd(조작) → 여기.
 
 func _ready() -> void:
 	_light()
@@ -15,6 +15,7 @@ func _ready() -> void:
 	_path(Vector3(3.35, 0, 2), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
 	_district("lane", Vector3(0, 0, -15), _lane)
 	_river()                                                 # 남쪽 강과 돌다리 — 다리 건너 풀밭
+	_jetty()                                                 # 부두와 거룻배(run 78) — 다리 동쪽 북쪽 둑, 강 위를 다닌다
 	_district("meadow", Vector3(0, 0, 18), _meadow)
 	_district("terrace", TERR_AT, _terrace)                  # 전망 언덕(run 73) — 풀밭 동쪽 끝의 풀 선반, 돌계단으로 오른다
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "accent-deep", false, 1)

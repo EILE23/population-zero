@@ -34,6 +34,7 @@ var can_mine := false        # 텃밭에서 제 물뿌리개를 든 중(떠날 �
 var job := ""                # 일자리 — 집 문에 적힌 것(town_build _residents: 빵집 문의 주민이 "baker"). 일은 진짜 장소에 매인다
 var bites := 0               # 창구에서 받은 빵의 남은 입(run 72) — 0 이면 먹는 중이 아니다
 var bite_at := 0.0           # 다음 한입 시각
+var in_boat := false         # 거룻배에 탄 중(run 78) — 배가 옮긴다(town_boat _boats), 내릴 땐 town.unboard
 var has_umb := false         # 꽂이에서 빌린 우산을 든 중(run 76) — 비가 그치면(또는 밤이면) 돌려놓으러 간다. 맞아 떨어뜨리면 그냥 바닥의 물건(누구든 주워 돌려놓는다)
 
 const LINES_HIT := ["Excuse me.", "That was uncalled for.", "I felt that.", "Really."]
@@ -83,7 +84,7 @@ static func figure_color(id: int) -> Color:
 
 ## 인사받음 — 손을 흔들어 답하고 한마디(일과 중이면 잠깐 멈춘다)
 func greet(from: Node3D) -> void:
-	if state == "down" or state == "getup" or state == "chase":
+	if state == "down" or state == "getup" or state == "chase" or in_boat:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
@@ -135,6 +136,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	_release(); collision_layer = 1; collision_mask = 1
 	if not riding_swing.is_empty(): riding_swing["rider"] = null; riding_swing = {}; fig.rotation.x = 0.0
 	if not pushing_swing.is_empty(): pushing_swing["pusher"] = null; pushing_swing = {}
+	if in_boat: town.unboard(self)
 	if now - last_hit > 3.0: hits = 0
 	hits += 1; last_hit = now
 	fig.seated = false; fig.pose_request = ""

@@ -1,6 +1,6 @@
 class_name TownBase
 extends Node3D
-## 마을의 상태와 공용 도우미 — 모든 마을 스크립트의 밑바탕(상속 사슬: base → build → places → systems → player → town3d).
+## 마을의 상태와 공용 도우미 — 모든 마을 스크립트의 밑바탕(상속 사슬: base → build → places → boat → systems → player → town3d).
 ## 여기엔 상수·상태 변수와 재료·상자·구역 같은 기초 도우미만 둔다. 기능은 위 계층에.
 
 ## 3D 마을 시제품 — 오메가루비 식 3/4 시점(운영자 2026-09-28: "최소한 오메가루비 같은 퀄리티"). 전부 코드로 만든 기하:

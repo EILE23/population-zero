@@ -266,6 +266,20 @@ func _draw() -> void:
 			for i in 13: pts.append(c + Vector2(cos(PI + i * PI / 12.0), sin(PI + i * PI / 12.0)) * r)
 			draw_colored_polygon(pts, Color("ad7096")); draw_polyline(pts, color, LW, true)
 			_head(head)
+		"row":
+			# 노 젓기(run 78, 거룻배) — stickman.ts 'row' 와 같은 수: 한 번 1.2초(0.5 젓기 · 0.7 회수), 캐치(k 0: 팔 앞으로 쭉·몸 앞)에서 피니시(k 1: 손 가슴·몸 뒤)로. 노는 손에서 물로. 3D 는 stick3d_poses.gd row
+			var c := fmod(t, 1.2)
+			var k := smoothstep(0.0, 1.0, c / 0.5) if c < 0.5 else 1.0 - smoothstep(0.0, 1.0, (c - 0.5) / 0.7)
+			var lean := 0.35 - 0.65 * k
+			hip = Vector2(0, -13); shoulder = seg(hip, 18.0, -D + lean); head = seg(shoulder, 8.0, -D + lean)
+			_ln(hip, shoulder)
+			for side: float in [1.0, -1.0]:
+				var knee := seg(hip + Vector2(0, side), THIGH, D - (1.2 - 0.2 * k))
+				_ln(hip + Vector2(0, side), knee, seg(knee, SHIN, D - (0.54 + 0.3 * k)))
+			var el := seg(shoulder, UPPER, D - (1.4 - 1.05 * k)); var hd := seg(el, FORE, D - (1.55 + 0.7 * k))
+			_ln(shoulder, el, hd)
+			draw_line(hd, Vector2(hd.x - 14.0 + 20.0 * k, 3.0), color, 1.6, true)   # 노: 캐치엔 뱃머리(뒤) 쪽, 피니시엔 고물(앞) 쪽
+			_head(head)
 		"wave":
 			var p := sin(t * 9.0) * 7.0
 			_ln(hip, shoulder); _legs_stand(hip)

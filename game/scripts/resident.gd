@@ -63,6 +63,8 @@ func _physics_process(delta: float) -> void:
 				global_position = town.swing_seat(riding_swing) + Vector3(0, -0.39, 0)
 				fig.swing_k = clampf(riding_swing["vel"] / 3.0, -1.0, 1.0); fig.rotation.x = riding_swing["angle"]
 				v.y = 0.0
+			elif in_boat:
+				global_position = town.boat_seat(); fig.swing_k = town.boat_k(); v.y = 0.0   # 거룻배(run 78): 배가 나를 옮긴다 — 노 박자는 배 속도(town_boat)
 			else:
 				fig.rotation.x = 0.0
 			if bites > 0 and now >= bite_at: _bite(now)
@@ -112,8 +114,8 @@ func _physics_process(delta: float) -> void:
 			if dl < 0.5 and dl > 0.001:
 				v += dv.normalized() * (0.5 - dl) * 6.0   # 가까울수록 세게 비킨다
 	velocity = v
-	if fig.seated or not riding_swing.is_empty():
-		return   # 앉거나 그네를 탈 땐 물리로 밀리지 않는다
+	if fig.seated or not riding_swing.is_empty() or in_boat:
+		return   # 앉거나 그네·배를 탈 땐 물리로 밀리지 않는다
 	if is_on_floor() and Vector2(v.x, v.z).length() > 0.1:
 		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
 	move_and_slide()
@@ -289,6 +291,13 @@ func _arrive(now: float) -> void:
 			if weather == "rain" and not has_umb: _storm(now)
 			else:
 				fig.face(spot.get("yaw", PI)); busy_until = now + randf_range(2.0, 5.0)
+		"boat":
+			# 부두(run 78): 배가 부두에 비어 있으면 타고 12m 나갔다 돌아온다(town_boat _boats 가 돌아오면 busy_until 을 당긴다) — 사람이 C 로 하는 것과 같은 board. 누가 타고 나갔으면 서서 본다
+			fig.face(spot.get("yaw", PI))
+			if not fig.carrying and town.board(self):
+				busy_until = now + 90.0; say(["Out and back.", "Mind the wake.", "Just to the bend."][uid % 3], 1.8)
+			else:
+				busy_until = now + randf_range(2.0, 4.0); say(["Taken.", "It will come back.", "Someone is out."][uid % 3], 1.6)
 		"rack":
 			# 우산꽂이(run 76): 우산을 들고 왔으면 돌려놓고, 빈손이면 하나 빌려 편다 — 사람이 C 로 하는 것과 같은 take_umbrella/rack_put. 오는 사이 비었으면(사람이 가져갔다) 빈손으로 처마로
 			fig.face(spot.get("yaw", PI)); fig.action = "grab"; fig.action_t = 0.0; busy_until = now + 0.5
@@ -385,6 +394,7 @@ func _leave() -> void:
 	if not pushing_swing.is_empty():
 		if pushing_swing["pusher"] == self: pushing_swing["pusher"] = null
 		pushing_swing = {}; fig.pose_request = ""
+	if in_boat: town.unboard(self)   # 거룻배(run 78): 그 자리 북쪽 둑에 내린다 — 비가 와서 일찍 내려도 같은 길
 	fig.seated = false; fig.pose_request = ""
 	_umb_pose()
 	if spot.get("kind", "") == "bench":

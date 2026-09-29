@@ -10,6 +10,7 @@ const SHADE_T := 6.0   # 손차양 한 바퀴(run 73, 전망 자리): 0.35 손�
 const STORM_T := 3.0   # 처마 밑 비 구경 한 바퀴(run 74): 0.3 고개가 하늘로(예비) → 잠깐 본다(유지, 꼭대기에서 어깨 으쓱) → 0.4 내린다(회수) → 남은 1.3초는 앞의 비를 본다. 비가 그칠 때까지 되풀이
 const UMBR_T := 0.3    # 우산 펴기(run 76, 우산꽂이): 0.3초에 걸쳐 팔이 머리 위로 오르고 캐노피가 0 → 1 로 펴진다(예비) → 든 채 걷고 서고 앉는다(유지, 걸을수록 진행 방향으로 기운다) → 두 번째 C 에 같은 0.3초로 접힌다(회수)
 const LWAVE_T := 1.4   # 왼손 인사(run 77, 우산 가족의 두 번째 자세): 0.2 왼팔이 머리 위로(예비) → 흔든다(유지, wave 와 같은 9Hz·0.25rad) → 마지막 0.3 내린다(회수). 오른팔은 손대지 않는다 — 우산을 든 채(umbr 이 뒤에서 덮어쓴다)
+const ROW_T := 1.2     # 노 한 번(run 78, 거룻배): 0.5 젓기(다리를 펴며 팔을 가슴으로 당기고 몸이 뒤로) → 0.7 회수(팔을 내밀고 몸이 앞으로, 노는 물 밖). 박자(push_t)는 배가 가는 만큼만 간다 — 서면 노를 든 채 쉰다
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -43,10 +44,22 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		lean = -0.08 * shade_k(f.pose_t)   # 손차양: 멀리 보느라 살짝 뒤로 젖힌다 — 고개·몸통 돌림은 limbs 에서(몸통 y 는 그 뒤에 정해진다)
 	if p == "storm" and not moving:
 		lean = -0.1 - 0.05 * storm_k(f.pose_t)   # 뒤꿈치에 무게 — 하늘을 볼 때 조금 더 젖혀진다
+	if p == "row":
+		# 노 젓기(run 78): 박자는 배 속도(swing_k)만큼만 간다 — 캐치에서 앞으로 숙였다가 피니시에서 뒤로 눕는다. 엉덩이는 낮은 판자(0.17) 위 0.3
+		f.push_t += delta * absf(f.swing_k)
+		lean = 0.35 - 0.65 * row_k(f)
+		f.pelvis.position.y = 0.3
 	if p == "rest":
 		f.pelvis.rotation.x = -1.5; lean = 0.25 + sin(f._t * 1.6) * 0.02
 		f.pelvis.position.y = 0.16
 	return lean
+
+## 노 젓기 진행 0..1 — 0 = 캐치(팔 뻗음·무릎 접힘·몸 앞), 1 = 피니시(손 가슴·다리 펴짐·몸 뒤). 한 번(ROW_T)에 0.5 젓고 0.7 돌아온다.
+## 박자(push_t)는 배 속도만큼만 가니 서면 멈춘다 — 그때는 0.35(노를 든 채 쉼)로 섞인다. 노(town_boat _boats)도 같은 값으로 물을 젓는다
+static func row_k(f: Stick3D) -> float:
+	var c := fmod(f.push_t, ROW_T)
+	var cyc := smoothstep(0.0, 1.0, c / 0.5) if c < 0.5 else 1.0 - smoothstep(0.0, 1.0, (c - 0.5) / 0.7)
+	return lerpf(0.35, cyc, clampf(absf(f.swing_k) * 4.0, 0.0, 1.0))
 
 ## 물주기 진행 0..1 — 0.35초에 걸쳐 숙였다가(예비), 붓고(유지), 끝 0.35초에 바로 선다(회수). WATER_T 뒤엔 0(든 채 서기)
 static func water_k(t: float) -> float:
@@ -204,6 +217,12 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 				f.torso.rotation.y = scan * 0.2; f.neck.rotation.y = scan * 0.3
 			else:
 				sh.rotation.x = -(0.05 + 0.25 * k); sh.rotation.z = -s * 0.42 * k; el.rotation.x = -(0.35 + 1.15 * k)
+		"row":
+			# 노 젓기(운영자 보드의 '당기기' 가족 첫 자세 — run 78, 거룻배; 줄다리기가 다음): 낮은 판자에 앉아 캐치(k 0: 무릎 접고 두 팔을 앞으로 쭉, 몸 앞)에서
+			# 피니시(k 1: 다리를 펴고 손을 가슴으로, 몸 뒤)로. 박자는 배가 가는 만큼만(push_t, lean()), 서면 노를 든 채 쉰다(k 0.35). 사람도 주민도 같은 자세, 노는 같은 k 로 물을 젓는다
+			var k := row_k(f)
+			hip.rotation.x = -(1.2 - 0.2 * k); knee.rotation.x = -(-(0.66 - 0.5 * k))
+			sh.rotation.x = -(1.4 - 1.05 * k); sh.rotation.z = -s * 0.12; el.rotation.x = -(0.15 + 1.75 * k)
 		"storm":
 			# 처마 밑 비 구경(날씨를 몸으로 받는 첫 자세 — run 74, 비 오는 문 앞: 사람도 주민도): 팔짱을 끼고 다리는 곧게, 무게는 뒤꿈치에.
 			# k 가 예비·유지·회수를 만든다(고개가 하늘로 올라가고, 잠깐 보고, 내려온다); 꼭대기에서 어깨가 옷깃처럼 한 번 으쓱(shrug). 나머지 시간은 앞의 비를 본다 — 정지화가 아니다

@@ -1,6 +1,6 @@
 class_name TownPlaces
 extends TownBuild
-## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭, 텃밭, 빵집 화덕, 전망 언덕. 상속 사슬: base → build → **places** → systems → player → town3d.
+## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭, 텃밭, 빵집 화덕, 전망 언덕. 상속 사슬: base → build → **places** → boat → systems → player → town3d.
 ## town_build.gd 가 500줄 한도에 닿아 장소(지도 조각) 단위로 떼어 냈다: 여기엔 "어디에 무엇이 있나"와 그 장소의 길찾기만 둔다.
 
 const RIVER_N := 9.0      # 강 북쪽 둑(z) — 큰길(z≈2)과 가운데 울타리(z≈7.5) 남쪽

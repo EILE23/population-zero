@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead' | 'shade' | 'storm' | 'umbr' | 'lwave';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead' | 'shade' | 'storm' | 'umbr' | 'lwave' | 'row';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -159,6 +159,22 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     const cx = 8 + sw * 0.3, cy = -62, r = 16;
     ctx.lineWidth = 1.6; line([8, -48], [cx, cy]); ctx.lineWidth = 2.4; // 자루
     ctx.fillStyle = '#ad7096'; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = color; // 캐노피
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'row') {
+    // 노 젓기(3D row, run 78, 거룻배): 낮은 판자에 앉아 한 번 1.2초 — 0.5 젓기(다리를 펴며 손을 가슴으로, 몸 뒤) · 0.7 회수(팔을 앞으로 쭉, 몸 앞). 노는 손에서 물로, 캐치엔 뱃머리(뒤) 쪽 · 피니시엔 고물(앞) 쪽
+    const c = t % 1.2, sm = (v: number) => v * v * (3 - 2 * v);
+    const k = c < 0.5 ? sm(c / 0.5) : 1 - sm((c - 0.5) / 0.7), ln = 0.35 - 0.65 * k;
+    hip = [0, -13]; shoulder = seg(hip[0], hip[1], 18, -D + ln); head = seg(shoulder[0], shoulder[1], 8, -D + ln);
+    line(hip, shoulder);
+    for (const side of [1, -1]) {
+      const knee = seg(hip[0], hip[1] + side, THIGH, D - (1.2 - 0.2 * k));
+      line([hip[0], hip[1] + side], knee, seg(knee[0], knee[1], SHIN, D - (0.54 + 0.3 * k)));
+    }
+    const el = seg(shoulder[0], shoulder[1], UPPER, D - (1.4 - 1.05 * k)), hd = seg(el[0], el[1], FORE, D - (1.55 + 0.7 * k));
+    line(shoulder, el, hd);
+    ctx.lineWidth = 1.6; line(hd, [hd[0] - 14 + 20 * k, 3]); ctx.lineWidth = 2.4; // 노
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

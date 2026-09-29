@@ -1,6 +1,23 @@
 class_name TownSystems
-extends TownPlaces
+extends TownBoat
 ## 매 프레임 도는 세계 시스템 — 낮밤, 날씨, 바람(나무), 동물 습성, 그네 물리, 컷어웨이, 구역 스트리밍, 던져진 물건, 범례.
+
+## 매 프레임 도는 세계 — 조작이 어느 가지로 빠져나가든(앉음·넘어짐·그네·거룻배) 세계는 멈추지 않는다
+## (run 78: 전엔 town_player 의 앉기·그네·넘어짐 가지가 이 호출들 앞에서 return 해 벤치에 앉거나 그네를 타는 동안 낮밤·날씨·동물·강물·굴뚝이 다 멈췄다)
+func _tick(delta: float, now: float) -> void:
+	_fly(delta)
+	_cutaway()
+	_daylight(delta)
+	_stream()
+	_weather(delta)
+	_animals(delta)
+	_swings(delta)
+	_wind(delta)
+	_flow(delta)
+	_crops(now)
+	_bakery(now)
+	_smoke(now)
+	_boats(delta, now)
 
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
 func _stream() -> void:
