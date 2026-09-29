@@ -38,6 +38,9 @@ var _dust: CPUParticles3D
 var _roll := 0.0
 var _pitch := 0.0
 var _crash_at := -9.0
+var _slope_pitch := 0.0
+var _slope_roll := 0.0
+var _vy := 0.0
 ## 주민 운전(교통) — route 를 따라 돈다. 앞에 사람·차가 있으면 선다
 var ai := false
 var route: Array[Vector3] = []
@@ -53,7 +56,8 @@ func setup(k: String, t: Node3D) -> void:
 		_wheels.append(c)
 		if "front" in c.name: _front.append(c)
 	var col := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = Vector3(1.4, 0.9, 2.5); col.shape = bs; col.position.y = 0.55; add_child(col)
-	collision_layer = 2; collision_mask = 3   # 차는 층 2 — 누운 몸(마스크 1만)은 차를 안 느껴 밀려나지 않고 깔린다
+	collision_layer = 2; collision_mask = 3
+	floor_max_angle = deg_to_rad(42.0); floor_snap_length = 0.25   # 언덕을 오르고, 꼭대기에서 빠르면 뜬다   # 차는 층 2 — 누운 몸(마스크 1만)은 차를 안 느껴 밀려나지 않고 깔린다
 	_dust = CPUParticles3D.new()
 	_dust.amount = 40; _dust.lifetime = 0.9; _dust.emitting = false
 	_dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; _dust.emission_box_extents = Vector3(0.5, 0.05, 0.2)
@@ -96,7 +100,7 @@ func _physics_process(delta: float) -> void:
 	var top: float = _spec["top"]; var accel: float = _spec["accel"]; var grip: float = _spec["grip"]
 	# 가속·제동: 앞으로 갈 때 뒤를 누르면 브레이크(빠르게), 멈춘 뒤엔 후진(느리게)
 	if thr > 0.0: v = move_toward(v, top, accel * delta * (1.0 if v >= 0.0 else 2.2))
-	elif thr < 0.0: v = move_toward(v, -top * 0.35, (accel * 2.2 if v > 0.0 else accel * 0.8) * delta)
+	elif thr < 0.0: v = move_toward(v, -top, accel * (2.2 if v > 0.0 else 1.0) * delta)   # 후진도 앞과 같은 가속·최고속(운영자 2026-09-29)
 	else: v = move_toward(v, 0.0, (2.0 + absf(v) * 0.25) * delta)   # 놓으면 엔진 브레이크
 	if hb: v = move_toward(v, 0.0, (1.2 if thr > 0.0 else 4.0) * delta)   # 핸드브레이크: 가속 중이면 속도는 조금만 깎이고 뒤가 미끄러진다(드리프트), 놓고 당기면 제동
 	# 조향: 입력을 부드럽게, 빠를수록 덜 꺾인다(고속 안정), 느리면 크게(주차)
@@ -114,10 +118,19 @@ func _physics_process(delta: float) -> void:
 	side = clampf(side, -6.0, 6.0)
 	var fwd := -global_transform.basis.z
 	var right := global_transform.basis.x
+	# 언덕: 바닥 기울기를 따라 달리고, 내리막은 빨라지고 오르막은 느려진다. 차체도 바닥에 맞춰 기운다
+	var fwd_s := fwd; var right_s := right
+	if is_on_floor():
+		var fn := get_floor_normal()
+		fwd_s = (fwd - fn * fwd.dot(fn)).normalized(); right_s = (right - fn * right.dot(fn)).normalized()
+		v += -9.8 * fwd_s.y * delta * 0.85
+	_slope_pitch = lerpf(_slope_pitch, asin(clampf(fwd_s.y, -0.9, 0.9)), minf(1.0, delta * 10.0))
+	_slope_roll = lerpf(_slope_roll, asin(clampf(right_s.y, -0.9, 0.9)), minf(1.0, delta * 10.0))
 	if absf(v) > 1.5: _smash_props(fwd)   # 물리 전에 — 늦으면 벤치 충돌체에 먼저 막혀 튕겼다
 	_run_over(fwd)
 	var before := global_position
-	velocity = fwd * v + right * side + Vector3(0, -9.8 if not is_on_floor() else 0.0, 0)
+	_vy = 0.0 if is_on_floor() else _vy - 20.0 * delta   # 언덕 꼭대기에서 속도가 붙어 있으면 뜬다(점프)
+	velocity = fwd_s * v + right_s * side + Vector3(0, _vy, 0)
 	move_and_slide()
 	# 충돌: 다른 차면 교통사고(서로 밀리고 부품이 튄다), 집이면 벽이 부서지고(금·먼지) 튕겨 나온다
 	var now := Time.get_ticks_msec() / 1000.0
@@ -154,7 +167,7 @@ func _physics_process(delta: float) -> void:
 	# 몸 기울기: 코너 바깥으로 롤, 가속하면 뒤로·제동하면 앞으로 끄덕
 	_roll = lerpf(_roll, clampf(yaw_rate * v * 0.02, -0.12, 0.12), minf(1.0, delta * 6.0))
 	_pitch = lerpf(_pitch, clampf(-thr * 0.03 * (1.0 if absf(v) < top * 0.9 else 0.2), -0.05, 0.05), minf(1.0, delta * 5.0))
-	_model.rotation.z = _roll; _model.rotation.x = _pitch
+	_model.rotation.z = _roll - _slope_roll; _model.rotation.x = _pitch - _slope_pitch
 	# 드리프트: 스키드 자국·먼지
 	_dust.emitting = drifting
 	if drifting:
@@ -231,6 +244,7 @@ func _debris(at: Vector3, push: Vector3, strength: float) -> void:
 		var ps: PackedScene = load("res://assets/models/vehicles/%s.glb" % id)
 		if ps == null: continue
 		var d: Node3D = ps.instantiate(); d.scale = Vector3.ONE * 0.8; town.add_child(d); d.global_position = at + Vector3(0, 0.5, 0)
+		d.set_meta("debris", true); d.set_meta("fade", true)   # 이펙트일 뿐 — 줍지 못하고 몇 초 뒤 사라진다(운영자 2026-09-29)
 		town.flying.append({ "node": d, "vel": push.normalized() * randf_range(1.0, 3.0) + Vector3(randf_range(-2, 2), randf_range(2.5, 5.0), randf_range(-2, 2)), "spin": randf_range(6.0, 14.0) })
 
 ## 앞에 선 주민·동물·사람을 친다 — 속도만큼 날아가 기절했다 일어난다(운영자 2026-09-29)

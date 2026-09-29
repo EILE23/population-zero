@@ -86,22 +86,57 @@ func repair_crack(c: Dictionary) -> void:
 ## 소품 부서짐 — 조각(메시)이 속도대로 흩날려 바닥에 남고, 자리는 수리 목록에 오른다
 func smash(w: Dictionary, push: Vector3) -> void:
 	wreckables.erase(w)
-	if w.has("bench"): benches.erase(w["bench"]); spots.erase(w["spot"])
+	if w.has("bench"): benches.erase(w["bench"])
+	if w.has("spot"): spots.erase(w["spot"])
+	if w.has("light"): lamps.erase(w["light"]); (w["light"] as Node).queue_free()
 	var root: Node3D = w["node"]
+	var at: Vector3 = w["at"]
+	var spd := push.length()
 	var pieces: Array = []
-	var meshes: Array = root.find_children("*", "MeshInstance3D", true, false)
-	if root is MeshInstance3D: meshes.append(root)
-	for mi in meshes:
-		var m := mi as MeshInstance3D
-		var gt := m.global_transform
-		m.get_parent().remove_child(m); add_child(m); m.global_transform = gt
-		for sb in m.get_children(): if sb is StaticBody3D: sb.queue_free()
+	if w.get("splinter", false):
+		# 울타리: 한 판이 눕는 대신 기둥 둘·가로대 둘·나뭇조각으로 쪼개져 날아간다(운영자: 그냥 누워버려 타격감 없다)
+		root.queue_free()
+		var wood := _mat(Color("8a6a4a"))
+		for spec in [[Vector3(0.08, 0.7, 0.07), Vector3(-0.4, 0.35, 0)], [Vector3(0.08, 0.7, 0.07), Vector3(0.4, 0.35, 0)], [Vector3(0.95, 0.07, 0.05), Vector3(0, 0.28, 0)], [Vector3(0.95, 0.07, 0.05), Vector3(0, 0.55, 0)], [Vector3(0.3, 0.05, 0.04), Vector3(0.1, 0.4, 0)], [Vector3(0.22, 0.05, 0.04), Vector3(-0.15, 0.2, 0)]]:
+			var m := _box(spec[0], at + spec[1], wood, false)
+			m.get_parent().remove_child(m); add_child(m); m.global_position = at + spec[1]
+			pieces.append(m)
+	else:
+		var meshes: Array = root.find_children("*", "MeshInstance3D", true, false)
+		if root is MeshInstance3D: meshes.append(root)
+		if w.get("whole", false):
+			# 가로등: 기둥째 한 덩어리로 넘어가며 날아간다(유리만 따로 튄다)
+			root.get_parent().remove_child(root); add_child(root)
+			for sb in root.find_children("*", "StaticBody3D", true, false): sb.queue_free()
+			pieces.append(root)
+		else:
+			for mi in meshes:
+				var m := mi as MeshInstance3D
+				var gt := m.global_transform
+				m.get_parent().remove_child(m); add_child(m); m.global_transform = gt
+				for sb in m.get_children(): if sb is StaticBody3D: sb.queue_free()
+				pieces.append(m)
+			if is_instance_valid(root) and root.get_parent(): root.queue_free()
+	for m in pieces:
 		m.set_meta("debris", true)
-		flying.append({ "node": m, "vel": push * randf_range(0.5, 0.9) + Vector3(randf_range(-1.5, 1.5), randf_range(2.0, 4.5), randf_range(-1.5, 1.5)), "spin": randf_range(5.0, 12.0) })
-		pieces.append(m)
-	if is_instance_valid(root) and root.get_parent(): root.queue_free()
-	_dust(w["at"] + Vector3(0, 0.3, 0)); cam_kick = maxf(cam_kick, 0.04)
-	cracks.append({ "kind": "wreck", "at": Vector3(w["at"].x, 0, w["at"].z), "out": w["out"], "by": null, "pieces": pieces, "rebuild": w["rebuild"] })
+		var k := randf_range(0.6, 1.05)
+		flying.append({ "node": m, "vel": push * k + Vector3(randf_range(-1.5, 1.5), randf_range(2.5, 4.0) + spd * 0.25, randf_range(-1.5, 1.5)),
+			"spin": randf_range(6.0, 14.0) * (1.0 + spd * 0.08), "axis": Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized(), "bounce": 1 })
+	_splinters(at + Vector3(0, 0.5, 0), push, spd)
+	_dust(at + Vector3(0, 0.3, 0)); cam_kick = maxf(cam_kick, 0.03 + spd * 0.006)
+	cracks.append({ "kind": "wreck", "at": Vector3(at.x, 0, at.z), "out": w["out"], "by": null, "pieces": pieces, "rebuild": w["rebuild"] })
+
+## 부서질 때 파편 한 줌(나뭇조각·먼지·유리) — 진행 방향으로 뿌려지고 사라진다
+func _splinters(at: Vector3, push: Vector3, spd: float) -> void:
+	var p := CPUParticles3D.new(); p.amount = int(12 + spd * 3.0); p.lifetime = 0.9; p.one_shot = true; p.explosiveness = 0.95
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE; p.emission_sphere_radius = 0.25
+	p.direction = (push.normalized() + Vector3(0, 0.8, 0)).normalized(); p.spread = 55.0
+	p.initial_velocity_min = 2.0 + spd * 0.3; p.initial_velocity_max = 4.0 + spd * 0.6; p.gravity = Vector3(0, -12, 0)
+	p.angular_velocity_min = -600.0; p.angular_velocity_max = 600.0; p.scale_amount_min = 0.5; p.scale_amount_max = 1.5
+	var bm := BoxMesh.new(); bm.size = Vector3(0.09, 0.025, 0.025); p.mesh = bm
+	var m := StandardMaterial3D.new(); m.albedo_color = Color("8a6a4a"); m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; p.material_override = m
+	p.position = at; add_child(p); p.emitting = true
+	get_tree().create_timer(1.5).timeout.connect(p.queue_free)
 
 ## 차에 치임(나) — 속도만큼 날아가 누웠다 일어난다. 들고 있던 건 흩어진다
 func car_hits_player(vel: Vector3, stun: float) -> void:

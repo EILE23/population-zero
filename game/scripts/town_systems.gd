@@ -44,6 +44,28 @@ func _call_pusher(sw: Dictionary) -> void:
 		if r.state in ["routine", "walk"] and r.global_position.distance_to(sw["at"]) < 8.0 and r.spot.get("kind", "") != "swing":
 			r.go_push(sw); sw["pusher"] = r; return
 
+## 시소 — 판 물리, 주민 탑승자는 낮을 때 박차고, 튀어 오른 사람은 날려 보낸다
+func _seesaws(delta: float) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	for ss in seesaws:
+		for i in 2:
+			var r = ss.riders[i]
+			if r is Resident and ss.riders[1 - i] != null and now > float(r.get_meta("ss_push_at", 0.0)):   # 짝이 있을 때만 박찬다
+				r.set_meta("ss_push_at", now + randf_range(0.9, 1.5)); ss.push(i)
+		for l in ss.step(delta):
+			var vy: float = l["vy"]
+			if l["who"] is Resident:
+				var r: Resident = l["who"]; r.seesaw_launch(vy)
+			elif l["who"] == "player":
+				seesaw_ride = null; resting = false; player.seated = false; player.pose_request = ""
+				body.collision_layer = 4; body.collision_mask = 7
+				body.velocity = Vector3(0, vy, 0.6); was_airborne = true; player.squash = 1.0
+				say_toast("Up you go.")
+
+## 짧은 한 줄(시소 등) — 지금은 출력만, UI 토스트가 생기면 그리로
+func say_toast(t: String) -> void:
+	print("TOAST ", t)
+
 func _swings(delta: float) -> void:
 	for sw in swings:
 		var g := 9.8; var L: float = sw["len"]
@@ -346,10 +368,16 @@ func _fly(delta: float) -> void:
 		var n: Node3D = f["node"]
 		f["vel"] += Vector3(0, -G, 0) * delta
 		n.global_position += f["vel"] * delta
-		n.rotation.x += f["spin"] * delta
+		if f.has("axis"): n.rotate(f["axis"], f["spin"] * delta)   # 파편은 아무 축으로나 구른다
+		else: n.rotation.x += f["spin"] * delta
 		if n.global_position.y <= 0.06:
 			n.global_position.y = 0.06
+			if int(f.get("bounce", 0)) > 0 and f["vel"].y < -2.0:
+				f["bounce"] = 0; f["vel"] = Vector3(f["vel"].x * 0.5, -f["vel"].y * 0.35, f["vel"].z * 0.5); f["spin"] *= 0.5; continue   # 한 번 튄다
 			flying.erase(f)
+			if n.has_meta("fade"):
+				var tw := n.create_tween(); tw.tween_interval(2.0); tw.tween_property(n, "scale", Vector3.ZERO, 0.6); tw.tween_callback(n.queue_free)
+				continue
 			if n.has_meta("debris"): continue   # 부서진 조각은 누운 채 남는다(주울 수 없고, 수리공이 치운다)
 			n.rotation = Vector3.ZERO
 			items.append(n)

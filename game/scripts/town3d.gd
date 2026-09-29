@@ -15,6 +15,7 @@ func _ready() -> void:
 	_path(Vector3(3.35, 0, 0.8), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
 	_district("lane", Vector3(0, 0, -15), _lane)
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
+	_hill(Vector3(26, 0, 18), 7.0, 2.6); _hill(Vector3(-27, 0, 18.5), 6.5, 2.0); _hill(Vector3(36, 0, 12.5), 5.0, 1.6)   # 언덕 — 차로 넘으면 뜬다
 	_car("sedan", Vector3(19.5, 0, 4.6), PI / 2.0)      # 시장 앞 큰길가에 세단(운영자 2026-09-29: 차·운전)
 	_car("hatchback", Vector3(-19.5, 0, 4.6), -PI / 2.0)   # 공원 앞에 해치백
 	_car("race", Vector3(12.5, 0, 4.6), PI / 2.0); _car("suv", Vector3(-12.5, 0, 4.6), PI / 2.0); _car("truck", Vector3(26, 0, -9.5), 0.0); _car("tractor", Vector3(-6, 0, 18.5), 0.0)
@@ -40,7 +41,7 @@ func _ready() -> void:
 	var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95
 	col.shape = cap; col.position.y = 0.5
 	body.add_child(col)
-	body.collision_mask = 3
+	body.collision_layer = 4; body.collision_mask = 7
 	player = Stick3D.new()
 	body.add_child(player)
 	add_child(body)

@@ -2,13 +2,12 @@ extends SceneTree
 func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	await process_frame
-	var k := 0
-	for w in town.wreckables: if (w["at"] as Vector3).distance_to(Vector3(-4, 0, 4.2)) < 0.5: k += 1
-	var names := {}
-	for mi in town.find_children("*", "MeshInstance3D", true, false):
-		var gp: Vector3 = (mi as Node3D).global_position
-		if Vector2(gp.x + 4.0, gp.z - 4.2).length() < 1.0 and gp.y > 0.1 and gp.y < 1.0:
-			var key := "%s/%s" % [mi.get_parent().name, (mi as MeshInstance3D).mesh.get_class()]
-			names[key] = names.get(key, 0) + 1
-	print("PROBE bench-wreckables-here ", k, " meshes ", names)
+	var ss: Seesaw3D = town.seesaws[0]; var r = town.residents[5]
+	r.spot = { "kind": "seesaw", "ss": ss }; r.state = "busy"; r.busy_until = 1e9
+	ss.riders = [null, null]; ss.sit(r, 1); r.riding_seesaw = ss; r.fig.seated = true
+	ss.angle = -Seesaw3D.LIMIT; ss.omega = 0.0
+	town.body.global_position = ss.global_position + Vector3(-Seesaw3D.L * 0.9, 2.6, 0); town.body.velocity = Vector3.ZERO
+	for i in 90:
+		await physics_frame
+		if i % 6 == 0: print("PROBE f", i, " angle=%.2f omega=%.2f riders=%s rvel=%s ry=%.2f py=%.2f pvy=%.2f floor=%s" % [ss.angle, ss.omega, str(ss.riders), str(r.velocity), r.global_position.y, town.body.global_position.y, town.body.velocity.y, town.body.is_on_floor()])
 	quit()

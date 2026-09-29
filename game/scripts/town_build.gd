@@ -266,8 +266,8 @@ func _park(at: Vector3) -> void:
 	_box(Vector3(3.6, 0.12, 3.0), at + Vector3(6, 0, -5), _mat(Color("e6d3a5")))                       # 모래밭
 	var slide := _box(Vector3(0.6, 0.06, 2.2), at + Vector3(4.3, 1.0, -6.8), _mat(Color("ad7096")), true); slide.rotation.x = -0.55
 	_box(Vector3(0.6, 1.6, 0.06), at + Vector3(4.3, 0, -5.4), iron); _box(Vector3(0.7, 0.06, 0.7), at + Vector3(4.3, 1.6, -5.6), wood)
-	var plank := _box(Vector3(3.0, 0.08, 0.3), at + Vector3(8.5, 0.5, -7.5), wood); plank.rotation.z = 0.2   # 시소
-	_box(Vector3(0.3, 0.5, 0.3), at + Vector3(8.5, 0, -7.5), iron)
+	var ss := Seesaw3D.new(); ss.position = at + Vector3(8.5, 0, -7.5); _add(ss); ss.build(wood, iron); seesaws.append(ss)   # 시소 — 탈 수 있다
+	spots.append({ "pos": ss.position, "kind": "seesaw", "yaw": 0.0, "ss": ss })
 	_swing(at + Vector3(9.6, 0, -3.0))
 	for fx in [-4.0, 4.0]:
 		_box(Vector3(1.6, 0.25, 0.5), at + Vector3(fx, 0, 6), _mat(Color("8a6a4a")))
@@ -377,6 +377,31 @@ func _river() -> void:
 	spots.append({ "pos": Vector3(-5, 0, RIVER_Z + RIVER_HW + 0.6), "kind": "bank", "yaw": PI })
 	spots.append({ "pos": Vector3(6, 0, RIVER_Z - RIVER_HW - 0.6), "kind": "bank", "yaw": 0.0 })
 	_fence(Vector3(-16, 0, 22.5), 32.0)
+
+## 언덕(운영자 2026-09-29: 오르막 내리막) — 코사인 봉우리 높이장. 메시와 HeightMapShape3D 충돌체가 같은 격자라 보이는 대로 딛고 달린다
+func _hill(c: Vector3, r: float, h: float) -> void:
+	var n := 33; var step := (r * 2.0) / (n - 1)
+	var heights := PackedFloat32Array(); heights.resize(n * n)
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var hf := func(ix: int, iz: int) -> float:
+		var x := -r + ix * step; var z := -r + iz * step
+		var d := sqrt(x * x + z * z) / r
+		return h * (0.5 + 0.5 * cos(PI * d)) if d < 1.0 else 0.0
+	for iz in n:
+		for ix in n: heights[iz * n + ix] = hf.call(ix, iz)
+	for iz in n - 1:
+		for ix in n - 1:
+			var p00 := Vector3(-r + ix * step, heights[iz * n + ix], -r + iz * step)
+			var p10 := Vector3(-r + (ix + 1) * step, heights[iz * n + ix + 1], -r + iz * step)
+			var p01 := Vector3(-r + ix * step, heights[(iz + 1) * n + ix], -r + (iz + 1) * step)
+			var p11 := Vector3(-r + (ix + 1) * step, heights[(iz + 1) * n + ix + 1], -r + (iz + 1) * step)
+			for v in [p00, p10, p01, p10, p11, p01]: st.set_uv(Vector2(v.x, v.z) / TILE); st.add_vertex(v)
+	st.generate_normals()
+	var mi := MeshInstance3D.new(); mi.mesh = st.commit()
+	mi.material_override = _mat(Color.WHITE, _tex("ground/grass"), Vector3(1, 1, 1)); mi.position = c + Vector3(0, 0.005, 0); add_child(mi)
+	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var hs := HeightMapShape3D.new()
+	hs.map_width = n; hs.map_depth = n; hs.map_data = heights; cs.shape = hs; cs.scale = Vector3(step, 1.0, step)
+	sb.add_child(cs); sb.position = c; add_child(sb)
 
 ## 집을 수 있는 것 — 작은 기하 하나씩(사과 = 구, 컵 = 원기둥, 신문 = 납작한 상자). 손에 들면 hand_r 의 자식이 된다
 func _item(kind: String, at: Vector3) -> void:

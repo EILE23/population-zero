@@ -42,7 +42,7 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95
 	col.shape = cap; col.position.y = 0.5
 	add_child(col)
-	collision_mask = 3   # 세계(1) + 차(2)
+	collision_layer = 4; collision_mask = 7   # 사람은 층 3(값 4) — 차는 사람을 몸으로 느끼지 않아 길막이 없고(밀기·날리기는 스크립트), 사람은 차·세계·서로를 느낀다
 	fig = Stick3D.new()
 	fig.color = figure_color(id); fig.head_color = fig.color
 	add_child(fig)
@@ -82,7 +82,7 @@ func greet(from: Node3D) -> void:
 	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
 	# 그네를 타던 중이면 _leave 가 spot["swing"] 을 찾다 죽었다. 그네·밀기는 riding_swing/pushing_swing 이 기억하니 _leave 가 마저 정리한다
 	if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
-	_release(); collision_layer = 1; collision_mask = 3
+	_release(); collision_layer = 4; collision_mask = 7
 	fig.seated = false
 	fig.pose_request = "wave"
 	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
@@ -101,8 +101,8 @@ func _physics_process(delta: float) -> void:
 	var v := velocity
 	if not is_on_floor():
 		v.y -= 22.0 * delta
-	else:
-		v.y = 0.0
+	elif v.y <= 0.5:
+		v.y = 0.0   # 위로 튕겨진 속도(시소·차)는 살린다 — 땅에 있다고 0 으로 지워 안 날아갔다
 	fig.airborne = not is_on_floor(); fig.vertical = v.y
 	# 동작(주먹·집기)은 상태와 무관하게 끝나면 지운다 — 쫓다가 포기하면 주먹 자세가 남던 버그
 	if fig.action == "punch" or fig.action == "grab":
@@ -150,7 +150,10 @@ func _physics_process(delta: float) -> void:
 		"busy":
 			v.x = 0.0; v.z = 0.0
 			fig.move_dir = Vector3.ZERO; fig.speed = 0.0
-			if not riding_swing.is_empty():
+			if riding_seesaw:
+				var sd := riding_seesaw.side_of(self)
+				if sd >= 0: global_position = riding_seesaw.seat_pos(sd) + Vector3(0, -0.42, 0); fig.face(PI / 2.0 if sd == 0 else -PI / 2.0); v.y = 0.0
+			elif not riding_swing.is_empty():
 				global_position = town.swing_seat(riding_swing) + Vector3(0, -0.39, 0)
 				fig.swing_k = clampf(riding_swing["vel"] / 3.0, -1.0, 1.0); fig.rotation.x = riding_swing["angle"]
 				v.y = 0.0
@@ -165,7 +168,7 @@ func _physics_process(delta: float) -> void:
 				fig.rotation.x += delta * 7.0   # 공중에서 구른다
 			fig.move_dir = Vector3.ZERO; fig.speed = 0.0
 			if now >= down_until:
-				fig.lying = false; fig.action = "getup"; fig.action_t = 0.0; collision_layer = 1; collision_mask = 3
+				fig.lying = false; fig.action = "getup"; fig.action_t = 0.0; collision_layer = 4; collision_mask = 7
 				state = "getup"; busy_until = now + 0.6
 		"getup":
 			v.x = 0.0; v.z = 0.0
@@ -298,6 +301,15 @@ func _arrive(now: float) -> void:
 	state = "busy"
 	fig.pose_request = ""
 	match spot["kind"]:
+		"seesaw":
+			var ss: Seesaw3D = spot["ss"]
+			var side := ss.side_near(global_position)
+			if not ss.sit(self, side): side = 1 - side
+			if ss.riders[side] == self or ss.sit(self, side):
+				riding_seesaw = ss; fig.seated = true; collision_layer = 0; collision_mask = 0
+				busy_until = now + randf_range(10.0, 20.0)
+			else:
+				busy_until = now + 1.0
 		"repair":
 			var c: Dictionary = spot["crack"]
 			fig.pose_request = "fix"; fig.face(atan2(-c["out"].x, -c["out"].z))
@@ -371,14 +383,14 @@ func _approach(dr: Dictionary) -> Array:
 
 ## 자리 점유 — 벤치는 3칸, 나머지는 1칸. 비어 있는 칸 번호를 돌려주고 없으면 -1
 func _free_slot(sp: Dictionary) -> int:
-	var n := 3 if sp["kind"] == "bench" else 1
+	var n := 3 if sp["kind"] == "bench" else (2 if sp["kind"] == "seesaw" else 1)
 	var taken: Array = sp.get("taken", [])
 	for i in n:
 		if i >= taken.size() or taken[i] == null or taken[i] == self: return i
 	return -1
 
 func _claim(sp: Dictionary, i: int) -> void:
-	var n := 3 if sp["kind"] == "bench" else 1
+	var n := 3 if sp["kind"] == "bench" else (2 if sp["kind"] == "seesaw" else 1)
 	if not sp.has("taken") or (sp["taken"] as Array).size() < n:
 		var arr := []; arr.resize(n); sp["taken"] = arr
 	sp["taken"][i] = self
@@ -401,10 +413,21 @@ func go_push(sw: Dictionary) -> void:
 	target = route[0]["pos"]; state = "walk"
 	say(["Hold on.", "Here.", "Higher?"][uid % 3], 1.5)
 
+var riding_seesaw: Seesaw3D = null
+
+## 시소에서 튀어 오름 — 날아올랐다 발로 착지하고, 한마디
+func seesaw_launch(vy: float) -> void:
+	riding_seesaw = null; fig.seated = false; _release()
+	collision_layer = 4; collision_mask = 7
+	velocity = Vector3(randf_range(-0.4, 0.4), vy, randf_range(0.3, 0.8)); fig.squash = 1.0
+	state = "busy"; busy_until = Time.get_ticks_msec() / 1000.0 + 1.2; spot = { "kind": "greet" }
+	say(["Whoa.", "That was high.", "Again."][uid % 3], 1.4)
+
 func _leave() -> void:
+	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
 	_release()
 	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
-	collision_layer = 1; collision_mask = 3
+	collision_layer = 4; collision_mask = 7
 	if not riding_swing.is_empty():
 		riding_swing["rider"] = null
 		global_position = riding_swing["at"] + Vector3(0, 0.02, 0.9); fig.pose_request = ""; fig.rotation.x = 0.0
@@ -435,8 +458,9 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	if state == "down" or state == "getup":
 		return
 	quarry = by
+	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
 	if spot.get("kind", "") == "repair": (spot["crack"] as Dictionary)["by"] = null   # 수리 중 맞으면 금을 내려놓는다
-	_release(); collision_layer = 1; collision_mask = 3
+	_release(); collision_layer = 4; collision_mask = 7
 	if not riding_swing.is_empty(): riding_swing["rider"] = null; riding_swing = {}; fig.rotation.x = 0.0
 	if not pushing_swing.is_empty(): pushing_swing["pusher"] = null; pushing_swing = {}
 	if now - last_hit > 3.0: hits = 0

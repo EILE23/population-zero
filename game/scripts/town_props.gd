@@ -122,22 +122,25 @@ func _bench(at: Vector3) -> void:
 ## 가로등 — 기둥 + 받침 + 유리 등갓 + 어두운 지붕. 전엔 기둥 위 노란 정육면체
 func _lamp(at: Vector3) -> void:
 	var iron := _mat(Color("4a4a52"))
+	var g := Node3D.new(); _add(g)   # 한 덩어리 — 차가 받으면 기둥째 날아간다(운영자 2026-09-29)
 	var post := MeshInstance3D.new()
 	var cm := CylinderMesh.new(); cm.top_radius = 0.035; cm.bottom_radius = 0.05; cm.height = 2.2
 	post.mesh = cm; post.material_override = iron
 	post.position = at + Vector3(0, 1.1, 0)
-	_add(post)
+	g.add_child(post)
 	var base := MeshInstance3D.new(); var bm := CylinderMesh.new(); bm.top_radius = 0.07; bm.bottom_radius = 0.1; bm.height = 0.12
-	base.mesh = bm; base.material_override = iron; base.position = at + Vector3(0, 0.06, 0); _add(base)
-	_box(Vector3(0.16, 0.05, 0.16), at + Vector3(0, 2.2, 0), iron, false)                       # 받침
-	_box(Vector3(0.2, 0.26, 0.2), at + Vector3(0, 2.25, 0), _mat(Color("f4de8a")), false)        # 유리
+	base.mesh = bm; base.material_override = iron; base.position = at + Vector3(0, 0.06, 0); g.add_child(base)
+	_box(Vector3(0.16, 0.05, 0.16), at + Vector3(0, 2.2, 0), iron, false, g)                       # 받침
+	_box(Vector3(0.2, 0.26, 0.2), at + Vector3(0, 2.25, 0), _mat(Color("f4de8a")), false, g)        # 유리
 	var cap := MeshInstance3D.new(); var cp := CylinderMesh.new(); cp.top_radius = 0.02; cp.bottom_radius = 0.17; cp.height = 0.12; cp.radial_segments = 4
-	cap.mesh = cp; cap.material_override = iron; cap.position = at + Vector3(0, 2.57, 0); cap.rotation.y = PI / 4.0; _add(cap)
-	spots.append({ "pos": at + Vector3(0.25, 0, 0), "kind": "lamp", "yaw": -PI / 2.0 })
+	cap.mesh = cp; cap.material_override = iron; cap.position = at + Vector3(0, 2.57, 0); cap.rotation.y = PI / 4.0; g.add_child(cap)
+	var sp := { "pos": at + Vector3(0.25, 0, 0), "kind": "lamp", "yaw": -PI / 2.0 }
+	spots.append(sp)
 	var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.6; l.omni_range = 4.0
 	l.position = at + Vector3(0, 2.3, 0)
-	_add(l)
+	g.add_child(l)
 	lamps.append(l)
+	wreckables.append({ "node": g, "at": at, "r": 0.2, "out": Vector3(0, 0, 1), "spot": sp, "light": l, "whole": true, "rebuild": _lamp.bind(at) })
 
 func _fence(at: Vector3, len: float) -> void:
 	# Kenney fence_simple(1m 토막, 원점이 왼끝 아님: -0.5..0.5) — +x 로 이어 붙인다
@@ -148,5 +151,5 @@ func _fence(at: Vector3, len: float) -> void:
 ## 울타리 한 토막 — 부서지면 이 토막만 날아가고, 수리공이 이 자리에 다시 세운다
 func _fence_bit(at: Vector3) -> void:
 	var m := _model("nature/fence_simple"); m.position = at; m.scale = Vector3(1.0, 1.15, 1.0); _add(m)
-	wreckables.append({ "node": m, "at": at, "r": 0.4, "out": Vector3(0, 0, 1), "rebuild": _fence_bit.bind(at) })
+	wreckables.append({ "node": m, "at": at, "r": 0.4, "out": Vector3(0, 0, 1), "splinter": true, "rebuild": _fence_bit.bind(at) })
 	# 충돌체 없음: 주민 경로가 울타리를 지나간다(전 울타리도 기둥 사이로 통과됐다). 막으면 울타리 앞에서 뛰며 갇힌다(운영자 2026-09-29) — 경로 탐색이 생기면 다시

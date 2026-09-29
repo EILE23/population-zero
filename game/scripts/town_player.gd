@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownCombat
+extends TownRide
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -18,6 +18,23 @@ func _physics_process(delta: float) -> void:
 			_exit_car(now)
 		_fly(delta); _water(delta); _cutaway(); _daylight(delta); _stream(); _weather(delta); _animals(delta); _swings(delta); _wind(delta)
 		return
+	# 시소 타는 중: 몸은 판 끝을 따라가고, SPACE = 낮은 쪽이면 박차기 / 높은 쪽이면 뛰어내리기(판이 올라가는 중이면 더 높이), C = 내리기
+	if seesaw_ride:
+		var ss := seesaw_ride; var side := ss.side_of("player")
+		body.global_position = ss.seat_pos(side) + Vector3(0, -0.42, 0); body.velocity = Vector3.ZERO
+		player.seated = true; player.face(PI / 2.0 if side == 0 else -PI / 2.0)
+		if Input.is_action_just_pressed("jump"):
+			var rising: float = ss.omega * (1.0 if side == 1 else -1.0)
+			if rising < -0.3 or ((side == 1 and ss.angle < 0.0) or (side == 0 and ss.angle > 0.0)):
+				ss.push(side)
+			else:
+				ss.leave("player"); seesaw_ride = null; player.seated = false; body.collision_layer = 4; body.collision_mask = 7
+				body.velocity = Vector3(0, JUMP_FULL + maxf(0.0, rising) * Seesaw3D.L * 2.2, 0.4); was_airborne = true; player.squash = 1.0
+		elif Input.is_action_just_pressed("act") and action_until < now:
+			ss.leave("player"); seesaw_ride = null; player.seated = false; body.collision_layer = 4; body.collision_mask = 7
+			body.global_position += Vector3(0, 0, 0.7); action_until = now + 0.3
+		_fly(delta); _water(delta); _cutaway(); _daylight(delta); _stream(); _weather(delta); _animals(delta); _swings(delta); _seesaws(delta); _wind(delta)
+		return
 	# 그네 타는 중: 몸은 그네가 움직인다(_swings) — 여기서 먼저 돌리고 C 만 본다(뒤의 _swings 호출 전에 return 되어 안 돌던 버그)
 	if not riding.is_empty():
 		_swings(delta)
@@ -32,7 +49,7 @@ func _physics_process(delta: float) -> void:
 		body.move_and_slide(); player.lying = true; player.move_dir = Vector3.ZERO; player.speed = 0.0
 		return
 	if down_until > 0.0 and down_until <= now and getup_until < 0.0:
-		down_until = -1.0; getup_until = now + 0.6; player.lying = false; player.action = "getup"; player.action_t = 0.0; body.collision_layer = 1; body.collision_mask = 3
+		down_until = -1.0; getup_until = now + 0.6; player.lying = false; player.action = "getup"; player.action_t = 0.0; body.collision_layer = 4; body.collision_mask = 7
 	if getup_until > now:
 		player.action_t = 1.0 - (getup_until - now) / 0.6; body.velocity = Vector3.ZERO
 		return
@@ -43,7 +60,7 @@ func _physics_process(delta: float) -> void:
 		body.collision_layer = 0; body.collision_mask = 0   # 앉는 동안 충돌 끔 — 의자 상자에 밀려 엉덩이가 박히던 것
 		if dir != Vector3.ZERO or Input.is_action_just_pressed("jump"):
 			seat = {}; player.seated = false
-			body.collision_layer = 1; body.collision_mask = 3
+			body.collision_layer = 4; body.collision_mask = 7
 			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_QUAD)
 			tw.tween_property(body, "position", Vector3(body.position.x, 0.02, body.position.z + 0.45), 0.25)
 		else:
@@ -117,6 +134,9 @@ func _physics_process(delta: float) -> void:
 	if was_airborne and body.is_on_floor():
 		dash_jump = false
 		var hard := clampf(-player.vertical / 12.0, 0.0, 1.0)
+		for ss in seesaws:   # 시소 끝을 밟으면 반대쪽이 튄다
+			if Vector2(body.global_position.x - ss.global_position.x, body.global_position.z - ss.global_position.z).length() < Seesaw3D.L + 0.3 and body.global_position.y > 0.15:
+				ss.stomp(ss.side_near(body.global_position), -player.vertical)
 		player.squash = -0.4 - 0.6 * hard; Jump3D.dust(self, body.global_position, hard)   # 닿는 순간 찌그러지고, 세게 닿으면 흙먼지
 		if player.vertical < -4.5 or jet:
 			land_until = now + (0.2 if jet else 0.12 + 0.1 * hard)
@@ -211,53 +231,8 @@ func _physics_process(delta: float) -> void:
 	_weather(delta)
 	_animals(delta)
 	_swings(delta)
+	_seesaws(delta)
 	_wind(delta)
-
-## 타기 — 몸을 숨기고 차가 나를 대신한다. 들고 있던 큰 가구는 내려놓는다
-func _enter_car(c: Car3D, now: float) -> void:
-	if not carrying_big.is_empty() or swimming or not riding.is_empty(): return
-	driving = c; c.driver = body
-	body.visible = false; body.collision_layer = 0; body.collision_mask = 0; body.velocity = Vector3.ZERO
-	player.pose_request = ""; reading = false; leaning = false; resting = false
-	action_until = now + 0.4
-
-## 내리기 — 차 왼쪽 옆에 선다. 차가 달리는 중이면 못 내린다
-func _exit_car(now: float) -> void:
-	if absf(driving.v) > 1.0: return
-	var c := driving
-	driving = null; c.driver = null; c.input = { "throttle": 0.0, "steer": 0.0, "brake": false }
-	body.global_position = c.exit_pos() + Vector3(0, 0.02, 0)
-	body.visible = true; body.collision_layer = 1; body.collision_mask = 3
-	player.face(c.rotation.y)
-	action_until = now + 0.4
-
-## 쓰다듬기 — 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세). 맞은 걸 기억하는 개는 손을 내밀면 한 발 물러난다
-func _pet_dog(a: Dictionary, now: float) -> void:
-	var p := body.global_position
-	var an: Node3D = a["node"]
-	if a.get("sulk_until", 0.0) > a["t"]:
-		a["flee_until"] = a["t"] + 1.0; a["wander"] = an.global_position + (an.global_position - p).normalized() * 2.0
-		player.action = "grab"; action_until = now + 0.6
-		return
-	a["pet_until"] = a["t"] + 2.5; a["follow_until"] = a["t"] + 6.0
-	player.face(atan2(an.global_position.x - p.x, an.global_position.z - p.z))
-	player.pose_request = "pet"; use_until = now + 2.2; action_until = now + 0.3   # 쪼그려 앉아 등을 쓸어 준다(전엔 허리만 숙였다)
-
-## 가구 들기(C 길게) — 두 손에 들고 옮긴다(carry 자세). 든 동안 충돌은 끈다
-func _pick_furniture(now: float) -> void:
-	if not carrying_big.is_empty() or player.carrying: return
-	var p := body.global_position
-	var best: Dictionary = {}; var bd := 9.0
-	for m in movables:
-		var d: float = p.distance_to(m["node"].global_position)
-		if d < 0.9 and d < bd: best = m; bd = d
-	if best.is_empty(): return
-	var n: Node3D = best["node"]
-	_set_solid(n, false)
-	n.get_parent().remove_child(n); player.socket_belt.add_child(n)
-	n.position = Vector3(0, 0.45, 0.42); n.rotation = Vector3.ZERO
-	carrying_big = best; player.pose_request = "carry"
-	player.action = "grab"; action_until = now + 0.4
 
 ## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
 func _step_up(motion: Vector3) -> void:
@@ -377,6 +352,9 @@ func _interact_check(now: float) -> void:
 	for c in cars:
 		var dc: float = p.distance_to(c.global_position)
 		if dc < 1.9 and dc < best_d and c.driver == null and carrying_big.is_empty(): best = { "kind": "car", "car": c }; best_d = dc
+	for ss in seesaws:
+		var dss: float = Vector2(p.x - ss.global_position.x, p.z - ss.global_position.z).length()
+		if dss < Seesaw3D.L + 0.6 and dss < best_d + 0.5 and seesaw_ride == null: best = { "kind": "seesaw", "ss": ss }; best_d = dss
 	for sw in swings:
 		var d6: float = p.distance_to(sw["at"])
 		if d6 < 1.2 and d6 < best_d: best = { "kind": "swing", "swing": sw }; best_d = d6
@@ -406,6 +384,11 @@ func _interact_check(now: float) -> void:
 			player.hold(it); player.action = "grab"; action_until = now + 0.4
 		"car":
 			_enter_car(best["car"], now)
+		"seesaw":
+			var ss: Seesaw3D = best["ss"]
+			var side := ss.side_near(p)
+			if not ss.sit("player", side): side = 1 - side; if not ss.sit("player", side): return
+			seesaw_ride = ss; body.collision_layer = 0; body.collision_mask = 0; player.move_dir = Vector3.ZERO; player.speed = 0.0
 		"swing":
 			var sw: Dictionary = best["swing"]
 			if not riding.is_empty():
