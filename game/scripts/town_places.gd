@@ -319,3 +319,52 @@ func counter_use(sp: Dictionary, now: float) -> void:
 	if sp.has("stock") and not counter_take(sp): return
 	var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
 	player.hold(it); player.action = "grab"; action_until = now + 0.4
+
+# ── 우산꽂이("Weather people feel" 2조각, run 76): 카페 창구 오른쪽 양동이에 우산 셋(모브·잉크·종이색). 빈손으로 C = 하나 빌린다(재고 3 → 0, 창구와 같은 counter_take/_show_stock),
+#    들고 C = 펴기/접기(umbr 자세 — 걷든 앉든 그대로, 아무것도 막지 않는다: 비는 벽이 아니다), 든 채 꽂이 앞에서 C = 돌려놓기. 비가 시작되면 10m 안의 밖에 있던 주민이 와서 빌려 펴고
+#    비를 맞으며 일과를 잇는다 — 비를 피하지 않고 걷는 첫 존재(resident.gd _to_rack). 그치면 돌려놓는다. 셋뿐이라 나머지는 여전히 처마로 간다(평범한 결과가 가장 흔하다는 규칙) ──
+
+const UMB_COLORS := [Color("ad7096"), Color("1b0c15"), Color("efe9e2")]
+var rack: Dictionary = {}   # 우산꽂이 자리 {pos, kind "rack", yaw, stock, shown, taken(칸 셋 = 우산 수, 주민이 걸어오는 동안 잡아 둔다)}
+
+## 양동이 하나와 진열 우산 셋 — 손잡이가 위, 자루가 양동이 속으로, 셋이 조금씩 다르게 기운다(픽셀까지 대칭인 건 없다)
+func _rack(at: Vector3) -> void:
+	var bk := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.2; cm.bottom_radius = 0.16; cm.height = 0.45; bk.mesh = cm
+	bk.material_override = _mat(Color("4a4a52")); bk.position = at + Vector3(0, 0.225, 0); _add(bk)
+	var shown: Array = []
+	for i in 3:
+		var u := make_item("umbrella", Vector3.ZERO)
+		(u.get_meta("umb") as MeshInstance3D).material_override = _mat(UMB_COLORS[i])
+		u.position = at + Vector3(-0.08 + i * 0.08, 0.95 + i * 0.03, (i - 1) * 0.05); u.rotation = Vector3(PI / 2.0 + 0.1 * (i - 1), 0.0, 0.12 * (1 - i))
+		shown.append(u)
+	rack = { "pos": at + Vector3(0, 0, 0.75), "kind": "rack", "yaw": PI, "stock": 3, "shown": shown }
+	spots.append(rack)
+
+## 꽂이에서 우산 하나 — 방금 가려진 진열 우산과 같은 색. 비었으면 null. 사람도 주민도 이걸 부른다
+func take_umbrella() -> Node3D:
+	if rack.is_empty() or not counter_take(rack): return null
+	var u := make_item("umbrella", Vector3.ZERO)
+	(u.get_meta("umb") as MeshInstance3D).material_override = _mat(UMB_COLORS[int(rack["stock"]) % 3])
+	return u
+
+## 돌려놓기 — 재고 하나 늘고 진열 우산이 다시 보인다. 꽉 찼으면 false(바닥에 떨어진 우산을 누가 주워 온 뒤에야 생기는 일). 사람도 주민도 이걸 부른다
+func rack_put() -> bool:
+	if rack.is_empty() or int(rack["stock"]) >= 3: return false
+	rack["stock"] = int(rack["stock"]) + 1; _show_stock(rack)
+	return true
+
+## 사람이 빈손으로 꽂이 앞에서 C(town_player) — 하나 빌려 손에(접힌 채, 지팡이처럼). 비었으면 아무 일도 없다
+func rack_use(now: float) -> void:
+	player.face(rack["yaw"])
+	var u := take_umbrella()
+	if u == null: return
+	player.hold(u); player.action = "grab"; action_until = now + 0.4
+
+## 사람이 우산을 들고 C(town_player) — 꽂이 앞(1.1m)이고 칸이 비었으면 돌려놓고, 아니면 펴기/접기(umbr, 0.3초 예비·회수는 Stick3D.umbr_k). 전엔 아래 '내려놓기'가 먼저 잡았다
+func umbrella_use(now: float) -> void:
+	if not rack.is_empty() and body.global_position.distance_to(rack["pos"]) < 1.1 and rack_put():
+		player.release(self, Vector3.ZERO).queue_free(); player.pose_request = ""
+		player.face(rack["yaw"]); player.action = "grab"; action_until = now + 0.4
+		return
+	player.pose_request = "" if player.pose_request == "umbr" else "umbr"
+	action_until = now + StickPoses.UMBR_T

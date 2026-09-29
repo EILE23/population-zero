@@ -41,6 +41,7 @@ var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(�
 var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
 var push_t := 9.0              # 밀기: 0 에서 시작해 1 까지(팔을 뻗었다 거둔다), 9 = 쉼
 var pose_t := 0.0              # 지금 pose_request 가 시작된 뒤 흐른 시간 — 자세마다 예비·유지·회수 타이밍(StickPoses). 자세가 바뀌면 0
+var umbr_k := 0.0              # 우산 펴짐 0..1(run 76) — pose_request "umbr" 이면 UMBR_T 에 걸쳐 1 로, 아니면 0 으로. 접히는 회수도 이걸로(자세가 풀려도 팔이 뚝 떨어지지 않는다)
 var _pose_prev := ""
 
 ## 대기 기지개(운영자 2026-09-28, "Stick3D feel"): 가만히 서 있을 때만 저절로 — 2D figure.gd 의 yawn·shrug·look 을 그대로
@@ -185,7 +186,7 @@ func hold(item: Node3D) -> void:
 	item.get_parent().remove_child(item)
 	hand_r.add_child(item)
 	item.position = Vector3(0, -0.06, 0.06)
-	item.rotation = Vector3.ZERO
+	item.rotation = Vector3(PI / 2.0, 0, 0) if item.has_meta("umb") else Vector3.ZERO   # 우산은 자루가 +z 로 누워 있는 물건(바닥에선 그렇게 놓인다) — 손에선 -y 로 세워 팔이 늘어지면 끝이 아래, 팔을 들면 캐노피가 머리 위
 	carrying = item
 
 func release(into: Node3D, at: Vector3) -> Node3D:
@@ -194,7 +195,8 @@ func release(into: Node3D, at: Vector3) -> Node3D:
 		return null
 	hand_r.remove_child(item)
 	into.add_child(item)
-	item.global_position = at
+	item.global_position = at; item.rotation = Vector3.ZERO
+	if item.has_meta("umb"): (item.get_meta("umb") as Node3D).scale = Vector3(0.15, 1.0, 0.15); umbr_k = 0.0   # 손을 떠난 우산은 접힌다(던지거나 맞아 떨어뜨려도)
 	carrying = null
 	return item
 
@@ -205,6 +207,8 @@ func _process(delta: float) -> void:
 		_pose_prev = pose_request; pose_t = 0.0
 	else:
 		pose_t += delta
+	if pose_request == "umbr" and (carrying == null or not carrying.has_meta("umb")): pose_request = ""   # 손에 우산이 없으면 우산 자세도 없다
+	umbr_k = move_toward(umbr_k, 1.0 if pose_request == "umbr" else 0.0, delta / StickPoses.UMBR_T)
 	var moving := move_dir.length_squared() > 0.0001 and speed > 0.05 and not seated
 	# 몸 방향 — 이동 방향으로 부드럽게(초당 약 10rad 로 수렴). 서 있으면 마지막 방향 유지
 	if moving:
@@ -324,9 +328,10 @@ func _process(delta: float) -> void:
 			sh.rotation.z = -s * 0.04                              # 몸에 붙임(평탄)
 			el.rotation.x = -(0.35)                                # 팔꿈치 살짝 굽힘
 	# 들고 있으면 오른팔은 앞으로 반쯤 들어 물건을 보인다(걸음 스윙 대신)
-	if carrying and not airborne and not StickPoses.owns_right_arm(pose_request):   # 먹기·마시기·물주기는 오른손을 제 자리에 둔다(전엔 이 덮어쓰기가 입까지 가던 손을 도로 내렸다)
+	if carrying and not airborne and not StickPoses.owns_right_arm(pose_request) and not carrying.has_meta("umb"):   # 먹기·마시기·물주기는 오른손을 제 자리에 둔다(전엔 이 덮어쓰기가 입까지 가던 손을 도로 내렸다); 접은 우산은 지팡이처럼 늘어뜨린 채
 		shoulders[1.0].rotation.x = -(0.55)
 		elbows[1.0].rotation.x = -(1.15)
+	if umbr_k > 0.0: StickPoses.umbr(self)   # 우산(run 76): 오른팔만 덮어쓴다 — 걷든 서든 앉든 다리·왼팔은 위에서 정한 그대로
 	# 잠깐의 동작 — 2D 자세를 그대로: 빨리 나갔다(35%) 천천히 돌아온다(65%). 공중에서도 된다(점프킥·점프 주먹)
 	if action != "":
 		var a := clampf(action_t, 0.0, 1.0)

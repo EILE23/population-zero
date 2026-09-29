@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead' | 'shade' | 'storm';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead' | 'shade' | 'storm' | 'umbr';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -131,6 +131,20 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     hip = [-1, -16]; shoulder = [-2, -34 - sg * 1.5]; head = [-2 + 3 * k, -42 - 3 * k - sg * 1.5];
     line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
     line(shoulder, [7 + sg, -27 - sg * 1.5], [-4, -24 - sg * 1.5]); line(shoulder, [-8 - sg, -27 - sg * 1.5], [3, -24 - sg * 1.5]); // 팔짱: 두 팔이 가슴 앞에서 엇갈린다
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'umbr') {
+    // 우산(3D umbr, run 76, 카페 옆 우산꽂이): 오른팔을 머리 위로 들어 자루를 잡고 캐노피가 머리 위에, 왼팔은 늘어뜨린 채. 0.3초에 걸쳐 팔이 오르고 캐노피가 펴진다(예비) · 든 채 선다(유지, 캐노피가 바람에 살짝 흔들린다) · 접힘은 같은 0.3초를 거꾸로(회수). t 가 자세 시작부터의 초면 예비가 보이고, 전역 시계면 편 채
+    const k = Math.min(1, t / 0.3), sw = Math.sin(t * 1.3) * 1.5 * k;
+    hip = [0, -16]; shoulder = [0, -34]; head = [0, -42];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [-5, -26], [-6, -18]);
+    const hx = 4 + 4 * k, hy = -18 - 30 * k; // 손 = 자루 아래
+    line(shoulder, [6 + 2 * k, -26 - 12 * k], [hx, hy]);
+    const cx = hx + sw * 0.3, cy = hy - 14 * k, r = 2 + 14 * k;
+    ctx.lineWidth = 1.6; line([hx, hy], [cx, cy]); ctx.lineWidth = 2.4; // 자루
+    ctx.fillStyle = '#ad7096'; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = color; // 캐노피: 반원, 접혔을 땐 점
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

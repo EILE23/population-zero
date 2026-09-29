@@ -310,6 +310,9 @@ func _interact_check(now: float) -> void:
 		if kind == "cup":
 			player.pose_request = "drink"; use_until = now + 1.2; action_until = now + 1.2
 			return
+		if kind == "umbrella":
+			umbrella_use(now)   # 우산(run 76): 꽂이 앞이면 돌려놓기, 아니면 펴기/접기(town_places) — 전엔 아래 '내려놓기'가 먼저 잡았다
+			return
 		if kind == "can" and not near_plot(p).is_empty():
 			garden_use(near_plot(p), now)   # 물뿌리개 들고 이랑 앞 C = 물 주기(전엔 아래 '내려놓기'가 먼저 잡아 물뿌리개를 바닥에 떨궜다)
 			return
@@ -345,7 +348,7 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기)
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": sp["kind"], "spot": sp }; best_d = d8
 	var pl := near_plot(p)
@@ -375,6 +378,8 @@ func _interact_check(now: float) -> void:
 			counter_use(best["spot"], now)   # 창구: 빵(재고 셋, 비면 "Sold out.")이나 컵을 받는다 — 지금은 공짜, 코인 결제는 다음 조각(town_places)
 		"oven":
 			oven_use(best["spot"], now)   # 화덕: 반죽 한 바퀴(knead 자세)로 창구에 빵 하나 — 빵집 주인이 하는 것과 같은 자세·같은 효과(town_places)
+		"rack":
+			rack_use(now)   # 우산꽂이(run 76): 하나 빌린다 — 주민이 비 올 때 하는 것과 같은 take_umbrella(town_places)
 		"swing":
 			var sw: Dictionary = best["swing"]
 			if not riding.is_empty():

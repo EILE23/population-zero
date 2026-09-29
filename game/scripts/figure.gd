@@ -208,6 +208,19 @@ func _draw() -> void:
 			_ln(hip, shoulder); _ln(hip, Vector2(-4, -8), Vector2(-5, 0)); _ln(hip, Vector2(4, -8), Vector2(5, 0))
 			_ln(shoulder, Vector2(7 + sg, -27 - sg * 1.5), Vector2(-4, -24 - sg * 1.5)); _ln(shoulder, Vector2(-8 - sg, -27 - sg * 1.5), Vector2(3, -24 - sg * 1.5))
 			_head(head)
+		"umbr":
+			# 우산(run 76, 카페 옆 우산꽂이) — stickman.ts 'umbr' 과 같은 수: 0.3초에 걸쳐 오른팔이 머리 위로 오르고 캐노피가 펴진다(예비) · 든 채(유지, 살짝 흔들림) · 접힘은 거꾸로(회수). 3D 는 stick3d_poses.gd umbr
+			var k := minf(1.0, t / 0.3); var sw := sin(t * 1.3) * 1.5 * k
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(-5, -26), Vector2(-6, -18))
+			var hd := Vector2(4 + 4 * k, -18 - 30 * k)
+			_ln(shoulder, Vector2(6 + 2 * k, -26 - 12 * k), hd)
+			var c := Vector2(hd.x + sw * 0.3, hd.y - 14 * k); var r := 2 + 14 * k
+			draw_line(hd, c, color, 1.6, true)
+			var pts := PackedVector2Array()
+			for i in 13: pts.append(c + Vector2(cos(PI + i * PI / 12.0), sin(PI + i * PI / 12.0)) * r)
+			draw_colored_polygon(pts, Color("ad7096")); draw_polyline(pts, color, LW, true)
+			_head(head)
 		"sweep":
 			var p := sin(t * 5.0) * 6.0
 			shoulder = Vector2(6, -31); head = Vector2(9, -39)

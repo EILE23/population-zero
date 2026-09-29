@@ -240,6 +240,15 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 			dr.mesh = SphereMesh.new(); (dr.mesh as SphereMesh).radius = 0.012; (dr.mesh as SphereMesh).height = 0.024
 			var dm := StandardMaterial3D.new(); dm.albedo_color = Color("8fb8cc"); dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; dr.material_override = dm
 			dr.position = Vector3(0, 0.08, 0.24); mi.add_child(dr); mi.set_meta("drops", dr)
+		"umbrella":
+			# 우산(run 76, 카페 옆 우산꽂이): 원점이 손잡이(잉크색 손잡이 구), 자루가 +z 로 눕는다 — 바닥엔 그대로 눕고, 손에선 Stick3D.hold 가 -y 로 세운다(팔이 늘어지면 끝이 아래, 팔을 들면 캐노피가 머리 위).
+			# 캐노피는 자루 끝의 납작한 원뿔(meta "umb") — 접히면 x·z 0.15, StickPoses.umbr 이 umbr_k 로 펴고 접는다. 색은 우산꽂이(_rack)가 셋을 다르게 칠한다
+			var kb := SphereMesh.new(); kb.radius = 0.03; kb.height = 0.06; mi.mesh = kb; mi.material_override = _mat(Color("1b0c15"))
+			mi.position = at + Vector3(0, 0.03, 0)
+			_box(Vector3(0.025, 0.025, 0.55), Vector3(0, -0.0125, 0.275), _mat(Color("4a4a52")), false, mi)
+			var cp := MeshInstance3D.new(); var cs := CylinderMesh.new(); cs.top_radius = 0.0; cs.bottom_radius = 0.38; cs.height = 0.16; cs.radial_segments = 12
+			cp.mesh = cs; cp.material_override = _mat(Color("ad7096")); cp.rotation.x = PI / 2.0; cp.position = Vector3(0, 0, 0.47); cp.scale = Vector3(0.15, 1.0, 0.15)
+			mi.add_child(cp); mi.set_meta("umb", cp)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)
