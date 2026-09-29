@@ -584,3 +584,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-29) Add a lamplighter job and a small lamphouse building so one resident lights and tends street lamps at dusk/dawn and can relight player-held lanterns with a quick assist.
+- [ ] (town wish, 2026-09-29) Add small umbrella racks (interactable booth/post/bench spots): when rain begins residents and the player can take or return an umbrella; a resident holding one uses a wet-weather idle and has a brief extra shove-resilie
