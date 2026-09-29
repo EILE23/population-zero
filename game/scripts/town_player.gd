@@ -180,6 +180,8 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request in ["eat", "drink", "wave", "pet"]: player.pose_request = ""
+	if player.pose_request == "pet" and dir != Vector3.ZERO:
+		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다(쪼그린 다리로 미끄러지던 리뷰 버그)
 	if (reading or leaning or resting) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
 			getup_until = now + 0.6; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 한 손으로 짚고 무릎을 세우는 0.6초(맞고 일어날 때와 같은 동작)
@@ -301,12 +303,12 @@ func _interact_check(now: float) -> void:
 		for it in items:
 			var d0 := p.distance_to(it.global_position)
 			if d0 < nd: near_it = it; nd = d0
-		if near_it and player.pocket.size() < 2:
+		if near_it and player.pocket.size() < 2 and near_it != last_dropped:   # 방금 내려놓은 건 다시 안 집는다(리뷰 버그: 두 개를 한 자리에 못 놓았다)
 			items.erase(near_it); player.hold(near_it); bites = 0
 			player.action = "grab"; action_until = now + 0.4
 			return
 		var item := player.release(self, p + fwd * 0.5 + Vector3(0, 0.08, 0))
-		items.append(item); bites = 0
+		items.append(item); bites = 0; last_dropped = item
 		player.action = "grab"; action_until = now + 0.4
 		return
 	var best: Dictionary = {}; var best_d := 9.0

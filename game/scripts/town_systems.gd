@@ -222,7 +222,22 @@ func _animals(delta: float) -> void:
 					a["follow_until"] = a["t"] + 3.0
 				if not petted:
 					if a["kind"] == "dog" and a.get("follow_until", 0.0) > a["t"]:
-						want = p + (n.global_position - p).normalized() * 1.1; spd = 2.6
+						if d < 3.0: a["follow_until"] = a["t"] + 3.0   # 곁에 있는 동안은 계속
+						if d > 1.5:
+							want = p + (n.global_position - p).normalized() * 1.1; spd = 3.2 if d > 3.5 else 1.6   # 멀면 달려오고 가까우면 걸어온다
+						else:
+							# 애교(운영자 2026-09-29: "달려오기만 하잖아"): 곁에서 2~4초마다 하나 — 빙글 돌기·놀자·뒹굴기·발치에 코 비비기·앉아 올려다보기·폴짝
+							if a.get("aff_until", 0.0) < a["t"]:
+								a["aff_until"] = a["t"] + randf_range(2.0, 4.0)
+								var affs: Array = ["circle", "bow", "nuzzle", "beg", "hop", "circle", "nuzzle", "bow"]   # 뒹굴기는 아직 어색해 뺌
+								a["aff"] = affs[randi() % affs.size()]
+								if a["aff"] != "circle": q.act(a["aff"])
+							if a["aff"] == "circle":
+								var ang := atan2(n.global_position.z - p.z, n.global_position.x - p.x) + delta * 1.8
+								want = p + Vector3(cos(ang), 0, sin(ang)) * 1.0; spd = 1.5
+							else:
+								want = n.global_position; spd = 0.0
+								n.look_at(Vector3(p.x, n.global_position.y, p.z), Vector3.UP, true)   # 사람 쪽을 본다
 					elif shy and d < 1.4:
 						want = n.global_position + (n.global_position - p).normalized() * 3.0; spd = 3.4; a["flee_until"] = a["t"] + 1.5
 					elif a.get("flee_until", 0.0) > a["t"]:
@@ -341,8 +356,8 @@ func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 		my_hits = 0
 		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
 		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
-		if player.carrying:
-			var it: Node3D = player.release(self, body.global_position + dir * 0.6 + Vector3(0, 0.1, 0)); items.append(it)
+		while player.carrying:   # 들고 있던 걸 전부 떨어뜨린다(주민과 같은 규칙)
+			var it: Node3D = player.release(self, body.global_position + dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0)); items.append(it)
 	else:
 		player.action = "flinch"; action_until = now + 0.3
 		body.velocity = dir * 1.6

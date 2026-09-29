@@ -208,6 +208,8 @@ var petting_until := -1.0
 
 var water: Water3D                # 물 애셋(강·연못의 수면·가장자리·물결·판정·물보라) — _ready 가 만들고 _park/_river 가 물을 붓는다
 
+var last_dropped: Node3D = null  # 방금 내려놓은 것 — 다음 C 가 도로 집지 않게
+
 var swimming := false            # 내가 물에 들어가 있는 동안(헤엄 자세, 느리고, 점프·타격 없음)
 
 ## 물에 있나 — 물 애셋이 답하고, 다리 위만 뺀다. 사람도 주민도 물건도 같은 규칙

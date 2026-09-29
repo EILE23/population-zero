@@ -21,6 +21,10 @@ func _ready() -> void:
 	town.view_25d = false
 	await get_tree().create_timer(1.0).timeout
 	_define()
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--only="):
+			var names: PackedStringArray = arg.substr(7).split(",")
+			clips = clips.filter(func(c: Dictionary) -> bool: return c["name"] in names)
 	_next()
 
 func _animal(kind: String) -> Dictionary:
@@ -48,8 +52,10 @@ func _define() -> void:
 		{ "name": "dog-lie", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "lie") },
 		{ "name": "dog-stretch", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "stretch") },
 		{ "name": "dog-bow", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "bow") },
-		{ "name": "dog-roll", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "roll") },
+		{ "name": "dog-roll", "subject": dog["node"], "lead": 0.05, "dt": 0.28, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "roll") },
 		{ "name": "dog-hurt", "subject": dog["node"], "lead": 0.0, "setup": func() -> void: _near(dog); _hold(dog); town.animal_hit(dog, Vector3(0, 0, -1)) },
+		{ "name": "dog-affection", "subject": dog["node"], "lead": 0.3, "setup": func() -> void: _hold(dog); dog["sulk_until"] = 0.0; dog["follow_until"] = dog["t"] + 9.0; dog["aff_until"] = 0.0; town.body.position = _pos(dog) + Vector3(0, 0.02, 1.2) },
+		{ "name": "dog-beg", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "beg") },
 		{ "name": "dog-pet", "subject": dog["node"], "lead": 0.1, "side": true, "setup": func() -> void: _hold(dog); dog["sulk_until"] = 0.0; town.body.position = _pos(dog) + Vector3(0, 0.02, 0.8); town._pet_dog(dog, Time.get_ticks_msec() / 1000.0) },
 		{ "name": "dog-sniff", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "sniff") },
 		{ "name": "dog-scratch", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "scratch") },
@@ -91,7 +97,7 @@ func _process(_delta: float) -> void:
 	cam.look_at(s + Vector3(0, 0.3 if subject != town.body else 0.45, 0), Vector3.UP)
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < next_frame: return
-	next_frame += DT
+	next_frame += float(clips[ci].get("dt", DT))
 	var img := get_viewport().get_texture().get_image()
 	img.convert(Image.FORMAT_RGB8)
 	frames.append(img)

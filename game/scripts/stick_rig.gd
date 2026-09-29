@@ -140,7 +140,8 @@ func wear(item: Node3D) -> Node3D:
 	sock.add_child(item); item.position = Vector3.ZERO; item.rotation = Vector3.ZERO; item.scale = Vector3.ONE
 	if slot == "face": item.position = Vector3(0, 0.02, 0.03)
 	worn[slot] = item
-	if carrying == item: carrying = null
+	if carrying == item:
+		carrying = null; _promote()   # 왼손 것이 오른손으로(전엔 빈손인 채 왼손에 남아 못 내려놓았다 — 리뷰 버그)
 	return prev
 
 ## 벗기 — 그 슬롯의 것을 떼어 돌려준다
@@ -186,10 +187,14 @@ func release(into: Node3D, at: Vector3) -> Node3D:
 	into.add_child(item)
 	item.global_position = at
 	carrying = null
-	if not pocket.is_empty():
-		var nxt: Node3D = pocket.pop_front()
-		nxt.get_parent().remove_child(nxt); hand_r.add_child(nxt)
-		nxt.position = Vector3(0, -0.06, 0.06); nxt.rotation = Vector3.ZERO
-		carrying = nxt
-		_place_pocket()
+	_promote()
 	return item
+
+## 왼손 것이 오른손으로, 허리 것이 왼손으로
+func _promote() -> void:
+	if pocket.is_empty(): return
+	var nxt: Node3D = pocket.pop_front()
+	nxt.get_parent().remove_child(nxt); hand_r.add_child(nxt)
+	nxt.position = Vector3(0, -0.06, 0.06); nxt.rotation = Vector3.ZERO
+	carrying = nxt
+	_place_pocket()

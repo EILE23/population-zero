@@ -102,14 +102,11 @@ func _build() -> void:
 	var thick := L * 0.19
 	var t := thick
 	rump = Node3D.new(); rump.position = Vector3(0, H, -L * 0.25); add_child(rump)
-	# 몸통 뒤쪽(엉덩이→척추 관절): 한 덩어리 로프트 — 뒤는 둥글게 좁아지고 배는 살짝 처진다
-	# 앞뒤 튜브는 관절 너머까지 서로 깊이 겹친다 — 달릴 때 척추가 0.35rad 휘면 살짝 겹친 것은 벌어져 틈이 보였다(운영자 지적)
-	_tube(rump, [[-L * 0.5, t * 0.35, 0.05 * t], [-L * 0.42, t * 0.8, 0.0], [-L * 0.25, t * 1.0, -0.05 * t], [0.0, t * 1.02, -0.08 * t], [L * 0.24, t * 1.0, -0.06 * t], [L * 0.4, t * 0.9, -0.04 * t], [L * 0.46, t * 0.6, 0.0]], color)
+	# 몸통 전체를 엉덩이 노드 하나에 한 덩어리 로프트로(운영자 2026-09-29: "몸통 분해되잖아" — 두 토막이면 척추가 휠 때 갈라졌다). 가슴이 제일 깊고 목으로 좁아진다
+	_tube(rump, [[-L * 0.5, t * 0.35, 0.05 * t], [-L * 0.42, t * 0.8, 0.0], [-L * 0.25, t * 1.0, -0.05 * t], [0.0, t * 1.02, -0.08 * t], [L * 0.22, t * 1.02, -0.07 * t], [L * 0.34, t * 1.08, -0.1 * t, 1.12], [L * 0.52, t * 1.02, -0.02 * t, 1.1], [L * 0.64, t * 0.8, 0.12 * t], [L * 0.72, t * 0.45, 0.35 * t]], color)
 	spine = Node3D.new(); spine.position = Vector3(0, 0, L * 0.22); rump.add_child(spine)
 	chest = Node3D.new(); chest.position = Vector3(0, 0, L * 0.22); spine.add_child(chest)
-	# 몸통 앞쪽(척추 관절→어깨→목 밑): 가슴이 제일 깊고 앞으로 가며 좁아져 목으로 이어진다
 	var neck_l := L * (0.3 if kind in ["cat", "fox", "marten"] else 0.22)
-	_tube(chest, [[-L * 0.3, t * 0.6, 0.0], [-L * 0.22, t * 0.92, -0.04 * t], [-L * 0.03, t * 1.0, -0.06 * t], [L * 0.12, t * 1.08, -0.1 * t, 1.12], [L * 0.3, t * 1.02, -0.02 * t, 1.1], [L * 0.42, t * 0.8, 0.12 * t], [L * 0.5, t * 0.45, 0.35 * t]], color)
 	# 목: 가슴 앞·위에서 머리로 비스듬히 — 튜브가 몸에서 머리 속까지 이어진다(위로 뻗는 축은 rotation.x + 가 앞)
 	var neck := Node3D.new(); neck.position = Vector3(0, thick * 0.35, L * 0.24); neck.rotation.x = 0.85; chest.add_child(neck)
 	_tube(neck, [[-t * 0.3, t * 0.62, 0.0], [neck_l * 0.5, t * 0.58, 0.0], [neck_l + head_r * 0.5, t * 0.5, 0.0]], color, 12)
@@ -197,7 +194,7 @@ func _process(delta: float) -> void:
 	var thick := L * 0.19
 	# 척추·몸통: 달리면(바운드) 늘었다 줄었다, 걸으면 대각선 짝에 맞춰 살짝 구르고(z) 비틀린다(y)
 	if run:
-		spine.rotation.x = -sw * 0.35; rump.position.y = H + absf(cw) * 0.08 * (L / 0.6); rump.rotation.x = sw * 0.25
+		spine.rotation.x = -sw * 0.12; rump.position.y = H + absf(cw) * 0.08 * (L / 0.6); rump.rotation.x = sw * 0.25   # 척추 휨은 작게 — 몸통이 한 덩어리라 앞다리·머리만 따라간다
 		rump.rotation.y = 0.0; rump.rotation.z = lerp_angle(rump.rotation.z, 0.0, delta * 10.0)
 	elif moving:
 		spine.rotation.x = sin(_phase * 2.0) * 0.05; rump.position.y = H + absf(cw) * 0.02; rump.rotation.x = 0.0
@@ -276,7 +273,7 @@ func _process(delta: float) -> void:
 			roll = sin(minf(_act_t, 1.4) / 1.4 * PI) * PI; body_y = thick + 0.05
 			if _act_t > 1.5: state = "idle"
 		"arch":
-			body_y = H * 1.05; spine.rotation.x = 0.55; rump.rotation.x = -0.3
+			body_y = H * 1.05; spine.rotation.x = 0.2; rump.rotation.x = -0.3
 			if _act_t > 1.2: state = "idle"
 		"stalk":
 			body_y = H * 0.75
