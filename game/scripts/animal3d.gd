@@ -1,26 +1,20 @@
 class_name Animal3D
 extends Node3D
-## 외부 모델 동물(운영자 2026-09-28: "외부 에셋 같은 걸 따로 구하는 게 좋을 거 같은데") — CC0 glTF(Quaternius Ultimate Animated Animals, Gobkit)를
+## 외부 모델 동물(운영자 2026-09-28: "외부 에셋 같은 걸 따로 구하는 게 좋을 거 같은데") — CC0 glTF(Quaternius Ultimate Animated Animals)를
 ## 불러 마을이 쓰는 같은 상태 API(state·speed·look·sulk·act)로 애니메이션을 고른다. 절차 리그(Quad3D·Bird3D)와 바꿔 끼울 수 있게 이름을 맞췄다.
 ## 모델별 스케일·앞방향·상태→클립 표는 SPECS 에. 새 동물은 표 한 줄.
 
 const SPECS := {
-	"dog":    { "path": "res://assets/models/animals/quaternius/ShibaInu.gltf", "scale": 0.155, "yaw": PI, "walk_speed": 1.4, "run_speed": 3.2,
+	"dog":    { "path": "res://assets/models/animals/quaternius/ShibaInu.gltf", "scale": 0.155, "yaw": 0.0, "walk_speed": 1.4, "run_speed": 3.2,
 		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "stalk": "Walk", "sit": "Idle_2", "lie": "Idle_2_HeadLow", "sniff": "Idle_2_HeadLow",
 			"eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack", "bow": "Idle_2", "roll": "Idle_HitReact2", "stretch": "Idle_2_HeadLow", "yawn": "Idle_2", "pet": "Idle_2", "shake": "Idle_HitReact2", "scratch": "Idle_2", "jump": "Gallop_Jump" } },
-	"fox":    { "path": "res://assets/models/animals/quaternius/Fox.gltf", "scale": 0.15, "yaw": PI, "walk_speed": 1.4, "run_speed": 3.6,
+	"fox":    { "path": "res://assets/models/animals/quaternius/Fox.gltf", "scale": 0.15, "yaw": 0.0, "walk_speed": 1.4, "run_speed": 3.6,
 		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "stalk": "Walk", "sit": "Idle_2", "lie": "Idle_2_HeadLow", "sniff": "Idle_2_HeadLow",
 			"eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack", "stretch": "Idle_2_HeadLow", "yawn": "Idle_2", "jump": "Gallop_Jump" } },
-	"wolf":   { "path": "res://assets/models/animals/quaternius/Wolf.gltf", "scale": 0.19, "yaw": PI, "walk_speed": 1.5, "run_speed": 4.0,
+	"wolf":   { "path": "res://assets/models/animals/quaternius/Wolf.gltf", "scale": 0.19, "yaw": 0.0, "walk_speed": 1.5, "run_speed": 4.0,
 		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "stalk": "Walk", "lie": "Idle_2_HeadLow", "eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack" } },
-	"deer":   { "path": "res://assets/models/animals/quaternius/Deer.gltf", "scale": 0.2, "yaw": PI, "walk_speed": 1.5, "run_speed": 4.5,
+	"deer":   { "path": "res://assets/models/animals/quaternius/Deer.gltf", "scale": 0.2, "yaw": 0.0, "walk_speed": 1.5, "run_speed": 4.5,
 		"map": { "idle": "Idle", "idle2": "Idle_2", "walk": "Walk", "run": "Gallop", "lie": "Idle_Headlow", "eat": "Eating", "hurt": "Idle_HitReact1", "bite": "Attack_Headbutt", "jump": "Gallop_Jump" } },
-	"marten": { "path": "res://assets/models/animals/Marmot.glb", "scale": 0.075, "yaw": 0.0, "walk_speed": 1.2, "run_speed": 3.0,
-		"map": { "idle": "idle", "walk": "walk", "run": "walk", "stalk": "walk", "hurt": "attack", "bite": "attack", "lie": "dead" } },
-	"duck":   { "path": "res://assets/models/animals/Duck.glb", "scale": 0.0011, "yaw": 0.0, "walk_speed": 0.8, "run_speed": 2.0,
-		"map": { "idle": "idle", "walk": "walk", "run": "walk", "fly": "walk", "swim": "walk", "feed": "attack", "hurt": "attack" } },
-	"corgi":  { "path": "res://assets/models/animals/Corgi.glb", "scale": 0.0011, "yaw": 0.0, "walk_speed": 1.2, "run_speed": 2.8,
-		"map": { "idle": "idle", "walk": "walk", "run": "walk", "hurt": "attack", "bite": "attack", "lie": "dead" } },
 }
 
 var kind := "dog"

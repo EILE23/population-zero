@@ -301,43 +301,48 @@ func _market(at: Vector3) -> void:
 func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 	var n := Node3D.new(); n.position = at; _add(n)
 	match kind:
-		"duck":
-			# 외부 모델(Gobkit Duck, CC0) — Bird3D 와 같은 속성(speed·flying·swimming·feed)
-			var bd := Animal3D.new(); bd.setup("duck"); n.add_child(bd); data["bird"] = bd
-		"pigeon":
-			# 비둘기는 아직 CC0 모델이 없어 절차 리그(bird3d.gd)
-			var bd := Bird3D.new(); bd.setup("pigeon", Color("8a7f86"), Color("5b4f56")); n.add_child(bd); data["bird"] = bd
-		"dog", "fox", "marten", "wolf", "deer":
-			# 외부 모델(Quaternius Ultimate Animated Animals / Gobkit, CC0) — Quad3D 와 같은 상태 API(운영자 2026-09-28: 외부 에셋으로)
+		"duck", "pigeon":
+			# 새는 절차 리그(bird3d.gd) — Gobkit 오리는 시트로 보니 우리 것보다 못했다(2026-09-29), CC0 대안은 아직 없다
+			var bd := Bird3D.new()
+			if kind == "duck": bd.setup("duck", Color("e6d3a5"), Color("b48a5a"))
+			else: bd.setup("pigeon", Color("8a7f86"), Color("5b4f56"))
+			n.add_child(bd); data["bird"] = bd
+		"dog", "fox", "wolf", "deer":
+			# 외부 모델(Quaternius Ultimate Animated Animals, CC0) — Quad3D 와 같은 상태 API(운영자 2026-09-28: 외부 에셋으로)
 			var q := Animal3D.new(); q.setup(kind); n.add_child(q); data["quad"] = q
-		"cat", "squirrel":
-			# 고양이·다람쥐는 아직 CC0 애니메이션 모델이 없어 절차 리그(quad3d.gd)
+		"cat", "squirrel", "marten":
+			# 고양이·다람쥐·담비는 CC0 애니메이션 모델이 없어(Gobkit 마못은 너무 저품질) 절차 리그(quad3d.gd)
 			var q := Quad3D.new()
-			if kind == "cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
-			else: q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)
+			match kind:
+				"cat": q.setup("cat", Color("4a4a52"), Color("3a2f36"), 1.0)
+				"marten": q.setup("marten", Color("8a6a4a"), Color("5b4f56"), 1.0)
+				_: q.setup("squirrel", Color("9a6a3f"), Color("8a6a4a"), 1.0)
 			n.add_child(q); data["quad"] = q
 	data["kind"] = kind; data["node"] = n; data["t"] = randf() * 10.0; data["fly"] = 0.0
 	animals.append(data)
 
-## 나무 — Kenney Nature Kit(CC0) 모델. 시드로 종류를 고르고 2.4~3.4m 로 키운다(사람 1m). 줄기 충돌체, 흔들기용 crowns 등록, 사과 셋은 크라운 높이에
-const TREE_KINDS := ["tree_default", "tree_oak", "tree_fat", "tree_detailed", "tree_simple", "tree_plateau", "tree_tall"]
+## 나무 — Quaternius Stylized Nature MegaKit(CC0, 텍스처·잎 포함) 모델. 시드로 종류를 고르고 2.8~3.8m 로 맞춘다(사람 1m). 운영자 2026-09-29: "나무들도 진짜 나무같아야".
+## 루트(충돌체)는 고정하고 모델을 담은 자식(sway)만 바람에 기울인다 — 뿌리째 흔들리고 콜라이더까지 기울던 리뷰 버그
+const TREE_KINDS := ["CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "CommonTree_5", "CommonTree_2", "Pine_1", "Pine_3"]
 func _tree(at: Vector3, k: float) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = int(at.x * 13.0 + at.z * 7.0) + 5
 	var which: String = TREE_KINDS[rng.randi() % TREE_KINDS.size()]
-	var model := _model("nature/" + which)
+	var model := _model("nature/quaternius/" + which)
 	var h := _model_height(model)
-	var sc := (2.4 + 1.0 * (k - 0.9)) / maxf(h, 0.5)
-	var crown := Node3D.new(); crown.position = at; crown.rotation.y = rng.randf_range(0.0, TAU); _add(crown)
-	model.scale = Vector3.ONE * sc; crown.add_child(model)
-	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.2 * k; sh.height = 1.0; cs.shape = sh; cs.position.y = 0.5; sb.add_child(cs); crown.add_child(sb)
+	var sc := (2.8 + 1.2 * (k - 0.9)) / maxf(h, 0.5)
+	var base := Node3D.new(); base.position = at; base.rotation.y = rng.randf_range(0.0, TAU); _add(base)
+	var sway := Node3D.new(); base.add_child(sway)
+	model.scale = Vector3.ONE * sc; sway.add_child(model)
+	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = 0.22 * k; sh.height = 1.2; cs.shape = sh; cs.position.y = 0.6; sb.add_child(cs); base.add_child(sb)
 	spots.append({ "pos": at, "kind": "tree", "yaw": 0.0 })
 	var fruit: Array = []
 	var top := h * sc
-	for i in 3:
-		var f := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.08; fs.height = 0.16; f.mesh = fs; f.material_override = _mat(Color("ff2d55"))
-		f.position = Vector3(cos(i * 2.1) * 0.45 * sc, top * (0.55 + (i % 2) * 0.12), sin(i * 2.1) * 0.45 * sc)
-		crown.add_child(f); fruit.append(f)
-	crowns.append({ "node": crown, "phase": at.x * 0.7 + at.z * 0.3, "k": k, "fruit": fruit, "at": at })
+	if not which.begins_with("Pine"):
+		for i in 3:
+			var f := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.08; fs.height = 0.16; f.mesh = fs; f.material_override = _mat(Color("ff2d55"))
+			f.position = Vector3(cos(i * 2.1) * 0.9, top * (0.5 + (i % 2) * 0.12), sin(i * 2.1) * 0.9)
+			sway.add_child(f); fruit.append(f)
+	crowns.append({ "node": sway, "phase": at.x * 0.7 + at.z * 0.3, "k": k, "fruit": fruit, "at": at })
 
 ## 강과 돌다리와 남쪽 초원(비전 2단계, 2026-09-28 — 마을은 매달 눈에 띄게 넓어져야 한다): 물 띠(세계 끝까지), 돌 둑, 흐르는 물결 조각,
 ## x=0 에 아치 돌다리(얇은 상판 일곱 토막이 호를 그린다 — 턱은 step_up 이 넘는다, 난간은 안 막아서 뛰어들 수 있다), 다리 앞뒤 자갈길,
@@ -364,6 +369,11 @@ func _river() -> void:
 		spots.append({ "pos": g, "kind": "grass", "yaw": PI, "r": 1.8 })
 		for i in 9:
 			_flower(g + Vector3(frng.randf_range(-1.9, 1.9), 0, frng.randf_range(-1.6, 1.6)), [Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("f7f4ef"), Color("8fb8cc")][frng.randi() % 5], i)
+	var srng := RandomNumberGenerator.new(); srng.seed = 21
+	for i in 26: _scatter(["Grass_Common_Short", "Grass_Wispy_Short", "Grass_Common_Tall", "Clover_1", "Clover_2"][i % 5], Vector3(srng.randf_range(-15, 15), 0, srng.randf_range(14.3, 22.2)), srng.randf_range(0.28, 0.42))
+	for i in 5: _scatter(["Bush_Common", "Bush_Common_Flowers", "Bush_Common", "Bush_Common_Flowers", "Bush_Common"][i], Vector3(srng.randf_range(-14, 14), 0, srng.randf_range(19.5, 22)), srng.randf_range(0.45, 0.7))
+	for i in 6: _scatter(["Rock_Medium_1", "Pebble_Round_1", "Rock_Medium_2", "Pebble_Round_3", "Rock_Medium_3", "Pebble_Round_5"][i], Vector3(srng.randf_range(-14, 14), 0, RIVER_Z + RIVER_HW + srng.randf_range(0.4, 1.2)), srng.randf_range(0.18, 0.32))
+	for i in 3: _scatter("Mushroom_Common", Vector3(srng.randf_range(-12, 12), 0, srng.randf_range(15, 21)), 0.25)
 	spots.append({ "pos": Vector3(-5, 0, RIVER_Z + RIVER_HW + 0.6), "kind": "bank", "yaw": PI })
 	spots.append({ "pos": Vector3(6, 0, RIVER_Z - RIVER_HW - 0.6), "kind": "bank", "yaw": 0.0 })
 	_fence(Vector3(-16, 0, 22.5), 32.0)

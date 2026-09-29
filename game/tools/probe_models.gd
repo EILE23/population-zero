@@ -1,14 +1,14 @@
 extends SceneTree
 func _init() -> void:
-	var ps: PackedScene = load("res://assets/models/people/AnimationLibrary_Godot_Standard.gltf")
-	if ps == null: print("PROBE UAL LOAD FAILED"); quit(); return
-	var n: Node3D = ps.instantiate(); root.add_child(n)
-	for c in n.find_children("*", "", true, false): print("PROBE node ", c.name, " ", c.get_class())
-	for sk in n.find_children("*", "Skeleton3D", true, false):
-		var s := sk as Skeleton3D; var names: Array = []
-		for i in s.get_bone_count(): names.append(s.get_bone_name(i))
-		print("PROBE bones ", s.get_bone_count(), " ", names)
-		var hips := s.find_bone("Hips"); if hips >= 0: print("PROBE hips rest y=", s.get_bone_global_rest(hips).origin.y)
-	for ap in n.find_children("*", "AnimationPlayer", true, false):
-		var l: Array = (ap as AnimationPlayer).get_animation_list(); print("PROBE anims ", l.size(), " ", l)
+	for p in ["CommonTree_1", "CommonTree_3", "CommonTree_5", "Pine_1", "TwistedTree_1", "Bush_Common", "Grass_Common_Short", "Flower_3_Group", "Flower_4_Single", "Rock_Medium_1", "Clover_1"]:
+		var ps: PackedScene = load("res://assets/models/nature/quaternius/%s.gltf" % p)
+		if ps == null: print("PROBE ", p, " LOAD FAILED"); continue
+		var n: Node3D = ps.instantiate(); root.add_child(n)
+		var aabb := AABB(); var first := true; var mats: Array = []
+		for mi in n.find_children("*", "MeshInstance3D", true, false):
+			var m := mi as MeshInstance3D
+			var b: AABB = m.global_transform * m.get_aabb(); aabb = b if first else aabb.merge(b); first = false
+			for i in m.mesh.get_surface_count(): mats.append(m.mesh.surface_get_material(i).resource_name if m.mesh.surface_get_material(i) else "none")
+		print("PROBE ", p, " size=", aabb.size, " miny=", aabb.position.y, " meshes=", n.find_children("*", "MeshInstance3D", true, false).size(), " mats=", mats)
+		n.queue_free()
 	quit()

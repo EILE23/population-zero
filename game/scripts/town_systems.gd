@@ -204,7 +204,7 @@ func _animals(delta: float) -> void:
 				else:
 					q.speed = 0.0
 					if q.state in ["walk", "run", "stalk"]: q.state = "idle"
-			"dog", "cat", "marten", "squirrel", "wolf", "deer", "corgi":
+			"dog", "cat", "marten", "squirrel", "wolf", "deer":
 				# 네발 동물 습성: 집 주변을 어슬렁(걷기/뛰기), 가끔 앉기·엎드리기·기지개·(개)놀자·구르기·(고양이)그루밍·등 세우기·하품,
 				# 사람이 가까우면 쳐다보고: 개는 3초 따라오고, 고양이·담비는 1.4m 안이면 달아난다. 쓰다듬으면 앉아서 꼬리
 				var q = a["quad"]   # Quad3D 또는 Animal3D — 같은 상태 API

@@ -81,16 +81,15 @@ func _stall(at: Vector3, awning: Color) -> void:
 		g.material_override = _mat([Color("d98a2a"), Color("ff2d55"), Color("e8c766")][i]); g.position = at + Vector3(-0.6 + i * 0.6, 1.02, -0.1); _add(g)
 	spots.append({ "pos": at + Vector3(0, 0, 1.0), "kind": "door", "yaw": PI })   # 손님 자리(서서 고른다)
 
-## 꽃 한 송이 — Kenney Nature Kit(CC0) 모델. 색은 red·yellow·purple 중 가까운 것, 종류 A/B/C 는 시드
-func _flower(at: Vector3, c: Color, seed := 0) -> void:
+## 꽃 — Quaternius MegaKit(CC0) 꽃 모델(색은 모델 고정, 두 종). 2 유닛 높이 → 0.13~0.18 배로 25~35cm
+func _flower(at: Vector3, _c: Color, seed := 0) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed + int(at.x * 31.0 + at.z * 17.0)
-	var hue := "red" if c.r > c.g and c.r > c.b and c.g < 0.6 else ("yellow" if c.r > 0.7 and c.g > 0.6 else "purple")
-	var id := "nature/flower_%s%s" % [hue, ["A", "B"][rng.randi() % 2]]
-	var m := _model(id); m.position = at; m.rotation.y = rng.randf_range(0.0, TAU); m.scale = Vector3.ONE * rng.randf_range(1.1, 1.5); _add(m)
+	var id: String = ["Flower_3_Single", "Flower_4_Single", "Flower_3_Group", "Flower_4_Group"][rng.randi() % 4]
+	var m := _model("nature/quaternius/" + id); m.position = at; m.rotation.y = rng.randf_range(0.0, TAU); m.scale = Vector3.ONE * rng.randf_range(0.13, 0.18); _add(m)
 
-## 풀 포기·덤불·돌 — 초원과 길가에 흩뿌리는 작은 것들(Kenney)
+## 풀 포기·덤불·돌 — 초원과 길가에 흩뿌리는 작은 것들(MegaKit)
 func _scatter(id: String, at: Vector3, sc := 1.0, yaw := -1.0) -> Node3D:
-	var m := _model("nature/" + id); m.position = at; m.rotation.y = (randf_range(0.0, TAU) if yaw < 0.0 else yaw); m.scale = Vector3.ONE * sc; _add(m)
+	var m := _model("nature/quaternius/" + id); m.position = at; m.rotation.y = (randf_range(0.0, TAU) if yaw < 0.0 else yaw); m.scale = Vector3.ONE * sc; _add(m)
 	return m
 
 ## 쓰레기통 — 통 + 어두운 뚜껑 테

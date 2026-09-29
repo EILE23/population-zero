@@ -54,6 +54,8 @@ func _define() -> void:
 		{ "name": "dog-sniff", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "sniff") },
 		{ "name": "dog-scratch", "subject": dog["node"], "lead": 0.05, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "scratch") },
 		{ "name": "dog-shake", "subject": dog["node"], "lead": 0.0, "setup": func() -> void: _near(dog); _hold(dog); (dog["quad"] as Node).call("act", "shake") },
+		{ "name": "fox-walk", "subject": _animal("fox")["node"], "setup": func() -> void: var f := _animal("fox"); _near(f); _hold(f); f["wander"] = _pos(f) + Vector3(3.0, 0, 0); f["wander_until"] = f["t"] + 9.0 },
+		{ "name": "marten-walk", "subject": _animal("marten")["node"], "setup": func() -> void: var f := _animal("marten"); _near(f); _hold(f); f["wander"] = _pos(f) + Vector3(2.0, 0, 0); f["wander_until"] = f["t"] + 9.0 },
 		{ "name": "cat-idle", "subject": cat["node"], "setup": func() -> void: _near(cat); _hold(cat) },
 		{ "name": "cat-walk", "subject": cat["node"], "setup": func() -> void: _near(cat); _hold(cat); cat["wander"] = _pos(cat) + Vector3(2.5, 0, 0) },
 		{ "name": "cat-groom", "subject": cat["node"], "lead": 0.05, "setup": func() -> void: _near(cat); _hold(cat); (cat["quad"] as Node).call("act", "groom") },
