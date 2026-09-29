@@ -40,6 +40,7 @@ func _ready() -> void:
 	var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95
 	col.shape = cap; col.position.y = 0.5
 	body.add_child(col)
+	body.collision_mask = 3
 	player = Stick3D.new()
 	body.add_child(player)
 	add_child(body)

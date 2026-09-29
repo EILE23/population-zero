@@ -72,9 +72,36 @@ func _crack_wall(f: Vector3, p: Vector3) -> bool:
 func repair_crack(c: Dictionary) -> void:
 	if not cracks.has(c): return
 	cracks.erase(c)
+	if c.get("kind", "") == "wreck":
+		# 부서진 소품을 그 자리에 다시 세운다(흩어진 조각은 치운다)
+		for piece in c["pieces"]:
+			if is_instance_valid(piece): (piece as Node).queue_free()
+		(c["rebuild"] as Callable).call()
+		_dust(c["at"] + Vector3(0, 0.3, 0))
+		return
 	var n: Node3D = c["node"]; var h: Dictionary = c["house"]
 	h["parts"].erase(n); h["shell"].erase(n); h["cracks"] = maxi(0, h.get("cracks", 1) - 1)
 	_dust(n.global_position); n.queue_free()
+
+## 소품 부서짐 — 조각(메시)이 속도대로 흩날려 바닥에 남고, 자리는 수리 목록에 오른다
+func smash(w: Dictionary, push: Vector3) -> void:
+	wreckables.erase(w)
+	if w.has("bench"): benches.erase(w["bench"]); spots.erase(w["spot"])
+	var root: Node3D = w["node"]
+	var pieces: Array = []
+	var meshes: Array = root.find_children("*", "MeshInstance3D", true, false)
+	if root is MeshInstance3D: meshes.append(root)
+	for mi in meshes:
+		var m := mi as MeshInstance3D
+		var gt := m.global_transform
+		m.get_parent().remove_child(m); add_child(m); m.global_transform = gt
+		for sb in m.get_children(): if sb is StaticBody3D: sb.queue_free()
+		m.set_meta("debris", true)
+		flying.append({ "node": m, "vel": push * randf_range(0.5, 0.9) + Vector3(randf_range(-1.5, 1.5), randf_range(2.0, 4.5), randf_range(-1.5, 1.5)), "spin": randf_range(5.0, 12.0) })
+		pieces.append(m)
+	if is_instance_valid(root) and root.get_parent(): root.queue_free()
+	_dust(w["at"] + Vector3(0, 0.3, 0)); cam_kick = maxf(cam_kick, 0.04)
+	cracks.append({ "kind": "wreck", "at": Vector3(w["at"].x, 0, w["at"].z), "out": w["out"], "by": null, "pieces": pieces, "rebuild": w["rebuild"] })
 
 ## 차에 치임(나) — 속도만큼 날아가 누웠다 일어난다. 들고 있던 건 흩어진다
 func car_hits_player(vel: Vector3, stun: float) -> void:

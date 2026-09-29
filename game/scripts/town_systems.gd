@@ -158,6 +158,22 @@ func _animals(delta: float) -> void:
 			a["lv"] = lv; continue
 		if a.get("stun_until", 0.0) > a["t"]: continue
 		var d := p.distance_to(n.global_position)
+		# 달리는 차가 가까우면 차 진행 방향 옆으로 도망친다. 한 번 치인 동물은 30초 동안 멀리서부터 피한다(일어나자마자 다시 치이던 것)
+		var fled := false
+		for car in cars:
+			if absf(car.v) < 1.0: continue
+			var to_a: Vector3 = n.global_position - car.global_position; to_a.y = 0.0
+			var fear: float = 9.0 if a.get("car_fear_until", 0.0) > a["t"] else 5.0
+			if to_a.length() < fear:
+				var cf := -car.global_transform.basis.z * signf(car.v)
+				var away := car.global_transform.basis.x * signf(car.global_transform.basis.x.dot(to_a)) + cf * 0.3
+				n.global_position += away.normalized() * 3.6 * delta
+				n.look_at(n.global_position + away, Vector3.UP, true)
+				if a.has("quad"): a["quad"].speed = 3.6; a["quad"].state = "run"
+				elif a.has("bird"): a["bird"].flying = true
+				a["follow_until"] = 0.0; fled = true; break
+		if fled: continue
+		if driving: a["follow_until"] = 0.0   # 차를 따라오지 않는다
 		match a["kind"]:
 			"duck":
 				# 연못을 빙빙 헤엄치고, 사람이 2m 안이면 날개 치며 반대쪽으로 도망친다. 사과가 근처에 떨어져 있으면 먹으러 간다
@@ -333,8 +349,9 @@ func _fly(delta: float) -> void:
 		n.rotation.x += f["spin"] * delta
 		if n.global_position.y <= 0.06:
 			n.global_position.y = 0.06
-			n.rotation = Vector3.ZERO
 			flying.erase(f)
+			if n.has_meta("debris"): continue   # 부서진 조각은 누운 채 남는다(주울 수 없고, 수리공이 치운다)
+			n.rotation = Vector3.ZERO
 			items.append(n)
 
 ## 물에 떨어진 물건은 떠서 강물과 흘러가다 세계 끝에서 사라진다(강가에서 건지지 않으면 잃는다); 연못에선 제자리에 떠 있다

@@ -49,10 +49,11 @@ func setup(k: String, t: Node3D) -> void:
 	_model.rotation.y = PI   # Kenney 모델은 앞이 +z, 컨트롤러는 -z 가 앞 — 안 돌리면 ↑ 에 뒤로 갔다(운영자 2026-09-29)
 	add_child(_model)
 	for c in _model.find_children("wheel*", "MeshInstance3D", true, false):
+		if not ("left" in c.name or "right" in c.name): continue   # SUV 뒤 스페어타이어(wheel-back)는 차체 장식 — 굴리면 안 된다(운영자 2026-09-29)
 		_wheels.append(c)
 		if "front" in c.name: _front.append(c)
 	var col := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = Vector3(1.4, 0.9, 2.5); col.shape = bs; col.position.y = 0.55; add_child(col)
-	collision_layer = 1; collision_mask = 1
+	collision_layer = 2; collision_mask = 3   # 차는 층 2 — 누운 몸(마스크 1만)은 차를 안 느껴 밀려나지 않고 깔린다
 	_dust = CPUParticles3D.new()
 	_dust.amount = 40; _dust.lifetime = 0.9; _dust.emitting = false
 	_dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; _dust.emission_box_extents = Vector3(0.5, 0.05, 0.2)
@@ -113,6 +114,8 @@ func _physics_process(delta: float) -> void:
 	side = clampf(side, -6.0, 6.0)
 	var fwd := -global_transform.basis.z
 	var right := global_transform.basis.x
+	if absf(v) > 1.5: _smash_props(fwd)   # 물리 전에 — 늦으면 벤치 충돌체에 먼저 막혀 튕겼다
+	_run_over(fwd)
 	var before := global_position
 	velocity = fwd * v + right * side + Vector3(0, -9.8 if not is_on_floor() else 0.0, 0)
 	move_and_slide()
@@ -161,6 +164,7 @@ func _physics_process(delta: float) -> void:
 			for sx in [-0.6, 0.6]:
 				_skid(global_position + right * sx + fwd * -0.8)
 	if driven and absf(v) > 2.5: _hit_people(fwd)
+	elif driven and absf(v) > 0.2: _nudge_people(fwd, delta)
 
 ## 스키드 자국: 바닥 위 얇은 어두운 판, 200개 넘으면 오래된 것부터 지운다
 func _skid(at: Vector3) -> void:
@@ -169,6 +173,55 @@ func _skid(at: Vector3) -> void:
 	mi.material_override = m; mi.position = Vector3(at.x, 0.012, at.z); mi.rotation.y = rotation.y
 	town.add_child(mi); _skids.append(mi)
 	if _skids.size() > 200: (_skids.pop_front() as Node3D).queue_free()
+
+## 천천히 갈 땐 앞사람을 밀며 간다(길막 대신) — 밀린 사람은 옆으로 비켜서며 한마디
+func _nudge_people(fwd: Vector3, delta: float) -> void:
+	var push := fwd * absf(v) * 1.15 * delta * signf(v)
+	for r in town.residents:
+		if r.state == "down": continue
+		var to: Vector3 = r.global_position - global_position; to.y = 0.0
+		if to.length() < 1.8 and (fwd * signf(v)).dot(to.normalized()) > 0.4:
+			var sidestep: Vector3 = global_transform.basis.x * signf(global_transform.basis.x.dot(to)) * 0.6 * delta
+			r.global_position += push + sidestep
+			if randf() < 0.01: r.say(["Careful.", "I am walking here.", "Do you mind."][r.uid % 3], 1.4)
+	if town.driving != self and town.body.visible:
+		var tp: Vector3 = town.body.global_position - global_position; tp.y = 0.0
+		if tp.length() < 1.8 and (fwd * signf(v)).dot(tp.normalized()) > 0.4: town.body.global_position += push
+
+## 기절해 누운 것 위로 지나가면 깔고 넘어간다(운영자 2026-09-29) — 차가 덜컹 들리고, 깔린 몸은 납작해졌다 돌아오며 기절이 길어진다
+func _run_over(_fwd: Vector3) -> void:
+	if absf(v) < 0.5: return
+	var now := Time.get_ticks_msec() / 1000.0
+	for r in town.residents:
+		if r.state != "down": continue
+		var to: Vector3 = r.global_position - global_position; to.y = 0.0
+		if to.length() < 1.1 and now - float(r.get_meta("flat_at", -9.0)) > 1.2:
+			r.set_meta("flat_at", now); r.down_until = maxf(r.down_until, now + 1.0); r.say("Ow.", 1.0)
+			_flatten(r.fig); _pitch -= 0.08
+	for a in town.animals:
+		if a.get("stun_until", 0.0) < a["t"] or a.has("lv"): continue
+		var an: Node3D = a["node"]
+		var to: Vector3 = an.global_position - global_position; to.y = 0.0
+		if to.length() < 1.0 and now - float(a.get("flat_at", -9.0)) > 1.2:
+			a["flat_at"] = now; a["stun_until"] = a["t"] + 1.5; _flatten(an); _pitch -= 0.06
+	if town.driving != self and town.down_until > now:
+		var tp: Vector3 = town.body.global_position - global_position; tp.y = 0.0
+		if tp.length() < 1.1 and now - float(get_meta("flat_me", -9.0)) > 1.2:
+			set_meta("flat_me", now); town.down_until += 1.0; _flatten(town.player); _pitch -= 0.08
+
+static func _flatten(n: Node3D) -> void:
+	var tw := n.create_tween(); tw.set_trans(Tween.TRANS_BACK); tw.set_ease(Tween.EASE_OUT)
+	tw.tween_property(n, "scale", Vector3(1.25, 0.35, 1.25), 0.06)
+	tw.tween_interval(0.5)
+	tw.tween_property(n, "scale", Vector3.ONE, 0.45)
+
+## 벤치·울타리 토막을 들이받으면 부서져 조각이 날아간다 — 수리공이 나중에 다시 세운다
+func _smash_props(fwd: Vector3) -> void:
+	for w in town.wreckables.duplicate():
+		var to: Vector3 = (w["at"] as Vector3) - global_position; to.y = 0.0
+		if to.length() < float(w["r"]) + 1.7 and (fwd * signf(v)).dot(to.normalized()) > 0.3:
+			town.smash(w, fwd * signf(v) * absf(v))
+			v *= 0.8
 
 ## 부딪힌 자리에서 부품(범퍼 조각·볼트·판)이 튀어 날아가 떨어진다 — 떨어진 건 주울 수 있다
 func _debris(at: Vector3, push: Vector3, strength: float) -> void:
@@ -199,4 +252,4 @@ func _hit_people(fwd: Vector3) -> void:
 		var to: Vector3 = an.global_position - global_position; to.y = 0.0
 		if to.length() < 1.5 and fwd.dot(to.normalized()) > 0.5 and not a.has("lv") and a.get("stun_until", 0.0) < a["t"]:
 			town.animal_hit(a, fwd)
-			a["lv"] = launch * 0.9; a["stun_for"] = stun + 0.8
+			a["lv"] = launch * 0.9; a["stun_for"] = stun + 0.8; a["car_fear_until"] = a["t"] + 30.0

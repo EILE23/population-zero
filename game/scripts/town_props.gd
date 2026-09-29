@@ -108,14 +108,16 @@ func _bin(at: Vector3) -> void:
 
 func _bench(at: Vector3) -> void:
 	var wood := _mat(Color("8a6a4a")); var iron := _mat(Color("4a4a52"))
-	_box(Vector3(1.5, 0.06, 0.45), at + Vector3(0, 0.42, 0), wood)
-	var back := _box(Vector3(1.5, 0.06, 0.4), at + Vector3(0, 0.62, -0.2), wood)
+	var g := Node3D.new(); _add(g)   # 한 덩어리 — 차가 들이받으면 통째로 부서진다
+	_box(Vector3(1.5, 0.06, 0.45), at + Vector3(0, 0.42, 0), wood, true, g)
+	var back := _box(Vector3(1.5, 0.06, 0.4), at + Vector3(0, 0.62, -0.2), wood, true, g)
 	back.rotation.x = -1.35
 	for sx in [-0.6, 0.6]:
-		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, 0.15), iron)
-		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, -0.15), iron)
-	benches.append({ "pos": at, "yaw": 0.0 })
-	spots.append({ "pos": at, "kind": "bench", "yaw": 0.0 })
+		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, 0.15), iron, true, g)
+		_box(Vector3(0.06, 0.42, 0.06), at + Vector3(sx, 0, -0.15), iron, true, g)
+	var b := { "pos": at, "yaw": 0.0 }; var sp := { "pos": at, "kind": "bench", "yaw": 0.0 }
+	benches.append(b); spots.append(sp)
+	wreckables.append({ "node": g, "at": at, "r": 0.8, "out": Vector3(0, 0, 1), "bench": b, "spot": sp, "rebuild": _bench.bind(at) })
 
 ## 가로등 — 기둥 + 받침 + 유리 등갓 + 어두운 지붕. 전엔 기둥 위 노란 정육면체
 func _lamp(at: Vector3) -> void:
@@ -141,5 +143,10 @@ func _fence(at: Vector3, len: float) -> void:
 	# Kenney fence_simple(1m 토막, 원점이 왼끝 아님: -0.5..0.5) — +x 로 이어 붙인다
 	var n := int(round(len))
 	for i in n:
-		var m := _model("nature/fence_simple"); m.position = at + Vector3(i + 0.5, 0, 0); m.scale = Vector3(1.0, 1.15, 1.0); _add(m)
+		_fence_bit(at + Vector3(i + 0.5, 0, 0))
+
+## 울타리 한 토막 — 부서지면 이 토막만 날아가고, 수리공이 이 자리에 다시 세운다
+func _fence_bit(at: Vector3) -> void:
+	var m := _model("nature/fence_simple"); m.position = at; m.scale = Vector3(1.0, 1.15, 1.0); _add(m)
+	wreckables.append({ "node": m, "at": at, "r": 0.4, "out": Vector3(0, 0, 1), "rebuild": _fence_bit.bind(at) })
 	# 충돌체 없음: 주민 경로가 울타리를 지나간다(전 울타리도 기둥 사이로 통과됐다). 막으면 울타리 앞에서 뛰며 갇힌다(운영자 2026-09-29) — 경로 탐색이 생기면 다시

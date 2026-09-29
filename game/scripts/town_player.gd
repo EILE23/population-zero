@@ -28,10 +28,11 @@ func _physics_process(delta: float) -> void:
 		var fk := 0.2 if body.is_on_floor() else 0.0   # 날아가는 동안은 속도 유지(차에 치이면 포물선)
 		body.velocity = Vector3(lerpf(body.velocity.x, 0.0, fk), body.velocity.y - G * delta, lerpf(body.velocity.z, 0.0, fk))
 		player.rotation.x = 0.0 if body.is_on_floor() else player.rotation.x + delta * 7.0
+		body.collision_layer = 0; body.collision_mask = 1   # 누운 동안 차가 깔고 지나간다
 		body.move_and_slide(); player.lying = true; player.move_dir = Vector3.ZERO; player.speed = 0.0
 		return
 	if down_until > 0.0 and down_until <= now and getup_until < 0.0:
-		down_until = -1.0; getup_until = now + 0.6; player.lying = false; player.action = "getup"; player.action_t = 0.0
+		down_until = -1.0; getup_until = now + 0.6; player.lying = false; player.action = "getup"; player.action_t = 0.0; body.collision_layer = 1; body.collision_mask = 3
 	if getup_until > now:
 		player.action_t = 1.0 - (getup_until - now) / 0.6; body.velocity = Vector3.ZERO
 		return
@@ -42,7 +43,7 @@ func _physics_process(delta: float) -> void:
 		body.collision_layer = 0; body.collision_mask = 0   # 앉는 동안 충돌 끔 — 의자 상자에 밀려 엉덩이가 박히던 것
 		if dir != Vector3.ZERO or Input.is_action_just_pressed("jump"):
 			seat = {}; player.seated = false
-			body.collision_layer = 1; body.collision_mask = 1
+			body.collision_layer = 1; body.collision_mask = 3
 			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_QUAD)
 			tw.tween_property(body, "position", Vector3(body.position.x, 0.02, body.position.z + 0.45), 0.25)
 		else:
@@ -226,7 +227,7 @@ func _exit_car(now: float) -> void:
 	var c := driving
 	driving = null; c.driver = null; c.input = { "throttle": 0.0, "steer": 0.0, "brake": false }
 	body.global_position = c.exit_pos() + Vector3(0, 0.02, 0)
-	body.visible = true; body.collision_layer = 1; body.collision_mask = 1
+	body.visible = true; body.collision_layer = 1; body.collision_mask = 3
 	player.face(c.rotation.y)
 	action_until = now + 0.4
 

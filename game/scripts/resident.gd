@@ -42,6 +42,7 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95
 	col.shape = cap; col.position.y = 0.5
 	add_child(col)
+	collision_mask = 3   # 세계(1) + 차(2)
 	fig = Stick3D.new()
 	fig.color = figure_color(id); fig.head_color = fig.color
 	add_child(fig)
@@ -81,7 +82,7 @@ func greet(from: Node3D) -> void:
 	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
 	# 그네를 타던 중이면 _leave 가 spot["swing"] 을 찾다 죽었다. 그네·밀기는 riding_swing/pushing_swing 이 기억하니 _leave 가 마저 정리한다
 	if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
-	_release(); collision_layer = 1; collision_mask = 1
+	_release(); collision_layer = 1; collision_mask = 3
 	fig.seated = false
 	fig.pose_request = "wave"
 	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
@@ -164,7 +165,7 @@ func _physics_process(delta: float) -> void:
 				fig.rotation.x += delta * 7.0   # 공중에서 구른다
 			fig.move_dir = Vector3.ZERO; fig.speed = 0.0
 			if now >= down_until:
-				fig.lying = false; fig.action = "getup"; fig.action_t = 0.0
+				fig.lying = false; fig.action = "getup"; fig.action_t = 0.0; collision_layer = 1; collision_mask = 3
 				state = "getup"; busy_until = now + 0.6
 		"getup":
 			v.x = 0.0; v.z = 0.0
@@ -403,7 +404,7 @@ func go_push(sw: Dictionary) -> void:
 func _leave() -> void:
 	_release()
 	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
-	collision_layer = 1; collision_mask = 1
+	collision_layer = 1; collision_mask = 3
 	if not riding_swing.is_empty():
 		riding_swing["rider"] = null
 		global_position = riding_swing["at"] + Vector3(0, 0.02, 0.9); fig.pose_request = ""; fig.rotation.x = 0.0
@@ -435,7 +436,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		return
 	quarry = by
 	if spot.get("kind", "") == "repair": (spot["crack"] as Dictionary)["by"] = null   # 수리 중 맞으면 금을 내려놓는다
-	_release(); collision_layer = 1; collision_mask = 1
+	_release(); collision_layer = 1; collision_mask = 3
 	if not riding_swing.is_empty(): riding_swing["rider"] = null; riding_swing = {}; fig.rotation.x = 0.0
 	if not pushing_swing.is_empty(): pushing_swing["pusher"] = null; pushing_swing = {}
 	if now - last_hit > 3.0: hits = 0
@@ -446,6 +447,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	if heavy or hits >= 3:
 		hits = 0
 		state = "down"; down_until = now + 1.6
+		collision_layer = 0; collision_mask = 1   # 누운 몸은 차를 막지도 느끼지도 않는다(깔고 넘어간다) — 바닥은 계속 딛는다(mask 1)
 		fig.lying = true; fig.action = ""; fig.action_t = 0.0
 		fig.face(atan2(-from_dir.x, -from_dir.z))  # 때린 쪽을 보고 눕는다
 		velocity = from_dir * 3.5 + Vector3(0, 2.0, 0)
