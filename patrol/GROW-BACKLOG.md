@@ -583,3 +583,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-29) Add a lamplighter job and a small lamphouse building so one resident lights and tends street lamps at dusk/dawn and can relight player-held lanterns with a quick assist.
 - [ ] (town wish, 2026-09-29) Add a loaner-umbrella mechanic: a booth that spawns 2–3 umbrella props residents can fetch when it rains (new 'hold umbrella' pose) and players can return or borrow from the stand.
 - [ ] (town wish, 2026-09-29) When it rains, puddles can expand into slick zones that cause a new short 'slide' stumble (with a damp-landing pose) and raise the chance a held item slips free when someone dashes across them.
+- [ ] (town wish, 2026-09-29) Add a misting bench in the park that activates on hot days to give residents a short 'cool-down' idle and briefly slow nearby chases when used.
