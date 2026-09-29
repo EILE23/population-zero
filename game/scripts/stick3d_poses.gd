@@ -7,6 +7,7 @@ extends RefCounted
 
 const WATER_T := 2.4   # 물주기 한 번: 0.35 들어올림 → 붓기 → 마지막 0.35 바로 서기. 그 뒤엔 pose_request 가 풀릴 때까지 물뿌리개를 든 채 선다
 const SHADE_T := 6.0   # 손차양 한 바퀴(run 73, 전망 자리): 0.35 손이 이마로(예비) → 둘러보기(유지: 고개·몸통이 천천히 좌우) → 마지막 0.4 손을 내림(회수). 자세가 풀릴 때까지 되풀이
+const STORM_T := 3.0   # 처마 밑 비 구경 한 바퀴(run 74): 0.3 고개가 하늘로(예비) → 잠깐 본다(유지, 꼭대기에서 어깨 으쓱) → 0.4 내린다(회수) → 남은 1.3초는 앞의 비를 본다. 비가 그칠 때까지 되풀이
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -38,6 +39,8 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		lean = 0.22 * k + absf(sin(f._t * 7.0)) * 0.05 * k
 	if p == "shade" and not moving:
 		lean = -0.08 * shade_k(f.pose_t)   # 손차양: 멀리 보느라 살짝 뒤로 젖힌다 — 고개·몸통 돌림은 limbs 에서(몸통 y 는 그 뒤에 정해진다)
+	if p == "storm" and not moving:
+		lean = -0.1 - 0.05 * storm_k(f.pose_t)   # 뒤꿈치에 무게 — 하늘을 볼 때 조금 더 젖혀진다
 	if p == "rest":
 		f.pelvis.rotation.x = -1.5; lean = 0.25 + sin(f._t * 1.6) * 0.02
 		f.pelvis.position.y = 0.16
@@ -64,6 +67,19 @@ static func shade_k(t: float) -> float:
 	if c > SHADE_T - 0.4: return 1.0 - smoothstep(0.0, 1.0, (c - (SHADE_T - 0.4)) / 0.4)
 	return 1.0
 
+## 비 구경 고개 들기 0..1 — 한 바퀴 STORM_T 마다: 0.3초 고개가 하늘로(예비), 1초 본다(유지), 0.4초 내린다(회수), 나머지는 0(앞을 본다)
+static func storm_k(t: float) -> float:
+	var c := fmod(t, STORM_T)
+	if c < 0.3: return smoothstep(0.0, 1.0, c / 0.3)
+	if c < 1.3: return 1.0
+	if c < 1.7: return 1.0 - smoothstep(0.0, 1.0, (c - 1.3) / 0.4)
+	return 0.0
+
+## 비 구경 옷깃 으쓱 0..1 — 고개가 꼭대기에 있는 동안(0.3..1.3) 한 번 부풀었다 가라앉는다
+static func storm_shrug(t: float) -> float:
+	var c := fmod(t, STORM_T)
+	return smoothstep(0.0, 1.0, clampf(1.0 - absf(c - 0.8) / 0.5, 0.0, 1.0))
+
 ## 물뿌리개 물방울 — 든 것에 "drops" 입자가 달려 있으면(town_base make_item "can") 붓는 동안만 켠다
 static func drops(f: Stick3D, on: bool) -> void:
 	if f.carrying == null or not f.carrying.has_meta("drops"): return
@@ -71,7 +87,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade"]
+	return p in ["eat", "drink", "water", "shade", "storm"]   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 한쪽(s = -1 왼, +1 오른) 팔다리 — pose_request 에 맞는 자세가 있으면 대입하고 true, 없으면 false(호출자가 기지개·앉기·걷기로 이어간다)
 static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -> bool:
@@ -160,6 +176,15 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 				f.torso.rotation.y = scan * 0.2; f.neck.rotation.y = scan * 0.3
 			else:
 				sh.rotation.x = -(0.05 + 0.25 * k); sh.rotation.z = -s * 0.42 * k; el.rotation.x = -(0.35 + 1.15 * k)
+		"storm":
+			# 처마 밑 비 구경(날씨를 몸으로 받는 첫 자세 — run 74, 비 오는 문 앞: 사람도 주민도): 팔짱을 끼고 다리는 곧게, 무게는 뒤꿈치에.
+			# k 가 예비·유지·회수를 만든다(고개가 하늘로 올라가고, 잠깐 보고, 내려온다); 꼭대기에서 어깨가 옷깃처럼 한 번 으쓱(shrug). 나머지 시간은 앞의 비를 본다 — 정지화가 아니다
+			var k := storm_k(f.pose_t)
+			var shrug := storm_shrug(f.pose_t)
+			hip.rotation.x = -(-0.06); knee.rotation.x = 0.0
+			sh.rotation.x = -(0.5 + 0.1 * shrug); sh.rotation.z = -s * (0.08 + 0.22 * shrug); el.rotation.x = -(2.05)
+			if s > 0.0:
+				f.neck.rotation.x -= 0.55 * k; f.chest.rotation.x -= 0.06 * k   # 고개만 든다 — 몸통은 조금
 		_:
 			return false
 	return true

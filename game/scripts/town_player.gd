@@ -171,7 +171,7 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request in ["eat", "drink", "wave", "water", "knead"]: player.pose_request = ""
-	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade"]) and dir != Vector3.ZERO:
+	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm"]) and dir != Vector3.ZERO:
 		reading = false; leaning = false; resting = false; player.pose_request = ""
 	if not pushing.is_empty() and dir != Vector3.ZERO:
 		if pushing["pusher"] == "player": pushing["pusher"] = null
@@ -447,7 +447,11 @@ func _interact_check(now: float) -> void:
 			player.hold(it)
 			player.action = "grab"; action_until = now + 0.4
 		"door":
-			set_door(best["door"], not best["door"]["open"])
+			var dr: Dictionary = best["door"]
+			set_door(dr, not dr["open"])   # 문 여닫기는 그대로(항상) — 아래는 덧붙는 자세일 뿐
+			if weather == "rain" and not dr["open"] and p.z > (dr["pos"] as Vector3).z + 0.2:
+				# 비 오는 날 밖에서 문을 닫으면 처마 밑에서 비 구경(storm, run 74) — 움직이면 풀린다. 주민도 비 오는 문 앞에서 같은 자세(resident.gd _storm)
+				player.pose_request = "storm"; player.face(0.0)
 		"bench":
 			var b: Dictionary = best["bench"]
 			# 세 자리(왼·가운데·오른쪽) 중 주민이 안 앉은 칸에서 지금 선 곳에 가장 가까운 자리 — 가운데만 고집하지 않고, 주민 무릎 위에도 앉지 않는다

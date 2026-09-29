@@ -121,13 +121,27 @@ func _physics_process(delta: float) -> void:
 ## 날씨 바뀜 — 비면 지금 하던 걸 접고 실내로 서두른다(밖 자리에 있었으면 바로 다시 고른다)
 func on_weather(w: String) -> void:
 	weather = w
-	if w != "rain" or not (state in ["busy", "walk", "routine"]) or spot.get("kind", "") in ["chair", "bed", "shelf"]:
+	var now := Time.get_ticks_msec() / 1000.0
+	if w != "rain":
+		# 비가 그치면 처마 밑에서 구경하던 주민은 1~3초 더 보다 간다(run 74) — 90초 상한까지 서 있지 않는다
+		if state == "busy" and fig.pose_request == "storm": busy_until = minf(busy_until, now + randf_range(1.0, 3.0))
 		return
+	if not (state in ["busy", "walk", "routine"]) or spot.get("kind", "") in ["chair", "bed", "shelf"]:
+		return
+	if state == "busy" and spot.get("kind", "") == "door":
+		_storm(now); return   # 이미 문 앞이면 그 자리에서 비 구경으로 — 자리를 비우고 같은 문을 다시 고르던 헛걸음
 	# _leave 로 자리를 제대로 비운다 — 전엔 seated 만 풀어서 그네 rider 가 남아 비 온 뒤 그네가 영영 차 있었고, 걸어가던 목표 칸도 새어 나갔다
 	if state == "busy": _leave()
 	else: _release()
-	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.0, 1.5)
+	state = "routine"; busy_until = now + randf_range(0.0, 1.5)
 	say(["Rain.", "Of course.", "Inside, then."][uid % 3], 1.5)
+
+## 처마 밑에서 비 구경(run 74, "Weather people feel" 1조각): 문 앞 자리에 비를 만나면 storm 자세로 비가 그칠 때까지(상한 90초) 선다 — 전엔 2~5초 기본 자세로 섰다 갔다.
+## 사람이 비 오는 날 밖에서 문을 닫으면 같은 자세(town_player). 그치면 on_weather 가 busy_until 을 줄인다
+func _storm(now: float) -> void:
+	fig.pose_request = "storm"; fig.face(0.0)   # 문을 등지고 거리 쪽을 본다
+	busy_until = now + 90.0
+	say(["It will pass.", "Of course.", "Heavier than it looks."][uid % 3], 1.8)
 
 ## 집 안에서 자리를 잃었으면(안에서 인사받거나 맞아서) 다음 자리를 고르기 전에 문으로 나온다 — 전엔 벽을 향해 곧장 걷다 막혀 포기하기를 되풀이했다
 func _exit_house() -> bool:
@@ -242,6 +256,11 @@ func _arrive(now: float) -> void:
 			fig.pose_request = "shade"; fig.face(spot.get("yaw", PI))
 			busy_until = now + StickPoses.SHADE_T * (1 + randi() % 2) + 0.3
 			say(["Quite a view.", "There is the bridge.", "You can see the lane."][uid % 3], 1.8)
+		"door":
+			# 문 앞(차양 아래): 비면 비 구경(_storm), 아니면 잠깐 섰다 간다
+			if weather == "rain": _storm(now)
+			else:
+				fig.face(spot.get("yaw", PI)); busy_until = now + randf_range(2.0, 5.0)
 		"oven":
 			# 화덕(run 72): 창구에 모자란 만큼(최대 셋) 반죽 — 한 바퀴(KNEAD_T)에 빵 하나가 창구에 오른다(town_places _bakery). 사람이 C 로 하는 것과 같은 자세·같은 효과
 			var n: int = maxi(1, 3 - int((town.oven["counter"] as Dictionary).get("stock", 0)))
