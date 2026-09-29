@@ -563,3 +563,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-29) When rain falls or streetlamps turn on at dusk, residents unfurl black umbrellas or flip up hoods and adjust their pathing to walk beneath building awnings.
 - [ ] (town wish, 2026-09-29) When rain starts falling, residents seek shelter under nearby eaves and pause their routines to watch the storm until the weather clears.
 - [ ] (town wish, 2026-09-29) During midday heat, residents stop sprinting, drift toward shaded patches under trees and awnings to fan themselves with folded newspapers, and occasionally splash water on their faces at the fountain.
+- [ ] (town wish, 2026-09-29) Add a lamplighter job and a small lamphouse building so one resident lights and tends street lamps at dusk/dawn and can relight player-held lanterns with a quick assist.
