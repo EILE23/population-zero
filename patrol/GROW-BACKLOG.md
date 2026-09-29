@@ -561,3 +561,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-29) When rain falls or streetlamps turn on at dusk, residents unfurl black umbrellas or flip up hoods and adjust their pathing to walk beneath building awnings.
+- [ ] (town wish, 2026-09-29) When rain starts falling, residents seek shelter under nearby eaves and pause their routines to watch the storm until the weather clears.
