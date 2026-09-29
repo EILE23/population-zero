@@ -5,7 +5,7 @@ import type { Pose } from './tower';
  * 달리기는 팔다리가 교차로 흔들리고 무릎이 접히며 상체가 앞으로 기운다. 점프는 웅크렸다 펴고, 착지 직후엔 납작.
  */
 /** 'sit' 은 눕기(Climb 의 쉬는 자세·침대). 벤치는 'seat', 그네는 'swing'. 이름은 6자 이하 — 룸이 pose 를 6자로 자른다 */
-export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead' | 'shade' | 'storm' | 'umbr';
+export type FigPose = Pose | 'fish' | 'punch' | 'kick' | 'seat' | 'swing' | 'eat' | 'chew' | 'read' | 'phone' | 'water' | 'sweep' | 'fix' | 'shop' | 'pushup' | 'pullup' | 'press' | 'throw' | 'watch' | 'trip' | 'feed' | 'lean' | 'shake' | 'rake' | 'catch' | 'brace' | 'yawn' | 'shelve' | 'dust' | 'stretch' | 'look' | 'check' | 'busk' | 'shrug' | 'link' | 'root' | 'sneeze' | 'shiver' | 'chess' | 'fan' | 'laugh' | 'wave' | 'dance' | 'yoga' | 'knead' | 'shade' | 'storm' | 'umbr' | 'lwave';
 /** 앉는 자세들 — 자리(prop) 위에 그리므로 자리 높이만큼 띄운다 */
 export const SEATED: FigPose[] = ['sit', 'seat', 'swing', 'eat'];
 export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: FigPose, face: 1 | -1, color: string, t: number, arms: boolean) {
@@ -145,6 +145,20 @@ export function figure(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
     const cx = hx + sw * 0.3, cy = hy - 14 * k, r = 2 + 14 * k;
     ctx.lineWidth = 1.6; line([hx, hy], [cx, cy]); ctx.lineWidth = 2.4; // 자루
     ctx.fillStyle = '#ad7096'; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = color; // 캐노피: 반원, 접혔을 땐 점
+    ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pose === 'lwave') {
+    // 왼손 인사(3D lwave, run 77, 우산 가족의 두 번째 자세): 오른손은 편 우산을 든 채(umbr 의 든 모양 그대로), 왼팔을 머리 위로 들어 좌우로 흔든다 — 0.2초 오르고(예비) · 흔들고(유지, wave 와 같은 9Hz) · 마지막 0.3초 내린다(회수). 1.4초 뒤엔 우산만 든 채 선다
+    const T = 1.4, k = t >= T ? 0 : t < 0.2 ? t / 0.2 : t > T - 0.3 ? 1 - (t - (T - 0.3)) / 0.3 : 1;
+    const p = Math.sin(t * 9) * 7 * k, sw = Math.sin(t * 1.3) * 1.5;
+    hip = [0, -16]; shoulder = [0, -34]; head = [0, -42];
+    line(hip, shoulder); line(hip, [-4, -8], [-5, 0]); line(hip, [4, -8], [5, 0]);
+    line(shoulder, [-5 - k, -26 - 14 * k], [-6 - 2 * k - p, -18 - 32 * k]); // 왼팔: 늘어진 손(-6,-18)에서 머리 위(-8,-50)로
+    line(shoulder, [8, -38], [8, -48]); // 오른팔 = umbr 의 k=1
+    const cx = 8 + sw * 0.3, cy = -62, r = 16;
+    ctx.lineWidth = 1.6; line([8, -48], [cx, cy]); ctx.lineWidth = 2.4; // 자루
+    ctx.fillStyle = '#ad7096'; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = color; // 캐노피
     ctx.beginPath(); ctx.arc(head[0], head[1], 7, 0, 6.29); ctx.fill();
     ctx.restore(); return;
   }

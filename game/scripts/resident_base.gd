@@ -91,7 +91,7 @@ func greet(from: Node3D) -> void:
 	if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
 	_release(); collision_layer = 1; collision_mask = 1
 	fig.seated = false
-	fig.pose_request = "umbr" if has_umb and weather == "rain" else "wave"   # 우산을 편 손으론 못 흔든다 — 돌아보고 한마디만(왼손 인사는 아직 없다, 백로그)
+	fig.pose_request = "lwave" if has_umb else "wave"   # 우산을 든 손으론 못 흔든다 — 왼손으로(run 77, StickPoses.lwave; 우산은 있던 대로). 사람도 우산을 든 채 C 로 같은 인사(town_places umbrella_use)
 	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
 	state = "busy"; busy_until = now + 1.4
 	spot = { "kind": "greet" }

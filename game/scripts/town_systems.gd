@@ -130,7 +130,7 @@ func _apply_weather() -> void:
 ## 살아 있는 것은 움직인다 — 나무 잎이 바람에 흔들린다. 비·흐림이면 세게, 나무를 흔들면(shake_until) 그 나무가 크게
 func _wind(delta: float) -> void:
 	wind_t += delta
-	var gust := 0.03 + (0.06 if weather == "cloudy" else (0.1 if weather == "rain" else 0.0))
+	gust = 0.03 + (0.06 if weather == "cloudy" else (0.1 if weather == "rain" else 0.0))
 	for c in crowns:
 		var n: Node3D = c["node"]
 		if not n.is_visible_in_tree(): continue
@@ -406,3 +406,42 @@ func _hud(now: float) -> void:
 	var hour := int(fmod(clock * 24.0 + 6.0, 24.0))
 	var leg := get_node_or_null("UI/Legend") as Label
 	if leg: leg.text = "← → ↑ ↓ move · SPACE jump (hold: higher) · X punch · Z kick · C use · V view   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
+
+var _smoke_at := 0.0
+
+## 굴뚝 연기(run 77, 비전 10단계 "밤이 읽힌다"): 그 집의 침대·의자·선반 칸을 주민이 차지했거나 내가 그 안에서 앉거나 누워 있으면 굴뚝이 뿜는다 —
+## 밖에서 "누가 집에 있다"를 읽는 첫 방법. 자세는 없다(사람이 하는 일이 아니다): 주민은 집에 가는 것만으로 연기를 낸다. 반초에 한 번 훑는다(집 넷, 자리 열몇 — 프레임마다 볼 일은 아니다)
+func _smoke(now: float) -> void:
+	if now - _smoke_at < 0.5: return
+	_smoke_at = now
+	for h in houses:
+		if h.get("chim") == null: continue   # 평지붕(옥상 집)엔 굴뚝이 없다
+		if not h.has("smoke"): h["smoke"] = _make_smoke(h["chim"])
+		var pt: CPUParticles3D = h["smoke"]
+		pt.emitting = _someone_home(h)
+		pt.direction = Vector3(0.3 + gust * 6.0, 1.0, 0.0)   # 잎 뭉치와 같은 바람에 +x 로 흘러간다 — 비바람이면 더 눕는다
+
+## 이 집에 누가 있나 — 주민이 잡은 칸(_house 가 spots[k]["door"] 로 집을 이어 둔다) 또는 그 벽 안에서 앉거나 누운 나
+func _someone_home(h: Dictionary) -> bool:
+	var p := body.global_position; var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
+	if (resting or not seat.is_empty()) and p.x > mn.x and p.x < mx.x and p.z > mn.z and p.z < mx.z and p.y < mx.y: return true
+	for sp in spots:
+		if not sp.has("taken") or sp.get("door") != h["door"]: continue
+		for t in sp["taken"]:
+			if t != null: return true
+	return false
+
+## 굴뚝 갓 위의 연기 입자 — 옅은 회색 구가 2초 동안 떠오르며 커지고 사라진다(color_ramp 로 끝에서 투명). 갓의 자식이라 컷어웨이로 지붕이 사라지면 같이 사라진다
+func _make_smoke(cap: Node3D) -> CPUParticles3D:
+	var pt := CPUParticles3D.new()
+	pt.amount = 12; pt.lifetime = 2.0; pt.emitting = false; pt.local_coords = false
+	pt.direction = Vector3(0.3, 1.0, 0.0); pt.spread = 10.0
+	pt.initial_velocity_min = 0.3; pt.initial_velocity_max = 0.5; pt.gravity = Vector3(0, 0.2, 0)   # 연기는 뜬다 — 위로 갈수록 조금 빨라진다
+	pt.scale_amount_min = 0.5; pt.scale_amount_max = 1.0
+	var sc := Curve.new(); sc.add_point(Vector2(0.0, 0.5)); sc.add_point(Vector2(1.0, 1.8)); pt.scale_amount_curve = sc   # 퍼지면서 커진다
+	var g := Gradient.new(); g.set_color(0, Color(0.76, 0.74, 0.73, 0.6)); g.set_color(1, Color(0.76, 0.74, 0.73, 0.0)); pt.color_ramp = g
+	var sm := SphereMesh.new(); sm.radius = 0.09; sm.height = 0.18; sm.radial_segments = 8; sm.rings = 4; pt.mesh = sm
+	var m := StandardMaterial3D.new(); m.albedo_color = Color.WHITE; m.vertex_color_use_as_albedo = true
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; pt.material_override = m
+	pt.position = Vector3(0, 0.05, 0); cap.add_child(pt)
+	return pt

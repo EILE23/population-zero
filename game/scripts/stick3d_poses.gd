@@ -9,6 +9,7 @@ const WATER_T := 2.4   # 물주기 한 번: 0.35 들어올림 → 붓기 → 마
 const SHADE_T := 6.0   # 손차양 한 바퀴(run 73, 전망 자리): 0.35 손이 이마로(예비) → 둘러보기(유지: 고개·몸통이 천천히 좌우) → 마지막 0.4 손을 내림(회수). 자세가 풀릴 때까지 되풀이
 const STORM_T := 3.0   # 처마 밑 비 구경 한 바퀴(run 74): 0.3 고개가 하늘로(예비) → 잠깐 본다(유지, 꼭대기에서 어깨 으쓱) → 0.4 내린다(회수) → 남은 1.3초는 앞의 비를 본다. 비가 그칠 때까지 되풀이
 const UMBR_T := 0.3    # 우산 펴기(run 76, 우산꽂이): 0.3초에 걸쳐 팔이 머리 위로 오르고 캐노피가 0 → 1 로 펴진다(예비) → 든 채 걷고 서고 앉는다(유지, 걸을수록 진행 방향으로 기운다) → 두 번째 C 에 같은 0.3초로 접힌다(회수)
+const LWAVE_T := 1.4   # 왼손 인사(run 77, 우산 가족의 두 번째 자세): 0.2 왼팔이 머리 위로(예비) → 흔든다(유지, wave 와 같은 9Hz·0.25rad) → 마지막 0.3 내린다(회수). 오른팔은 손대지 않는다 — 우산을 든 채(umbr 이 뒤에서 덮어쓴다)
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -59,6 +60,13 @@ static func knead_k(t: float) -> float:
 	var c := fmod(t, KNEAD_T)
 	if c < 0.3: return smoothstep(0.0, 1.0, c / 0.3)
 	if c > KNEAD_T - 0.3: return 1.0 - smoothstep(0.0, 1.0, (c - (KNEAD_T - 0.3)) / 0.3)
+	return 1.0
+
+## 왼손 인사 진행 0..1 — 0.2초 오르고(예비), 흔들고(유지), 끝 0.3초 내린다(회수). LWAVE_T 뒤엔 0(팔을 내린 채) — 자세가 풀릴 때 팔이 뚝 떨어지지 않는다
+static func lwave_k(t: float) -> float:
+	if t >= LWAVE_T: return 0.0
+	if t < 0.2: return smoothstep(0.0, 1.0, t / 0.2)
+	if t > LWAVE_T - 0.3: return 1.0 - smoothstep(0.0, 1.0, (t - (LWAVE_T - 0.3)) / 0.3)
 	return 1.0
 
 ## 손차양 진행 0..1 — 한 바퀴 SHADE_T 마다: 0.35초 손을 이마로(예비), 둘러보기(유지), 끝 0.4초 손을 내린다(회수). 그 다음 바퀴는 처음부터
@@ -160,6 +168,13 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			if s > 0.0: sh.rotation.x = -(2.7); sh.rotation.z = -0.35 + sin(t * 9.0) * 0.25; el.rotation.x = -(0.5)
 			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
+		"lwave":
+			# 왼손 인사(운영자 보드의 우산 가족, 두 번째 자세 — run 77): 오른손이 우산을 든 채라 왼팔을 머리 위로 들어 좌우로 흔든다(wave 와 같은 9Hz·0.25rad).
+			# k 가 예비·유지·회수를 만든다(0.2초 오르고, 흔들고, 0.3초 내린다); 오른팔은 늘어뜨린 값만 두고 건드리지 않는다 — 그 위에 StickPoses.umbr 이 캐노피를 든다(편 우산이면)
+			var k := lwave_k(f.pose_t)
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			if s < 0.0: sh.rotation.x = -(0.05 + 2.65 * k); sh.rotation.z = 0.1 + (0.25 - sin(t * 9.0) * 0.25) * k; el.rotation.x = -(0.35 + 0.15 * k)
+			else: sh.rotation.x = -(0.05); sh.rotation.z = -0.1; el.rotation.x = -(0.35)
 		"water":
 			# 물주기(2D water, 텃밭 가족의 첫 자세 — run 70): 오른손의 물뿌리개를 앞·아래로 내밀어 기울이고(손목 hand_r 이 주둥이를 숙인다),
 			# 왼팔은 반쯤 앞에서 균형, 오른발이 반 걸음 앞. k 가 예비·유지·회수를 만든다 — 붓는 동안만 물방울

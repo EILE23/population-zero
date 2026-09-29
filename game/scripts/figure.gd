@@ -252,6 +252,20 @@ func _draw() -> void:
 			_ln(hip, Vector2(-6, -7), Vector2(-8, 0)); _ln(hip, Vector2(6, -7), Vector2(8, 0))
 			_ln(shoulder, Vector2(8, -42), Vector2(11, -52)); _ln(shoulder, Vector2(-8, -42), Vector2(-11, -52))
 			_head(head)
+		"lwave":
+			# 왼손 인사(run 77, 우산 가족의 두 번째 자세) — stickman.ts 'lwave' 와 같은 수: 오른손은 편 우산을 든 채(umbr k=1), 왼팔이 0.2초에 오르고(예비) · 흔들고(유지) · 마지막 0.3초 내린다(회수). 3D 는 stick3d_poses.gd lwave
+			var k := 0.0 if t >= 1.4 else (t / 0.2 if t < 0.2 else (1.0 - (t - 1.1) / 0.3 if t > 1.1 else 1.0))
+			var p := sin(t * 9.0) * 7.0 * k; var sw := sin(t * 1.3) * 1.5
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(-5 - k, -26 - 14 * k), Vector2(-6 - 2 * k - p, -18 - 32 * k))
+			var hd := Vector2(8, -48)
+			_ln(shoulder, Vector2(8, -38), hd)
+			var c := Vector2(hd.x + sw * 0.3, -62.0); var r := 16.0
+			draw_line(hd, c, color, 1.6, true)
+			var pts := PackedVector2Array()
+			for i in 13: pts.append(c + Vector2(cos(PI + i * PI / 12.0), sin(PI + i * PI / 12.0)) * r)
+			draw_colored_polygon(pts, Color("ad7096")); draw_polyline(pts, color, LW, true)
+			_head(head)
 		"wave":
 			var p := sin(t * 9.0) * 7.0
 			_ln(hip, shoulder); _legs_stand(hip)

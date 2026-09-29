@@ -200,6 +200,8 @@ var crowns: Array = []   # 흔들리는 잎 뭉치 {node, phase, k}
 
 var wind_t := 0.0
 
+var gust := 0.03   # _wind 가 매 프레임 정한 바람 세기 — 잎 뭉치와 굴뚝 연기(run 77)가 같은 바람을 탄다
+
 var petting_until := -1.0
 
 var pet_dog: Dictionary = {}

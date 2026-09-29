@@ -138,6 +138,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		_box(Vector3(0.22, 0.16, 0.14), at + Vector3(hw - 0.4, 0.8, hd + 0.9), _mat(Color("ad7096")), false)
 	# 지붕: 평지붕(옥상) 또는 박공(처마 돌출 + 홈통 + 굴뚝)
 	var ceiling_y := size.y
+	var cap: Node3D = null   # 굴뚝 갓 — 박공지붕에만 있다; 연기(town_systems _smoke)가 이 위에 선다
 	if flat_roof:
 		parts.append(_box(Vector3(size.x + 0.2, 0.16, size.z + 0.2), at + Vector3(0, size.y, 0), _mat(Color("cfc7c2"))))
 		parts.append(_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, hd + 0.04), trim))
@@ -156,7 +157,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		parts.append(_box(Vector3(size.x + 0.7, 0.07, 0.09), at + Vector3(0, size.y - 0.02, hd + 0.33), _mat(Color("4a4a52")), false))
 		_box(Vector3(size.x + 0.7, 0.07, 0.09), at + Vector3(0, size.y - 0.02, -hd - 0.33), _mat(Color("4a4a52")), false)
 		var chim := _box(Vector3(0.36, 0.7, 0.36), at + Vector3(size.x * (0.28 if rng.randf() < 0.5 else -0.28), size.y + pr.size.y * 0.55, -0.3), _mat(Color("b56a5a")), false)
-		var cap := _box(Vector3(0.44, 0.06, 0.44), Vector3.ZERO, _mat(Color("cfc7c2")), false)
+		cap = _box(Vector3(0.44, 0.06, 0.44), Vector3.ZERO, _mat(Color("cfc7c2")), false)
 		cap.position = chim.position + Vector3(0, 0.35, 0)
 		parts.append(chim); parts.append(cap)
 	parts.append(_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, ceiling_y - 0.06, 0), trim, false))
@@ -164,7 +165,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	_interior(at, size, rng)
 	for k in range(before, spots.size()):
 		if spots[k]["kind"] in ["chair", "bed", "shelf"]: spots[k]["door"] = doors[doors.size() - 1]   # 의자만 달아 줬더니 침대·선반은 문 없이 벽을 향해 곧장 걷다 포기했고, 밤엔 아무도 침대에서 못 잤다
-	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false, "shell": shell, "behind": false })
+	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false, "shell": shell, "behind": false, "chim": cap, "door": doors[doors.size() - 1] })   # chim·door: 굴뚝 연기(run 77)가 이 집 자리의 taken 을 찾는 열쇠
 
 ## 옮길 수 있는 가구 — 의자(앉는 자리 포함)·화분·소형 램프. 들면 충돌을 끄고, 놓으면 다시 켠다
 func _furniture(kind: String, at: Vector3, yaw := 0.0) -> Node3D:

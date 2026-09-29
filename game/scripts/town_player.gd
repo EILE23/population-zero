@@ -170,7 +170,8 @@ func _physics_process(delta: float) -> void:
 		shake_until = -1.0; player.pose_request = ""
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
-		if player.pose_request in ["eat", "drink", "wave", "water", "knead"]: player.pose_request = ""
+		if player.pose_request == "lwave": player.pose_request = "umbr" if player.umbr_k > 0.5 else ""   # 왼손 인사(run 77)가 끝나면 우산은 있던 대로 — 펴져 있었으면 편 채
+		elif player.pose_request in ["eat", "drink", "wave", "water", "knead"]: player.pose_request = ""
 	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm"]) and dir != Vector3.ZERO:
 		reading = false; leaning = false; resting = false; player.pose_request = ""
 	if not pushing.is_empty() and dir != Vector3.ZERO:
@@ -189,6 +190,7 @@ func _physics_process(delta: float) -> void:
 	_flow(delta)
 	_crops(now)
 	_bakery(now)
+	_smoke(now)
 
 ## 가구 들기(C 길게) — 두 손에 들고 옮긴다(carry 자세). 든 동안 충돌은 끈다
 func _pick_furniture(now: float) -> void:

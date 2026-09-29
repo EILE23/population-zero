@@ -208,7 +208,7 @@ func _process(delta: float) -> void:
 	else:
 		pose_t += delta
 	if pose_request == "umbr" and (carrying == null or not carrying.has_meta("umb")): pose_request = ""   # 손에 우산이 없으면 우산 자세도 없다
-	umbr_k = move_toward(umbr_k, 1.0 if pose_request == "umbr" else 0.0, delta / StickPoses.UMBR_T)
+	if pose_request != "lwave": umbr_k = move_toward(umbr_k, 1.0 if pose_request == "umbr" else 0.0, delta / StickPoses.UMBR_T)   # 왼손 인사(run 77) 동안 우산은 있던 대로 — 펴졌으면 편 채, 접혔으면 접은 채
 	var moving := move_dir.length_squared() > 0.0001 and speed > 0.05 and not seated
 	# 몸 방향 — 이동 방향으로 부드럽게(초당 약 10rad 로 수렴). 서 있으면 마지막 방향 유지
 	if moving:

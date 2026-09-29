@@ -366,5 +366,12 @@ func umbrella_use(now: float) -> void:
 		player.release(self, Vector3.ZERO).queue_free(); player.pose_request = ""
 		player.face(rack["yaw"]); player.action = "grab"; action_until = now + 0.4
 		return
+	for r in residents:
+		if r.state != "down" and body.global_position.distance_to(r.global_position) < 1.3:
+			# 우산을 든 채 주민 앞에서 C = 왼손 인사(run 77) — 빈손 인사와 같은 사거리(1.3m, town_player "resident"). 우산은 있던 대로(Stick3D 는 lwave 동안 umbr_k 를 안 건드린다)
+			player.pose_request = "lwave"; use_until = now + StickPoses.LWAVE_T; action_until = now + 0.3
+			player.face(atan2(r.global_position.x - body.global_position.x, r.global_position.z - body.global_position.z))
+			r.greet(body)
+			return
 	player.pose_request = "" if player.pose_request == "umbr" else "umbr"
 	action_until = now + StickPoses.UMBR_T
