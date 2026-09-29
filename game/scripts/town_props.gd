@@ -92,6 +92,12 @@ func _scatter(id: String, at: Vector3, sc := 1.0, yaw := -1.0) -> Node3D:
 	var m := _model("nature/quaternius/" + id); m.position = at; m.rotation.y = (randf_range(0.0, TAU) if yaw < 0.0 else yaw); m.scale = Vector3.ONE * sc; _add(m)
 	return m
 
+## 차 한 대 세워 두기(Kenney Car Kit, CC0) — C 로 타고 내린다
+func _car(kind: String, at: Vector3, yaw: float) -> Car3D:
+	var c := Car3D.new(); c.setup(kind, self); c.position = at + Vector3(0, 0.02, 0); c.rotation.y = yaw
+	add_child(c); cars.append(c)
+	return c
+
 ## 쓰레기통 — 통 + 어두운 뚜껑 테
 func _bin(at: Vector3) -> void:
 	var b := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.28; cm.bottom_radius = 0.24; cm.height = 0.8
@@ -136,4 +142,4 @@ func _fence(at: Vector3, len: float) -> void:
 	var n := int(round(len))
 	for i in n:
 		var m := _model("nature/fence_simple"); m.position = at + Vector3(i + 0.5, 0, 0); m.scale = Vector3(1.0, 1.15, 1.0); _add(m)
-	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = Vector3(n, 0.5, 0.1); cs.shape = bs; cs.position = at + Vector3(n / 2.0, 0.25, 0); sb.add_child(cs); _add(sb)
+	# 충돌체 없음: 주민 경로가 울타리를 지나간다(전 울타리도 기둥 사이로 통과됐다). 막으면 울타리 앞에서 뛰며 갇힌다(운영자 2026-09-29) — 경로 탐색이 생기면 다시

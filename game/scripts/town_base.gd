@@ -210,6 +210,13 @@ var water: Water3D                # 물 애셋(강·연못의 수면·가장자�
 
 var last_dropped: Node3D = null  # 방금 내려놓은 것 — 다음 C 가 도로 집지 않게
 
+var cars: Array[Car3D] = []       # 마을의 차들
+var driving: Car3D = null         # 내가 모는 차(null 이면 걷는 중)
+
+## 카메라·스트리밍이 따라갈 곳 — 차를 몰면 차
+func focus_pos() -> Vector3:
+	return driving.global_position if driving else body.global_position
+
 var swimming := false            # 내가 물에 들어가 있는 동안(헤엄 자세, 느리고, 점프·타격 없음)
 
 ## 물에 있나 — 물 애셋이 답하고, 다리 위만 뺀다. 사람도 주민도 물건도 같은 규칙

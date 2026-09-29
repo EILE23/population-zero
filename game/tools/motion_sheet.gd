@@ -68,6 +68,7 @@ func _define() -> void:
 		{ "name": "cat-arch", "subject": cat["node"], "lead": 0.05, "setup": func() -> void: _near(cat); _hold(cat); (cat["quad"] as Node).call("act", "arch") },
 		{ "name": "duck-paddle", "subject": duck["node"], "setup": func() -> void: town.body.position = duck["center"] + Vector3(0, 0.02, 4.5) },
 		{ "name": "pigeon-idle", "subject": pigeon["node"], "setup": func() -> void: town.body.position = _pos(pigeon) + Vector3(0, 0.02, 3.0) },
+		{ "name": "car-drift", "subject": town.cars[0], "lead": 1.2, "dt": 0.25, "setup": func() -> void: var c: Car3D = town.cars[0]; town.body.position = c.global_position + Vector3(1.3, 0.02, 0); town._enter_car(c, Time.get_ticks_msec() / 1000.0); c.input = { "throttle": 1.0, "steer": 0.0, "brake": false }; c.v = 7.0; c.rotation.y = PI / 2.0; (func() -> void: await town.get_tree().create_timer(1.0).timeout; c.input = { "throttle": 1.0, "steer": 1.0, "brake": true }).call() },
 		{ "name": "player-sky", "subject": town.body, "lead": 0.0, "setup": func() -> void: town.body.position = Vector3(-3.5, 0.02, 16.5); town.resting = true; town.player.pose_request = "sky" },
 		{ "name": "player-carry3", "subject": town.body, "lead": 0.3, "setup": func() -> void: town.body.position = Vector3(-3.5, 0.02, 15.0); town.resting = false; town.player.pose_request = ""; for k in ["apple", "cup", "bread"]: town.player.hold(town.make_item(k, Vector3.ZERO)) },
 		{ "name": "player-swim", "subject": town.body, "lead": 0.0, "setup": func() -> void: town.body.position = Vector3(-5, 0.02, 11.5) },
@@ -91,7 +92,8 @@ func _process(_delta: float) -> void:
 	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	var s := subject.global_position
 	var c: Dictionary = clips[ci]
-	if subject == town.body: cam.position = s + Vector3(2.0, 1.6, 3.0)        # 사람은 크니 조금 멀리
+	if subject is Car3D: cam.position = s + Vector3(4.5, 3.0, 5.5)
+	elif subject == town.body: cam.position = s + Vector3(2.0, 1.6, 3.0)        # 사람은 크니 조금 멀리
 	elif c.get("side", false): cam.position = s + Vector3(2.4, 0.9, 0.3)     # 옆에서(쓰다듬기 — 사람이 앞을 가린다)
 	else: cam.position = s + Vector3(0.9, 1.1, 2.0)
 	cam.look_at(s + Vector3(0, 0.3 if subject != town.body else 0.45, 0), Vector3.UP)

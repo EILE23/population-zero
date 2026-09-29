@@ -4,7 +4,7 @@ extends TownBuild
 
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
 func _stream() -> void:
-	var p := body.global_position
+	var p := focus_pos()
 	for d in districts:
 		var on: bool = absf(p.x - d["center"].x) < 34.0
 		if on != d["on"]:
@@ -22,7 +22,7 @@ func _cutaway() -> void:
 		var inside: bool = p.x > mn.x and p.x < mx.x and p.z > mn.z and p.z < mx.z and p.y < mx.y
 		var near: bool = p.x > mn.x - 2.0 and p.x < mx.x + 2.0 and p.z > mn.z - 1.0 and p.z < mx.z + 2.5 and p.y < mx.y
 		var behind: bool = view_25d and p.z < mn.z and p.x > mn.x - 1.5 and p.x < mx.x + 1.5 and p.y < mx.y
-		var open := inside or near or behind   # 집 가까이 가면 열린다 — 안에서 쉬는 주민이 보이게(운영자: 들어가면 사라진다)
+		var open := inside or behind   # near 는 뺐다 — 집 앞에 서기만 해도 지붕이 열려 안이 다 보였다(운영자 2026-09-29)   # 집 가까이 가면 열린다 — 안에서 쉬는 주민이 보이게(운영자: 들어가면 사라진다)
 		if open != h["inside"]:
 			h["inside"] = open
 			for n in h["parts"]:

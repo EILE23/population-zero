@@ -15,6 +15,8 @@ func _ready() -> void:
 	_path(Vector3(3.35, 0, 0.8), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
 	_district("lane", Vector3(0, 0, -15), _lane)
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
+	_car("sedan", Vector3(19.5, 0, 4.6), PI / 2.0)      # 시장 앞 큰길가에 세단(운영자 2026-09-29: 차·운전)
+	_car("hatchback", Vector3(-19.5, 0, 4.6), -PI / 2.0)   # 공원 앞에 해치백
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "iron", false, 1)
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
 	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다
@@ -57,12 +59,13 @@ func _process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_V) and not _v_down:
 		view_25d = not view_25d
 	_v_down = Input.is_key_pressed(KEY_V)
-	var px := clampf(body.position.x, -WORLD_X + 6.0, WORLD_X - 6.0)
+	var fp := focus_pos()
+	var px := clampf(fp.x, -WORLD_X + 6.0, WORLD_X - 6.0)
 	if view_25d:
 		# 2.5D: 앞에서 살짝 위(약 13°)에서 보는 낮은 옆시점, 직교 투영이라 원근 왜곡이 없다 — 깊이(앞뒤)는 화면 위아래로만 읽힌다
 		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
 		cam.size = lerpf(cam.size, 9.5, minf(1.0, delta * 4.0))
-		var want := Vector3(px, 3.4, clampf(body.position.z, -WORLD_Z + 2.0, WORLD_Z) + 11.0)
+		var want := Vector3(px, 3.4, clampf(fp.z, -WORLD_Z + 2.0, WORLD_Z) + 11.0)
 		cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
 		if cam_kick > 0.0:
 			cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)
@@ -70,7 +73,7 @@ func _process(delta: float) -> void:
 	else:
 		# 3/4 시점: 플레이어 뒤·위에서 내려다본다
 		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-		var want := Vector3(px, 0, clampf(body.position.z, -WORLD_Z + 6.0, WORLD_Z - 4.0)) + Vector3(0, 8.5, 7.5)
+		var want := Vector3(px, 0, clampf(fp.z, -WORLD_Z + 6.0, WORLD_Z - 4.0)) + Vector3(0, 8.5, 7.5)
 		cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
 		if cam_kick > 0.0:
 			cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)

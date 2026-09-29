@@ -9,6 +9,15 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
+	# 운전 중: 차가 몸이다 — 방향키·SPACE 를 차에 넘기고 C 로 내린다. 세계 시스템은 계속 돈다
+	if driving:
+		if not "--sheet" in OS.get_cmdline_user_args():   # 시트 도구는 입력을 직접 넣는다
+			driving.input = { "throttle": -dir.z, "steer": dir.x, "brake": Input.is_action_pressed("jump") }
+		body.global_position = driving.global_position + Vector3(0, 0.3, 0)
+		if Input.is_action_just_pressed("act") and action_until < now:
+			_exit_car(now)
+		_fly(delta); _water(delta); _cutaway(); _daylight(delta); _stream(); _weather(delta); _animals(delta); _swings(delta); _wind(delta)
+		return
 	# 그네 타는 중: 몸은 그네가 움직인다(_swings) — 여기서 먼저 돌리고 C 만 본다(뒤의 _swings 호출 전에 return 되어 안 돌던 버그)
 	if not riding.is_empty():
 		_swings(delta)
@@ -201,6 +210,24 @@ func _physics_process(delta: float) -> void:
 	_swings(delta)
 	_wind(delta)
 
+## 타기 — 몸을 숨기고 차가 나를 대신한다. 들고 있던 큰 가구는 내려놓는다
+func _enter_car(c: Car3D, now: float) -> void:
+	if not carrying_big.is_empty() or swimming or not riding.is_empty(): return
+	driving = c; c.driver = body
+	body.visible = false; body.collision_layer = 0; body.collision_mask = 0; body.velocity = Vector3.ZERO
+	player.pose_request = ""; reading = false; leaning = false; resting = false
+	action_until = now + 0.4
+
+## 내리기 — 차 왼쪽 옆에 선다. 차가 달리는 중이면 못 내린다
+func _exit_car(now: float) -> void:
+	if absf(driving.v) > 1.0: return
+	var c := driving
+	driving = null; c.driver = null; c.input = { "throttle": 0.0, "steer": 0.0, "brake": false }
+	body.global_position = c.exit_pos() + Vector3(0, 0.02, 0)
+	body.visible = true; body.collision_layer = 1; body.collision_mask = 1
+	player.face(c.rotation.y)
+	action_until = now + 0.4
+
 ## 쓰다듬기 — 개는 앉아 꼬리를 흔들고, 나는 허리 숙여 손을 내민다(grab 자세). 맞은 걸 기억하는 개는 손을 내밀면 한 발 물러난다
 func _pet_dog(a: Dictionary, now: float) -> void:
 	var p := body.global_position
@@ -344,6 +371,9 @@ func _interact_check(now: float) -> void:
 		if sp["kind"] != "counter": continue
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "counter", "spot": sp }; best_d = d8
+	for c in cars:
+		var dc: float = p.distance_to(c.global_position)
+		if dc < 1.9 and dc < best_d and c.driver == null and carrying_big.is_empty(): best = { "kind": "car", "car": c }; best_d = dc
 	for sw in swings:
 		var d6: float = p.distance_to(sw["at"])
 		if d6 < 1.2 and d6 < best_d: best = { "kind": "swing", "swing": sw }; best_d = d6
@@ -371,6 +401,8 @@ func _interact_check(now: float) -> void:
 			player.face(sp["yaw"])
 			var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
 			player.hold(it); player.action = "grab"; action_until = now + 0.4
+		"car":
+			_enter_car(best["car"], now)
 		"swing":
 			var sw: Dictionary = best["swing"]
 			if not riding.is_empty():
