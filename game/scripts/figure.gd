@@ -188,6 +188,26 @@ func _draw() -> void:
 			draw_line(Vector2(10, -14), Vector2(26, -14), color, 1.6, true)
 			draw_circle(Vector2(17, -16.5 + pr), 3.2 - pr * 0.6, Color("e6d3a5"))
 			_head(head)
+		"shade":
+			# 손차양(run 73, 전망 자리) — stickman.ts 'shade' 와 같은 수: 6초 한 바퀴, 0.35 손이 이마로(예비) · 둘러보기(유지, 고개·어깨가 천천히 좌우) · 끝 0.4 내린다(회수)
+			var c := fmod(t, 6.0)
+			var k := (c / 0.35) if c < 0.35 else ((1.0 - (c - 5.6) / 0.4) if c > 5.6 else 1.0)
+			var g := sin(t * 0.9) * 3.0 * k
+			shoulder = Vector2(g * 0.4, -34); head = Vector2(g, -42)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-4, -8), Vector2(-5, 0)); _ln(hip, Vector2(5, -9 + k), Vector2(4, 0))
+			_ln(shoulder, Vector2(-5 - 3 * k, -26 - k), Vector2(-6 + 3 * k, -18 - k))
+			_ln(shoulder, Vector2(5 + 5 * k, -26 - 15 * k), Vector2(6 + (g - 3) * k, -18 - 30 * k))
+			_head(head)
+		"storm":
+			# 처마 밑 비 구경(run 74, 비 오는 문 앞) — stickman.ts 'storm' 과 같은 수: 3초 한 바퀴, 0.3 고개가 하늘로 · 1초 본다(꼭대기에서 어깨 으쓱) · 0.4 내린다 · 나머지는 앞의 비. 팔짱
+			var c := fmod(t, 3.0)
+			var k := (c / 0.3) if c < 0.3 else (1.0 if c < 1.3 else ((1.0 - (c - 1.3) / 0.4) if c < 1.7 else 0.0))
+			var sg := maxf(0.0, 1.0 - absf(c - 0.8) / 0.5)
+			hip = Vector2(-1, -16); shoulder = Vector2(-2, -34 - sg * 1.5); head = Vector2(-2 + 3 * k, -42 - 3 * k - sg * 1.5)
+			_ln(hip, shoulder); _ln(hip, Vector2(-4, -8), Vector2(-5, 0)); _ln(hip, Vector2(4, -8), Vector2(5, 0))
+			_ln(shoulder, Vector2(7 + sg, -27 - sg * 1.5), Vector2(-4, -24 - sg * 1.5)); _ln(shoulder, Vector2(-8 - sg, -27 - sg * 1.5), Vector2(3, -24 - sg * 1.5))
+			_head(head)
 		"sweep":
 			var p := sin(t * 5.0) * 6.0
 			shoulder = Vector2(6, -31); head = Vector2(9, -39)

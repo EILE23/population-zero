@@ -208,8 +208,11 @@ func _flow(delta: float) -> void:
 
 ## 경유지 — 출발과 도착이 강의 다른 편이면 다리 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을, 전망 언덕을 오르내리면 계단을 거친다
 ## (곧장 가면 물 위 벽이나 울타리 기둥·바위 낯에 막혀 우회하다 포기했다 — polish run 71: 주민이 텃밭 이랑에 한 번도 못 닿았다)
+## 출발과 도착이 같은 편이면(둘 다 언덕 위, 둘 다 울타리 안) 계단·문을 안 거친다 — 전망 벤치에서 3m 옆 전망 자리로 가는데 계단을 내려갔다 다시 올랐고, 이랑에서 옆 이랑으로 가는데 문 밖에 나갔다 들어왔다(polish 75)
 func crossings(from: Vector3, to: Vector3) -> Array:
-	var out := _gate_steps(from, false) + _terr_steps(from, false); var inn := _terr_steps(to, true) + _gate_steps(to, true)
+	var lvl := (ground_y(from) > 0.0) != (ground_y(to) > 0.0); var yard := _in_garden(from) != _in_garden(to)
+	var out := (_gate_steps(from, false) if yard else []) + (_terr_steps(from, false) if lvl else [])
+	var inn := (_terr_steps(to, true) if lvl else []) + (_gate_steps(to, true) if yard else [])
 	var mid := (RIVER_N + RIVER_S) / 2.0
 	if (from.z < mid) == (to.z < mid): return out + inn
 	var n := { "pos": Vector3(randf_range(-0.4, 0.4), 0, RIVER_N - 1.1), "act": "" }
@@ -218,9 +221,13 @@ func crossings(from: Vector3, to: Vector3) -> Array:
 
 ## 텃밭 안(울타리 3.3×1.9 안쪽)의 점이면 문 안쪽·바깥쪽 두 점, 아니면 없음. inward 면 바깥 → 안 순서
 func _gate_steps(p: Vector3, inward: bool) -> Array:
-	if garden_at == Vector3.INF or absf(p.x - garden_at.x) > 3.3 or absf(p.z - garden_at.z) > 1.9: return []
+	if not _in_garden(p): return []
 	var o := { "pos": garden_at + Vector3(0, 0, 2.7), "act": "" }; var i := { "pos": garden_at + Vector3(0, 0, 1.3), "act": "" }
 	return [o, i] if inward else [i, o]
+
+## 텃밭 울타리(3.3×1.9) 안의 점인가
+func _in_garden(p: Vector3) -> bool:
+	return garden_at != Vector3.INF and absf(p.x - garden_at.x) <= 3.3 and absf(p.z - garden_at.z) <= 1.9
 
 ## 사람 쪽 이랑 거리 — 이랑 가운데가 아니라 이랑 줄(x ±2.2)까지. 가운데만 재면 끝의 포기 앞에서 C 가 안 먹었다
 func plot_dist(p: Vector3, sp: Dictionary) -> float:

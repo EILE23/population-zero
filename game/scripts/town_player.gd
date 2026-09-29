@@ -33,7 +33,7 @@ func _physics_process(delta: float) -> void:
 			seat = {}; player.seated = false
 			body.collision_layer = 1; body.collision_mask = 1
 			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_QUAD)
-			tw.tween_property(body, "position", Vector3(body.position.x, 0.02, body.position.z + 0.45), 0.25)
+			tw.tween_property(body, "position", Vector3(body.position.x, ground_y(body.position) + 0.02, body.position.z + 0.45), 0.25)   # 땅 높이로 — 전망 언덕 벤치(run 73)에서 0.02 로 내려서면 바위 속으로 떨어졌다(polish 75)
 		else:
 			_interact_check(now)
 			return
@@ -284,7 +284,7 @@ func _interact_check(now: float) -> void:
 		# 내려놓기: 앞 0.7m, 바닥에. 주민 자리도 같이 옮긴다
 		var n: Node3D = carrying_big["node"]
 		n.get_parent().remove_child(n); add_child(n)
-		n.global_position = Vector3(p.x, 0.0, p.z) + fwd * 0.7; n.rotation = Vector3(0, player.rotation.y, 0)
+		n.global_position = Vector3(p.x, ground_y(p), p.z) + fwd * 0.7; n.rotation = Vector3(0, player.rotation.y, 0)   # 언덕 위에서 내려놓으면 선반 위에(바닥 0 이면 바위 속)
 		_set_solid(n, true)
 		if carrying_big["spot"]: carrying_big["spot"]["pos"] = n.global_position; carrying_big["spot"]["yaw"] = player.rotation.y
 		carrying_big = {}; player.pose_request = ""
