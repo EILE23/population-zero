@@ -116,10 +116,13 @@ func _physics_process(delta: float) -> void:
 			if now >= busy_until:
 				_pick_spot()
 		"walk":
+			if now < _door_wait:
+				v.x = 0.0; v.z = 0.0; fig.move_dir = Vector3.ZERO; fig.speed = 0.0; stuck_since = -1.0
+				velocity = v; move_and_slide(); return
 			var to := target - global_position; to.y = 0.0
 			if to.length() < 0.35:
 				var step: Dictionary = route.pop_front() if not route.is_empty() else {}
-				if step.get("act", "") == "open": town.set_door(door_ref, true)
+				if step.get("act", "") == "open": town.set_door(door_ref, true); _door_wait = now + 0.5   # 문짝이 다 열릴 때까지 기다린다 — 안 그러면 도는 문짝에 막혀 우회하다 벽에 갇혔다
 				elif step.get("act", "") == "close": town.set_door(door_ref, false)
 				detours = 0
 				if route.is_empty():
@@ -236,6 +239,13 @@ func on_weather(w: String) -> void:
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.0, 1.5)
 	say(["Rain.", "Of course.", "Inside, then."][uid % 3], 1.5)
 
+## 지금 어느 집 안에 있나 — 그 집 문(없으면 빈 사전). 집 안에서 다른 곳으로 갈 땐 문을 열고 나와 닫는다
+func _inside_door() -> Dictionary:
+	for dr in town.doors:
+		var dp: Vector3 = dr["pos"]; var hw: float = dr.get("hw", 2.0); var hd: float = dr.get("hd", 1.8)
+		if absf(global_position.x - dp.x) < hw - 0.1 and global_position.z < dp.z - 0.1 and global_position.z > dp.z - hd * 2.0 + 0.1: return dr
+	return {}
+
 func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
@@ -261,7 +271,7 @@ func _pick_spot() -> void:
 			spot = mine[0]; slot = 0; _claim(spot, 0)
 			door_ref = home_door
 			var dp: Vector3 = door_ref["pos"]
-			route = town.via_bridge(global_position, _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }])
+			route = town.via_bridge(global_position, _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -1.3), "act": "close" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }])
 			target = route[0]["pos"]; state = "walk"; return
 	var pool: Array = town.spots
 	if weather == "rain":
@@ -280,7 +290,7 @@ func _pick_spot() -> void:
 		# 집 안 의자: (집 앞이 아니면 모서리를 돌아) 문 앞 → 문 열기 → 의자. 나올 땐 _leave 가 반대로
 		door_ref = spot["door"]
 		var dp: Vector3 = door_ref["pos"]
-		route = _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
+		route = _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -1.3), "act": "close" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }]
 	elif spot["kind"] == "bench":
 		route = [{ "pos": spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0, 0.45), "act": "" }]
 	elif spot["kind"] == "grass":
@@ -294,6 +304,11 @@ func _pick_spot() -> void:
 	else:
 		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
 	route = town.via_bridge(global_position, route)   # 강 건너면 다리로
+	var inside := _inside_door()
+	if not inside.is_empty() and not (spot.has("door") and spot["door"] == inside):
+		door_ref = inside; var ip: Vector3 = inside["pos"]
+		route = [{ "pos": ip + Vector3(0, 0, -1.3), "act": "open" }, { "pos": ip + Vector3(0, 0, 0.9), "act": "close" }] + route
+		if spot.has("door"): door_ref = spot["door"]   # 다른 집이면 그 집 문 동작은 그 집 문으로(아래 경유지가 open 을 다시 부른다)
 	target = route[0]["pos"]
 	state = "walk"
 
@@ -414,6 +429,7 @@ func go_push(sw: Dictionary) -> void:
 	say(["Hold on.", "Here.", "Higher?"][uid % 3], 1.5)
 
 var riding_seesaw: Seesaw3D = null
+var _door_wait := -1.0
 
 ## 시소에서 튀어 오름 — 날아올랐다 발로 착지하고, 한마디
 func seesaw_launch(vy: float) -> void:
@@ -441,7 +457,7 @@ func _leave() -> void:
 	if spot.get("kind", "") in ["chair", "bed", "shelf"] and not door_ref.is_empty():
 		global_position += Vector3(0, 0, 0.35)
 		var dp: Vector3 = door_ref["pos"]
-		route = [{ "pos": dp + Vector3(0, 0, -0.6), "act": "" }, { "pos": dp + Vector3(0, 0, 0.8), "act": "close" }]
+		route = [{ "pos": dp + Vector3(0, 0, -0.9), "act": "open" }, { "pos": dp + Vector3(0, 0, 0.9), "act": "close" }]   # 들어가면 등 뒤로 닫고, 나올 땐 열고 나와 닫는다(운영자 2026-09-29: 문을 안 닫고 다님)
 		target = route[0]["pos"]; state = "walk"
 		return
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 2.0)

@@ -54,7 +54,7 @@ func _physics_process(delta: float) -> void:
 		player.action_t = 1.0 - (getup_until - now) / 0.6; body.velocity = Vector3.ZERO
 		return
 	if getup_until > 0.0 and getup_until <= now:
-		getup_until = -1.0; player.action = ""; player.action_t = 0.0
+		getup_until = -1.0; player.action = ""; player.action_t = 0.0; player.rotation.x = 0.0; player.rotation.z = 0.0
 	# 앉아 있으면 아무 방향키로 일어난다
 	if not seat.is_empty():
 		body.collision_layer = 0; body.collision_mask = 0   # 앉는 동안 충돌 끔 — 의자 상자에 밀려 엉덩이가 박히던 것
