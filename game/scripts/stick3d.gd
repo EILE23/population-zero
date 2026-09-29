@@ -22,6 +22,7 @@ var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
 var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "" 
 var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
+var squash := 0.0             # jump stretch(+)/land squash(-), decays to 0
 var push_t := 9.0              # 밀기: 0 에서 시작해 1 까지(팔을 뻗었다 거둔다), 9 = 쉼
 
 ## 대기 기지개(운영자 2026-09-28, "Stick3D feel"): 가만히 서 있을 때만 저절로 — 2D figure.gd 의 yawn·shrug·look 을 그대로
@@ -43,6 +44,9 @@ func _process(delta: float) -> void:
 	if moving:
 		_yaw_target = atan2(move_dir.x, move_dir.z)
 	_yaw = lerp_angle(_yaw, _yaw_target, minf(1.0, delta * 10.0))
+	squash = move_toward(squash, 0.0, delta * 5.0)
+	var sq := squash * 0.16
+	scale = Vector3(1.0 - sq * 0.5, 1.0 + sq, 1.0 - sq * 0.5)   # volume-ish preserving stretch/squash
 	rotation.y = _yaw
 	# 대기 기지개 — 가만히 서 있을 때만(다른 자세·동작·이동이 끼어들면 바로 취소, 어색하게 이어붙지 않는다)
 	var idle_now := not moving and not airborne and not seated and not lying and crouch <= 0.0 and action == "" and pose_request == ""

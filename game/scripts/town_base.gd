@@ -208,6 +208,8 @@ var petting_until := -1.0
 
 var water: Water3D                # 물 애셋(강·연못의 수면·가장자리·물결·판정·물보라) — _ready 가 만들고 _park/_river 가 물을 붓는다
 
+var jumpf := Jump3D.new()   # jump feel (coyote, buffer, apex hang, heavy fall)
+
 var last_dropped: Node3D = null  # 방금 내려놓은 것 — 다음 C 가 도로 집지 않게
 
 var cars: Array[Car3D] = []       # 마을의 차들

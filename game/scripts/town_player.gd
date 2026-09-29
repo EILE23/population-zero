@@ -77,7 +77,7 @@ func _physics_process(delta: float) -> void:
 		pass  # 제트킥: 쏘아진 속도 그대로
 	elif can_move and dir != Vector3.ZERO:
 		# 부드럽지만 빠른 반응: 땅에선 0.12초쯤에 목표 속도, 공중에선 더 느리게
-		var accel := 26.0 if grounded else 9.0
+		var accel := 26.0 if grounded else 15.0   # air control 9 -> 15: steerable mid-air (jump maps)
 		hv = hv.move_toward(dir * speed, accel * delta)
 		player.move_dir = dir; player.speed = hv.length()
 	else:
@@ -87,18 +87,16 @@ func _physics_process(delta: float) -> void:
 	if swimming: water.wake(body, hv.length() > 0.2, delta)   # 헤엄 자국
 	if grounded and hv.length() > 0.1:
 		_step_up(hv * delta)
-	if not grounded:
-		v.y -= G * delta
-	elif Input.is_action_just_pressed("jump") and not swimming:
-		# 마리오식: 누르면 꽉 찬 점프로 뜨고, 일찍 떼면 상승을 끊어 짧은 홉이 된다(위로 밀어 올리는 방식은 붕 떴다 — 운영자 2026-09-28)
+	# 점프(Jump3D: 코요테·버퍼·꼭대기 체공·묵직한 낙하·가변 높이 — Climb 도 같은 부품)
+	jumpf.tick(grounded, Input.is_action_just_pressed("jump") and not swimming, now)
+	if jumpf.consume(now):
 		v.y = JUMP_FULL + hv.length() * 0.12
 		if hv.length() > 0.5:
 			var f := hv.normalized(); v.x += f.x * 1.2; v.z += f.z * 1.2
-		jump_cut_ok = true
 		jump_from_speed = hv.length(); dash_jump = running or now < dash_until
-		jump_at = -1.0
-	if jump_cut_ok and not grounded and Input.is_action_just_released("jump") and v.y > 2.0:
-		v.y = 2.0; jump_cut_ok = false
+		jump_at = -1.0; player.squash = 1.0   # 뛰는 순간 몸이 위로 늘어난다
+	elif not grounded:
+		v.y = jumpf.air(v.y, Input.is_action_just_released("jump"), delta)
 	if push_at >= 0.0 and now >= push_at:
 		var f := fwd_dir()
 		v += f * push_amount; v.y = maxf(v.y, push_lift) if push_lift > 0.0 else v.y
@@ -115,8 +113,10 @@ func _physics_process(delta: float) -> void:
 		was_airborne = true  # 뜨지 못한 제트킥은 이번 프레임에 착지로 처리(안전장치)
 	if was_airborne and body.is_on_floor():
 		dash_jump = false
+		var hard := clampf(-player.vertical / 12.0, 0.0, 1.0)
+		player.squash = -0.4 - 0.6 * hard; Jump3D.dust(self, body.global_position, hard)   # 닿는 순간 찌그러지고, 세게 닿으면 흙먼지
 		if player.vertical < -4.5 or jet:
-			land_until = now + (0.2 if jet else 0.12)
+			land_until = now + (0.2 if jet else 0.12 + 0.1 * hard)
 		if jet:
 			jet = false; action_until = now + 0.2  # 착지 마무리(발을 거두는 뒤 절반)
 			body.velocity = Vector3(body.velocity.x * 0.35, 0, body.velocity.z * 0.35)
