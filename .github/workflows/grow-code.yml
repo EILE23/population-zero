@@ -61,7 +61,7 @@ jobs:
           CHANGED=$(git diff --cached --name-only)
           echo "$CHANGED"
           # 2026-09-28 컨셉 전환: 성장의 주 무대는 game/ (Godot). 웹 엔진·광장·Climb 은 유지 보수만(GROW.md). 사람이 만든 게임 폴더·registry 는 건드리지 못한다
-          BAD=$(echo "$CHANGED" | grep -v -E '^(game/|site/src/features/square/|site/src/features/climb/|site/src/features/games/engine/|site/src/lib/goose\.ts|site/src/lib/world\.ts|site/src/lib/stickman\.ts|site/src/lib/tower\.ts|site/src/lib/pond\.ts|patrol/GROW-BACKLOG\.md|patrol/GROW-LOG\.md|patrol/GROW-DONE\.md|patrol/growth/)' || true)
+          BAD=$(echo "$CHANGED" | grep -v -E '^(game/|patrol/GROW-BACKLOG\.md|patrol/GROW-LOG\.md|patrol/GROW-DONE\.md|patrol/growth/)' || true)
           if [ -n "$BAD" ]; then echo "reverting out-of-scope changes:"; echo "$BAD"; echo "$BAD" | xargs -r git checkout HEAD -- ; echo "$BAD" | xargs -r git rm -q --cached --ignore-unmatch; fi
           git add -A
           git diff --cached --stat

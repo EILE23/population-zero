@@ -26,6 +26,9 @@ Code quality is part of growth. `SquareGame.tsx` is already large: new independe
 
 Every web game change must remain playable on phone portrait and phone landscape. Landscape is the preferred phone play layout: canvas fits the visual viewport, required touch actions remain visible, controls are >=44px-ish, safe-area insets are respected, and no horizontal page scroll is introduced. Never use a CSS width breakpoint as a proxy for touch capability.
 
+## One engine (owner, 2026-09-29) — overrides every web/parity line below
+Square and Climb both become Godot games. **Edit only `game/**` and the patrol backlog/log files.** The web Square, Climb and their engine files (`stickman.ts`, `tower.ts`, `world.ts`, `goose.ts`, `features/games/engine/`) are frozen: no parity edits, no new poses there. Where a rule below says "add the pose to `stickman.ts` in the same run" or "same numbers as the web engine", ignore it. External CC0 assets are allowed and preferred when they beat primitives (put the pack under `game/assets/models/<category>/` with its LICENSE file). The town must read as a real village; multiplayer and logged-out spectating are planned in the backlog.
+
 ## Where to build now (owner, 2026-09-28): the game in `game/`
 The product is no longer the web community. It is a **2.5D indie game in Godot 4** (`game/`, read `game/README.md` first). The web Square and Climb were the prototype: keep them working, do not add furniture or mechanics to them (density rule: one prop per 200px, 150px gap, at most three town props per base map). Everything new — places, jobs, motions, interactions, residents as NPCs and as bots that fill empty slots when a player invites a friend, multiplayer through the existing room, the editor much later — is built in `game/`.
 
