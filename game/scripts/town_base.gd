@@ -1,6 +1,6 @@
 class_name TownBase
 extends Node3D
-## 마을의 상태와 공용 도우미 — 모든 마을 스크립트의 밑바탕(상속 사슬: base → build → places → systems → player → town3d).
+## 마을의 상태와 공용 도우미 — 모든 마을 스크립트의 밑바탕(상속 사슬: base → build → places → boat → systems → player → town3d).
 ## 여기엔 상수·상태 변수와 재료·상자·구역 같은 기초 도우미만 둔다. 기능은 위 계층에.
 
 ## 3D 마을 시제품 — 오메가루비 식 3/4 시점(운영자 2026-09-28: "최소한 오메가루비 같은 퀄리티"). 전부 코드로 만든 기하:
@@ -204,6 +204,8 @@ var crowns: Array = []   # 흔들리는 잎 뭉치 {node, phase, k}
 
 var wind_t := 0.0
 
+var gust := 0.03   # _wind 가 매 프레임 정한 바람 세기 — 잎 뭉치와 굴뚝 연기(run 77)가 같은 바람을 탄다
+
 var petting_until := -1.0
 
 var water: Water3D                # 물 애셋(강·연못의 수면·가장자리·물결·판정·물보라) — _ready 가 만들고 _park/_river 가 물을 붓는다
@@ -277,6 +279,15 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 			dr.mesh = SphereMesh.new(); (dr.mesh as SphereMesh).radius = 0.012; (dr.mesh as SphereMesh).height = 0.024
 			var dm := StandardMaterial3D.new(); dm.albedo_color = Color("8fb8cc"); dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; dr.material_override = dm
 			dr.position = Vector3(0, 0.08, 0.24); mi.add_child(dr); mi.set_meta("drops", dr)
+		"umbrella":
+			# 우산(run 76, 카페 옆 우산꽂이): 원점이 손잡이(잉크색 손잡이 구), 자루가 +z 로 눕는다 — 바닥엔 그대로 눕고, 손에선 Stick3D.hold 가 -y 로 세운다(팔이 늘어지면 끝이 아래, 팔을 들면 캐노피가 머리 위).
+			# 캐노피는 자루 끝의 납작한 원뿔(meta "umb") — 접히면 x·z 0.15, StickPoses.umbr 이 umbr_k 로 펴고 접는다. 색은 우산꽂이(_rack)가 셋을 다르게 칠한다
+			var kb := SphereMesh.new(); kb.radius = 0.03; kb.height = 0.06; mi.mesh = kb; mi.material_override = _mat(Color("1b0c15"))
+			mi.position = at + Vector3(0, 0.03, 0)
+			_box(Vector3(0.025, 0.025, 0.55), Vector3(0, -0.0125, 0.275), _mat(Color("4a4a52")), false, mi)
+			var cp := MeshInstance3D.new(); var cs := CylinderMesh.new(); cs.top_radius = 0.0; cs.bottom_radius = 0.38; cs.height = 0.16; cs.radial_segments = 12
+			cp.mesh = cs; cp.material_override = _mat(Color("ad7096")); cp.rotation.x = PI / 2.0; cp.position = Vector3(0, 0, 0.47); cp.scale = Vector3(0.15, 1.0, 0.15)
+			mi.add_child(cp); mi.set_meta("umb", cp)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)

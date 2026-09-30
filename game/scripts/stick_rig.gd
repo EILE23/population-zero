@@ -128,6 +128,7 @@ func _joint(pivot: Node3D, k: float) -> void:
 	pivot.add_child(mi)
 
 var carrying: Node3D = null    # 오른손에 든 것(hand_r 의 자식)
+var umbr_k := 0.0              # 우산 펴짐 0..1(CI run 76) — stick3d 가 자세로 올리고 내린다
 var worn := {}   # slot → Node3D (hat · face · back)
 
 ## 입기 — 소켓에 붙인다. 같은 슬롯에 있던 건 돌려준다(없으면 null)
@@ -162,7 +163,7 @@ func hold(item: Node3D) -> bool:
 		pocket.push_front(carrying)
 	if item.get_parent(): item.get_parent().remove_child(item)
 	hand_r.add_child(item)
-	item.position = Vector3(0, -0.06, 0.06); item.rotation = Vector3.ZERO
+	item.position = Vector3(0, -0.06, 0.06); item.rotation = Vector3(PI / 2.0, 0, 0) if item.has_meta("umb") else Vector3.ZERO   # 우산은 자루가 +z 로 누운 물건 — 손에선 -y(CI run 76)
 	carrying = item
 	_place_pocket()
 	return true
@@ -185,7 +186,8 @@ func release(into: Node3D, at: Vector3) -> Node3D:
 		return null
 	hand_r.remove_child(item)
 	into.add_child(item)
-	item.global_position = at
+	item.global_position = at; item.rotation = Vector3.ZERO
+	if item.has_meta("umb"): (item.get_meta("umb") as Node3D).scale = Vector3(0.15, 1.0, 0.15); umbr_k = 0.0   # 손을 떠난 우산은 접힌다
 	carrying = null
 	_promote()
 	return item

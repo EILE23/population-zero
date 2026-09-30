@@ -16,7 +16,7 @@ func _physics_process(delta: float) -> void:
 		body.global_position = driving.global_position + Vector3(0, 0.3, 0)
 		if Input.is_action_just_pressed("act") and action_until < now:
 			_exit_car(now)
-		_fly(delta); _water(delta); _cutaway(); _daylight(delta); _stream(); _weather(delta); _animals(delta); _swings(delta); _wind(delta)
+		_tick(delta, now)
 		return
 	# 시소 타는 중: 몸은 판 끝을 따라가고, SPACE = 낮은 쪽이면 박차기 / 높은 쪽이면 뛰어내리기(판이 올라가는 중이면 더 높이), C = 내리기
 	if seesaw_ride:
@@ -33,11 +33,16 @@ func _physics_process(delta: float) -> void:
 		elif Input.is_action_just_pressed("act") and action_until < now:
 			ss.leave("player"); seesaw_ride = null; player.seated = false; body.collision_layer = 4; body.collision_mask = 7
 			body.global_position += Vector3(0, 0, 0.7); action_until = now + 0.3
-		_fly(delta); _water(delta); _cutaway(); _daylight(delta); _stream(); _weather(delta); _animals(delta); _swings(delta); _seesaws(delta); _wind(delta)
+		_tick(delta, now)
 		return
 	# 그네 타는 중: 몸은 그네가 움직인다(_swings) — 여기서 먼저 돌리고 C 만 본다(뒤의 _swings 호출 전에 return 되어 안 돌던 버그)
 	if not riding.is_empty():
-		_swings(delta)
+		_tick(delta, now)   # _swings 는 _tick 안에서 — 세계도 같이 돈다(run 78)
+		_interact_check(now)
+		return
+	# 거룻배(run 78): 몸은 배가 옮긴다(_boats) — C 만 본다(내리기)
+	if rowing:
+		_tick(delta, now)
 		_interact_check(now)
 		return
 	# 넘어짐: 1.6초 누웠다가 0.6초에 걸쳐 일어난다. 그동안 입력은 없다
@@ -47,11 +52,13 @@ func _physics_process(delta: float) -> void:
 		player.rotation.x = 0.0 if body.is_on_floor() else player.rotation.x + delta * 7.0
 		body.collision_layer = 0; body.collision_mask = 1   # 누운 동안 차가 깔고 지나간다
 		body.move_and_slide(); player.lying = true; player.move_dir = Vector3.ZERO; player.speed = 0.0
+		_tick(delta, now)
 		return
 	if down_until > 0.0 and down_until <= now and getup_until < 0.0:
 		down_until = -1.0; getup_until = now + 0.6; player.lying = false; player.action = "getup"; player.action_t = 0.0; body.collision_layer = 4; body.collision_mask = 7
 	if getup_until > now:
 		player.action_t = 1.0 - (getup_until - now) / 0.6; body.velocity = Vector3.ZERO
+		_tick(delta, now)
 		return
 	if getup_until > 0.0 and getup_until <= now:
 		getup_until = -1.0; player.action = ""; player.action_t = 0.0; player.rotation.x = 0.0; player.rotation.z = 0.0
@@ -62,9 +69,10 @@ func _physics_process(delta: float) -> void:
 			seat = {}; player.seated = false
 			body.collision_layer = 4; body.collision_mask = 7
 			var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_QUAD)
-			tw.tween_property(body, "position", Vector3(body.position.x, 0.02, body.position.z + 0.45), 0.25)
+			tw.tween_property(body, "position", Vector3(body.position.x, ground_y(body.position) + 0.02, body.position.z + 0.45), 0.25)   # 땅 높이로 — 전망 언덕 벤치(run 73)에서 0.02 로 내려서면 바위 속으로 떨어졌다(polish 75)
 		else:
 			_interact_check(now)
+			_tick(delta, now)   # 앉아 있는 동안에도 세계는 돈다(run 78)
 			return
 	# 강물: 들어가면 헤엄(느리고, 점프·타격 없음, 몸이 수면 높이로 내려간다), 나오면 다시 걷는다. 주민도 같은 규칙(resident.gd)
 	var wet := in_water(body.global_position)
@@ -214,9 +222,10 @@ func _physics_process(delta: float) -> void:
 		shake_until = -1.0; player.pose_request = ""
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
-		if player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead"]: player.pose_request = ""
+		if player.pose_request == "lwave": player.pose_request = "umbr" if player.umbr_k > 0.5 else ""   # 왼손 인사(CI run 77)가 끝나면 우산은 있던 대로
+		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead"]: player.pose_request = ""
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
-		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다(쪼그린 다리로 미끄러지던 리뷰 버그)
+		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
 	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm"]) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
 			getup_until = now + 0.6; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 한 손으로 짚고 무릎을 세우는 0.6초(맞고 일어날 때와 같은 동작)
@@ -226,19 +235,7 @@ func _physics_process(delta: float) -> void:
 		pushing = {}; player.pose_request = ""
 	if not carrying_big.is_empty() and player.pose_request == "": player.pose_request = "carry"
 	_interact_check(now)
-	_fly(delta)
-	_water(delta)
-	_cutaway()
-	_daylight(delta)
-	_stream()
-	_weather(delta)
-	_animals(delta)
-	_swings(delta)
-	_seesaws(delta)
-	_wind(delta)
-	# (_flow: CI 강 반짝임 — 우리 강은 water3d 가 흐른다)
-	_crops(now)
-	_bakery(now)
+	_tick(delta, now)
 
 ## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
 func _step_up(motion: Vector3) -> void:
@@ -277,13 +274,15 @@ func _interact_check(now: float) -> void:
 	if long_press:
 		_pick_furniture(now)
 		return
+	if rowing:
+		boat_leave(now); return   # 배 위(run 78): C = 그 자리 북쪽 둑에 내린다(town_boat)
 	var p := body.global_position
 	var fwd := Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
 	if not carrying_big.is_empty():
 		# 내려놓기: 앞 0.7m, 바닥에. 주민 자리도 같이 옮긴다
 		var n: Node3D = carrying_big["node"]
 		n.get_parent().remove_child(n); add_child(n)
-		n.global_position = Vector3(p.x, 0.0, p.z) + fwd * 0.7; n.rotation = Vector3(0, player.rotation.y, 0)
+		n.global_position = Vector3(p.x, ground_y(p), p.z) + fwd * 0.7; n.rotation = Vector3(0, player.rotation.y, 0)   # 언덕 위에서 내려놓으면 선반 위에(바닥 0 이면 바위 속)
 		_set_solid(n, true)
 		if carrying_big["spot"]: carrying_big["spot"]["pos"] = n.global_position; carrying_big["spot"]["yaw"] = player.rotation.y
 		carrying_big = {}; player.pose_request = ""
@@ -308,6 +307,9 @@ func _interact_check(now: float) -> void:
 			return
 		if kind == "cup":
 			player.pose_request = "drink"; use_until = now + 1.2; action_until = now + 1.2
+			return
+		if kind == "umbrella":
+			umbrella_use(now)   # 우산(run 76): 꽂이 앞이면 돌려놓기, 아니면 펴기/접기(town_places) — 전엔 아래 '내려놓기'가 먼저 잡았다
 			return
 		if kind == "can" and not near_plot(p).is_empty():
 			garden_use(near_plot(p), now)   # 물뿌리개 들고 이랑 앞 C = 물 주기(전엔 아래 '내려놓기'가 먼저 잡아 물뿌리개를 바닥에 떨궜다)
@@ -354,7 +356,7 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기)
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": sp["kind"], "spot": sp }; best_d = d8
 	var pl := near_plot(p)
@@ -392,6 +394,10 @@ func _interact_check(now: float) -> void:
 			counter_use(best["spot"], now)   # 창구: 빵(재고 셋, 비면 "Sold out.")이나 컵을 받는다 — 지금은 공짜, 코인 결제는 다음 조각(town_places)
 		"oven":
 			oven_use(best["spot"], now)   # 화덕: 반죽 한 바퀴(knead 자세)로 창구에 빵 하나 — 빵집 주인이 하는 것과 같은 자세·같은 효과(town_places)
+		"rack":
+			rack_use(now)   # 우산꽂이(run 76): 하나 빌린다 — 주민이 비 올 때 하는 것과 같은 take_umbrella(town_places)
+		"boat":
+			boat_use(now)   # 부두(run 78): 거룻배에 탄다 — 주민이 같은 자리에서 하는 것과 같은 board(town_boat)
 		"car":
 			_enter_car(best["car"], now)
 		"seesaw":

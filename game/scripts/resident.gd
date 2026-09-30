@@ -43,7 +43,7 @@ func _physics_process(delta: float) -> void:
 					target = route[0]["pos"]
 			else:
 				var dir := to.normalized()
-				var spd := WALK * (1.7 if weather == "rain" else 1.0)  # 비 오면 서두른다
+				var spd := WALK * (1.7 if weather == "rain" and not has_umb else 1.0)  # 비 오면 서두른다 — 우산을 폈으면 그냥 걷는다(run 76)
 				v.x = dir.x * spd; v.z = dir.z * spd
 				fig.move_dir = dir; fig.speed = Vector2(velocity.x, velocity.z).length()   # 걸음은 실제 속도로 — 벽에 막히면 제자리 뛰기가 안 난다
 				# 막힘은 진행 거리로 판단: 1.2초 동안 목표에 0.15m 도 못 다가가면 옆으로 우회 지점을 하나 두고, 두 번째면 포기
@@ -69,6 +69,8 @@ func _physics_process(delta: float) -> void:
 				global_position = town.swing_seat(riding_swing) + Vector3(0, -0.39, 0)
 				fig.swing_k = clampf(riding_swing["vel"] / 3.0, -1.0, 1.0); fig.rotation.x = riding_swing["angle"]
 				v.y = 0.0
+			elif in_boat:
+				global_position = town.boat_seat(); fig.swing_k = town.boat_k(); v.y = 0.0   # 거룻배(run 78): 배가 나를 옮긴다 — 노 박자는 배 속도(town_boat)
 			else:
 				fig.rotation.x = 0.0
 			if bites > 0 and now >= bite_at: _bite(now)
@@ -129,8 +131,8 @@ func _physics_process(delta: float) -> void:
 			if dl < 0.5 and dl > 0.001:
 				v += dv.normalized() * (0.5 - dl) * 6.0   # 가까울수록 세게 비킨다
 	velocity = v
-	if fig.seated or not riding_swing.is_empty():
-		return   # 앉거나 그네를 탈 땐 물리로 밀리지 않는다
+	if fig.seated or not riding_swing.is_empty() or in_boat:
+		return   # 앉거나 그네·배를 탈 땐 물리로 밀리지 않는다
 	if is_on_floor() and Vector2(v.x, v.z).length() > 0.1:
 		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
 	move_and_slide()
@@ -142,10 +144,13 @@ func on_weather(w: String) -> void:
 	if w != "rain":
 		# 비가 그치면 처마 밑에서 구경하던 주민은 1~3초 더 보다 간다(run 74) — 90초 상한까지 서 있지 않는다
 		if state == "busy" and fig.pose_request == "storm": busy_until = minf(busy_until, now + randf_range(1.0, 3.0))
+		if has_umb and state in ["busy", "walk", "routine"] and _to_rack(now): say(["Dry again.", "Back it goes.", "That was brief."][uid % 3], 1.6)   # 우산을 접고 돌려놓으러(run 76)
 		return
 	if not (state in ["busy", "walk", "routine"]) or spot.get("kind", "") in ["chair", "bed", "shelf"]:
 		return
-	if state == "busy" and spot.get("kind", "") == "door":
+	if not has_umb and fig.carrying == null and _to_rack(now):
+		say(["An umbrella.", "One left, I hope.", "Borrowing."][uid % 3], 1.5); return   # 10m 안의 꽂이에 우산이 남았으면 빌리러(run 76) — 셋뿐이라 나머지는 아래처럼 처마로
+	if state == "busy" and spot.get("kind", "") == "door" and not has_umb:
 		_storm(now); return   # 이미 문 앞이면 그 자리에서 비 구경으로 — 자리를 비우고 같은 문을 다시 고르던 헛걸음
 	# _leave 로 자리를 제대로 비운다 — 전엔 seated 만 풀어서 그네 rider 가 남아 비 온 뒤 그네가 영영 차 있었고, 걸어가던 목표 칸도 새어 나갔다
 	if state == "busy": _leave()
@@ -159,6 +164,22 @@ func _storm(now: float) -> void:
 	fig.pose_request = "storm"; fig.face(0.0)   # 문을 등지고 거리 쪽을 본다
 	busy_until = now + 90.0
 	say(["It will pass.", "Of course.", "Heavier than it looks."][uid % 3], 1.8)
+
+## 우산꽂이로(run 76): 빈손이면 빌리러(비 시작, 꽂이 10m 안·우산이 남았을 때), 우산을 들었으면 돌려놓으러(비 그침·밤). 칸은 셋(우산 수) — 걸어오는 동안 잡아 두니 넷이 하나를 노리진 않는다.
+## 사람이 C 로 하는 것과 같은 take_umbrella/rack_put 이 도착(_arrive "rack")에서 돈다. 못 가면 false(호출자는 처마로 간다)
+func _to_rack(now: float) -> bool:
+	var rk: Dictionary = town.rack
+	if rk.is_empty(): return false
+	if not has_umb and (int(rk["stock"]) <= 0 or global_position.distance_to(rk["pos"]) > 10.0): return false
+	var i := _free_slot(rk)
+	if i < 0: return false
+	if state == "busy": _leave()
+	else: _release()
+	spot = rk; slot = i; _claim(rk, i)
+	route = town.crossings(global_position, rk["pos"]) + [{ "pos": rk["pos"] + Vector3(-0.25 + 0.25 * i, 0, 0.3), "act": "" }]
+	target = route[0]["pos"]; state = "walk"; busy_until = now
+	if has_umb: fig.pose_request = ""   # 접는다(0.3초 회수) — 돌려놓으러 가는 길은 접은 채
+	return true
 
 ## 집 안에서 자리를 잃었으면(안에서 인사받거나 맞아서) 다음 자리를 고르기 전에 문으로 나온다 — 전엔 벽을 향해 곧장 걷다 막혀 포기하기를 되풀이했다
 func _exit_house() -> bool:
@@ -179,6 +200,7 @@ func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
 	if _exit_house(): return
+	if has_umb and (weather != "rain" or town.is_night()) and _to_rack(Time.get_ticks_msec() / 1000.0): return   # 비가 그쳤거나 잘 시간이면 우산부터 돌려놓는다(쫓다가·넘어져서 on_weather 를 놓친 경우)
 	# 수리공(uid 6명 중 1명): 벽에 금이 있으면 가서 고친다(운영자 2026-09-29: 주민이 알아서 복구)
 	if uid % 6 == 0 and not town.is_night():
 		var best: Dictionary = {}; var bd := 1e9
@@ -210,8 +232,11 @@ func _pick_spot() -> void:
 			spot = ov; slot = 0; _claim(spot, 0)
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
-	var pool: Array = town.spots.filter(func(sp): return sp["kind"] != "oven")   # 화덕은 빵집 주인이 일부러 간다(위) — 산책 자리가 아니다
-	if weather == "rain":
+	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack"]))   # 화덕은 빵집 주인이, 꽂이는 비 올 때 일부러 간다 — 산책 자리가 아니다
+	if weather == "rain" and has_umb:
+		# 우산을 폈으면 밖 자리로 — 비를 맞으며 일과를 잇는 첫 존재(run 76). 팔을 쓰는 자세(기대기·흔들기·손차양·그네·먹기)는 우산 든 손과 겹치니 뺀다
+		pool = town.spots.filter(func(sp): return sp["kind"] in ["bench", "bank", "door"])
+	elif weather == "rain":
 		# 비: 실내(의자·침대·선반) 아니면 차양 아래(문 앞)만 고른다
 		pool = town.spots.filter(func(sp): return sp["kind"] in ["chair", "bed", "shelf", "door"])
 		if pool.is_empty(): pool = town.spots
@@ -243,6 +268,11 @@ func _pick_spot() -> void:
 	route = town.via_bridge(global_position, route)   # 다리·텃밭 문·전망 언덕 계단·연못 우회(town_base.via_bridge)
 	target = route[0]["pos"]
 	state = "walk"
+	_umb_pose()
+
+## 우산을 들고 비 속에 있으면 자세는 umbr — 자리를 떠나고 고르고 닿을 때마다 pose_request 가 비워지니 그때마다 다시(run 76). 팔을 쓰는 자세가 이미 있으면 그대로
+func _umb_pose() -> void:
+	if has_umb and weather == "rain" and fig.pose_request == "": fig.pose_request = "umbr"
 
 func _arrive(now: float) -> void:
 	state = "busy"
@@ -307,10 +337,28 @@ func _arrive(now: float) -> void:
 			busy_until = now + StickPoses.SHADE_T * (1 + randi() % 2) + 0.3
 			say(["Quite a view.", "There is the bridge.", "You can see the lane."][uid % 3], 1.8)
 		"door":
-			# 문 앞(차양 아래): 비면 비 구경(_storm), 아니면 잠깐 섰다 간다
-			if weather == "rain": _storm(now)
+			# 문 앞(차양 아래): 비면 비 구경(_storm), 아니면(또는 우산을 폈으면) 잠깐 섰다 간다
+			if weather == "rain" and not has_umb: _storm(now)
 			else:
 				fig.face(spot.get("yaw", PI)); busy_until = now + randf_range(2.0, 5.0)
+		"boat":
+			# 부두(run 78): 배가 부두에 비어 있으면 타고 12m 나갔다 돌아온다(town_boat _boats 가 돌아오면 busy_until 을 당긴다) — 사람이 C 로 하는 것과 같은 board. 누가 타고 나갔으면 서서 본다
+			fig.face(spot.get("yaw", PI))
+			if not fig.carrying and town.board(self):
+				busy_until = now + 90.0; say(["Out and back.", "Mind the wake.", "Just to the bend."][uid % 3], 1.8)
+			else:
+				busy_until = now + randf_range(2.0, 4.0); say(["Taken.", "It will come back.", "Someone is out."][uid % 3], 1.6)
+		"rack":
+			# 우산꽂이(run 76): 우산을 들고 왔으면 돌려놓고, 빈손이면 하나 빌려 편다 — 사람이 C 로 하는 것과 같은 take_umbrella/rack_put. 오는 사이 비었으면(사람이 가져갔다) 빈손으로 처마로
+			fig.face(spot.get("yaw", PI)); fig.action = "grab"; fig.action_t = 0.0; busy_until = now + 0.5
+			if has_umb:
+				if town.rack_put(): fig.release(town, Vector3.ZERO).queue_free()
+				else: town.items.append(fig.release(town, global_position + Vector3(0, 0.06, 0.4)))   # 꽂이가 꽉 찼다(떨어진 걸 누가 주워 왔다) — 옆에 놓는다
+				has_umb = false; carrying_kind = ""; say(["Returned.", "There.", "Dry enough."][uid % 3], 1.4)
+			else:
+				var u: Node3D = town.take_umbrella()
+				if u == null: say(["None left.", "Of course.", "Too late."][uid % 3], 1.6)
+				else: fig.hold(u); has_umb = true; carrying_kind = "umbrella"; fig.pose_request = "umbr"; say(["Borrowed.", "Just for now.", "Back by tonight."][uid % 3], 1.6)
 		"oven":
 			# 화덕(run 72): 창구에 모자란 만큼(최대 셋) 반죽 — 한 바퀴(KNEAD_T)에 빵 하나가 창구에 오른다(town_places _bakery). 사람이 C 로 하는 것과 같은 자세·같은 효과
 			var n: int = maxi(1, 3 - int((town.oven["counter"] as Dictionary).get("stock", 0)))
@@ -353,6 +401,7 @@ func _arrive(now: float) -> void:
 					fig.pose_request = "pet"; fig.face(atan2((a["node"] as Node3D).global_position.x - global_position.x, (a["node"] as Node3D).global_position.z - global_position.z))
 					busy_until = now + 2.5
 					break
+	_umb_pose()
 
 ## 한입(run 72) — 사람의 먹기와 같은 규칙: eat 자세, 한입마다 0.27 씩 작아지고 세 입이면 사라진다. 맞아서 떨어뜨리면(hit) 남은 입은 없다
 func _bite(now: float) -> void:
@@ -413,7 +462,9 @@ func _leave() -> void:
 	if not pushing_swing.is_empty():
 		if pushing_swing["pusher"] == self: pushing_swing["pusher"] = null
 		pushing_swing = {}; fig.pose_request = ""
+	if in_boat: town.unboard(self)   # 거룻배(run 78): 그 자리 북쪽 둑에 내린다 — 비가 와서 일찍 내려도 같은 길
 	fig.seated = false; fig.pose_request = ""
+	_umb_pose()
 	if spot.get("kind", "") == "bench":
 		global_position += Vector3(0, 0, 0.45)
 	if spot.get("kind", "") in ["chair", "bed", "shelf"] and not door_ref.is_empty():

@@ -34,7 +34,7 @@ var _fidget_next := randf_range(3.0, 8.0)   # 다음 기지개까지 남은 시�
 
 var _phase := 0.0
 var _pose_since := 0.0
-const CI_POSES := ["water", "knead", "shade", "storm"]
+const CI_POSES := ["water", "knead", "shade", "storm", "lwave"]
 var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0
@@ -46,6 +46,8 @@ func _process(delta: float) -> void:
 		_pose_prev = pose_request; pose_t = 0.0; _pose_since = _t
 	else:
 		pose_t += delta
+	if pose_request == "umbr" and (carrying == null or not carrying.has_meta("umb")): pose_request = ""   # 손에 우산이 없으면 우산 자세도 없다
+	if pose_request != "lwave": umbr_k = move_toward(umbr_k, 1.0 if pose_request == "umbr" else 0.0, delta / StickPoses.UMBR_T)   # 왼손 인사(run 77) 동안 우산은 있던 대로 — 펴졌으면 편 채, 접혔으면 접은 채
 	var moving := move_dir.length_squared() > 0.0001 and speed > 0.05 and not seated
 	# 몸 방향 — 이동 방향으로 부드럽게(초당 약 10rad 로 수렴). 서 있으면 마지막 방향 유지
 	if moving:
@@ -277,9 +279,10 @@ func _process(delta: float) -> void:
 			sh.rotation.z = -s * 0.04                              # 몸에 붙임(평탄)
 			el.rotation.x = -(0.35)                                # 팔꿈치 살짝 굽힘
 	# 들고 있으면 오른팔은 앞으로 반쯤 들어 물건을 보인다(걸음 스윙 대신)
-	if carrying and not airborne and not StickPoses.owns_right_arm(pose_request):   # 먹기·마시기·물주기는 오른손을 제 자리에 둔다(전엔 이 덮어쓰기가 입까지 가던 손을 도로 내렸다)
+	if carrying and not airborne and not StickPoses.owns_right_arm(pose_request) and not carrying.has_meta("umb"):   # 먹기·마시기·물주기는 오른손을 제 자리에 둔다(전엔 이 덮어쓰기가 입까지 가던 손을 도로 내렸다); 접은 우산은 지팡이처럼 늘어뜨린 채
 		shoulders[1.0].rotation.x = -(0.55)
 		elbows[1.0].rotation.x = -(1.15)
+	if umbr_k > 0.0: StickPoses.umbr(self)   # 우산(run 76): 오른팔만 덮어쓴다 — 걷든 서든 앉든 다리·왼팔은 위에서 정한 그대로
 	# 잠깐의 동작 — 2D 자세를 그대로: 빨리 나갔다(35%) 천천히 돌아온다(65%). 공중에서도 된다(점프킥·점프 주먹)
 	if action != "":
 		var a := clampf(action_t, 0.0, 1.0)

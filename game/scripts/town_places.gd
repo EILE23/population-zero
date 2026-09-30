@@ -1,10 +1,11 @@
 class_name TownPlaces
 extends TownBuild
-## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭, 텃밭, 빵집 화덕, 전망 언덕. 상속 사슬: base → build → **places** → systems → player → town3d.
+## 마을의 새 장소들 — 북쪽 골목, 남쪽 강·돌다리·풀밭, 텃밭, 빵집 화덕, 전망 언덕. 상속 사슬: base → build → **places** → boat → systems → player → town3d.
 ## town_build.gd 가 500줄 한도에 닿아 장소(지도 조각) 단위로 떼어 냈다: 여기엔 "어디에 무엇이 있나"와 그 장소의 길찾기만 둔다.
 
 const RIVER_N := RIVER_Z - RIVER_HW   # 강 북쪽 둑(z) — 강은 town_build._river(물 애셋, 헤엄칠 수 있다)
 const RIVER_S := RIVER_Z + RIVER_HW   # 강 남쪽 둑 — 이 너머가 풀밭
+const BRIDGE_W := BRIDGE_HW * 2.0     # 다리 폭(거룻배가 다리 밑을 못 지나는 범위 — town_boat)
 
 const CROPS := ["tomato", "cabbage", "pumpkin"]   # 텃밭 세 이랑, 앞에서부터
 const GROW_T := 30.0                              # 물 준 뒤 한 단계 자라는 데 걸리는 시간(초)
@@ -146,8 +147,11 @@ func garden_use(sp: Dictionary, now: float) -> void:
 
 ## 경유지 — 출발과 도착이 강의 다른 편이면 다리 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을, 전망 언덕을 오르내리면 계단을 거친다
 ## (곧장 가면 물 위 벽이나 울타리 기둥·바위 낯에 막혀 우회하다 포기했다 — polish run 71: 주민이 텃밭 이랑에 한 번도 못 닿았다)
+## 출발과 도착이 같은 편이면(둘 다 언덕 위, 둘 다 울타리 안) 계단·문을 안 거친다 — 전망 벤치에서 3m 옆 전망 자리로 가는데 계단을 내려갔다 다시 올랐고, 이랑에서 옆 이랑으로 가는데 문 밖에 나갔다 들어왔다(polish 75)
 func crossings(from: Vector3, to: Vector3) -> Array:
-	var out := _gate_steps(from, false) + _terr_steps(from, false); var inn := _terr_steps(to, true) + _gate_steps(to, true)
+	var lvl := (ground_y(from) > 0.0) != (ground_y(to) > 0.0); var yard := _in_garden(from) != _in_garden(to)
+	var out := (_gate_steps(from, false) if yard else []) + (_terr_steps(from, false) if lvl else [])
+	var inn := (_terr_steps(to, true) if lvl else []) + (_gate_steps(to, true) if yard else [])
 	var mid := (RIVER_N + RIVER_S) / 2.0
 	if (from.z < mid) == (to.z < mid): return out + inn
 	var n := { "pos": Vector3(randf_range(-0.4, 0.4), 0, RIVER_N - 1.1), "act": "" }
@@ -156,9 +160,13 @@ func crossings(from: Vector3, to: Vector3) -> Array:
 
 ## 텃밭 안(울타리 3.3×1.9 안쪽)의 점이면 문 안쪽·바깥쪽 두 점, 아니면 없음. inward 면 바깥 → 안 순서
 func _gate_steps(p: Vector3, inward: bool) -> Array:
-	if garden_at == Vector3.INF or absf(p.x - garden_at.x) > 3.3 or absf(p.z - garden_at.z) > 1.9: return []
+	if not _in_garden(p): return []
 	var o := { "pos": garden_at + Vector3(0, 0, 2.7), "act": "" }; var i := { "pos": garden_at + Vector3(0, 0, 1.3), "act": "" }
 	return [o, i] if inward else [i, o]
+
+## 텃밭 울타리(3.3×1.9) 안의 점인가
+func _in_garden(p: Vector3) -> bool:
+	return garden_at != Vector3.INF and absf(p.x - garden_at.x) <= 3.3 and absf(p.z - garden_at.z) <= 1.9
 
 ## 사람 쪽 이랑 거리 — 이랑 가운데가 아니라 이랑 줄(x ±2.2)까지. 가운데만 재면 끝의 포기 앞에서 C 가 안 먹었다
 func plot_dist(p: Vector3, sp: Dictionary) -> float:
@@ -250,3 +258,59 @@ func counter_use(sp: Dictionary, now: float) -> void:
 	if sp.has("stock") and not counter_take(sp): return
 	var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
 	player.hold(it); player.action = "grab"; action_until = now + 0.4
+
+# ── 우산꽂이("Weather people feel" 2조각, run 76): 카페 창구 오른쪽 양동이에 우산 셋(모브·잉크·종이색). 빈손으로 C = 하나 빌린다(재고 3 → 0, 창구와 같은 counter_take/_show_stock),
+#    들고 C = 펴기/접기(umbr 자세 — 걷든 앉든 그대로, 아무것도 막지 않는다: 비는 벽이 아니다), 든 채 꽂이 앞에서 C = 돌려놓기. 비가 시작되면 10m 안의 밖에 있던 주민이 와서 빌려 펴고
+#    비를 맞으며 일과를 잇는다 — 비를 피하지 않고 걷는 첫 존재(resident.gd _to_rack). 그치면 돌려놓는다. 셋뿐이라 나머지는 여전히 처마로 간다(평범한 결과가 가장 흔하다는 규칙) ──
+
+const UMB_COLORS := [Color("ad7096"), Color("1b0c15"), Color("efe9e2")]
+var rack: Dictionary = {}   # 우산꽂이 자리 {pos, kind "rack", yaw, stock, shown, taken(칸 셋 = 우산 수, 주민이 걸어오는 동안 잡아 둔다)}
+
+## 양동이 하나와 진열 우산 셋 — 손잡이가 위, 자루가 양동이 속으로, 셋이 조금씩 다르게 기운다(픽셀까지 대칭인 건 없다)
+func _rack(at: Vector3) -> void:
+	var bk := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.2; cm.bottom_radius = 0.16; cm.height = 0.45; bk.mesh = cm
+	bk.material_override = _mat(Color("4a4a52")); bk.position = at + Vector3(0, 0.225, 0); _add(bk)
+	var shown: Array = []
+	for i in 3:
+		var u := make_item("umbrella", Vector3.ZERO)
+		(u.get_meta("umb") as MeshInstance3D).material_override = _mat(UMB_COLORS[i])
+		u.position = at + Vector3(-0.08 + i * 0.08, 0.95 + i * 0.03, (i - 1) * 0.05); u.rotation = Vector3(PI / 2.0 + 0.1 * (i - 1), 0.0, 0.12 * (1 - i))
+		shown.append(u)
+	rack = { "pos": at + Vector3(0, 0, 0.75), "kind": "rack", "yaw": PI, "stock": 3, "shown": shown }
+	spots.append(rack)
+
+## 꽂이에서 우산 하나 — 방금 가려진 진열 우산과 같은 색. 비었으면 null. 사람도 주민도 이걸 부른다
+func take_umbrella() -> Node3D:
+	if rack.is_empty() or not counter_take(rack): return null
+	var u := make_item("umbrella", Vector3.ZERO)
+	(u.get_meta("umb") as MeshInstance3D).material_override = _mat(UMB_COLORS[int(rack["stock"]) % 3])
+	return u
+
+## 돌려놓기 — 재고 하나 늘고 진열 우산이 다시 보인다. 꽉 찼으면 false(바닥에 떨어진 우산을 누가 주워 온 뒤에야 생기는 일). 사람도 주민도 이걸 부른다
+func rack_put() -> bool:
+	if rack.is_empty() or int(rack["stock"]) >= 3: return false
+	rack["stock"] = int(rack["stock"]) + 1; _show_stock(rack)
+	return true
+
+## 사람이 빈손으로 꽂이 앞에서 C(town_player) — 하나 빌려 손에(접힌 채, 지팡이처럼). 비었으면 아무 일도 없다
+func rack_use(now: float) -> void:
+	player.face(rack["yaw"])
+	var u := take_umbrella()
+	if u == null: return
+	player.hold(u); player.action = "grab"; action_until = now + 0.4
+
+## 사람이 우산을 들고 C(town_player) — 꽂이 앞(1.1m)이고 칸이 비었으면 돌려놓고, 아니면 펴기/접기(umbr, 0.3초 예비·회수는 Stick3D.umbr_k). 전엔 아래 '내려놓기'가 먼저 잡았다
+func umbrella_use(now: float) -> void:
+	if not rack.is_empty() and body.global_position.distance_to(rack["pos"]) < 1.1 and rack_put():
+		player.release(self, Vector3.ZERO).queue_free(); player.pose_request = ""
+		player.face(rack["yaw"]); player.action = "grab"; action_until = now + 0.4
+		return
+	for r in residents:
+		if r.state != "down" and body.global_position.distance_to(r.global_position) < 1.3:
+			# 우산을 든 채 주민 앞에서 C = 왼손 인사(run 77) — 빈손 인사와 같은 사거리(1.3m, town_player "resident"). 우산은 있던 대로(Stick3D 는 lwave 동안 umbr_k 를 안 건드린다)
+			player.pose_request = "lwave"; use_until = now + StickPoses.LWAVE_T; action_until = now + 0.3
+			player.face(atan2(r.global_position.x - body.global_position.x, r.global_position.z - body.global_position.z))
+			r.greet(body)
+			return
+	player.pose_request = "" if player.pose_request == "umbr" else "umbr"
+	action_until = now + StickPoses.UMBR_T

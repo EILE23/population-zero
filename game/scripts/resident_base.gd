@@ -34,6 +34,8 @@ var can_mine := false        # 텃밭에서 제 물뿌리개를 든 중(떠날 �
 var job := ""                # 일자리 — 집 문에 적힌 것(town_build _residents: 빵집 문의 주민이 "baker"). 일은 진짜 장소에 매인다
 var bites := 0               # 창구에서 받은 빵의 남은 입(run 72) — 0 이면 먹는 중이 아니다
 var bite_at := 0.0           # 다음 한입 시각
+var in_boat := false         # 거룻배에 탄 중(run 78) — 배가 옮긴다(town_boat _boats), 내릴 땐 town.unboard
+var has_umb := false         # 꽂이에서 빌린 우산을 든 중(run 76) — 비가 그치면(또는 밤이면) 돌려놓으러 간다. 맞아 떨어뜨리면 그냥 바닥의 물건(누구든 주워 돌려놓는다)
 
 const LINES_HIT := ["Excuse me.", "That was uncalled for.", "I felt that.", "Really."]
 const LINES_GIVEUP := ["Fine.", "I am tired.", "This is noted.", "Have it your way."]
@@ -85,7 +87,7 @@ static func figure_color(id: int) -> Color:
 
 ## 인사받음 — 손을 흔들어 답하고 한마디(일과 중이면 잠깐 멈춘다)
 func greet(from: Node3D) -> void:
-	if state == "down" or state == "getup" or state == "chase":
+	if state == "down" or state == "getup" or state == "chase" or in_boat:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
@@ -93,7 +95,7 @@ func greet(from: Node3D) -> void:
 	if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
 	_release(); collision_layer = 4; collision_mask = 7
 	fig.seated = false
-	fig.pose_request = "wave"
+	fig.pose_request = "lwave" if has_umb else "wave"   # 우산을 든 손으론 못 흔든다 — 왼손으로(run 77, StickPoses.lwave; 우산은 있던 대로). 사람도 우산을 든 채 C 로 같은 인사(town_places umbrella_use)
 	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
 	state = "busy"; busy_until = now + 1.4
 	spot = { "kind": "greet" }
@@ -103,7 +105,7 @@ func say(text: String, secs := 2.2) -> void:
 	say_label.text = text; say_label.visible = true
 	say_until = Time.get_ticks_msec() / 1000.0 + secs
 func _free_slot(sp: Dictionary) -> int:
-	var n := 3 if sp["kind"] == "bench" else (2 if sp["kind"] == "seesaw" else 1)
+	var n := 3 if sp["kind"] in ["bench", "rack"] else (2 if sp["kind"] == "seesaw" else 1)   # 우산꽂이 칸 = 우산 수(run 76)
 	var taken: Array = sp.get("taken", [])
 	for i in n:
 		if i < taken.size() and taken[i] != null and taken[i] != self: continue
@@ -119,7 +121,7 @@ func _player_on(sp: Dictionary, i: int) -> bool:
 	return Vector2(p.x - at.x, p.z - at.z).length() < 0.35
 
 func _claim(sp: Dictionary, i: int) -> void:
-	var n := 3 if sp["kind"] == "bench" else (2 if sp["kind"] == "seesaw" else 1)
+	var n := 3 if sp["kind"] in ["bench", "rack"] else (2 if sp["kind"] == "seesaw" else 1)
 	if not sp.has("taken") or (sp["taken"] as Array).size() < n:
 		var arr := []; arr.resize(n); sp["taken"] = arr
 	sp["taken"][i] = self
@@ -139,6 +141,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	_release(); collision_layer = 4; collision_mask = 7
 	if not riding_swing.is_empty(): riding_swing["rider"] = null; riding_swing = {}; fig.rotation.x = 0.0
 	if not pushing_swing.is_empty(): pushing_swing["pusher"] = null; pushing_swing = {}
+	if in_boat: town.unboard(self)
 	if now - last_hit > 3.0: hits = 0
 	hits += 1; last_hit = now
 	fig.seated = false; fig.pose_request = ""
@@ -156,7 +159,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
 			var it: Node3D = fig.release(town, global_position + from_dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0))
 			it.set_meta("dropped_at", now)   # 넘어져 떨어뜨린 표시 — 여우가 6초 안에 노린다(town_systems _fox). 내려놓은 것·던진 것과 구별
-			town.items.append(it); carrying_kind = ""; can_mine = false; bites = 0   # 먹던 빵도 떨어진다 — 남은 입은 없다
+			town.items.append(it); carrying_kind = ""; can_mine = false; bites = 0; has_umb = false   # 먹던 빵도 떨어진다 — 남은 입은 없다; 우산도(접혀서)
 	else:
 		fig.action = "flinch"; fig.action_t = 0.0
 		state = "busy"; busy_until = now + 0.3

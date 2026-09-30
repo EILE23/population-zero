@@ -211,6 +211,39 @@ func _draw() -> void:
 			draw_line(Vector2(10, -14), Vector2(26, -14), color, 1.6, true)
 			draw_circle(Vector2(17, -16.5 + pr), 3.2 - pr * 0.6, Color("e6d3a5"))
 			_head(head)
+		"shade":
+			# 손차양(run 73, 전망 자리) — stickman.ts 'shade' 와 같은 수: 6초 한 바퀴, 0.35 손이 이마로(예비) · 둘러보기(유지, 고개·어깨가 천천히 좌우) · 끝 0.4 내린다(회수)
+			var c := fmod(t, 6.0)
+			var k := (c / 0.35) if c < 0.35 else ((1.0 - (c - 5.6) / 0.4) if c > 5.6 else 1.0)
+			var g := sin(t * 0.9) * 3.0 * k
+			shoulder = Vector2(g * 0.4, -34); head = Vector2(g, -42)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(-4, -8), Vector2(-5, 0)); _ln(hip, Vector2(5, -9 + k), Vector2(4, 0))
+			_ln(shoulder, Vector2(-5 - 3 * k, -26 - k), Vector2(-6 + 3 * k, -18 - k))
+			_ln(shoulder, Vector2(5 + 5 * k, -26 - 15 * k), Vector2(6 + (g - 3) * k, -18 - 30 * k))
+			_head(head)
+		"storm":
+			# 처마 밑 비 구경(run 74, 비 오는 문 앞) — stickman.ts 'storm' 과 같은 수: 3초 한 바퀴, 0.3 고개가 하늘로 · 1초 본다(꼭대기에서 어깨 으쓱) · 0.4 내린다 · 나머지는 앞의 비. 팔짱
+			var c := fmod(t, 3.0)
+			var k := (c / 0.3) if c < 0.3 else (1.0 if c < 1.3 else ((1.0 - (c - 1.3) / 0.4) if c < 1.7 else 0.0))
+			var sg := maxf(0.0, 1.0 - absf(c - 0.8) / 0.5)
+			hip = Vector2(-1, -16); shoulder = Vector2(-2, -34 - sg * 1.5); head = Vector2(-2 + 3 * k, -42 - 3 * k - sg * 1.5)
+			_ln(hip, shoulder); _ln(hip, Vector2(-4, -8), Vector2(-5, 0)); _ln(hip, Vector2(4, -8), Vector2(5, 0))
+			_ln(shoulder, Vector2(7 + sg, -27 - sg * 1.5), Vector2(-4, -24 - sg * 1.5)); _ln(shoulder, Vector2(-8 - sg, -27 - sg * 1.5), Vector2(3, -24 - sg * 1.5))
+			_head(head)
+		"umbr":
+			# 우산(run 76, 카페 옆 우산꽂이) — stickman.ts 'umbr' 과 같은 수: 0.3초에 걸쳐 오른팔이 머리 위로 오르고 캐노피가 펴진다(예비) · 든 채(유지, 살짝 흔들림) · 접힘은 거꾸로(회수). 3D 는 stick3d_poses.gd umbr
+			var k := minf(1.0, t / 0.3); var sw := sin(t * 1.3) * 1.5 * k
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(-5, -26), Vector2(-6, -18))
+			var hd := Vector2(4 + 4 * k, -18 - 30 * k)
+			_ln(shoulder, Vector2(6 + 2 * k, -26 - 12 * k), hd)
+			var c := Vector2(hd.x + sw * 0.3, hd.y - 14 * k); var r := 2 + 14 * k
+			draw_line(hd, c, color, 1.6, true)
+			var pts := PackedVector2Array()
+			for i in 13: pts.append(c + Vector2(cos(PI + i * PI / 12.0), sin(PI + i * PI / 12.0)) * r)
+			draw_colored_polygon(pts, Color("ad7096")); draw_polyline(pts, color, LW, true)
+			_head(head)
 		"sweep":
 			var p := sin(t * 5.0) * 6.0
 			shoulder = Vector2(6, -31); head = Vector2(9, -39)
@@ -241,6 +274,34 @@ func _draw() -> void:
 			_ln(hip, shoulder)
 			_ln(hip, Vector2(-6, -7), Vector2(-8, 0)); _ln(hip, Vector2(6, -7), Vector2(8, 0))
 			_ln(shoulder, Vector2(8, -42), Vector2(11, -52)); _ln(shoulder, Vector2(-8, -42), Vector2(-11, -52))
+			_head(head)
+		"lwave":
+			# 왼손 인사(run 77, 우산 가족의 두 번째 자세) — stickman.ts 'lwave' 와 같은 수: 오른손은 편 우산을 든 채(umbr k=1), 왼팔이 0.2초에 오르고(예비) · 흔들고(유지) · 마지막 0.3초 내린다(회수). 3D 는 stick3d_poses.gd lwave
+			var k := 0.0 if t >= 1.4 else (t / 0.2 if t < 0.2 else (1.0 - (t - 1.1) / 0.3 if t > 1.1 else 1.0))
+			var p := sin(t * 9.0) * 7.0 * k; var sw := sin(t * 1.3) * 1.5
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(-5 - k, -26 - 14 * k), Vector2(-6 - 2 * k - p, -18 - 32 * k))
+			var hd := Vector2(8, -48)
+			_ln(shoulder, Vector2(8, -38), hd)
+			var c := Vector2(hd.x + sw * 0.3, -62.0); var r := 16.0
+			draw_line(hd, c, color, 1.6, true)
+			var pts := PackedVector2Array()
+			for i in 13: pts.append(c + Vector2(cos(PI + i * PI / 12.0), sin(PI + i * PI / 12.0)) * r)
+			draw_colored_polygon(pts, Color("ad7096")); draw_polyline(pts, color, LW, true)
+			_head(head)
+		"row":
+			# 노 젓기(run 78, 거룻배) — stickman.ts 'row' 와 같은 수: 한 번 1.2초(0.5 젓기 · 0.7 회수), 캐치(k 0: 팔 앞으로 쭉·몸 앞)에서 피니시(k 1: 손 가슴·몸 뒤)로. 노는 손에서 물로. 3D 는 stick3d_poses.gd row
+			var c := fmod(t, 1.2)
+			var k := smoothstep(0.0, 1.0, c / 0.5) if c < 0.5 else 1.0 - smoothstep(0.0, 1.0, (c - 0.5) / 0.7)
+			var lean := 0.35 - 0.65 * k
+			hip = Vector2(0, -13); shoulder = seg(hip, 18.0, -D + lean); head = seg(shoulder, 8.0, -D + lean)
+			_ln(hip, shoulder)
+			for side: float in [1.0, -1.0]:
+				var knee := seg(hip + Vector2(0, side), THIGH, D - (1.2 - 0.2 * k))
+				_ln(hip + Vector2(0, side), knee, seg(knee, SHIN, D - (0.54 + 0.3 * k)))
+			var el := seg(shoulder, UPPER, D - (1.4 - 1.05 * k)); var hd := seg(el, FORE, D - (1.55 + 0.7 * k))
+			_ln(shoulder, el, hd)
+			draw_line(hd, Vector2(hd.x - 14.0 + 20.0 * k, 3.0), color, 1.6, true)   # 노: 캐치엔 뱃머리(뒤) 쪽, 피니시엔 고물(앞) 쪽
 			_head(head)
 		"wave":
 			var p := sin(t * 9.0) * 7.0
