@@ -299,6 +299,7 @@ func _market(at: Vector3) -> void:
 	_house(at + Vector3(-6, 0, -8), Vector3(5.0, 2.8, 3.6), Color("e6d3a5"), "wood", false, 11)  # 빵집(집 생성기) — 지붕에 브랜드 분홍은 대면적 금지
 	doors[doors.size() - 1]["job"] = "baker"   # 이 문의 주민이 빵집 주인(_residents 가 읽는다) — 창구가 비면 화덕에서 반죽해 채운다(CI run 72)
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
+	doors[doors.size() - 1]["job"] = "cutler"   # 이 문의 주민이 칼갈이 — 광장 동쪽 끝 숫돌(town_trades)이 낮 일터(run 81)
 	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"), 3)   # 빵집 창구(정면 왼쪽) — 빵 셋, 팔리면 준다. 화덕은 town3d._ready 가 문 오른쪽에(places 층이라 여선 못 부른다)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
 	_hatstand(at + Vector3(-11.5, 0, -3.5))   # 모자 거치대 — C 로 하나 집어 쓴다

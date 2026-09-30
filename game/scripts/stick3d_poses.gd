@@ -12,6 +12,8 @@ const UMBR_T := 0.3    # 우산 펴기(run 76, 우산꽂이): 0.3초에 걸쳐 �
 const LWAVE_T := 1.4   # 왼손 인사(run 77, 우산 가족의 두 번째 자세): 0.2 왼팔이 머리 위로(예비) → 흔든다(유지, wave 와 같은 9Hz·0.25rad) → 마지막 0.3 내린다(회수). 오른팔은 손대지 않는다 — 우산을 든 채(umbr 이 뒤에서 덮어쓴다)
 const ROW_T := 1.2     # 노 한 번(run 78, 거룻배): 0.5 젓기(다리를 펴며 팔을 가슴으로 당기고 몸이 뒤로) → 0.7 회수(팔을 내밀고 몸이 앞으로, 노는 물 밖). 박자(push_t)는 배가 가는 만큼만 간다 — 서면 노를 든 채 쉰다
 const HAMMER_T := 1.5  # 망치질 한 바퀴(run 80, 구두장이 작업대): 0.3 망치를 든다(예비) → 0.3 씩 세 번 두드린다(유지, 팔꿈치에서 내리치고 손목이 꺾인다) → 0.3 내린다(회수). 두 바퀴 = 밑창 하나
+const GRIND_T := 2.4   # 칼갈이 한 바퀴(run 81, 숫돌): 0.4 숙여 들어가 날을 돌에 댄다(예비) → 1.6 간다(유지, 오른발이 발판을 1.6Hz 로 밟고 불꽃이 튄다) → 0.4 바로 선다(회수). 두 바퀴 = 가위 하나
+const WAIT_T := 1.5    # 기다리기 한 눈길(run 81, 숫돌 손님 자리): 팔짱은 0.3초에 감기고(예비), 그 뒤 1.5초마다 고개가 옆으로 0.25 돌아가 0.5 보고 0.25 돌아온다(유지 속의 회수). 자세가 풀릴 때까지 되풀이
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -43,6 +45,10 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		lean = 0.22 * k + absf(sin(f._t * 7.0)) * 0.05 * k
 	if p == "hammer" and not moving:
 		lean = 0.2 * hammer_k(f.pose_t) + 0.04 * hammer_tap(f.pose_t)   # 구두골 위로 숙이고, 내리칠 때마다 어깨가 조금 따라간다
+	if p == "grind" and not moving:
+		lean = (0.28 + 0.03 * grind_pump(f)) * grind_k(f.pose_t)   # 돌 위로 숙이고, 발판을 밟을 때마다 어깨가 조금 따라 내려간다
+	if p == "wait" and not moving:
+		lean = -0.04 * smoothstep(0.0, 1.0, minf(f.pose_t / 0.3, 1.0)) + sin(f._t * 1.1) * 0.015   # 뒤꿈치에 무게, 숨 쉬듯 조금 흔들린다
 	if p == "shade" and not moving:
 		lean = -0.08 * shade_k(f.pose_t)   # 손차양: 멀리 보느라 살짝 뒤로 젖힌다 — 고개·몸통 돌림은 limbs 에서(몸통 y 는 그 뒤에 정해진다)
 	if p == "storm" and not moving:
@@ -85,6 +91,25 @@ static func hammer_k(t: float) -> float:
 	if c > HAMMER_T - 0.3: return 1.0 - smoothstep(0.0, 1.0, (c - (HAMMER_T - 0.3)) / 0.3)
 	return 1.0
 
+## 칼갈이 진행 0..1 — 한 바퀴 GRIND_T 마다: 0.4초 숙여 들어간다(예비), 간다(유지), 끝 0.4초 바로 선다(회수)
+static func grind_k(t: float) -> float:
+	var c := fmod(t, GRIND_T)
+	if c < 0.4: return smoothstep(0.0, 1.0, c / 0.4)
+	if c > GRIND_T - 0.4: return 1.0 - smoothstep(0.0, 1.0, (c - (GRIND_T - 0.4)) / 0.4)
+	return 1.0
+
+## 발판 밟기 0..1 — 1.6Hz, 0 = 발판이 올라와 있다, 1 = 끝까지 밟았다. 숫돌과 발판(town_trades _wheel)도 같은 값으로 돈다
+static func grind_pump(f: Stick3D) -> float:
+	return (sin(f._t * 1.6 * TAU) + 1.0) / 2.0
+
+## 기다리기 눈길 0..1 — WAIT_T 마다: 0.25초 고개가 옆으로(예비), 0.5초 본다(유지), 0.25초 돌아온다(회수), 나머지 0.5초는 앞을 본다
+static func wait_glance(t: float) -> float:
+	var c := fmod(t, WAIT_T)
+	if c < 0.25: return smoothstep(0.0, 1.0, c / 0.25)
+	if c < 0.75: return 1.0
+	if c < 1.0: return 1.0 - smoothstep(0.0, 1.0, (c - 0.75) / 0.25)
+	return 0.0
+
 ## 두드림 높이 0..1 — 유지 구간(0.3..1.2)의 0.3초마다 한 번: 0 = 구두에 닿음, 1 = 팔꿈치 꼭대기. 예비·회수 동안은 0.6(든 채)
 static func hammer_tap(t: float) -> float:
 	var c := fmod(t, HAMMER_T)
@@ -125,7 +150,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade", "storm", "umbr"]   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
+	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait"]   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 우산(run 76, "Weather people feel" 2조각): 오른팔만 쓴다 — 다리와 왼팔은 걷기·서기·앉기 그대로라 limbs() 의 match 에 없고, stick3d.gd 가 팔다리를 다 정한 뒤 이걸 부른다(세 변형이 팔 하나를 나눠 쓴다).
 ## k = f.umbr_k(0..1, UMBR_T 에 걸쳐 오간다): 팔이 늘어진 곳에서 머리 위로 오르고 캐노피(우산 meta "umb")가 펴진다; 접힐 땐 같은 길을 거꾸로. 걸을수록 진행 방향으로 조금 더 기운다 — 정지화가 아니다
@@ -233,6 +258,22 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 				f.hand_r.rotation.x = (0.5 - 1.1 * tap) * k
 			else:
 				sh.rotation.x = -(0.05 + 0.6 * k); sh.rotation.z = 0.12 * k; el.rotation.x = -(0.35 + 0.7 * k)
+		"grind":
+			# 칼갈이(운영자 보드의 연장 가족 두 번째 자세 — run 81, 시장 동쪽 끝의 숫돌): 오른발이 앞의 발판을 1.6Hz 로 밟고(무릎이 접혔다 펴진다, 무게는 왼다리) 두 손은 허리 높이 앞에서
+			# 날을 돌에 댄 채 — 밟을 때마다 어깨가 조금 따라 내려간다. k 가 예비·유지·회수를 만든다(숙여 들어가고, 갈고, 바로 선다); 사람도 주민도 같은 자세, 돌·발판·불꽃은 같은 pump·k 로 돈다(town_trades _wheel)
+			var k := grind_k(f.pose_t)
+			var pump := grind_pump(f) * k
+			if s > 0.0: hip.rotation.x = -(0.15 * k + 0.35 * pump); knee.rotation.x = -(-(0.2 * k + 0.5 * pump))
+			else: hip.rotation.x = -(-0.05 * k); knee.rotation.x = -(-0.05 - 0.06 * k)
+			sh.rotation.x = -(0.05 + (0.7 + 0.06 * pump) * k); sh.rotation.z = -s * (0.1 + 0.08 * k); el.rotation.x = -(0.35 + 0.55 * k)
+		"wait":
+			# 기다리기(운영자 보드의 '서서 기다리기' 일상 가족 — run 81, 숫돌 손님 자리; 만석 벤치 앞에도 쓸 자세): 왼다리에 무게, 오른 무릎은 살짝 접혀 발끝만, 팔짱.
+			# k 가 예비를 만든다(0.3초에 팔짱이 감긴다); 유지 동안 1.5초마다 고개(와 몸통 조금)가 옆 — 숫돌·자리 쪽 — 으로 갔다 돌아온다(wait_glance). 정지화가 아니다
+			var k := smoothstep(0.0, 1.0, minf(f.pose_t / 0.3, 1.0))
+			var gl := wait_glance(f.pose_t)
+			hip.rotation.x = -(0.05 * k if s > 0.0 else -0.04 * k); knee.rotation.x = -(-(0.35 * k) if s > 0.0 else -0.02)
+			sh.rotation.x = -(0.05 + 0.45 * k); sh.rotation.z = -s * (0.1 + 0.02 * sin(t * 1.1) * k); el.rotation.x = -(0.35 + 1.7 * k)
+			if s > 0.0: f.neck.rotation.y = 0.55 * gl; f.torso.rotation.y = 0.1 * gl
 		"shade":
 			# 손차양(운영자 보드의 '지도 읽기·둘러보기' 일상 가족 — run 73, 전망 언덕의 전망 자리): 오른손을 이마 위에 얹고 왼손은 허리에, 무게는 왼다리에(오른 무릎 살짝).
 			# k 가 예비·유지·회수를 만든다(손이 올라가고, 둘러보고, 내려온다); 둘러보는 동안 고개와 몸통이 천천히 좌우로 돈다 — 정지화가 아니다. 주민도 사람도 같은 자세

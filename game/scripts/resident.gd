@@ -241,7 +241,7 @@ func _pick_spot() -> void:
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	if _trade_pick(Time.get_ticks_msec() / 1000.0): return   # 구두장이의 낮 일, 닳은 밑창(run 80, resident_life)
-	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool"]))
+	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet"]))
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
 	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
 	if weather == "rain" and has_umb:
@@ -372,8 +372,8 @@ func _arrive(now: float) -> void:
 				var u: Node3D = town.take_umbrella()
 				if u == null: say(["None left.", "Of course.", "Too late."][uid % 3], 1.6)
 				else: fig.hold(u); has_umb = true; carrying_kind = "umbrella"; fig.pose_request = "umbr"; say(["Borrowed.", "Just for now.", "Back by tonight."][uid % 3], 1.6)
-		"cobbler", "stool":
-			_trade_arrive(now)   # 구두장이 작업대(run 80, resident_life)
+		"cobbler", "stool", "wheel", "whet":
+			_trade_arrive(now)   # 구두장이 작업대(run 80)·칼갈이 숫돌(run 81, resident_life)
 		"oven":
 			# 화덕(run 72): 창구에 모자란 만큼(최대 셋) 반죽 — 한 바퀴(KNEAD_T)에 빵 하나가 창구에 오른다(town_places _bakery). 사람이 C 로 하는 것과 같은 자세·같은 효과
 			var n: int = maxi(1, 3 - int((town.oven["counter"] as Dictionary).get("stock", 0)))
@@ -466,6 +466,7 @@ func _leave() -> void:
 	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
 	_release()
 	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
+	if _role() == "keeper" and spot.get("kind", "") in ["counter", "door"]: dull += 1   # 창구·노점 교대 하나 = 가위가 한 번 무뎌진다(run 81, 칼갈이)
 	collision_layer = 4; collision_mask = 7
 	bites = 0   # 먹다 말고 떠나면(인사·비) 남은 빵은 든 채로 — 다음 자리에서 이어 먹진 않는다(앉은 채 먹는 자세가 아직 없다)
 	if can_mine and fig.carrying:

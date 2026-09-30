@@ -38,7 +38,7 @@ var _fidget_next := randf_range(3.0, 8.0)   # 다음 기지개까지 남은 시�
 
 var _phase := 0.0
 var _pose_since := 0.0
-const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer"]
+const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer", "grind", "wait"]
 var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0

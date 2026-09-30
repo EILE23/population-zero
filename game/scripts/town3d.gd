@@ -57,11 +57,12 @@ func _ready() -> void:
 	if "--sheet" in OS.get_cmdline_user_args():
 		add_child(load("res://tools/motion_sheet.gd").new())   # 개발용 동작 시트(연속 프레임) — `-- --sheet` 로만 켜진다
 
-## 시장 가게 앞의 것들 — places 층의 빌더라 _market(build 층)에선 못 부른다: 빵집 화덕은 문 오른쪽 바깥(창구·문·화덕이 한 줄), 우산꽂이는 카페 창구 오른쪽
+## 시장 가게 앞의 것들 — places·trades 층의 빌더라 _market(build 층)에선 못 부른다: 빵집 화덕은 문 오른쪽 바깥(창구·문·화덕이 한 줄), 우산꽂이는 카페 창구 오른쪽, 숫돌은 광장 동쪽 끝
 func _shops(c: Vector3) -> void:
 	var bc: Dictionary = spots.filter(func(sp): return sp["kind"] == "counter" and sp.has("stock"))[0]   # 빵집 창구 — 재고가 있는 유일한 창구
 	_oven(c + Vector3(-4.3, 0, -5.9), bc)
 	_rack(c + Vector3(8.3, 0, -6.0))
+	_grindstone(c + Vector3(11.2, 0, -3.4))   # 칼갈이 숫돌(run 81, trades 층) — 넷째 노점 옆, 자갈 광장 동쪽 가장자리
 
 func _process(delta: float) -> void:
 	_hud(Time.get_ticks_msec() / 1000.0)
