@@ -148,8 +148,9 @@ func car_hits_player(vel: Vector3, stun: float) -> void:
 	if seesaw_ride: seesaw_ride.leave("player"); seesaw_ride = null; body.global_position += Vector3(0, 0, 0.7)   # 그네·시소에 탄 채 치이면 내린다(판 앞으로 — 판 속에 겹친 채 마스크가 켜지면 바닥 밑으로 밀렸다) — 그 가지들이 먼저 return 해 누운 채 그네를 타고 일어나지 못했다(polish 79)
 	down_until = now + stun; player.lying = true; player.action = ""; action_until = now
 	body.velocity = vel; cam_kick = 0.08
-	while player.carrying:
-		items.append(player.release(self, body.global_position + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6))))
+	if Wear.tear(player.worn.get("back")): say_toast("Torn. The tailor on the east plaza mends these.")   # 차에 친 주민은 찢어지는데(hit heavy) 사람만 멀쩡했다(polish 83)
+	while player.carrying:   # 흩어진 건 넘어져 떨어뜨린 것 — 여우가 노린다(_fox, 주먹에 넘어질 때와 같은 표시; polish 83)
+		var it: Node3D = player.release(self, body.global_position + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6))); it.set_meta("dropped_at", now); items.append(it)
 
 ## 먼지 한 줌 — 벽을 칠 때
 func _dust(at: Vector3) -> void:
