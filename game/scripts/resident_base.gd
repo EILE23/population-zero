@@ -154,7 +154,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		collision_layer = 0; collision_mask = 1   # 누운 몸은 차를 막지도 느끼지도 않는다(깔고 넘어간다) — 바닥은 계속 딛는다(mask 1)
 		fig.lying = true; fig.action = ""; fig.action_t = 0.0
 		fig.face(atan2(-from_dir.x, -from_dir.z))  # 때린 쪽을 보고 눕는다
-		velocity = from_dir * 3.5 + Vector3(0, 2.0, 0)
+		velocity = from_dir * 4.2 + Vector3(0, 3.2, 0)   # 뒤로 붕 떠서 쓰러진다(한 번 튀고 미끄러짐은 down 상태가)
 		say(LINES_DOWN[uid % LINES_DOWN.size()], 1.6)
 		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
 			var it: Node3D = fig.release(town, global_position + from_dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0))
@@ -162,8 +162,8 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 			town.items.append(it); carrying_kind = ""; can_mine = false; bites = 0; has_umb = false   # 먹던 빵도 떨어진다 — 남은 입은 없다; 우산도(접혀서)
 	else:
 		fig.action = "flinch"; fig.action_t = 0.0
-		state = "busy"; busy_until = now + 0.3
-		velocity = from_dir * 1.6
+		state = "busy"; busy_until = now + FightPoses.FLINCH_T
+		velocity = from_dir * 2.2
 		if hits == 2: say(LINES_HIT[(uid + 1) % LINES_HIT.size()], 1.2)
 
 ## 날아가기(차에 치임) — 속도 그대로 포물선을 그리고, 닿으면 stun 초 동안 기절했다 일어난다
@@ -176,7 +176,7 @@ func launch(vel: Vector3, stun: float) -> void:
 func _process(_delta: float) -> void:
 	if fig.action == "flinch":
 		var now := Time.get_ticks_msec() / 1000.0
-		fig.action_t = 1.0 - (busy_until - now) / 0.3
+		fig.action_t = 1.0 - (busy_until - now) / FightPoses.FLINCH_T
 		if now >= busy_until:
 			fig.action = ""; fig.action_t = 0.0
 			if quarry and state == "busy" and randf() < 0.5:

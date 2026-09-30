@@ -20,6 +20,8 @@ var action_t := 0.0            # 동작 진행 0..1
 var punch_side := 1.0          # 연속기: 1.0 오른손, -1.0 왼손
 var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
+var _was_lying := false
+var _lie_since := 0.0
 var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "water"(텃밭) | ... | "" — 자세 자체는 stick3d_poses.gd
 var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
 var squash := 0.0             # jump stretch(+)/land squash(-), decays to 0
@@ -284,7 +286,19 @@ func _process(delta: float) -> void:
 		elbows[1.0].rotation.x = -(1.15)
 	if umbr_k > 0.0: StickPoses.umbr(self)   # 우산(run 76): 오른팔만 덮어쓴다 — 걷든 서든 앉든 다리·왼팔은 위에서 정한 그대로
 	# 잠깐의 동작 — 2D 자세를 그대로: 빨리 나갔다(35%) 천천히 돌아온다(65%). 공중에서도 된다(점프킥·점프 주먹)
-	if action != "":
+	if lying:
+		if not _was_lying: _was_lying = true; _lie_since = _t
+		FightPoses.down(self, _t - _lie_since)   # 넘어져 누움: 떨어진 직후 팔다리가 들렸다 떨어진다
+	else:
+		_was_lying = false
+	if action in ["punch", "kick", "flinch", "getup"]:
+		var fa := clampf(action_t, 0.0, 1.0)
+		match action:
+			"punch": FightPoses.punch(self, fa)
+			"kick": FightPoses.kick(self, fa)
+			"flinch": FightPoses.flinch(self, fa)
+			"getup": FightPoses.getup(self, fa)
+	elif action != "":
 		var a := clampf(action_t, 0.0, 1.0)
 		# 타격 곡선(운영자: 힘이 실려야): 예비동작 0~15%(k 가 살짝 음수 = 뒤로 당김) → 15~30% 순간적으로 뻗음 → 30~55% 뻗은 채 멈춤 → 55~100% 천천히 회수
 		var k: float
@@ -381,7 +395,7 @@ func _process(delta: float) -> void:
 			shoulders[1.0].rotation.x = -(1.3 * k)
 			elbows[1.0].rotation.x = -(0.2 * k)
 	# 블렌딩 속도: 동작 중엔 아주 빠르게(주먹이 0.28초라 뭉개지면 안 된다), 앉기·웅크림은 느리게, 걷기는 중간
-	var rate := 34.0 if action != "" else (9.0 if seated or crouch > 0.0 else 30.0)  # 걷기는 거의 즉답
+	var rate := (60.0 if action in ["punch", "kick", "flinch"] else 34.0) if action != "" else (9.0 if seated or crouch > 0.0 else 30.0)  # 걷기는 거의 즉답
 	var k := minf(1.0, delta * rate)
 	for pv in _pivots:
 		var want: Vector3 = pv.rotation

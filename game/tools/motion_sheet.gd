@@ -82,6 +82,9 @@ func _define() -> void:
 		{ "name": "car-lamp", "subject": town.cars[0], "lead": 0.05, "dt": 0.1, "setup": func() -> void: _free_car(); var c: Car3D = town.cars[0]; c.global_position = Vector3(-8, 0.02, 4.8); c.rotation.y = 0.0; _enter(c); c.v = 8.0; c.input = { "throttle": 1.0, "steer": 0.0, "brake": false } },
 		{ "name": "car-hill", "subject": town.cars[0], "lead": 0.05, "dt": 0.18, "setup": func() -> void: _free_car(); var c: Car3D = town.cars[0]; c.global_position = Vector3(23.5, 0.02, 18.5); c.rotation.y = -PI / 2.0; _enter(c); c.v = 10.0; c.input = { "throttle": 1.0, "steer": 0.0, "brake": false } },
 		{ "name": "car-reverse", "subject": town.cars[0], "lead": 0.05, "dt": 0.18, "setup": func() -> void: _free_car(); var c: Car3D = town.cars[0]; c.global_position = Vector3(10, 0.02, 1.4); c.rotation.y = -PI / 2.0; _enter(c); c.v = 0.0; c.input = { "throttle": -1.0, "steer": 0.0, "brake": false } },
+		{ "name": "fight-punch", "subject": town.body, "lead": 0.05, "dt": 0.04, "side": true, "setup": func() -> void: _free_car(); town.body.position = Vector3(-3.5, 0.02, 15.0); town.player.face(PI / 2.0); town.player.rotation.y = PI / 2.0; town.player.action = "punch"; town.player.punch_side = 1.0; town.action_until = Time.get_ticks_msec() / 1000.0 + FightPoses.PUNCH_T },
+		{ "name": "fight-kick", "subject": town.body, "lead": 0.05, "dt": 0.05, "side": true, "setup": func() -> void: _free_car(); town.body.position = Vector3(-3.5, 0.02, 15.0); town.player.face(PI / 2.0); town.player.rotation.y = PI / 2.0; town.player.action = "kick"; town.action_until = Time.get_ticks_msec() / 1000.0 + FightPoses.KICK_T },
+		{ "name": "fight-knockdown", "subject": town.residents[3], "lead": 0.02, "dt": 0.25, "side": true, "setup": func() -> void: _free_car(); var r = town.residents[3]; r.global_position = Vector3(-3.5, 0.02, 15.0); r.state = "routine"; r.hit(Vector3(1, 0, 0), town.body, true) },
 		{ "name": "player-sky", "subject": town.body, "lead": 0.0, "setup": func() -> void: town.body.position = Vector3(-3.5, 0.02, 16.5); town.resting = true; town.player.pose_request = "sky" },
 		{ "name": "player-carry3", "subject": town.body, "lead": 0.3, "setup": func() -> void: town.body.position = Vector3(-3.5, 0.02, 15.0); town.resting = false; town.player.pose_request = ""; for k in ["apple", "cup", "bread"]: town.player.hold(town.make_item(k, Vector3.ZERO)) },
 		{ "name": "player-swim", "subject": town.body, "lead": 0.3, "setup": func() -> void: _free_car(); town.body.position = Vector3(-5, 0.02, 11.5); town.body.velocity = Vector3.ZERO },
@@ -107,7 +110,7 @@ func _process(_delta: float) -> void:
 	var c: Dictionary = clips[ci]
 	if subject is Car3D or subject is Seesaw3D: cam.position = s + Vector3(4.5, 3.0, 5.5)
 	elif subject == town.body: cam.position = s + Vector3(2.0, 1.6, 3.0)        # 사람은 크니 조금 멀리
-	elif c.get("side", false): cam.position = s + Vector3(2.4, 0.9, 0.3)     # 옆에서(쓰다듬기 — 사람이 앞을 가린다)
+	elif c.get("side", false): cam.position = s + Vector3(0.3, 1.0, 3.2)     # 옆에서(쓰다듬기 — 사람이 앞을 가린다)
 	else: cam.position = s + Vector3(0.9, 1.1, 2.0)
 	cam.look_at(s + Vector3(0, 0.3 if subject != town.body else 0.45, 0), Vector3.UP)
 	var now := Time.get_ticks_msec() / 1000.0

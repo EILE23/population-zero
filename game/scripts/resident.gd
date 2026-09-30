@@ -18,7 +18,7 @@ func _physics_process(delta: float) -> void:
 		if now >= busy_until:
 			fig.action = ""; fig.action_t = 0.0
 		else:
-			fig.action_t = 1.0 - (busy_until - now) / 0.28
+			fig.action_t = 1.0 - (busy_until - now) / FightPoses.PUNCH_T
 	match state:
 		"routine":
 			v.x = 0.0; v.z = 0.0; fig.move_dir = Vector3.ZERO; fig.speed = 0.0   # 쫓다 포기한 뒤 달리던 속도가 남아 1초 더 미끄러지던 것
@@ -78,16 +78,17 @@ func _physics_process(delta: float) -> void:
 				_leave()
 		"down":
 			if is_on_floor():
-				v.x = lerpf(v.x, 0.0, 0.2); v.z = lerpf(v.z, 0.0, 0.2); fig.rotation.x = lerpf(fig.rotation.x, 0.0, 0.3)
-			else:
-				fig.rotation.x += delta * 7.0   # 공중에서 구른다
+				if not get_meta("bounced", false) and absf(velocity.y) < 0.1 and Vector2(v.x, v.z).length() > 1.0:
+					set_meta("bounced", true); v.y = 1.6   # 땅에 닿으면 한 번 튄다
+				v.x = lerpf(v.x, 0.0, 6.0 * delta); v.z = lerpf(v.z, 0.0, 6.0 * delta)   # 그다음 미끄러지며 선다
+			fig.rotation.x = 0.0
 			fig.move_dir = Vector3.ZERO; fig.speed = 0.0
 			if now >= down_until:
-				fig.lying = false; fig.action = "getup"; fig.action_t = 0.0; collision_layer = 4; collision_mask = 7
-				state = "getup"; busy_until = now + 0.6
+				fig.lying = false; fig.action = "getup"; fig.action_t = 0.0; collision_layer = 4; collision_mask = 7; remove_meta("bounced")
+				state = "getup"; busy_until = now + FightPoses.GETUP_T
 		"getup":
 			v.x = 0.0; v.z = 0.0
-			fig.action_t = 1.0 - (busy_until - now) / 0.6
+			fig.action_t = 1.0 - (busy_until - now) / FightPoses.GETUP_T
 			if now >= busy_until:
 				fig.action = ""; fig.action_t = 0.0
 				if quarry and randf() < 0.65:
@@ -113,7 +114,7 @@ func _physics_process(delta: float) -> void:
 					if now >= next_punch:
 						next_punch = now + 0.55
 						fig.punch_side = -fig.punch_side; fig.punch_kind = "jab" if fig.punch_side < 0.0 else "cross"
-						fig.action = "punch"; fig.action_t = 0.0; busy_until = now + 0.28
+						fig.action = "punch"; fig.action_t = 0.0; busy_until = now + FightPoses.PUNCH_T
 						town.resident_hits_player(self, dir)
 	# 강물: 걷거나 쫓다 빠지면 사람과 같은 규칙으로 헤엄친다(느리게, 수면 높이로). 길은 다리로 짜니 보통은 빠진 경우뿐
 	var wet: bool = town.in_water(global_position)

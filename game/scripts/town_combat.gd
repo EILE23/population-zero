@@ -4,8 +4,8 @@ extends TownSystems
 
 ## 앞 부채꼴(70°) 안, 사거리 안의 주민을 맞힌다. 무거운 한 방(제트킥·점프 주먹·훅)은 바로 넘어진다
 func _strike(kind: String) -> void:
-	var reach := 1.3 if kind == "jet" else (1.15 if kind == "kick" or kind == "runkick" else 0.95)
-	var heavy := kind == "jet" or kind == "air" or kind == "runkick" or (kind == "punch" and player.punch_kind == "hook")
+	var reach := 1.15 if kind == "kick" else 0.95
+	var heavy := kind == "kick"   # 앞차기는 한 방에 넘어뜨린다, 주먹은 세 대째에
 	var f := fwd_dir(); var p := body.global_position
 	var now := Time.get_ticks_msec() / 1000.0
 	for c in crowns:
@@ -25,13 +25,14 @@ func _strike(kind: String) -> void:
 			animal_hit(a, f); cam_kick = 0.03
 	var hit_someone := false
 	for r in residents:
-		if r.state == "down" or (kind == "jet" and float(r.get_meta("jet_hit_at", -9.0)) > now - 1.0):
+		if r.state == "down":
 			continue
 		var to: Vector3 = r.global_position - p; to.y = 0.0
 		var d := to.length()
 		if d < reach and d > 0.05 and f.dot(to.normalized()) > 0.34:
 			r.hit(f, body, heavy); hit_someone = true
-			if kind == "jet": r.set_meta("jet_hit_at", now)
+			FightPoses.spark(self, r.global_position + Vector3(0, 0.85 if kind == "punch" else 0.6, 0) - f * 0.15, heavy)
+			FightPoses.hitstop(get_tree(), heavy or r.state == "down")
 			cam_kick = 0.06 if heavy else 0.03
 	if not hit_someone and _crack_wall(f, p):
 		cam_kick = maxf(cam_kick, 0.04)

@@ -55,9 +55,9 @@ func _physics_process(delta: float) -> void:
 		_tick(delta, now)
 		return
 	if down_until > 0.0 and down_until <= now and getup_until < 0.0:
-		down_until = -1.0; getup_until = now + 0.6; player.lying = false; player.action = "getup"; player.action_t = 0.0; body.collision_layer = 4; body.collision_mask = 7
+		down_until = -1.0; getup_until = now + FightPoses.GETUP_T; player.lying = false; player.action = "getup"; player.action_t = 0.0; body.collision_layer = 4; body.collision_mask = 7
 	if getup_until > now:
-		player.action_t = 1.0 - (getup_until - now) / 0.6; body.velocity = Vector3.ZERO
+		player.action_t = 1.0 - (getup_until - now) / FightPoses.GETUP_T; body.velocity = Vector3.ZERO
 		_tick(delta, now)
 		return
 	if getup_until > 0.0 and getup_until <= now:
@@ -173,32 +173,16 @@ func _physics_process(delta: float) -> void:
 				player.action = ""; player.action_t = 0.0   # 감는 동안 손이 비면(마지막 한입·모자 씀) 던질 게 없다 — 전엔 throw_at 이 남아 다음에 집는 것이 곧장 날아갔다
 	if action_until < now and throw_charge < 0.0 and not swimming:
 		if Input.is_action_just_pressed("hit"):
-			if grounded and not running:
-				# 연속기: 왼 잽 → 오른 스트레이트 → 왼 훅. 0.45초 안에 이어 누르면 다음 타, 늦으면 처음부터
-				if now > combo_open_until: combo = 0
-				player.punch_side = [-1.0, 1.0, -1.0][combo]; player.punch_kind = ["jab", "cross", "hook"][combo]
-				var dur: float = [0.22, 0.28, 0.32][combo]
-				action_until = now + dur; push_at = now + dur * 0.15; push_amount = [0.35, 0.6, 0.5][combo]; push_lift = 0.0
-				hit_kind = "punch"
-				combo_open_until = action_until + 0.45; combo = (combo + 1) % 3
-			else:
-				player.punch_side = 1.0; player.punch_kind = "cross"
-				action_until = now + 0.28
-				push_at = now + 0.28 * 0.15; push_amount = 2.2 if not grounded else 1.8; push_lift = 1.0 if not grounded else 0.0
-				hit_kind = "air" if not grounded else "punch"
-			player.action = "punch"
+			# 주먹 하나(운영자 2026-09-30: 연계·제트킥 빼고 한 동작을 제대로) — 누를 때마다 좌우 번갈아. 0.34초: 예비·타격·멈춤·회수
+			player.punch_side = -player.punch_side; player.punch_kind = "cross"
+			player.action = "punch"; action_until = now + FightPoses.PUNCH_T
+			push_at = now + FightPoses.PUNCH_T * 0.32; push_amount = 0.5 if grounded else 1.2; push_lift = 0.0
+			hit_kind = "punch"
 		elif Input.is_action_just_pressed("kick"):
-			if not grounded and dash_jump:  # 제트킥은 대시 중 점프 → 공중에서 Z 일 때만(운영자 2026-09-28)
-				# 제트킥(운영자 2026-09-28): 앞으로 쏘아지며 비행 킥 자세를 착지까지 유지한다
-				jet = true; player.action = "kick"; action_until = now + 9.0; hit_kind = "jet"
-				var f := fwd_dir()
-				body.velocity = Vector3(f.x * 7.5, maxf(body.velocity.y, 1.6), f.z * 7.5)  # 비거리 7.5
-				was_airborne = true
-			else:
-				player.action = "kick"; action_until = now + 0.34
-				# 달리는 중 Z 는 강한 러닝 킥(넘어뜨림, 앞으로 크게 밀림); 공중은 점프킥; 서서는 보통 발차기
-				hit_kind = "runkick" if (grounded and running) else "kick"
-				push_at = now + 0.34 * 0.15; push_amount = 2.6 if hit_kind == "runkick" else (1.6 if not grounded else 1.0); push_lift = 0.0
+			# 앞차기 하나 — 무릎 끌어올려 발바닥으로 민다. 0.5초, 맞으면 넘어진다
+			player.action = "kick"; action_until = now + FightPoses.KICK_T
+			push_at = now + FightPoses.KICK_T * 0.4; push_amount = 0.4; push_lift = 0.0
+			hit_kind = "kick"
 	if throw_at >= 0.0 and now >= throw_at:
 		throw_at = -1.0
 		if player.carrying:
@@ -212,10 +196,8 @@ func _physics_process(delta: float) -> void:
 		elif jet:
 			player.action_t = 0.35
 		else:
-			var dur := 0.28 if player.action == "punch" else (0.34 if player.action == "kick" else 0.4)
+			var dur := FightPoses.PUNCH_T if player.action == "punch" else (FightPoses.KICK_T if player.action == "kick" else 0.4)
 			player.action_t = 1.0 - (action_until - now) / dur
-			if player.action == "kick" and player.action_t < 0.35 and action_until - now > 0.3:
-				player.action_t = 0.35 + (1.0 - (action_until - now) / 0.2) * 0.65  # 제트킥 착지 마무리: 뻗은 상태에서 거둔다
 	else:
 		player.action = ""; player.action_t = 0.0
 	if shake_until > 0.0 and now >= shake_until:
