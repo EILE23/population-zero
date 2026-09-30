@@ -49,7 +49,7 @@ func _physics_process(delta: float) -> void:
 					target = route[0]["pos"]
 			else:
 				var dir := to.normalized()
-				var spd := WALK * (1.7 if weather == "rain" and not has_umb else 1.0)  # 비 오면 서두른다 — 우산을 폈으면 그냥 걷는다(run 76)
+				var spd := WALK * (1.7 if weather == "rain" and not has_umb else 1.0) * (1.9 if spot.get("kind", "") == "flee" else 1.0)  # 비 오면 서두른다 — 우산을 폈으면 그냥 걷는다(run 76)
 				v.x = dir.x * spd; v.z = dir.z * spd
 				fig.move_dir = dir; fig.speed = Vector2(velocity.x, velocity.z).length()   # 걸음은 실제 속도로 — 벽에 막히면 제자리 뛰기가 안 난다
 				# 막힘은 진행 거리로 판단: 1.2초 동안 목표에 0.15m 도 못 다가가면 옆으로 우회 지점을 하나 두고, 두 번째면 포기
@@ -97,13 +97,14 @@ func _physics_process(delta: float) -> void:
 			fig.action_t = 1.0 - (busy_until - now) / FightPoses.GETUP_T
 			if now >= busy_until:
 				fig.action = ""; fig.action_t = 0.0
-				if quarry and randf() < 0.65:
-					state = "chase"; chase_until = now + 4.5; say(LINES_HIT[uid % LINES_HIT.size()])
+				if quarry and mind.retaliates():
+					state = "chase"; chase_until = now + 4.5; say(mind.line("grudge" if mind.hurt > 1 else "hurt"))
+				elif quarry and mind.flees(): _flee(quarry.global_position)   # 겁 많은 사람은 되갚지 않고 피한다
 				else:
 					state = "routine"; busy_until = now + 0.5
 		"chase":
 			if quarry == null or now >= chase_until:
-				say(LINES_GIVEUP[uid % LINES_GIVEUP.size()]); quarry = null
+				say(mind.line("giveup")); quarry = null
 				fig.action = ""; fig.action_t = 0.0
 				state = "routine"; busy_until = now + 1.0
 			else:
@@ -241,10 +242,7 @@ func _pick_spot() -> void:
 			target = route[0]["pos"]; state = "walk"; return
 	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack"]))
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
-	var want: Array = _schedule_kinds()
-	if not want.is_empty() and randf() < 0.7:
-		var sched: Array = pool.filter(func(sp): return sp["kind"] in want and _free_slot(sp) >= 0)
-		if not sched.is_empty(): pool = sched   # 화덕은 빵집 주인이, 꽂이는 비 올 때 일부러 간다 — 산책 자리가 아니다
+	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
 	if weather == "rain" and has_umb:
 		# 우산을 폈으면 밖 자리로 — 비를 맞으며 일과를 잇는 첫 존재(run 76). 팔을 쓰는 자세(기대기·흔들기·손차양·그네·먹기)는 우산 든 손과 겹치니 뺀다
 		pool = town.spots.filter(func(sp): return sp["kind"] in ["bench", "bank", "door"])
@@ -256,7 +254,8 @@ func _pick_spot() -> void:
 	var free: Array = pool.filter(func(sp): return _free_slot(sp) >= 0)
 	if free.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 2.0; return
-	spot = free[randi() % free.size()]
+	spot = mind.pick(free, want)   # 자아가 고른다: 좋아하는 곳·모자란 욕구·친구·새로움·거리(resident_mind.gd)
+	if mind.reason != "" and randf() < 0.35: say(mind.line(mind.reason), 1.6)
 	slot = _free_slot(spot)
 	_claim(spot, slot)
 	route = []
@@ -424,7 +423,7 @@ func _bite(now: float) -> void:
 	fig.pose_request = "eat"
 	fig.carrying.scale = Vector3.ONE * (1.0 - (3 - bites) * 0.27)
 	if bites <= 0:
-		fig.release(town, Vector3.ZERO).queue_free(); carrying_kind = ""; fig.pose_request = ""
+		fig.release(town, Vector3.ZERO).queue_free(); carrying_kind = ""; fig.pose_request = ""; mind.ate()
 
 ## 집 앞이 아닌 곳(옆·뒤)에서 출발하면 집 모서리를 돌아 앞길로 나오는 경유지 — 벽 모서리에 막혀 문을 못 찾던 것(운영자 지적, 비 오는 날)
 func _approach(dr: Dictionary) -> Array:

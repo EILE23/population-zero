@@ -159,3 +159,18 @@ func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 ## 그네에서 내리기 — 어느 길로 내리든 여기로. 타는 동안 그네 각도를 따라 기울인 몸을 바로 세운다(전엔 뛰어내린 각도로 영영 기운 채 걸었다)
 func dismount() -> void:
 	riding = {}; player.pose_request = ""; player.rotation.x = 0.0
+
+## 건네기(운영자 2026-09-30, 주민의 자아) — 든 걸(입는 것·우산 빼고) 1m 앞, 바라보는 쪽의 빈손 주민에게 C 로 준다. 받은 사람은 고마워하고 기억한다(호감↑), 먹을 거면 먹는다
+func give_to_resident(now: float) -> bool:
+	var it: Node3D = player.carrying
+	if it == null or it.get_meta("wearable", false) or String(it.get_meta("kind", "")) == "umbrella": return false
+	var p := body.global_position
+	var fwd := Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
+	for r in residents:
+		if r.state in ["down", "getup", "drive", "chase"] or r.in_boat or r.fig.carrying != null or r.fig.seated: continue
+		var to: Vector3 = r.global_position - p; to.y = 0.0
+		if to.length() > 1.0 or to.normalized().dot(fwd) < 0.5: continue
+		r._release(); r.take_gift(player.release(self, Vector3.ZERO))
+		player.action = "grab"; action_until = now + 0.4
+		return true
+	return false

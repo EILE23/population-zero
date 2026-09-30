@@ -37,14 +37,13 @@ var bite_at := 0.0           # 다음 한입 시각
 var in_boat := false         # 거룻배에 탄 중(run 78) — 배가 옮긴다(town_boat _boats), 내릴 땐 town.unboard
 var has_umb := false         # 꽂이에서 빌린 우산을 든 중(run 76) — 비가 그치면(또는 밤이면) 돌려놓으러 간다. 맞아 떨어뜨리면 그냥 바닥의 물건(누구든 주워 돌려놓는다)
 
-const LINES_HIT := ["Excuse me.", "That was uncalled for.", "I felt that.", "Really."]
-const LINES_GIVEUP := ["Fine.", "I am tired.", "This is noted.", "Have it your way."]
-const LINES_DOWN := ["Ow.", "Right.", "Noted."]
 var weather := "clear"
 var home_door: Dictionary = {}   # 내 집의 문 — 밤엔 여기로 가서 침대에서 잔다
 var riding_swing: Dictionary = {}
 var pushing_swing: Dictionary = {}
 var riding_seesaw: Seesaw3D = null
+var mind: ResidentMind         # 자아 — 성격·욕구·기분·기억·관계·말투(resident_mind.gd). 대사는 전부 여기 목소리로
+var name_label: Label3D
 var _door_wait := -1.0   # 문을 열었으면 문짝이 다 열릴 때까지 기다린다(resident.gd)
 
 func setup(t: Node3D, id: int, h: String) -> void:
@@ -61,7 +60,7 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	nl.text = h; nl.font_size = 44; nl.pixel_size = 0.002; nl.modulate = Color("5b4f56"); nl.outline_size = 8; nl.outline_modulate = Color("f7f4ef")
 	nl.billboard = BaseMaterial3D.BILLBOARD_ENABLED; nl.no_depth_test = true
 	nl.position = Vector3(0, 1.32, 0)
-	add_child(nl)
+	add_child(nl); name_label = nl
 	say_label = Label3D.new()
 	say_label.font_size = 52; say_label.pixel_size = 0.002; say_label.modulate = Color("1b0c15"); say_label.outline_size = 10; say_label.outline_modulate = Color("f7f4ef")
 	say_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED; say_label.no_depth_test = true
@@ -77,6 +76,7 @@ func setup(t: Node3D, id: int, h: String) -> void:
 		var it: MeshInstance3D = town.make_item(carrying_kind, Vector3.ZERO)
 		fig.hold(it)  # hold() 가 부모에서 떼어 손에 붙인다
 	busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 4.0)
+	mind = ResidentMind.new(self)
 
 ## 웹 tower.ts figureColor(uid) 와 같은 색 — 사이트와 게임에서 같은 사람은 같은 색
 static func figure_color(id: int) -> Color:
@@ -99,7 +99,24 @@ func greet(from: Node3D) -> void:
 	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
 	state = "busy"; busy_until = now + 1.4
 	spot = { "kind": "greet" }
-	say(["Hello.", "Afternoon.", "Yes, hello.", "Good day."][uid % 4], 1.6)
+	if from == town.body:
+		# 사람의 인사는 기억에 남는다 — 몇 번째인지, 전에 맞았는지에 따라 답이 다르다. 이름표 아래에 지금 속(배고픔·피곤·나를 어떻게 보는지)이 잠깐 뜬다
+		mind.greeted(); say(mind.greet_line(), 1.8); show_mind()
+	else:
+		say(mind.line("greet_new"), 1.6)
+
+func show_mind(secs := 3.5) -> void:
+	name_label.text = handle + "\n" + mind.status()
+	get_tree().create_timer(secs).timeout.connect(func() -> void: name_label.text = handle)
+
+## 선물 받기 — 사람이 든 걸 건네면(town_critters give) 손에 든다. 먹을 거면 그 자리에서 세 입에 먹는다. 호감이 오른다
+func take_gift(it: Node3D) -> void:
+	fig.hold(it); carrying_kind = String(it.get_meta("kind", ""))
+	mind.gifted(); say(mind.line("gift"), 1.8)
+	var now := Time.get_ticks_msec() / 1000.0
+	fig.face(atan2(town.body.global_position.x - global_position.x, town.body.global_position.z - global_position.z))
+	state = "busy"; spot = { "kind": "greet" }; busy_until = now + 1.4
+	if carrying_kind in town.FOOD: bites = 3; bite_at = now + 1.0; busy_until = now + 0.9 * 3 + 1.4
 
 func say(text: String, secs := 2.2) -> void:
 	say_label.text = text; say_label.visible = true
@@ -135,7 +152,15 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if state == "down" or state == "getup" or state == "drive":   # 운전 중엔 차 안이다
 		return
-	quarry = by
+	# 누가 했나: 사람의 주먹·발, 또는 사람이 모는 차. 주민이 모는 차는 사고라 쫓지 않는다. 사람이면 기억하고, 곁에서 본 이들도 사람을 조금 덜 좋아하게 된다
+	var by_player: bool = by == town.body or (by is Car3D and (by as Car3D).driver == town.body)
+	quarry = town.body if by_player else (null if by is Car3D else by)
+	if by_player:
+		mind.hurt_by_player(heavy)
+		for o in town.residents:
+			if o != self and o.state != "drive" and o.global_position.distance_to(global_position) < 7.0:
+				o.mind.witnessed()
+				if randf() < 0.25: o.say(o.mind.line("witness"), 1.6)
 	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
 	if spot.get("kind", "") == "repair": (spot["crack"] as Dictionary)["by"] = null   # 수리 중 맞으면 금을 내려놓는다
 	_release(); collision_layer = 4; collision_mask = 7
@@ -155,7 +180,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		fig.lying = true; fig.action = ""; fig.action_t = 0.0
 		fig.face(atan2(-from_dir.x, -from_dir.z))  # 때린 쪽을 보고 눕는다
 		velocity = from_dir * 4.2 + Vector3(0, 3.2, 0)   # 뒤로 붕 떠서 쓰러진다(한 번 튀고 미끄러짐은 down 상태가)
-		say(LINES_DOWN[uid % LINES_DOWN.size()], 1.6)
+		say(mind.line("down"), 1.6)
 		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
 			var it: Node3D = fig.release(town, global_position + from_dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0))
 			it.set_meta("dropped_at", now)   # 넘어져 떨어뜨린 표시 — 여우가 6초 안에 노린다(town_systems _fox). 내려놓은 것·던진 것과 구별
@@ -164,13 +189,13 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		fig.action = "flinch"; fig.action_t = 0.0
 		state = "busy"; busy_until = now + FightPoses.FLINCH_T
 		velocity = from_dir * 2.2
-		if hits == 2: say(LINES_HIT[(uid + 1) % LINES_HIT.size()], 1.2)
+		if hits == 2 or mind.temper > 0.7: say(mind.line("hurt"), 1.2)
 
 ## 날아가기(차에 치임) — 속도 그대로 포물선을 그리고, 닿으면 stun 초 동안 기절했다 일어난다
 func launch(vel: Vector3, stun: float) -> void:
 	velocity = vel
 	down_until = Time.get_ticks_msec() / 1000.0 + stun
-	say(["Ow.", "Excuse me.", "I was walking."][uid % 3], 1.4)
+	say(mind.line("down"), 1.4)
 
 ## flinch 진행은 busy 상태에서 town 이 아니라 여기서 돌린다
 func _process(_delta: float) -> void:
@@ -179,7 +204,7 @@ func _process(_delta: float) -> void:
 		fig.action_t = 1.0 - (busy_until - now) / FightPoses.FLINCH_T
 		if now >= busy_until:
 			fig.action = ""; fig.action_t = 0.0
-			if quarry and state == "busy" and randf() < 0.5:
+			if quarry and state == "busy" and mind.retaliates():   # 성미·배짱이 정한다 — 전엔 누구나 반반
 				state = "chase"; chase_until = now + 4.0
 			elif state == "busy":
 				state = "routine"; busy_until = now + 0.3
