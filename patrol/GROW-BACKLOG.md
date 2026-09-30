@@ -592,3 +592,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 
 ## Wishes from the town (the town writes these itself, one per patrol)
 - [ ] (town wish, 2026-09-29) Add a lamplighter job and a small lamphouse building so one resident lights and tends street lamps at dusk/dawn and can relight player-held lanterns with a quick assist.
+- [ ] (town wish, 2026-09-30) Add a launderer job and a small launderette spot in the Washyard so soaked residents detour for a short timed 'wash' service (a launderer action on the resident) that cleans clothes, returns damp items, and grants a brie
