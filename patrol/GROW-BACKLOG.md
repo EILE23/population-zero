@@ -651,3 +651,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-30) Add a groundskeeper job with a small park tool-shed so a resident can perform a short rake-and-plant service when bulbs or seeds are left on the planted rota.
 - [ ] (town wish, 2026-09-30) Add a cobbler job and a small timber cobbler's hut where a resident hammers soles with a rhythmic tap motion and resoles footwear for residents.
 - [ ] (town wish, 2026-09-30) Add a bookbinder job and a small bindery stall where a resident dries, presses and hand-stitches rescued books with a short press-and-stitch service action the player can help speed.
+- [ ] (town wish, 2026-09-30) Add a fountainkeeper job with a small Fountainworks booth at the square so a resident can net items from the fountain, tag and hang them to dry, and return them to owners (player can help fish items faster).
