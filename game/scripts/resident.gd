@@ -1,98 +1,7 @@
 class_name Resident
-extends CharacterBody3D
-## 주민 — 마을의 AI 등장인물. 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 다음 자리로 간다.
-## 맞으면 움찔하고(flinch), 짧은 시간에 세 대 또는 무거운 한 방이면 넘어져 물건을 떨어뜨리고, 일어나서 때린 사람을 쫓다가 포기한다.
-## 사람과 같은 리그(Stick3D)·같은 규칙 — 주민만의 힘은 없다.
-
-const WALK := 1.6
-const RUN := 3.4
-const REACH := 0.95
-
-var town: Node3D
-var fig: Stick3D
-var uid := 0
-var handle := ""
-var state := "routine"      # routine | walk | busy | down | getup | chase
-var spot: Dictionary = {}
-var target := Vector3.ZERO
-var route: Array = []          # 경유지 큐 [{pos, act}] — act: "open" | "close" | ""
-var door_ref: Dictionary = {}
-var busy_until := 0.0
-var down_until := 0.0
-var chase_until := 0.0
-var next_punch := 0.0
-var slot := 0
-var stuck_since := -1.0
-var stuck_dist := 0.0
-var detours := 0
-var hits := 0
-var last_hit := -9.0
-var quarry: Node3D = null
-var say_label: Label3D
-var say_until := 0.0
-var carrying_kind := ""      # 손에 든 것(넘어지면 떨어뜨린다)
-
-const LINES_HIT := ["Excuse me.", "That was uncalled for.", "I felt that.", "Really."]
-const LINES_GIVEUP := ["Fine.", "I am tired.", "This is noted.", "Have it your way."]
-const LINES_DOWN := ["Ow.", "Right.", "Noted."]
-
-func setup(t: Node3D, id: int, h: String) -> void:
-	town = t; uid = id; handle = h
-	var col := CollisionShape3D.new()
-	var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95
-	col.shape = cap; col.position.y = 0.5
-	add_child(col)
-	collision_layer = 4; collision_mask = 7   # 사람은 층 3(값 4) — 차는 사람을 몸으로 느끼지 않아 길막이 없고(밀기·날리기는 스크립트), 사람은 차·세계·서로를 느낀다
-	fig = Stick3D.new()
-	fig.color = figure_color(id); fig.head_color = fig.color
-	add_child(fig)
-	var nl := Label3D.new()
-	nl.text = h; nl.font_size = 44; nl.pixel_size = 0.002; nl.modulate = Color("5b4f56"); nl.outline_size = 8; nl.outline_modulate = Color("f7f4ef")   # 22px/0.004 는 흐릿했다 — 같은 크기, 두 배 해상도, 종이색 테두리
-	nl.billboard = BaseMaterial3D.BILLBOARD_ENABLED; nl.no_depth_test = true
-	nl.position = Vector3(0, 1.32, 0)
-	add_child(nl)
-	say_label = Label3D.new()
-	say_label.font_size = 52; say_label.pixel_size = 0.002; say_label.modulate = Color("1b0c15"); say_label.outline_size = 10; say_label.outline_modulate = Color("f7f4ef")
-	say_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED; say_label.no_depth_test = true
-	say_label.position = Vector3(0, 1.5, 0); say_label.visible = false
-	add_child(say_label)
-	# 꾸미기(시드): 5명 중 2명은 모자, 5명 중 1명은 안경, 6명 중 1명은 가방 — 마을에 변화가 보이게
-	if id % 5 < 2: fig.wear(Wear.make(["cap", "beanie", "tophat", "straw"][id % 4], Wear.palette(id)))
-	if id % 5 == 3: fig.wear(Wear.make("glasses" if id % 2 == 0 else "sunglasses"))
-	if id % 6 == 1: fig.wear(Wear.make("backpack", Wear.palette(id + 2)))
-	# 넷 중 하나는 뭔가 들고 다닌다(뺏을 거리)
-	if id % 4 == 1:
-		carrying_kind = ["apple", "cup", "paper"][id % 3]
-		var it: MeshInstance3D = town.make_item(carrying_kind, Vector3.ZERO)
-		fig.hold(it)  # hold() 가 부모에서 떼어 손에 붙인다(true/false 는 무시 — 빈손이다)
-	busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 4.0)
-
-## 웹 tower.ts figureColor(uid) 와 같은 색 — 사이트와 게임에서 같은 사람은 같은 색
-static func figure_color(id: int) -> Color:
-	var h := fmod(id * 137.508, 360.0)
-	var sat := 52 + (id % 4) * 9
-	var lit := 34 + ((id * 7) % 5) * 4
-	return Color.from_hsv(h / 360.0, sat / 100.0, minf(1.0, lit / 100.0 * 1.6))
-
-## 인사받음 — 손을 흔들어 답하고 한마디(일과 중이면 잠깐 멈춘다)
-func greet(from: Node3D) -> void:
-	if state == "down" or state == "getup" or state == "chase":
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
-	# 그네를 타던 중이면 _leave 가 spot["swing"] 을 찾다 죽었다. 그네·밀기는 riding_swing/pushing_swing 이 기억하니 _leave 가 마저 정리한다
-	if state == "busy" and spot.get("kind", "") == "bench": global_position += Vector3(0, 0, 0.45)
-	_release(); collision_layer = 4; collision_mask = 7
-	fig.seated = false
-	fig.pose_request = "wave"
-	fig.face(atan2(from.global_position.x - global_position.x, from.global_position.z - global_position.z))
-	state = "busy"; busy_until = now + 1.4
-	spot = { "kind": "greet" }
-	say(["Hello.", "Afternoon.", "Yes, hello.", "Good day."][uid % 4], 1.6)
-
-func say(text: String, secs := 2.2) -> void:
-	say_label.text = text; say_label.visible = true
-	say_until = Time.get_ticks_msec() / 1000.0 + secs
+extends ResidentBase
+## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
+## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
 func _physics_process(delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -124,7 +33,7 @@ func _physics_process(delta: float) -> void:
 				var step: Dictionary = route.pop_front() if not route.is_empty() else {}
 				if step.get("act", "") == "open": town.set_door(door_ref, true); _door_wait = now + 0.5   # 문짝이 다 열릴 때까지 기다린다 — 안 그러면 도는 문짝에 막혀 우회하다 벽에 갇혔다
 				elif step.get("act", "") == "close": town.set_door(door_ref, false)
-				detours = 0
+				detours = 0; stuck_since = -1.0   # 경유지가 바뀌면 막힘 판정도 새로 — 다음 경유지가 더 멀면 '못 다가갔다'로 읽혀 헛우회했다
 				if route.is_empty():
 					if step.get("act", "") == "close":
 						state = "routine"; busy_until = now + randf_range(0.5, 2.0)
@@ -162,6 +71,7 @@ func _physics_process(delta: float) -> void:
 				v.y = 0.0
 			else:
 				fig.rotation.x = 0.0
+			if bites > 0 and now >= bite_at: _bite(now)
 			if now >= busy_until:
 				_leave()
 		"down":
@@ -225,30 +135,50 @@ func _physics_process(delta: float) -> void:
 		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
 	move_and_slide()
 
-var weather := "clear"
-var home_door: Dictionary = {}   # 내 집의 문 — 밤엔 여기로 가서 침대에서 잔다
-
 ## 날씨 바뀜 — 비면 지금 하던 걸 접고 실내로 서두른다(밖 자리에 있었으면 바로 다시 고른다)
 func on_weather(w: String) -> void:
 	weather = w
-	if w != "rain" or not (state in ["busy", "walk", "routine"]) or spot.get("kind", "") in ["chair", "bed", "shelf"]:
+	var now := Time.get_ticks_msec() / 1000.0
+	if w != "rain":
+		# 비가 그치면 처마 밑에서 구경하던 주민은 1~3초 더 보다 간다(run 74) — 90초 상한까지 서 있지 않는다
+		if state == "busy" and fig.pose_request == "storm": busy_until = minf(busy_until, now + randf_range(1.0, 3.0))
 		return
+	if not (state in ["busy", "walk", "routine"]) or spot.get("kind", "") in ["chair", "bed", "shelf"]:
+		return
+	if state == "busy" and spot.get("kind", "") == "door":
+		_storm(now); return   # 이미 문 앞이면 그 자리에서 비 구경으로 — 자리를 비우고 같은 문을 다시 고르던 헛걸음
 	# _leave 로 자리를 제대로 비운다 — 전엔 seated 만 풀어서 그네 rider 가 남아 비 온 뒤 그네가 영영 차 있었고, 걸어가던 목표 칸도 새어 나갔다
 	if state == "busy": _leave()
 	else: _release()
-	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.0, 1.5)
+	state = "routine"; busy_until = now + randf_range(0.0, 1.5)
 	say(["Rain.", "Of course.", "Inside, then."][uid % 3], 1.5)
 
-## 지금 어느 집 안에 있나 — 그 집 문(없으면 빈 사전). 집 안에서 다른 곳으로 갈 땐 문을 열고 나와 닫는다
-func _inside_door() -> Dictionary:
-	for dr in town.doors:
-		var dp: Vector3 = dr["pos"]; var hw: float = dr.get("hw", 2.0); var hd: float = dr.get("hd", 1.8)
-		if absf(global_position.x - dp.x) < hw - 0.1 and global_position.z < dp.z - 0.1 and global_position.z > dp.z - hd * 2.0 + 0.1: return dr
-	return {}
+## 처마 밑에서 비 구경(run 74, "Weather people feel" 1조각): 문 앞 자리에 비를 만나면 storm 자세로 비가 그칠 때까지(상한 90초) 선다 — 전엔 2~5초 기본 자세로 섰다 갔다.
+## 사람이 비 오는 날 밖에서 문을 닫으면 같은 자세(town_player). 그치면 on_weather 가 busy_until 을 줄인다
+func _storm(now: float) -> void:
+	fig.pose_request = "storm"; fig.face(0.0)   # 문을 등지고 거리 쪽을 본다
+	busy_until = now + 90.0
+	say(["It will pass.", "Of course.", "Heavier than it looks."][uid % 3], 1.8)
+
+## 집 안에서 자리를 잃었으면(안에서 인사받거나 맞아서) 다음 자리를 고르기 전에 문으로 나온다 — 전엔 벽을 향해 곧장 걷다 막혀 포기하기를 되풀이했다
+func _exit_house() -> bool:
+	var p := global_position
+	for h in town.houses:
+		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
+		if p.x <= mn.x or p.x >= mx.x or p.z <= mn.z or p.z >= mx.z or p.y >= mx.y: continue
+		for dr in town.doors:
+			var dp: Vector3 = dr["pos"]
+			if dp.x > mn.x and dp.x < mx.x and absf(dp.z - mx.z) < 0.5:
+				door_ref = dr; spot = { "kind": "exit" }
+				route = [{ "pos": dp + Vector3(0, 0, -0.6), "act": "open" }, { "pos": dp + Vector3(0, 0, 0.8), "act": "close" }]
+				target = route[0]["pos"]; state = "walk"
+				return true
+	return false
 
 func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
+	if _exit_house(): return
 	# 수리공(uid 6명 중 1명): 벽에 금이 있으면 가서 고친다(운영자 2026-09-29: 주민이 알아서 복구)
 	if uid % 6 == 0 and not town.is_night():
 		var best: Dictionary = {}; var bd := 1e9
@@ -273,7 +203,14 @@ func _pick_spot() -> void:
 			var dp: Vector3 = door_ref["pos"]
 			route = town.via_bridge(global_position, _approach(door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -1.3), "act": "close" }, { "pos": spot["pos"] + Vector3(0, 0, 0.35), "act": "" }])
 			target = route[0]["pos"]; state = "walk"; return
-	var pool: Array = town.spots
+	if job == "baker" and not town.is_night() and weather != "rain":
+		# 빵집 주인(run 72): 창구가 덜 찼으면 화덕으로 — 일은 장소에 매인다. 비엔 화덕(바깥)을 쉰다
+		var ov: Dictionary = town.bake_spot(self)
+		if not ov.is_empty():
+			spot = ov; slot = 0; _claim(spot, 0)
+			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
+			target = route[0]["pos"]; state = "walk"; return
+	var pool: Array = town.spots.filter(func(sp): return sp["kind"] != "oven")   # 화덕은 빵집 주인이 일부러 간다(위) — 산책 자리가 아니다
 	if weather == "rain":
 		# 비: 실내(의자·침대·선반) 아니면 차양 아래(문 앞)만 고른다
 		pool = town.spots.filter(func(sp): return sp["kind"] in ["chair", "bed", "shelf", "door"])
@@ -303,12 +240,7 @@ func _pick_spot() -> void:
 		route = (_approach(near_door) if not near_door.is_empty() else []) + [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.2), "act": "" }]
 	else:
 		route = [{ "pos": spot["pos"] + Vector3(randf_range(-0.2, 0.2), 0, 0.5), "act": "" }]
-	route = town.via_bridge(global_position, route)   # 강 건너면 다리로
-	var inside := _inside_door()
-	if not inside.is_empty() and not (spot.has("door") and spot["door"] == inside):
-		door_ref = inside; var ip: Vector3 = inside["pos"]
-		route = [{ "pos": ip + Vector3(0, 0, -1.3), "act": "open" }, { "pos": ip + Vector3(0, 0, 0.9), "act": "close" }] + route
-		if spot.has("door"): door_ref = spot["door"]   # 다른 집이면 그 집 문 동작은 그 집 문으로(아래 경유지가 open 을 다시 부른다)
+	route = town.via_bridge(global_position, route)   # 다리·텃밭 문·전망 언덕 계단·연못 우회(town_base.via_bridge)
 	target = route[0]["pos"]
 	state = "walk"
 
@@ -369,6 +301,48 @@ func _arrive(now: float) -> void:
 		"tree":
 			fig.pose_request = "shake"; fig.face(atan2(spot["pos"].x - global_position.x, spot["pos"].z - global_position.z))
 			busy_until = now + randf_range(1.5, 3.0)
+		"lookout":
+			# 전망 자리(run 73, 전망 언덕): 난간 앞에서 손차양을 하고 마을을 둘러본다 — 사람이 C 로 하는 것과 같은 shade 자세, 한두 바퀴
+			fig.pose_request = "shade"; fig.face(spot.get("yaw", PI))
+			busy_until = now + StickPoses.SHADE_T * (1 + randi() % 2) + 0.3
+			say(["Quite a view.", "There is the bridge.", "You can see the lane."][uid % 3], 1.8)
+		"door":
+			# 문 앞(차양 아래): 비면 비 구경(_storm), 아니면 잠깐 섰다 간다
+			if weather == "rain": _storm(now)
+			else:
+				fig.face(spot.get("yaw", PI)); busy_until = now + randf_range(2.0, 5.0)
+		"oven":
+			# 화덕(run 72): 창구에 모자란 만큼(최대 셋) 반죽 — 한 바퀴(KNEAD_T)에 빵 하나가 창구에 오른다(town_places _bakery). 사람이 C 로 하는 것과 같은 자세·같은 효과
+			var n: int = maxi(1, 3 - int((town.oven["counter"] as Dictionary).get("stock", 0)))
+			fig.pose_request = "knead"; fig.face(spot.get("yaw", PI))
+			town.bake(now, n, self); busy_until = now + StickPoses.KNEAD_T * n + 0.3
+			say(["Kneading.", "Give it a minute.", "Flour everywhere."][uid % 3], 1.6)
+		"counter":
+			# 창구(run 72): 빈손이고 재고가 있는 창구(빵집)면 빵을 받아 세 입에 먹는다(사람과 같은 eat 자세, 한입마다 작아진다 — _bite). 비었으면 "Sold out."
+			# 카페 창구(재고 없음)는 아직 서서 구경만 — 컵을 비우는 조각(비전 5단계)이 오면 같은 길로 마신다
+			fig.face(spot.get("yaw", PI))
+			if fig.carrying or not spot.has("stock"):
+				busy_until = now + randf_range(2.0, 4.0)
+			elif town.counter_take(spot):
+				carrying_kind = String(spot["item"]); fig.hold(town.make_item(carrying_kind, Vector3.ZERO))
+				bites = 3; bite_at = now + 0.9; busy_until = now + 0.9 * 3 + 1.2
+				say(["One, please.", "The usual.", "Still warm?"][uid % 3], 1.4)
+			else:
+				busy_until = now + 2.0
+				say(["Sold out.", "Nothing left.", "Could someone knead one?"][uid % 3], 1.8)
+		"plot":
+			# 텃밭(run 70): 빈손이고 익었으면 딴다, 빈손이면 물뿌리개를 꺼내 들고 물을 준다(사람과 같은 water 자세·같은 효과), 뭘 들고 있으면 구경만
+			var row: Dictionary = town.rows[int(spot["row"])]
+			fig.face(spot.get("yaw", PI))
+			if not fig.carrying and int(row["stage"]) >= 3:
+				carrying_kind = town.pick_row(row); fig.hold(town.make_item(carrying_kind, Vector3.ZERO))
+				fig.action = "grab"; fig.action_t = 0.0; busy_until = now + 0.28; say("Ripe.", 1.4)
+			elif not fig.carrying:
+				fig.hold(town.make_item("can", Vector3.ZERO)); can_mine = true
+				fig.pose_request = "water"; town.water_row(row, now); busy_until = now + StickPoses.WATER_T + 0.3
+				say(["Mind the rows.", "Dry week.", "There."][uid % 3], 1.6)
+			else:
+				busy_until = now + randf_range(2.0, 4.0)
 		_:
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
@@ -379,6 +353,16 @@ func _arrive(now: float) -> void:
 					fig.pose_request = "pet"; fig.face(atan2((a["node"] as Node3D).global_position.x - global_position.x, (a["node"] as Node3D).global_position.z - global_position.z))
 					busy_until = now + 2.5
 					break
+
+## 한입(run 72) — 사람의 먹기와 같은 규칙: eat 자세, 한입마다 0.27 씩 작아지고 세 입이면 사라진다. 맞아서 떨어뜨리면(hit) 남은 입은 없다
+func _bite(now: float) -> void:
+	bites -= 1; bite_at = now + 0.9
+	if fig.carrying == null:
+		bites = 0; return
+	fig.pose_request = "eat"
+	fig.carrying.scale = Vector3.ONE * (1.0 - (3 - bites) * 0.27)
+	if bites <= 0:
+		fig.release(town, Vector3.ZERO).queue_free(); carrying_kind = ""; fig.pose_request = ""
 
 ## 집 앞이 아닌 곳(옆·뒤)에서 출발하면 집 모서리를 돌아 앞길로 나오는 경유지 — 벽 모서리에 막혀 문을 못 찾던 것(운영자 지적, 비 오는 날)
 func _approach(dr: Dictionary) -> Array:
@@ -396,40 +380,15 @@ func _approach(dr: Dictionary) -> Array:
 	out.append({ "pos": Vector3(dp.x, 0, front_z + 1.6), "act": "" })
 	return out
 
-## 자리 점유 — 벤치는 3칸, 나머지는 1칸. 비어 있는 칸 번호를 돌려주고 없으면 -1
-func _free_slot(sp: Dictionary) -> int:
-	var n := 3 if sp["kind"] == "bench" else (2 if sp["kind"] == "seesaw" else 1)
-	var taken: Array = sp.get("taken", [])
-	for i in n:
-		if i >= taken.size() or taken[i] == null or taken[i] == self: return i
-	return -1
-
-func _claim(sp: Dictionary, i: int) -> void:
-	var n := 3 if sp["kind"] == "bench" else (2 if sp["kind"] == "seesaw" else 1)
-	if not sp.has("taken") or (sp["taken"] as Array).size() < n:
-		var arr := []; arr.resize(n); sp["taken"] = arr
-	sp["taken"][i] = self
-
-func _release() -> void:
-	if spot.has("taken"):
-		var arr: Array = spot["taken"]
-		for i in arr.size():
-			if arr[i] == self: arr[i] = null
-
-var riding_swing: Dictionary = {}
-var pushing_swing: Dictionary = {}
-
 ## 그네 뒤로 가서 밀어 주기(사람이 타는데 안 밀 때 town 이 부르거나, 주민이 그네 자리에 왔는데 차 있을 때)
 func go_push(sw: Dictionary) -> void:
 	_release()   # 걸어가던(또는 방금 잡은 그네) 자리를 비운다 — 안 비우면 그 칸이 영영 '찬 자리'
 	pushing_swing = sw; sw["pusher"] = self
 	spot = { "kind": "push", "swing": sw }
-	route = [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
+	route = town.crossings(global_position, sw["at"]) + [{ "pos": sw["at"] + Vector3(0, 0, -1.1), "act": "" }]
 	target = route[0]["pos"]; state = "walk"
 	say(["Hold on.", "Here.", "Higher?"][uid % 3], 1.5)
 
-var riding_seesaw: Seesaw3D = null
-var _door_wait := -1.0
 
 ## 시소에서 튀어 오름 — 날아올랐다 발로 착지하고, 한마디
 func seesaw_launch(vy: float) -> void:
@@ -444,6 +403,9 @@ func _leave() -> void:
 	_release()
 	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
 	collision_layer = 4; collision_mask = 7
+	bites = 0   # 먹다 말고 떠나면(인사·비) 남은 빵은 든 채로 — 다음 자리에서 이어 먹진 않는다(앉은 채 먹는 자세가 아직 없다)
+	if can_mine and fig.carrying:
+		fig.release(town, Vector3.ZERO).queue_free(); can_mine = false   # 물뿌리개는 밭의 것 — 들고 돌아다니지 않는다
 	if not riding_swing.is_empty():
 		riding_swing["rider"] = null
 		global_position = riding_swing["at"] + Vector3(0, 0.02, 0.9); fig.pose_request = ""; fig.rotation.x = 0.0
@@ -461,54 +423,3 @@ func _leave() -> void:
 		target = route[0]["pos"]; state = "walk"
 		return
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 2.0)
-
-## 날아가기(차에 치임) — 속도 그대로 포물선을 그리고, 닿으면 stun 초 동안 기절했다 일어난다
-func launch(vel: Vector3, stun: float) -> void:
-	velocity = vel
-	down_until = Time.get_ticks_msec() / 1000.0 + stun
-	say(["Ow.", "Excuse me.", "I was walking."][uid % 3], 1.4)
-
-## 맞음 — from_dir 은 때린 방향(밀리는 쪽). heavy 면 바로 넘어진다; 아니면 3초 안에 세 대째에 넘어진다
-func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
-	var now := Time.get_ticks_msec() / 1000.0
-	if state == "down" or state == "getup":
-		return
-	quarry = by
-	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
-	if spot.get("kind", "") == "repair": (spot["crack"] as Dictionary)["by"] = null   # 수리 중 맞으면 금을 내려놓는다
-	_release(); collision_layer = 4; collision_mask = 7
-	if not riding_swing.is_empty(): riding_swing["rider"] = null; riding_swing = {}; fig.rotation.x = 0.0
-	if not pushing_swing.is_empty(): pushing_swing["pusher"] = null; pushing_swing = {}
-	if now - last_hit > 3.0: hits = 0
-	hits += 1; last_hit = now
-	fig.seated = false; fig.pose_request = ""
-	if state == "busy" and spot.get("kind", "") == "bench":
-		global_position += Vector3(0, 0, 0.3)
-	if heavy or hits >= 3:
-		hits = 0
-		state = "down"; down_until = now + 1.6
-		collision_layer = 0; collision_mask = 1   # 누운 몸은 차를 막지도 느끼지도 않는다(깔고 넘어간다) — 바닥은 계속 딛는다(mask 1)
-		fig.lying = true; fig.action = ""; fig.action_t = 0.0
-		fig.face(atan2(-from_dir.x, -from_dir.z))  # 때린 쪽을 보고 눕는다
-		velocity = from_dir * 3.5 + Vector3(0, 2.0, 0)
-		say(LINES_DOWN[uid % LINES_DOWN.size()], 1.6)
-		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
-			var it: Node3D = fig.release(town, global_position + from_dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0))
-			town.items.append(it); carrying_kind = ""
-	else:
-		fig.action = "flinch"; fig.action_t = 0.0
-		state = "busy"; busy_until = now + 0.3
-		velocity = from_dir * 1.6
-		if hits == 2: say(LINES_HIT[(uid + 1) % LINES_HIT.size()], 1.2)
-
-## flinch 진행은 busy 상태에서 town 이 아니라 여기서 돌린다
-func _process(_delta: float) -> void:
-	if fig.action == "flinch":
-		var now := Time.get_ticks_msec() / 1000.0
-		fig.action_t = 1.0 - (busy_until - now) / 0.3
-		if now >= busy_until:
-			fig.action = ""; fig.action_t = 0.0
-			if quarry and state == "busy" and randf() < 0.5:
-				state = "chase"; chase_until = now + 4.0
-			elif state == "busy":
-				state = "routine"; busy_until = now + 0.3

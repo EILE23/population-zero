@@ -56,16 +56,24 @@ func _awning(at: Vector3, w: float, d: float, c: Color) -> Node3D:
 	return n
 
 ## 창구 — 벽 앞의 나무 카운터(밝은 상판, 앞판 색띠), 줄무늬 차양, 간판, 진열된 물건. C 로 물건을 받는다(spots kind "counter")
-func _counter(at: Vector3, item: String, c: Color) -> void:
+func _counter(at: Vector3, item: String, c: Color, stock := 0) -> Dictionary:
 	_box(Vector3(1.2, 0.9, 0.5), at, _mat(Color("8a6a4a")))
 	_box(Vector3(1.3, 0.05, 0.6), at + Vector3(0, 0.9, 0), _mat(Color("e6d3a5")), false)   # 상판
 	_box(Vector3(1.0, 0.3, 0.02), at + Vector3(0, 0.3, 0.25), _mat(c), false)              # 앞판 색띠
 	_awning(at + Vector3(0, 1.95, -0.2), 1.6, 0.8, c)
 	_box(Vector3(0.9, 0.3, 0.05), at + Vector3(0, 2.15, -0.2), _mat(Color("7b526c")), false)   # 간판(테두리)
 	_box(Vector3(0.8, 0.2, 0.06), at + Vector3(0, 2.2, -0.2), _mat(Color("f7f4ef")), false)
+	var shown: Array = []
 	for i in 3:
-		var g := make_item(item, at + Vector3(-0.35 + i * 0.35, 0.95, 0.05)); items.erase(g)   # 진열용(집을 수 없음)
-	spots.append({ "pos": at + Vector3(0, 0, 0.8), "kind": "counter", "yaw": PI, "item": item })
+		var g := make_item(item, at + Vector3(-0.35 + i * 0.35, 0.95, 0.05)); items.erase(g); shown.append(g)   # 진열용(집을 수 없음)
+	var sp := { "pos": at + Vector3(0, 0, 0.8), "kind": "counter", "yaw": PI, "item": item }
+	if stock > 0:
+		# 재고(CI run 72): 진열된 것이 곧 재고 — 팔리면 하나씩 사라지고, 다 팔리면 "Sold out." 이 뜨고 빵집 주인이 반죽해 채운다
+		var sign := Label3D.new(); sign.text = "Sold out."; sign.font_size = 26; sign.pixel_size = 0.004; sign.modulate = Color("1b0c15")
+		sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED; sign.position = at + Vector3(0, 1.25, 0.3); sign.visible = false; _add(sign)
+		sp["stock"] = stock; sp["shown"] = shown; sp["sign"] = sign
+	spots.append(sp)
+	return sp
 
 ## 노점 — 나무 판매대(밝은 상판·앞 색띠), 기둥 둘, 줄무늬 차양, 물건 셋
 func _stall(at: Vector3, awning: Color) -> void:

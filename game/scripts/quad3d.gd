@@ -18,6 +18,7 @@ var look := false
 var sulk := false            # 맞은 뒤: 꼬리 내림(town 이 켜고 끈다)
 var _bang: Label3D
 var _bang_until := -1.0
+var carry := false          # 입에 뭔가 물고 간다(여우의 노획) — 고개를 들고 귀를 뒤로: 뛰는 사이클은 그대로, 머리만 다르다
 var _t := 0.0
 var _phase := 0.0
 var _act_t := 0.0
@@ -324,6 +325,7 @@ func _process(delta: float) -> void:
 		"bite": hp = 0.5 * sin(minf(_act_t, 0.5) / 0.5 * PI) - 0.3
 		"lie": hp = 0.45 if _act_t > 2.5 else 0.0   # 한참 엎드리면 턱을 앞발에 얹는다
 		"sit": hp = -0.1
+	if carry: hp = -0.3   # 입에 문 채(여우 노획, CI run 69): 고개를 든다
 	if moving: hp += cw * 0.06 * (1.0 if not run else 2.0); hy += sw * 0.04   # 걸음에 맞춰 고개가 까딱이고 살짝 좌우로
 	head.rotation.x = lerp_angle(head.rotation.x, hp, delta * 8.0)
 	head.rotation.y = lerp_angle(head.rotation.y, hy, delta * 8.0)
@@ -332,7 +334,7 @@ func _process(delta: float) -> void:
 	for i in ears.size():
 		var flick := 0.3 if fmod(_t * 0.7 + i, 4.0) < 0.15 else 0.0
 		var bounce := (absf(cw) * 0.12 if moving else 0.0) + (sin(_act_t * 40.0 + i * PI) * 0.4 if state == "shake" else 0.0)
-		(ears[i] as Node3D).rotation.x = lerpf((ears[i] as Node3D).rotation.x, -0.25 * (1.0 if look else 0.0) + flick + bounce + (0.8 if (state == "hurt" or sulk) else 0.0), delta * 10.0)
+		(ears[i] as Node3D).rotation.x = lerpf((ears[i] as Node3D).rotation.x, -0.25 * (1.0 if look else 0.0) + flick + bounce + (0.4 if carry else 0.0) + (0.8 if (state == "hurt" or sulk) else 0.0), delta * 10.0)
 	# 꼬리: 개는 흔들고(기쁘면 빨리, 걸으면 느슨하게 좌우), 고양이는 세워 끝을 말고, 여우는 낮게 곧게, 다람쥐는 세워서 떨림
 	match kind:
 		"dog":

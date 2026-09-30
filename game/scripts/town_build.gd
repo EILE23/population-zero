@@ -17,6 +17,7 @@ func _residents(n: int) -> void:
 		add_child(r)
 		r.setup(self, int(row["id"]), String(row["handle"]))
 		r.home_door = doors[i % doors.size()] if not doors.is_empty() else {}
+		r.job = String(r.home_door.get("job", ""))   # 문에 적힌 일자리(빵집 문 → "baker") — 일은 진짜 장소에 매인다(run 72)
 		r.position = Vector3(rng.randf_range(-WORLD_X + 4.0, WORLD_X - 4.0), 0.02, rng.randf_range(-2.0, 7.0))
 		residents.append(r)
 
@@ -173,7 +174,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var before := spots.size()
 	_interior(at, size, rng)
 	for k in range(before, spots.size()):
-		if spots[k]["kind"] == "chair": spots[k]["door"] = doors[doors.size() - 1]
+		if spots[k]["kind"] in ["chair", "bed", "shelf"]: spots[k]["door"] = doors[doors.size() - 1]   # 의자만 달아 줬더니 침대·선반은 문 없이 벽을 향해 곧장 걷다 포기했고, 밤엔 아무도 침대에서 못 잤다
 	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false, "shell": shell, "behind": false })
 
 ## 옮길 수 있는 가구 — 의자(앉는 자리 포함)·화분·소형 램프. 들면 충돌을 끄고, 놓으면 다시 켠다
@@ -286,8 +287,9 @@ func _market(at: Vector3) -> void:
 	for i in 4:
 		_stall(at + Vector3(-7.5 + i * 5.0, 0, -1.5), [Color("ad7096"), Color("7a9b4e"), Color("e8c766"), Color("8fb8cc")][i])
 	_house(at + Vector3(-6, 0, -8), Vector3(5.0, 2.8, 3.6), Color("e6d3a5"), "wood", false, 11)  # 빵집(집 생성기) — 지붕에 브랜드 분홍은 대면적 금지
+	doors[doors.size() - 1]["job"] = "baker"   # 이 문의 주민이 빵집 주인(_residents 가 읽는다) — 창구가 비면 화덕에서 반죽해 채운다(CI run 72)
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
-	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"))   # 빵집 창구(정면 왼쪽)
+	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"), 3)   # 빵집 창구(정면 왼쪽) — 빵 셋, 팔리면 준다. 화덕은 town3d._ready 가 문 오른쪽에(places 층이라 여선 못 부른다)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
 	_hatstand(at + Vector3(-9.6, 0, 4.5))   # 모자 거치대 — C 로 하나 집어 쓴다
 	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
@@ -310,6 +312,10 @@ func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 		"dog", "fox", "wolf", "deer":
 			# 외부 모델(Quaternius Ultimate Animated Animals, CC0) — Quad3D 와 같은 상태 API(운영자 2026-09-28: 외부 에셋으로)
 			var q := Animal3D.new(); q.setup(kind); n.add_child(q); data["quad"] = q
+			if kind == "fox":
+				# 굴(CI 2026-09-28, "쓰러진 사람 곁의 동물"): 집 자리 뒤에 흙 둔덕과 검은 입구 — 여우가 물어 간 것은 이 앞에 놓인다
+				var mound := MeshInstance3D.new(); var ms := SphereMesh.new(); ms.radius = 0.7; ms.height = 0.5; mound.mesh = ms; mound.material_override = _mat(Color("8a6a4a")); mound.position = at + Vector3(0, -0.02, -0.8); _add(mound)
+				var hole := MeshInstance3D.new(); var hs2 := SphereMesh.new(); hs2.radius = 0.24; hs2.height = 0.36; hole.mesh = hs2; hole.material_override = _mat(Color("1b0c15")); hole.position = at + Vector3(0, 0.1, -0.35); _add(hole)
 		"cat", "squirrel", "marten":
 			# 고양이·다람쥐·담비는 CC0 애니메이션 모델이 없어(Gobkit 마못은 너무 저품질) 절차 리그(quad3d.gd)
 			var q := Quad3D.new()
@@ -376,7 +382,7 @@ func _river() -> void:
 	for i in 3: _scatter("Mushroom_Common", Vector3(srng.randf_range(-12, 12), 0, srng.randf_range(15, 21)), 0.25)
 	spots.append({ "pos": Vector3(-5, 0, RIVER_Z + RIVER_HW + 0.6), "kind": "bank", "yaw": PI })
 	spots.append({ "pos": Vector3(6, 0, RIVER_Z - RIVER_HW - 0.6), "kind": "bank", "yaw": 0.0 })
-	_fence(Vector3(-16, 0, 22.5), 32.0)
+	_fence(Vector3(-16, 0, 24.5), 32.0)   # 뒤 울타리 — 텃밭(z 19.6..23.4) 뒤로
 
 ## 언덕(운영자 2026-09-29: 오르막 내리막) — 코사인 봉우리 높이장. 메시와 HeightMapShape3D 충돌체가 같은 격자라 보이는 대로 딛고 달린다
 func _hill(c: Vector3, r: float, h: float) -> void:

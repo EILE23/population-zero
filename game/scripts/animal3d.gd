@@ -23,6 +23,9 @@ var state := "idle"           # idle | walk | run | stalk | sit | lie | … (act
 var speed := 0.0              # m/s — 걷기·달리기 클립 속도에 맞춘다
 var look := false
 var look_at_pos := Vector3.ZERO
+var carry := false            # 입에 문 채(여우 노획, CI run 69) — town_systems._fox 가 켠다
+var head: Node3D              # 입 앞(물건을 무는 자리) — Head 뼈에 붙은 BoneAttachment3D
+var head_r := 0.1
 var sulk := false             # 맞은 뒤(귀·꼬리는 모델이라 못 내리지만 습성은 town 이 처리)
 var flying := false           # 새 호환
 var swimming := false
@@ -59,6 +62,13 @@ func setup(k: String) -> void:
 	_bang = Label3D.new(); _bang.text = "!"; _bang.font_size = 64; _bang.pixel_size = 0.003; _bang.modulate = Color("ff2d55")
 	_bang.outline_size = 10; _bang.outline_modulate = Color("f7f4ef"); _bang.billboard = BaseMaterial3D.BILLBOARD_ENABLED; _bang.no_depth_test = true
 	_bang.position = Vector3(0, height() + 0.3, 0); _bang.visible = false; add_child(_bang)
+	var sks := _model.find_children("*", "Skeleton3D", true, false)
+	head = Node3D.new()
+	if not sks.is_empty() and (sks[0] as Skeleton3D).find_bone("Head") >= 0:
+		var ba := BoneAttachment3D.new(); ba.bone_name = "Head"; (sks[0] as Skeleton3D).add_child(ba)
+		var inv := Node3D.new(); inv.scale = Vector3.ONE / float(_spec["scale"]); ba.add_child(inv); inv.add_child(head)   # 모델 스케일을 되돌려 물건이 제 크기로
+	else:
+		head.position = Vector3(0, height() * 0.8, 0.3); add_child(head)
 	# 머리 따라보기(HeadLook)는 얼굴이 찌그러져(운영자 2026-09-29) 시트로 검증하기 전엔 붙이지 않는다
 	_play("idle")
 

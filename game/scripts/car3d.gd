@@ -41,6 +41,7 @@ var _crash_at := -9.0
 var _slope_pitch := 0.0
 var _slope_roll := 0.0
 var _vy := 0.0
+var _grip_k := 1.0   # 뒤 접지력 배율 — 핸드브레이크로 내려가고 떼면 서서히 돌아온다
 ## 주민 운전(교통) — route 를 따라 돈다. 앞에 사람·차가 있으면 선다
 var ai := false
 var route: Array[Vector3] = []
@@ -108,14 +109,20 @@ func _physics_process(delta: float) -> void:
 	var speed_k := clampf(absf(v) / 5.0, 0.0, 1.0)
 	var max_yaw := lerpf(2.4, 1.15, speed_k)
 	var want_yaw := steer * max_yaw * clampf(absf(v) / 1.5, 0.0, 1.0) * (1.0 if v >= 0.0 else -1.0)
-	drifting = hb and absf(v) > 3.0
-	if drifting: want_yaw *= 1.6   # 핸드브레이크: 뒤가 돌아 나간다
-	yaw_rate = lerpf(yaw_rate, want_yaw, minf(1.0, delta * (6.0 if not drifting else 3.5)))
+	# 드리프트 물리(운영자 2026-09-29: 이상하게 동작) — 운동량은 세계 좌표에 남고 차체만 돈다: 돌기 전 속도 벡터를 새 앞·옆으로 다시 나눠 미끄러짐이 저절로 생긴다
+	# (전엔 속도가 차 앞방향에 붙어 같이 돌고 옆 속도만 따로 더해 제자리에서 도는 느낌이었다). 옆 접지력이 옆 속도를 죽이는데, 핸드브레이크면 뒤 접지력이 확 줄어
+	# 차가 옆으로 흘러가고, 떼면 0.4초에 걸쳐 접지력이 돌아와 자세를 잡는다. 드리프트 중 조향은 더 세게 먹어 카운터로 각을 잡을 수 있다
+	var fwd0 := -global_transform.basis.z; var right0 := global_transform.basis.x
+	var vel_h := fwd0 * v + right0 * side
+	_grip_k = move_toward(_grip_k, 0.22 if (hb and absf(v) > 3.0) else 1.0, delta / 0.4)
+	if _grip_k < 0.9: want_yaw *= 1.5
+	yaw_rate = lerpf(yaw_rate, want_yaw, minf(1.0, delta * (6.0 if _grip_k > 0.9 else 3.0)))
 	rotation.y -= yaw_rate * delta
-	# 옆 미끄러짐: 코너에서 원심력만큼 생기고 접지력이 잡아먹는다. 드리프트면 접지력이 확 준다
-	side += yaw_rate * v * delta * 0.9
-	side = move_toward(side, 0.0, (grip if not drifting else grip * 0.22) * delta)
-	side = clampf(side, -6.0, 6.0)
+	var nf := -global_transform.basis.z; var nr := global_transform.basis.x
+	v = vel_h.dot(nf); side = vel_h.dot(nr)
+	side = move_toward(side, 0.0, grip * _grip_k * delta)   # 옆 접지력
+	side = clampf(side, -9.0, 9.0)
+	drifting = absf(side) > 1.2 and absf(v) > 2.0      # 옆으로 흐르는 동안 스키드·먼지
 	var fwd := -global_transform.basis.z
 	var right := global_transform.basis.x
 	# 언덕: 바닥 기울기를 따라 달리고, 내리막은 빨라지고 오르막은 느려진다. 차체도 바닥에 맞춰 기운다

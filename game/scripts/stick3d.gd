@@ -20,10 +20,12 @@ var action_t := 0.0            # 동작 진행 0..1
 var punch_side := 1.0          # 연속기: 1.0 오른손, -1.0 왼손
 var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
-var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "" 
+var pose_request := ""         # 주민 일과용: "lean"(가로등) | "shake"(나무) | "water"(텃밭) | ... | "" — 자세 자체는 stick3d_poses.gd
 var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으로 갈 때 다리를 뻗는다
 var squash := 0.0             # jump stretch(+)/land squash(-), decays to 0
 var push_t := 9.0              # 밀기: 0 에서 시작해 1 까지(팔을 뻗었다 거둔다), 9 = 쉼
+var pose_t := 0.0              # 지금 pose_request 가 시작된 뒤 흐른 시간 — 자세마다 예비·유지·회수 타이밍(StickPoses). 자세가 바뀌면 0
+var _pose_prev := ""
 
 ## 대기 기지개(운영자 2026-09-28, "Stick3D feel"): 가만히 서 있을 때만 저절로 — 2D figure.gd 의 yawn·shrug·look 을 그대로
 var _fidget := ""              # "" | "yawn" | "shrug" | "look" — 서 있을 때만, 걷거나 동작 중이면 즉시 취소
@@ -31,14 +33,19 @@ var _fidget_t := 0.0
 var _fidget_next := randf_range(3.0, 8.0)   # 다음 기지개까지 남은 시간(초) — 인스턴스마다 무작위라 여럿이 동시에 하품하지 않는다
 
 var _phase := 0.0
-var _pose_prev := ""
 var _pose_since := 0.0
+const CI_POSES := ["water", "knead", "shade", "storm"]
 var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0
 
 func _process(delta: float) -> void:
 	_t += delta
+	if pose_request != _pose_prev:
+		if _pose_prev == "water": StickPoses.drops(self, false)   # 붓다 말고 자세가 풀리면 물방울도 끈다
+		_pose_prev = pose_request; pose_t = 0.0; _pose_since = _t
+	else:
+		pose_t += delta
 	var moving := move_dir.length_squared() > 0.0001 and speed > 0.05 and not seated
 	# 몸 방향 — 이동 방향으로 부드럽게(초당 약 10rad 로 수렴). 서 있으면 마지막 방향 유지
 	if moving:
@@ -107,8 +114,6 @@ func _process(delta: float) -> void:
 		# town 이 몸을 -0.22 내려 하반신은 물속에 감춰진다
 		pelvis.rotation.x = 1.4; lean = 0.0
 		pelvis.position.y = 0.3 + sin(_t * 2.2) * 0.01
-	if pose_request != _pose_prev:
-		_pose_prev = pose_request; _pose_since = _t
 	var pt := clampf((_t - _pose_since) / 0.8, 0.0, 1.0)   # 자세 진입 진행 0..1 (눕기 전환에 쓴다)
 	if pose_request == "sky" or pose_request == "rest":
 		# 눕기(2D sky·rest): 먼저 0.35초 쪼그려 앉듯 엉덩이를 내리고, 그다음 등을 굴려 눕는다 — 전엔 선 채로 툭 넘어갔다
@@ -117,6 +122,7 @@ func _process(delta: float) -> void:
 		pelvis.rotation.x = -1.5 * down
 		pelvis.position.y = lerpf(HIP_Y - 0.22 * crouch_k, 0.12 if pose_request == "sky" else 0.16, down)
 		lean = (0.6 * crouch_k) * (1.0 - down) + ((0.05 if pose_request == "sky" else 0.25) + sin(_t * 1.6) * 0.02) * down
+	if pose_request in CI_POSES: lean = StickPoses.lean(self, moving, delta, lean)   # 물주기·반죽·손차양·처마 비 구경(CI run 70~74) — stick3d_poses.gd
 	if lying:
 		pelvis.rotation.x = -1.45; lean = 0.1
 		pelvis.position.y = 0.12
@@ -132,6 +138,7 @@ func _process(delta: float) -> void:
 		neck.rotation.x -= 0.35  # 고개를 젖힌다(2D yawn 과 같은 방향)
 	elif _fidget == "look":
 		neck.rotation.y = sin(_fidget_t * 2.2) * 0.35  # 좌우로 둘러본다(2D look)
+	hand_r.rotation = Vector3.ZERO   # 손목은 블렌딩 대상이 아니다 — 물주기가 기울인 걸 프레임마다 되돌린다
 	for side in [-1.0, 1.0]:
 		var s: float = side
 		var hip: Node3D = hips[s]; var knee: Node3D = knees[s]
@@ -216,6 +223,8 @@ func _process(delta: float) -> void:
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
 			if s > 0.0: sh.rotation.x = -(2.7); sh.rotation.z = -0.35 + sin(_t * 9.0) * 0.25; el.rotation.x = -(0.5)
 			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
+		elif pose_request in CI_POSES and StickPoses.limbs(self, s, moving, sw, run_k):
+			pass
 		elif _fidget == "yawn":
 			# 하품(2D yawn): 한 팔이 입 쪽으로, 다른 팔은 늘어뜨린 채
 			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
@@ -268,7 +277,7 @@ func _process(delta: float) -> void:
 			sh.rotation.z = -s * 0.04                              # 몸에 붙임(평탄)
 			el.rotation.x = -(0.35)                                # 팔꿈치 살짝 굽힘
 	# 들고 있으면 오른팔은 앞으로 반쯤 들어 물건을 보인다(걸음 스윙 대신)
-	if carrying and not airborne:
+	if carrying and not airborne and not StickPoses.owns_right_arm(pose_request):   # 먹기·마시기·물주기는 오른손을 제 자리에 둔다(전엔 이 덮어쓰기가 입까지 가던 손을 도로 내렸다)
 		shoulders[1.0].rotation.x = -(0.55)
 		elbows[1.0].rotation.x = -(1.15)
 	# 잠깐의 동작 — 2D 자세를 그대로: 빨리 나갔다(35%) 천천히 돌아온다(65%). 공중에서도 된다(점프킥·점프 주먹)

@@ -1,6 +1,6 @@
 class_name TownBase
 extends Node3D
-## 마을의 상태와 공용 도우미 — 모든 마을 스크립트의 밑바탕(상속 사슬: base → build → systems → player → town3d).
+## 마을의 상태와 공용 도우미 — 모든 마을 스크립트의 밑바탕(상속 사슬: base → build → places → systems → player → town3d).
 ## 여기엔 상수·상태 변수와 재료·상자·구역 같은 기초 도우미만 둔다. 기능은 위 계층에.
 
 ## 3D 마을 시제품 — 오메가루비 식 3/4 시점(운영자 2026-09-28: "최소한 오메가루비 같은 퀄리티"). 전부 코드로 만든 기하:
@@ -23,7 +23,7 @@ const WALL := 0.16
 
 const WORLD_X := 46.0    # 세계 반폭(m): 서쪽 공원(-46..-16) · 마을(-16..16) · 동쪽 시장(16..46)
 
-const WORLD_Z := 24.0    # 세계 반깊이(m): 큰길 z≈2 · 북쪽 골목 z≈-13(집 세 채) · 남쪽 강 z≈11.5 와 돌다리 · 그 너머 초원 z 14..23(비전 2단계, 2026-09-28)
+const WORLD_Z := 26.0    # 세계 반깊이(m): 큰길 z≈2 · 북쪽 골목 z≈-13(집 세 채) · 남쪽 강 z≈11.5 와 돌다리 · 그 너머 초원 z 14..25(전망 언덕 포함)
 
 const RIVER_Z := 11.5    # 강 중심선(z). 동서로 세계 끝까지 흐른다(+x 로)
 const RIVER_HW := 1.5    # 강 반폭(m)
@@ -233,15 +233,11 @@ func in_water(p: Vector3) -> bool:
 	if water == null or not water.contains(p): return false
 	return not (absf(p.z - RIVER_Z) < RIVER_HW + 0.8 and absf(p.x) <= BRIDGE_HW + 0.2)   # 다리
 
-## 강 건너로 가는 경로면 다리 양끝을 앞에 끼운다 — 주민은 옷 입고 헤엄치지 않는다(빠지면 헤엄치지만)
+## 경로 앞에 끼울 경유지 — 다리·텃밭 문·전망 언덕 계단(town_places.crossings) + 연못을 돌아가는 길(water.detour). 주민 길찾기는 전부 여기로
 func via_bridge(from: Vector3, route: Array) -> Array:
 	if route.is_empty(): return route
 	var dest: Vector3 = route[0]["pos"]
-	if (from.z < RIVER_Z) != (dest.z < RIVER_Z):
-		var north := { "pos": Vector3(0, 0, RIVER_Z - RIVER_HW - 1.0), "act": "" }
-		var south := { "pos": Vector3(0, 0, RIVER_Z + RIVER_HW + 1.0), "act": "" }
-		route = ([north, south] if from.z < RIVER_Z else [south, north]) + route
-	return water.detour(from, route[0]["pos"]) + route   # 연못을 가로지르면 옆으로 돈다
+	return call("crossings", from, dest) + water.detour(from, dest) + route
 
 var pet_dog: Dictionary = {}
 
@@ -264,6 +260,23 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 		"bread":
 			var b2 := CapsuleMesh.new(); b2.radius = 0.06; b2.height = 0.24; mi.mesh = b2; mi.material_override = _mat(Color("b48a5a"))
 			mi.rotation.z = PI / 2.0; mi.position = at + Vector3(0, 0.06, 0)
+		"tomato", "cabbage", "pumpkin":
+			# 텃밭 작물(run 70) — 사과와 같은 구, 종류마다 색과 크기. 세 입에 먹는다(FOOD)
+			var cs := SphereMesh.new(); var cr: float = { "tomato": 0.07, "cabbage": 0.11, "pumpkin": 0.13 }[kind]; cs.radius = cr; cs.height = cr * 1.7
+			var cc: Color = { "tomato": Color("ff2d55"), "cabbage": Color("7fb05a"), "pumpkin": Color("d98a2a") }[kind]
+			mi.mesh = cs; mi.material_override = _mat(cc)
+			mi.position = at + Vector3(0, cr * 0.85, 0)
+		"can":
+			# 물뿌리개(run 70): 양철 몸통 + 앞으로 숙인 주둥이 + 손잡이, 주둥이 끝에 물방울 입자(붓는 동안만 — StickPoses.drops)
+			var cb := CylinderMesh.new(); cb.top_radius = 0.065; cb.bottom_radius = 0.075; cb.height = 0.15; mi.mesh = cb; mi.material_override = _mat(Color("6f8fa0"))
+			mi.position = at + Vector3(0, 0.075, 0)
+			var sp := _box(Vector3(0.03, 0.03, 0.2), Vector3(0, 0.02, 0.12), _mat(Color("6f8fa0")), false, mi); sp.rotation.x = -0.6
+			_box(Vector3(0.025, 0.025, 0.12), Vector3(0, 0.1, 0.0), _mat(Color("4a4a52")), false, mi)
+			var dr := CPUParticles3D.new(); dr.amount = 24; dr.lifetime = 0.55; dr.emitting = false; dr.local_coords = false
+			dr.direction = Vector3(0, -0.6, 0.6); dr.spread = 8.0; dr.initial_velocity_min = 0.5; dr.initial_velocity_max = 0.8; dr.gravity = Vector3(0, -7, 0)
+			dr.mesh = SphereMesh.new(); (dr.mesh as SphereMesh).radius = 0.012; (dr.mesh as SphereMesh).height = 0.024
+			var dm := StandardMaterial3D.new(); dm.albedo_color = Color("8fb8cc"); dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; dr.material_override = dm
+			dr.position = Vector3(0, 0.08, 0.24); mi.add_child(dr); mi.set_meta("drops", dr)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)
@@ -276,8 +289,6 @@ var pushing: Dictionary = {}   # 내가 밀어 주는 그네
 
 var shake_until := -1.0
 
-var bites := 0            # 사과 한입 수(3입이면 사라진다)
-
 var use_until := -1.0     # 먹기·마시기 자세가 끝나는 시각
 
 var reading := false      # 신문 읽는 중(움직이면 끝)
@@ -285,6 +296,8 @@ var reading := false      # 신문 읽는 중(움직이면 끝)
 var leaning := false      # 가로등에 기댄 중(움직이면 끝)
 
 const STEP := 0.42
+
+const FOOD := ["apple", "bread", "tomato", "cabbage", "pumpkin"]   # C 로 한입씩 먹는 것 — 텃밭 작물도(run 70)
 
 var _hud_at := 0.0
 

@@ -157,10 +157,12 @@ func _physics_process(delta: float) -> void:
 		var held := minf(THROW_MAX, now - throw_charge)
 		player.action_t = minf(0.44, held / 0.25 * 0.44)
 		if Input.is_action_just_released("hit") or not player.carrying:
-			var power := held / THROW_MAX
 			throw_charge = -1.0
-			action_until = now + 0.28; throw_at = now + 0.06
-			throw_power = power
+			if player.carrying:
+				action_until = now + 0.28; throw_at = now + 0.06
+				throw_power = held / THROW_MAX
+			else:
+				player.action = ""; player.action_t = 0.0   # 감는 동안 손이 비면(마지막 한입·모자 씀) 던질 게 없다 — 전엔 throw_at 이 남아 다음에 집는 것이 곧장 날아갔다
 	if action_until < now and throw_charge < 0.0 and not swimming:
 		if Input.is_action_just_pressed("hit"):
 			if grounded and not running:
@@ -189,10 +191,11 @@ func _physics_process(delta: float) -> void:
 				# 달리는 중 Z 는 강한 러닝 킥(넘어뜨림, 앞으로 크게 밀림); 공중은 점프킥; 서서는 보통 발차기
 				hit_kind = "runkick" if (grounded and running) else "kick"
 				push_at = now + 0.34 * 0.15; push_amount = 2.6 if hit_kind == "runkick" else (1.6 if not grounded else 1.0); push_lift = 0.0
-	if throw_at >= 0.0 and now >= throw_at and player.carrying:
+	if throw_at >= 0.0 and now >= throw_at:
 		throw_at = -1.0
-		var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
-		flying.append({ "node": it, "vel": fwd_dir() * lerpf(4.0, 11.0, throw_power) + Vector3(0, lerpf(2.2, 4.2, throw_power), 0) + Vector3(body.velocity.x, 0, body.velocity.z) * 0.5, "spin": randf_range(4.0, 9.0) })
+		if player.carrying:
+			var it := player.release(self, body.global_position + Vector3(0, 0.95, 0) + fwd_dir() * 0.35)
+			flying.append({ "node": it, "vel": fwd_dir() * lerpf(4.0, 11.0, throw_power) + Vector3(0, lerpf(2.2, 4.2, throw_power), 0) + Vector3(body.velocity.x, 0, body.velocity.z) * 0.5, "spin": randf_range(4.0, 9.0) })
 	if throw_charge >= 0.0:
 		pass  # 감는 중 — action_t 는 위에서
 	elif action_until >= now:
@@ -211,10 +214,10 @@ func _physics_process(delta: float) -> void:
 		shake_until = -1.0; player.pose_request = ""
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
-		if player.pose_request in ["eat", "drink", "wave", "pet"]: player.pose_request = ""
+		if player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead"]: player.pose_request = ""
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다(쪼그린 다리로 미끄러지던 리뷰 버그)
-	if (reading or leaning or resting) and dir != Vector3.ZERO:
+	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm"]) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
 			getup_until = now + 0.6; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 한 손으로 짚고 무릎을 세우는 0.6초(맞고 일어날 때와 같은 동작)
 		reading = false; leaning = false; resting = false; player.pose_request = ""
@@ -233,6 +236,9 @@ func _physics_process(delta: float) -> void:
 	_swings(delta)
 	_seesaws(delta)
 	_wind(delta)
+	# (_flow: CI 강 반짝임 — 우리 강은 water3d 가 흐른다)
+	_crops(now)
+	_bakery(now)
 
 ## 낮은 턱 오르기: 앞으로 가려는 만큼 움직여 보고 막히면, STEP 위에서 같은 이동이 되는지 본 뒤 올라선다(그 자리엔 바닥이 있어야 한다)
 func _step_up(motion: Vector3) -> void:
@@ -291,14 +297,20 @@ func _interact_check(now: float) -> void:
 		return
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
-		if kind == "apple" or kind == "bread":
-			# 먹기: 한 번에 한입, 세 입이면 사라진다(운영자: 상호작용은 끝까지)
-			bites += 1; player.pose_request = "eat"; use_until = now + 0.9; action_until = now + 0.9
+		if kind in FOOD:
+			# 먹기: 한 번에 한입, 한입마다 작아지고 세 입이면 사라진다(운영자: 상호작용은 끝까지). 한입 수는 물건에 붙는다 — 전엔 전역이라 사과를 바꿔 들어도 이어졌다
+			var food := player.carrying
+			var bites := int(food.get_meta("bites", 0)) + 1
+			food.set_meta("bites", bites); food.scale = Vector3.ONE * (1.0 - bites * 0.27)
+			player.pose_request = "eat"; use_until = now + 0.9; action_until = now + 0.9
 			if bites >= 3:
-				bites = 0; var core := player.carrying; player.release(self, Vector3.ZERO); core.queue_free()
+				player.release(self, Vector3.ZERO); food.queue_free()
 			return
 		if kind == "cup":
 			player.pose_request = "drink"; use_until = now + 1.2; action_until = now + 1.2
+			return
+		if kind == "can" and not near_plot(p).is_empty():
+			garden_use(near_plot(p), now)   # 물뿌리개 들고 이랑 앞 C = 물 주기(전엔 아래 '내려놓기'가 먼저 잡아 물뿌리개를 바닥에 떨궜다)
 			return
 		if kind == "paper":
 			reading = not reading; player.pose_request = "read" if reading else ""
@@ -309,11 +321,11 @@ func _interact_check(now: float) -> void:
 			var d0 := p.distance_to(it.global_position)
 			if d0 < nd: near_it = it; nd = d0
 		if near_it and player.pocket.size() < 2 and near_it != last_dropped:   # 방금 내려놓은 건 다시 안 집는다(리뷰 버그: 두 개를 한 자리에 못 놓았다)
-			items.erase(near_it); player.hold(near_it); bites = 0
+			items.erase(near_it); player.hold(near_it)
 			player.action = "grab"; action_until = now + 0.4
 			return
 		var item := player.release(self, p + fwd * 0.5 + Vector3(0, 0.08, 0))
-		items.append(item); bites = 0; last_dropped = item
+		items.append(item); last_dropped = item
 		player.action = "grab"; action_until = now + 0.4
 		return
 	var best: Dictionary = {}; var best_d := 9.0
@@ -342,13 +354,11 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if sp["kind"] != "hatstand": continue
-		var d9: float = p.distance_to(sp["pos"])
-		if d9 < 1.1 and d9 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "hatstand", "spot": sp }; best_d = d9
-	for sp in spots:
-		if sp["kind"] != "counter": continue
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양)
 		var d8: float = p.distance_to(sp["pos"])
-		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "counter", "spot": sp }; best_d = d8
+		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": sp["kind"], "spot": sp }; best_d = d8
+	var pl := near_plot(p)
+	if not pl.is_empty() and plot_dist(p, pl) < best_d: best = { "kind": "plot", "spot": pl }; best_d = plot_dist(p, pl)
 	for c in cars:
 		var dc: float = p.distance_to(c.global_position)
 		if dc < 1.9 and dc < best_d and c.driver == null and carrying_big.is_empty(): best = { "kind": "car", "car": c }; best_d = dc
@@ -376,12 +386,12 @@ func _interact_check(now: float) -> void:
 			var kinds := ["cap", "straw", "tophat", "beanie", "glasses", "sunglasses", "backpack", "scarf"]
 			var h := make_wearable(kinds[randi() % kinds.size()], body.global_position, Wear.palette(randi() % 6))
 			player.hold(h); player.action = "grab"; action_until = now + 0.4
+		"plot":
+			garden_use(best["spot"], now)   # 텃밭: 물뿌리개를 들었으면 물 주기, 빈손이면 익은 것 따기(town_places)
 		"counter":
-			# 창구: 커피(카페) 또는 빵(빵집)을 받는다 — 지금은 공짜, 코인 결제는 다음 조각
-			var sp: Dictionary = best["spot"]
-			player.face(sp["yaw"])
-			var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
-			player.hold(it); player.action = "grab"; action_until = now + 0.4
+			counter_use(best["spot"], now)   # 창구: 빵(재고 셋, 비면 "Sold out.")이나 컵을 받는다 — 지금은 공짜, 코인 결제는 다음 조각(town_places)
+		"oven":
+			oven_use(best["spot"], now)   # 화덕: 반죽 한 바퀴(knead 자세)로 창구에 빵 하나 — 빵집 주인이 하는 것과 같은 자세·같은 효과(town_places)
 		"car":
 			_enter_car(best["car"], now)
 		"seesaw":
@@ -392,7 +402,7 @@ func _interact_check(now: float) -> void:
 		"swing":
 			var sw: Dictionary = best["swing"]
 			if not riding.is_empty():
-				riding = {}; player.pose_request = ""; body.velocity = Vector3(0, 1.5, 0.8)
+				dismount(); body.velocity = Vector3(0, 1.5, 0.8)
 			elif sw["rider"] is Node:
 				# 주민이 타고 있다 → 뒤에 서서 밀어 준다
 				pushing = sw; sw["pusher"] = "player"
@@ -435,6 +445,10 @@ func _interact_check(now: float) -> void:
 			# 가로등에 기대기(2D lean) — 움직이면 풀린다
 			var sp: Dictionary = best["spot"]
 			leaning = true; player.pose_request = "lean"; player.face(sp["yaw"])
+		"lookout":
+			# 전망 언덕의 전망 자리(run 73): 난간 앞에서 손차양(shade) — 움직이면 풀린다. 주민도 같은 자리에서 같은 자세(resident.gd)
+			var sp: Dictionary = best["spot"]
+			player.pose_request = "shade"; player.face(sp["yaw"])
 		"resident":
 			# 인사: 손을 흔들면 주민이 돌아보고 답한다
 			var r: Node3D = best["node"]
@@ -453,22 +467,32 @@ func _interact_check(now: float) -> void:
 				break
 		"item":
 			var it: Node3D = best["node"]
-			if player.hold(it): items.erase(it); bites = 0
+			if player.hold(it): items.erase(it)
 			player.action = "grab"; action_until = now + 0.4
 		"door":
-			set_door(best["door"], not best["door"]["open"])
+			var dr: Dictionary = best["door"]
+			set_door(dr, not dr["open"])   # 문 여닫기는 그대로(항상) — 아래는 덧붙는 자세일 뿐
+			if weather == "rain" and not dr["open"] and p.z > (dr["pos"] as Vector3).z + 0.2:
+				# 비 오는 날 밖에서 문을 닫으면 처마 밑에서 비 구경(storm, run 74) — 움직이면 풀린다. 주민도 비 오는 문 앞에서 같은 자세(resident.gd _storm)
+				player.pose_request = "storm"; player.face(0.0)
 		"bench":
 			var b: Dictionary = best["bench"]
+			# 세 자리(왼·가운데·오른쪽) 중 주민이 안 앉은 칸에서 지금 선 곳에 가장 가까운 자리 — 가운데만 고집하지 않고, 주민 무릎 위에도 앉지 않는다
+			var taken: Array = []
+			for sp in spots:
+				if sp["kind"] == "bench" and sp["pos"] == b["pos"]: taken = sp.get("taken", []); break
+			var best_slot: Vector3 = b["pos"]; var bd := 99.0
+			for i in 3:
+				if i < taken.size() and taken[i] != null: continue
+				var off: float = [-0.45, 0.0, 0.45][i]
+				var slot: Vector3 = b["pos"] + Vector3(cos(b["yaw"]) * off, 0, -sin(b["yaw"]) * off)
+				var d := body.global_position.distance_to(slot)
+				if d < bd: bd = d; best_slot = slot
+			if bd == 99.0: return   # 꽉 찬 벤치
 			seat = b
 			player.seated = true
 			player.move_dir = Vector3.ZERO; player.speed = 0.0
 			body.velocity = Vector3.ZERO
-			# 세 자리(왼·가운데·오른쪽) 중 지금 선 곳에서 가장 가까운 자리에 앉는다 — 가운데만 고집하지 않는다
-			var best_slot: Vector3 = b["pos"]; var bd := 99.0
-			for off in [-0.45, 0.0, 0.45]:
-				var slot: Vector3 = b["pos"] + Vector3(cos(b["yaw"]) * off, 0, -sin(b["yaw"]) * off)
-				var d := body.global_position.distance_to(slot)
-				if d < bd: bd = d; best_slot = slot
 			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
 			tw.tween_property(body, "position", best_slot + Vector3(0, 0.05, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
 			player.face(b["yaw"])
