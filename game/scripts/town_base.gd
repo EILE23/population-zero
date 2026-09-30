@@ -95,6 +95,7 @@ var residents: Array = []
 
 var combo := 0                  # 연속기 단계(0 왼 잽 → 1 오른 스트레이트 → 2 왼 훅)
 
+var kick_chain_until := -1.0    # 발차기 연속 창 — 이 시각 전에 Z 면 다음 단계
 var combo_open_until := -1.0    # 이 시각 안에 다시 누르면 다음 타
 
 var hit_kind := ""              # 이번 타격의 종류(맞히기 판정용): punch | kick | jet | air

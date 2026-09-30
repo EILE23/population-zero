@@ -7,6 +7,8 @@ extends RefCounted
 
 const PUNCH_T := 0.34
 const KICK_T := 0.5
+const ROUND_T := 0.62
+const CHAIN_WINDOW := 0.35   # 이 안에 다시 누르면 다음 발차기
 const FLINCH_T := 0.35
 const GETUP_T := 1.0
 
@@ -33,17 +35,34 @@ static func punch(f: Stick3D, a: float) -> void:
 	f.hips[os].rotation.x = -(0.3 + 0.15 * kp); f.knees[os].rotation.x = -(-0.35 - 0.1 * kp)
 	f.pelvis.position.y = Stick3D.HIP_Y - 0.03 - 0.03 * kp
 
-## 앞차기: 무릎을 가슴까지 끌어올리고(예비), 발바닥으로 곧게 밀어 차고, 멈췄다가, 무릎을 다시 접어 내린다. 팔은 벌려 균형, 상체는 뒤로
+## 발차기 연속(운영자 2026-09-30: "발차기도 연속동작"): 누를 때마다 오른발 앞차기 → 왼발 앞차기 → 돌려차기. f.kick_step 0·1·2
 static func kick(f: Stick3D, a: float) -> void:
+	if f.kick_step == 2: roundhouse(f, a); return
+	var ks := 1.0 if f.kick_step == 0 else -1.0; var ss := -ks   # 차는 발, 디딤발
 	var chamber := smoothstep(0.0, 1.0, a / 0.3) if a < 0.3 else (1.0 if a < 0.72 else 1.0 - smoothstep(0.0, 1.0, (a - 0.72) / 0.28))
-	var extend := strike_k(a, 0.3, 0.42, 0.62) if a >= 0.3 else 0.0
-	extend = maxf(extend, 0.0)
-	f.hips[1.0].rotation.x = -(1.5 * chamber + 0.2 * extend); f.knees[1.0].rotation.x = -(-2.0 * chamber * (1.0 - extend))
-	f.hips[-1.0].rotation.x = -(-0.1 * chamber); f.knees[-1.0].rotation.x = -(-0.25 * chamber)
+	var extend := maxf(strike_k(a, 0.3, 0.42, 0.62), 0.0) if a >= 0.3 else 0.0
+	f.hips[ks].rotation.x = -(1.5 * chamber + 0.2 * extend); f.knees[ks].rotation.x = -(-2.0 * chamber * (1.0 - extend))
+	f.hips[ss].rotation.x = -(-0.1 * chamber); f.knees[ss].rotation.x = -(-0.25 * chamber)
 	f.torso.rotation.x = -0.25 * chamber - 0.15 * extend; f.neck.rotation.x = 0.2 * chamber
-	f.shoulders[1.0].rotation.x = -(0.3); f.shoulders[1.0].rotation.z = -0.9 * chamber; f.elbows[1.0].rotation.x = -(0.8)
-	f.shoulders[-1.0].rotation.x = -(0.7 * chamber); f.shoulders[-1.0].rotation.z = 0.7 * chamber; f.elbows[-1.0].rotation.x = -(1.2)
+	f.pelvis.rotation.y = -ks * 0.15 * extend
+	f.shoulders[ks].rotation.x = -(0.3); f.shoulders[ks].rotation.z = -ks * 0.9 * chamber; f.elbows[ks].rotation.x = -(0.8)
+	f.shoulders[ss].rotation.x = -(0.7 * chamber); f.shoulders[ss].rotation.z = -ss * 0.7 * chamber; f.elbows[ss].rotation.x = -(1.2)
 	f.pelvis.position.y = Stick3D.HIP_Y - 0.04 * chamber
+
+## 돌려차기(마무리): 디딤발(왼)을 축으로 골반을 90° 돌리며 오른 무릎을 옆으로 들어 올리고, 정강이를 채찍처럼 휘둘러 옆에서 친 뒤 몸이 반 바퀴 더 돌아 되돌아온다
+static func roundhouse(f: Stick3D, a: float) -> void:
+	var lift := smoothstep(0.0, 1.0, a / 0.3) if a < 0.3 else (1.0 if a < 0.7 else 1.0 - smoothstep(0.0, 1.0, (a - 0.7) / 0.3))
+	var snap := maxf(strike_k(a, 0.3, 0.44, 0.6), 0.0) if a >= 0.3 else 0.0
+	var turn := smoothstep(0.0, 1.0, a / 0.45) * (1.0 - smoothstep(0.0, 1.0, (a - 0.7) / 0.3))
+	f.pelvis.rotation.y = -1.4 * turn
+	f.pelvis.rotation.z = 0.25 * lift   # 살짝 옆으로 누우며 다리를 높인다
+	f.hips[1.0].rotation.x = -(1.75 * lift); f.hips[1.0].rotation.z = -0.35 * lift   # 허리 높이로 — 옆(z)으로 크게 돌리면 낮은 쓸기처럼 보였다
+	f.knees[1.0].rotation.x = -(-1.9 * lift * (1.0 - snap))
+	f.hips[-1.0].rotation.x = -(0.1); f.knees[-1.0].rotation.x = -(-0.3 * lift)
+	f.torso.rotation.z = -0.35 * lift; f.torso.rotation.y = 0.6 * turn; f.neck.rotation.y = 0.9 * turn
+	f.shoulders[1.0].rotation.x = -(-0.4 * lift); f.shoulders[1.0].rotation.z = -1.0 * lift; f.elbows[1.0].rotation.x = -(0.6)
+	f.shoulders[-1.0].rotation.x = -(1.0 * lift); f.shoulders[-1.0].rotation.z = 0.4; f.elbows[-1.0].rotation.x = -(1.8)
+	f.pelvis.position.y = Stick3D.HIP_Y - 0.03 * lift
 
 ## 맞기: 맞은 쪽으로 머리가 먼저 젖혀지고(0.08초) 상체·골반이 따라 밀렸다가 돌아온다. 팔은 반사적으로 얼굴 앞, 무릎이 꺾인다
 static func flinch(f: Stick3D, a: float) -> void:

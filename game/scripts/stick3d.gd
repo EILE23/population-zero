@@ -18,6 +18,7 @@ var jet := false               # 제트킥 비행 중(온몸이 앞으로 쏠린
 var action := ""               # "punch" | "kick" | "grab" | "" — 잠깐의 동작
 var action_t := 0.0            # 동작 진행 0..1
 var punch_side := 1.0          # 연속기: 1.0 오른손, -1.0 왼손
+var kick_step := 0            # 발차기 연속 단계 0 오른 앞차기 · 1 왼 앞차기 · 2 돌려차기
 var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
 var _was_lying := false

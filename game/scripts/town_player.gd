@@ -179,10 +179,12 @@ func _physics_process(delta: float) -> void:
 			push_at = now + FightPoses.PUNCH_T * 0.32; push_amount = 0.5 if grounded else 1.2; push_lift = 0.0
 			hit_kind = "punch"
 		elif Input.is_action_just_pressed("kick"):
-			# 앞차기 하나 — 무릎 끌어올려 발바닥으로 민다. 0.5초, 맞으면 넘어진다
-			player.action = "kick"; action_until = now + FightPoses.KICK_T
-			push_at = now + FightPoses.KICK_T * 0.4; push_amount = 0.4; push_lift = 0.0
-			hit_kind = "kick"
+			# 발차기 연속: 끝난 뒤 CHAIN_WINDOW 안에 또 누르면 다음 단계(오른 앞차기 → 왼 앞차기 → 돌려차기), 늦으면 처음부터
+			player.kick_step = (player.kick_step + 1) % 3 if now < kick_chain_until else 0
+			var kt := FightPoses.ROUND_T if player.kick_step == 2 else FightPoses.KICK_T
+			player.action = "kick"; action_until = now + kt; kick_chain_until = action_until + FightPoses.CHAIN_WINDOW
+			push_at = now + kt * 0.42; push_amount = 0.6 if player.kick_step == 2 else 0.4; push_lift = 0.0
+			hit_kind = "round" if player.kick_step == 2 else "kick"
 	if throw_at >= 0.0 and now >= throw_at:
 		throw_at = -1.0
 		if player.carrying:
@@ -196,7 +198,7 @@ func _physics_process(delta: float) -> void:
 		elif jet:
 			player.action_t = 0.35
 		else:
-			var dur := FightPoses.PUNCH_T if player.action == "punch" else (FightPoses.KICK_T if player.action == "kick" else 0.4)
+			var dur := FightPoses.PUNCH_T if player.action == "punch" else ((FightPoses.ROUND_T if player.kick_step == 2 else FightPoses.KICK_T) if player.action == "kick" else 0.4)
 			player.action_t = 1.0 - (action_until - now) / dur
 	else:
 		player.action = ""; player.action_t = 0.0
