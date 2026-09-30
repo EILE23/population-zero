@@ -217,6 +217,16 @@ func _process(delta: float) -> void:
 			hip.rotation.x = -(0.35 if s > 0.0 else -0.1); knee.rotation.x = -(-0.6 if s > 0.0 else -0.1)
 			if s > 0.0: sh.rotation.x = -(1.2 + hk * 1.3); sh.rotation.z = -0.15; el.rotation.x = -(0.4 + hk * 0.8)
 			else: sh.rotation.x = -(1.35); sh.rotation.z = 0.1; el.rotation.x = -(0.25)
+		elif pose_request == "drive":
+			# 운전: 앉아서 두 손으로 핸들(가슴 앞), 가끔 한 손이 기어로 — 다리는 앉은 자세
+			hip.rotation.x = -(1.5); knee.rotation.x = -(-1.45)
+			var gear := 1.0 if (s > 0.0 and fmod(_t, 7.0) < 0.6) else 0.0
+			sh.rotation.x = -(1.25 - 0.6 * gear); sh.rotation.z = -s * 0.25; el.rotation.x = -(1.0 + 0.4 * gear)
+		elif pose_request == "talk":
+			# 수다: 한 손은 말하며 휘젓고(느린 원), 다른 손은 허리에. 가끔 어깨 으쓱
+			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			if s > 0.0: sh.rotation.x = -(0.6 + sin(_t * 3.1) * 0.35); sh.rotation.z = -0.3 - cos(_t * 3.1) * 0.15; el.rotation.x = -(1.3 + sin(_t * 2.3) * 0.3)
+			else: sh.rotation.x = -(0.3); sh.rotation.z = 0.55; el.rotation.x = -(1.7)
 		elif pose_request == "pet":
 			# 쓰다듬기: 쪼그려 앉아(두 무릎 깊이 굽힘, 상체 앞으로) 오른손이 등을 앞뒤로 쓸고, 왼손은 무릎에
 			var stroke := sin(_t * 5.5) * 0.25

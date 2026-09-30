@@ -1,20 +1,12 @@
 extends SceneTree
-## 문 닫기 확인: 주민 하나를 집 안 의자로 보내고 문 상태를 시간 순으로 찍는다
 func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
-	await process_frame
-	var r = town.residents[2]
-	var chair: Dictionary = {}
-	for sp in town.spots: if sp["kind"] == "chair" and sp.has("door"): chair = sp; break
-	var dr: Dictionary = chair["door"]
-	r.global_position = dr["pos"] + Vector3(0, 0.02, 3.0); r._release(); r.spot = chair; r.slot = 0; r._claim(chair, 0); r.door_ref = dr
-	var dp: Vector3 = dr["pos"]
-	r.route = r._approach(dr) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -1.3), "act": "close" }, { "pos": chair["pos"] + Vector3(0, 0, 0.35), "act": "" }]
-	r.target = r.route[0]["pos"]; r.state = "walk"
-	var last := ""
-	for i in 900:
-		await physics_frame
-		var st := "%s door=%s tgt=%s" % [r.state, str(dr["open"]), str(r.target - dp)]
-		if st != last or i % 60 == 0: print("PROBE t=%.1f %s pos=%s" % [i / 60.0, st, str(r.global_position - dp)]); last = st
-		if i == 400 and r.state == "busy": r.busy_until = 0.0
+	await process_frame; await physics_frame
+	var space := (town as Node3D).get_world_3d().direct_space_state
+	for x in [44.0, 45.0, 45.5, 46.0, 46.5, 47.0, 48.0]:
+		var q := PhysicsShapeQueryParameters3D.new(); var sh := BoxShape3D.new(); sh.size = Vector3(0.5, 2.0, 2.4); q.shape = sh
+		q.transform = Transform3D(Basis(), Vector3(x, 1.0, 2.6)); q.collision_mask = 0xFFFF
+		for h in space.intersect_shape(q, 4):
+			var o: Node = h["collider"]; var cs: CollisionShape3D = o.get_child(0) if o.get_child_count() > 0 else null
+			print("PROBE x=", x, " ", o.name, " pos=", (o as Node3D).global_position, " shape=", cs.shape if cs else null, " size=", (cs.shape as BoxShape3D).size if cs and cs.shape is BoxShape3D else "", " parent=", o.get_parent().name)
 	quit()

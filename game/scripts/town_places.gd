@@ -314,3 +314,36 @@ func umbrella_use(now: float) -> void:
 			return
 	player.pose_request = "" if player.pose_request == "umbr" else "umbr"
 	action_until = now + StickPoses.UMBR_T
+
+## 동쪽 마을(운영자 2026-09-30: "마을 좀 확장해 나가자") — 시장 동쪽 끝(x 46)을 지나 큰길이 이어지는 둘째 동네.
+## 분수 광장(물 애셋 원 + 돌 받침 + 물줄기), 광장을 둘러싼 집 넷(북쪽 둘은 골목을 보고, 남쪽 둘은 광장을 본다 — 새 집마다 주인이 생긴다),
+## 주차장(선 그은 아스팔트, 세워 둔 차 둘), 벤치·가로등·나무. 주민 일과가 자리를 쓰니 사람들이 걸어서, 차로 온다
+func _east(at: Vector3) -> void:
+	var plaza := MeshInstance3D.new(); var pm := BoxMesh.new(); pm.size = Vector3(14, 0.02, 10); plaza.mesh = pm
+	plaza.material_override = _mat(Color("d8d2cc"), _tex("ground/cobble"), Vector3(14 / 0.8, 10 / 0.8, 1)); plaza.position = at + Vector3(0, 0.01, -3.5); _add(plaza)
+	# 분수: 물 원(헤엄 판정도 된다 — 발 담그기) + 돌 테두리는 물 애셋이, 가운데 돌 기둥과 솟는 물줄기
+	water.disc(at + Vector3(0, 0, -3.5), 1.8)
+	_box(Vector3(0.5, 0.9, 0.5), at + Vector3(0, 0, -3.5), _mat(Color("bfb6b0")))
+	var jet := CPUParticles3D.new(); jet.amount = 60; jet.lifetime = 1.1; jet.direction = Vector3.UP; jet.spread = 14.0
+	jet.initial_velocity_min = 3.2; jet.initial_velocity_max = 3.8; jet.gravity = Vector3(0, -9.0, 0)
+	var dm := SphereMesh.new(); dm.radius = 0.04; dm.height = 0.08; dm.radial_segments = 6; dm.rings = 3; jet.mesh = dm
+	var jm := StandardMaterial3D.new(); jm.albedo_color = Color(0.8, 0.9, 0.96, 0.85); jm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; jm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	jet.material_override = jm; jet.position = at + Vector3(0, 0.95, -3.5); _add(jet)
+	spots.append({ "pos": at + Vector3(0, 0, -1.2), "kind": "bank", "yaw": PI })       # 분수 보기
+	spots.append({ "pos": at + Vector3(2.4, 0, -3.5), "kind": "bank", "yaw": -PI / 2.0 })
+	_bench(at + Vector3(-4.5, 0, -0.1)); _bench(at + Vector3(4.5, 0, -0.1))
+	_lamp(at + Vector3(-6.5, 0, 0.9)); _lamp(at + Vector3(6.5, 0, 0.9)); _lamp(at + Vector3(0, 0, -8.7))
+	# 집 넷 — 시드가 다르니 층수·벽·지붕·창이 다 다르다
+	_house(at + Vector3(-7.5, 0, -11.5), Vector3(4.2, 2.7, 3.4), Color("e6d3a5"), "brick", false, 21)
+	_house(at + Vector3(0.5, 0, -12.5), Vector3(4.6, 2.9, 3.6), Color("dfe6ea"), "wood", false, 22)
+	_house(at + Vector3(8.5, 0, -11.5), Vector3(3.8, 2.6, 3.2), Color("efe9e2"), "shingle", false, 23)
+	_house(at + Vector3(-10, 0, -5.0), Vector3(3.6, 2.6, 3.2), Color("b56a5a"), "wood", false, 24)
+	_path(at + Vector3(0, 0, -7.1), at + Vector3(0, 0, -10.7), 1.6)   # 광장에서 북쪽 집 현관으로
+	for t in [Vector3(-12, 0, -9.0), Vector3(12.5, 0, -7.5), Vector3(11, 0, 3.0), Vector3(-12.5, 0, 3.0)]:
+		_tree(at + t, 1.0 + fmod(absf(t.x) * 0.31, 0.4))
+	# 주차장: 광장 동쪽, 어두운 아스팔트에 흰 선 넷, 세워 둔 차 둘
+	var lot := at + Vector3(12, 0, -3.5)
+	_box(Vector3(6.5, 0.02, 7.5), lot, _mat(Color("5b5b63")), false)
+	for i in 4: _box(Vector3(0.08, 0.025, 3.0), lot + Vector3(-2.4 + i * 1.6, 0.0, -1.8), _mat(Color("f7f4ef")), false)
+	_car("van", lot + Vector3(-1.6, 0, -4.3), 0.0); _car("sedan", lot + Vector3(1.6, 0, -4.3), 0.0)
+	_fence(at + Vector3(-14, 0, -15.5), 28.0)   # 동네 뒤 울타리

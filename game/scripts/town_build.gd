@@ -21,6 +21,15 @@ func _residents(n: int) -> void:
 		r.position = Vector3(rng.randf_range(-WORLD_X + 4.0, WORLD_X - 4.0), 0.02, rng.randf_range(-2.0, 7.0))
 		residents.append(r)
 
+## 운전사 — 주민이 차는 운전하는 차(ai)마다 한 명씩 운전석에 앉는다(운영자 2026-09-30: "주민들이 차 운전도 하나?" — 전엔 빈 차가 혼자 굴렀다)
+func _hire_drivers() -> void:
+	var k := 0
+	for c in cars:
+		if not c.ai: continue
+		while k < residents.size() and (residents[k].job != "" or residents[k].uid % 6 == 0): k += 1   # 빵집 주인·수리공은 제 일이 있다
+		if k >= residents.size(): return
+		residents[k].drive(c); k += 1
+
 func _light() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
@@ -292,7 +301,7 @@ func _market(at: Vector3) -> void:
 	_house(at + Vector3(5, 0, -8), Vector3(4.2, 2.6, 3.4), Color("f7f4ef"), "brick", false, 12)      # 카페
 	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"), 3)   # 빵집 창구(정면 왼쪽) — 빵 셋, 팔리면 준다. 화덕은 town3d._ready 가 문 오른쪽에(places 층이라 여선 못 부른다)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
-	_hatstand(at + Vector3(-9.6, 0, 4.5))   # 모자 거치대 — C 로 하나 집어 쓴다
+	_hatstand(at + Vector3(-11.5, 0, -3.5))   # 모자 거치대 — C 로 하나 집어 쓴다
 	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
 	_bin(at + Vector3(-9.5, 0, -0.5)); _bin(at + Vector3(9.5, 0, -0.5))
 	_bench(at + Vector3(0, 0, 5.5))

@@ -10,6 +10,7 @@ func _ready() -> void:
 	_path(Vector3(-WORLD_X, 0, 2), Vector3(WORLD_X, 0, 2), 2.4)  # 큰길: 공원 ↔ 마을 ↔ 시장
 	_district("park", Vector3(-31, 0, -2), _park)
 	_district("market", Vector3(31, 0, -2), _market)
+	_district("east", Vector3(59, 0, -1), _east)   # 동쪽 마을(2026-09-30)
 	_district("shops", Vector3(31, 0, -2), _shops)   # 화덕(run 72)과 우산꽂이(run 76) — 시장과 같은 중심이라 같이 켜고 꺼진다
 	_sun = get_node_or_null("Sun")
 	_path(Vector3(0, 0, 0.8), Vector3(0, 0, -3.6), 2.0)    # 큰길 가장자리에서 가운데 집 현관까지(도로와 겹치면 이음새; 전엔 집 밑을 지나 -10 까지 갔다)
@@ -27,7 +28,7 @@ func _ready() -> void:
 	for k in [["taxi", -30.0], ["delivery", 20.0]]:
 		var tc := _car(k[0], Vector3(k[1], 0, 2.6), -PI / 2.0)
 		tc.ai = true; tc.driver = tc
-		tc.route = [Vector3(40, 0, 2.6), Vector3(43, 0, 1.4), Vector3(-40, 0, 1.4), Vector3(-43, 0, 2.6)]
+		tc.route = [Vector3(62, 0, 2.6), Vector3(67, 0, 4.2), Vector3(66, 0, 7.0), Vector3(61, 0, 5.2), Vector3(58, 0, 1.4), Vector3(-38, 0, 1.4), Vector3(-43, 0, -0.3), Vector3(-44, 0, 4.0), Vector3(-39, 0, 5.2), Vector3(-36, 0, 2.6)]   # 동쪽 마을까지, 끝에선 남쪽 풀밭으로 크게 돌아 유턴
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "iron", false, 1)
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
 	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다
@@ -50,7 +51,8 @@ func _ready() -> void:
 	body.add_child(player)
 	add_child(body)
 	cam = $Camera3D
-	_residents(24)
+	_residents(32)   # 동쪽 마을 집 넷이 생겨 여덟 명 더(2026-09-30)
+	_hire_drivers()
 	if "--sheet" in OS.get_cmdline_user_args():
 		add_child(load("res://tools/motion_sheet.gd").new())   # 개발용 동작 시트(연속 프레임) — `-- --sheet` 로만 켜진다
 

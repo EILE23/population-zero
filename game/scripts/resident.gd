@@ -1,5 +1,5 @@
 class_name Resident
-extends ResidentBase
+extends ResidentLife
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
@@ -19,6 +19,12 @@ func _physics_process(delta: float) -> void:
 			fig.action = ""; fig.action_t = 0.0
 		else:
 			fig.action_t = 1.0 - (busy_until - now) / FightPoses.PUNCH_T
+	if state == "drive":
+		# 운전 중: 몸은 차가 옮기고(운전석), 두 손은 핸들 — 물리·일과는 쉰다
+		global_position = car_seat.seat_pos(); fig.seated = true; fig.pose_request = "drive"; fig.face(car_seat.rotation.y + PI)
+		fig.scale = Vector3.ONE * 0.8   # 차 안 — 머리·모자가 지붕을 뚫지 않게
+		velocity = Vector3.ZERO
+		return
 	match state:
 		"routine":
 			v.x = 0.0; v.z = 0.0; fig.move_dir = Vector3.ZERO; fig.speed = 0.0   # 쫓다 포기한 뒤 달리던 속도가 남아 1초 더 미끄러지던 것
@@ -233,7 +239,12 @@ func _pick_spot() -> void:
 			spot = ov; slot = 0; _claim(spot, 0)
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
-	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack"]))   # 화덕은 빵집 주인이, 꽂이는 비 올 때 일부러 간다 — 산책 자리가 아니다
+	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack"]))
+	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
+	var want: Array = _schedule_kinds()
+	if not want.is_empty() and randf() < 0.7:
+		var sched: Array = pool.filter(func(sp): return sp["kind"] in want and _free_slot(sp) >= 0)
+		if not sched.is_empty(): pool = sched   # 화덕은 빵집 주인이, 꽂이는 비 올 때 일부러 간다 — 산책 자리가 아니다
 	if weather == "rain" and has_umb:
 		# 우산을 폈으면 밖 자리로 — 비를 맞으며 일과를 잇는 첫 존재(run 76). 팔을 쓰는 자세(기대기·흔들기·손차양·그네·먹기)는 우산 든 손과 겹치니 뺀다
 		pool = town.spots.filter(func(sp): return sp["kind"] in ["bench", "bank", "door"])
@@ -277,6 +288,7 @@ func _umb_pose() -> void:
 
 func _arrive(now: float) -> void:
 	state = "busy"
+	if _chat(now): return
 	fig.pose_request = ""
 	match spot["kind"]:
 		"seesaw":
@@ -475,3 +487,5 @@ func _leave() -> void:
 		target = route[0]["pos"]; state = "walk"
 		return
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 2.0)
+
+

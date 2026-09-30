@@ -38,6 +38,7 @@ var _dust: CPUParticles3D
 var _roll := 0.0
 var _pitch := 0.0
 var _crash_at := -9.0
+var _blocked_since := -1.0
 var _slope_pitch := 0.0
 var _slope_roll := 0.0
 var _vy := 0.0
@@ -68,6 +69,10 @@ func setup(k: String, t: Node3D) -> void:
 	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.82, 0.78, 0.7, 0.55); mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_dust.material_override = mat; _dust.position = Vector3(0, 0.1, -1.0); add_child(_dust)
 
+## 운전석(주민이 앉는 자리) — 차 앞쪽 왼편, 좌석 높이
+func seat_pos() -> Vector3:
+	return global_position - global_transform.basis.y * 0.08 - global_transform.basis.x * 0.28 - global_transform.basis.z * 0.05
+
 ## 운전석 위치(사람이 내릴 자리는 왼쪽 옆)
 func exit_pos() -> Vector3:
 	return global_position + global_transform.basis.x * 1.3
@@ -77,7 +82,7 @@ func _drive_ai() -> void:
 	if route.is_empty(): return
 	var tgt: Vector3 = route[_ri]
 	var to := tgt - global_position; to.y = 0.0
-	if to.length() < 2.0: _ri = (_ri + 1) % route.size(); return
+	if to.length() < 3.0: _ri = (_ri + 1) % route.size(); return
 	var want := atan2(-to.x, -to.z)
 	var diff := wrapf(want - rotation.y, -PI, PI)
 	var st := clampf(-diff * 2.0, -1.0, 1.0)
@@ -87,13 +92,23 @@ func _drive_ai() -> void:
 	others.append(town.body)
 	for c in town.cars: if c != self: others.append(c)
 	for o in others:
-		if not (o as Node3D).visible: continue
+		if o == driver or not (o as Node3D).visible: continue   # 제 운전사는 사람이 아니다 — 세면 앞에 사람이 있다고 영영 섰다
 		var d: Vector3 = (o as Node3D).global_position - global_position; d.y = 0.0
 		if d.length() < 5.0 and fwd.dot(d.normalized()) > 0.8: blocked = true; break
-	input = { "throttle": (0.0 if blocked else 0.6), "steer": st, "brake": blocked }
+	var now := Time.get_ticks_msec() / 1000.0
+	if not blocked: _blocked_since = -1.0
+	elif _blocked_since < 0.0: _blocked_since = now
+	var creep := blocked and now - _blocked_since > 1.5   # 1.5초 서 있다가 천천히 밀고 간다(사람은 비켜선다 — _nudge_people). 전엔 길에 선 사람 앞에서 영영 섰다
+	if creep and fmod(now, 3.0) < 0.05 and driver is Resident: (driver as Resident).say(["Excuse me.", "Coming through.", "Mind the car."][int(now) % 3], 1.4)
+	var tspd := 8.0 * clampf(1.0 - absf(diff) / 1.2, 0.3, 1.0)   # 목표 속도 — 꺾을수록 천천히(가속 입력은 가속만 줄여 결국 최고속으로 돌다 경유지를 못 밟았다)
+	var cruise := 0.6 if v < tspd else (-0.3 if v > tspd + 1.0 else 0.0)
+	var thr := cruise
+	if creep: thr = 0.35 if now - _blocked_since > 4.0 else 0.2
+	elif blocked or (absf(diff) > 1.0 and v > 4.0): thr = -0.4 if v > 0.3 else 0.0   # 제동은 발 브레이크(뒤로 당김) — 핸드브레이크(brake)는 드리프트라 옆으로 미끄러져 노점에 박혔다
+	input = { "throttle": thr, "steer": st, "brake": false }
 
 func _physics_process(delta: float) -> void:
-	if ai and driver == self: _drive_ai()
+	if ai and driver != null and driver != town.body: _drive_ai()
 	var driven := driver != null
 	var thr: float = clampf(float(input["throttle"]), -1.0, 1.0) if driven else 0.0
 	var st_in: float = clampf(float(input["steer"]), -1.0, 1.0) if driven else 0.0
@@ -198,7 +213,7 @@ func _skid(at: Vector3) -> void:
 func _nudge_people(fwd: Vector3, delta: float) -> void:
 	var push := fwd * absf(v) * 1.15 * delta * signf(v)
 	for r in town.residents:
-		if r.state == "down": continue
+		if r.state == "down" or r == driver: continue
 		var to: Vector3 = r.global_position - global_position; to.y = 0.0
 		if to.length() < 1.8 and (fwd * signf(v)).dot(to.normalized()) > 0.4:
 			var sidestep: Vector3 = global_transform.basis.x * signf(global_transform.basis.x.dot(to)) * 0.6 * delta
@@ -213,7 +228,7 @@ func _run_over(_fwd: Vector3) -> void:
 	if absf(v) < 0.5: return
 	var now := Time.get_ticks_msec() / 1000.0
 	for r in town.residents:
-		if r.state != "down": continue
+		if r.state != "down" or r == driver: continue
 		var to: Vector3 = r.global_position - global_position; to.y = 0.0
 		if to.length() < 1.1 and now - float(r.get_meta("flat_at", -9.0)) > 1.2:
 			r.set_meta("flat_at", now); r.down_until = maxf(r.down_until, now + 1.0); r.say("Ow.", 1.0)
@@ -259,7 +274,7 @@ func _hit_people(fwd: Vector3) -> void:
 	var launch := fwd * absf(v) * 0.9 + Vector3(0, 2.0 + absf(v) * 0.35, 0)
 	var stun := 1.2 + absf(v) * 0.15
 	for r in town.residents:
-		if r.state == "down": continue
+		if r.state == "down" or r == driver: continue
 		var to: Vector3 = r.global_position - global_position; to.y = 0.0
 		if to.length() < 1.7 and fwd.dot(to.normalized()) > 0.5:
 			r.hit(fwd, self, true); r.launch(launch, stun); v *= 0.7

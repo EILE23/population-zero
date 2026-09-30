@@ -133,7 +133,7 @@ func _release() -> void:
 			if arr[i] == self: arr[i] = null
 func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	if state == "down" or state == "getup":
+	if state == "down" or state == "getup" or state == "drive":   # 운전 중엔 차 안이다
 		return
 	quarry = by
 	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
