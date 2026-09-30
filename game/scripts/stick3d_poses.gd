@@ -11,6 +11,7 @@ const STORM_T := 3.0   # 처마 밑 비 구경 한 바퀴(run 74): 0.3 고개가
 const UMBR_T := 0.3    # 우산 펴기(run 76, 우산꽂이): 0.3초에 걸쳐 팔이 머리 위로 오르고 캐노피가 0 → 1 로 펴진다(예비) → 든 채 걷고 서고 앉는다(유지, 걸을수록 진행 방향으로 기운다) → 두 번째 C 에 같은 0.3초로 접힌다(회수)
 const LWAVE_T := 1.4   # 왼손 인사(run 77, 우산 가족의 두 번째 자세): 0.2 왼팔이 머리 위로(예비) → 흔든다(유지, wave 와 같은 9Hz·0.25rad) → 마지막 0.3 내린다(회수). 오른팔은 손대지 않는다 — 우산을 든 채(umbr 이 뒤에서 덮어쓴다)
 const ROW_T := 1.2     # 노 한 번(run 78, 거룻배): 0.5 젓기(다리를 펴며 팔을 가슴으로 당기고 몸이 뒤로) → 0.7 회수(팔을 내밀고 몸이 앞으로, 노는 물 밖). 박자(push_t)는 배가 가는 만큼만 간다 — 서면 노를 든 채 쉰다
+const HAMMER_T := 1.5  # 망치질 한 바퀴(run 80, 구두장이 작업대): 0.3 망치를 든다(예비) → 0.3 씩 세 번 두드린다(유지, 팔꿈치에서 내리치고 손목이 꺾인다) → 0.3 내린다(회수). 두 바퀴 = 밑창 하나
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -40,6 +41,8 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		# 반죽: 낮은 판 위로 숙이고, 누를 때마다 어깨가 조금 더 내려간다
 		var k := knead_k(f.pose_t)
 		lean = 0.22 * k + absf(sin(f._t * 7.0)) * 0.05 * k
+	if p == "hammer" and not moving:
+		lean = 0.2 * hammer_k(f.pose_t) + 0.04 * hammer_tap(f.pose_t)   # 구두골 위로 숙이고, 내리칠 때마다 어깨가 조금 따라간다
 	if p == "shade" and not moving:
 		lean = -0.08 * shade_k(f.pose_t)   # 손차양: 멀리 보느라 살짝 뒤로 젖힌다 — 고개·몸통 돌림은 limbs 에서(몸통 y 는 그 뒤에 정해진다)
 	if p == "storm" and not moving:
@@ -74,6 +77,19 @@ static func knead_k(t: float) -> float:
 	if c < 0.3: return smoothstep(0.0, 1.0, c / 0.3)
 	if c > KNEAD_T - 0.3: return 1.0 - smoothstep(0.0, 1.0, (c - (KNEAD_T - 0.3)) / 0.3)
 	return 1.0
+
+## 망치질 진행 0..1 — 한 바퀴 HAMMER_T 마다: 0.3초 든다(예비), 두드림(유지), 끝 0.3초 내린다(회수)
+static func hammer_k(t: float) -> float:
+	var c := fmod(t, HAMMER_T)
+	if c < 0.3: return smoothstep(0.0, 1.0, c / 0.3)
+	if c > HAMMER_T - 0.3: return 1.0 - smoothstep(0.0, 1.0, (c - (HAMMER_T - 0.3)) / 0.3)
+	return 1.0
+
+## 두드림 높이 0..1 — 유지 구간(0.3..1.2)의 0.3초마다 한 번: 0 = 구두에 닿음, 1 = 팔꿈치 꼭대기. 예비·회수 동안은 0.6(든 채)
+static func hammer_tap(t: float) -> float:
+	var c := fmod(t, HAMMER_T)
+	if c < 0.3 or c > HAMMER_T - 0.3: return 0.6
+	return sin(fmod(c - 0.3, 0.3) / 0.3 * PI)
 
 ## 왼손 인사 진행 0..1 — 0.2초 오르고(예비), 흔들고(유지), 끝 0.3초 내린다(회수). LWAVE_T 뒤엔 0(팔을 내린 채) — 자세가 풀릴 때 팔이 뚝 떨어지지 않는다
 static func lwave_k(t: float) -> float:
@@ -206,6 +222,17 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			var pr := sin(t * 7.0) * s
 			hip.rotation.x = -(0.04 * s * k); knee.rotation.x = -(-0.05 - 0.08 * k)
 			sh.rotation.x = -(0.05 + (0.45 + 0.15 * pr) * k); sh.rotation.z = -s * (0.04 + 0.06 * k); el.rotation.x = -(0.35 + (0.05 - 0.18 * pr) * k)
+		"hammer":
+			# 망치질(운영자 보드의 연장 가족 첫 자세 — run 80, 구두장이 작업대): 왼손은 구두골 위의 구두를 누르고, 오른손은 팔꿈치에서 내리친다 — 꼭대기에서 손목이 뒤로 젖혀졌다가
+			# 닿는 순간 앞으로 꺾인다(hand_r). k 가 예비·유지·회수를 만든다(망치를 들고, 세 번 두드리고, 내린다); 무게는 앞발, 무릎은 살짝. 사람도 주민도 같은 자세
+			var k := hammer_k(f.pose_t)
+			var tap := hammer_tap(f.pose_t)
+			hip.rotation.x = -(0.06 * s * k); knee.rotation.x = -(-0.05 - 0.1 * k)
+			if s > 0.0:
+				sh.rotation.x = -(0.05 + (0.75 + 0.45 * tap) * k); sh.rotation.z = -0.18 * k; el.rotation.x = -(0.35 + (0.5 + 1.2 * tap) * k)
+				f.hand_r.rotation.x = (0.5 - 1.1 * tap) * k
+			else:
+				sh.rotation.x = -(0.05 + 0.6 * k); sh.rotation.z = 0.12 * k; el.rotation.x = -(0.35 + 0.7 * k)
 		"shade":
 			# 손차양(운영자 보드의 '지도 읽기·둘러보기' 일상 가족 — run 73, 전망 언덕의 전망 자리): 오른손을 이마 위에 얹고 왼손은 허리에, 무게는 왼다리에(오른 무릎 살짝).
 			# k 가 예비·유지·회수를 만든다(손이 올라가고, 둘러보고, 내려온다); 둘러보는 동안 고개와 몸통이 천천히 좌우로 돈다 — 정지화가 아니다. 주민도 사람도 같은 자세

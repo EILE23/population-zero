@@ -338,6 +338,7 @@ func _east(at: Vector3) -> void:
 	_house(at + Vector3(0.5, 0, -12.5), Vector3(4.6, 2.9, 3.6), Color("dfe6ea"), "wood", false, 22)
 	_house(at + Vector3(8.5, 0, -11.5), Vector3(3.8, 2.6, 3.2), Color("efe9e2"), "shingle", false, 23)
 	_house(at + Vector3(-10, 0, -5.0), Vector3(3.6, 2.6, 3.2), Color("b56a5a"), "wood", false, 24)
+	doors[doors.size() - 1]["job"] = "cobbler"   # 이 집 주민이 구두장이 — 광장 서쪽 끝 작업대(town_trades)가 낮 일터(run 80)
 	_path(at + Vector3(0, 0, -7.1), at + Vector3(0, 0, -10.7), 1.6)   # 광장에서 북쪽 집 현관으로
 	for t in [Vector3(-12, 0, -9.0), Vector3(12.5, 0, -7.5), Vector3(11, 0, 3.0), Vector3(-12.5, 0, 3.0)]:
 		_tree(at + t, 1.0 + fmod(absf(t.x) * 0.31, 0.4))

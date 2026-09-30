@@ -6,6 +6,7 @@ extends TownCombat
 func _enter_car(c: Car3D, now: float) -> void:
 	if not carrying_big.is_empty() or swimming or not riding.is_empty(): return
 	driving = c; c.driver = body
+	seat = {}; player.seated = false   # 벤치에서 곧장 타면 자리가 남아 내린 뒤 '앉은 몸'(충돌 0)으로 걸었다(polish 79)
 	down_until = -1.0; getup_until = -1.0; player.lying = false; player.rotation.x = 0.0
 	body.visible = false; body.collision_layer = 0; body.collision_mask = 0; body.velocity = Vector3.ZERO
 	player.pose_request = ""; reading = false; leaning = false; resting = false
@@ -19,7 +20,7 @@ func _exit_car(now: float) -> void:
 	body.global_position = c.exit_pos() + Vector3(0, 0.02, 0)
 	body.visible = true; body.collision_layer = 4; body.collision_mask = 7
 	# 몸 상태를 깨끗이 — 누움·기울기·찌그러짐이 남아 내린 뒤 대각선으로 누워 있던 것(운영자 2026-09-29)
-	player.rotation = Vector3(0, player.rotation.y, 0); player.scale = Vector3.ONE; player.lying = false; player.seated = false; player.pose_request = ""
+	player.rotation = Vector3(0, player.rotation.y, 0); player.base_scale = Vector3.ONE; player.lying = false; player.seated = false; player.pose_request = ""
 	down_until = -1.0; getup_until = -1.0; resting = false
 	player.face(c.rotation.y)
 	action_until = now + 0.4

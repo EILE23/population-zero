@@ -211,6 +211,19 @@ func _draw() -> void:
 			draw_line(Vector2(10, -14), Vector2(26, -14), color, 1.6, true)
 			draw_circle(Vector2(17, -16.5 + pr), 3.2 - pr * 0.6, Color("e6d3a5"))
 			_head(head)
+		"hammer":
+			# 망치질(run 80, 구두장이 작업대) — 3D 는 stick3d_poses.gd hammer: 한 바퀴 1.5초(0.3 든다 · 0.3 씩 세 번 두드림 · 0.3 내린다). 왼손은 구두골 위 구두, 오른손 망치
+			var c := fmod(t, 1.5)
+			var tap := 0.6 if c < 0.3 or c > 1.2 else sin(fmod(c - 0.3, 0.3) / 0.3 * PI)
+			shoulder = Vector2(5, -31); head = Vector2(8, -38)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(11, -25), Vector2(16, -19))
+			var hand := Vector2(14 - tap * 2.0, -20 - tap * 9.0)
+			_ln(shoulder, Vector2(12, -27 - tap * 4.0), hand)
+			draw_line(hand, hand + Vector2(4, 2 - tap * 3.0), color, 1.6, true)
+			draw_line(Vector2(12, -17), Vector2(22, -17), color, 1.6, true)
+			draw_rect(Rect2(Vector2(14, -19.5), Vector2(6, 2.5)), Color("ad7096"))
+			_head(head)
 		"shade":
 			# 손차양(run 73, 전망 자리) — stickman.ts 'shade' 와 같은 수: 6초 한 바퀴, 0.35 손이 이마로(예비) · 둘러보기(유지, 고개·어깨가 천천히 좌우) · 끝 0.4 내린다(회수)
 			var c := fmod(t, 6.0)

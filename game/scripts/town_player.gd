@@ -212,7 +212,7 @@ func _physics_process(delta: float) -> void:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
 	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm"]) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
-			getup_until = now + 0.6; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 한 손으로 짚고 무릎을 세우는 0.6초(맞고 일어날 때와 같은 동작)
+			getup_until = now + FightPoses.GETUP_T; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 맞고 일어날 때와 같은 동작·같은 길이(0.6 이 남아 있어 진행이 0.4 에서 시작해 튀었다, polish 79)
 		reading = false; leaning = false; resting = false; player.pose_request = ""
 	if not pushing.is_empty() and dir != Vector3.ZERO:
 		if pushing["pusher"] == "player": pushing["pusher"] = null
@@ -332,7 +332,7 @@ func _interact_check(now: float) -> void:
 		if d2 < 1.0 and d2 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d2
 	for r in residents:
 		var d3: float = p.distance_to(r.global_position)
-		if d3 < 1.3 and d3 < best_d and r.state != "down": best = { "kind": "resident", "node": r }; best_d = d3
+		if d3 < 1.3 and d3 < best_d and not (r.state in ["down", "drive"]): best = { "kind": "resident", "node": r }; best_d = d3   # 운전사는 차 안 — 택시 옆에서 C 가 인사를 걸어 운전사를 차에서 끌어냈다(polish 79)
 	for m in movables:
 		var d4: float = p.distance_to(m["node"].global_position)
 		if d4 < 0.9 and d4 < best_d: best = { "kind": "furniture", "entry": m }; best_d = d4
@@ -341,7 +341,7 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80)
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": sp["kind"], "spot": sp }; best_d = d8
 	var pl := near_plot(p)
@@ -381,6 +381,8 @@ func _interact_check(now: float) -> void:
 			oven_use(best["spot"], now)   # 화덕: 반죽 한 바퀴(knead 자세)로 창구에 빵 하나 — 빵집 주인이 하는 것과 같은 자세·같은 효과(town_places)
 		"rack":
 			rack_use(now)   # 우산꽂이(run 76): 하나 빌린다 — 주민이 비 올 때 하는 것과 같은 take_umbrella(town_places)
+		"cobbler", "stool":
+			cobbler_use(best["spot"], now)   # 구두장이(run 80): 일하는 중이면 걸상에서 밑창 수선, 아니면 망치질 한 바퀴 — 주민과 같은 자리·같은 자세(town_trades)
 		"boat":
 			boat_use(now)   # 부두(run 78): 거룻배에 탄다 — 주민이 같은 자리에서 하는 것과 같은 board(town_boat)
 		"car":

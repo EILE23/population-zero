@@ -245,10 +245,11 @@ func _run_over(_fwd: Vector3) -> void:
 			set_meta("flat_me", now); town.down_until += 1.0; _flatten(town.player); _pitch -= 0.08
 
 static func _flatten(n: Node3D) -> void:
+	var prop := "base_scale" if n is Stick3D else "scale"   # 졸라맨은 scale 을 프레임마다 제가 쓴다(찌그러짐) — 기준 배율을 눌러야 0.5초 납작함이 보인다(polish 79)
 	var tw := n.create_tween(); tw.set_trans(Tween.TRANS_BACK); tw.set_ease(Tween.EASE_OUT)
-	tw.tween_property(n, "scale", Vector3(1.25, 0.35, 1.25), 0.06)
+	tw.tween_property(n, prop, Vector3(1.25, 0.35, 1.25), 0.06)
 	tw.tween_interval(0.5)
-	tw.tween_property(n, "scale", Vector3.ONE, 0.45)
+	tw.tween_property(n, prop, Vector3.ONE, 0.45)
 
 ## 벤치·울타리 토막을 들이받으면 부서져 조각이 날아간다 — 수리공이 나중에 다시 세운다
 func _smash_props(fwd: Vector3) -> void:
@@ -274,7 +275,7 @@ func _hit_people(fwd: Vector3) -> void:
 	var launch := fwd * absf(v) * 0.9 + Vector3(0, 2.0 + absf(v) * 0.35, 0)
 	var stun := 1.2 + absf(v) * 0.15
 	for r in town.residents:
-		if r.state == "down" or r == driver: continue
+		if r.state in ["down", "drive"] or r == driver: continue   # 다른 차의 운전사도 차 안이다
 		var to: Vector3 = r.global_position - global_position; to.y = 0.0
 		if to.length() < 1.7 and fwd.dot(to.normalized()) > 0.5:
 			r.hit(fwd, self, true); r.launch(launch, stun); v *= 0.7

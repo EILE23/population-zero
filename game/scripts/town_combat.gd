@@ -144,6 +144,8 @@ func car_hits_player(vel: Vector3, stun: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if down_until > now or getup_until > now: return
 	jet = false; seat = {}; player.seated = false; resting = false; reading = false; leaning = false
+	if not riding.is_empty(): dismount()
+	if seesaw_ride: seesaw_ride.leave("player"); seesaw_ride = null; body.global_position += Vector3(0, 0, 0.7)   # 그네·시소에 탄 채 치이면 내린다(판 앞으로 — 판 속에 겹친 채 마스크가 켜지면 바닥 밑으로 밀렸다) — 그 가지들이 먼저 return 해 누운 채 그네를 타고 일어나지 못했다(polish 79)
 	down_until = now + stun; player.lying = true; player.action = ""; action_until = now
 	body.velocity = vel; cam_kick = 0.08
 	while player.carrying:

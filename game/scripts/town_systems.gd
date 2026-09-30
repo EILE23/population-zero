@@ -17,6 +17,7 @@ func _tick(delta: float, now: float) -> void:
 	_bakery(now)
 	_smoke(now)
 	_boats(delta, now)
+	_trades(delta, now)
 	_water(delta)
 	_seesaws(delta)
 

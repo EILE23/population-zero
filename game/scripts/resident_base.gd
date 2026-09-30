@@ -87,8 +87,8 @@ static func figure_color(id: int) -> Color:
 
 ## 인사받음 — 손을 흔들어 답하고 한마디(일과 중이면 잠깐 멈춘다)
 func greet(from: Node3D) -> void:
-	if state == "down" or state == "getup" or state == "chase" or in_boat:
-		return
+	if state == "down" or state == "getup" or state == "chase" or state == "drive" or in_boat:
+		return   # 운전사는 차 안이다 — 인사에 답하게 두면 drive 상태를 잃고 충돌 0 인 몸이 차 밑으로 떨어졌다(polish 79)
 	var now := Time.get_ticks_msec() / 1000.0
 	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
 	# 그네를 타던 중이면 _leave 가 spot["swing"] 을 찾다 죽었다. 그네·밀기는 riding_swing/pushing_swing 이 기억하니 _leave 가 마저 정리한다
@@ -193,6 +193,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 
 ## 날아가기(차에 치임) — 속도 그대로 포물선을 그리고, 닿으면 stun 초 동안 기절했다 일어난다
 func launch(vel: Vector3, stun: float) -> void:
+	if state == "drive": return   # 차 안의 운전사는 안 날아간다(hit 와 같은 규칙)
 	velocity = vel
 	down_until = Time.get_ticks_msec() / 1000.0 + stun
 	say(mind.line("down"), 1.4)

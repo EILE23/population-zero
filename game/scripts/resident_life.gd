@@ -3,6 +3,7 @@ extends ResidentBase
 ## 주민의 하루 — 일과표(시간대·직업이 고르는 자리), 수다, 운전. resident.gd 가 500줄에 닿아 뗐다(2026-09-30). 사슬: base → life → resident
 
 var car_seat: Car3D = null
+var walked := 0.0   # 걸은 거리(m) — 밑창이 닳는다. town.SOLE_M 을 넘으면 구두장이가 일할 때 걸상에 들른다(run 80, town_trades)
 
 ## 지금 시각(0..24) — town 의 해와 같은 시계
 func _hour() -> float:
@@ -22,7 +23,7 @@ func _schedule_kinds() -> Array:
 
 ## 수다 — 자리에 닿았을 때 2m 안에 쉬는 주민이 있으면 서로 마주 보고 번갈아 말한다(8~14초). 말 많은 사람일수록 자주. 사람이 끼어들면(인사) 그만
 func _chat(now: float) -> bool:
-	if spot.get("kind", "") in ["bed", "chair", "shelf", "swing", "seesaw", "plot", "oven", "repair", "grass"] or randf() > 0.15 + 0.4 * mind.social: return false
+	if spot.get("kind", "") in ["bed", "chair", "shelf", "swing", "seesaw", "plot", "oven", "repair", "grass", "cobbler", "stool"] or randf() > 0.15 + 0.4 * mind.social: return false
 	return _chat_force(now)
 
 ## 수다를 곧장(시트 도구·이벤트용). 상대는 친한 사람부터. 화제는 제 관심사(minds.json topics), 답은 사이가 정한다 — 친구는 맞장구, 앙숙은 반박하고 한 번 더 받아친다.
@@ -62,6 +63,7 @@ func _chat_force(now := Time.get_ticks_msec() / 1000.0) -> bool:
 func _process(delta: float) -> void:
 	super(delta)
 	if state == "drive": return
+	if state == "walk": walked += fig.speed * delta   # 실제 속도로 — 벽에 막혀 제자리걸음이면 안 닳는다
 	mind.tick(delta)
 	_notice(Time.get_ticks_msec() / 1000.0)
 	if town.residents.size() > 0 and town.residents[0] == self: ResidentMind.save_all(town.residents)
@@ -110,3 +112,39 @@ func drive(c: Car3D) -> void:
 	_release(); car_seat = c; c.driver = self; job = "driver"
 	state = "drive"; collision_layer = 0; collision_mask = 0
 	say(["Morning route.", "Mind the road.", "On schedule."][uid % 3], 2.0)
+
+## 구두장이 작업대(run 80, "Trades on the street" 1조각): 구두장이(집 문에 "cobbler")는 낮(09–17)에 넷 중 셋은 작업대로, 밑창이 닳은(walked > SOLE_M) 사람은
+## 구두장이가 일하는 중이면 다섯 중 셋은 걸상으로. 나머지는 여느 때처럼 고른다 — 평범한 결과(지나쳐 걷기)가 남는다. 못 가면 false
+func _trade_pick(now: float) -> bool:
+	var tc: Dictionary = town.cobbler
+	if tc.is_empty() or town.is_night() or weather == "rain" or fig.carrying: return false
+	var h := _hour()
+	var sp: Dictionary = {}
+	if job == "cobbler" and h >= 9.0 and h < 17.0 and randf() < 0.75: sp = tc["work"]
+	elif walked > town.SOLE_M and town.cobbler_at_work() != null and global_position.distance_to(tc["stool"]["pos"]) < 45.0 and randf() < 0.6: sp = tc["stool"]
+	if sp.is_empty() or _free_slot(sp) < 0: return false
+	spot = sp; slot = 0; _claim(sp, 0)
+	route = town.via_bridge(global_position, [{ "pos": sp["pos"], "act": "" }])
+	target = route[0]["pos"]; state = "walk"; busy_until = now
+	return true
+
+## 작업대에 닿음 — 구두장이는 망치질(hammer, 25~45초), 손님은 걸상에 앉아 두 바퀴 고쳐 받는다. 오는 사이 구두장이가 떠났으면 한마디 하고 간다
+func _trade_arrive(now: float) -> void:
+	fig.face(spot.get("yaw", 0.0))
+	if spot["kind"] == "cobbler":
+		fig.pose_request = "hammer"; busy_until = now + randf_range(25.0, 45.0)
+		say(["Open.", "Soles and heels.", "Back to it."][uid % 3], 1.6)
+		return
+	var w: ResidentBase = town.cobbler_at_work()
+	if w == null:
+		busy_until = now + 1.0; say(["Closed, then.", "Another day.", "Gone to lunch."][uid % 3], 1.4); return
+	fig.seated = true; collision_layer = 0; collision_mask = 0
+	global_position = spot["pos"] + Vector3(0, 0.05, 0)
+	busy_until = now + StickPoses.HAMMER_T * 2.0 + 0.3
+	w.say(["Sit.", "Left foot first.", "These have seen some road."][w.uid % 3], 1.6)
+	get_tree().create_timer(StickPoses.HAMMER_T * 2.0).timeout.connect(_resoled)
+
+## 두 바퀴가 끝났을 때 아직 걸상이면 밑창이 새것 — 맞아 넘어졌거나 비로 떠났으면 없던 일
+func _resoled() -> void:
+	if state != "busy" or spot.get("kind", "") != "stool": return
+	walked = 0.0; say(["Better.", "Much better.", "Like new."][uid % 3], 1.6)
