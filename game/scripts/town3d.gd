@@ -12,7 +12,7 @@ func _ready() -> void:
 	_district("market", Vector3(31, 0, -2), _market)
 	_district("east", Vector3(59, 0, -1), _east)   # 동쪽 마을(2026-09-30)
 	_district("shops", Vector3(31, 0, -2), _shops)   # 화덕(run 72)과 우산꽂이(run 76) — 시장과 같은 중심이라 같이 켜고 꺼진다
-	_district("trades", Vector3(59, 0, -1), func(c: Vector3) -> void: _cobbler(c + Vector3(-5.2, 0, -3.0)))   # 구두장이 작업대(run 80) — 동쪽 광장 서쪽 끝, 동쪽 마을과 같이 켜고 꺼진다
+	_district("trades", Vector3(59, 0, -1), func(c: Vector3) -> void: _cobbler(c + Vector3(-5.2, 0, -3.0)); _stitchhouse(c + Vector3(5.2, 0, -3.0)))   # 구두장이 작업대(run 80)는 동쪽 광장 서쪽 끝, 바느질 탁자(run 82)는 맞은편 동쪽 끝 — 동쪽 마을과 같이 켜고 꺼진다
 	_sun = get_node_or_null("Sun")
 	_path(Vector3(0, 0, 0.8), Vector3(0, 0, -3.6), 2.0)    # 큰길 가장자리에서 가운데 집 현관까지(도로와 겹치면 이음새; 전엔 집 밑을 지나 -10 까지 갔다)
 	_path(Vector3(3.35, 0, 0.8), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지

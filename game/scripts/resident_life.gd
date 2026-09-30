@@ -28,7 +28,7 @@ func _schedule_kinds() -> Array:
 
 ## 수다 — 자리에 닿았을 때 2m 안에 쉬는 주민이 있으면 서로 마주 보고 번갈아 말한다(8~14초). 말 많은 사람일수록 자주. 사람이 끼어들면(인사) 그만
 func _chat(now: float) -> bool:
-	if spot.get("kind", "") in ["bed", "chair", "shelf", "swing", "seesaw", "plot", "oven", "repair", "grass", "cobbler", "stool", "wheel", "whet"] or randf() > 0.15 + 0.4 * mind.social: return false
+	if spot.get("kind", "") in ["bed", "chair", "shelf", "swing", "seesaw", "plot", "oven", "repair", "grass", "cobbler", "stool", "wheel", "whet", "stitch", "fitting"] or randf() > 0.15 + 0.4 * mind.social: return false
 	return _chat_force(now)
 
 ## 수다를 곧장(시트 도구·이벤트용). 상대는 친한 사람부터. 화제는 제 관심사(minds.json topics), 답은 사이가 정한다 — 친구는 맞장구, 앙숙은 반박하고 한 번 더 받아친다.
@@ -122,11 +122,13 @@ func drive(c: Car3D) -> void:
 ## 구두장이가 일하는 중이면 다섯 중 셋은 걸상으로, 가위가 무딘(dull >= DULL_N) 가게지기는 칼갈이가 가는 중이면 다섯 중 셋은 손님 자리로. 나머지는 여느 때처럼 고른다 — 평범한 결과(지나쳐 걷기)가 남는다. 못 가면 false
 func _trade_pick(now: float) -> bool:
 	if town.is_night() or weather == "rain" or fig.carrying: return false
-	var tc: Dictionary = town.cobbler; var tw: Dictionary = town.wheel
+	var tc: Dictionary = town.cobbler; var tw: Dictionary = town.wheel; var tt: Dictionary = town.tailor
 	var h := _hour()
 	var sp: Dictionary = {}
 	if job == "cobbler" and not tc.is_empty() and h >= 9.0 and h < 17.0 and randf() < 0.75: sp = tc["work"]
 	elif job == "cutler" and not tw.is_empty() and h >= 9.0 and h < 17.0 and randf() < 0.75: sp = tw["work"]
+	elif job == "tailor" and not tt.is_empty() and h >= 9.0 and h < 17.0 and randf() < 0.75: sp = tt["work"]
+	elif not tt.is_empty() and Wear.torn(fig.worn.get("back")) and town.tailor_at_work() != null and global_position.distance_to(tt["fitting"]["pos"]) < 45.0 and randf() < 0.6: sp = tt["fitting"]   # 찢어진 것부터(run 82) — 넘어진 뒤라 급하다
 	elif not tc.is_empty() and walked > town.SOLE_M and town.cobbler_at_work() != null and global_position.distance_to(tc["stool"]["pos"]) < 45.0 and randf() < 0.6: sp = tc["stool"]
 	elif not tw.is_empty() and dull >= town.DULL_N and town.cutler_at_work() != null and global_position.distance_to(tw["whet"]["pos"]) < 45.0 and randf() < 0.6: sp = tw["whet"]
 	if sp.is_empty() or _free_slot(sp) < 0: return false
@@ -146,6 +148,19 @@ func _trade_arrive(now: float) -> void:
 		"wheel":
 			fig.pose_request = "grind"; busy_until = now + randf_range(25.0, 45.0)
 			say(["Edges today.", "Bring it over.", "Stand back."][uid % 3], 1.6)
+		"stitch":
+			fig.seated = true; collision_layer = 0; collision_mask = 0
+			global_position = spot["pos"] + Vector3(0, 0.05, 0)
+			fig.pose_request = "sew"; busy_until = now + randf_range(25.0, 45.0)
+			say(["Needle and thread.", "Mending today.", "Bring me the torn ones."][uid % 3], 1.6)
+		"fitting":
+			w = town.tailor_at_work()
+			if w == null: _trade_closed(now); return
+			fig.seated = true; collision_layer = 0; collision_mask = 0
+			global_position = spot["pos"] + Vector3(0, 0.05, 0)
+			busy_until = now + StickPoses.SEW_T + 0.3
+			w.say(["Turn round.", "Hold still.", "Seen worse."][w.uid % 3], 1.6)
+			get_tree().create_timer(StickPoses.SEW_T).timeout.connect(_mended)
 		"stool":
 			w = town.cobbler_at_work()
 			if w == null: _trade_closed(now); return
@@ -169,6 +184,14 @@ func _trade_closed(now: float) -> void:
 func _sharpened() -> void:
 	if state != "busy" or spot.get("kind", "") != "whet": return
 	dull = 0; say(["Sharp.", "That will cut.", "Good edge."][uid % 3], 1.6)
+
+## 한 바퀴가 끝났을 때 아직 손님 걸상이면 찢어진 곳이 없어진다 — 맞아 넘어졌거나 비로 떠났으면 없던 일(그럼 또 찢어진 채로 다시 온다)
+func _mended() -> void:
+	if state != "busy" or spot.get("kind", "") != "fitting": return
+	Wear.mend(fig.worn.get("back"))
+	var w: ResidentBase = town.tailor_at_work()
+	if w != null: w.say("There.", 1.4)
+	get_tree().create_timer(1.2).timeout.connect(func() -> void: say(["Good as new.", "You'd never know.", "Much obliged."][uid % 3], 1.6))
 
 ## 두 바퀴가 끝났을 때 아직 걸상이면 밑창이 새것 — 맞아 넘어졌거나 비로 떠났으면 없던 일
 func _resoled() -> void:

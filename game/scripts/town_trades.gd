@@ -7,6 +7,9 @@ extends TownBoat
 ## 둘째 장인은 칼갈이(run 81) — 시장 동쪽 끝, 넷째 노점 옆의 발판 숫돌(틀·돌 원판·발판·물통·간판). 카페(12호) 문에 "cutler" 가 적혀 그 집 주민이 낮에 여기서 간다.
 ## 무딤도 진짜 일이다: 가게지기(keeper)는 창구·노점 교대를 마칠 때마다 `dull` 이 하나 쌓이고, 넷이 되면 칼갈이가 가는 중일 때만 건너편 손님 자리에 팔짱 끼고 서서(wait) 두 바퀴 기다린다("Sharp.").
 ## 사람: 칼갈이가 가는 중에 C = 손님 자리에 서서 같은 두 바퀴(끝나면 "Sharp."), 아무도 없을 때 숫돌에서 C = 갈기 한 바퀴(불꽃은 유지 구간에만; 칼갈이가 근처면 "Mind your fingers.").
+## 셋째 장인은 재봉사(run 82) — 동쪽 광장 동쪽 끝, 구두장이 맞은편의 바느질 탁자(마네킹·모브 천 두루마리·실패·간판). 동쪽 집(23호) 문에 "tailor" 가 적혀 그 집 주민이 낮에 여기서 꿰맨다.
+## 찢어짐도 진짜 일이다: 넘어지면(주민도 사람도) 등에 멘 가방·목도리가 찢어지고(Wear.tear, 헝겊 조각이 보인다), 찢어진 주민은 재봉사가 일하는 중이면 다섯 중 셋은 손님 걸상에 앉아 한 바퀴 받는다(Wear.mend, "There.").
+## 사람: 찢어진 걸 메고 C = 걸상에 앉아 같은 한 바퀴, 멀쩡하면 재봉사가 없을 때 탁자에 앉아 마네킹 옷에 바느질 한 바퀴(재봉사가 근처면 "Mind the pins.").
 ## 상속 사슬: base → build → places → boat → **trades** → critters → systems → combat → ride → player → town3d.
 
 const SOLE_M := 350.0   # 이만큼 걸으면 밑창이 닳았다 — 주민 걸음(1.6m/s)으로 몇 분이면 차니 하루에 몇 명은 들른다
@@ -17,6 +20,8 @@ var _sole_told := false        # "밑창이 얇다"는 한 번만
 const DULL_N := 4              # 창구·노점 교대 넷이면 가위가 무디다 — 가게지기 하나가 하루에 한두 번 숫돌에 들른다
 var wheel: Dictionary = {}     # {work: 칼갈이 자리, whet: 손님 자리, disc: 돌 원판, treadle: 발판, spark: 불꽃, spin: 지금 도는 속도}
 var sharp_at := -1.0           # 사람이 손님 자리에서 기다리는 중이면 끝나는 시각
+var tailor: Dictionary = {}    # {work: 재봉사 자리, fitting: 손님 걸상}
+var mend_at := -1.0            # 사람이 걸상에 앉아 꿰매 받는 중이면 끝나는 시각
 
 ## 작업대 — 낮은 탁자, 왼쪽 끝의 쇠 구두골(구두 모양 머리), 탁자 위 구두 셋(잉크·종이·모브, 조금씩 틀어져), 뒤의 기둥에 걸린 간판. 서쪽이 구두장이, 동쪽이 걸상
 func _cobbler(at: Vector3) -> void:
@@ -72,6 +77,73 @@ func _grindstone(at: Vector3) -> void:
 	var whet := { "pos": at + Vector3(0.95, 0, 0), "kind": "whet", "yaw": -PI / 2.0 }
 	spots.append(work); spots.append(whet)
 	wheel = { "work": work, "whet": whet, "disc": disc, "treadle": tr, "spark": sp, "spin": 0.0 }
+
+## 바느질 탁자(run 82, "Trades on the street" 3조각) — 낮은 탁자 위에 모브 천 두루마리(누운 원기둥)·실패·가위, 탁자 뒤(북쪽)에 마네킹(기둥 + 종이색 몸통 + 모브 헝겊 한 장),
+## 양 끝에 걸상 — 동쪽이 재봉사(서쪽을 본다, 광장 쪽), 서쪽이 손님. 구두장이 작업대의 거울상이라 광장 양쪽이 한 쌍으로 읽힌다
+func _stitchhouse(at: Vector3) -> void:
+	var wood := _mat(Color("8a6a4a")); var iron := _mat(Color("4a4a52")); var paper := _mat(Color("efe9e2"))
+	_box(Vector3(1.0, 0.08, 0.55), at + Vector3(0, 0.62, 0), wood)
+	for sx: float in [-0.43, 0.43]:
+		for sz: float in [-0.22, 0.22]: _box(Vector3(0.06, 0.62, 0.06), at + Vector3(sx, 0, sz), wood, false)
+	var bolt := MeshInstance3D.new(); var bm := CylinderMesh.new(); bm.top_radius = 0.07; bm.bottom_radius = 0.07; bm.height = 0.46
+	bolt.mesh = bm; bolt.material_override = _mat(Color("ad7096")); bolt.rotation.z = PI / 2.0; bolt.position = at + Vector3(-0.15, 0.77, -0.14); _add(bolt)
+	_box(Vector3(0.44, 0.012, 0.2), at + Vector3(-0.1, 0.7, 0.04), _mat(Color("ad7096")), false)   # 두루마리에서 풀려 나온 천
+	var spool := MeshInstance3D.new(); var sm := CylinderMesh.new(); sm.top_radius = 0.03; sm.bottom_radius = 0.03; sm.height = 0.06
+	spool.mesh = sm; spool.material_override = _mat(Color("1b0c15")); spool.position = at + Vector3(0.22, 0.73, 0.12); _add(spool)
+	for i in 2:   # 벌린 가위 — 두 날
+		var bl := _box(Vector3(0.14, 0.01, 0.02), at + Vector3(0.28, 0.7, -0.08), iron, false); bl.rotation.y = 0.3 - i * 0.6
+	_box(Vector3(0.04, 1.0, 0.04), at + Vector3(0.05, 0, -0.62), iron, false)                                   # 마네킹 기둥과 다리 셋
+	for a: float in [0.0, 2.1, 4.2]:
+		var leg := _box(Vector3(0.24, 0.03, 0.03), at + Vector3(0.05 + cos(a) * 0.1, 0, -0.62 + sin(a) * 0.1), iron, false); leg.rotation.y = -a
+	var torso := MeshInstance3D.new(); var tm := CapsuleMesh.new(); tm.radius = 0.16; tm.height = 0.55
+	torso.mesh = tm; torso.material_override = paper; torso.position = at + Vector3(0.05, 1.27, -0.62); torso.scale = Vector3(1.0, 1.0, 0.7); _add(torso)
+	_box(Vector3(0.2, 0.22, 0.02), at + Vector3(0.1, 1.24, -0.5), _mat(Color("ad7096")), false)                  # 마네킹에 핀으로 꽂은 헝겊
+	_box(Vector3(0.06, 1.9, 0.06), at + Vector3(-0.5, 0, -0.35), iron, false)
+	_box(Vector3(0.5, 0.04, 0.04), at + Vector3(-0.3, 1.85, -0.35), iron, false)
+	_box(Vector3(0.42, 0.26, 0.03), at + Vector3(-0.3, 1.52, -0.35), paper, false)
+	var sign := Label3D.new(); sign.text = "Tailor"; sign.font_size = 22; sign.pixel_size = 0.004; sign.modulate = Color("1b0c15")
+	sign.position = at + Vector3(-0.3, 1.65, -0.33); _add(sign)
+	for sx: float in [-0.8, 0.8]:
+		var st := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.17; cm.bottom_radius = 0.17; cm.height = 0.06; st.mesh = cm
+		st.material_override = wood; st.position = at + Vector3(sx, 0.4, 0.05); _add(st)
+		_box(Vector3(0.06, 0.38, 0.06), at + Vector3(sx, 0, 0.05), iron, false)
+	var work := { "pos": at + Vector3(0.8, 0, 0.05), "kind": "stitch", "yaw": -PI / 2.0 }
+	var fit := { "pos": at + Vector3(-0.8, 0, 0.05), "kind": "fitting", "yaw": PI / 2.0 }
+	spots.append(work); spots.append(fit)
+	tailor = { "work": work, "fitting": fit }
+
+## 지금 탁자에서 꿰매는 재봉사(주민) — 없으면 null. 손님은 이 사람이 있을 때만 온다
+func tailor_at_work() -> ResidentBase:
+	if tailor.is_empty(): return null
+	for r in (tailor["work"] as Dictionary).get("taken", []):
+		if r is ResidentBase and (r as ResidentBase).state == "busy" and (r as ResidentBase).fig.pose_request == "sew": return r
+	return null
+
+## 사람이 탁자나 걸상 앞에서 C(town_player) — 찢어진 걸 메고 있고 재봉사가 일하면 걸상에 앉아 꿰매 받고, 재봉사가 없으면 탁자에 앉아 바느질 한 바퀴(마네킹 옷에)
+func stitch_use(sp: Dictionary, now: float) -> void:
+	var w := tailor_at_work()
+	var claimed := false   # 재봉사가 오는 중이면 탁자는 그의 것
+	for r in (tailor["work"] as Dictionary).get("taken", []):
+		if r != null: claimed = true
+	var at: Dictionary = tailor["fitting"] if (w != null or claimed or sp["kind"] == "fitting") else tailor["work"]
+	for r in at.get("taken", []):
+		if r != null: return   # 누가 앉아 있다
+	var fitting: bool = at["kind"] == "fitting"
+	if fitting and w != null and not Wear.torn(player.worn.get("back")):
+		w.say(["Nothing to mend.", "That's whole.", "Come back torn."][w.uid % 3], 1.6); return
+	seat = { "pos": at["pos"], "yaw": at["yaw"], "chair": true }
+	player.seated = true; player.move_dir = Vector3.ZERO; player.speed = 0.0; body.velocity = Vector3.ZERO
+	var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(body, "position", at["pos"] + Vector3(0, 0.05, 0), 0.3)
+	player.face(at["yaw"])
+	if not fitting:
+		player.pose_request = "sew"; use_until = now + StickPoses.SEW_T
+		for r in residents:
+			if r.job == "tailor" and r.state != "drive" and r.global_position.distance_to(body.global_position) < 12.0:
+				r.say("Mind the pins.", 1.8); break
+	elif w != null:
+		mend_at = now + StickPoses.SEW_T
+		w.say(["Turn round.", "Hold still.", "Seen worse."][w.uid % 3], 1.6)
 
 ## 지금 숫돌에서 가는 칼갈이(주민) — 없으면 null. 손님은 이 사람이 있을 때만 온다
 func cutler_at_work() -> ResidentBase:
@@ -153,6 +225,7 @@ func cobbler_use(sp: Dictionary, now: float) -> void:
 ## 매 프레임(town_systems _tick): 사람의 걸음을 세고, 걸상에서 고쳐 받는 중이면 두 바퀴 뒤에 밑창이 새것이 된다(구두장이가 떠났거나 사람이 일어났으면 없던 일)
 func _trades(delta: float, now: float) -> void:
 	_wheel(delta, now)
+	_mend(now)
 	if seat.is_empty() and body.is_on_floor() and not swimming:
 		walked += Vector2(body.velocity.x, body.velocity.z).length() * delta
 	if walked > SOLE_M and not _sole_told:
@@ -163,3 +236,13 @@ func _trades(delta: float, now: float) -> void:
 	if w == null or not seat.get("chair", false) or cobbler.is_empty() or (seat["pos"] as Vector3) != cobbler["stool"]["pos"]: return
 	walked = 0.0; _sole_told = false
 	w.say("Resoled.", 1.6)
+
+## 사람이 걸상에서 꿰매 받는 중이면 한 바퀴 뒤에 찢어진 곳이 없어진다(재봉사가 떠났거나 사람이 일어났으면 없던 일)
+func _mend(now: float) -> void:
+	if player.pose_request == "sew" and use_until > 0.0 and now >= use_until:
+		player.pose_request = ""; use_until = -1.0   # 앉은 사람은 town_player 의 앉기 가지가 먼저 return 해 use_until 이 안 풀린다 — 한 바퀴면 손을 내린다
+	if mend_at < 0.0 or now < mend_at: return
+	mend_at = -1.0
+	var w := tailor_at_work()
+	if w == null or tailor.is_empty() or not seat.get("chair", false) or (seat["pos"] as Vector3) != tailor["fitting"]["pos"]: return
+	Wear.mend(player.worn.get("back")); w.say("There.", 1.6)

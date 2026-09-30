@@ -72,3 +72,23 @@ static func make(kind: String, color := Color("ad7096")) -> Node3D:
 ## 사람 색에 어울리는 소품 색 — 모브·잎·하늘·붉은 벽돌 중에서 시드로
 static func palette(seed: int) -> Color:
 	return [Color("ad7096"), Color("7a9b4e"), Color("8fb8cc"), Color("b56a5a"), Color("e8c766"), Color("4a4a52")][seed % 6]
+
+## 찢어짐(run 82, 재봉사 — "Trades on the street" 3조각): 등에 메는 것(가방·목도리)만 찢어진다 — 넘어질 때 바닥에 쓸려서. 찢어진 자리엔 종이색 헝겊 조각과 잉크 한 줄(터진 솔기)이 붙는다.
+## 재봉사가 꿰매면(mend) 떼어 낸다. 새로 찢어졌으면 true — 이미 찢어졌거나 찢어질 게 아니면 false
+static func tear(n: Node3D) -> bool:
+	if n == null or SLOT.get(String(n.get_meta("kind", "")), "") != "back" or n.get_meta("torn", false): return false
+	var rip := Node3D.new(); n.add_child(rip)
+	var at := Vector3(0.05, -0.04, -0.125) if n.get_meta("kind") == "backpack" else Vector3(0.07, 0.0, 0.12)   # 가방은 등판 바깥면, 목도리는 늘어진 끝
+	var patch := BoxMesh.new(); patch.size = Vector3(0.08, 0.07, 0.012)
+	_mesh(rip, patch, Color("efe9e2"), at, Vector3(0, 0, 0.3))
+	var seam := BoxMesh.new(); seam.size = Vector3(0.1, 0.008, 0.014)
+	_mesh(rip, seam, Color("1b0c15"), at + Vector3(0, 0.0, 0.002), Vector3(0, 0, -0.5))
+	n.set_meta("torn", true); n.set_meta("rip", rip)
+	return true
+
+static func mend(n: Node3D) -> void:
+	if n == null or not n.get_meta("torn", false): return
+	(n.get_meta("rip") as Node3D).queue_free(); n.remove_meta("rip"); n.set_meta("torn", false)
+
+static func torn(n: Node3D) -> bool:
+	return n != null and n.get_meta("torn", false)

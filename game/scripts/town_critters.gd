@@ -151,6 +151,7 @@ func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 		if seesaw_ride: seesaw_ride.leave("player"); seesaw_ride = null; body.global_position += Vector3(0, 0, 0.7)   # 시소 위에서 넘어지면 판 앞에 내린다(판 속에 겹친 채 마스크가 켜지면 바닥 밑으로 밀렸다) — 시소 가지가 먼저 return 해 일어나기가 영영 안 돌았다(polish 79)
 		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
 		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
+		if Wear.tear(player.worn.get("back")): call("say_toast", "Torn. The tailor on the east plaza mends these.")   # 주민과 같은 규칙(run 82) — 토스트는 위층
 		while player.carrying:   # 들고 있던 걸 전부 떨어뜨린다(주민과 같은 규칙)
 			var it: Node3D = player.release(self, body.global_position + dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0)); it.set_meta("dropped_at", Time.get_ticks_msec() / 1000.0); items.append(it)   # 여우가 노린다(_fox)
 	else:
