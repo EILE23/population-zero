@@ -18,6 +18,7 @@ func _ready() -> void:
 	_path(Vector3(3.35, 0, 0.8), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
 	_district("lane", Vector3(0, 0, -15), _lane)
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
+	_stones()   # 디딤돌(CI run 84) — 시장 서쪽 끝 x 23 의 둘째 건널목
 	_jetty()   # 부두와 거룻배(CI run 78) — 다리 동쪽 북쪽 둑, 강 위를 다닌다
 	_district("meadow", Vector3(0, 0, 18), _meadow)          # 텃밭·벤치(CI run 70) — 나무·풀밭 자리·물가는 _river 가 만든다
 	_district("terrace", TERR_AT, _terrace)                  # 전망 언덕(CI run 73) — 풀밭 동쪽 끝의 풀 선반, 돌계단으로 오른다

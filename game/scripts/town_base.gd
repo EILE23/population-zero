@@ -231,9 +231,14 @@ func focus_pos() -> Vector3:
 
 var swimming := false            # 내가 물에 들어가 있는 동안(헤엄 자세, 느리고, 점프·타격 없음)
 
-## 물에 있나 — 물 애셋이 답하고, 다리 위만 뺀다. 사람도 주민도 물건도 같은 규칙
+var stones: Array = []           # 디딤돌 윗면 가운데(town_places._stones, run 84) — 그 위에 선 몸은 물에 있지 않다
+const STONE_R := 0.26
+
+## 물에 있나 — 물 애셋이 답하고, 다리 위와 디딤돌 위만 뺀다. 사람도 주민도 물건도 같은 규칙. 돌 사이로 발을 헛디디면(몸이 돌 윗면 아래) 물이다
 func in_water(p: Vector3) -> bool:
 	if water == null or not water.contains(p): return false
+	for s in stones:
+		if p.y > 0.06 and Vector2(p.x - (s as Vector3).x, p.z - (s as Vector3).z).length() < STONE_R + 0.14: return false   # 지그재그 돌 사이 틈에서도(0.06 이면 틈에서 헤엄이 깜박였다 — 헤드리스 확인). 참 판정은 높이(물에 빠진 몸은 y≈0)
 	return not (absf(p.z - RIVER_Z) < RIVER_HW + 0.8 and absf(p.x) <= BRIDGE_HW + 0.2)   # 다리
 
 ## 경로 앞에 끼울 경유지 — 다리·텃밭 문·전망 언덕 계단(town_places.crossings) + 연못을 돌아가는 길(water.detour). 주민 길찾기는 전부 여기로

@@ -131,6 +131,7 @@ func _physics_process(delta: float) -> void:
 		town.water.wake(self, true, delta)
 	elif fig.pose_request == "swim":
 		fig.pose_request = ""; fig.position.y = 0.0; town.water.drip(self)
+	town.teeter(fig, global_position, state == "walk" or state == "chase")   # 디딤돌 위 균형(run 84) — 사람과 같은 자리·같은 자세
 	if state == "walk" or state == "chase":
 		for o in town.residents:
 			if o == self: continue

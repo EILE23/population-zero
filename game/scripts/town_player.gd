@@ -84,6 +84,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			if player.pose_request == "swim": player.pose_request = ""
 			water.drip(body)   # 나오면 물이 뚝뚝
+	teeter(player, body.global_position, true)   # 디딤돌 위면 두 팔 벌려 균형(run 84) — 주민도 같은 자리에서(resident.gd)
 	for a in ["move_left", "move_right", "move_up", "move_down"]:
 		if Input.is_action_just_pressed(a):
 			if a == last_tap and now - last_tap_at < 0.25 and grounded:

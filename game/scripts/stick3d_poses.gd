@@ -15,6 +15,7 @@ const HAMMER_T := 1.5  # 망치질 한 바퀴(run 80, 구두장이 작업대): 0
 const GRIND_T := 2.4   # 칼갈이 한 바퀴(run 81, 숫돌): 0.4 숙여 들어가 날을 돌에 댄다(예비) → 1.6 간다(유지, 오른발이 발판을 1.6Hz 로 밟고 불꽃이 튄다) → 0.4 바로 선다(회수). 두 바퀴 = 가위 하나
 const WAIT_T := 1.5    # 기다리기 한 눈길(run 81, 숫돌 손님 자리): 팔짱은 0.3초에 감기고(예비), 그 뒤 1.5초마다 고개가 옆으로 0.25 돌아가 0.5 보고 0.25 돌아온다(유지 속의 회수). 자세가 풀릴 때까지 되풀이
 const SEW_T := 3.0     # 바느질 한 바퀴(run 82, 재봉사 작업대): 0.3 바늘로 손을 뻗는다(예비) → 2.4 실을 뽑았다 되돌린다(유지, 오른손이 1.2Hz 로 옆으로 당긴다) → 0.3 실을 이로 끊는다(회수: 손이 입으로, 고개가 까딱). 한 바퀴 = 찢어진 것 하나
+const TEETER_T := 0.25 # 디딤돌 균형(run 84): 0.25초에 두 팔이 옆으로 벌어진다(예비) → 건너는 동안 두 팔이 시소처럼 번갈아 오르내린다(유지, 2.4rad/s) → 돌을 벗어나면 팔이 걷기 흔들림으로 내려온다(회수, stick3d 블렌딩)
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -52,6 +53,8 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		lean = -0.04 * smoothstep(0.0, 1.0, minf(f.pose_t / 0.3, 1.0)) + sin(f._t * 1.1) * 0.015   # 뒤꿈치에 무게, 숨 쉬듯 조금 흔들린다
 	if p == "sew":
 		lean = 0.14 * sew_k(f.pose_t) + 0.05 * sew_bite(f.pose_t)   # 앉은 채 손 위로 숙이고, 실을 끊을 때 한 번 더 숙인다
+	if p == "teeter":
+		lean = base * 0.5 + 0.12 * smoothstep(0.0, 1.0, minf(f.pose_t / TEETER_T, 1.0))   # 달리기 기울기는 반, 대신 발밑을 보느라 조금 웅크린다
 	if p == "shade" and not moving:
 		lean = -0.08 * shade_k(f.pose_t)   # 손차양: 멀리 보느라 살짝 뒤로 젖힌다 — 고개·몸통 돌림은 limbs 에서(몸통 y 는 그 뒤에 정해진다)
 	if p == "storm" and not moving:
@@ -303,6 +306,18 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 				f.neck.rotation.x += 0.25 * bite
 			else:
 				sh.rotation.x = -(0.05 + 0.75 * k); sh.rotation.z = 0.12 * k; el.rotation.x = -(0.35 + 1.35 * k)
+		"teeter":
+			# 디딤돌 균형(운영자 보드의 '외줄·평균대' 가족 첫 자세 — run 84, 강의 디딤돌): 두 팔을 옆으로 벌리고 걸음은 좁고 무릎은 조금 더 접힌다, 고개는 발밑.
+			# k 가 예비(팔이 벌어진다), rock 이 유지(한 팔이 오르면 다른 팔이 내려가는 시소 — 정지화가 아니다). 사람도 주민도 같은 돌 위에서 같은 자세
+			var k := smoothstep(0.0, 1.0, minf(f.pose_t / TEETER_T, 1.0))
+			var rock := sin(t * 2.4)
+			if moving:
+				var a := s * sw * 0.35 * run_k   # 보폭을 줄인다 — 돌 한 개에 한 걸음
+				hip.rotation.x = -(a); knee.rotation.x = -(-(0.9 if a < 0.0 else 0.25) * run_k)
+			else:
+				hip.rotation.x = -(0.05); knee.rotation.x = -(-0.2)
+			sh.rotation.x = -(0.05 + 0.2 * k); sh.rotation.z = -s * (0.1 + (1.15 + 0.3 * rock * s) * k); el.rotation.x = -(0.35 - 0.2 * k)
+			if s > 0.0: f.neck.rotation.x += 0.25 * k
 		"shade":
 			# 손차양(운영자 보드의 '지도 읽기·둘러보기' 일상 가족 — run 73, 전망 언덕의 전망 자리): 오른손을 이마 위에 얹고 왼손은 허리에, 무게는 왼다리에(오른 무릎 살짝).
 			# k 가 예비·유지·회수를 만든다(손이 올라가고, 둘러보고, 내려온다); 둘러보는 동안 고개와 몸통이 천천히 좌우로 돈다 — 정지화가 아니다. 주민도 사람도 같은 자세
