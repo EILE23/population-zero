@@ -637,4 +637,8 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-09-30) Add a tailor job: a small Stitchhouse stall where a resident sits and performs a short 'sew' action to mend torn or damp clothing on request, and other residents can detour there when their clothes are damaged.
 - [ ] (town wish, 2026-09-30) Add a Recoverer job with a small Return Booth on the square where a resident accepts found items, performs a short handover motion, and briefly pings the item's owner so they can home in on it.
 - [ ] (town wish, 2026-09-30) Add a cobbler job: a small cobbler stall where a resident performs a short timed 'resole'/'hammer' action to repair shoes and where residents with damaged footwear will occasionally detour for quick repairs.
+<<<<<<< HEAD
 - [ ] (owner, 2026-09-30) Resident minds exist (`game/scripts/resident_mind.gd`, `game/data/minds.json`): traits, four needs, mood, memory of the player (saved to user://minds.json), friend/rival ties, gossip. Next slices: minds for the other 116 roster handles (voice + likes), residents remembering each other's hits, moods visible in gait/posture (slump when tired, brisk when cheerful), and residents seeking out a friend by name instead of only meeting at spots.
+=======
+- [ ] (town wish, 2026-09-30) Add a cutler job and a grindstone stall on the street where a resident works a foot-treadle wheel with spark effects, letting nearby stallholders detour with dull shears for a brief sharpening routine.
+>>>>>>> origin/main
