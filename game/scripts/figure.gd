@@ -17,7 +17,7 @@ const SHIN := 10.0
 const UPPER := 9.0
 const FORE := 9.0
 const D := PI / 2.0
-const SEATED := ["sit", "seat", "swing", "eat"]
+const SEATED := ["sit", "seat", "swing", "eat", "sew"]
 
 func _process(delta: float) -> void:
 	t += delta
@@ -210,6 +210,34 @@ func _draw() -> void:
 			_ln(shoulder, Vector2(13, -25 + pr * 2.0), Vector2(17, -18 + pr * 3.0)); _ln(shoulder, Vector2(11, -25 + (1.0 - pr) * 2.0), Vector2(15, -18 + (1.0 - pr) * 3.0))
 			draw_line(Vector2(10, -14), Vector2(26, -14), color, 1.6, true)
 			draw_circle(Vector2(17, -16.5 + pr), 3.2 - pr * 0.6, Color("e6d3a5"))
+			_head(head)
+		"hammer":
+			# 망치질(run 80, 구두장이 작업대) — 3D 는 stick3d_poses.gd hammer: 한 바퀴 1.5초(0.3 든다 · 0.3 씩 세 번 두드림 · 0.3 내린다). 왼손은 구두골 위 구두, 오른손 망치
+			var c := fmod(t, 1.5)
+			var tap := 0.6 if c < 0.3 or c > 1.2 else sin(fmod(c - 0.3, 0.3) / 0.3 * PI)
+			shoulder = Vector2(5, -31); head = Vector2(8, -38)
+			_ln(hip, shoulder); _legs_stand(hip)
+			_ln(shoulder, Vector2(11, -25), Vector2(16, -19))
+			var hand := Vector2(14 - tap * 2.0, -20 - tap * 9.0)
+			_ln(shoulder, Vector2(12, -27 - tap * 4.0), hand)
+			draw_line(hand, hand + Vector2(4, 2 - tap * 3.0), color, 1.6, true)
+			draw_line(Vector2(12, -17), Vector2(22, -17), color, 1.6, true)
+			draw_rect(Rect2(Vector2(14, -19.5), Vector2(6, 2.5)), Color("ad7096"))
+			_head(head)
+		"sew":
+			# 바느질(run 82, 재봉사 작업대) — 3D 는 stick3d_poses.gd sew: 한 바퀴 3초(0.3 바늘로 뻗기 · 실 뽑기 1.2Hz · 끝 0.3 실을 이로 끊기). 앉아서 왼손은 천, 오른손은 실
+			var c := fmod(t, 3.0)
+			var k := smoothstep(0.0, 1.0, c / 0.3) if c < 0.3 else 1.0
+			var pull := 0.0 if c < 0.3 or c > 2.7 else (1.0 - cos((c - 0.3) * 1.2 * TAU)) / 2.0
+			var bite := sin((c - 2.7) / 0.3 * PI) if c > 2.7 else 0.0
+			hip = Vector2(0, -15); shoulder = Vector2(2 + bite, -32); head = Vector2(4 + bite * 2.0, -40 + bite)
+			_ln(hip, shoulder)
+			_ln(hip, Vector2(11, -15), Vector2(12, 0)); _ln(hip, Vector2(9, -14), Vector2(8, 0))
+			_ln(shoulder, Vector2(7, -27), Vector2(12, -24 + (1.0 - k) * 6.0))
+			var hand := Vector2(12 + pull * 7.0 - bite * 6.0, -24 - pull * 8.0 - bite * 12.0 + (1.0 - k) * 6.0)
+			_ln(shoulder, Vector2(9 + pull * 2.0, -26 - pull * 3.0), hand)
+			draw_line(Vector2(12, -24), hand, Color("1b0c15"), 0.8, true)   # 실
+			draw_rect(Rect2(Vector2(9, -25), Vector2(7, 3)), Color("ad7096"))   # 천
 			_head(head)
 		"shade":
 			# 손차양(run 73, 전망 자리) — stickman.ts 'shade' 와 같은 수: 6초 한 바퀴, 0.35 손이 이마로(예비) · 둘러보기(유지, 고개·어깨가 천천히 좌우) · 끝 0.4 내린다(회수)

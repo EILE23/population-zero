@@ -1,6 +1,6 @@
 extends TownPlayer
 ## 3D 마을 — 루트. 세계를 짓고(_ready) 프레임마다 카메라·범례를 돌린다(_process). 나머지는 상속 계층에 있다:
-##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_systems.gd(시스템) → town_player.gd(조작) → 여기.
+##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → town_player.gd(조작) → 여기.
 
 func _ready() -> void:
 	_light()
@@ -12,11 +12,13 @@ func _ready() -> void:
 	_district("market", Vector3(31, 0, -2), _market)
 	_district("east", Vector3(59, 0, -1), _east)   # 동쪽 마을(2026-09-30)
 	_district("shops", Vector3(31, 0, -2), _shops)   # 화덕(run 72)과 우산꽂이(run 76) — 시장과 같은 중심이라 같이 켜고 꺼진다
+	_district("trades", Vector3(59, 0, -1), func(c: Vector3) -> void: _cobbler(c + Vector3(-5.2, 0, -3.0)); _stitchhouse(c + Vector3(5.2, 0, -3.0)))   # 구두장이 작업대(run 80)는 동쪽 광장 서쪽 끝, 바느질 탁자(run 82)는 맞은편 동쪽 끝 — 동쪽 마을과 같이 켜고 꺼진다
 	_sun = get_node_or_null("Sun")
 	_path(Vector3(0, 0, 0.8), Vector3(0, 0, -3.6), 2.0)    # 큰길 가장자리에서 가운데 집 현관까지(도로와 겹치면 이음새; 전엔 집 밑을 지나 -10 까지 갔다)
 	_path(Vector3(3.35, 0, 0.8), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
 	_district("lane", Vector3(0, 0, -15), _lane)
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
+	_stones()   # 디딤돌(CI run 84) — 시장 서쪽 끝 x 23 의 둘째 건널목
 	_jetty()   # 부두와 거룻배(CI run 78) — 다리 동쪽 북쪽 둑, 강 위를 다닌다
 	_district("meadow", Vector3(0, 0, 18), _meadow)          # 텃밭·벤치(CI run 70) — 나무·풀밭 자리·물가는 _river 가 만든다
 	_district("terrace", TERR_AT, _terrace)                  # 전망 언덕(CI run 73) — 풀밭 동쪽 끝의 풀 선반, 돌계단으로 오른다
@@ -56,11 +58,12 @@ func _ready() -> void:
 	if "--sheet" in OS.get_cmdline_user_args():
 		add_child(load("res://tools/motion_sheet.gd").new())   # 개발용 동작 시트(연속 프레임) — `-- --sheet` 로만 켜진다
 
-## 시장 가게 앞의 것들 — places 층의 빌더라 _market(build 층)에선 못 부른다: 빵집 화덕은 문 오른쪽 바깥(창구·문·화덕이 한 줄), 우산꽂이는 카페 창구 오른쪽
+## 시장 가게 앞의 것들 — places·trades 층의 빌더라 _market(build 층)에선 못 부른다: 빵집 화덕은 문 오른쪽 바깥(창구·문·화덕이 한 줄), 우산꽂이는 카페 창구 오른쪽, 숫돌은 광장 동쪽 끝
 func _shops(c: Vector3) -> void:
 	var bc: Dictionary = spots.filter(func(sp): return sp["kind"] == "counter" and sp.has("stock"))[0]   # 빵집 창구 — 재고가 있는 유일한 창구
 	_oven(c + Vector3(-4.3, 0, -5.9), bc)
 	_rack(c + Vector3(8.3, 0, -6.0))
+	_grindstone(c + Vector3(11.2, 0, -3.4))   # 칼갈이 숫돌(run 81, trades 층) — 넷째 노점 옆, 자갈 광장 동쪽 가장자리
 
 func _process(delta: float) -> void:
 	_hud(Time.get_ticks_msec() / 1000.0)

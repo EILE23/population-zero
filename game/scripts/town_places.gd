@@ -98,6 +98,29 @@ func _terrace(at: Vector3) -> void:
 	_bench(at + Vector3(2.4, TERR_H, 1.4))
 	_tree(at + Vector3(-2.2, TERR_H, 0.6), 0.9)
 
+## 디딤돌(run 84, 구조 성장 — 둘째 건널목): 강은 x=0 다리 하나로만 건넜다 — 시장(x 20..42)에서 풀밭·전망 언덕에 가려면 23m 를 되돌아 걸었다.
+## 시장 서쪽 끝 x 23 에 납작한 돌 다섯(0.6 간격, 지그재그), 양쪽 둑에 짧은 자갈길, 남쪽 물가에 서서 보는 자리. 돌 사이 틈(8cm)은 걸어서도 넘고 점프로도 넘는다;
+## 옆으로 헛디디면 헤엄(in_water). 주민은 더 가까운 건널목을 고른다(crossings) — 시장 쪽 사람들이 여기로 건너고, 건너는 동안 teeter(두 팔 벌려 균형)
+const STONES_X := 23.0
+const STONE_H := 0.14   # 수면(0.04) 위 10cm — 걸어 오르는 턱(STEP 0.42) 안
+func _stones() -> void:
+	var rock := _mat(Color("bfb6b0")); var dark := _mat(Color("9a8f86"))
+	for i in 5:
+		var at := Vector3(STONES_X + [0.0, 0.14, -0.1, 0.12, -0.06][i], 0, RIVER_N + 0.3 + i * 0.6)   # 줄이 곧으면 징검다리가 아니라 둑길로 읽힌다
+		var mi := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = STONE_R - 0.04; cm.bottom_radius = STONE_R; cm.height = STONE_H; cm.radial_segments = 9
+		mi.mesh = cm; mi.material_override = rock if i % 2 == 0 else dark; mi.position = at + Vector3(0, STONE_H / 2.0, 0); mi.rotation.y = i * 0.7
+		var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := CylinderShape3D.new(); sh.radius = STONE_R; sh.height = STONE_H; cs.shape = sh; sb.add_child(cs); mi.add_child(sb)
+		_add(mi); stones.append(at + Vector3(0, STONE_H, 0))
+	_path(Vector3(STONES_X, 0, 5.0), Vector3(STONES_X, 0, RIVER_N - 0.3), 1.2)   # 시장 자갈 광장(z ..5) 끝에서 둑까지
+	_path(Vector3(STONES_X, 0, RIVER_S + 0.3), Vector3(STONES_X, 0, RIVER_S + 2.6), 1.2)
+	spots.append({ "pos": Vector3(STONES_X + 1.3, 0, RIVER_S + 0.6), "kind": "bank", "yaw": PI })   # 남쪽 물가 — 건너온 사람이 서서 돌을 본다
+
+## 디딤돌 위를 걷는 동안 teeter — 사람도 주민도 이걸 부른다. 다른 자세(헤엄·우산·들기)가 있으면 덮지 않는다; 걷는 중이 아니거나 돌 띠를 벗어나면 푼다
+func teeter(fig: Stick3D, p: Vector3, walking: bool) -> void:
+	var on := walking and not stones.is_empty() and absf(p.x - STONES_X) < 0.6 and p.z > RIVER_N - 0.15 and p.z < RIVER_S + 0.15
+	if on and fig.pose_request == "": fig.pose_request = "teeter"
+	elif not on and fig.pose_request == "teeter": fig.pose_request = ""
+
 ## 이 자리의 땅 높이 — 전망 언덕 선반 위면 TERR_H, 아니면 0. 던져진 것·떨어진 사과가 선반 위에 놓이게(_fly) — 바닥 0 까지 떨어지면 바위 속에 묻힌다
 func ground_y(p: Vector3) -> float:
 	return TERR_H if absf(p.x - TERR_AT.x) < TERR_W / 2.0 and absf(p.z - TERR_AT.z) < TERR_D / 2.0 else 0.0
@@ -145,7 +168,7 @@ func garden_use(sp: Dictionary, now: float) -> void:
 		var it := make_item(pick_row(row), body.global_position + Vector3(0, 0.9, 0))
 		player.hold(it); player.action = "grab"; action_until = now + 0.4
 
-## 경유지 — 출발과 도착이 강의 다른 편이면 다리 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을, 전망 언덕을 오르내리면 계단을 거친다
+## 경유지 — 출발과 도착이 강의 다른 편이면 가까운 건널목(다리·디딤돌)의 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을, 전망 언덕을 오르내리면 계단을 거친다
 ## (곧장 가면 물 위 벽이나 울타리 기둥·바위 낯에 막혀 우회하다 포기했다 — polish run 71: 주민이 텃밭 이랑에 한 번도 못 닿았다)
 ## 출발과 도착이 같은 편이면(둘 다 언덕 위, 둘 다 울타리 안) 계단·문을 안 거친다 — 전망 벤치에서 3m 옆 전망 자리로 가는데 계단을 내려갔다 다시 올랐고, 이랑에서 옆 이랑으로 가는데 문 밖에 나갔다 들어왔다(polish 75)
 func crossings(from: Vector3, to: Vector3) -> Array:
@@ -154,9 +177,20 @@ func crossings(from: Vector3, to: Vector3) -> Array:
 	var inn := (_terr_steps(to, true) if lvl else []) + (_gate_steps(to, true) if yard else [])
 	var mid := (RIVER_N + RIVER_S) / 2.0
 	if (from.z < mid) == (to.z < mid): return out + inn
-	var n := { "pos": Vector3(randf_range(-0.4, 0.4), 0, RIVER_N - 1.1), "act": "" }
-	var s := { "pos": Vector3(randf_range(-0.4, 0.4), 0, RIVER_S + 1.1), "act": "" }
+	# 둘 중 가까운 건널목(run 84) — 다리(x 0)냐 디딤돌(x 23)이냐. 돌은 좁으니 흔들림 없이 한 줄로 간다(다리는 폭 안에서 흩어진다)
+	var st := not stones.is_empty() and absf(from.x - STONES_X) + absf(to.x - STONES_X) < absf(from.x) + absf(to.x)
+	var n := { "pos": Vector3(STONES_X if st else randf_range(-0.4, 0.4), 0, RIVER_N - 1.1), "act": "" }
+	var s := { "pos": Vector3(STONES_X if st else randf_range(-0.4, 0.4), 0, RIVER_S + 1.1), "act": "" }
+	if st: return out + ([n, s] + _stones_bend(to) if from.z < mid else _stones_bend(from) + [s, n]) + inn
 	return out + ([n, s] if from.z < mid else [s, n]) + inn
+
+## 디딤돌 남쪽 발치(x 23)와 풀밭 안쪽 사이의 모퉁이 — 곧장 가면 전망 언덕 바위(x 13..21, z 15.5..21.5)에 막힌다(run 84 헤드리스 확인).
+## 언덕 위나 언덕 남쪽이면 동남 모퉁이(계단이 남쪽 낯), 언덕 서쪽 풀밭(텃밭·풀밭 자리)이면 강가를 따라 서북 모퉁이, 그 밖엔 없음
+func _stones_bend(p: Vector3) -> Array:
+	var e := TERR_AT.x + TERR_W / 2.0; var w := TERR_AT.x - TERR_W / 2.0
+	if p.z < RIVER_S or p.x > e: return []
+	if ground_y(p) > 0.0 or p.z > TERR_AT.z + TERR_D / 2.0: return [{ "pos": Vector3(e + 0.8, 0, TERR_AT.z + TERR_D / 2.0 + 0.8), "act": "" }]
+	return [{ "pos": Vector3(w - 0.8, 0, RIVER_S + 1.4), "act": "" }] if p.x < w else []
 
 ## 텃밭 안(울타리 3.3×1.9 안쪽)의 점이면 문 안쪽·바깥쪽 두 점, 아니면 없음. inward 면 바깥 → 안 순서
 func _gate_steps(p: Vector3, inward: bool) -> Array:
@@ -337,7 +371,9 @@ func _east(at: Vector3) -> void:
 	_house(at + Vector3(-7.5, 0, -11.5), Vector3(4.2, 2.7, 3.4), Color("e6d3a5"), "brick", false, 21)
 	_house(at + Vector3(0.5, 0, -12.5), Vector3(4.6, 2.9, 3.6), Color("dfe6ea"), "wood", false, 22)
 	_house(at + Vector3(8.5, 0, -11.5), Vector3(3.8, 2.6, 3.2), Color("efe9e2"), "shingle", false, 23)
+	doors[doors.size() - 1]["job"] = "tailor"   # 이 집 주민이 재봉사 — 광장 동쪽 끝 바느질 탁자(town_trades)가 낮 일터(run 82)
 	_house(at + Vector3(-10, 0, -5.0), Vector3(3.6, 2.6, 3.2), Color("b56a5a"), "wood", false, 24)
+	doors[doors.size() - 1]["job"] = "cobbler"   # 이 집 주민이 구두장이 — 광장 서쪽 끝 작업대(town_trades)가 낮 일터(run 80)
 	_path(at + Vector3(0, 0, -7.1), at + Vector3(0, 0, -10.7), 1.6)   # 광장에서 북쪽 집 현관으로
 	for t in [Vector3(-12, 0, -9.0), Vector3(12.5, 0, -7.5), Vector3(11, 0, 6.0), Vector3(-12.5, 0, 6.0)]:   # 남쪽 둘은 큰길 건너로 — 하나는 길 한가운데 서 있었다
 		_tree(at + t, 1.0 + fmod(absf(t.x) * 0.31, 0.4))

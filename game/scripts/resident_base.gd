@@ -70,6 +70,7 @@ func setup(t: Node3D, id: int, h: String) -> void:
 	if id % 5 < 2: fig.wear(Wear.make(["cap", "beanie", "tophat", "straw"][id % 4], Wear.palette(id)))
 	if id % 5 == 3: fig.wear(Wear.make("glasses" if id % 2 == 0 else "sunglasses"))
 	if id % 6 == 1: fig.wear(Wear.make("backpack", Wear.palette(id + 2)))
+	elif id % 6 == 4: fig.wear(Wear.make("scarf", Wear.palette(id + 3)))   # 목도리(run 82) — 찢어질 수 있는 것을 메고 다니는 사람이 가방 멘 이들뿐이면 재봉사 손님이 너무 적다
 	# 넷 중 하나는 뭔가 들고 다닌다(뺏을 거리)
 	if id % 4 == 1:
 		carrying_kind = ["apple", "cup", "paper"][id % 3]
@@ -184,6 +185,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		fig.face(atan2(-from_dir.x, -from_dir.z))  # 때린 쪽을 보고 눕는다
 		velocity = from_dir * 4.2 + Vector3(0, 3.2, 0)   # 뒤로 붕 떠서 쓰러진다(한 번 튀고 미끄러짐은 down 상태가)
 		say(mind.line("down"), 1.6)
+		Wear.tear(fig.worn.get("back"))   # 바닥에 쓸려 등의 가방·목도리가 찢어진다 — 재봉사(run 82, town_trades)에게 간다
 		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
 			var it: Node3D = fig.release(town, global_position + from_dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0))
 			it.set_meta("dropped_at", now)   # 넘어져 떨어뜨린 표시 — 여우가 6초 안에 노린다(town_systems _fox). 내려놓은 것·던진 것과 구별
@@ -196,6 +198,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 
 ## 날아가기(차에 치임) — 속도 그대로 포물선을 그리고, 닿으면 stun 초 동안 기절했다 일어난다
 func launch(vel: Vector3, stun: float) -> void:
+	if state == "drive": return   # 차 안의 운전사는 안 날아간다(hit 와 같은 규칙)
 	velocity = vel
 	down_until = Time.get_ticks_msec() / 1000.0 + stun
 	say(mind.line("down"), 1.4)
