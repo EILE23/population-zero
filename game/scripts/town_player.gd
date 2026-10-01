@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownRide
+extends TownMeals
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -247,7 +247,7 @@ func _interact_check(now: float) -> void:
 	if not (long_press or tap) or action_until >= now:
 		return
 	if long_press:
-		_pick_furniture(now)
+		if not pass_on_bench(now): _pick_furniture(now)   # 벤치에 앉아 컵·먹을 걸 들었으면 길게 = 옆 칸에 넘기기(run 86, town_meals)
 		return
 	if rowing:
 		boat_leave(now); return   # 배 위(run 78): C = 그 자리 북쪽 둑에 내린다(town_boat)
@@ -273,6 +273,7 @@ func _interact_check(now: float) -> void:
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind in FOOD:
+			if share_on_bench(now) or (seat.is_empty() and sit_with_food(p)): return   # 앉았으면 옆 사람과 반씩(run 85, town_meals), 벤치 앞이면 먼저 앉는다
 			# 먹기: 한 번에 한입, 한입마다 작아지고 세 입이면 사라진다(운영자: 상호작용은 끝까지). 한입 수는 물건에 붙는다 — 전엔 전역이라 사과를 바꿔 들어도 이어졌다
 			var food := player.carrying
 			var bites := int(food.get_meta("bites", 0)) + 1
@@ -464,23 +465,4 @@ func _interact_check(now: float) -> void:
 				# 비 오는 날 밖에서 문을 닫으면 처마 밑에서 비 구경(storm, run 74) — 움직이면 풀린다. 주민도 비 오는 문 앞에서 같은 자세(resident.gd _storm)
 				player.pose_request = "storm"; player.face(0.0)
 		"bench":
-			var b: Dictionary = best["bench"]
-			# 세 자리(왼·가운데·오른쪽) 중 주민이 안 앉은 칸에서 지금 선 곳에 가장 가까운 자리 — 가운데만 고집하지 않고, 주민 무릎 위에도 앉지 않는다
-			var taken: Array = []
-			for sp in spots:
-				if sp["kind"] == "bench" and sp["pos"] == b["pos"]: taken = sp.get("taken", []); break
-			var best_slot: Vector3 = b["pos"]; var bd := 99.0
-			for i in 3:
-				if i < taken.size() and taken[i] != null: continue
-				var off: float = [-0.45, 0.0, 0.45][i]
-				var slot: Vector3 = b["pos"] + Vector3(cos(b["yaw"]) * off, 0, -sin(b["yaw"]) * off)
-				var d := body.global_position.distance_to(slot)
-				if d < bd: bd = d; best_slot = slot
-			if bd == 99.0: return   # 꽉 찬 벤치
-			seat = b
-			player.seated = true
-			player.move_dir = Vector3.ZERO; player.speed = 0.0
-			body.velocity = Vector3.ZERO
-			var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
-			tw.tween_property(body, "position", best_slot + Vector3(0, 0.05, 0.02), 0.35)  # 순간이동 대신 미끄러져 앉는다
-			player.face(b["yaw"])
+			sit_bench(best["bench"])   # 빈 칸 고르기·미끄러져 앉기는 town_meals(run 85: 먹을 걸 들고도 앉는다)

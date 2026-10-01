@@ -39,7 +39,7 @@ var _fidget_next := randf_range(3.0, 8.0)   # 다음 기지개까지 남은 시�
 
 var _phase := 0.0
 var _pose_since := 0.0
-const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer", "grind", "wait", "sew", "teeter"]
+const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer", "grind", "wait", "sew", "teeter", "share", "pass"]
 var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0
@@ -178,7 +178,7 @@ func _process(delta: float) -> void:
 		elif pose_request == "eat":
 			# 서서 먹기(2D chew): 오른손이 입으로 오르내리고 고개가 살짝 숙여진다
 			var m := (sin(_t * 4.0) + 1.0) / 2.0
-			hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			hip.rotation.x = -(1.5) if seated else 0.0; knee.rotation.x = -(-1.45) if seated else -(-0.05)   # 벤치에서 먹으면 다리는 앉은 채(run 85, 나눠 먹기 — 전엔 앉아서 먹으면 다리가 서 버렸다)
 			if s > 0.0: sh.rotation.x = -(0.55 + m * 0.5); sh.rotation.z = -0.25; el.rotation.x = -(1.9 + m * 0.5)
 			else: sh.rotation.x = -(0.05); sh.rotation.z = 0.1; el.rotation.x = -(0.35)
 		elif pose_request == "drink":

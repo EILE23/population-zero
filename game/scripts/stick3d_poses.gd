@@ -16,6 +16,10 @@ const GRIND_T := 2.4   # 칼갈이 한 바퀴(run 81, 숫돌): 0.4 숙여 들어
 const WAIT_T := 1.5    # 기다리기 한 눈길(run 81, 숫돌 손님 자리): 팔짱은 0.3초에 감기고(예비), 그 뒤 1.5초마다 고개가 옆으로 0.25 돌아가 0.5 보고 0.25 돌아온다(유지 속의 회수). 자세가 풀릴 때까지 되풀이
 const SEW_T := 3.0     # 바느질 한 바퀴(run 82, 재봉사 작업대): 0.3 바늘로 손을 뻗는다(예비) → 2.4 실을 뽑았다 되돌린다(유지, 오른손이 1.2Hz 로 옆으로 당긴다) → 0.3 실을 이로 끊는다(회수: 손이 입으로, 고개가 까딱). 한 바퀴 = 찢어진 것 하나
 const TEETER_T := 0.25 # 디딤돌 균형(run 84): 0.25초에 두 팔이 옆으로 벌어진다(예비) → 건너는 동안 두 팔이 시소처럼 번갈아 오르내린다(유지, 2.4rad/s) → 돌을 벗어나면 팔이 걷기 흔들림으로 내려온다(회수, stick3d 블렌딩)
+const SHARE_T := 2.0   # 나눠 먹기(run 85, 벤치): 0.3 두 손이 가슴 앞에서 먹을 걸 쥔다(예비) → 0.6 비틀어 쪼갠다 → 0.6 옆 사람 쪽 팔을 뻗어 반을 건넨다(유지) → 0.5 무릎으로 돌아온다(회수)
+const SHARE_HAND := 1.2 # 반쪽이 옆 사람 손으로 넘어가는 순간 — 팔이 끝까지 뻗은 때(town_meals split_food)
+const PASS_T := 1.0    # 옆으로 건네기(run 86, 벤치 줄): 0.2 오른손이 든 것을 가슴 높이로 옆 사람 쪽에 내민다(예비) → 0.6 내민 채 넘겨준다(유지) → 0.2 무릎으로(회수)
+const PASS_HAND := 0.5 # 넘겨주는 순간 — 내민 손이 머문 한가운데(town_meals pass_on_bench, resident_life _pass_along)
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -53,6 +57,10 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		lean = -0.04 * smoothstep(0.0, 1.0, minf(f.pose_t / 0.3, 1.0)) + sin(f._t * 1.1) * 0.015   # 뒤꿈치에 무게, 숨 쉬듯 조금 흔들린다
 	if p == "sew":
 		lean = 0.14 * sew_k(f.pose_t) + 0.05 * sew_bite(f.pose_t)   # 앉은 채 손 위로 숙이고, 실을 끊을 때 한 번 더 숙인다
+	if p == "share":
+		lean = 0.06 * share_k(f.pose_t) + 0.05 * share_break(f.pose_t)   # 쪼갤 때 손 위로 조금 숙인다
+	if p == "pass":
+		lean = 0.05 * pass_k(f.pose_t)   # 옆으로 내밀 때 몸이 조금 따라간다
 	if p == "teeter":
 		lean = base * 0.5 + 0.12 * smoothstep(0.0, 1.0, minf(f.pose_t / TEETER_T, 1.0))   # 달리기 기울기는 반, 대신 발밑을 보느라 조금 웅크린다
 	if p == "shade" and not moving:
@@ -124,6 +132,30 @@ static func sew_bite(t: float) -> float:
 	var c := fmod(t, SEW_T)
 	return sin((c - (SEW_T - 0.3)) / 0.3 * PI) if c > SEW_T - 0.3 else 0.0
 
+## 나눠 먹기 진행 0..1 — 0.3초 두 손이 가슴 앞으로(예비), 쪼개고 건네는 동안 1, 끝 0.5초 무릎으로(회수). SHARE_T 뒤엔 0
+static func share_k(t: float) -> float:
+	if t >= SHARE_T: return 0.0
+	if t < 0.3: return smoothstep(0.0, 1.0, t / 0.3)
+	if t > SHARE_T - 0.5: return 1.0 - smoothstep(0.0, 1.0, (t - (SHARE_T - 0.5)) / 0.5)
+	return 1.0
+
+## 건네기 진행 0..1 — 0.2초 내밀고(예비), 0.6초 머물고(유지), 0.2초 거둔다(회수). PASS_T 뒤엔 0
+static func pass_k(t: float) -> float:
+	if t >= PASS_T: return 0.0
+	if t < 0.2: return smoothstep(0.0, 1.0, t / 0.2)
+	if t > PASS_T - 0.2: return 1.0 - smoothstep(0.0, 1.0, (t - (PASS_T - 0.2)) / 0.2)
+	return 1.0
+
+## 쪼개기 0..1 — 0.3..0.9 동안 두 번 비튼다(두 손이 벌어졌다 모인다), 마지막에 벌어진 채 끝난다
+static func share_break(t: float) -> float:
+	if t < 0.3 or t > 0.9: return 0.0
+	return absf(sin((t - 0.3) / 0.6 * PI * 1.5))
+
+## 건네기 0..1 — 0.9..1.5 동안 옆 사람 쪽 팔이 뻗고(SHARE_HAND 1.2 에 끝까지) 머문다, 회수는 share_k 가 맡는다
+static func share_offer(t: float) -> float:
+	if t < 0.9: return 0.0
+	return smoothstep(0.0, 1.0, minf((t - 0.9) / 0.3, 1.0))
+
 ## 기다리기 눈길 0..1 — WAIT_T 마다: 0.25초 고개가 옆으로(예비), 0.5초 본다(유지), 0.25초 돌아온다(회수), 나머지 0.5초는 앞을 본다
 static func wait_glance(t: float) -> float:
 	var c := fmod(t, WAIT_T)
@@ -172,7 +204,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew"]   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
+	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass"]   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 우산(run 76, "Weather people feel" 2조각): 오른팔만 쓴다 — 다리와 왼팔은 걷기·서기·앉기 그대로라 limbs() 의 match 에 없고, stick3d.gd 가 팔다리를 다 정한 뒤 이걸 부른다(세 변형이 팔 하나를 나눠 쓴다).
 ## k = f.umbr_k(0..1, UMBR_T 에 걸쳐 오간다): 팔이 늘어진 곳에서 머리 위로 오르고 캐노피(우산 meta "umb")가 펴진다; 접힐 땐 같은 길을 거꾸로. 걸을수록 진행 방향으로 조금 더 기운다 — 정지화가 아니다
@@ -306,6 +338,31 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 				f.neck.rotation.x += 0.25 * bite
 			else:
 				sh.rotation.x = -(0.05 + 0.75 * k); sh.rotation.z = 0.12 * k; el.rotation.x = -(0.35 + 1.35 * k)
+		"share":
+			# 나눠 먹기(운영자 보드의 '건네기·함께' 가족 첫 자세 — run 85, "Sharing food" 1조각): 벤치에 앉은 채(서 있으면 다리는 서기) 두 손이 가슴 앞에서 먹을 걸 쥐고(예비),
+			# 두 번 비틀어 쪼갠다(손이 옆으로 벌어졌다 모인다), 그다음 옆 사람 쪽 팔(meta share_side, ±1 = 그쪽 어깨)이 옆·앞으로 뻗어 반을 건네고 고개도 그쪽을 본다(유지), 무릎으로 돌아온다(회수).
+			# 주는 주민도 C 로 주는 사람도 같은 자세 — 받는 쪽은 이어서 앉은 채 먹는다(eat)
+			var k := share_k(f.pose_t); var brk := share_break(f.pose_t); var off := share_offer(f.pose_t)
+			var side: float = f.get_meta("share_side", 1.0)
+			if f.seated: hip.rotation.x = -(1.5); knee.rotation.x = -(-1.45)
+			else: hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			var reach := off if s == side else 0.0
+			sh.rotation.x = -(0.55 + 0.25 * k - 0.2 * reach); sh.rotation.z = -s * (0.1 + 0.18 * brk * k + 0.75 * reach * k)
+			el.rotation.x = -(0.9 + 0.8 * k * (1.0 - reach) - 0.5 * reach * k)
+			if s > 0.0: f.neck.rotation.y = 0.45 * side * off * k
+		"pass":
+			# 옆으로 건네기(운영자 보드의 '건네기·함께' 가족 둘째 자세 — run 86, "Sharing food" 2조각): 앉은 채 오른손에 든 컵·빵을 가슴 높이로 옆 사람 쪽(meta share_side)에 내민다 —
+			# 오른쪽이면 팔이 바깥으로, 왼쪽이면 가슴 앞을 가로질러. 받는 이의 왼손 쪽에 닿도록 팔꿈치를 편다. 고개가 그쪽을 보고, 왼손은 무릎에. 주민도 길게 C 누른 사람도 같은 자세
+			var k := pass_k(f.pose_t)
+			var side: float = f.get_meta("share_side", 1.0)
+			if f.seated: hip.rotation.x = -(1.5); knee.rotation.x = -(-1.45)
+			else: hip.rotation.x = 0.0; knee.rotation.x = -(-0.05)
+			if s > 0.0:
+				sh.rotation.x = -(0.35 + 0.95 * k); sh.rotation.z = -(0.1 + 0.6 * k) if side > 0.0 else -(0.1 - 0.75 * k)
+				el.rotation.x = -(0.9 - 0.6 * k)
+				f.neck.rotation.y = 0.4 * side * k
+			else:
+				sh.rotation.x = -(0.55); sh.rotation.z = 0.1; el.rotation.x = -(0.9)
 		"teeter":
 			# 디딤돌 균형(운영자 보드의 '외줄·평균대' 가족 첫 자세 — run 84, 강의 디딤돌): 두 팔을 옆으로 벌리고 걸음은 좁고 무릎은 조금 더 접힌다, 고개는 발밑.
 			# k 가 예비(팔이 벌어진다), rock 이 유지(한 팔이 오르면 다른 팔이 내려가는 시소 — 정지화가 아니다). 사람도 주민도 같은 돌 위에서 같은 자세

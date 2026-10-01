@@ -275,3 +275,83 @@ func sense_attack(now: float, _m: String) -> void:
 	else:
 		fig.action = "fight"; fig.move = "dodge"; act_dur = FightMoves.DODGE_T; act_until = now + act_dur
 		velocity += away.normalized() * 3.2
+
+## 나눠 먹기("Sharing food" 1조각, run 85): 먹을 걸 들고 벤치에 앉았는데 같은 벤치에 빈손으로 앉은 이가 있으면 — 주민이든 사람이든 — 반을 쪼개 건넨다(share 자세).
+## 친할수록 잘 주고 사이가 나쁘면(relation_k < 0) 거의 안 준다; 사람에겐 호감(fond)만큼. 안 주면(평범한 결과) 그냥 앉아 있다. 준 쪽도 받은 쪽도 남은 두 입을 앉은 채 먹는다
+func _share(now: float) -> void:
+	if carrying_kind == "cup": _pass_along(now, null, 0.3, 0.15); return   # 컵은 쪼갤 수 없다 — 꽉 찬 벤치면 줄을 따라 넘긴다(run 86); 0.7 은 그냥 들고 앉아 있다
+	if not (carrying_kind in town.FOOD) or fig.carrying == null or int(fig.carrying.get_meta("bites", 0)) >= 2: return
+	var at: Vector3 = spot["pos"]
+	var mate: Node3D = null
+	for o in town.residents:
+		if o == self or o.state != "busy" or not o.fig.seated or o.fig.carrying != null or o.bites > 0 or String(o.spot.get("kind", "")) != "bench": continue
+		if (o.spot["pos"] as Vector3).distance_to(at) < 0.1 and randf() < 0.35 + 0.4 * mind.relation_k(o): mate = o; break
+	if mate == null and town.player.seated and town.player.carrying == null and town.seat_at(at) and randf() < 0.35 + 0.4 * mind.fond:
+		mate = town.body
+	if mate == null: return
+	if randf() < 0.4 and _pass_along(now, null, 1.0, 0.15): return   # 나누려던 차에 벤치가 꽉 찼으면 반 대신 통째로 줄을 따라 — 나누는 확률을 갈라 쓰니 혼자 먹기(평범한 결과)는 run 85 그대로
+	fig.set_meta("share_side", TownMeals.share_side(spot.get("yaw", 0.0), global_position, mate.global_position))
+	fig.pose_request = "share"; busy_until = now + StickPoses.SHARE_T + 0.9 * 2 + 2.0
+	say(["Half?", "Go on.", "Too much for one."][uid % 3], 1.4)
+	get_tree().create_timer(StickPoses.SHARE_HAND).timeout.connect(func() -> void: _hand_half(mate))
+
+func _hand_half(mate: Node3D) -> void:
+	if state != "busy" or fig.pose_request != "share" or fig.carrying == null or not is_instance_valid(mate): return   # 그새 맞았거나 떠났다 — 없던 일
+	var now := Time.get_ticks_msec() / 1000.0
+	var to_player: bool = mate == town.body
+	if to_player and (not town.player.seated or town.player.carrying != null): return   # 사람이 일어났다
+	if not to_player and (not (mate as ResidentBase).fig.seated or (mate as ResidentBase).fig.carrying != null): return
+	var half: Node3D = town.split_food(fig.carrying)
+	if half == null: return
+	if to_player: town.take_share(half, self)
+	else: (mate as ResidentBase).take_half(half, self)
+	bites = 3 - int(fig.carrying.get_meta("bites", 1)); bite_at = now + (StickPoses.SHARE_T - StickPoses.SHARE_HAND) + 0.1
+
+## 줄을 따라 넘기기("Sharing food" 2조각, run 86): 세 칸 벤치가 꽉 찼을 때(나 + 둘) 든 컵·먹을 거를 옆 칸 빈손에게 통째로(pass 자세). 받은 쪽은 온 반대쪽으로 또 넘길 수 있다 — 확률은 한 번마다 반(onward)
+func _pass_along(now: float, from: Node3D, chance: float, onward: float) -> bool:
+	if fig.carrying == null or not TownMeals.passable(carrying_kind) or randf() >= chance: return false
+	var row: Array[Node3D] = town.bench_row(spot["pos"])
+	if row.size() < 3: return false   # 둘뿐이면 줄이 아니다 — 반 쪼개기(_share)가 맡는다
+	var yaw: float = spot.get("yaw", 0.0)
+	for o in row:
+		if o == self or o == from or o.global_position.distance_to(global_position) > 0.6: continue
+		if from != null and TownMeals.share_side(yaw, global_position, o.global_position) == TownMeals.share_side(yaw, global_position, from.global_position): continue   # 온 쪽으로 되돌리지 않는다
+		var empty: bool = town.player.carrying == null if o == town.body else ((o as ResidentBase).fig.carrying == null and (o as ResidentBase).bites == 0)
+		if not empty: continue   # 이미 든 이에게는 안 넘긴다
+		fig.set_meta("share_side", TownMeals.share_side(yaw, global_position, o.global_position))
+		fig.pose_request = "pass"; busy_until = maxf(busy_until, now + StickPoses.PASS_T + 0.5)
+		say(["Pass it down.", "Along you go.", "For the end."][uid % 3], 1.2)
+		get_tree().create_timer(StickPoses.PASS_HAND).timeout.connect(func() -> void: _hand_pass(o, onward))
+		return true
+	return false
+
+func _hand_pass(mate: Node3D, onward: float) -> void:
+	if state != "busy" or fig.pose_request != "pass" or fig.carrying == null or not is_instance_valid(mate): return   # 그새 맞았거나 떠났다 — 없던 일
+	if mate == town.body:
+		if not town.player.seated or town.player.carrying != null: return
+		town.take_passed(_let_go(), self)
+		return
+	var r := mate as ResidentLife
+	if r.state != "busy" or not r.fig.seated or r.fig.carrying != null: return
+	r.take_passed(_let_go(), self, onward)
+
+func _let_go() -> Node3D:
+	var it := fig.release(town, Vector3.ZERO); bites = 0
+	carrying_kind = String(fig.carrying.get_meta("kind", "")) if fig.carrying else ""
+	return it
+
+## 넘겨받기 — 손에 들고 고맙다 하고, 잠깐 뒤 줄 반대쪽으로 또 넘기거나(onward) 앉은 채 남은 입을 먹는다. 컵이면 든 채 앉아 있다
+func take_passed(it: Node3D, from: Node3D, onward: float) -> void:
+	fig.hold(it); carrying_kind = String(it.get_meta("kind", ""))
+	busy_until = maxf(busy_until, Time.get_ticks_msec() / 1000.0 + 2.0)
+	if from == town.body: mind.gifted()
+	elif from is ResidentBase: mind.befriend(from as ResidentBase, 0.05)
+	say(["Thank you.", "Oh. Ta.", "Much obliged."][uid % 3], 1.2)
+	get_tree().create_timer(0.6).timeout.connect(func() -> void: _after_pass(from, onward))
+
+func _after_pass(from: Node3D, onward: float) -> void:
+	if state != "busy" or fig.carrying == null or not fig.seated: return
+	var now := Time.get_ticks_msec() / 1000.0
+	if is_instance_valid(from) and _pass_along(now, from, onward, onward * 0.5): return
+	if carrying_kind in town.FOOD:
+		bites = 3 - int(fig.carrying.get_meta("bites", 0)); bite_at = now + 0.3; busy_until = maxf(busy_until, now + 0.9 * bites + 1.5)
