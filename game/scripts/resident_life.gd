@@ -70,6 +70,10 @@ func _chat_force(now := Time.get_ticks_msec() / 1000.0) -> bool:
 func _process(delta: float) -> void:
 	super(delta)
 	if state == "drive": return
+	if fig.action == "fight" and state != "chase":   # 쫓는 중이 아닐 때의 막기·피하기 진행(쫓는 중엔 _chase 가)
+		var nw := Time.get_ticks_msec() / 1000.0
+		fig.action_t = 1.0 - (act_until - nw) / maxf(act_dur, 0.01)
+		if nw >= act_until: fig.action = ""; fig.action_t = 0.0; fig.move = ""
 	if state == "walk": walked += fig.speed * delta   # 실제 속도로 — 벽에 막혀 제자리걸음이면 안 닳는다
 	mind.tick(delta)
 	_notice(Time.get_ticks_msec() / 1000.0)
@@ -116,7 +120,7 @@ func _flee(from: Vector3) -> void:
 
 ## 운전 맡기 — 이 주민이 이 차의 운전사가 된다. 충돌을 끄고(차 안), 일과를 멈춘다
 func drive(c: Car3D) -> void:
-	_release(); car_seat = c; own_car = c; c.driver = self; job = "driver"; fig.scale = Vector3.ONE * 0.8
+	_release(); car_seat = c; own_car = c; c.driver = self; job = "driver"; fig.base_scale = Vector3.ONE * 0.8
 	state = "drive"; collision_layer = 0; collision_mask = 0
 	say(["Morning route.", "Mind the road.", "On schedule."][uid % 3], 2.0)
 
@@ -126,7 +130,7 @@ func leave_car() -> void:
 	var c := car_seat
 	if c.driver == self: c.driver = null
 	global_position = c.exit_pos() + Vector3(0, 0.02, 0); car_seat = null
-	fig.scale = Vector3.ONE; fig.seated = false; fig.pose_request = ""; collision_layer = 4; collision_mask = 7
+	fig.base_scale = Vector3.ONE; fig.seated = false; fig.pose_request = ""; collision_layer = 4; collision_mask = 7   # scale 은 매 프레임 base_scale 로 다시 쓰인다(리뷰: 끌려 내린 운전사가 0.8 로 남았다)
 	state = "routine"; busy_until = 0.0
 
 ## 내 차로 돌아가기 — 차가 비어 있으면(아무도 안 몰고 내가 타고 있지도 않으면) 걸어가 운전석에 탄다. 내가 몰고 가 버렸으면 가끔 투덜댄다
@@ -219,3 +223,55 @@ func _mended() -> void:
 func _resoled() -> void:
 	if state != "busy" or spot.get("kind", "") != "stool": return
 	walked = 0.0; say(["Better.", "Much better.", "Like new."][uid % 3], 1.6)
+
+# ── 싸움(2026-10-01) — 사람과 같은 기술표(FightMoves). 실력은 성미·배짱에서: 높을수록 연계를 길게 잇고 센 기술을 섞고, 덜 쉬고, 막거나 피한다 ──
+var act_until := 0.0
+var act_dur := 0.0
+var last_move := ""
+var chain_until := -1.0
+
+func fight_skill() -> float:
+	return clampf(0.15 + 0.5 * mind.temper + 0.35 * mind.brave, 0.0, 1.0)
+
+## 쫓기(state chase) 한 프레임 — 수평 속도를 돌려준다. 기술 중엔 제자리(기술의 lunge 만큼 살짝 나간다), 사거리 밖이면 달려가고, 안이면 다음 기술
+func _chase(now: float) -> Vector2:
+	if quarry == null or now >= chase_until:
+		say(mind.line("giveup")); quarry = null; fig.action = ""; fig.action_t = 0.0; fig.move = ""
+		state = "routine"; busy_until = now + 1.0
+		return Vector2.ZERO
+	var to := quarry.global_position - global_position; to.y = 0.0
+	var d := to.length(); var dir := to.normalized()
+	if now < act_until:
+		fig.action_t = 1.0 - (act_until - now) / act_dur; fig.move_dir = Vector3.ZERO; fig.speed = 0.0
+		var lg := float(FightMoves.get_move(fig.move)["lunge"]) if fig.move in FightMoves.MOVES else 0.0
+		return Vector2(dir.x, dir.z) * lg * 0.6
+	if fig.action == "fight": fig.action = ""; fig.action_t = 0.0
+	if d > 0.85:
+		fig.move_dir = dir; fig.speed = RUN
+		return Vector2(dir.x, dir.z) * RUN
+	fig.move_dir = Vector3.ZERO; fig.speed = 0.0; fig.face(atan2(dir.x, dir.z))
+	if now >= next_punch:
+		var sk := fight_skill()
+		var m := FightMoves.resident_pick(last_move, sk, now < chain_until)
+		var mv := FightMoves.get_move(m)
+		fig.action = "fight"; fig.move = m; fig.action_t = 0.0
+		act_dur = float(mv["dur"]); act_until = now + act_dur; last_move = m; chain_until = act_until + 0.3
+		next_punch = act_until + lerpf(0.7, 0.08, sk) + randf() * 0.2   # 서툰 사람은 한 대 치고 숨을 고른다
+		get_tree().create_timer(act_dur * float(mv["hit"])).timeout.connect(func() -> void:
+			if state == "chase" and fig.move == m and quarry: town.resident_hits_player(self, dir, m))
+	return Vector2.ZERO
+
+## 사람이 내 앞에서 기술을 시작함(town_combat start_move) — 싸우는 중이거나 방금 맞은 사람만 반응한다. 실력만큼: 막기(가드) 아니면 피하기(뒤로 반 발짝)
+func sense_attack(now: float, _m: String) -> void:
+	if state in ["down", "getup", "drive"] or in_boat or fig.seated: return
+	if not (state == "chase" or now - last_hit < 4.0): return
+	var sk := fight_skill()
+	if randf() > sk * 0.55: return
+	var away: Vector3 = global_position - town.body.global_position; away.y = 0.0
+	if randf() < 0.6:
+		guard_until = now + FightMoves.BLOCK_T
+		fig.action = "fight"; fig.move = "block"; act_dur = FightMoves.BLOCK_T; act_until = guard_until
+		fig.face(atan2(-away.x, -away.z))
+	else:
+		fig.action = "fight"; fig.move = "dodge"; act_dur = FightMoves.DODGE_T; act_until = now + act_dur
+		velocity += away.normalized() * 3.2

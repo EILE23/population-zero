@@ -103,26 +103,8 @@ func _physics_process(delta: float) -> void:
 				else:
 					state = "routine"; busy_until = now + 0.5
 		"chase":
-			if quarry == null or now >= chase_until:
-				say(mind.line("giveup")); quarry = null
-				fig.action = ""; fig.action_t = 0.0
-				state = "routine"; busy_until = now + 1.0
-			else:
-				var to := quarry.global_position - global_position; to.y = 0.0
-				var d := to.length()
-				var dir := to.normalized()
-				if d > REACH:
-					v.x = dir.x * RUN; v.z = dir.z * RUN
-					fig.move_dir = dir; fig.speed = RUN
-				else:
-					v.x = 0.0; v.z = 0.0
-					fig.move_dir = dir; fig.speed = 0.0
-					fig.face(atan2(dir.x, dir.z))
-					if now >= next_punch:
-						next_punch = now + 0.55
-						fig.punch_side = -fig.punch_side; fig.punch_kind = "jab" if fig.punch_side < 0.0 else "cross"
-						fig.action = "punch"; fig.action_t = 0.0; busy_until = now + FightPoses.PUNCH_T
-						town.resident_hits_player(self, dir)
+			var cv := _chase(now)   # 싸움 — 기술표·실력·연계(resident_life)
+			v.x = cv.x; v.z = cv.y
 	# 강물: 걷거나 쫓다 빠지면 사람과 같은 규칙으로 헤엄친다(느리게, 수면 높이로). 길은 다리로 짜니 보통은 빠진 경우뿐
 	var wet: bool = town.in_water(global_position)
 	if wet and (state == "walk" or state == "chase"):

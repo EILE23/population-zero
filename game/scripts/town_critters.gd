@@ -138,9 +138,14 @@ func _make_smoke(cap: Node3D) -> CPUParticles3D:
 	return pt
 
 ## 주민이 나를 친다 — 같은 규칙: 움찔, 3초 안에 세 대면 넘어진다
-func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
+func resident_hits_player(r: Node3D, dir: Vector3, m := "") -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	if down_until > now or getup_until > now: return
+	if down_until > now or getup_until > now or driving or passenger: return
+	var mv: Dictionary = FightMoves.MOVES.get(m, {})
+	var to: Vector3 = body.global_position - r.global_position; to.y = 0.0
+	if not mv.is_empty() and (to.length() > float(mv["reach"]) + 0.35 or to.normalized().dot(dir) < 0.3): return   # 헛손질 — 그사이 비켰다
+	FightPoses.spark(self, body.global_position + Vector3(0, 0.8, 0) - dir * 0.15, bool(mv.get("heavy", false)))
+	if bool(mv.get("heavy", false)): my_hits = 2   # 센 기술은 한 방에 넘어뜨린다
 	if now - my_last_hit > 3.0: my_hits = 0
 	my_hits += 1; my_last_hit = now
 	jet = false; throw_charge = -1.0; player.seated = false
@@ -150,7 +155,7 @@ func resident_hits_player(_r: Node3D, dir: Vector3) -> void:
 		if not riding.is_empty(): dismount()
 		if seesaw_ride: seesaw_ride.leave("player"); seesaw_ride = null; body.global_position += Vector3(0, 0, 0.7)   # 시소 위에서 넘어지면 판 앞에 내린다(판 속에 겹친 채 마스크가 켜지면 바닥 밑으로 밀렸다) — 시소 가지가 먼저 return 해 일어나기가 영영 안 돌았다(polish 79)
 		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
-		body.velocity = dir * 3.5 + Vector3(0, 2.0, 0)
+		body.velocity = dir * float(mv.get("push", 3.5)) + Vector3(0, 2.0 + float(mv.get("lift", 0.0)), 0)
 		if Wear.tear(player.worn.get("back")): call("say_toast", "Torn. The tailor on the east plaza mends these.")   # 주민과 같은 규칙(run 82) — 토스트는 위층
 		while player.carrying:   # 들고 있던 걸 전부 떨어뜨린다(주민과 같은 규칙)
 			var it: Node3D = player.release(self, body.global_position + dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0)); it.set_meta("dropped_at", Time.get_ticks_msec() / 1000.0); items.append(it)   # 여우가 노린다(_fox)

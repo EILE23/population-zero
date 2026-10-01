@@ -96,6 +96,9 @@ var residents: Array = []
 
 var combo := 0                  # 연속기 단계(0 왼 잽 → 1 오른 스트레이트 → 2 왼 훅)
 
+var move_last := ""             # 방금 쓴 기술(FightMoves) — 연계 창 안이면 다음 기술이 이어진다
+var chain_until := -1.0
+var queued := ""                # 기술 도중 누른 키("x"|"z") — 끝나자마자 이어서
 var kick_chain_until := -1.0    # 발차기 연속 창 — 이 시각 전에 Z 면 다음 단계
 var combo_open_until := -1.0    # 이 시각 안에 다시 누르면 다음 타
 

@@ -130,7 +130,7 @@ func _physics_process(delta: float) -> void:
 		v.y = jumpf.air(v.y, Input.is_action_just_released("jump"), delta)
 	if push_at >= 0.0 and now >= push_at:
 		var f := fwd_dir()
-		v += f * push_amount; v.y = maxf(v.y, push_lift) if push_lift > 0.0 else v.y
+		v += f * push_amount; v.y = maxf(v.y, push_lift) if push_lift > 0.0 else (push_lift if push_lift < 0.0 else v.y)
 		push_at = -1.0
 		_strike(hit_kind)
 	if jet:
@@ -174,20 +174,8 @@ func _physics_process(delta: float) -> void:
 				throw_power = held / THROW_MAX
 			else:
 				player.action = ""; player.action_t = 0.0   # 감는 동안 손이 비면(마지막 한입·모자 씀) 던질 게 없다 — 전엔 throw_at 이 남아 다음에 집는 것이 곧장 날아갔다
-	if action_until < now and throw_charge < 0.0 and not swimming:
-		if Input.is_action_just_pressed("hit") and not try_hijack(now):   # 선 차 운전석 옆에서 X = 끌어내기(town_ride)
-			# 주먹 하나(운영자 2026-09-30: 연계·제트킥 빼고 한 동작을 제대로) — 누를 때마다 좌우 번갈아. 0.34초: 예비·타격·멈춤·회수
-			player.punch_side = -player.punch_side; player.punch_kind = "cross"
-			player.action = "punch"; action_until = now + FightPoses.PUNCH_T
-			push_at = now + FightPoses.PUNCH_T * 0.32; push_amount = 0.5 if grounded else 1.2; push_lift = 0.0
-			hit_kind = "punch"
-		elif Input.is_action_just_pressed("kick"):
-			# 발차기 연속: 끝난 뒤 CHAIN_WINDOW 안에 또 누르면 다음 단계(오른 앞차기 → 왼 앞차기 → 돌려차기), 늦으면 처음부터
-			player.kick_step = (player.kick_step + 1) % 3 if now < kick_chain_until else 0
-			var kt := FightPoses.ROUND_T if player.kick_step == 2 else FightPoses.KICK_T
-			player.action = "kick"; action_until = now + kt; kick_chain_until = action_until + FightPoses.CHAIN_WINDOW
-			push_at = now + kt * 0.42; push_amount = 0.6 if player.kick_step == 2 else 0.4; push_lift = 0.0
-			hit_kind = "round" if player.kick_step == 2 else "kick"
+	if throw_charge < 0.0 and not swimming and not player.carrying:
+		attack_input(now, grounded)   # X 주먹 · Z 발 — 연계·버퍼·공중 기술(town_combat, FightMoves)
 	if throw_at >= 0.0 and now >= throw_at:
 		throw_at = -1.0
 		if player.carrying:
@@ -201,7 +189,7 @@ func _physics_process(delta: float) -> void:
 		elif jet:
 			player.action_t = 0.35
 		else:
-			var dur := FightPoses.PUNCH_T if player.action == "punch" else ((FightPoses.ROUND_T if player.kick_step == 2 else FightPoses.KICK_T) if player.action == "kick" else 0.4)
+			var dur := FightMoves.dur(player.move) if player.action == "fight" else FightPoses.PUNCH_T if player.action == "punch" else ((FightPoses.ROUND_T if player.kick_step == 2 else FightPoses.KICK_T) if player.action == "kick" else 0.4)
 			player.action_t = 1.0 - (action_until - now) / dur
 	else:
 		player.action = ""; player.action_t = 0.0

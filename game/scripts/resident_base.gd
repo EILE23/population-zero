@@ -44,6 +44,7 @@ var pushing_swing: Dictionary = {}
 var riding_seesaw: Seesaw3D = null
 var mind: ResidentMind         # 자아 — 성격·욕구·기분·기억·관계·말투(resident_mind.gd). 대사는 전부 여기 목소리로
 var name_label: Label3D
+var guard_until := -1.0        # 막기 자세 중(이 시각까지) — sense_attack 이 올린다
 var _door_wait := -1.0   # 문을 열었으면 문짝이 다 열릴 때까지 기다린다(resident.gd)
 
 func setup(t: Node3D, id: int, h: String) -> void:
@@ -152,9 +153,16 @@ func _release() -> void:
 		var arr: Array = spot["taken"]
 		for i in arr.size():
 			if arr[i] == self: arr[i] = null
-func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
+func hit(from_dir: Vector3, by: Node3D, heavy: bool, push := -1.0, lift := -1.0) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if state == "down" or state == "getup" or state == "drive":   # 운전 중엔 차 안이다
+		return
+	# 막기: 가드를 올리고 때린 쪽을 보고 있으면 막는다 — 팔이 밀리고 반 발짝 밀려날 뿐. 띄우는 기술(lift 3 넘게)과 차는 못 막는다
+	var facing := Vector3(sin(fig.rotation.y), 0, cos(fig.rotation.y))
+	if now < guard_until and facing.dot(-from_dir) > 0.4 and lift < 3.0 and not (by is Car3D):
+		velocity = from_dir * maxf(push, 2.0) * 0.35; fig.action_t = 0.3
+		FightPoses.spark(town, global_position + Vector3(0, 0.95, 0) - from_dir * 0.2, false)
+		if randf() < 0.4: say(["Not today.", "Ha.", "Saw that."][randi() % 3], 1.0)
 		return
 	# 누가 했나: 사람의 주먹·발, 또는 사람이 모는 차. 주민이 모는 차는 사고라 쫓지 않는다. 사람이면 기억하고, 곁에서 본 이들도 사람을 조금 덜 좋아하게 된다
 	var by_player: bool = by == town.body or (by is Car3D and (by as Car3D).driver == town.body)
@@ -183,7 +191,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 		collision_layer = 0; collision_mask = 1   # 누운 몸은 차를 막지도 느끼지도 않는다(깔고 넘어간다) — 바닥은 계속 딛는다(mask 1)
 		fig.lying = true; fig.action = ""; fig.action_t = 0.0
 		fig.face(atan2(-from_dir.x, -from_dir.z))  # 때린 쪽을 보고 눕는다
-		velocity = from_dir * 4.2 + Vector3(0, 3.2, 0)   # 뒤로 붕 떠서 쓰러진다(한 번 튀고 미끄러짐은 down 상태가)
+		velocity = from_dir * (push if push >= 0.0 else 4.2) + Vector3(0, 3.2 + maxf(lift, 0.0), 0)   # 뒤로 붕 떠서 쓰러진다 — 기술마다 밀리는 세기·뜨는 높이가 다르다(FightMoves)
 		say(mind.line("down"), 1.6)
 		Wear.tear(fig.worn.get("back"))   # 바닥에 쓸려 등의 가방·목도리가 찢어진다 — 재봉사(run 82, town_trades)에게 간다
 		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
@@ -193,7 +201,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool) -> void:
 	else:
 		fig.action = "flinch"; fig.action_t = 0.0
 		state = "busy"; busy_until = now + FightPoses.FLINCH_T
-		velocity = from_dir * 2.2
+		velocity = from_dir * (push * 0.7 if push >= 0.0 else 2.2) + Vector3(0, maxf(lift, 0.0) * 0.5, 0)
 		if hits == 2 or mind.temper > 0.7: say(mind.line("hurt"), 1.2)
 
 ## 날아가기(차에 치임) — 속도 그대로 포물선을 그리고, 닿으면 stun 초 동안 기절했다 일어난다

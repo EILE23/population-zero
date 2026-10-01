@@ -18,6 +18,7 @@ var jet := false               # 제트킥 비행 중(온몸이 앞으로 쏠린
 var action := ""               # "punch" | "kick" | "grab" | "" — 잠깐의 동작
 var action_t := 0.0            # 동작 진행 0..1
 var punch_side := 1.0          # 연속기: 1.0 오른손, -1.0 왼손
+var move := ""                 # action "fight" 일 때 기술 이름(FightMoves) — 자세는 FightPoses.move
 var kick_step := 0            # 발차기 연속 단계 0 오른 앞차기 · 1 왼 앞차기 · 2 돌려차기
 var punch_kind := "jab"        # "jab" | "cross" | "hook"
 var lying := false             # 맞아서 누움(등을 바닥에)
@@ -303,9 +304,10 @@ func _process(delta: float) -> void:
 		FightPoses.down(self, _t - _lie_since)   # 넘어져 누움: 떨어진 직후 팔다리가 들렸다 떨어진다
 	else:
 		_was_lying = false
-	if action in ["punch", "kick", "flinch", "getup"]:
+	if action in ["punch", "kick", "flinch", "getup", "fight"]:
 		var fa := clampf(action_t, 0.0, 1.0)
 		match action:
+			"fight": FightPoses.move(self, move, fa)
 			"punch": FightPoses.punch(self, fa)
 			"kick": FightPoses.kick(self, fa)
 			"flinch": FightPoses.flinch(self, fa)
@@ -407,7 +409,7 @@ func _process(delta: float) -> void:
 			shoulders[1.0].rotation.x = -(1.3 * k)
 			elbows[1.0].rotation.x = -(0.2 * k)
 	# 블렌딩 속도: 동작 중엔 아주 빠르게(주먹이 0.28초라 뭉개지면 안 된다), 앉기·웅크림은 느리게, 걷기는 중간
-	var rate := (60.0 if action in ["punch", "kick", "flinch"] else 34.0) if action != "" else (9.0 if seated or crouch > 0.0 else 30.0)  # 걷기는 거의 즉답
+	var rate := (60.0 if action in ["punch", "kick", "flinch", "fight"] else 34.0) if action != "" else (9.0 if seated or crouch > 0.0 else 30.0)  # 걷기는 거의 즉답
 	var k := minf(1.0, delta * rate)
 	for pv in _pivots:
 		var want: Vector3 = pv.rotation

@@ -80,7 +80,7 @@ func _passenger_tick(now: float) -> void:
 		passenger = null; _pending_out = false
 		body.global_position = c.global_position - c.global_transform.basis.x * 1.3 + Vector3(0, 0.02, 0)   # 조수석 쪽(오른쪽)으로 내린다
 		body.visible = true; body.collision_layer = 4; body.collision_mask = 7
-		player.rotation = Vector3(0, player.rotation.y, 0); player.scale = Vector3.ONE; player.seated = false; player.face(c.rotation.y)
+		player.rotation = Vector3(0, player.rotation.y, 0); player.base_scale = Vector3.ONE; player.seated = false; player.face(c.rotation.y)
 		action_until = now + 0.4
 
 ## 끌어내기(X, 선 차의 운전석 옆) — 주민을 끌어내 바닥에 넘어뜨리고 내가 탄다. 주민은 기억하고(맞은 것과 같다), 성미대로 쫓아오거나 피하고,

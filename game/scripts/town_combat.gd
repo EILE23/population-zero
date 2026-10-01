@@ -4,8 +4,9 @@ extends TownSystems
 
 ## 앞 부채꼴(70°) 안, 사거리 안의 주민을 맞힌다. 무거운 한 방(제트킥·점프 주먹·훅)은 바로 넘어진다
 func _strike(kind: String) -> void:
-	var reach := 1.3 if kind == "round" else (1.15 if kind == "kick" else 0.95)
-	var heavy := kind == "round"   # 돌려차기(연속 마무리)는 한 방에 넘어뜨린다 — 앞차기·주먹은 쌓여서(3초 안 세 대)
+	var mv: Dictionary = FightMoves.MOVES.get(kind, {})
+	var reach := float(mv.get("reach", 1.3 if kind == "jet" else 0.95))
+	var heavy := bool(mv.get("heavy", kind == "jet"))   # 표의 heavy(밀어차기·돌려차기·어퍼컷·날아차기·내려찍기)는 한 방에 넘어뜨린다 — 나머지는 쌓여서(3초 안 세 대)
 	var f := fwd_dir(); var p := body.global_position
 	var now := Time.get_ticks_msec() / 1000.0
 	for c in crowns:
@@ -30,8 +31,8 @@ func _strike(kind: String) -> void:
 		var to: Vector3 = r.global_position - p; to.y = 0.0
 		var d := to.length()
 		if d < reach and d > 0.05 and f.dot(to.normalized()) > 0.34:
-			r.hit(f, body, heavy); hit_someone = true
-			FightPoses.spark(self, r.global_position + Vector3(0, 0.85 if kind == "punch" else (0.75 if kind == "round" else 0.6), 0) - f * 0.15, heavy)
+			r.hit(f, body, heavy, float(mv.get("push", -1.0)), float(mv.get("lift", -1.0))); hit_someone = true
+			FightPoses.spark(self, r.global_position + Vector3(0, float({ "front": 0.6, "push": 0.65, "knee": 0.6, "round": 0.95, "fly": 0.8, "hammer": 1.0, "upper": 0.95 }.get(kind, 0.85)), 0) - f * 0.15, heavy)
 			FightPoses.hitstop(get_tree(), heavy or r.state == "down")
 			cam_kick = 0.06 if heavy else 0.03
 	if not hit_someone and _crack_wall(f, p):
@@ -191,3 +192,28 @@ func _sparks(at: Vector3, push: Vector3) -> void:
 	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(1.0, 0.86, 0.35); mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; p.material_override = mat
 	p.position = at; add_child(p); p.emitting = true
 	get_tree().create_timer(1.2).timeout.connect(p.queue_free)
+
+## 싸움 입력(운영자 2026-10-01) — X 주먹 · Z 발. 기술 도중 누르면 버퍼에 담겼다가 끝나는 순간 이어지고(연계표 FightMoves), 끝난 뒤 CHAIN_WINDOW 안이면 다음 기술,
+## 늦으면 처음 기술. 공중이면 X 내려찍기 · Z 날아차기. 선 차 운전석 옆 X 는 끌어내기(town_ride)
+func attack_input(now: float, grounded: bool) -> void:
+	var x := Input.is_action_just_pressed("hit"); var z := Input.is_action_just_pressed("kick")
+	if action_until >= now:
+		if (x or z) and player.action == "fight": queued = "x" if x else "z"
+		return
+	if queued != "": x = queued == "x"; z = not x; queued = ""
+	if not (x or z): return
+	if x and call("try_hijack", now): return   # 끌어내기는 위층(town_ride)
+	start_move(FightMoves.next_move(move_last, x, now < chain_until, grounded), now)
+
+func start_move(m: String, now: float) -> void:
+	var mv := FightMoves.get_move(m)
+	var d := float(mv["dur"])
+	player.action = "fight"; player.move = m; player.action_t = 0.0
+	action_until = now + d; chain_until = action_until + FightMoves.CHAIN_WINDOW; move_last = m
+	push_at = now + d * float(mv["hit"]); push_amount = float(mv["lunge"]); push_lift = 0.0; hit_kind = m
+	if m == "fly": body.velocity += fwd_dir() * 3.0 + Vector3(0, 2.2, 0)   # 날아차기: 앞·위로 한 번 더 솟는다
+	if m == "hammer": push_lift = -9.0   # 내려찍기: 맞는 순간 아래로 꽂힌다(town_player 가 음수 lift 를 그대로 쓴다)
+	# 앞의 주민이 본다 — 싸우는 중이거나 방금 맞은 사람은 실력만큼 막거나 피한다(resident_life sense_attack)
+	for r in residents:
+		var to: Vector3 = r.global_position - body.global_position; to.y = 0.0
+		if to.length() < 2.0 and fwd_dir().dot(to.normalized()) > 0.3: r.sense_attack(now, m)

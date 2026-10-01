@@ -93,6 +93,10 @@ func _define() -> void:
 		{ "name": "player-carry3", "subject": town.body, "lead": 0.3, "setup": func() -> void: town.body.position = Vector3(-3.5, 0.02, 15.0); town.resting = false; town.player.pose_request = ""; for k in ["apple", "cup", "bread"]: town.player.hold(town.make_item(k, Vector3.ZERO)) },
 		{ "name": "player-swim", "subject": town.body, "lead": 0.3, "setup": func() -> void: _free_car(); town.body.position = Vector3(-5, 0.02, 11.5); town.body.velocity = Vector3.ZERO },
 	]
+	# 기술표 전부(2026-10-01) — move-<이름>. 열두 장에 한 기술이 다 들어가게 dt = 길이/11
+	for m in FightMoves.MOVES:
+		var mm: String = m
+		clips.append({ "name": "move-" + mm, "subject": town.body, "lead": 0.02, "dt": FightMoves.dur(mm) / 11.0, "side": true, "setup": func() -> void: _free_car(); town.body.position = Vector3(-3.5, 0.02, 15.0); town.player.face(PI / 2.0); town.player.rotation.y = PI / 2.0; town.start_move(mm, Time.get_ticks_msec() / 1000.0) })
 
 func _next() -> void:
 	ci += 1
