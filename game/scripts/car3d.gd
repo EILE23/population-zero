@@ -59,6 +59,7 @@ var _bias_until := -9.0
 var _stuck_since := -1.0          # 가려는데 못 움직인 지 — 원인이 뭐든 2초면 꺾으며 뒤로 뺀다
 var stop_until := -9.0             # 손님이 내리겠다고 하면 이 시각까지 선다
 var route: Array[Vector3] = []
+var cruise := 8.0                  # 경유지 사이 바라는 속도 — 마을 길은 8, 레이싱 주민은 더(race.gd)
 var _ri := 0
 var _wk: Array = []               # 지난 더듬이 결과 — 화면 밖·멀리 있는 주민 차는 네 틱에 한 번만 새로 쏜다(2026-10-01 성능 패스)
 var _wk_n := 0
@@ -169,7 +170,7 @@ func _drive_ai() -> void:
 	if _detour == Vector3.INF and absf(tgt.z - global_position.z) < 3.0 and absf(fwd.x) > 0.7:
 		var off := global_position.z - tgt.z
 		if absf(off) > 1.4: st = clampf(st + signf(off) * signf(fwd.x) * -0.6 * minf(absf(off) - 1.4, 1.0), -1.0, 1.0)
-	var tspd := 8.0 * clampf(1.0 - absf(diff) / 1.2, 0.3, 1.0)   # 꺾을수록 천천히
+	var tspd := cruise * clampf(1.0 - absf(diff) / 1.2, 0.3, 1.0)   # 꺾을수록 천천히
 	var block: Object = wk[0][1]
 	if block != null: tspd = minf(tspd, maxf(0.0, (c0 - 1.2) * 1.3))   # 제동거리 — 남은 거리만큼만
 	var thr := 0.6 if v < tspd else (-0.5 if v > tspd + 0.8 else 0.0)

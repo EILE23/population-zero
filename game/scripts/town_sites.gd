@@ -6,6 +6,7 @@ extends TownMeals
 ## 나온 문 앞으로 돌아오고 기록이 표지판에 남는다(user://records.json). 레벨·XP 없이 마을에 보이는 흔적으로만(운영자 원칙)
 
 const RECORDS := "user://records.json"
+const TIMED := ["race"]   # 기록이 시간인 게임 — 낮을수록 좋고 초로 적는다(Climb 은 높이, 클수록 좋다)
 var records := {}
 var game_node: Node = null
 var _signs: Array = []   # [{label, game}]
@@ -78,6 +79,21 @@ func _site_lakeside(c: Vector3) -> void:
 	_bench(c + Vector3(-4, 0, -6.2)); _bench(c + Vector3(4.5, 0, -6.2))
 	_lamp(c + Vector3(-6.5, 0, -6.8)); _lamp(c + Vector3(3.5, 0, -6.8)); _lamp(c + Vector3(12, 0, -6.8))
 	for t in [Vector3(-17, 0, -3), Vector3(13, 0, 2), Vector3(15, 0, -14), Vector3(-15, 0, 10)]: _tree(c + t, 1.15)
+	_garage(c + Vector3(11, 0, 11))
+
+## 차고(레이싱 입구) — 호숫가 길 동쪽, 남쪽(오는 길)을 보는 문. 지붕 위 체크무늬 간판, 문 옆에 타이어 더미. 들어가면 race.gd(트랙은 미니게임 안)
+func _garage(at: Vector3) -> void:
+	_box(Vector3(4.6, 2.6, 4.0), at, _mat(Color("c9c2bb")))
+	_box(Vector3(5.0, 0.2, 4.4), at + Vector3(0, 2.6, 0), _mat(Color("5b5560")), false)
+	_box(Vector3(3.0, 2.0, 0.1), at + Vector3(0, 0, 2.0), _mat(Color("3a2f36")), false)   # 열린 셔터 안의 어둠
+	for k in 8:   # 체크무늬 간판: 8×2 칸
+		for r in 2: _box(Vector3(0.45, 0.3, 0.06), at + Vector3(-1.575 + k * 0.45, 2.85 + r * 0.3, 2.05), _mat(Color("1b0c15") if (k + r) % 2 == 0 else Color("efe9e2")), false)
+	var tyre := _mat(Color("2f2a2e"))
+	for i in 3:   # 타이어 셋 — 눕혀 쌓았다
+		var ty := MeshInstance3D.new(); var tm := CylinderMesh.new(); tm.top_radius = 0.38; tm.bottom_radius = 0.38; tm.height = 0.24; ty.mesh = tm; ty.material_override = tyre
+		ty.position = at + Vector3(-3.0, 0.12 + i * 0.25, 2.2); _add(ty)
+	_gate(at + Vector3(0, 0, 3.2), PI, "race", "RACE")
+	_path(at + Vector3(-11, 0, 3.6), at + Vector3(0, 0, 3.6), 1.6)   # 호숫가로 오는 자갈길에서 차고 문 앞까지
 
 # ── Climb 탑 언덕(북쪽 골목 너머): 돌탑(꼭대기 깃발, 둘레를 감아 오르는 발판 장식), 문 앞의 입구 자리와 기록 표지판, 둘레 벤치·가로등·나무 ──
 func _site_tower(c: Vector3) -> void:
@@ -115,13 +131,19 @@ func _gate(at: Vector3, yaw: float, game: String, title: String) -> void:
 func _refresh_signs() -> void:
 	for s in _signs:
 		var best := float(records.get(String(s["game"]), 0.0))
-		(s["label"] as Label3D).text = String(s["title"]) + ("\nbest %d m" % int(best) if best > 0.0 else "\nC to enter")
+		(s["label"] as Label3D).text = String(s["title"]) + ("\nbest " + _fmt(String(s["game"]), best) if best > 0.0 else "\nC to enter")
+
+func _fmt(id: String, v: float) -> String:
+	return "%.1f s" % v if id in TIMED else "%d m" % int(v)
 
 ## 들어가기 — 미니게임을 띄우고 마을은 그대로 멈춘다(숨김 + 처리 끔). 돌아오면 나온 자리에서 이어진다
 func enter_game(id: String) -> void:
 	if game_node != null or not ResourceLoader.exists("res://scripts/games/%s.gd" % id): return
 	game_node = (load("res://scripts/games/%s.gd" % id) as GDScript).new()
 	game_node.set("best", float(records.get(id, 0.0)))
+	if "rivals" in game_node:   # 상대가 필요한 게임(Race) — 성미 급한 주민 둘이 나선다
+		var hot := residents.duplicate(); hot.sort_custom(func(a: Resident, b: Resident) -> bool: return a.mind.temper > b.mind.temper)
+		game_node.set("rivals", hot.slice(0, 2).map(func(r: Resident) -> Dictionary: return { "handle": r.handle, "color": r.fig.color }))
 	game_node.connect("finished", _game_done.bind(id))
 	get_tree().root.add_child(game_node)
 	visible = false; process_mode = Node.PROCESS_MODE_DISABLED
@@ -132,10 +154,11 @@ func _game_done(result: Dictionary, id: String) -> void:
 	game_node = null
 	visible = true; process_mode = Node.PROCESS_MODE_INHERIT
 	(get_node("UI") as CanvasLayer).visible = true; cam.current = true
-	var score := float(result.get("score", 0.0))
-	if score > float(records.get(id, 0.0)):
+	var score := float(result.get("score", 0.0)); var old := float(records.get(id, 0.0))
+	if score > 0.0 and ((old <= 0.0 or score < old) if id in TIMED else score > old):
 		records[id] = score
 		var f := FileAccess.open(RECORDS, FileAccess.WRITE)
 		if f: f.store_string(JSON.stringify(records))
-		say_toast("New best: %d m" % int(score))
+		say_toast("New best: " + _fmt(id, score))
+	elif int(result.get("place", 0)) > 0: say_toast("Finished %s." % ["1st", "2nd", "3rd"][int(result["place"]) - 1])
 	_refresh_signs()
