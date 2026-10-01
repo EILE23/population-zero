@@ -219,3 +219,32 @@ func _mended() -> void:
 func _resoled() -> void:
 	if state != "busy" or spot.get("kind", "") != "stool": return
 	walked = 0.0; say(["Better.", "Much better.", "Like new."][uid % 3], 1.6)
+
+## 나눠 먹기("Sharing food" 1조각, run 85): 먹을 걸 들고 벤치에 앉았는데 같은 벤치에 빈손으로 앉은 이가 있으면 — 주민이든 사람이든 — 반을 쪼개 건넨다(share 자세).
+## 친할수록 잘 주고 사이가 나쁘면(relation_k < 0) 거의 안 준다; 사람에겐 호감(fond)만큼. 안 주면(평범한 결과) 그냥 앉아 있다. 준 쪽도 받은 쪽도 남은 두 입을 앉은 채 먹는다
+func _share(now: float) -> void:
+	if not (carrying_kind in town.FOOD) or fig.carrying == null or int(fig.carrying.get_meta("bites", 0)) >= 2: return
+	var at: Vector3 = spot["pos"]
+	var mate: Node3D = null
+	for o in town.residents:
+		if o == self or o.state != "busy" or not o.fig.seated or o.fig.carrying != null or o.bites > 0 or String(o.spot.get("kind", "")) != "bench": continue
+		if (o.spot["pos"] as Vector3).distance_to(at) < 0.1 and randf() < 0.35 + 0.4 * mind.relation_k(o): mate = o; break
+	if mate == null and town.player.seated and town.player.carrying == null and town.seat_at(at) and randf() < 0.35 + 0.4 * mind.fond:
+		mate = town.body
+	if mate == null: return
+	fig.set_meta("share_side", TownMeals.share_side(spot.get("yaw", 0.0), global_position, mate.global_position))
+	fig.pose_request = "share"; busy_until = now + StickPoses.SHARE_T + 0.9 * 2 + 2.0
+	say(["Half?", "Go on.", "Too much for one."][uid % 3], 1.4)
+	get_tree().create_timer(StickPoses.SHARE_HAND).timeout.connect(func() -> void: _hand_half(mate))
+
+func _hand_half(mate: Node3D) -> void:
+	if state != "busy" or fig.pose_request != "share" or fig.carrying == null or not is_instance_valid(mate): return   # 그새 맞았거나 떠났다 — 없던 일
+	var now := Time.get_ticks_msec() / 1000.0
+	var to_player: bool = mate == town.body
+	if to_player and (not town.player.seated or town.player.carrying != null): return   # 사람이 일어났다
+	if not to_player and (not (mate as ResidentBase).fig.seated or (mate as ResidentBase).fig.carrying != null): return
+	var half: Node3D = town.split_food(fig.carrying)
+	if half == null: return
+	if to_player: town.take_share(half, self)
+	else: (mate as ResidentBase).take_half(half, self)
+	bites = 3 - int(fig.carrying.get_meta("bites", 1)); bite_at = now + (StickPoses.SHARE_T - StickPoses.SHARE_HAND) + 0.1

@@ -313,7 +313,7 @@ func _arrive(now: float) -> void:
 			fig.seated = true; collision_layer = 0; collision_mask = 0
 			global_position = spot["pos"] + Vector3([-0.45, 0.0, 0.45][slot], 0.05, 0.02)
 			fig.face(spot.get("yaw", 0.0))
-			busy_until = now + randf_range(6.0, 14.0)
+			busy_until = now + randf_range(6.0, 14.0); _share(now)   # 먹을 걸 들고 왔으면 옆 칸과 반씩(run 85, resident_life)
 		"swing":
 			var sw: Dictionary = spot["swing"]
 			if sw["rider"] == null:
@@ -429,7 +429,7 @@ func _bite(now: float) -> void:
 	if fig.carrying == null:
 		bites = 0; return
 	fig.pose_request = "eat"
-	fig.carrying.scale = Vector3.ONE * (1.0 - (3 - bites) * 0.27)
+	fig.carrying.scale = Vector3.ONE * (1.0 - (3 - bites) * 0.27); fig.carrying.set_meta("bites", 3 - bites)   # 한입 수는 물건에 — 떨어뜨린 반쪽을 누가 주워도 이어진다(run 85)
 	if bites <= 0:
 		fig.release(town, Vector3.ZERO).queue_free(); carrying_kind = ""; fig.pose_request = ""; mind.ate()
 
@@ -473,7 +473,7 @@ func _leave() -> void:
 	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
 	if _role() == "keeper" and spot.get("kind", "") in ["counter", "door"]: dull += 1   # 창구·노점 교대 하나 = 가위가 한 번 무뎌진다(run 81, 칼갈이)
 	collision_layer = 4; collision_mask = 7
-	bites = 0   # 먹다 말고 떠나면(인사·비) 남은 빵은 든 채로 — 다음 자리에서 이어 먹진 않는다(앉은 채 먹는 자세가 아직 없다)
+	bites = 0   # 먹다 말고 떠나면(인사·비) 남은 빵은 든 채로 — 다음 자리에서 이어 먹진 않는다(앉은 채 먹는 자세는 run 85 부터 있다 — 이어 먹기는 아직)
 	if can_mine and fig.carrying:
 		fig.release(town, Vector3.ZERO).queue_free(); can_mine = false   # 물뿌리개는 밭의 것 — 들고 돌아다니지 않는다
 	if not riding_swing.is_empty():

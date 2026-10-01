@@ -122,6 +122,15 @@ func take_gift(it: Node3D) -> void:
 	state = "busy"; spot = { "kind": "greet" }; busy_until = now + 1.4
 	if carrying_kind in town.FOOD: bites = 3; bite_at = now + 1.0; busy_until = now + 0.9 * 3 + 1.4
 
+## 반쪽 받기(run 85, 나눠 먹기) — 옆 칸에서 쪼개 건넨 걸(town_meals split_food) 앉은 채 남은 입에 먹는다. 준 이가 사람이면 호감, 주민이면 둘이 조금 친해진다
+func take_half(it: Node3D, from: Node3D) -> void:
+	fig.hold(it); carrying_kind = String(it.get_meta("kind", ""))
+	var now := Time.get_ticks_msec() / 1000.0
+	bites = 3 - int(it.get_meta("bites", 1)); bite_at = now + 0.9; busy_until = maxf(busy_until, now + 0.9 * bites + 1.5)
+	if from == town.body: mind.gifted()
+	elif from is ResidentBase: mind.befriend(from as ResidentBase, 0.1); (from as ResidentBase).mind.befriend(self, 0.1)
+	say(["Halves, then.", "Too kind.", "I couldn't. Thank you."][uid % 3], 1.6)
+
 func say(text: String, secs := 2.2) -> void:
 	say_label.text = text; say_label.visible = true
 	say_until = Time.get_ticks_msec() / 1000.0 + secs
