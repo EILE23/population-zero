@@ -15,7 +15,7 @@ func _init() -> void:
 		g.body.global_position = (p["node"] as Node3D).global_position + Vector3(0, 0.4, 0); g.body.velocity = Vector3.ZERO
 		for i in 20: await physics_frame
 		var landed := false
-		for dirn in ["move_right", "move_left"]:
+		for dirn in ["move_right"]:   # → 만 — 예전엔 둘 다 시도해서 ← 가 오르막인 것을 못 잡았다(운영자 2026-10-01)
 			g.body.global_position = (p["node"] as Node3D).global_position + Vector3(0, 0.4, 0); g.body.velocity = Vector3.ZERO
 			for i in 10: await physics_frame
 			Input.action_press(dirn); for i in 3: await physics_frame

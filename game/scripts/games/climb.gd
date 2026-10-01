@@ -2,7 +2,8 @@ extends Node3D
 ## Climb — 첫 미니게임(운영자 2026-10-01: "Climb 는 점프맵, 마을 입구로 들어가 다른 게임으로"). 마을의 Climb 탑 문(gate "climb")으로 들어온다.
 ## 탑을 감아 오르는 발판 48개: 보통 발판, 좁은 발판(11번째마다), 좌우로 미끄러지는 발판(7번째마다, AnimatableBody — 올라타면 같이 간다), 12번째마다 체크포인트(색 발판).
 ## 몸·점프는 마을과 같은 부품(Stick3D, Jump3D: 코요테·버퍼·꼭대기 체공·가변 높이) — "엔진이 곧 Square". 떨어지면 마지막 체크포인트로, 꼭대기에 닿으면 기록을 들고 돌아간다.
-## 카메라는 탑 둘레를 사람 쪽으로 따라 돈다 — 방향키는 화면 기준(→ 는 탑을 오른쪽으로 감아 돈다)
+## 카메라는 탑 둘레를 사람 쪽으로 따라 돈다 — 방향키는 화면 기준. 바깥에서 기둥을 보는 카메라의 오른쪽은 각이 줄어드는 쪽이라
+## 발판도 각이 줄어드는 쪽(-i·STEP_A)으로 감는다 → → 가 오르막(운영자 2026-10-01: 전엔 ← 가 올라갔다)
 
 signal finished(result: Dictionary)
 
@@ -71,7 +72,7 @@ func _ready() -> void:
 	var gs := BoxShape3D.new(); gs.size = Vector3(28, 0.2, 28)
 	_solid(ground, gs, Vector3(0, -0.1, 0), _mat(Color("9cc86a")))
 	for i in N:
-		var a := i * STEP_A
+		var a := -i * STEP_A
 		var at := Vector3(cos(a) * R, 0.6 + i * RISE, sin(a) * R)
 		var small := i % 11 == 10; var moving := i % 7 == 6 and i > 0; var cp := i % 12 == 0
 		var size := Vector3(0.95, 0.3, 0.95) if small else (Vector3(1.6, 0.3, 1.6) if moving else Vector3(1.6, 0.3, 1.35))
@@ -96,7 +97,7 @@ func _ready() -> void:
 	var col := CollisionShape3D.new(); var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95; col.shape = cap; col.position.y = 0.5; body.add_child(col)
 	fig = Stick3D.new(); body.add_child(fig)
 	add_child(body)
-	body.position = Vector3(R + 2.5, 0.05, 1.2)
+	body.position = Vector3(R + 2.5, 0.05, 1.2)   # 첫 발판(각 0)의 왼쪽 — → 한 번에 발판 0 쪽으로 간다
 	checks.insert(0, body.position)
 	cam = Camera3D.new(); cam.fov = 50.0; add_child(cam); cam.current = true
 	var ui := CanvasLayer.new(); add_child(ui)

@@ -86,7 +86,7 @@ func _site_tower(c: Vector3) -> void:
 	t.position = c + Vector3(0, 7.0, -2.0); _add(t)
 	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 3.2; cy.height = 14.0; cs.shape = cy; sb.add_child(cs); t.add_child(sb)
 	for i in 14:   # 감아 오르는 발판(장식) — 안에 들어가면 진짜로 오른다
-		var a := i * 0.85
+		var a := -i * 0.85   # 미니게임 탑과 같은 방향(각이 줄어드는 쪽) — 밖에서 보면 오른쪽으로 오른다
 		var p := _box(Vector3(1.0, 0.18, 0.7), c + Vector3(cos(a) * 3.5, 0.6 + i * 0.95, -2.0 + sin(a) * 3.5), dark, false); p.rotation.y = -a
 	var flag_pole := _box(Vector3(0.08, 2.0, 0.08), c + Vector3(0, 14.0, -2.0), dark, false)
 	var flag := _box(Vector3(0.9, 0.5, 0.03), c + Vector3(0.5, 15.4, -2.0), _mat(Color("ad7096")), false)
