@@ -208,12 +208,12 @@ func _trade_closed(now: float) -> void:
 
 ## 두 바퀴가 끝났을 때 아직 손님 자리면 가위가 새것 — 맞아 넘어졌거나 비로 떠났으면 없던 일
 func _sharpened() -> void:
-	if state != "busy" or spot.get("kind", "") != "whet": return
+	if state != "busy" or spot.get("kind", "") != "whet" or town.cutler_at_work() == null: return   # 칼갈이가 도중에 떠났으면 없던 일
 	dull = 0; say(["Sharp.", "That will cut.", "Good edge."][uid % 3], 1.6)
 
 ## 한 바퀴가 끝났을 때 아직 손님 걸상이면 찢어진 곳이 없어진다 — 맞아 넘어졌거나 비로 떠났으면 없던 일(그럼 또 찢어진 채로 다시 온다)
 func _mended() -> void:
-	if state != "busy" or spot.get("kind", "") != "fitting": return
+	if state != "busy" or spot.get("kind", "") != "fitting" or town.tailor_at_work() == null: return
 	Wear.mend(fig.worn.get("back"))
 	var w: ResidentBase = town.tailor_at_work()
 	if w != null: w.say("There.", 1.4)
@@ -221,7 +221,7 @@ func _mended() -> void:
 
 ## 두 바퀴가 끝났을 때 아직 걸상이면 밑창이 새것 — 맞아 넘어졌거나 비로 떠났으면 없던 일
 func _resoled() -> void:
-	if state != "busy" or spot.get("kind", "") != "stool": return
+	if state != "busy" or spot.get("kind", "") != "stool" or town.cobbler_at_work() == null: return
 	walked = 0.0; say(["Better.", "Much better.", "Like new."][uid % 3], 1.6)
 
 # ── 싸움(2026-10-01) — 사람과 같은 기술표(FightMoves). 실력은 성미·배짱에서: 높을수록 연계를 길게 잇고 센 기술을 섞고, 덜 쉬고, 막거나 피한다 ──

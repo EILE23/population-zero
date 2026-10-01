@@ -453,7 +453,7 @@ func _leave() -> void:
 	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
 	_release()
 	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
-	if _role() == "keeper" and spot.get("kind", "") in ["counter", "door"]: dull += 1   # 창구·노점 교대 하나 = 가위가 한 번 무뎌진다(run 81, 칼갈이)
+	if _role() == "keeper" and spot.get("kind", "") in ["counter", "door"] and Time.get_ticks_msec() / 1000.0 >= busy_until: dull += 1   # 창구·노점 교대 하나 = 가위가 한 번 무뎌진다(run 81, 칼갈이)
 	collision_layer = 4; collision_mask = 7
 	bites = 0   # 먹다 말고 떠나면(인사·비) 남은 빵은 든 채로 — 다음 자리에서 이어 먹진 않는다(앉은 채 먹는 자세가 아직 없다)
 	if can_mine and fig.carrying:

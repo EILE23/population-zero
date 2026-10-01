@@ -42,6 +42,8 @@ var _blocked_since := -1.0
 var _slope_pitch := 0.0
 var _slope_roll := 0.0
 var _vy := 0.0
+var _drift_t := 0.0   # 이번 드리프트를 이어 온 시간 — 0.6초 넘게 미끄러지다 풀면 부스트(레이싱용, 2026-10-01)
+var _boost_until := -9.0
 var _grip_k := 1.0   # 뒤 접지력 배율 — 핸드브레이크로 내려가고 떼면 서서히 돌아온다
 ## 주민 운전(교통) — route 를 따라 돈다. 앞에 사람·차가 있으면 선다
 var ai := false
@@ -74,7 +76,7 @@ func setup(k: String, t: Node3D) -> void:
 	_dust.amount = 40; _dust.lifetime = 0.9; _dust.emitting = false
 	_dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; _dust.emission_box_extents = Vector3(0.5, 0.05, 0.2)
 	_dust.direction = Vector3(0, 1, -1); _dust.spread = 40.0; _dust.initial_velocity_min = 0.8; _dust.initial_velocity_max = 1.8; _dust.gravity = Vector3(0, 0.6, 0)
-	_dust.scale_amount_min = 0.6; _dust.scale_amount_max = 1.6
+	_dust.scale_amount_min = 0.9; _dust.scale_amount_max = 2.8   # 드리프트 연기는 짙고 크게
 	var dm := SphereMesh.new(); dm.radius = 0.09; dm.height = 0.18; dm.radial_segments = 6; dm.rings = 3; _dust.mesh = dm
 	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.82, 0.78, 0.7, 0.55); mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_dust.material_override = mat; _dust.position = Vector3(0, 0.1, -1.0); add_child(_dust)
@@ -200,8 +202,8 @@ func _physics_process(delta: float) -> void:
 	# 차가 옆으로 흘러가고, 떼면 0.4초에 걸쳐 접지력이 돌아와 자세를 잡는다. 드리프트 중 조향은 더 세게 먹어 카운터로 각을 잡을 수 있다
 	var fwd0 := -global_transform.basis.z; var right0 := global_transform.basis.x
 	var vel_h := fwd0 * v + right0 * side
-	_grip_k = move_toward(_grip_k, 0.22 if (hb and absf(v) > 3.0) else 1.0, delta / 0.4)
-	if _grip_k < 0.9: want_yaw *= 1.5
+	_grip_k = move_toward(_grip_k, 0.15 if (hb and absf(v) > 3.0) else 1.0, delta / (0.25 if hb else 0.45))   # 당기면 빨리 풀리고, 놓으면 천천히 잡힌다
+	if _grip_k < 0.9: want_yaw *= 1.9   # 드리프트 중 조향은 훨씬 세게 — 꼬리를 던지고 카운터로 각을 잡는다
 	yaw_rate = lerpf(yaw_rate, want_yaw, minf(1.0, delta * (6.0 if _grip_k > 0.9 else 3.0)))
 	rotation.y -= yaw_rate * delta
 	var nf := -global_transform.basis.z; var nr := global_transform.basis.x
@@ -209,6 +211,12 @@ func _physics_process(delta: float) -> void:
 	side = move_toward(side, 0.0, grip * _grip_k * delta)   # 옆 접지력
 	side = clampf(side, -9.0, 9.0)
 	drifting = absf(side) > 1.2 and absf(v) > 2.0      # 옆으로 흐르는 동안 스키드·먼지
+	if drifting:
+		_drift_t += delta; v = move_toward(v, top * 0.95, 1.2 * delta)   # 미끄러지는 동안 속도를 덜 잃는다
+	else:
+		if _drift_t > 0.6 and driven and absf(v) > 3.0: _boost(minf(_drift_t, 2.0))
+		_drift_t = 0.0
+	if Time.get_ticks_msec() / 1000.0 < _boost_until: v = move_toward(v, top + 3.5, 14.0 * delta)   # 부스트: 최고속을 잠깐 넘는다
 	var fwd := -global_transform.basis.z
 	var right := global_transform.basis.x
 	# 언덕: 바닥 기울기를 따라 달리고, 내리막은 빨라지고 오르막은 느려진다. 차체도 바닥에 맞춰 기운다
@@ -263,7 +271,7 @@ func _physics_process(delta: float) -> void:
 	for w in _front:
 		w.rotation.y = -steer * 0.55
 	# 몸 기울기: 코너 바깥으로 롤, 가속하면 뒤로·제동하면 앞으로 끄덕
-	_roll = lerpf(_roll, clampf(yaw_rate * v * 0.02, -0.12, 0.12), minf(1.0, delta * 6.0))
+	_roll = lerpf(_roll, clampf(yaw_rate * v * 0.02 + side * 0.03, -0.24, 0.24) if drifting else clampf(yaw_rate * v * 0.02, -0.12, 0.12), minf(1.0, delta * 6.0))   # 미끄러질 땐 바깥으로 크게 눕는다
 	_pitch = lerpf(_pitch, clampf(-thr * 0.03 * (1.0 if absf(v) < top * 0.9 else 0.2), -0.05, 0.05), minf(1.0, delta * 5.0))
 	_model.rotation.z = _roll - _slope_roll; _model.rotation.x = _pitch - _slope_pitch
 	# 드리프트: 스키드 자국·먼지
@@ -279,7 +287,7 @@ func _physics_process(delta: float) -> void:
 
 ## 스키드 자국: 바닥 위 얇은 어두운 판, 200개 넘으면 오래된 것부터 지운다
 func _skid(at: Vector3) -> void:
-	var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.14, 0.006, 0.55); mi.mesh = bm
+	var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.2, 0.006, 0.6); mi.mesh = bm
 	var m := StandardMaterial3D.new(); m.albedo_color = Color(0.22, 0.2, 0.2, 0.55); m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mi.material_override = m; mi.position = Vector3(at.x, 0.012, at.z); mi.rotation.y = rotation.y
 	town.add_child(mi); _skids.append(mi)
@@ -403,3 +411,15 @@ func _standoff(o: Car3D, now: float) -> void:
 	if not i_yield or now - _blocked_since < 3.2: return
 	_reverse_until = now + 1.8; _rev_steer = -1.0; _bias = 1.0; _bias_until = now + 4.5; _blocked_since = -1.0; _argued = false; o._argued = false   # 뒤로 빼며 앞코를 오른쪽으로 — 그다음 오른쪽으로 비켜 상대 옆을 지난다
 	me.mind.befriend(him, -0.05); him.mind.befriend(me, -0.05)
+
+## 드리프트 부스트 — 길게(최대 2초) 미끄러질수록 세게: 뒤에서 주황 불꽃이 튀고 차가 앞으로 툭 튀어 나간다. 화면은 가까울 때만 살짝(shake)
+func _boost(k: float) -> void:
+	_boost_until = Time.get_ticks_msec() / 1000.0 + 0.4 + 0.4 * k
+	var p := CPUParticles3D.new(); p.amount = int(16 + 12 * k); p.lifetime = 0.35; p.one_shot = true; p.explosiveness = 0.9
+	p.direction = Vector3(0, 0.3, 1); p.spread = 25.0; p.initial_velocity_min = 3.0; p.initial_velocity_max = 6.0; p.gravity = Vector3.ZERO
+	var dm := SphereMesh.new(); dm.radius = 0.06; dm.height = 0.12; dm.radial_segments = 6; dm.rings = 3; p.mesh = dm
+	var m := StandardMaterial3D.new(); m.albedo_color = Color(1.0, 0.62, 0.2); m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; p.material_override = m
+	p.position = Vector3(0, 0.35, 1.3); add_child(p); p.emitting = true
+	get_tree().create_timer(0.8).timeout.connect(p.queue_free)
+	_pitch += 0.05
+	if town.has_method("shake"): town.shake(global_position, 0.03 + 0.02 * k)

@@ -162,6 +162,8 @@ func wheel_use(sp: Dictionary, now: float) -> void:
 	if w != null or claimed or sp["kind"] == "whet":
 		for r in whet.get("taken", []):
 			if r != null: return   # 손님이 서 있다
+		var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(body, "position", whet["pos"] + Vector3(0, 0.02, 0), 0.3)   # 손님 자리로 옮겨 선다 — 전엔 누른 자리(칼갈이 자리일 수도)에서 기다려 몸이 겹쳤다
 		player.face(whet["yaw"]); player.pose_request = "wait"
 		use_until = now + (StickPoses.GRIND_T * 2.0 if w != null else StickPoses.WAIT_T * 2.0)
 		if w != null:
@@ -216,6 +218,8 @@ func cobbler_use(sp: Dictionary, now: float) -> void:
 			resole_at = now + StickPoses.HAMMER_T * 2.0
 			w.say(["Sit.", "Left foot first.", "These have seen some road."][w.uid % 3], 1.6)
 		return
+	for r in (cobbler["work"] as Dictionary).get("taken", []):
+		if r != null: return   # 구두장이가 작업대로 오는 중 — 자리는 그의 것(리뷰 2026-10-01: 주민이 사람 몸속으로 걸어 들어왔다)
 	player.face(sp["yaw"])
 	player.pose_request = "hammer"; use_until = now + StickPoses.HAMMER_T; action_until = now + StickPoses.HAMMER_T
 	for r in residents:
