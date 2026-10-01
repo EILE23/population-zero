@@ -98,6 +98,7 @@ func _flower(at: Vector3, _c: Color, seed := 0) -> void:
 ## 풀 포기·덤불·돌 — 초원과 길가에 흩뿌리는 작은 것들(MegaKit)
 func _scatter(id: String, at: Vector3, sc := 1.0, yaw := -1.0) -> Node3D:
 	var m := _model("nature/quaternius/" + id); m.position = at; m.rotation.y = (randf_range(0.0, TAU) if yaw < 0.0 else yaw); m.scale = Vector3.ONE * sc; _add(m)
+	m.set_meta("scatter", true)   # 흩뿌린 풀·덤불·돌 — 나중에 지은 자리(텃밭)가 제 안의 것을 치운다
 	return m
 
 ## 차 한 대 세워 두기(Kenney Car Kit, CC0) — C 로 타고 내린다
@@ -157,7 +158,7 @@ func _fence(at: Vector3, len: float) -> void:
 		_fence_bit(at + Vector3(i + 0.5, 0, 0))
 
 ## 울타리 한 토막 — 부서지면 이 토막만 날아가고, 수리공이 이 자리에 다시 세운다
-func _fence_bit(at: Vector3) -> void:
-	var m := _model("nature/fence_simple"); m.position = at; m.scale = Vector3(1.0, 1.15, 1.0); _add(m)
-	wreckables.append({ "node": m, "at": at, "r": 0.4, "out": Vector3(0, 0, 1), "splinter": true, "rebuild": _fence_bit.bind(at) })
+func _fence_bit(at: Vector3, yaw := 0.0) -> void:
+	var m := _model("nature/fence_simple"); m.position = at; m.rotation.y = yaw; m.scale = Vector3(1.0, 1.15, 1.0); _add(m)
+	wreckables.append({ "node": m, "at": at, "r": 0.4, "out": Vector3(sin(yaw), 0, cos(yaw)), "splinter": true, "rebuild": _fence_bit.bind(at, yaw) })
 	# 충돌체 없음: 주민 경로가 울타리를 지나간다(전 울타리도 기둥 사이로 통과됐다). 막으면 울타리 앞에서 뛰며 갇힌다(운영자 2026-09-29) — 경로 탐색이 생기면 다시

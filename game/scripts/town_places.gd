@@ -41,24 +41,27 @@ func _meadow(at: Vector3) -> void:
 ## 펌프 옆에 물뿌리개(item "can")가 놓여 있다 — 들고 이랑 앞에서 C. 주민도 같은 자리(spots "plot")에 와서 같은 자세로 물을 주고 익은 걸 딴다(resident.gd)
 func _garden(at: Vector3) -> void:
 	garden_at = at
+	for n in get_children():   # 강가에 흩뿌린 풀·덤불·버섯이 밭 안에 떨어졌으면 치운다(운영자: 밭 안에 덤불)
+		if n is Node3D and n.has_meta("scatter") and absf((n as Node3D).position.x - at.x) < 3.8 and absf((n as Node3D).position.z - at.z) < 2.4: n.queue_free()
 	_box(Vector3(6.4, 0.05, 3.6), at, _mat(Color("6b4a35")), false)
-	var paper := _mat(Color("efe9e2"))
-	_fence(at + Vector3(-3.3, 0, -1.9), 6.6); _fence(at + Vector3(-3.3, 0, 1.9), 2.4); _fence(at + Vector3(0.9, 0, 1.9), 2.4)   # 앞쪽 가운데(x −0.9..0.9)가 문
+	# 울타리: 네 면 모두 같은 나무 울타리(전엔 옆면만 흰 상자 — 운영자: 울타리가 섞였다). 앞쪽 가운데(x −0.9..0.9)가 문
+	_fence(at + Vector3(-3.3, 0, -1.9), 6.6); _fence(at + Vector3(-3.3, 0, 1.9), 2.4); _fence(at + Vector3(0.9, 0, 1.9), 2.4)
 	for sx in [-3.3, 3.3]:
-		for z in [-1.4, -0.5, 0.5, 1.4]: _box(Vector3(0.08, 0.7, 0.05), at + Vector3(sx, 0, z), paper)
-		for y in [0.25, 0.5]:
-			var rail := _box(Vector3(3.8, 0.06, 0.04), at + Vector3(sx, y, 0), paper, false); rail.rotation.y = PI / 2.0
+		for z in [-1.43, -0.48, 0.48, 1.43]: _fence_bit(at + Vector3(sx, 0, z), PI / 2.0)
+	var rng := RandomNumberGenerator.new(); rng.seed = 70
+	var soil := _mat(Color("5a3d2b")); var clod := _mat(Color("4a3224"))
 	for i in 3:
 		var z := -1.15 + i * 1.15
-		var wet := _box(Vector3(5.4, 0.012, 0.8), at + Vector3(0, 0.05, z), _mat(Color("4e3526")), false); wet.visible = false
+		_box(Vector3(5.2, 0.07, 0.62), at + Vector3(0, 0.03, z), soil, false)   # 두둑 — 고랑보다 볼록
+		for k in 6:   # 흙덩이
+			var c := MeshInstance3D.new(); var cs := SphereMesh.new(); cs.radius = rng.randf_range(0.03, 0.05); cs.height = cs.radius * 1.2; c.mesh = cs; c.material_override = clod
+			c.position = at + Vector3(rng.randf_range(-2.5, 2.5), 0.1, z + rng.randf_range(-0.25, 0.25)); _add(c)
+		var wet := _box(Vector3(5.3, 0.012, 0.66), at + Vector3(0, 0.1, z), _mat(Color("3e2a1e")), false); wet.visible = false   # 물 준 두둑은 짙어진다
 		var row := { "kind": CROPS[i], "stage": 0, "plants": [], "fruit": [], "wet": wet, "grow_at": -1.0 }
 		for j in 4:
-			var pl := Node3D.new(); pl.position = at + Vector3(-1.8 + j * 1.2, 0.05, z); _add(pl)
-			var leaf := MeshInstance3D.new(); var ls := SphereMesh.new(); ls.radius = 0.2; ls.height = 0.3; leaf.mesh = ls
-			leaf.material_override = _mat(Color("7fb05a") if (i + j) % 2 == 0 else Color("6aa04c")); leaf.position.y = 0.12; pl.add_child(leaf)
-			var fr := MeshInstance3D.new(); var fs := SphereMesh.new(); var frr: float = [0.07, 0.11, 0.14][i]; fs.radius = frr; fs.height = frr * 1.8; fr.mesh = fs
-			fr.material_override = _mat([Color("ff2d55"), Color("a9c96a"), Color("d98a2a")][i]); fr.position = Vector3(0.12, frr * 0.8, 0.1); pl.add_child(fr)
-			(row["plants"] as Array).append(pl); (row["fruit"] as Array).append(fr)
+			var made := Garden.plant(CROPS[i], self, rng)
+			var pl: Node3D = made["node"]; pl.position = at + Vector3(-1.8 + j * 1.2 + rng.randf_range(-0.08, 0.08), 0.1, z); pl.rotation.y = rng.randf_range(0.0, TAU); _add(pl)
+			(row["plants"] as Array).append(pl); (row["fruit"] as Array).append(made["ripe"])
 		_set_stage(row, i)   # 세 이랑이 세 단계 — 처음부터 "자라는 밭"으로 읽힌다
 		rows.append(row)
 		spots.append({ "pos": at + Vector3(0, 0, z), "kind": "plot", "yaw": PI, "row": i })
@@ -69,6 +72,8 @@ func _garden(at: Vector3) -> void:
 	var spout := _box(Vector3(0.07, 0.07, 0.32), at + Vector3(2.2, 0.85, 2.75), iron, false); spout.rotation.x = -0.35
 	var handle := _box(Vector3(0.05, 0.05, 0.4), at + Vector3(2.2, 0.98, 2.45), iron, false); handle.rotation.x = 0.7
 	_item("can", at + Vector3(2.75, 0, 2.7))
+	_add(Garden.scarecrow(self, at + Vector3(2.75, 0, -1.35)))   # 밭 안쪽 뒤 모서리 — 이랑(x ±1.8) 밖
+	_add(Garden.rake(self, at + Vector3(-3.55, 0, 1.2), PI / 2.0))   # 왼쪽 울타리에 기댄 갈퀴
 
 ## 전망 언덕(run 73, 구조 성장 — 동물의 숲 기준 "절벽과 단"): 풀밭 동쪽 끝에 바위 낯을 가진 풀 선반(8×6m, 1.4m). 오르는 길은 남쪽 낯의 돌계단 하나 —
 ## 보이는 단은 장식이고 충돌은 _ramp 의 보이지 않는 경사(계단집 _stairs 와 같은 요령: 단을 한 칸씩 넘는 방식은 가끔 걸렸다). 위엔 마을 쪽 난간 앞의 전망 자리(shade 자세),
@@ -134,8 +139,9 @@ func _terr_steps(p: Vector3, inward: bool) -> Array:
 ## 이랑의 단계 — 풀 크기와 열매 보임
 func _set_stage(row: Dictionary, stage: int) -> void:
 	row["stage"] = stage
-	for pl in row["plants"]: (pl as Node3D).scale = Vector3.ONE * STAGE_K[stage]
-	for fr in row["fruit"]: (fr as MeshInstance3D).visible = stage >= 3
+	for pl in row["plants"]:
+		(pl as Node3D).scale = Vector3.ONE * STAGE_K[stage]
+		Garden.stage(pl as Node3D, stage)   # 싹 → 어린 포기 → 꽃·풋열매 → 익은 열매(garden.gd)
 
 ## 물 주기 — 사람도 주민도 이걸 부른다. 젖은 표시가 생기고 GROW_T 뒤에 한 단계(_crops). 익었거나 이미 젖었으면 아무 일 없음(자세는 그래도 나온다)
 func water_row(row: Dictionary, now: float) -> bool:
