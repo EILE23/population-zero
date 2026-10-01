@@ -3,7 +3,17 @@ extends ResidentLife
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
+const FAR_SQ := 3600.0   # 60m — 이보다 먼 주민은 물리를 FAR_EVERY 틱에 한 번(2026-10-01 성능 패스). 걸음 그림은 _process 가 계속 그리니 60m 밖에선 티가 안 난다
+const FAR_EVERY := 4
+var _far_tick := 0
+
 func _physics_process(delta: float) -> void:
+	var far := state != "drive" and global_position.distance_squared_to(town.body.global_position) > FAR_SQ
+	if far:
+		if not town.gen.has_ground(global_position): return   # 밑의 칸이 지워졌다 — 떨어지지 않게 그 자리에서 기다린다
+		_far_tick = (_far_tick + 1) % FAR_EVERY
+		if _far_tick != 0: return
+		delta *= FAR_EVERY   # 한 번에 네 틱만큼(중력·감속·턱 오르기) — 아래 move_and_slide 도 속도를 네 배로 해 같은 거리를 간다
 	var now := Time.get_ticks_msec() / 1000.0
 	if say_label.visible and now > say_until:
 		say_label.visible = false
@@ -126,7 +136,9 @@ func _physics_process(delta: float) -> void:
 		return   # 앉거나 그네·배를 탈 땐 물리로 밀리지 않는다
 	if is_on_floor() and Vector2(v.x, v.z).length() > 0.1:
 		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
+	if far: velocity *= FAR_EVERY
 	move_and_slide()
+	if far: velocity /= FAR_EVERY
 
 ## 날씨 바뀜 — 비면 지금 하던 걸 접고 실내로 서두른다(밖 자리에 있었으면 바로 다시 고른다)
 func on_weather(w: String) -> void:

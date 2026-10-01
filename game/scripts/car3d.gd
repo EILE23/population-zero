@@ -60,6 +60,9 @@ var _stuck_since := -1.0          # 가려는데 못 움직인 지 — 원인이
 var stop_until := -9.0             # 손님이 내리겠다고 하면 이 시각까지 선다
 var route: Array[Vector3] = []
 var _ri := 0
+var _wk: Array = []               # 지난 더듬이 결과 — 화면 밖·멀리 있는 주민 차는 네 틱에 한 번만 새로 쏜다(2026-10-01 성능 패스)
+var _wk_n := 0
+var _rest_at := Vector3.INF       # 지난 물리 틱이 끝난 자리 — 바깥에서 옮겨 놓았는지 본다
 
 func setup(k: String, t: Node3D) -> void:
 	kind = k; town = t; _spec = SPECS[k]
@@ -121,6 +124,12 @@ func _whiskers(fwd: Vector3, right: Vector3, L: float) -> Array:
 			else: out.append([from.distance_to(hit["position"]), col])
 	return out
 
+## 플레이어가 보거나 가까이(25m) 있는 차 — 이런 차만 매 틱 더듬이를 쏜다. 안 보이는 데서 0.5m 늦게 피하는 건 아무도 모른다
+func _seen() -> bool:
+	if global_position.distance_squared_to(town.body.global_position) < 625.0: return true
+	var cam := get_viewport().get_camera_3d()
+	return cam != null and cam.is_position_in_frustum(global_position)
+
 func _drive_ai() -> void:
 	if route.is_empty(): return
 	var now := Time.get_ticks_msec() / 1000.0
@@ -140,7 +149,11 @@ func _drive_ai() -> void:
 	var st := clampf(-diff * 2.0, -1.0, 1.0)
 	var fwd := -global_transform.basis.z; var right := global_transform.basis.x
 	var L := 3.0 + maxf(v, 0.0) * 0.9
-	var wk := _whiskers(fwd, right, L)
+	_wk_n += 1
+	if _wk.is_empty() or _wk_n % 4 == 0 or _seen(): _wk = _whiskers(fwd, right, L)
+	else:
+		for e in _wk: if e[1] != null and not is_instance_valid(e[1]): e[1] = null   # 그사이 부서져 사라진 소품
+	var wk := _wk
 	var c0: float = wk[0][0]
 	var lclear: float = wk[2][0] + wk[4][0]; var rclear: float = wk[1][0] + wk[3][0]
 	# 피하기: 정면이 막힐수록 트인 쪽으로 세게, 옆이 가까우면 반대로 살짝. 사람은 피해 꺾지 않고 선다(길 건너는 주민마다 꺾다 큰길을 벗어나 집 사이를 헤맸다)
@@ -185,6 +198,10 @@ func _drive_ai() -> void:
 	input = { "throttle": thr, "steer": st, "brake": false }
 
 func _physics_process(delta: float) -> void:
+	# 밑의 칸이 지워졌으면(플레이어가 멀리 감) 그 자리에 선다 — 안 그러면 허공으로 떨어져 y −24 에서 발견됐다(2026-10-01 성능 패스)
+	if "gen" in town and not (town.gen as WorldGen).has_ground(global_position): return
+	# 세워 둔 채 가만한 차는 물리를 쉰다 — 마을 차 열 대 중 여덟이 늘 이렇다. 누가 타거나, 다른 차가 밀거나(v·side), 누가 옮겨 놓으면(위에 얹기·집 안) 다시 돈다
+	if driver == null and absf(v) < 0.05 and absf(side) < 0.05 and absf(yaw_rate) < 0.01 and absf(_roll) + absf(_pitch) < 0.002 and global_position == _rest_at: return
 	if ai and driver is Resident:
 		if (driver as Resident).state == "drive": _drive_ai()
 		else: driver = null; input = { "throttle": 0.0, "steer": 0.0, "brake": false }   # 운전사가 내렸으면(어떤 이유로든) 차는 선다 — 빈 차가 혼자 달리던 것
@@ -290,6 +307,8 @@ func _physics_process(delta: float) -> void:
 				_skid(global_position + right * sx + fwd * -0.8)
 	if driven and absf(v) > 2.5: _hit_people(fwd)
 	elif driven and absf(v) > 0.2: _nudge_people(fwd, delta)
+	# 땅에 섰고 2.6m 안에 다른 차가 없을 때만 쉴 수 있다 — 남의 차 위에 얹힌 채(_unstack 이 안 돌아) 잠들던 것
+	_rest_at = global_position if is_on_floor() and not on_car and town.cars.all(func(c: Car3D) -> bool: return c == self or c.global_position.distance_squared_to(global_position) > 6.76) else Vector3.INF
 
 ## 스키드 자국: 바닥 위 얇은 어두운 판, 200개 넘으면 오래된 것부터 지운다
 func _skid(at: Vector3) -> void:

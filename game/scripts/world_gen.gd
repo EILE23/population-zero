@@ -29,6 +29,9 @@ var _src := {}                 # 모델 id -> {parts: [[Mesh, Transform3D]], h}
 var _ground: StandardMaterial3D
 var _lake: ShaderMaterial
 var built := 0                 # 지금까지 지은 칸 수(점검용)
+var build_us_max := 0          # 한 프레임 칸 일(땅 또는 자연)의 최대·합계 시간(µs, probe_perf 가 읽는다)
+var build_us_sum := 0
+var _later: Array = []         # 땅만 지어 둔 칸의 자연 [노드, 칸, 원점] — 다음 프레임에 짓는다
 
 const FOREST := ["CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "CommonTree_5", "TwistedTree_1", "TwistedTree_3"]
 const HIGH := ["Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5"]
@@ -80,6 +83,10 @@ func _h(x: float, z: float) -> float:
 func height(x: float, z: float) -> float:
 	return maxf(_h(x, z), -0.02)
 
+## 이 자리 밑에 땅(충돌)이 있나 — 허브 바닥 상자 안이거나 지어 둔 칸. 플레이어가 멀어져 칸이 지워지면 거기 있던 차·주민은 서서 기다린다(떨어지지 않게)
+func has_ground(p: Vector3) -> bool:
+	return (absf(p.x) < HUB_X + 4.0 and absf(p.z) < HUB_Z + 4.0) or chunks.has(Vector2i(floori(p.x / CHUNK), floori(p.z / CHUNK)))
+
 func lake_at(p: Vector3) -> bool:
 	return p.y < 0.3 and _h(p.x, p.z) < -0.05
 
@@ -90,57 +97,74 @@ func _biome(x: float, z: float, h: float) -> String:
 	if m < -0.3: return "dry"
 	return "meadow"
 
-func _tint(x: float, z: float, h: float, k: float, slope: float) -> Color:
+func _tint(x: float, z: float, h: float, k: float, slope: float, hr: float) -> Color:
 	var c := Color.WHITE
 	match _biome(x, z, h):
 		"forest": c = Color(0.74, 0.86, 0.7)
 		"high": c = Color(0.84, 0.88, 0.8)
 		"dry": c = Color(1.0, 0.94, 0.72)
 		_: c = Color(0.97, 1.0, 0.88)
-	if h < 0.25 and _h(x, z) < 0.3: c = Color(0.96, 0.9, 0.74)   # 물가 모래
+	if h < 0.25 and hr < 0.3: c = Color(0.96, 0.9, 0.74)   # 물가 모래(hr = 깎은 높이 _h — 부르는 쪽이 이미 쟀다)
 	c = c.lerp(Color(0.72, 0.7, 0.66), smoothstep(0.12, 0.35, slope))   # 가파르면 바위빛
 	return Color.WHITE.lerp(c, smoothstep(0.0, 0.4, k))   # 허브 안은 원래 풀밭 그대로
 
 # ── 칸 ──
-## 매 프레임(town_systems _stream): 둘레의 빠진 칸을 가까운 것부터 한 프레임에 하나 짓고, RADIUS+1 밖 칸은 지운다
-func stream(p: Vector3) -> void:
+## 매 프레임(town_systems _stream): 둘레의 빠진 칸을 가까운 것부터 한 프레임에 하나 짓고, RADIUS+1 밖 칸은 지운다.
+## 땅과 자연은 다른 프레임에 — 한 프레임에 둘 다 지으면 4ms 를 넘었다(2026-10-01 성능 패스: 데스크톱 60fps 는 프레임당 16.6ms)
+func stream(p: Vector3, defer := true) -> void:
 	var cx := floori(p.x / CHUNK); var cz := floori(p.z / CHUNK)
-	var best := Vector2i.ZERO; var bd := 1e9; var need := false
-	for dz in range(-RADIUS, RADIUS + 1):
-		for dx in range(-RADIUS, RADIUS + 1):
-			var key := Vector2i(cx + dx, cz + dz)
-			if chunks.has(key): continue
-			var d := dx * dx + dz * dz
-			if d < bd: bd = d; best = key; need = true
-	if need: _build(best)
+	var t0 := Time.get_ticks_usec()
+	if not _later.is_empty():
+		var job: Array = _later.pop_front()
+		if is_instance_valid(job[0]) and not (job[0] as Node3D).is_queued_for_deletion(): _nature(job[0], job[1], job[2])   # 그사이 멀어져 지운 칸은 건너뛴다
+	else:
+		var best := Vector2i.ZERO; var bd := 1e9; var need := false
+		for dz in range(-RADIUS, RADIUS + 1):
+			for dx in range(-RADIUS, RADIUS + 1):
+				var key := Vector2i(cx + dx, cz + dz)
+				if chunks.has(key): continue
+				var d := dx * dx + dz * dz
+				if d < bd: bd = d; best = key; need = true
+		if need: _build(best, defer)
+	var us := Time.get_ticks_usec() - t0
+	build_us_sum += us; build_us_max = maxi(build_us_max, us)
 	for key in chunks.keys():
 		if absi(key.x - cx) > RADIUS + 1 or absi(key.y - cz) > RADIUS + 1:
 			(chunks[key] as Node3D).queue_free(); chunks.erase(key)
 
 ## 처음 둘레 전부(시작할 때 한 번에 — 빈 땅이 보이지 않게)
 func fill(p: Vector3) -> void:
-	for i in (RADIUS * 2 + 1) * (RADIUS * 2 + 1): stream(p)
+	for i in (RADIUS * 2 + 1) * (RADIUS * 2 + 1): stream(p, false)
 
-func _build(key: Vector2i) -> void:
+## 칸 하나 — defer 면 자연(나무·풀 MultiMesh·충돌)은 _later 에 맡기고 다음 stream 이 짓는다
+func _build(key: Vector2i, defer := false) -> void:
 	built += 1
 	var n := Node3D.new(); n.name = "Chunk_%d_%d" % [key.x, key.y]; add_child(n); chunks[key] = n
 	var o := Vector3(key.x * CHUNK, 0, key.y * CHUNK)
 	var step := CHUNK / RES; var w := RES + 1
+	# 격자를 한 칸씩 넓혀(법선용 이웃) 깎기 정도·깎은 높이를 한 번씩만 잰다 — 전엔 점마다 height()를 다섯 번, 물가 판정에 또 네 번 불러 칸 하나가 12ms 였다(2026-10-01 성능 패스)
+	var pw := w + 2
+	var ks := PackedFloat32Array(); ks.resize(pw * pw)
+	var raws := PackedFloat32Array(); raws.resize(pw * pw)   # 깎은 높이(_h) — 0 아래면 호수
+	for j in pw:
+		for i in pw:
+			var x := o.x + (i - 1) * step; var z := o.z + (j - 1) * step
+			var k := wild_k(x, z); ks[j * pw + i] = k; raws[j * pw + i] = k * raw(x, z)
 	var hs := PackedFloat32Array(); hs.resize(w * w)
 	var wild := 0.0
 	for j in w:
 		for i in w:
-			var x := o.x + i * step; var z := o.z + j * step
-			hs[j * w + i] = height(x, z); wild = maxf(wild, wild_k(x, z))
+			var q := (j + 1) * pw + i + 1
+			hs[j * w + i] = maxf(raws[q], -0.02); wild = maxf(wild, ks[q])
 	# 땅 메시(정점색 = 생물군 빛깔, UV = 세계 좌표라 칸 이음새가 없다)
 	var verts := PackedVector3Array(); var norms := PackedVector3Array(); var cols := PackedColorArray(); var uvs := PackedVector2Array(); var idx := PackedInt32Array()
 	for j in w:
 		for i in w:
-			var x := o.x + i * step; var z := o.z + j * step; var h := hs[j * w + i]
-			var nx := height(x - step, z) - height(x + step, z); var nz := height(x, z - step) - height(x, z + step)
+			var x := o.x + i * step; var z := o.z + j * step; var h := hs[j * w + i]; var q := (j + 1) * pw + i + 1
+			var nx := maxf(raws[q - 1], -0.02) - maxf(raws[q + 1], -0.02); var nz := maxf(raws[q - pw], -0.02) - maxf(raws[q + pw], -0.02)
 			var nrm := Vector3(nx, 2.0 * step, nz).normalized()
 			verts.append(Vector3(i * step, h, j * step)); norms.append(nrm)
-			cols.append(_tint(x, z, h, wild_k(x, z), 1.0 - nrm.y))
+			cols.append(_tint(x, z, h, ks[q], 1.0 - nrm.y, raws[q]))
 			uvs.append(Vector2(x, z) / town.TILE)
 	var lake_idx := PackedInt32Array()
 	for j in RES:
@@ -148,10 +172,9 @@ func _build(key: Vector2i) -> void:
 			var a := j * w + i
 			idx.append_array([a, a + 1, a + w, a + 1, a + w + 1, a + w])
 			# 물가 칸까지(네 모서리 중 하나라도 물) 수면을 깔면 더 높은 땅이 수면을 가려 물가선이 지형을 따라 매끈해진다 — 칸 단위로 자르면 2m 계단이 졌다
-			var wet := false
-			for cn in [[i, j], [i + 1, j], [i, j + 1], [i + 1, j + 1]]:
-				if _h(o.x + cn[0] * step, o.z + cn[1] * step) < -0.05: wet = true
-			if wet: lake_idx.append_array([a, a + 1, a + w, a + 1, a + w + 1, a + w])
+			var q := (j + 1) * pw + i + 1
+			if minf(minf(raws[q], raws[q + 1]), minf(raws[q + pw], raws[q + pw + 1])) < -0.05:
+				lake_idx.append_array([a, a + 1, a + w, a + 1, a + w + 1, a + w])
 	var arr := []; arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = norms; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_TEX_UV] = uvs; arr[Mesh.ARRAY_INDEX] = idx
 	var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
@@ -169,7 +192,8 @@ func _build(key: Vector2i) -> void:
 		hm.map_width = w; hm.map_depth = w; hm.map_data = hs; cs.shape = hm
 		cs.position = o + Vector3(CHUNK / 2.0, 0, CHUNK / 2.0); cs.scale = Vector3(step, 1, step)
 		sb.add_child(cs); n.add_child(sb)
-		_nature(n, key, o)
+		if defer: _later.append([n, key, o])
+		else: _nature(n, key, o)
 
 ## 칸의 자연 — 생물군마다 다른 밀도. 평지(허브·길·강)와 물·가파른 곳엔 안 놓는다
 func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
@@ -189,8 +213,9 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 		for i in int(row[1]):
 			var x := o.x + rng.randf() * CHUNK; var z := o.z + rng.randf() * CHUNK
 			var k := wild_k(x, z)
-			if k < 0.45 or _h(x, z) < 0.7 or rng.randf() > k: continue   # 물가 1m 안엔 안 난다(물속 풀)
-			var h := height(x, z)
+			if k < 0.45: continue
+			var h := k * raw(x, z)   # = _h — 한 번만 잰다
+			if h < 0.7 or rng.randf() > k: continue   # 물가 1m 안엔 안 난다(물속 풀)
 			if absf(height(x + 1.0, z) - h) > 0.9 or absf(height(x, z + 1.0) - h) > 0.9: continue   # 벼랑엔 안 선다
 			var id: String = ids[rng.randi() % ids.size()]
 			var src := _model_src(id)
