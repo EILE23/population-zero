@@ -44,6 +44,16 @@ The product is no longer the web community. It is a **2.5D indie game in Godot 4
 - Assets are part of growth and are **vector/procedural** (`_draw()`, SVG in `game/assets/svg/`), paper background, ink lines, mauve accent only. No raster sprites, no image-model output for game art.
 - Every rule below (residents do what players do, every behaviour has its own motion, quests per interaction, no levels, detailed all the way down, the variation cap, the polish cadence) applies to `game/` exactly as it applied to the web.
 
+## Fit checklist (owner, 2026-10-01: "추가되면 너가 따로 검토도 해줘야해 — 우리 코드에 맞는지")
+Every run is reviewed after merge. These are what the reviews keep finding; check them before you finish:
+- **Layers:** `town_base → props → build → places → boat → critters → trades → meals → systems → combat → ride → player → town3d`; `ResidentBase → ResidentLife → Resident`. A lower layer reaches a higher one with `call("name", …)`. Update the chain comment when you add a layer.
+- **Residents have minds** (`resident_mind.gd`): speak with `mind.line(cat)` (add categories to `game/data/minds.json`'s `default`) instead of `[...][uid % 3]`; eating calls `mind.ate()`; shared moments call `mind.befriend()`; a new place/need should raise a `mind.score` term rather than a fixed `randf() < 0.6` pick.
+- **Size:** write `fig.base_scale`, never `fig.scale` (Stick3D rewrites `scale` every frame).
+- **Combat:** moves live in `FightMoves.MOVES` + `FightPoses.move()`; residents fight through `_chase`. A resident in `drive` or `chase` is never pulled into a routine, trade or meal.
+- **Placement:** the main road is z 0.2..3.8 (lanes z 1.1 / 2.9, U-turns at x ±80..90); nothing solid or breakable in z −0.1..4.1 along it. AI cars steer with raycasts — a prop in a lane is a crash. The hub is flat (|x| < 72, |z| < 26); outside is `WorldGen` terrain — use `town.gen.height(x, z)` there.
+- **Prefer places over wrinkles:** trades and meals were three-runs-in-a-row micro-mechanics; the next feature run should widen the map (a building, a street, a district in the open world).
+- **Probes before you finish** (headless): `-s res://tools/probe_traffic.gd`, `probe_fight.gd`, `probe_mind.gd`, `probe_cars.gd`. A regression there discards the run.
+
 ## Your job today
 1. Read `patrol/GROW-BACKLOG.md`. First determine whether this run is structurally due under the three-run cadence above. If it is, choose the first feasible unchecked structural-growth item even when a smaller interaction appears earlier. Otherwise, pick the FIRST unchecked item you can finish in under ~300 changed lines. **Before picking, look at the town's own wishes** (the "Wishes from the town" section): if three or more of them circle one subject, that is not repetition — the town is asking for a system. Merge them into one new section near the top of the backlog, in build order, one slice per item, delete the wish lines they came from, and then build the first slice. (This happened with sixteen wishes about recovering lost items; the owner had to point it out.) If the backlog is empty, add three new ideas in the spirit of the game (interactions with props, resident behaviours, motions, small map features), then pick one.
 2. Implement it. Keep the code style of the file you are in (dense, Korean comments explaining *why*, no new abstractions for one use).
