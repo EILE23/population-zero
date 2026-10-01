@@ -12,6 +12,13 @@ const SEED := 20260930
 const HUB_X := 72.0            # 허브(마을) 평지 반폭 — town_base WORLD_X 와 같다
 const HUB_Z := 26.0
 const ROAD_Z := 2.0
+## 장소(운영자 2026-10-01: 열린 세계에 실제 장소 — 숲 오두막, 호숫가 마을, Climb 탑 언덕). 둘레 r 은 평지로 깎이고, from 에서 장소까지 길이 깎여 이어진다.
+## 짓는 건 town_sites.gd(_site_<name>). 새 장소는 여기에 한 줄 + 빌더 하나
+const SITES := [
+	{ "name": "cabin", "c": Vector3(-150, 0, -38), "r": 15.0, "from": Vector3(-150, 0, 3.8) },
+	{ "name": "lakeside", "c": Vector3(135, 0, -50), "r": 24.0, "from": Vector3(135, 0, 0.2) },
+	{ "name": "tower", "c": Vector3(16, 0, -82), "r": 18.0, "from": Vector3(15.5, 0, -13.0) },
+]
 
 var town: TownBase
 var _big := FastNoiseLite.new()
@@ -51,7 +58,16 @@ func wild_k(x: float, z: float) -> float:
 	var k := smoothstep(0.0, 30.0, dh)
 	k = minf(k, smoothstep(4.0, 16.0, absf(z - ROAD_Z)))
 	k = minf(k, smoothstep(town.RIVER_HW + 2.0, town.RIVER_HW + 14.0, absf(z - town.RIVER_Z)))
+	for s in SITES:
+		var c: Vector3 = s["c"]; var r: float = s["r"]
+		k = minf(k, smoothstep(r, r + 22.0, Vector2(x - c.x, z - c.z).length()))
+		k = minf(k, smoothstep(3.0, 13.0, _seg_dist(Vector2(x, z), Vector2(s["from"].x, s["from"].z), Vector2(c.x, c.z))))   # 장소로 가는 길
 	return k
+
+static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+	return p.distance_to(a + ab * t)
 
 ## 깎기 전 높이 — 큰 굽이 + 작은 기복. 0 아래는 호수가 된다
 func raw(x: float, z: float) -> float:

@@ -27,7 +27,7 @@ func _stream() -> void:
 	var p := focus_pos()
 	gen.stream(p)   # 열린 세계 칸 — 둘레를 짓고 먼 칸을 지운다
 	for d in districts:
-		var on: bool = absf(p.x - d["center"].x) < 34.0
+		var on: bool = Vector2(p.x - d["center"].x, p.z - d["center"].z).length() < 48.0   # 열린 세계의 장소는 남북으로도 멀다 — x 만 보면 북쪽 탑이 늘 켜져 있었다
 		if on != d["on"]:
 			d["on"] = on
 			var n: Node3D = d["node"]
@@ -390,5 +390,5 @@ func _hud(now: float) -> void:
 	for r in residents: c[r.state] = c.get(r.state, 0) + 1
 	var hour := int(fmod(clock * 24.0 + 6.0, 24.0))
 	var leg := get_node_or_null("UI/Legend") as Label
-	if leg: leg.text = "← → ↑ ↓ move · SPACE jump (hold: higher) · X punch · Z kick · C use · V view   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
+	if leg: leg.text = "← → ↑ ↓ move · SPACE jump (hold: higher) · X punch · Z kick · C use   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
 

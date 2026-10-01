@@ -161,19 +161,20 @@ static func _straight(f: Stick3D, a: float, s: float, power: float) -> void:
 
 ## 훅 — 골반을 반대로 감았다가(예비) 팔꿈치를 어깨 높이로 들어 90° 접은 채 몸통째 옆으로 휘두른다
 static func _hook(f: Stick3D, a: float, s: float) -> void:
-	var load := bump(a, 0.0, 0.2, 0.2, 0.32); var sw := seg(a, 0.22, 0.42); var back := seg(a, 0.6, 1.0)
-	var turn := (-0.45 * load + 1.1 * sw) * (1.0 - back)   # +는 때리는 쪽 어깨가 앞으로
-	f.pelvis.rotation.y = -s * 0.55 * turn
-	f.torso.rotation.y = -s * 0.7 * turn; f.chest.rotation.y = -s * 0.3 * turn
-	f.torso.rotation.x = 0.15 + 0.1 * sw * (1.0 - back); f.torso.rotation.z = s * 0.12 * sw * (1.0 - back)
+	# 크게(운영자: 훅이 덜 읽힌다): 반대로 깊게 감았다가(어깨가 뒤로), 팔꿈치를 어깨 높이 90°로 고정한 채 몸통이 1.4rad 넘게 돌며 가로로 쓸고, 끝에서 몸이 따라 넘어간다
+	var load := bump(a, 0.0, 0.22, 0.22, 0.34); var sw := seg(a, 0.24, 0.42); var back := seg(a, 0.62, 1.0)
+	var turn := (-0.65 * load + 1.45 * sw) * (1.0 - back)   # +는 때리는 쪽 어깨가 앞으로
+	f.pelvis.rotation.y = -s * 0.6 * turn
+	f.torso.rotation.y = -s * 0.75 * turn; f.chest.rotation.y = -s * 0.35 * turn
+	f.torso.rotation.x = 0.18 + 0.12 * sw * (1.0 - back); f.torso.rotation.z = s * 0.25 * sw * (1.0 - back)   # 주먹 쪽으로 몸을 실어 기운다
 	var arm := clampf(load + sw, 0.0, 1.0) * (1.0 - back)
-	f.shoulders[s].rotation.x = -(1.25 + 0.2 * arm); f.shoulders[s].rotation.z = s * (1.2 * arm)   # 팔을 옆으로 들어 수평
-	f.elbows[s].rotation.x = -(2.1 - 0.55 * arm)
+	f.shoulders[s].rotation.x = -(1.3 + 0.15 * arm); f.shoulders[s].rotation.z = s * (1.45 * arm)   # 팔을 옆으로 들어 어깨 높이 수평
+	f.elbows[s].rotation.x = -(2.1 - 0.55 * arm)   # 팔꿈치는 90° 근처로 고정 — 갈고리 모양
 	_guard(f, -s)
-	f.hips[s].rotation.x = -(0.3); f.knees[s].rotation.x = 0.4
-	f.hips[-s].rotation.x = -(-0.15); f.knees[-s].rotation.x = 0.3
-	f.neck.rotation.y = s * 0.5 * turn
-	f.pelvis.position.y = Stick3D.HIP_Y - 0.06 * arm
+	f.hips[s].rotation.x = -(0.35); f.knees[s].rotation.x = 0.45
+	f.hips[-s].rotation.x = -(-0.2); f.knees[-s].rotation.x = 0.35
+	f.neck.rotation.y = s * 0.55 * turn
+	f.pelvis.position.y = Stick3D.HIP_Y - 0.08 * arm
 
 ## 어퍼컷 — 무릎을 굽혀 깊이 가라앉았다가(예비) 다리로 튕겨 오르며 직각으로 굽힌 팔이 아래에서 위로. 끝엔 발끝으로 서서 상체가 뒤로 젖혀진다
 static func _upper(f: Stick3D, a: float, s: float) -> void:

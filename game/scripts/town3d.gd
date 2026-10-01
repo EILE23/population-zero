@@ -53,6 +53,7 @@ func _ready() -> void:
 	body.add_child(player)
 	add_child(body)
 	cam = $Camera3D
+	_sites()   # 열린 세계의 장소들(숲 오두막·호숫가 마을·Climb 탑) — 주민 집이 생기니 주민보다 먼저(town_sites)
 	_residents(32)   # 동쪽 마을 집 넷이 생겨 여덟 명 더(2026-09-30)
 	_hire_drivers()
 	if "--sheet" in OS.get_cmdline_user_args():
@@ -67,9 +68,6 @@ func _shops(c: Vector3) -> void:
 
 func _process(delta: float) -> void:
 	_hud(Time.get_ticks_msec() / 1000.0)
-	if Input.is_key_pressed(KEY_V) and not _v_down:
-		view_25d = not view_25d
-	_v_down = Input.is_key_pressed(KEY_V)
 	var fp := focus_pos()
 	var px := clampf(fp.x, -OPEN + 6.0, OPEN - 6.0)
 	if view_25d:
@@ -87,6 +85,9 @@ func _process(delta: float) -> void:
 		# 3/4 시점: 플레이어 뒤·위에서 내려다본다
 		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 		var want := Vector3(px, fp.y, clampf(fp.z, -OPEN + 6.0, OPEN - 4.0)) + Vector3(0, 8.5, 7.5)
+		for k in [0.3, 0.55, 0.8]:   # 카메라와 나 사이 언덕이 시선을 가리면 그 위로 올린다(열린 세계 남쪽 언덕)
+			var hk: float = gen.height(px, fp.z + 7.5 * k) + 0.9
+			want.y = maxf(want.y, fp.y + 0.6 + (hk - fp.y - 0.6) / k)
 		cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
 		if cam_kick > 0.0:
 			cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)

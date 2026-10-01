@@ -330,7 +330,7 @@ const FOOD := ["apple", "bread", "tomato", "cabbage", "pumpkin"]   # C 로 한�
 
 var _hud_at := 0.0
 
-var view_25d := true   # V 로 전환: true = 2.5D 옆시점(낮은 카메라·직교 투영, 웹 광장 느낌) / false = 3/4 내려다보기
+var view_25d := false   # 시점은 3/4 내려다보기로 고정(운영자 2026-10-01: "V 를 눌렀을 때의 시점으로 고정") — 2.5D 옆시점 코드는 점검 도구용으로만 남는다
 
 var _v_down := false
 
