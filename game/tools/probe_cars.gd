@@ -32,4 +32,12 @@ func _init() -> void:
 	sedan.global_position = suv.global_position + Vector3(0.4, 1.2, 0.2)
 	for i in 120: await physics_frame
 	print("STACK sedan y=%.2f suv y=%.2f dist=%.2f" % [sedan.global_position.y, suv.global_position.y, Vector2(sedan.global_position.x - suv.global_position.x, sedan.global_position.z - suv.global_position.z).length()])
+	# 4) 집 안에 갇힌 차: 집 한가운데 넣으면 1초 안에 집 앞 길가로 나온다
+	var h: Dictionary = town.houses[0]
+	var mid: Vector3 = (h["min"] + h["max"]) / 2.0; mid.y = 0.0
+	sedan.global_position = mid; sedan.v = 0.0
+	for i in 90: await physics_frame
+	var q := sedan.global_position
+	var inside: bool = q.x > h["min"].x and q.x < h["max"].x and q.z > h["min"].z and q.z < h["max"].z
+	print("RESCUE inside_after=", inside, " at ", q.snapped(Vector3.ONE * 0.1))
 	quit()

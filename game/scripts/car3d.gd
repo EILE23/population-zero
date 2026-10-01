@@ -384,6 +384,7 @@ func _hit_people(fwd: Vector3) -> void:
 
 ## 차끼리 겹치거나 올라탔으면 옆으로 떼어 낸다 — 상자 충돌체 모서리를 비탈로 읽어 남의 차 위에 올라앉아 끼던 것(운영자 2026-09-30)
 func _unstack() -> void:
+	_rescue()
 	for c in town.cars:
 		if c == self: continue
 		var d: Vector3 = global_position - c.global_position
@@ -391,10 +392,10 @@ func _unstack() -> void:
 		if hd.length() > 2.3 or absf(d.y) > 1.6: continue
 		if d.y > 0.25:   # 위에 올라탔다: 바깥으로 밀고 떨어뜨린다
 			var out := Vector3(hd.x, 0, hd.y).normalized() if hd.length() > 0.05 else global_transform.basis.x
-			global_position += out * 0.12; _vy = minf(_vy, -1.5)
+			move_and_collide(out * 0.12); _vy = minf(_vy, -1.5)   # 충돌을 지키며 민다 — 위치를 직접 옮기면 벽을 뚫고 집 안으로 들어갔다(운영자 2026-10-01: 집 안의 배달차)
 		elif hd.length() < 1.3:   # 속이 겹쳤다: 둘 다 반씩 비킨다
 			var push := Vector3(hd.x, 0, hd.y).normalized() * (1.3 - hd.length()) * 0.5
-			global_position += push; c.global_position -= push
+			move_and_collide(push); c.move_and_collide(-push)
 
 ## 사고 — 주민이 몰던 차면 2.5초 서서 운전사가 한마디(그냥 가지 않는다)
 func _shaken() -> void:
@@ -429,3 +430,17 @@ func _boost(k: float) -> void:
 	get_tree().create_timer(0.8).timeout.connect(p.queue_free)
 	_pitch += 0.05
 	if town.has_method("shake"): town.shake(global_position, 0.03 + 0.02 * k)
+
+## 안전장치 — 어떤 이유로든 차가 집 상자 안에 있으면(벽을 뚫음) 집 앞 길가로 꺼낸다. 1초에 한 번만 본다
+var _rescue_at := 0.0
+func _rescue() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _rescue_at: return
+	_rescue_at = now + 1.0
+	var p := global_position
+	for h in town.houses:
+		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
+		if p.x > mn.x - 0.3 and p.x < mx.x + 0.3 and p.z > mn.z - 0.3 and p.z < mx.z + 0.3 and p.y < mx.y:
+			global_position = Vector3(p.x, p.y, mx.z + 2.2); v = 0.0; side = 0.0; _vy = 0.0
+			rotation.y = PI / 2.0 if rotation.y > 0.0 else -PI / 2.0
+			return
