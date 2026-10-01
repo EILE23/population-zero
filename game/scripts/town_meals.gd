@@ -76,3 +76,40 @@ func take_share(half: Node3D, from: ResidentBase) -> void:
 	player.hold(half)
 	if not shared_once: say_toast(from.handle + " shared. C to eat.")
 	shared_once = true
+
+## 건네기("Sharing food" 2조각, run 86): 쪼개지 않고 통째로 옆 칸에 넘긴다 — 컵도(쪼갤 수 없는 것). 같은 벤치 옆 칸(0.6m 안)에 앉은 빈손의 주민이나 사람
+static func passable(kind: String) -> bool:
+	return kind in FOOD or kind == "cup"
+
+## 이 벤치에 앉은 사람들(주민 + 사람) — 줄을 따라 넘길 때 몇이 앉았나·누가 옆인가
+func bench_row(at: Vector3) -> Array[Node3D]:
+	var row: Array[Node3D] = []
+	for r in residents:
+		if r.state == "busy" and r.fig.seated and String(r.spot.get("kind", "")) == "bench" and (r.spot["pos"] as Vector3).distance_to(at) < 0.1: row.append(r)
+	if seat_at(at): row.append(body)
+	return row
+
+## 사람이 앉아 컵·먹을 걸 들고 C 를 길게(0.45초): 옆 칸 빈손의 주민에게 통째로 건넨다(pass). 짧게 누르면 그대로 반 쪼개기·먹기. 받은 주민은 줄 반대쪽으로 또 넘길 수 있다(0.15)
+func pass_on_bench(now: float) -> bool:
+	var it := player.carrying
+	if seat.is_empty() or seat.has("chair") or it == null or not passable(String(it.get_meta("kind", ""))): return false
+	for o in bench_row(seat["pos"]):
+		if o == body or o.global_position.distance_to(body.global_position) > 0.6: continue
+		var r := o as ResidentLife
+		if r.fig.carrying != null or r.bites > 0: continue
+		player.set_meta("share_side", share_side(seat.get("yaw", 0.0), body.global_position, r.global_position))
+		player.pose_request = "pass"; use_until = now + StickPoses.PASS_T; action_until = now + StickPoses.PASS_T
+		get_tree().create_timer(StickPoses.PASS_HAND).timeout.connect(func() -> void: _hand_pass(r))
+		return true
+	return false
+
+func _hand_pass(r: ResidentLife) -> void:
+	if player.pose_request != "pass" or player.carrying == null or not is_instance_valid(r) or not r.fig.seated or r.fig.carrying != null: return   # 그새 일어났거나 손이 찼다 — 안 넘긴다
+	r.take_passed(player.release(self, Vector3.ZERO), body, 0.15)
+	shared_once = true
+
+## 주민이 줄을 따라 넘긴 걸 받는다 — 앉은 사람 손에. 먹을 거면 C 로 먹고, 길게 누르면 또 넘긴다
+func take_passed(it: Node3D, from: ResidentBase) -> void:
+	player.hold(it)
+	if not shared_once: say_toast(from.handle + " passed it along. Hold C to pass it on.")
+	shared_once = true

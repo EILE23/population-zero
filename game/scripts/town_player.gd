@@ -259,7 +259,7 @@ func _interact_check(now: float) -> void:
 	if not (long_press or tap) or action_until >= now:
 		return
 	if long_press:
-		_pick_furniture(now)
+		if not pass_on_bench(now): _pick_furniture(now)   # 벤치에 앉아 컵·먹을 걸 들었으면 길게 = 옆 칸에 넘기기(run 86, town_meals)
 		return
 	if rowing:
 		boat_leave(now); return   # 배 위(run 78): C = 그 자리 북쪽 둑에 내린다(town_boat)
