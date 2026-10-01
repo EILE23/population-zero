@@ -660,3 +660,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-10-01) Add a 1s resident 'pass-plate' action so a resident holding a food item can hand it to an adjacent resident, enabling passing chains at communal racks and tables.
 - [ ] (town wish, 2026-10-01) Add a simple 'food-runner' job that picks up day-end bread from the bakery and restocks a new communal larder so residents can claim or deposit items on a short timer.
 - [ ] (town wish, 2026-10-01) When a resident carrying a food item sits on a bench next to another resident, they trigger a 2-second 'share' animation that splits the item into two smaller portions.
+- [ ] (town wish, 2026-10-01) Add a 'tray' carry action and a balanced-tray pose so residents (and the player) can pick up a tray holding up to three food items, move slowly while carrying it, set it down on boards/booths to start sharing, and have a
