@@ -332,14 +332,14 @@ func _east(at: Vector3) -> void:
 	spots.append({ "pos": at + Vector3(0, 0, -1.2), "kind": "bank", "yaw": PI })       # 분수 보기
 	spots.append({ "pos": at + Vector3(2.4, 0, -3.5), "kind": "bank", "yaw": -PI / 2.0 })
 	_bench(at + Vector3(-4.5, 0, -0.1)); _bench(at + Vector3(4.5, 0, -0.1))
-	_lamp(at + Vector3(-6.5, 0, 0.9)); _lamp(at + Vector3(6.5, 0, 0.9)); _lamp(at + Vector3(0, 0, -8.7))
+	_lamp(at + Vector3(-6.5, 0, 0.5)); _lamp(at + Vector3(6.5, 0, 0.5)); _lamp(at + Vector3(0, 0, -8.7))
 	# 집 넷 — 시드가 다르니 층수·벽·지붕·창이 다 다르다
 	_house(at + Vector3(-7.5, 0, -11.5), Vector3(4.2, 2.7, 3.4), Color("e6d3a5"), "brick", false, 21)
 	_house(at + Vector3(0.5, 0, -12.5), Vector3(4.6, 2.9, 3.6), Color("dfe6ea"), "wood", false, 22)
 	_house(at + Vector3(8.5, 0, -11.5), Vector3(3.8, 2.6, 3.2), Color("efe9e2"), "shingle", false, 23)
 	_house(at + Vector3(-10, 0, -5.0), Vector3(3.6, 2.6, 3.2), Color("b56a5a"), "wood", false, 24)
 	_path(at + Vector3(0, 0, -7.1), at + Vector3(0, 0, -10.7), 1.6)   # 광장에서 북쪽 집 현관으로
-	for t in [Vector3(-12, 0, -9.0), Vector3(12.5, 0, -7.5), Vector3(11, 0, 3.0), Vector3(-12.5, 0, 3.0)]:
+	for t in [Vector3(-12, 0, -9.0), Vector3(12.5, 0, -7.5), Vector3(11, 0, 6.0), Vector3(-12.5, 0, 6.0)]:   # 남쪽 둘은 큰길 건너로 — 하나는 길 한가운데 서 있었다
 		_tree(at + t, 1.0 + fmod(absf(t.x) * 0.31, 0.4))
 	# 주차장: 광장 동쪽, 어두운 아스팔트에 흰 선 넷, 세워 둔 차 둘
 	var lot := at + Vector3(12, 0, -3.5)

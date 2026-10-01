@@ -27,14 +27,15 @@ func _mesh(mesh: Mesh, mat: Material, at: Vector3) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.material_override = mat; mi.position = at; add_child(mi); return mi
 
 ## 강 띠 — 중심 c, 길이 length(x), 폭 width(z), +x 로 flow m/s 흐른다. 양쪽에 돌 둑, 흐르는 물결 조각
-func band(c: Vector3, length: float, width: float, flow := 0.35) -> void:
-	var bm := BoxMesh.new(); bm.size = Vector3(length, SURFACE_Y, width); bm.subdivide_width = int(length / 1.0)   # 정점이 있어야 셰이더가 수면을 찰랑이게 한다
+func band(c: Vector3, length: float, width: float, flow := 0.35, flecks := true) -> void:
+	var bm := BoxMesh.new(); bm.size = Vector3(length, SURFACE_Y, width); bm.subdivide_width = int(length / (1.0 if flecks else 4.0))   # 정점이 있어야 셰이더가 수면을 찰랑이게 한다
 	_mesh(bm, surface(), Vector3(c.x, SURFACE_Y / 2.0, c.z))
 	for zs in [-1.0, 1.0]:
 		var k := BoxMesh.new(); k.size = Vector3(length, 0.07, 0.3)
 		_mesh(k, _flat(Color("bfb6b0")), Vector3(c.x, 0.035, c.z + zs * (width / 2.0 + 0.1)))
 	var body := { "kind": "band", "c": c, "hx": length / 2.0, "hz": width / 2.0, "flow": flow }
 	bodies.append(body)
+	if not flecks: return
 	var rr := RandomNumberGenerator.new(); rr.seed = int(c.x * 3.0 + c.z * 7.0) + 11
 	for i in int(length / 2.5):
 		_fleck(body, Vector3(c.x + rr.randf_range(-length / 2.0, length / 2.0), SURFACE_Y + 0.005, c.z + rr.randf_range(-width * 0.37, width * 0.37)), rr.randf_range(0.3, 0.7))

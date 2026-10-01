@@ -204,7 +204,7 @@ func status() -> String:
 static func save_all(residents: Array, force := false) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if not force and now - _saved_at < 30.0: return
-	if DisplayServer.get_name() == "headless" or "--sheet" in OS.get_cmdline_user_args(): return   # 점검·시트 판은 진짜 기억을 더럽히지 않는다
+	if DisplayServer.get_name() == "headless" or "--sheet" in OS.get_cmdline_user_args() or "-s" in OS.get_cmdline_args() or "--script" in OS.get_cmdline_args(): return   # 점검·시트 판은 진짜 기억을 더럽히지 않는다
 	_saved_at = now
 	for x in residents:
 		var m: ResidentMind = x.mind

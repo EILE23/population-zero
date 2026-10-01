@@ -5,6 +5,14 @@ extends TownCombat
 ## 타기 — 몸을 숨기고 차가 나를 대신한다. 들고 있던 큰 가구는 내려놓는다
 func _enter_car(c: Car3D, now: float) -> void:
 	if not carrying_big.is_empty() or swimming or not riding.is_empty(): return
+	if c.driver is Resident:
+		# 주민이 모는 차: 조수석에 탄다(운영자 2026-09-30: "옆자리에 타고 싶으면?") — 운전사는 나를 기억하는 만큼 반기거나 떨떠름해한다
+		var r: Resident = c.driver
+		if absf(c.v) > 1.5: return
+		passenger = c; _hide_body(); _pending_out = false
+		r.say(r.mind.line("greet_fond") if r.mind.fond > 0.3 else (r.mind.line("greet_cold") if r.mind.fond < -0.3 else ["Hop in.", "Where to?", "Mind the door."][randi() % 3]), 1.8)
+		action_until = now + 0.4
+		return
 	driving = c; c.driver = body
 	down_until = -1.0; getup_until = -1.0; player.lying = false; player.rotation.x = 0.0
 	body.visible = false; body.collision_layer = 0; body.collision_mask = 0; body.velocity = Vector3.ZERO
@@ -51,3 +59,41 @@ func _pick_furniture(now: float) -> void:
 	n.position = Vector3(0, 0.45, 0.42); n.rotation = Vector3.ZERO
 	carrying_big = best; player.pose_request = "carry"
 	player.action = "grab"; action_until = now + 0.4
+
+var _pending_out := false
+
+func _hide_body() -> void:
+	down_until = -1.0; getup_until = -1.0; player.lying = false; player.rotation.x = 0.0
+	body.visible = false; body.collision_layer = 0; body.collision_mask = 0; body.velocity = Vector3.ZERO
+	player.pose_request = ""; reading = false; leaning = false; resting = false
+
+## 조수석 — 몸은 조수석을 따라가고, C 를 누르면 운전사에게 세워 달라 한다(차가 서면 내린다). 운전사가 내리면(끌려 나가는 등) 같이 내린다
+func _passenger_tick(now: float) -> void:
+	var c := passenger
+	body.global_position = c.passenger_pos() + Vector3(0, 0.3, 0)
+	var r: Resident = c.driver if c.driver is Resident else null
+	if Input.is_action_just_pressed("act") and action_until < now and not _pending_out:
+		_pending_out = true; c.stop_until = now + 3.0; action_until = now + 0.4
+		if r: r.say(["Here? All right.", "Stopping.", "Mind the traffic."][randi() % 3], 1.6)
+	if r == null or (_pending_out and absf(c.v) < 1.0):
+		passenger = null; _pending_out = false
+		body.global_position = c.global_position - c.global_transform.basis.x * 1.3 + Vector3(0, 0.02, 0)   # 조수석 쪽(오른쪽)으로 내린다
+		body.visible = true; body.collision_layer = 4; body.collision_mask = 7
+		player.rotation = Vector3(0, player.rotation.y, 0); player.scale = Vector3.ONE; player.seated = false; player.face(c.rotation.y)
+		action_until = now + 0.4
+
+## 끌어내기(X, 선 차의 운전석 옆) — 주민을 끌어내 바닥에 넘어뜨리고 내가 탄다. 주민은 기억하고(맞은 것과 같다), 성미대로 쫓아오거나 피하고,
+## 일이 끝나면 제 차로 돌아가 다시 탄다(내가 타고 있으면 기다린다 — resident_life _back_to_car)
+func try_hijack(now: float) -> bool:
+	if driving or passenger or player.carrying or not carrying_big.is_empty(): return false
+	for c in cars:
+		if not (c.driver is Resident) or absf(c.v) > 1.5: continue
+		if body.global_position.distance_to(c.exit_pos()) > 1.4 and body.global_position.distance_to(c.global_position) > 1.9: continue
+		var r: Resident = c.driver
+		r.leave_car()
+		var dir: Vector3 = r.global_position - body.global_position; dir.y = 0.0
+		r.hit(dir.normalized() if dir.length() > 0.05 else Vector3(1, 0, 0), body, true)
+		r.say(r.mind.line("hurt"), 1.6)
+		_enter_car(c, now)
+		return true
+	return false

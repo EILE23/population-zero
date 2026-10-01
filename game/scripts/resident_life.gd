@@ -3,6 +3,7 @@ extends ResidentBase
 ## 주민의 하루 — 일과표(시간대·직업이 고르는 자리), 수다, 운전. resident.gd 가 500줄에 닿아 뗐다(2026-09-30). 사슬: base → life → resident
 
 var car_seat: Car3D = null
+var own_car: Car3D = null     # 내 차 — 끌려 내려도 일이 끝나면 돌아가 다시 탄다
 
 ## 지금 시각(0..24) — town 의 해와 같은 시계
 func _hour() -> float:
@@ -107,6 +108,26 @@ func _flee(from: Vector3) -> void:
 
 ## 운전 맡기 — 이 주민이 이 차의 운전사가 된다. 충돌을 끄고(차 안), 일과를 멈춘다
 func drive(c: Car3D) -> void:
-	_release(); car_seat = c; c.driver = self; job = "driver"
+	_release(); car_seat = c; own_car = c; c.driver = self; job = "driver"; fig.scale = Vector3.ONE * 0.8
 	state = "drive"; collision_layer = 0; collision_mask = 0
 	say(["Morning route.", "Mind the road.", "On schedule."][uid % 3], 2.0)
+
+## 차에서 내림(끌려 나감) — 운전석 옆에 서고 몸·충돌을 되돌린다. 일자리(운전사)와 내 차는 그대로
+func leave_car() -> void:
+	if car_seat == null: return
+	var c := car_seat
+	if c.driver == self: c.driver = null
+	global_position = c.exit_pos() + Vector3(0, 0.02, 0); car_seat = null
+	fig.scale = Vector3.ONE; fig.seated = false; fig.pose_request = ""; collision_layer = 4; collision_mask = 7
+	state = "routine"; busy_until = 0.0
+
+## 내 차로 돌아가기 — 차가 비어 있으면(아무도 안 몰고 내가 타고 있지도 않으면) 걸어가 운전석에 탄다. 내가 몰고 가 버렸으면 가끔 투덜댄다
+func _back_to_car() -> bool:
+	if own_car == null or car_seat != null: return false
+	if own_car.driver != null or town.driving == own_car:
+		if randf() < 0.3: say(["That is my car.", "Bring it back.", "I need that."][randi() % 3], 1.8)
+		return false
+	spot = { "kind": "car" }
+	route = town.via_bridge(global_position, [{ "pos": own_car.exit_pos(), "act": "" }]); target = route[0]["pos"]; state = "walk"
+	say(["Back to work.", "Right. The car.", "Where was I."][randi() % 3], 1.6)
+	return true

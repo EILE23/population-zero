@@ -45,6 +45,16 @@ var _vy := 0.0
 var _grip_k := 1.0   # 뒤 접지력 배율 — 핸드브레이크로 내려가고 떼면 서서히 돌아온다
 ## 주민 운전(교통) — route 를 따라 돈다. 앞에 사람·차가 있으면 선다
 var ai := false
+var _shaken_until := -9.0         # 사고 뒤 멈춰 있는 시각(주민 운전)
+var _detour := Vector3.INF         # 세워 둔 차를 비켜 가는 임시 경유지
+var _block: Node3D = null          # 지금 나를 막는 것 — 서로 막았는지 보려고
+var _reverse_until := -9.0         # 양보: 이 시각까지 후진
+var _argued := false
+var _rev_steer := 0.0
+var _bias := 0.0                   # 막힌 뒤 한동안 이쪽(+오른쪽)으로 피한다
+var _bias_until := -9.0
+var _stuck_since := -1.0          # 가려는데 못 움직인 지 — 원인이 뭐든 2초면 꺾으며 뒤로 뺀다
+var stop_until := -9.0             # 손님이 내리겠다고 하면 이 시각까지 선다
 var route: Array[Vector3] = []
 var _ri := 0
 
@@ -73,42 +83,103 @@ func setup(k: String, t: Node3D) -> void:
 func seat_pos() -> Vector3:
 	return global_position - global_transform.basis.y * 0.08 - global_transform.basis.x * 0.28 - global_transform.basis.z * 0.05
 
+## 조수석 — 운전석 반대편
+func passenger_pos() -> Vector3:
+	return global_position - global_transform.basis.y * 0.08 + global_transform.basis.x * 0.28 - global_transform.basis.z * 0.05
+
 ## 운전석 위치(사람이 내릴 자리는 왼쪽 옆)
 func exit_pos() -> Vector3:
 	return global_position + global_transform.basis.x * 1.3
 
-## 주민 운전: 다음 경유지로 핸들을 꺾고, 앞 5m 안에 사람·차가 있으면 브레이크
+## 주민 운전 — 더듬이(운영자 2026-09-30: "앞에 뭐가 있으면 피해가야지, 다 박으면서 지나다니네"). 앞범퍼에서 다섯 줄(정면·좌우 20°·좌우 45°)을
+## 속도에 맞춘 길이로 쏜다(차·사람·벤치·가로등·울타리·집 — 층 1·2·3 전부). 정면이 막히면 더 트인 쪽으로 꺾고, 남은 거리만큼 속도를 줄인다(제동거리).
+## 옆 더듬이가 가까우면 그 반대로 살짝 비킨다. 완전히 막혀 2초 서 있으면: 사람이면 천천히 밀고 가고(사람은 비켜선다), 그 밖이면 반대로 꺾으며 1.4초 후진한 뒤
+## 트인 쪽으로 2초 기울여 다시 간다. 마주 선 주민 차끼리는 운전사가 한마디씩 하고 덜 급한 쪽이 양보한다(_standoff). 사고가 나면 2.5초 서서 한마디(_shaken)
+const WHISK := [[0.0, 1.0], [0.35, 0.85], [-0.35, 0.85], [0.8, 0.55], [-0.8, 0.55]]   # [각도(rad, +는 오른쪽), 길이 배율]
+
+func _whiskers(fwd: Vector3, right: Vector3, L: float) -> Array:
+	var space := get_world_3d().direct_space_state
+	var from := global_position + global_transform.basis.y * 0.55 + fwd * 1.2
+	var out: Array = []   # [거리, 맞은 것]
+	for w in WHISK:
+		var dir: Vector3 = (fwd * cos(w[0]) + right * sin(w[0])).normalized()
+		var len: float = L * float(w[1])
+		var q := PhysicsRayQueryParameters3D.create(from, from + dir * len, 7, [get_rid()])
+		var hit := space.intersect_ray(q)
+		if hit.is_empty(): out.append([len, null])
+		else:
+			var col: Object = hit["collider"]
+			if col == driver or (hit["normal"] as Vector3).y > 0.55: out.append([len, null])   # 위를 보는 면은 땅(오르막·언덕·산길) — 막힘이 아니다
+			else: out.append([from.distance_to(hit["position"]), col])
+	return out
+
 func _drive_ai() -> void:
 	if route.is_empty(): return
-	var tgt: Vector3 = route[_ri]
-	var to := tgt - global_position; to.y = 0.0
-	if to.length() < 3.0: _ri = (_ri + 1) % route.size(); return
-	var want := atan2(-to.x, -to.z)
-	var diff := wrapf(want - rotation.y, -PI, PI)
-	var st := clampf(-diff * 2.0, -1.0, 1.0)
-	var fwd := -global_transform.basis.z
-	var blocked := false
-	var others: Array = town.residents.duplicate()
-	others.append(town.body)
-	for c in town.cars: if c != self: others.append(c)
-	for o in others:
-		if o == driver or not (o as Node3D).visible: continue   # 제 운전사는 사람이 아니다 — 세면 앞에 사람이 있다고 영영 섰다
-		var d: Vector3 = (o as Node3D).global_position - global_position; d.y = 0.0
-		if d.length() < 5.0 and fwd.dot(d.normalized()) > 0.8: blocked = true; break
 	var now := Time.get_ticks_msec() / 1000.0
-	if not blocked: _blocked_since = -1.0
+	if now < _shaken_until:
+		input = { "throttle": -0.4 if v > 0.3 else 0.0, "steer": 0.0, "brake": false }; return
+	if now < stop_until:
+		input = { "throttle": -0.5 if v > 0.3 else 0.0, "steer": 0.0, "brake": false }; return
+	if now < _reverse_until:
+		input = { "throttle": -0.6, "steer": _rev_steer, "brake": false }; return   # 뒤로 빼며 반대로 꺾는다
+	var tgt: Vector3 = _detour if _detour != Vector3.INF else route[_ri]
+	var to := tgt - global_position; to.y = 0.0
+	if to.length() < 3.0:
+		if _detour != Vector3.INF: _detour = Vector3.INF
+		else: _ri = (_ri + 1) % route.size()
+		return
+	var diff := wrapf(atan2(-to.x, -to.z) - rotation.y, -PI, PI)
+	var st := clampf(-diff * 2.0, -1.0, 1.0)
+	var fwd := -global_transform.basis.z; var right := global_transform.basis.x
+	var L := 3.0 + maxf(v, 0.0) * 0.9
+	var wk := _whiskers(fwd, right, L)
+	var c0: float = wk[0][0]
+	var lclear: float = wk[2][0] + wk[4][0]; var rclear: float = wk[1][0] + wk[3][0]
+	# 피하기: 정면이 막힐수록 트인 쪽으로 세게, 옆이 가까우면 반대로 살짝. 사람은 피해 꺾지 않고 선다(길 건너는 주민마다 꺾다 큰길을 벗어나 집 사이를 헤맸다)
+	var solid := func(o: Variant) -> bool: return o != null and not (o is ResidentBase) and o != town.body
+	if solid.call(wk[0][1]) or solid.call(wk[1][1]) or solid.call(wk[2][1]):
+		var side := 1.0 if rclear > lclear else -1.0
+		if now < _bias_until: side = _bias
+		var urgency := 1.0 - c0 / L
+		st = clampf(st + side * (0.4 + 1.6 * urgency), -1.0, 1.0)
+	for k in [3, 4]:
+		if solid.call(wk[k][1]) and float(wk[k][0]) < L * 0.35: st = clampf(st - (1.0 if k == 3 else -1.0) * 0.5, -1.0, 1.0)
+	# 차선 지키기: 경유지 차선(z)에서 1.4m 넘게 벗어나면 되돌아오게 — 비켜 가도 큰길 안에서
+	if _detour == Vector3.INF and absf(tgt.z - global_position.z) < 3.0 and absf(fwd.x) > 0.7:
+		var off := global_position.z - tgt.z
+		if absf(off) > 1.4: st = clampf(st + signf(off) * signf(fwd.x) * -0.6 * minf(absf(off) - 1.4, 1.0), -1.0, 1.0)
+	var tspd := 8.0 * clampf(1.0 - absf(diff) / 1.2, 0.3, 1.0)   # 꺾을수록 천천히
+	var block: Object = wk[0][1]
+	if block != null: tspd = minf(tspd, maxf(0.0, (c0 - 1.2) * 1.3))   # 제동거리 — 남은 거리만큼만
+	var thr := 0.6 if v < tspd else (-0.5 if v > tspd + 0.8 else 0.0)
+	_block = block as Node3D if block is Node3D else null
+	var stopped := block != null and c0 < 2.2 and absf(v) < 0.6
+	if not stopped: _blocked_since = -1.0; _argued = false
 	elif _blocked_since < 0.0: _blocked_since = now
-	var creep := blocked and now - _blocked_since > 1.5   # 1.5초 서 있다가 천천히 밀고 간다(사람은 비켜선다 — _nudge_people). 전엔 길에 선 사람 앞에서 영영 섰다
-	if creep and fmod(now, 3.0) < 0.05 and driver is Resident: (driver as Resident).say(["Excuse me.", "Coming through.", "Mind the car."][int(now) % 3], 1.4)
-	var tspd := 8.0 * clampf(1.0 - absf(diff) / 1.2, 0.3, 1.0)   # 목표 속도 — 꺾을수록 천천히(가속 입력은 가속만 줄여 결국 최고속으로 돌다 경유지를 못 밟았다)
-	var cruise := 0.6 if v < tspd else (-0.3 if v > tspd + 1.0 else 0.0)
-	var thr := cruise
-	if creep: thr = 0.35 if now - _blocked_since > 4.0 else 0.2
-	elif blocked or (absf(diff) > 1.0 and v > 4.0): thr = -0.4 if v > 0.3 else 0.0   # 제동은 발 브레이크(뒤로 당김) — 핸드브레이크(brake)는 드리프트라 옆으로 미끄러져 노점에 박혔다
+	var waited := now - _blocked_since if stopped else 0.0
+	if stopped:
+		if block is Car3D and (block as Car3D)._block == self and driver is Resident and (block as Car3D).driver is Resident:
+			thr = 0.0; _standoff(block as Car3D, now)
+		elif block is ResidentBase or block == town.body:
+			if waited > 1.5: thr = 0.35 if waited > 4.0 else 0.2   # 사람: 섰다가 천천히 밀고 간다
+			if waited > 1.5 and fmod(now, 3.0) < 0.05 and driver is Resident: (driver as Resident).say(["Excuse me.", "Coming through.", "Mind the car."][int(now) % 3], 1.4)
+		elif waited > 2.0:
+			var side := 1.0 if rclear > lclear else -1.0
+			_reverse_until = now + 1.4; _rev_steer = -side; _bias = side; _bias_until = now + 3.4; _blocked_since = -1.0   # 후진할 때 반대로 꺾으면 앞코가 트인 쪽으로 돈다
+			if driver is Resident and randf() < 0.5: (driver as Resident).say(["Hm. Tight.", "Reversing.", "Who put that there."][randi() % 3], 1.6)
+	# 끼임: 가려는데(가속 중) 1초에 0.3m/s 도 못 내고 2초 — 앞 더듬이가 못 본 모서리(울타리 기둥·집 모서리)에 옆구리가 걸려 제자리에서 튕기던 것
+	if thr > 0.1 and absf(v) < 0.3 and not stopped:
+		if _stuck_since < 0.0: _stuck_since = now
+		elif now - _stuck_since > 2.0:
+			var sd := 1.0 if rclear > lclear else -1.0
+			_reverse_until = now + 1.4; _rev_steer = -sd; _bias = sd; _bias_until = now + 3.4; _stuck_since = -1.0
+	else: _stuck_since = -1.0
 	input = { "throttle": thr, "steer": st, "brake": false }
 
 func _physics_process(delta: float) -> void:
-	if ai and driver != null and driver != town.body: _drive_ai()
+	if ai and driver is Resident:
+		if (driver as Resident).state == "drive": _drive_ai()
+		else: driver = null; input = { "throttle": 0.0, "steer": 0.0, "brake": false }   # 운전사가 내렸으면(어떤 이유로든) 차는 선다 — 빈 차가 혼자 달리던 것
 	var driven := driver != null
 	var thr: float = clampf(float(input["throttle"]), -1.0, 1.0) if driven else 0.0
 	var st_in: float = clampf(float(input["steer"]), -1.0, 1.0) if driven else 0.0
@@ -142,7 +213,10 @@ func _physics_process(delta: float) -> void:
 	var right := global_transform.basis.x
 	# 언덕: 바닥 기울기를 따라 달리고, 내리막은 빨라지고 오르막은 느려진다. 차체도 바닥에 맞춰 기운다
 	var fwd_s := fwd; var right_s := right
-	if is_on_floor():
+	var on_car := false
+	for i in get_slide_collision_count():
+		if get_slide_collision(i).get_collider() is Car3D and get_slide_collision(i).get_normal().y > 0.3: on_car = true
+	if is_on_floor() and not on_car:
 		var fn := get_floor_normal()
 		fwd_s = (fwd - fn * fwd.dot(fn)).normalized(); right_s = (right - fn * right.dot(fn)).normalized()
 		v += -9.8 * fwd_s.y * delta * 0.85
@@ -151,7 +225,8 @@ func _physics_process(delta: float) -> void:
 	if absf(v) > 1.5: _smash_props(fwd)   # 물리 전에 — 늦으면 벤치 충돌체에 먼저 막혀 튕겼다
 	_run_over(fwd)
 	var before := global_position
-	_vy = 0.0 if is_on_floor() else _vy - 20.0 * delta   # 언덕 꼭대기에서 속도가 붙어 있으면 뜬다(점프)
+	_vy = 0.0 if is_on_floor() and not on_car else _vy - 20.0 * delta
+	_unstack()   # 언덕 꼭대기에서 속도가 붙어 있으면 뜬다(점프)
 	velocity = fwd_s * v + right_s * side + Vector3(0, _vy, 0)
 	move_and_slide()
 	# 충돌: 다른 차면 교통사고(서로 밀리고 부품이 튄다), 집이면 벽이 부서지고(금·먼지) 튕겨 나온다
@@ -159,7 +234,7 @@ func _physics_process(delta: float) -> void:
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
 		var n := col.get_normal()
-		if absf(n.y) > 0.5: continue
+		if absf(n.y) > 0.5 and not (col.get_collider() is Car3D): continue
 		var hit_speed := absf(v) * absf(n.dot(fwd)) + absf(side) * absf(n.dot(right))
 		if col.get_collider() is Car3D:
 			var o: Car3D = col.get_collider()
@@ -171,14 +246,15 @@ func _physics_process(delta: float) -> void:
 				o.v += push.dot(ofw) * k * 1.2; o.side += push.dot(ort) * k * 1.4; o.yaw_rate += randf_range(-2.0, 2.0) * k
 				v *= (1.0 - k) * 0.5; side *= 0.3
 				_debris(col.get_position(), push, hit_speed)
+				for cc in [self, o]: cc._shaken()
 		elif hit_speed > 1.0:
 			if hit_speed > 4.0 and now - _crash_at > 0.3:
 				_crash_at = now
 				for j in int(clampf(hit_speed / 3.0, 1.0, 4.0)): town._crack_wall(fwd * signf(v), global_position + fwd * signf(v) * 0.7 + Vector3(randf_range(-0.5, 0.5), -0.3, 0))
 				_debris(col.get_position(), fwd * v, hit_speed * 0.5)
 			v *= -0.2; side *= 0.4   # 튕겨 나온다
-	global_position.x = clampf(global_position.x, -town.WORLD_X + 1.5, town.WORLD_X - 1.5)
-	global_position.z = clampf(global_position.z, -town.WORLD_Z + 1.5, town.WORLD_Z - 1.5)
+	global_position.x = clampf(global_position.x, -town.OPEN + 1.5, town.OPEN - 1.5)   # 열린 세계 끝까지 달린다
+	global_position.z = clampf(global_position.z, -town.OPEN + 1.5, town.OPEN - 1.5)
 	# 바퀴: 굴러가고(이동 거리로), 앞바퀴는 조향각
 	var moved := global_position.distance_to(before) * signf(v if absf(v) > 0.05 else 1.0)
 	_spin += moved / 0.3
@@ -254,7 +330,8 @@ static func _flatten(n: Node3D) -> void:
 func _smash_props(fwd: Vector3) -> void:
 	for w in town.wreckables.duplicate():
 		var to: Vector3 = (w["at"] as Vector3) - global_position; to.y = 0.0
-		if to.length() < float(w["r"]) + 1.7 and (fwd * signf(v)).dot(to.normalized()) > 0.3:
+		var ahead := to.dot(fwd * signf(v)); var lat := absf(to.dot(global_transform.basis.x))
+		if ahead > 0.0 and ahead < 1.25 + float(w["r"]) + absf(v) * 0.05 and lat < 0.72 + float(w["r"]):   # 차체 앞 상자에 닿은 것만 — 전엔 1.7m 부채꼴이라 길가 가로등·벤치 옆을 지나기만 해도 부쉈다
 			town.smash(w, fwd * signf(v) * absf(v))
 			v *= 0.8
 
@@ -289,3 +366,39 @@ func _hit_people(fwd: Vector3) -> void:
 		if to.length() < 1.5 and fwd.dot(to.normalized()) > 0.5 and not a.has("lv") and a.get("stun_until", 0.0) < a["t"]:
 			town.animal_hit(a, fwd)
 			a["lv"] = launch * 0.9; a["stun_for"] = stun + 0.8; a["car_fear_until"] = a["t"] + 30.0
+
+## 차끼리 겹치거나 올라탔으면 옆으로 떼어 낸다 — 상자 충돌체 모서리를 비탈로 읽어 남의 차 위에 올라앉아 끼던 것(운영자 2026-09-30)
+func _unstack() -> void:
+	for c in town.cars:
+		if c == self: continue
+		var d: Vector3 = global_position - c.global_position
+		var hd := Vector2(d.x, d.z)
+		if hd.length() > 2.3 or absf(d.y) > 1.6: continue
+		if d.y > 0.25:   # 위에 올라탔다: 바깥으로 밀고 떨어뜨린다
+			var out := Vector3(hd.x, 0, hd.y).normalized() if hd.length() > 0.05 else global_transform.basis.x
+			global_position += out * 0.12; _vy = minf(_vy, -1.5)
+		elif hd.length() < 1.3:   # 속이 겹쳤다: 둘 다 반씩 비킨다
+			var push := Vector3(hd.x, 0, hd.y).normalized() * (1.3 - hd.length()) * 0.5
+			global_position += push; c.global_position -= push
+
+## 사고 — 주민이 몰던 차면 2.5초 서서 운전사가 한마디(그냥 가지 않는다)
+func _shaken() -> void:
+	if not ai or not (driver is Resident): return
+	_shaken_until = Time.get_ticks_msec() / 1000.0 + 2.5
+	var r: Resident = driver
+	r.say(r.mind.line("hurt") if randf() < 0.5 else ["Oh dear.", "Sorry! Sorry.", "Was that me?"][randi() % 3], 2.0)
+
+## 맞선 두 차(운영자 2026-09-30: "어디 한 쪽이 좀 빼던가, 아니면 둘이 싸우던가") — 운전사끼리 제 성미대로 한마디씩 주고받고,
+## 덜 급한 쪽(성미가 낮은 쪽, 같으면 uid 가 작은 쪽)이 1.8초 뒤로 뺀 뒤 옆으로 비켜 지나간다. 급한 쪽은 기다렸다 간다. 둘 다 불같으면 한 번 더 싸운다
+func _standoff(o: Car3D, now: float) -> void:
+	var me: Resident = driver; var him: Resident = o.driver
+	if not _argued:
+		_argued = true; o._argued = true
+		var hot := me.mind.temper > 0.6
+		me.say(["Back up!", "I was here first.", "Really? Now?"][randi() % 3] if hot else ["After you.", "Oh. Sorry.", "Shall I?"][randi() % 3], 2.0)
+		get_tree().create_timer(1.4).timeout.connect(func() -> void: if is_instance_valid(him): him.say(["You back up!", "Absolutely not.", "Unbelievable."][randi() % 3] if him.mind.temper > 0.6 else ["Fine, fine.", "No, after you.", "All right."][randi() % 3], 2.0))
+		return
+	var i_yield := me.mind.temper < him.mind.temper or (is_equal_approx(me.mind.temper, him.mind.temper) and me.uid < him.uid)
+	if not i_yield or now - _blocked_since < 3.2: return
+	_reverse_until = now + 1.8; _rev_steer = -1.0; _bias = 1.0; _bias_until = now + 4.5; _blocked_since = -1.0; _argued = false; o._argued = false   # 뒤로 빼며 앞코를 오른쪽으로 — 그다음 오른쪽으로 비켜 상대 옆을 지난다
+	me.mind.befriend(him, -0.05); him.mind.befriend(me, -0.05)

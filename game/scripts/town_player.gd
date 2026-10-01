@@ -9,6 +9,8 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
+	if passenger:
+		_passenger_tick(now); _tick(delta, now); return   # 조수석(town_ride): 주민이 몬다, C 로 세워 달라 한다
 	# 운전 중: 차가 몸이다 — 방향키·SPACE 를 차에 넘기고 C 로 내린다. 세계 시스템은 계속 돈다
 	if driving:
 		if not "--sheet" in OS.get_cmdline_user_args():   # 시트 도구는 입력을 직접 넣는다
@@ -134,8 +136,8 @@ func _physics_process(delta: float) -> void:
 		_strike("jet")
 	body.velocity = v
 	body.move_and_slide()
-	body.position.x = clampf(body.position.x, -WORLD_X + 1.0, WORLD_X - 1.0)
-	body.position.z = clampf(body.position.z, -WORLD_Z + 1.0, WORLD_Z - 1.0)
+	body.position.x = clampf(body.position.x, -OPEN + 1.0, OPEN - 1.0)   # 열린 세계 끝까지 걸어간다
+	body.position.z = clampf(body.position.z, -OPEN + 1.0, OPEN - 1.0)
 	# 착지: 빠르게 떨어졌으면 0.12초 무릎 반동, 달려서 착지하면 속도는 그대로 이어진다
 	if jet and body.is_on_floor() and body.velocity.y <= 0.0 and not was_airborne:
 		was_airborne = true  # 뜨지 못한 제트킥은 이번 프레임에 착지로 처리(안전장치)
@@ -172,7 +174,7 @@ func _physics_process(delta: float) -> void:
 			else:
 				player.action = ""; player.action_t = 0.0   # 감는 동안 손이 비면(마지막 한입·모자 씀) 던질 게 없다 — 전엔 throw_at 이 남아 다음에 집는 것이 곧장 날아갔다
 	if action_until < now and throw_charge < 0.0 and not swimming:
-		if Input.is_action_just_pressed("hit"):
+		if Input.is_action_just_pressed("hit") and not try_hijack(now):   # 선 차 운전석 옆에서 X = 끌어내기(town_ride)
 			# 주먹 하나(운영자 2026-09-30: 연계·제트킥 빼고 한 동작을 제대로) — 누를 때마다 좌우 번갈아. 0.34초: 예비·타격·멈춤·회수
 			player.punch_side = -player.punch_side; player.punch_kind = "cross"
 			player.action = "punch"; action_until = now + FightPoses.PUNCH_T
@@ -348,7 +350,7 @@ func _interact_check(now: float) -> void:
 	if not pl.is_empty() and plot_dist(p, pl) < best_d: best = { "kind": "plot", "spot": pl }; best_d = plot_dist(p, pl)
 	for c in cars:
 		var dc: float = p.distance_to(c.global_position)
-		if dc < 1.9 and dc < best_d and c.driver == null and carrying_big.is_empty(): best = { "kind": "car", "car": c }; best_d = dc
+		if dc < 1.9 and dc < best_d and (c.driver == null or c.driver is Resident) and carrying_big.is_empty(): best = { "kind": "car", "car": c }; best_d = dc   # 주민이 모는 차면 조수석
 	for ss in seesaws:
 		var dss: float = Vector2(p.x - ss.global_position.x, p.z - ss.global_position.z).length()
 		if dss < Seesaw3D.L + 0.6 and dss < best_d + 0.5 and seesaw_ride == null: best = { "kind": "seesaw", "ss": ss }; best_d = dss

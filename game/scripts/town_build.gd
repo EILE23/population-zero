@@ -48,24 +48,12 @@ func _solid_floor() -> void:
 	add_child(sb)
 
 func _ground() -> void:
-	var g := MeshInstance3D.new()
-	var pm := PlaneMesh.new(); pm.size = Vector2(400, 400)   # 놀 수 있는 범위 밖까지 멀리 — 끝이 사각으로 안 보이게
-	g.mesh = pm
-	g.material_override = _mat(Color.WHITE, _tex("ground/grass"), Vector3(400.0 / TILE, 400.0 / TILE, 1))
-	g.position = Vector3(0, 0, -2)
-	add_child(g)
-	# 먼 언덕 실루엣(납작한 구) — 뒤쪽과 양옆에, 두 톤
-	var hr := RandomNumberGenerator.new(); hr.seed = 7
-	for i in 14:
-		var h := MeshInstance3D.new(); var hs := SphereMesh.new(); var rr := hr.randf_range(14.0, 30.0)
-		hs.radius = rr; hs.height = rr * hr.randf_range(0.5, 0.9); hs.radial_segments = 24; hs.rings = 10
-		h.mesh = hs; h.material_override = _mat(Color("6e9a55") if i % 2 == 0 else Color("5f8a3e"))
-		var ang := -0.2 + i * (3.5 / 14.0)
-		h.position = Vector3(cos(ang) * 95.0 * (1.0 if i % 3 else 1.3), -rr * 0.55, -25.0 - sin(ang) * 60.0)
-		add_child(h)
+	# 땅은 열린 세계(WorldGen)가 칸마다 짓는다 — 허브 안은 평지(y 0)의 같은 풀밭, 밖은 언덕·숲·호수. 전엔 400m 판 하나와 먼 언덕 실루엣이었다
+	gen = WorldGen.new(); gen.name = "World"; add_child(gen); gen.setup(self)
+	gen.fill(Vector3(0, 0, 4))
 	# 안개: 하늘색으로 멀리가 녹아든다
 	var env := ($WorldEnvironment as WorldEnvironment).environment
-	env.fog_enabled = true; env.fog_light_color = Color(0.93, 0.94, 0.92); env.fog_density = 0.006; env.fog_sky_affect = 0.0
+	env.fog_enabled = true; env.fog_light_color = Color(0.93, 0.94, 0.92); env.fog_density = 0.011; env.fog_sky_affect = 0.0
 
 ## 자갈길 — 바닥보다 2cm 높은 납작한 상자(가장자리가 선으로 읽혀 길이 된다)
 func _path(a: Vector3, b: Vector3, w: float) -> void:
@@ -268,10 +256,10 @@ func _park(at: Vector3) -> void:
 	_path(at + Vector3(0, 0, 2.8), at + Vector3(0, 0, -8), 1.6)   # 큰길 가장자리(z 0.8)에서 시작 — 겹치면 이음새가 보였다
 	water.disc(at + Vector3(-6, 0, -3), 3.2)   # 연못 — 물 애셋(강과 같은 수면·판정: 걸어 들어가면 헤엄, 운영자 지적 2026-09-28)
 	spots.append({ "pos": at + Vector3(-6, 0, 0.9), "kind": "door", "yaw": PI })  # 연못가에 서기
-	for p in [Vector3(-10, 0, 2), Vector3(-9, 0, -7), Vector3(2, 0, -8), Vector3(6, 0, 1), Vector3(9, 0, -5), Vector3(-2, 0, 5)]:
+	for p in [Vector3(-10, 0, 1.4), Vector3(-9, 0, -7), Vector3(2, 0, -8), Vector3(6, 0, 1), Vector3(9, 0, -5), Vector3(-2, 0, 7)]:   # 큰길(z 0.2..3.8) 밖으로 — 둘이 길 위에 있었다
 		_tree(at + p, 1.1 + fmod(absf(p.x) * 0.23, 0.6))
-	_bench(at + Vector3(-2.5, 0, 3.0)); _bench(at + Vector3(5.5, 0, 3.0))
-	_lamp(at + Vector3(0.9, 0, 3.6)); _lamp(at + Vector3(-0.9, 0, -8.5))
+	_bench(at + Vector3(-2.5, 0, 1.4)); _bench(at + Vector3(5.5, 0, 1.4))   # 큰길(z 0.2..3.8) 밖 — 전엔 z 1 이라 도로 위에 있어 차가 부수고 다녔다(2026-10-01)
+	_lamp(at + Vector3(0.9, 0, 1.6)); _lamp(at + Vector3(-0.9, 0, -8.5))
 	# 놀이터: 미끄럼틀(사다리+경사), 시소, 그네(틀+줄+좌석), 모래밭
 	var wood := _mat(Color("b48a5a")); var iron := _mat(Color("4a4a52"))
 	_box(Vector3(3.6, 0.12, 3.0), at + Vector3(6, 0, -5), _mat(Color("e6d3a5")))                       # 모래밭
@@ -281,9 +269,9 @@ func _park(at: Vector3) -> void:
 	spots.append({ "pos": ss.position, "kind": "seesaw", "yaw": 0.0, "ss": ss })
 	_swing(at + Vector3(9.6, 0, -3.0))
 	for fx in [-4.0, 4.0]:
-		_box(Vector3(1.6, 0.25, 0.5), at + Vector3(fx, 0, 6), _mat(Color("8a6a4a")))
+		_box(Vector3(1.6, 0.25, 0.5), at + Vector3(fx, 0, 6.6), _mat(Color("8a6a4a")))
 		for i in 7:
-			_flower(at + Vector3(fx - 0.65 + i * 0.22, 0.25, 6 + (0.08 if i % 2 == 0 else -0.08)), [Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("f7f4ef")][i % 4], i)
+			_flower(at + Vector3(fx - 0.65 + i * 0.22, 0.25, 6.6 + (0.08 if i % 2 == 0 else -0.08)), [Color("ff2d55"), Color("e8c766"), Color("ad7096"), Color("f7f4ef")][i % 4], i)
 	_fence(at + Vector3(-12, 0, 8), 24.0)
 	for i in 4: _animal("duck", at + Vector3(-6, 0.03, -3) + Vector3(cos(i * 1.57) * 2.0, 0, sin(i * 1.57) * 2.0), { "center": at + Vector3(-6, 0.03, -3), "phase": i * 1.57 })
 	_animal("dog", at + Vector3(2, 0, 1), { "home": at + Vector3(2, 0, 1) })
@@ -302,9 +290,9 @@ func _market(at: Vector3) -> void:
 	_counter(at + Vector3(-7.6, 0, -6.1), "bread", Color("e6d3a5"), 3)   # 빵집 창구(정면 왼쪽) — 빵 셋, 팔리면 준다. 화덕은 town3d._ready 가 문 오른쪽에(places 층이라 여선 못 부른다)
 	_counter(at + Vector3(6.4, 0, -6.2), "cup", Color("8a6a4a"))       # 카페 테이크아웃 창구
 	_hatstand(at + Vector3(-11.5, 0, -3.5))   # 모자 거치대 — C 로 하나 집어 쓴다
-	_lamp(at + Vector3(-10, 0, 4)); _lamp(at + Vector3(0, 0, 4)); _lamp(at + Vector3(10, 0, 4))
+	_lamp(at + Vector3(-10, 0, 1.6)); _lamp(at + Vector3(0, 0, 1.6)); _lamp(at + Vector3(10, 0, 1.6))   # 길 북쪽 가 — 전엔 z 2(큰길 한가운데)
 	_bin(at + Vector3(-9.5, 0, -0.5)); _bin(at + Vector3(9.5, 0, -0.5))
-	_bench(at + Vector3(0, 0, 5.5))
+	_bench(at + Vector3(0, 0, 6.6))
 	_animal("cat", at + Vector3(8.5, 0, 6.0), { "home": at + Vector3(8.5, 0, 6.0) })
 	for i in 5: _animal("pigeon", at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2), { "home": at + Vector3(-4 + i * 2.0, 0, 2.5 + (i % 2) * 1.2) })
 	_item("apple", at + Vector3(-7.5, 0.95, -1.3)); _item("cup", at + Vector3(2.5, 0.95, -1.3)); _item("paper", at + Vector3(7.5, 0.95, -1.3))
@@ -364,7 +352,8 @@ func _tree(at: Vector3, k: float) -> void:
 ## x=0 에 아치 돌다리(얇은 상판 일곱 토막이 호를 그린다 — 턱은 step_up 이 넘는다, 난간은 안 막아서 뛰어들 수 있다), 다리 앞뒤 자갈길,
 ## 초원엔 나무 셋과 풀밭 자리 셋(누워 하늘 보기 `sky`), 강가 자리 둘(서서 물 보기), 뒤 울타리. 구역이 아니라 항상 켜져 있다(강은 전체 폭)
 func _river() -> void:
-	water.band(Vector3(0, 0, RIVER_Z), WORLD_X * 2.0 + 20.0, RIVER_HW * 2.0, 0.35)   # 물 애셋: 수면·둑·물결·판정
+	water.band(Vector3(0, 0, RIVER_Z), WORLD_X * 2.0 + 20.0, RIVER_HW * 2.0, 0.35)
+	for xs in [-1.0, 1.0]: water.band(Vector3(xs * (OPEN + WORLD_X + 10.0) / 2.0, 0, RIVER_Z), OPEN - WORLD_X - 10.0, RIVER_HW * 2.0, 0.35, false)   # 허브 밖으로 세계 끝까지(물결 조각 없이)   # 물 애셋: 수면·둑·물결·판정
 	var stone := _mat(Color("bfb6b0")); var dark := _mat(Color("8a7f86"))
 	var n := 7; var bspan := RIVER_HW * 2.0 + 1.4; var seg := bspan / n
 	for i in n:

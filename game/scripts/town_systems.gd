@@ -23,6 +23,7 @@ func _tick(delta: float, now: float) -> void:
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
 func _stream() -> void:
 	var p := focus_pos()
+	gen.stream(p)   # 열린 세계 칸 — 둘레를 짓고 먼 칸을 지운다
 	for d in districts:
 		var on: bool = absf(p.x - d["center"].x) < 34.0
 		if on != d["on"]:
@@ -359,7 +360,7 @@ func _fly(delta: float) -> void:
 		if n.global_position.y <= gy + 0.06:
 			n.global_position.y = gy + 0.06
 			if int(f.get("bounce", 0)) > 0 and f["vel"].y < -2.0:
-				f["bounce"] = 0; f["vel"] = Vector3(f["vel"].x * 0.5, -f["vel"].y * 0.35, f["vel"].z * 0.5); f["spin"] *= 0.5; continue   # 한 번 튄다
+				f["bounce"] = int(f["bounce"]) - 1; f["vel"] = Vector3(f["vel"].x * 0.5, -f["vel"].y * 0.35, f["vel"].z * 0.5); f["spin"] *= 0.5; continue   # 한 번 튄다
 			flying.erase(f)
 			if n.has_meta("fade"):
 				var tw := n.create_tween(); tw.tween_interval(2.0); tw.tween_property(n, "scale", Vector3.ZERO, 0.6); tw.tween_callback(n.queue_free)

@@ -120,11 +120,17 @@ func smash(w: Dictionary, push: Vector3) -> void:
 			if is_instance_valid(root) and root.get_parent(): root.queue_free()
 	for m in pieces:
 		m.set_meta("debris", true)
+		if w.get("whole", false):
+			# 가로등(운영자 2026-10-01: 더 역동적으로) — 밑동이 채이며 진행 방향으로 공중제비: 넘어지는 축(진행 방향 × 위)으로 크게 돌고, 높이 떠서 두 번 튄다. 전구 자리에선 불꽃
+			var hz := Vector3(push.x, 0, push.z); var ax := hz.cross(Vector3.UP).normalized() if hz.length() > 0.1 else Vector3.RIGHT
+			flying.append({ "node": m, "vel": push * 1.2 + Vector3(0, 3.8 + spd * 0.35, 0), "spin": 7.0 + spd * 0.9, "axis": -ax, "bounce": 2 })
+			_sparks(at + Vector3(0, 2.4, 0), push)
+			continue
 		var k := randf_range(0.6, 1.05)
 		flying.append({ "node": m, "vel": push * k + Vector3(randf_range(-1.5, 1.5), randf_range(2.5, 4.0) + spd * 0.25, randf_range(-1.5, 1.5)),
 			"spin": randf_range(6.0, 14.0) * (1.0 + spd * 0.08), "axis": Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized(), "bounce": 1 })
 	_splinters(at + Vector3(0, 0.5, 0), push, spd)
-	_dust(at + Vector3(0, 0.3, 0)); cam_kick = maxf(cam_kick, 0.03 + spd * 0.006)
+	_dust(at + Vector3(0, 0.3, 0)); shake(at, 0.03 + spd * 0.006)
 	cracks.append({ "kind": "wreck", "at": Vector3(at.x, 0, at.z), "out": w["out"], "by": null, "pieces": pieces, "rebuild": w["rebuild"] })
 
 ## 부서질 때 파편 한 줌(나뭇조각·먼지·유리) — 진행 방향으로 뿌려지고 사라진다
@@ -172,3 +178,13 @@ func animal_hit(a: Dictionary, dir: Vector3) -> void:
 
 func fwd_dir() -> Vector3:
 	return Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
+
+## 불꽃 한 줌 — 깨진 가로등 전구에서 노란 점이 튀어 떨어진다
+func _sparks(at: Vector3, push: Vector3) -> void:
+	var p := CPUParticles3D.new(); p.amount = 34; p.lifetime = 0.7; p.one_shot = true; p.explosiveness = 1.0
+	p.direction = (push.normalized() + Vector3(0, 1.2, 0)).normalized(); p.spread = 70.0
+	p.initial_velocity_min = 2.5; p.initial_velocity_max = 6.0; p.gravity = Vector3(0, -12.0, 0)
+	var dm := SphereMesh.new(); dm.radius = 0.025; dm.height = 0.05; dm.radial_segments = 4; dm.rings = 2; p.mesh = dm
+	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(1.0, 0.86, 0.35); mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; p.material_override = mat
+	p.position = at; add_child(p); p.emitting = true
+	get_tree().create_timer(1.2).timeout.connect(p.queue_free)

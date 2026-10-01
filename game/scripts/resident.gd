@@ -208,6 +208,7 @@ func _pick_spot() -> void:
 	if town.spots.is_empty():
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
 	if _exit_house(): return
+	if _back_to_car(): return   # 끌려 내렸던 운전사는 제 차로(resident_life)
 	if has_umb and (weather != "rain" or town.is_night()) and _to_rack(Time.get_ticks_msec() / 1000.0): return   # 비가 그쳤거나 잘 시간이면 우산부터 돌려놓는다(쫓다가·넘어져서 on_weather 를 놓친 경우)
 	# 수리공(uid 6명 중 1명): 벽에 금이 있으면 가서 고친다(운영자 2026-09-29: 주민이 알아서 복구)
 	if uid % 6 == 0 and not town.is_night():
@@ -299,6 +300,9 @@ func _arrive(now: float) -> void:
 				busy_until = now + randf_range(10.0, 20.0)
 			else:
 				busy_until = now + 1.0
+		"car":
+			if own_car and own_car.driver == null and town.driving != own_car and global_position.distance_to(own_car.exit_pos()) < 1.5: drive(own_car)
+			else: busy_until = now + 1.0
 		"repair":
 			var c: Dictionary = spot["crack"]
 			fig.pose_request = "fix"; fig.face(atan2(-c["out"].x, -c["out"].z))

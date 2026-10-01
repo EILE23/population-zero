@@ -23,6 +23,7 @@ const WALL := 0.16
 
 const WORLD_X := 72.0    # 세계 반폭(m): 서쪽 공원(-46..-16) · 마을(-16..16) · 동쪽 시장(16..46) · 동쪽 마을(46..72, 2026-09-30)
 
+const OPEN := 2048.0      # 열린 세계 반폭(m) — 허브(WORLD_X·WORLD_Z) 밖은 WorldGen 이 칸마다 짓는 자연(4km 사방)
 const WORLD_Z := 26.0    # 세계 반깊이(m): 큰길 z≈2 · 북쪽 골목 z≈-13(집 세 채) · 남쪽 강 z≈11.5 와 돌다리 · 그 너머 초원 z 14..25(전망 언덕 포함)
 
 const RIVER_Z := 11.5    # 강 중심선(z). 동서로 세계 끝까지 흐른다(+x 로)
@@ -223,16 +224,19 @@ var seesaw_ride: Seesaw3D = null   # 내가 탄 시소
 var cracks: Array = []            # 벽의 금 {node, house, at, out, by} — 수리공이 고친다. 부서진 벤치·울타리도 여기 들어간다(kind "wreck")
 
 var wreckables: Array = []        # 부술 수 있는 소품 {node, at, r, out, rebuild(Callable), bench?, spot?}
+var passenger: Car3D = null       # 내가 조수석에 탄 차(주민이 몬다)
 var driving: Car3D = null         # 내가 모는 차(null 이면 걷는 중)
 
 ## 카메라·스트리밍이 따라갈 곳 — 차를 몰면 차
 func focus_pos() -> Vector3:
-	return driving.global_position if driving else body.global_position
+	return driving.global_position if driving else (passenger.global_position if passenger else body.global_position)
 
+var gen: WorldGen               # 열린 세계 — 땅·호수·자연 칸(world_gen.gd)
 var swimming := false            # 내가 물에 들어가 있는 동안(헤엄 자세, 느리고, 점프·타격 없음)
 
 ## 물에 있나 — 물 애셋이 답하고, 다리 위만 뺀다. 사람도 주민도 물건도 같은 규칙
 func in_water(p: Vector3) -> bool:
+	if gen and gen.lake_at(p): return true   # 들판의 호수 — 강과 같은 얕은 물
 	if water == null or not water.contains(p): return false
 	return not (absf(p.z - RIVER_Z) < RIVER_HW + 0.8 and absf(p.x) <= BRIDGE_HW + 0.2)   # 다리
 
@@ -297,6 +301,11 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 	return mi
 
 var cam_kick := 0.0
+
+## 화면 흔들림 — 나(카메라 초점) 가까이서 난 일만, 멀수록 약하게(14m 밖은 0). 전엔 마을 반대편 사고에도 내 화면이 흔들렸다(운영자 2026-10-01)
+func shake(at: Vector3, amount: float) -> void:
+	var k := clampf(1.0 - focus_pos().distance_to(at) / 14.0, 0.0, 1.0)
+	cam_kick = maxf(cam_kick, amount * k)
 var pushing: Dictionary = {}   # 내가 밀어 주는 그네
 
 var shake_until := -1.0

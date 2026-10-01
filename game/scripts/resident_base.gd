@@ -89,6 +89,9 @@ static func figure_color(id: int) -> Color:
 func greet(from: Node3D) -> void:
 	if state == "down" or state == "getup" or state == "chase" or in_boat:
 		return
+	if state == "drive":   # 운전 중엔 차 안에서 한마디만 — 전엔 인사하러 내려서 빈 차가 혼자 달렸다
+		if from == town.body: mind.greeted(); say(mind.greet_line(), 1.6)
+		return
 	var now := Time.get_ticks_msec() / 1000.0
 	# 하던 자리를 제대로 비운다 — 전엔 spot 만 바꿔서 벤치 칸이 영영 '찬 자리'로 남았고(주민 풀이 조금씩 줄었다),
 	# 그네를 타던 중이면 _leave 가 spot["swing"] 을 찾다 죽었다. 그네·밀기는 riding_swing/pushing_swing 이 기억하니 _leave 가 마저 정리한다
