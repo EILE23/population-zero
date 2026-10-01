@@ -17,6 +17,7 @@ const SPECS := {
 	"tractor":   { "path": "res://assets/models/vehicles/tractor.glb", "top": 5.0, "accel": 3.0, "grip": 12.0, "mass": 1.6 },
 }
 
+const GLASS := preload("res://shaders/car_body.gdshader")
 var kind := "sedan"
 var town: Node3D
 var driver: Node3D = null            # 타고 있는 사람(플레이어 body 또는 주민) — null 이면 세워 둔 차
@@ -65,6 +66,11 @@ func setup(k: String, t: Node3D) -> void:
 	_model = (load(_spec["path"]) as PackedScene).instantiate()
 	_model.rotation.y = PI   # Kenney 모델은 앞이 +z, 컨트롤러는 -z 가 앞 — 안 돌리면 ↑ 에 뒤로 갔다(운영자 2026-09-29)
 	add_child(_model)
+	var body := _model.get_node_or_null("body") as MeshInstance3D
+	if body and body.mesh and body.mesh.surface_get_material(0) is BaseMaterial3D:
+		var glass := ShaderMaterial.new(); glass.shader = GLASS
+		glass.set_shader_parameter("albedo_tex", (body.mesh.surface_get_material(0) as BaseMaterial3D).albedo_texture)
+		body.material_override = glass   # 유리를 뚫어 운전사가 보이게(car_body.gdshader)
 	for c in _model.find_children("wheel*", "MeshInstance3D", true, false):
 		if not ("left" in c.name or "right" in c.name): continue   # SUV 뒤 스페어타이어(wheel-back)는 차체 장식 — 굴리면 안 된다(운영자 2026-09-29)
 		_wheels.append(c)

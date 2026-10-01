@@ -328,7 +328,7 @@ func _pass_along(now: float, from: Node3D, chance: float, onward: float) -> bool
 func _hand_pass(mate: Node3D, onward: float) -> void:
 	if state != "busy" or fig.pose_request != "pass" or fig.carrying == null or not is_instance_valid(mate): return   # 그새 맞았거나 떠났다 — 없던 일
 	if mate == town.body:
-		if not town.player.seated or town.player.carrying != null: return
+		if not town.seat_at(spot.get("pos", Vector3.INF)) or town.player.carrying != null: return   # 같은 벤치에 앉아 있어야(시소·의자도 seated 다)
 		town.take_passed(_let_go(), self)
 		return
 	var r := mate as ResidentLife
@@ -345,7 +345,8 @@ func take_passed(it: Node3D, from: Node3D, onward: float) -> void:
 	fig.hold(it); carrying_kind = String(it.get_meta("kind", ""))
 	busy_until = maxf(busy_until, Time.get_ticks_msec() / 1000.0 + 2.0)
 	if from == town.body: mind.gifted()
-	elif from is ResidentBase: mind.befriend(from as ResidentBase, 0.05)
+	elif from is ResidentBase: mind.befriend(from as ResidentBase, 0.05); (from as ResidentBase).mind.befriend(self, 0.05)   # 정은 양쪽으로
+	mind.company = minf(1.0, mind.company + 0.15)   # 같은 벤치에서 나눠 먹으면 덜 외롭다
 	say(["Thank you.", "Oh. Ta.", "Much obliged."][uid % 3], 1.2)
 	get_tree().create_timer(0.6).timeout.connect(func() -> void: _after_pass(from, onward))
 

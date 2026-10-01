@@ -67,7 +67,7 @@ func share_on_bench(now: float) -> bool:
 	return false
 
 func _hand_half(r: ResidentBase) -> void:
-	if player.pose_request != "share" or player.carrying == null or not is_instance_valid(r) or not r.fig.seated or r.fig.carrying != null: return   # 그새 일어났거나(맞았거나) 손이 찼다 — 안 쪼갠다
+	if player.pose_request != "share" or player.carrying == null or not is_instance_valid(r) or not r.fig.seated or r.fig.carrying != null or r.state != "busy" or r.spot.get("kind", "") != "bench" or not seat_at(r.spot.get("pos", Vector3.INF)): return   # 그새 일어났거나(맞았거나) 손이 찼다 — 안 쪼갠다
 	var half := split_food(player.carrying)
 	if half: r.take_half(half, body); shared_once = true
 
@@ -104,7 +104,7 @@ func pass_on_bench(now: float) -> bool:
 	return false
 
 func _hand_pass(r: ResidentLife) -> void:
-	if player.pose_request != "pass" or player.carrying == null or not is_instance_valid(r) or not r.fig.seated or r.fig.carrying != null: return   # 그새 일어났거나 손이 찼다 — 안 넘긴다
+	if player.pose_request != "pass" or player.carrying == null or not is_instance_valid(r) or not r.fig.seated or r.fig.carrying != null or r.state != "busy" or r.spot.get("kind", "") != "bench" or not seat_at(r.spot.get("pos", Vector3.INF)): return   # 리뷰 2026-10-01: fig.seated 는 운전·의자·시소에서도 참 — 같은 벤치인지까지 본다   # 그새 일어났거나 손이 찼다 — 안 넘긴다
 	r.take_passed(player.release(self, Vector3.ZERO), body, 0.15)
 	shared_once = true
 
@@ -113,3 +113,8 @@ func take_passed(it: Node3D, from: ResidentBase) -> void:
 	player.hold(it)
 	if not shared_once: say_toast(from.handle + " passed it along. Hold C to pass it on.")
 	shared_once = true
+
+## 나누기·넘기기·앉아 먹기 자세를 시간이 되면 푼다(리뷰 2026-10-01: 앉은 동안엔 town_player 가 먼저 return 해 share/pass/eat 이 영영 남았다). _tick 이 부른다
+func _meal_tick(now: float) -> void:
+	if use_until > 0.0 and now >= use_until and player.pose_request in ["share", "pass", "eat"]:
+		player.pose_request = ""; use_until = -1.0

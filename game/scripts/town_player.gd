@@ -198,7 +198,7 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request == "lwave": player.pose_request = "umbr" if player.umbr_k > 0.5 else ""   # 왼손 인사(CI run 77)가 끝나면 우산은 있던 대로
-		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
+		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
 	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew"]) and dir != Vector3.ZERO:
@@ -273,7 +273,7 @@ func _interact_check(now: float) -> void:
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind in FOOD:
-			if share_on_bench(now) or (seat.is_empty() and sit_with_food(p)): return   # 앉았으면 옆 사람과 반씩(run 85, town_meals), 벤치 앞이면 먼저 앉는다
+			if share_on_bench(now) or (seat.is_empty() and riding.is_empty() and sit_with_food(p)): return   # 앉았으면 옆 사람과 반씩(run 85, town_meals), 벤치 앞이면 먼저 앉는다
 			# 먹기: 한 번에 한입, 한입마다 작아지고 세 입이면 사라진다(운영자: 상호작용은 끝까지). 한입 수는 물건에 붙는다 — 전엔 전역이라 사과를 바꿔 들어도 이어졌다
 			var food := player.carrying
 			var bites := int(food.get_meta("bites", 0)) + 1
