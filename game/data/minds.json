@@ -22,6 +22,8 @@
     "witness": ["Did you see that?", "Oh dear.", "Honestly."],
     "chop": ["Wood for the stove.", "Mind the splinters.", "One more round.", "Stand clear."],
     "chop_watch": ["Keep your feet back.", "Let the axe do it.", "Aim for the crack.", "Both hands."],
+    "stoke": ["One for tonight.", "Stove first, bed second.", "Mind the door, it is hot.", "That should hold till morning."],
+    "stoke_watch": ["Split side down.", "Close the door after.", "Not all at once.", "Thank you. That is my evening done."],
     "fish": ["Just one.", "Quiet, please.", "They bite at this hour.", "Line in."],
     "fish_catch": ["There it is.", "Lunch, then.", "Small, but honest.", "One."],
     "fish_watch": ["Not bad.", "Beginner's luck.", "Throw it back next time.", "That one was mine."],

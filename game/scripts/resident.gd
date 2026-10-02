@@ -218,7 +218,7 @@ func _pick_spot() -> void:
 			route = town.via_bridge(global_position, [{ "pos": Vector3(spot["pos"].x, 0, spot["pos"].z), "act": "" }])
 			target = route[0]["pos"]; state = "walk"; say("I'll see to that.", 1.6)
 			return
-	if town.is_night() and not home_door.is_empty():
+	if town.is_night() and not home_door.is_empty() and carrying_kind != "log":   # 장작을 든 나무꾼은 난로부터(run 92, _wood_pick)
 		# 밤: 집으로 가서 침대에 눕는다(집에 침대가 있으면), 아니면 의자
 		var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door and sp["kind"] == "bed")
 		if mine.is_empty(): mine = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door)
@@ -237,7 +237,7 @@ func _pick_spot() -> void:
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	if _trade_pick(Time.get_ticks_msec() / 1000.0): return   # 구두장이의 낮 일, 닳은 밑창(run 80, resident_life)
-	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile"]))
+	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove"]))
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
 	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
 	if weather == "rain" and has_umb:
@@ -371,7 +371,7 @@ func _arrive(now: float) -> void:
 				var u: Node3D = town.take_umbrella()
 				if u == null: say(["None left.", "Of course.", "Too late."][uid % 3], 1.6)
 				else: fig.hold(u); has_umb = true; carrying_kind = "umbrella"; fig.pose_request = "umbr"; say(["Borrowed.", "Just for now.", "Back by tonight."][uid % 3], 1.6)
-		"cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "logs":
+		"cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "logs", "stove":
 			_trade_arrive(now)   # 구두장이 작업대(run 80)·칼갈이 숫돌(run 81)·바느질 탁자(run 82, resident_life)
 		"oven":
 			# 화덕(run 72): 창구에 모자란 만큼(최대 셋) 반죽 — 한 바퀴(KNEAD_T)에 빵 하나가 창구에 오른다(town_places _bakery). 사람이 C 로 하는 것과 같은 자세·같은 효과
@@ -483,7 +483,7 @@ func _leave() -> void:
 	_umb_pose()
 	if spot.get("kind", "") == "bench":
 		global_position += Vector3(0, 0, 0.45)
-	if spot.get("kind", "") in ["chair", "bed", "shelf"] and not door_ref.is_empty():
+	if spot.get("kind", "") in ["chair", "bed", "shelf", "stove"] and not door_ref.is_empty():
 		global_position += Vector3(0, 0, 0.35)
 		var dp: Vector3 = door_ref["pos"]
 		route = [{ "pos": dp + Vector3(0, 0, -0.9), "act": "open" }, { "pos": dp + Vector3(0, 0, 0.9), "act": "close" }]   # 들어가면 등 뒤로 닫고, 나올 땐 열고 나와 닫는다(운영자 2026-09-29: 문을 안 닫고 다님)

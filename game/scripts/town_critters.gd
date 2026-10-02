@@ -109,7 +109,7 @@ func _smoke(now: float) -> void:
 		if h.get("chim") == null: continue   # 평지붕(옥상 집)엔 굴뚝이 없다
 		if not h.has("smoke"): h["smoke"] = _make_smoke(h["chim"])
 		var pt: CPUParticles3D = h["smoke"]
-		pt.emitting = _someone_home(h)
+		pt.emitting = _someone_home(h) or h.get("fed", false)   # fed: 장작을 넣은 난로가 타는 밤(오두막, run 92 town_sites _stove)
 		pt.direction = Vector3(0.3 + gust * 6.0, 1.0, 0.0)   # 잎 뭉치와 같은 바람에 +x 로 흘러간다 — 비바람이면 더 눕는다
 
 ## 이 집에 누가 있나 — 주민이 잡은 칸(_house 가 spots[k]["door"] 로 집을 이어 둔다) 또는 그 벽 안에서 앉거나 누운 나

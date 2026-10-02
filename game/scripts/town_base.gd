@@ -302,7 +302,7 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 			cp.mesh = cs; cp.material_override = _mat(Color("ad7096")); cp.rotation.x = PI / 2.0; cp.position = Vector3(0, 0, 0.47); cp.scale = Vector3(0.15, 1.0, 0.15)
 			mi.add_child(cp); mi.set_meta("umb", cp)
 		"log":
-			# 쪼갠 장작(숲 오두막 그루터기): 반으로 가른 통나무 — 밝은 속살 + 등에 붙은 껍질 띠. 들고 장작더미에 쌓는다(town_sites)
+			# 쪼갠 장작(숲 오두막 그루터기): 반으로 가른 통나무 — 밝은 속살 + 등에 붙은 껍질 띠. 들고 장작더미에 쌓는다(town_woods)
 			var lb := BoxMesh.new(); lb.size = Vector3(0.3, 0.07, 0.12); mi.mesh = lb; mi.material_override = _mat(Color("d9b98a"))
 			mi.position = at + Vector3(0, 0.035, 0)
 			_box(Vector3(0.3, 0.03, 0.12), Vector3(0, 0.035, 0), _mat(Color("6b4a35")), false, mi)

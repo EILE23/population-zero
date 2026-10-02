@@ -205,6 +205,14 @@ func _trade_arrive(now: float) -> void:
 				if town.pile_put(): fig.release(town, Vector3.ZERO).queue_free()
 				else: town.items.append(fig.release(town, global_position + Vector3(0.4, 0.06, 0)))   # 꽉 찼다 — 옆에 둔다
 				carrying_kind = ""
+			elif not fig.carrying:
+				var top: Node3D = town.pile_take()   # 저녁 — 난로에 넣을 하나를 내린다(_wood_pick)
+				if top != null and fig.hold(top): carrying_kind = "log"
+		"stove":
+			# 오두막 난로(run 92): 들고 온 장작을 사람과 같은 stoke 자세로 화실에 넣는다. 그새 사람이 채워 꽉 찼으면 서서 보고 장작은 다음 _wood_pick 이 더미로
+			if fig.carrying and String(fig.carrying.get_meta("kind", "")) == "log" and town.stoke(fig, self):
+				busy_until = now + HearthPoses.STOKE_T + 0.2; say(mind.line("stoke"), 1.6)
+			else: fig.face(PI); busy_until = now + 1.0
 		"logs":
 			var lg: Variant = spot.get("log")   # 그새 사람이 주워 갔을 수 있다 — 타입을 박으면 지워진 노드를 넣을 때 멈춘다
 			fig.action = "grab"; fig.action_t = 0.0; busy_until = now + 0.4
@@ -218,12 +226,15 @@ func _trade_arrive(now: float) -> void:
 			get_tree().create_timer(StickPoses.GRIND_T * 2.0).timeout.connect(_sharpened)
 
 ## 나무꾼(오두막 문의 주민): 장작을 들었으면 더미로, 낮(08–17)엔 그루터기 둘레에 흩어진 게 있으면 다섯 중 넷은 하나 주우러, 아니면 넷 중 셋은 그루터기로(더미가 꽉 찼으면 안 팬다).
-## 사람이 하는 것과 같은 자리·같은 자세(town_sites) — 패고, 줍고, 쌓는다. 비·밤엔 쉰다(난로는 밤에 혼자 탄다)
+## 사람이 하는 것과 같은 자리·같은 자세(town_woods) — 패고, 줍고, 쌓는다. 비·밤엔 쉰다. 16:30 부터 어둡기 전, 화실이 비었으면 더미에서 하나를 내려 난로로(run 92 — 밤에 들고 있어도 난로부터)
+## 오두막 안 난로는 문으로 들어간다(침대·의자와 같은 길, 나올 땐 _leave 가 문으로)
 func _wood_pick(now: float) -> bool:
 	var wc: Dictionary = town.woodcut
 	if wc.is_empty(): return false
 	var sp: Dictionary = {}
-	if fig.carrying and String(fig.carrying.get_meta("kind", "")) == "log": sp = wc["pile"]
+	var eve: bool = _hour() >= 16.5 or town.is_night()
+	if fig.carrying and String(fig.carrying.get_meta("kind", "")) == "log": sp = wc["stove"] if eve and int(wc["fire"]) < town.FIRE_MAX else wc["pile"]
+	elif not fig.carrying and eve and not town.is_night() and int(wc["fire"]) == 0 and not (wc["stack"] as Array).is_empty(): sp = wc["pile"]   # 내리러
 	elif fig.carrying or town.is_night() or weather == "rain" or _hour() < 8.0 or _hour() >= 17.0: return false
 	else:
 		var full: bool = (wc["stack"] as Array).size() >= town.STACK_MAX   # 꽉 찼으면 줍지도 패지도 않는다 — 주워다 옆에 내려놓기를 끝없이 되풀이했다
@@ -237,7 +248,10 @@ func _wood_pick(now: float) -> bool:
 		if not full and randf() < 0.75: sp = wc["work"]
 	if sp.is_empty() or _free_slot(sp) < 0: return false
 	spot = sp; slot = 0; _claim(sp, 0)
-	route = town.via_bridge(global_position, [{ "pos": sp["pos"], "act": "" }])
+	if sp.has("door"):
+		door_ref = sp["door"]; var dp: Vector3 = door_ref["pos"]
+		route = town.via_bridge(global_position, call("_approach", door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -1.3), "act": "close" }, { "pos": sp["pos"], "act": "" }])
+	else: route = town.via_bridge(global_position, [{ "pos": sp["pos"], "act": "" }])
 	target = route[0]["pos"]; state = "walk"; busy_until = now
 	return true
 

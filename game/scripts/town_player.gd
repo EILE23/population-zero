@@ -198,10 +198,10 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request == "lwave": player.pose_request = "umbr" if player.umbr_k > 0.5 else ""   # 왼손 인사(CI run 77)가 끝나면 우산은 있던 대로
-		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
+		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop", "stoke"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
-	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel"]) and dir != Vector3.ZERO:
+	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel", "stoke"]) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
 			getup_until = now + FightPoses.GETUP_T; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 맞고 일어날 때와 같은 동작·같은 길이(0.6 이 남아 있어 진행이 0.4 에서 시작해 튀었다, polish 79)
 		reading = false; leaning = false; resting = false; player.pose_request = ""
@@ -292,7 +292,7 @@ func _interact_check(now: float) -> void:
 		if kind == "can" and not near_plot(p).is_empty():
 			garden_use(near_plot(p), now)   # 물뿌리개 들고 이랑 앞 C = 물 주기(전엔 아래 '내려놓기'가 먼저 잡아 물뿌리개를 바닥에 떨궜다)
 			return
-		if kind == "log" and stack_log(now): return   # 장작더미 앞이면 쌓는다(town_sites) — 아니면 아래 '내려놓기'
+		if kind == "log" and (stoke_log(now) or stack_log(now)): return   # 난로 앞이면 넣고(run 92), 장작더미 앞이면 쌓는다(town_woods) — 아니면 아래 '내려놓기'
 		if kind == "paper":
 			reading = not reading; player.pose_request = "read" if reading else ""
 			return
@@ -382,7 +382,7 @@ func _interact_check(now: float) -> void:
 		"wheel", "whet":
 			wheel_use(best["spot"], now)   # 칼갈이(run 81): 가는 중이면 손님 자리에서 두 바퀴 기다리기, 아니면 갈기 한 바퀴 — 주민과 같은 자리·같은 자세(town_trades)
 		"chop":
-			chop_use(best["spot"], now)   # 오두막 그루터기: 두 번 패기 — 나무꾼과 같은 자리·같은 자세, 장작이 튄다(town_sites)
+			chop_use(best["spot"], now)   # 오두막 그루터기: 두 번 패기 — 나무꾼과 같은 자리·같은 자세, 장작이 튄다(town_woods)
 		"fish":
 			fish_use(best["spot"], now)   # 부두 끝(run 91): 걸터앉아 던진다 — 주민과 같은 자리·같은 자세(town_sites)
 		"gate":

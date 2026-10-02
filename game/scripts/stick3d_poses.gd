@@ -21,7 +21,7 @@ const SHARE_HAND := 1.2 # 반쪽이 옆 사람 손으로 넘어가는 순간 —
 const PASS_T := 1.0    # 옆으로 건네기(run 86, 벤치 줄): 0.2 오른손이 든 것을 가슴 높이로 옆 사람 쪽에 내민다(예비) → 0.6 내민 채 넘겨준다(유지) → 0.2 무릎으로(회수)
 const PASS_HAND := 0.5 # 넘겨주는 순간 — 내민 손이 머문 한가운데(town_meals pass_on_bench, resident_life _pass_along)
 const CHOP_T := 1.6    # 장작 패기 한 번(오두막 그루터기): 0.45 도끼를 머리 뒤로(예비) → 0.15 내리찍기 → 0.4 박힌 채 숙여 있다(유지) → 0.6 도끼를 빼며 선다(회수). 한 번에 통나무 하나가 둘로
-const CHOP_HIT := 0.6  # 날이 통나무에 닿는 순간 — 여기서 쪼개진다(town_sites _woodcut)
+const CHOP_HIT := 0.6  # 날이 통나무에 닿는 순간 — 여기서 쪼개진다(town_woods _woodcut)
 const KNEAD_T := 2.6   # 반죽 한 덩이(run 72): 0.3 손을 판에 올림(예비) → 누르기(유지) → 마지막 0.3 옆으로 밀어 놓기(회수). 한 바퀴에 빵 하나 — 여러 덩이면 자세가 되풀이된다
 
 ## 상체 기울기 — base 는 걷기·웅크림·공중에서 계산된 값. 자세가 정하면 덮어쓴다(원래 stick3d.gd 에 있던 순서 그대로)
@@ -79,6 +79,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		f.pelvis.position.y = 0.3
 	if p == "cast" or p == "reel":
 		lean = FishPoses.lean(f)   # 낚시(run 91) — 걸터앉는 골반 높이도 거기서(stick3d_fish.gd)
+	if p == "stoke": lean = HearthPoses.lean(f)   # 난로에 장작 넣기(run 92) — 쪼그린 골반 높이도 거기서(stick3d_hearth.gd)
 	if p == "rest":
 		f.pelvis.rotation.x = -1.5; lean = 0.25 + sin(f._t * 1.6) * 0.02
 		f.pelvis.position.y = 0.16
@@ -227,7 +228,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel"]   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
+	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke"]   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 우산(run 76, "Weather people feel" 2조각): 오른팔만 쓴다 — 다리와 왼팔은 걷기·서기·앉기 그대로라 limbs() 의 match 에 없고, stick3d.gd 가 팔다리를 다 정한 뒤 이걸 부른다(세 변형이 팔 하나를 나눠 쓴다).
 ## k = f.umbr_k(0..1, UMBR_T 에 걸쳐 오간다): 팔이 늘어진 곳에서 머리 위로 오르고 캐노피(우산 meta "umb")가 펴진다; 접힐 땐 같은 길을 거꾸로. 걸을수록 진행 방향으로 조금 더 기운다 — 정지화가 아니다
@@ -337,7 +338,7 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 				sh.rotation.x = -(0.05 + 0.6 * k); sh.rotation.z = 0.12 * k; el.rotation.x = -(0.35 + 0.7 * k)
 		"chop":
 			# 장작 패기(운영자 보드의 연장 가족 셋째 자세 — 숲 오두막 그루터기): 발은 어깨보다 넓게, 두 손이 한 자루를 쥐어 두 팔이 같이 움직인다 — 머리 뒤로 들었다가(팔꿈치 접힘)
-			# 팔을 펴며 내리찍고, 날이 박힌 동안 허리가 접혀 머물고, 빼면서 선다. 무릎은 찍을 때 더 굽는다. 사람도 나무꾼 주민도 같은 자세, 도끼는 오른손을 따라간다(town_sites _woodcut)
+			# 팔을 펴며 내리찍고, 날이 박힌 동안 허리가 접혀 머물고, 빼면서 선다. 무릎은 찍을 때 더 굽는다. 사람도 나무꾼 주민도 같은 자세, 도끼는 오른손을 따라간다(town_woods _woodcut)
 			var a := chop_arm(f.pose_t); var b := chop_bend(f.pose_t)
 			var c := fmod(f.pose_t, CHOP_T)
 			var up := smoothstep(0.0, 1.0, minf(c / 0.45, 1.0)) * (1.0 - b)   # 머리 뒤로 든 정도 — 팔꿈치가 접힌다
@@ -434,5 +435,5 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			if s > 0.0:
 				f.neck.rotation.x -= 0.55 * k; f.chest.rotation.x -= 0.06 * k   # 고개만 든다 — 몸통은 조금
 		_:
-			return FishPoses.limbs(f, s)   # 낚시 가족(run 91) — 이 파일이 450줄을 넘어 stick3d_fish.gd 로
+			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s)   # 낚시 가족(run 91)·불 가족(run 92) — 이 파일이 450줄을 넘어 주제별 파일로
 	return true
