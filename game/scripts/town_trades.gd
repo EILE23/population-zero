@@ -130,7 +130,7 @@ func stitch_use(sp: Dictionary, now: float) -> void:
 		if r != null: return   # 누가 앉아 있다
 	var fitting: bool = at["kind"] == "fitting"
 	if fitting and w != null and not Wear.torn(player.worn.get("back")):
-		w.say(["Nothing to mend.", "That's whole.", "Come back torn."][w.uid % 3], 1.6); return
+		w.say(w.mind.line("tailor_none"), 1.6); return
 	seat = { "pos": at["pos"], "yaw": at["yaw"], "chair": true }
 	player.seated = true; player.move_dir = Vector3.ZERO; player.speed = 0.0; body.velocity = Vector3.ZERO
 	var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
@@ -143,7 +143,7 @@ func stitch_use(sp: Dictionary, now: float) -> void:
 				r.say("Mind the pins.", 1.8); break
 	elif w != null:
 		mend_at = now + StickPoses.SEW_T
-		w.say(["Turn round.", "Hold still.", "Seen worse."][w.uid % 3], 1.6)
+		w.say(w.mind.line("tailor_serve"), 1.6)
 
 ## 지금 숫돌에서 가는 칼갈이(주민) — 없으면 null. 손님은 이 사람이 있을 때만 온다
 func cutler_at_work() -> ResidentBase:
@@ -168,7 +168,7 @@ func wheel_use(sp: Dictionary, now: float) -> void:
 		use_until = now + (StickPoses.GRIND_T * 2.0 if w != null else StickPoses.WAIT_T * 2.0)
 		if w != null:
 			sharp_at = use_until
-			w.say(["Pass them over.", "Won't be long.", "Mind the sparks."][w.uid % 3], 1.6)
+			w.say(w.mind.line("cutler_serve"), 1.6)
 		return
 	player.face(sp["yaw"])
 	player.pose_request = "grind"; use_until = now + StickPoses.GRIND_T; action_until = now + StickPoses.GRIND_T
@@ -216,7 +216,7 @@ func cobbler_use(sp: Dictionary, now: float) -> void:
 		player.face(stool["yaw"])
 		if w != null:
 			resole_at = now + StickPoses.HAMMER_T * 2.0
-			w.say(["Sit.", "Left foot first.", "These have seen some road."][w.uid % 3], 1.6)
+			w.say(w.mind.line("cobbler_serve"), 1.6)
 		return
 	for r in (cobbler["work"] as Dictionary).get("taken", []):
 		if r != null: return   # 구두장이가 작업대로 오는 중 — 자리는 그의 것(리뷰 2026-10-01: 주민이 사람 몸속으로 걸어 들어왔다)

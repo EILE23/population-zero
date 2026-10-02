@@ -171,22 +171,22 @@ func _trade_arrive(now: float) -> void:
 	match spot["kind"]:
 		"cobbler":
 			fig.pose_request = "hammer"; busy_until = now + randf_range(25.0, 45.0)
-			say(["Open.", "Soles and heels.", "Back to it."][uid % 3], 1.6)
+			say(mind.line("cobbler_open"), 1.6)
 		"wheel":
 			fig.pose_request = "grind"; busy_until = now + randf_range(25.0, 45.0)
-			say(["Edges today.", "Bring it over.", "Stand back."][uid % 3], 1.6)
+			say(mind.line("cutler_open"), 1.6)
 		"stitch":
 			fig.seated = true; collision_layer = 0; collision_mask = 0
 			global_position = spot["pos"] + Vector3(0, 0.05, 0)
 			fig.pose_request = "sew"; busy_until = now + randf_range(25.0, 45.0)
-			say(["Needle and thread.", "Mending today.", "Bring me the torn ones."][uid % 3], 1.6)
+			say(mind.line("tailor_open"), 1.6)
 		"fitting":
 			w = town.tailor_at_work()
 			if w == null: _trade_closed(now); return
 			fig.seated = true; collision_layer = 0; collision_mask = 0
 			global_position = spot["pos"] + Vector3(0, 0.05, 0)
 			busy_until = now + StickPoses.SEW_T + 0.3
-			w.say(["Turn round.", "Hold still.", "Seen worse."][w.uid % 3], 1.6)
+			w.say(w.mind.line("tailor_serve"), 1.6)
 			get_tree().create_timer(StickPoses.SEW_T).timeout.connect(_mended)
 		"stool":
 			w = town.cobbler_at_work()
@@ -194,7 +194,7 @@ func _trade_arrive(now: float) -> void:
 			fig.seated = true; collision_layer = 0; collision_mask = 0
 			global_position = spot["pos"] + Vector3(0, 0.05, 0)
 			busy_until = now + StickPoses.HAMMER_T * 2.0 + 0.3
-			w.say(["Sit.", "Left foot first.", "These have seen some road."][w.uid % 3], 1.6)
+			w.say(w.mind.line("cobbler_serve"), 1.6)
 			get_tree().create_timer(StickPoses.HAMMER_T * 2.0).timeout.connect(_resoled)
 		"chop":
 			fig.pose_request = "chop"; busy_until = now + StickPoses.CHOP_T * randi_range(5, 9) + 0.2
@@ -222,7 +222,7 @@ func _trade_arrive(now: float) -> void:
 			w = town.cutler_at_work()
 			if w == null: _trade_closed(now); return
 			fig.pose_request = "wait"; busy_until = now + StickPoses.GRIND_T * 2.0 + 0.3
-			w.say(["Pass them over.", "Won't be long.", "Mind the sparks."][w.uid % 3], 1.6)
+			w.say(w.mind.line("cutler_serve"), 1.6)
 			get_tree().create_timer(StickPoses.GRIND_T * 2.0).timeout.connect(_sharpened)
 
 ## 나무꾼(오두막 문의 주민): 장작을 들었으면 더미로, 낮(08–17)엔 그루터기 둘레에 흩어진 게 있으면 다섯 중 넷은 하나 주우러, 아니면 넷 중 셋은 그루터기로(더미가 꽉 찼으면 안 팬다).
@@ -275,12 +275,12 @@ func _fish_caught(now: float) -> void:
 
 ## 손님으로 왔는데 장인이 없다 — 한마디 하고 곧 다른 자리로
 func _trade_closed(now: float) -> void:
-	busy_until = now + 1.0; say(["Closed, then.", "Another day.", "Gone to lunch."][uid % 3], 1.4)
+	busy_until = now + 1.0; say(mind.line("trade_closed"), 1.4)
 
 ## 두 바퀴가 끝났을 때 아직 손님 자리면 가위가 새것 — 맞아 넘어졌거나 비로 떠났으면 없던 일
 func _sharpened() -> void:
 	if state != "busy" or spot.get("kind", "") != "whet" or town.cutler_at_work() == null: return   # 칼갈이가 도중에 떠났으면 없던 일
-	dull = 0; say(["Sharp.", "That will cut.", "Good edge."][uid % 3], 1.6)
+	dull = 0; say(mind.line("sharpened"), 1.6)
 
 ## 한 바퀴가 끝났을 때 아직 손님 걸상이면 찢어진 곳이 없어진다 — 맞아 넘어졌거나 비로 떠났으면 없던 일(그럼 또 찢어진 채로 다시 온다)
 func _mended() -> void:
@@ -288,12 +288,12 @@ func _mended() -> void:
 	Wear.mend(fig.worn.get("back"))
 	var w: ResidentBase = town.tailor_at_work()
 	if w != null: w.say("There.", 1.4)
-	get_tree().create_timer(1.2).timeout.connect(func() -> void: say(["Good as new.", "You'd never know.", "Much obliged."][uid % 3], 1.6))
+	get_tree().create_timer(1.2).timeout.connect(func() -> void: say(mind.line("mended"), 1.6))
 
 ## 두 바퀴가 끝났을 때 아직 걸상이면 밑창이 새것 — 맞아 넘어졌거나 비로 떠났으면 없던 일
 func _resoled() -> void:
 	if state != "busy" or spot.get("kind", "") != "stool" or town.cobbler_at_work() == null: return
-	walked = 0.0; say(["Better.", "Much better.", "Like new."][uid % 3], 1.6)
+	walked = 0.0; say(mind.line("resoled"), 1.6)
 
 # ── 싸움(2026-10-01) — 사람과 같은 기술표(FightMoves). 실력은 성미·배짱에서: 높을수록 연계를 길게 잇고 센 기술을 섞고, 덜 쉬고, 막거나 피한다 ──
 var act_until := 0.0
@@ -363,7 +363,7 @@ func _share(now: float) -> void:
 	if randf() < 0.4 and _pass_along(now, null, 1.0, 0.15): return   # 나누려던 차에 벤치가 꽉 찼으면 반 대신 통째로 줄을 따라 — 나누는 확률을 갈라 쓰니 혼자 먹기(평범한 결과)는 run 85 그대로
 	fig.set_meta("share_side", TownMeals.share_side(spot.get("yaw", 0.0), global_position, mate.global_position))
 	fig.pose_request = "share"; busy_until = now + StickPoses.SHARE_T + 0.9 * 2 + 2.0
-	say(["Half?", "Go on.", "Too much for one."][uid % 3], 1.4)
+	say(mind.line("share_offer"), 1.4)
 	get_tree().create_timer(StickPoses.SHARE_HAND).timeout.connect(func() -> void: _hand_half(mate))
 
 func _hand_half(mate: Node3D) -> void:
@@ -391,7 +391,7 @@ func _pass_along(now: float, from: Node3D, chance: float, onward: float) -> bool
 		if not empty: continue   # 이미 든 이에게는 안 넘긴다
 		fig.set_meta("share_side", TownMeals.share_side(yaw, global_position, o.global_position))
 		fig.pose_request = "pass"; busy_until = maxf(busy_until, now + StickPoses.PASS_T + 0.5)
-		say(["Pass it down.", "Along you go.", "For the end."][uid % 3], 1.2)
+		say(mind.line("pass_on"), 1.2)
 		get_tree().create_timer(StickPoses.PASS_HAND).timeout.connect(func() -> void: _hand_pass(o, onward))
 		return true
 	return false
@@ -418,7 +418,7 @@ func take_passed(it: Node3D, from: Node3D, onward: float) -> void:
 	if from == town.body: mind.gifted()
 	elif from is ResidentBase: mind.befriend(from as ResidentBase, 0.05); (from as ResidentBase).mind.befriend(self, 0.05)   # 정은 양쪽으로
 	mind.company = minf(1.0, mind.company + 0.15)   # 같은 벤치에서 나눠 먹으면 덜 외롭다
-	say(["Thank you.", "Oh. Ta.", "Much obliged."][uid % 3], 1.2)
+	say(mind.line("pass_thanks"), 1.2)
 	get_tree().create_timer(0.6).timeout.connect(func() -> void: _after_pass(from, onward))
 
 func _after_pass(from: Node3D, onward: float) -> void:
