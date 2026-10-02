@@ -86,7 +86,7 @@ func _exit_tree() -> void:
 func _notice(now: float) -> void:
 	if now < mind.notice_at: return
 	mind.notice_at = now + randf_range(0.6, 1.2)
-	var free_body := state == "routine" or state == "walk" or (state == "busy" and not fig.seated and riding_swing.is_empty() and riding_seesaw == null and not in_boat and fig.pose_request in ["", "umbr"] and bites == 0)
+	var free_body := (state == "routine" or state == "walk") and not in_boat or (state == "busy" and not fig.seated and riding_swing.is_empty() and riding_seesaw == null and not in_boat and fig.pose_request in ["", "umbr"] and bites == 0)
 	if not free_body or town.driving != null: return
 	var pp: Vector3 = town.body.global_position
 	var d := global_position.distance_to(pp)
@@ -427,3 +427,11 @@ func _after_pass(from: Node3D, onward: float) -> void:
 	if is_instance_valid(from) and _pass_along(now, from, onward, onward * 0.5): return
 	if carrying_kind in town.FOOD:
 		bites = 3 - int(fig.carrying.get_meta("bites", 0)); bite_at = now + 0.3; busy_until = maxf(busy_until, now + 0.9 * bites + 1.5)
+
+## 나루(run 94) 걷던 길의 "board" — 배가 제 쪽 부두에 비어 있으면 탄다(건너편 부두에서 town_boat 가 내려 주고 길을 잇는다).
+## 그새 떠났으면(사람이 탔다) 내릴 부두("land")를 버리고 여기서 다리·디딤돌로 다시 짠다 — 부두에 서서 배를 기다리진 않는다
+func _ferry_board() -> void:
+	if town.board(self, true): say(mind.line("ferry"), 1.6); return
+	var rest: Array = route.slice(1)
+	if rest.is_empty(): rest = [{ "pos": route[0]["pos"] if not route.is_empty() else global_position, "act": "" }]
+	route = town.crossings(global_position, rest[0]["pos"]) + rest

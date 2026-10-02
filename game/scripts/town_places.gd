@@ -174,7 +174,7 @@ func garden_use(sp: Dictionary, now: float) -> void:
 		var it := make_item(pick_row(row), body.global_position + Vector3(0, 0.9, 0))
 		player.hold(it); player.action = "grab"; action_until = now + 0.4
 
-## 경유지 — 출발과 도착이 강의 다른 편이면 가까운 건널목(다리·디딤돌)의 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을, 전망 언덕을 오르내리면 계단을 거친다
+## 경유지 — 출발과 도착이 강의 다른 편이면 가까운 건널목(다리·디딤돌·나루)의 두 발치를, 텃밭 울타리 안팎을 드나들면 앞문을, 전망 언덕을 오르내리면 계단을 거친다
 ## (곧장 가면 물 위 벽이나 울타리 기둥·바위 낯에 막혀 우회하다 포기했다 — polish run 71: 주민이 텃밭 이랑에 한 번도 못 닿았다)
 ## 출발과 도착이 같은 편이면(둘 다 언덕 위, 둘 다 울타리 안) 계단·문을 안 거친다 — 전망 벤치에서 3m 옆 전망 자리로 가는데 계단을 내려갔다 다시 올랐고, 이랑에서 옆 이랑으로 가는데 문 밖에 나갔다 들어왔다(polish 75)
 func crossings(from: Vector3, to: Vector3) -> Array:
@@ -183,6 +183,8 @@ func crossings(from: Vector3, to: Vector3) -> Array:
 	var inn := (_terr_steps(to, true) if lvl else []) + (_gate_steps(to, true) if yard else [])
 	var mid := (RIVER_N + RIVER_S) / 2.0
 	if (from.z < mid) == (to.z < mid): return out + inn
+	var fr: Array = call("ferry", from, to)   # 나루(run 94, town_boat) — 배가 제 쪽 부두에 비어 있고 가까우면 열에 셋은 배로
+	if not fr.is_empty(): return out + fr + inn
 	# 둘 중 가까운 건널목(run 84) — 다리(x 0)냐 디딤돌(x 23)이냐. 돌은 좁으니 흔들림 없이 한 줄로 간다(다리는 폭 안에서 흩어진다)
 	var st := not stones.is_empty() and absf(from.x - STONES_X) + absf(to.x - STONES_X) < absf(from.x) + absf(to.x)
 	var n := { "pos": Vector3(STONES_X if st else randf_range(-0.4, 0.4), 0, RIVER_N - 1.1), "act": "" }

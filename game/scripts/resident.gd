@@ -41,14 +41,18 @@ func _physics_process(delta: float) -> void:
 			if now >= busy_until:
 				_pick_spot()
 		"walk":
+			if in_boat:   # 나루(run 94): 배가 건너편 부두로 옮긴다 — 다 오면 town_boat 가 내려 주고 걷던 길(다음은 "land")을 잇는다
+				global_position = town.boat_seat(); fig.swing_k = town.boat_k(); fig.move_dir = Vector3.ZERO; fig.speed = 0.0; stuck_since = -1.0; velocity = Vector3.ZERO; return
 			if now < _door_wait:
 				v.x = 0.0; v.z = 0.0; fig.move_dir = Vector3.ZERO; fig.speed = 0.0; stuck_since = -1.0
 				velocity = v; move_and_slide(); return
+			if fig.pose_request == "moor": fig.pose_request = ""   # 밧줄을 다 맸다(_door_wait 가 MOOR_T 만큼 세워 뒀다)
 			var to := target - global_position; to.y = 0.0
 			if to.length() < 0.35:
 				var step: Dictionary = route.pop_front() if not route.is_empty() else {}
 				if step.get("act", "") == "open": town.set_door(door_ref, true); _door_wait = now + 0.5   # 문짝이 다 열릴 때까지 기다린다 — 안 그러면 도는 문짝에 막혀 우회하다 벽에 갇혔다
 				elif step.get("act", "") == "close": town.set_door(door_ref, false)
+				elif step.get("act", "") == "board": _ferry_board()   # 나루(run 94) — resident_life
 				detours = 0; stuck_since = -1.0   # 경유지가 바뀌면 막힘 판정도 새로 — 다음 경유지가 더 멀면 '못 다가갔다'로 읽혀 헛우회했다
 				if route.is_empty():
 					if step.get("act", "") == "close":
@@ -478,7 +482,7 @@ func _leave() -> void:
 	if not pushing_swing.is_empty():
 		if pushing_swing["pusher"] == self: pushing_swing["pusher"] = null
 		pushing_swing = {}; fig.pose_request = ""
-	if in_boat: town.unboard(self)   # 거룻배(run 78): 그 자리 북쪽 둑에 내린다 — 비가 와서 일찍 내려도 같은 길
+	if in_boat: town.unboard(self)   # 거룻배(run 78): 가까운 부두 쪽 둑에 내린다(run 94) — 비가 와서 일찍 내려도 같은 길
 	fig.seated = false; fig.pose_request = ""
 	_umb_pose()
 	if spot.get("kind", "") == "bench":

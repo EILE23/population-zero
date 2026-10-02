@@ -42,6 +42,8 @@
     "share_offer": ["Half?", "Go on.", "Too much for one."],
     "pass_on": ["Pass it down.", "Along you go.", "For the end."],
     "pass_thanks": ["Thank you.", "Oh. Ta.", "Much obliged."],
+    "ferry": ["Across, then.", "Quicker by water.", "I will take the punt.", "Mind the oars."],
+    "moored": ["Tied off.", "Made fast.", "That knot will hold.", "Left it for the next one."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },
