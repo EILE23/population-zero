@@ -21,6 +21,7 @@ func _tick(delta: float, now: float) -> void:
 	_water(delta)
 	_seesaws(delta)
 	if has_method("_meal_tick"): call("_meal_tick", now)   # 위층(town_meals)
+	if has_method("_woodcut"): call("_woodcut", now)   # 위층(town_sites) — 오두막 그루터기·장작더미·난로
 
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
 func _stream() -> void:

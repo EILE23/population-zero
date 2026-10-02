@@ -147,6 +147,7 @@ func _back_to_car() -> bool:
 ## 장인들(run 80 구두장이, run 81 칼갈이 — "Trades on the street"): 장인(집 문에 "cobbler"/"cutler")은 낮(09–17)에 넷 중 셋은 제 작업대로. 밑창이 닳은(walked > SOLE_M) 사람은
 ## 구두장이가 일하는 중이면 다섯 중 셋은 걸상으로, 가위가 무딘(dull >= DULL_N) 가게지기는 칼갈이가 가는 중이면 다섯 중 셋은 손님 자리로. 나머지는 여느 때처럼 고른다 — 평범한 결과(지나쳐 걷기)가 남는다. 못 가면 false
 func _trade_pick(now: float) -> bool:
+	if job == "woodcutter" and _wood_pick(now): return true   # 나무꾼(오두막): 장작 나르기·패기
 	if town.is_night() or weather == "rain" or fig.carrying: return false
 	var tc: Dictionary = town.cobbler; var tw: Dictionary = town.wheel; var tt: Dictionary = town.tailor
 	var h := _hour()
@@ -195,12 +196,50 @@ func _trade_arrive(now: float) -> void:
 			busy_until = now + StickPoses.HAMMER_T * 2.0 + 0.3
 			w.say(["Sit.", "Left foot first.", "These have seen some road."][w.uid % 3], 1.6)
 			get_tree().create_timer(StickPoses.HAMMER_T * 2.0).timeout.connect(_resoled)
+		"chop":
+			fig.pose_request = "chop"; busy_until = now + StickPoses.CHOP_T * randi_range(5, 9) + 0.2
+			say(mind.line("chop"), 1.6)
+		"pile":
+			fig.action = "grab"; fig.action_t = 0.0; busy_until = now + 0.5
+			if fig.carrying and String(fig.carrying.get_meta("kind", "")) == "log":
+				if town.pile_put(): fig.release(town, Vector3.ZERO).queue_free()
+				else: town.items.append(fig.release(town, global_position + Vector3(0.4, 0.06, 0)))   # 꽉 찼다 — 옆에 둔다
+				carrying_kind = ""
+		"logs":
+			var lg: Variant = spot.get("log")   # 그새 사람이 주워 갔을 수 있다 — 타입을 박으면 지워진 노드를 넣을 때 멈춘다
+			fig.action = "grab"; fig.action_t = 0.0; busy_until = now + 0.4
+			if is_instance_valid(lg) and lg in town.items and global_position.distance_to(lg.global_position) < 1.2 and fig.hold(lg):
+				town.items.erase(lg); carrying_kind = "log"
 		"whet":
 			w = town.cutler_at_work()
 			if w == null: _trade_closed(now); return
 			fig.pose_request = "wait"; busy_until = now + StickPoses.GRIND_T * 2.0 + 0.3
 			w.say(["Pass them over.", "Won't be long.", "Mind the sparks."][w.uid % 3], 1.6)
 			get_tree().create_timer(StickPoses.GRIND_T * 2.0).timeout.connect(_sharpened)
+
+## 나무꾼(오두막 문의 주민): 장작을 들었으면 더미로, 낮(08–17)엔 그루터기 둘레에 흩어진 게 있으면 다섯 중 넷은 하나 주우러, 아니면 넷 중 셋은 그루터기로(더미가 꽉 찼으면 안 팬다).
+## 사람이 하는 것과 같은 자리·같은 자세(town_sites) — 패고, 줍고, 쌓는다. 비·밤엔 쉰다(난로는 밤에 혼자 탄다)
+func _wood_pick(now: float) -> bool:
+	var wc: Dictionary = town.woodcut
+	if wc.is_empty(): return false
+	var sp: Dictionary = {}
+	if fig.carrying and String(fig.carrying.get_meta("kind", "")) == "log": sp = wc["pile"]
+	elif fig.carrying or town.is_night() or weather == "rain" or _hour() < 8.0 or _hour() >= 17.0: return false
+	else:
+		var full: bool = (wc["stack"] as Array).size() >= town.STACK_MAX   # 꽉 찼으면 줍지도 패지도 않는다 — 주워다 옆에 내려놓기를 끝없이 되풀이했다
+		var loose: Array = town.loose_logs()
+		if not loose.is_empty() and not full and randf() < 0.8:
+			var lg: Node3D = loose[randi() % loose.size()]
+			spot = { "kind": "logs", "pos": lg.global_position, "log": lg }
+			route = town.via_bridge(global_position, [{ "pos": lg.global_position + Vector3(-0.35, 0, 0), "act": "" }])
+			target = route[0]["pos"]; state = "walk"; busy_until = now
+			return true
+		if not full and randf() < 0.75: sp = wc["work"]
+	if sp.is_empty() or _free_slot(sp) < 0: return false
+	spot = sp; slot = 0; _claim(sp, 0)
+	route = town.via_bridge(global_position, [{ "pos": sp["pos"], "act": "" }])
+	target = route[0]["pos"]; state = "walk"; busy_until = now
+	return true
 
 ## 손님으로 왔는데 장인이 없다 — 한마디 하고 곧 다른 자리로
 func _trade_closed(now: float) -> void:

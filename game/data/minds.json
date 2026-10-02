@@ -20,6 +20,8 @@
     "gossip_bad": ["That one hit me, you know.", "Watch that one.", "Not a nice person, that one."],
     "gossip_good": ["That one is all right.", "Nice enough, that one.", "That one waved at me."],
     "witness": ["Did you see that?", "Oh dear.", "Honestly."],
+    "chop": ["Wood for the stove.", "Mind the splinters.", "One more round.", "Stand clear."],
+    "chop_watch": ["Keep your feet back.", "Let the axe do it.", "Aim for the crack.", "Both hands."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },

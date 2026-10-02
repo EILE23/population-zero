@@ -10,6 +10,9 @@ const TIMED := ["race"]   # 기록이 시간인 게임 — 낮을수록 좋고 �
 var records := {}
 var game_node: Node = null
 var _signs: Array = []   # [{label, game}]
+const STACK_MAX := 12          # 쪼갠 장작더미 칸 — 넷씩 세 단
+const LOOSE_MAX := 8           # 그루터기 둘레에 흩어진 장작이 이만큼이면 더 쪼개지 않는다(통나무가 안 올라온다) — 나르는 게 먼저
+var woodcut: Dictionary = {}   # {work, pile: 자리, stump, block, axe, rest: 도끼가 꽂힌 자세, stack: [장작 노드], base, stove: {light, glow}, who, cut, night}
 
 func _sites() -> void:
 	var f := FileAccess.open(RECORDS, FileAccess.READ)
@@ -53,14 +56,124 @@ func _site_cabin(c: Vector3) -> void:
 		for i in 4 - row:
 			var lg := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.11; cm.bottom_radius = 0.11; cm.height = 1.1; lg.mesh = cm; lg.material_override = wood if (i + row) % 2 == 0 else _mat(Color("7a5640"))
 			lg.position = c + Vector3(3.6, 0.11 + row * 0.2, -5.2 + i * 0.23 + row * 0.11); lg.rotation = Vector3(0, 0, PI / 2.0); _add(lg)
-	var stump := MeshInstance3D.new(); var sc := CylinderMesh.new(); sc.top_radius = 0.28; sc.bottom_radius = 0.33; sc.height = 0.45; stump.mesh = sc; stump.material_override = _mat(Color("7a5640"))
-	stump.position = c + Vector3(3.8, 0.22, -2.2); _add(stump)
-	var axe := _box(Vector3(0.05, 0.6, 0.05), c + Vector3(3.8, 0.4, -2.2), _mat(Color("9a7650")), false); axe.rotation.z = 0.5
-	_box(Vector3(0.22, 0.12, 0.04), c + Vector3(3.68, 0.44, -2.2), _mat(Color("5b5b63")), false).rotation.z = 0.5
+	doors[doors.size() - 1]["job"] = "woodcutter"   # 오두막 주민이 나무꾼 — 낮엔 그루터기에서 패고 장작을 더미로 나른다(_woodcut)
+	_woodyard(c)
 	_lamp(c + Vector3(-3.0, 0, -3.0))
 	for i in 6:
 		var a := i * TAU / 6.0 + 0.3
 		_tree(c + Vector3(cos(a) * 11.5, 0, sin(a) * 11.5), 1.1 + 0.1 * (i % 3))
+
+# ── 장작 패기(운영자 2026-10-01 "열린 세계의 장소에 할 일" — 오두막 1조각): 그루터기 위에 통나무를 세우고 도끼로 찍으면 둘로 쪼개져 옆으로 튄다(줍는 물건 "log").
+## 주운 장작은 오두막 옆 쪼갠 장작더미(넷씩 세 단)에 C 로 쌓인다. 나무꾼(오두막 문의 주민)이 낮에 같은 자리에서 같은 자세로 패고, 흩어진 장작을 하나씩 더미로 나른다.
+## 밤이면 오두막 안 무쇠 난로가 더미에서 장작을 태운다(더미가 비면 불이 없다) — 아침에 셋이 줄어 있다. 사람: 빈손으로 그루터기 앞 C = 두 번 패기, 장작을 들고 더미 앞 C = 쌓기
+func _woodyard(c: Vector3) -> void:
+	var bark := _mat(Color("7a5640")); var iron := _mat(Color("3a3438"))
+	var st := c + Vector3(3.8, 0, -2.2)
+	var stump := MeshInstance3D.new(); var sc := CylinderMesh.new(); sc.top_radius = 0.28; sc.bottom_radius = 0.33; sc.height = 0.45; stump.mesh = sc; stump.material_override = bark
+	stump.position = st + Vector3(0, 0.22, 0); _add(stump)
+	_box(Vector3(0.5, 0.012, 0.5), st + Vector3(0, 0.445, 0), _mat(Color("c9a77a")), false).rotation.y = 0.4   # 잘린 윗면 — 밝은 나이테 판
+	var block := MeshInstance3D.new(); var bm := CylinderMesh.new(); bm.top_radius = 0.13; bm.bottom_radius = 0.14; bm.height = 0.3; block.mesh = bm; block.material_override = bark
+	block.position = st + Vector3(0, 0.6, 0); block.visible = false; _add(block)   # 패는 동안만 그루터기 위에 선다
+	var axe := Node3D.new(); _add(axe)   # 원점 = 손잡이 끝(쥐는 곳), 자루가 −y 로, 날은 −z(내리찍는 쪽)
+	_box(Vector3(0.04, 0.62, 0.04), Vector3(0, -0.62, 0), _mat(Color("9a7650")), false, axe)
+	_box(Vector3(0.035, 0.1, 0.18), Vector3(0, -0.64, -0.05), _mat(Color("5b5b63")), false, axe)
+	var rest := Transform3D(Basis(Vector3.BACK, 0.35), st + Vector3(-0.22, 1.02, 0))   # 쉴 땐 날이 그루터기에 박혀 비스듬히 선다
+	axe.global_transform = rest
+	var base := c + Vector3(3.6, 0, -3.9)
+	_box(Vector3(0.42, 0.05, 0.66), base, _mat(Color("6b4a35")), false)   # 쪼갠 장작을 올리는 받침
+	var work := { "pos": st + Vector3(-0.8, 0, 0), "kind": "chop", "yaw": PI / 2.0 }
+	var pile := { "pos": base + Vector3(-0.75, 0, 0), "kind": "pile", "yaw": PI / 2.0 }
+	spots.append(work); spots.append(pile)
+	# 오두막 안 무쇠 난로 — 뒷벽, 침대와 선반 사이. 연통이 천장으로. 밤에 더미에 장작이 있으면 앞창이 붉고 방이 따뜻해진다
+	var sv := c + Vector3(-0.75, 0, -7.35)
+	_box(Vector3(0.5, 0.55, 0.4), sv, iron)
+	_box(Vector3(0.1, 2.0, 0.1), sv + Vector3(0.1, 0.55, -0.08), iron, false)
+	var glow := _box(Vector3(0.24, 0.14, 0.02), sv + Vector3(0, 0.2, 0.2), _mat(Color("2a2226")), false)
+	var gm := StandardMaterial3D.new(); gm.albedo_color = Color("ff8a2a"); gm.emission_enabled = true; gm.emission = Color("ff6a1a"); gm.emission_energy_multiplier = 1.6
+	glow.set_meta("lit", gm); glow.set_meta("cold", glow.material_override)
+	var sl := OmniLight3D.new(); sl.light_color = Color(1.0, 0.6, 0.3); sl.light_energy = 0.9; sl.omni_range = 3.5; sl.position = sv + Vector3(0, 0.5, 0.4); sl.visible = false; _add(sl)
+	woodcut = { "work": work, "pile": pile, "stump": st, "block": block, "axe": axe, "rest": rest, "stack": [], "base": base, "glow": glow, "light": sl, "who": null, "cut": -1, "night": false }
+	for i in 4: pile_put()   # 쌓아 둔 게 조금 있다 — 첫날 밤에도 난로가 붙는다
+
+## 지금 그루터기에서 패는 나무꾼(주민) — 없으면 null
+func woodcutter_at_work() -> ResidentBase:
+	if woodcut.is_empty(): return null
+	for r in (woodcut["work"] as Dictionary).get("taken", []):
+		if r is ResidentBase and (r as ResidentBase).state == "busy" and (r as ResidentBase).fig.pose_request == "chop": return r
+	return null
+
+## 그루터기 둘레(4m)에 흩어진 쪼갠 장작 — 나무꾼이 하나씩 나른다
+func loose_logs() -> Array:
+	if woodcut.is_empty(): return []
+	var st: Vector3 = woodcut["stump"]
+	return items.filter(func(it: Node3D) -> bool: return String(it.get_meta("kind", "")) == "log" and it.global_position.distance_to(st) < 4.0)
+
+## 더미에 장작 하나 — 넷씩 한 단, 단마다 살짝 엇갈린다. 꽉 찼으면 false
+func pile_put() -> bool:
+	var stack: Array = woodcut["stack"]
+	if stack.size() >= STACK_MAX: return false
+	var i := stack.size()
+	var lg := make_item("log", Vector3.ZERO)
+	var row := floori(i / 4.0)
+	lg.get_parent().remove_child(lg); (woodcut["axe"] as Node3D).get_parent().add_child(lg)   # 구역 노드 밑 — 멀어지면 같이 꺼진다
+	lg.global_position = (woodcut["base"] as Vector3) + Vector3(0.03 * (row % 2), 0.085 + row * 0.075, -0.21 + (i % 4) * 0.14)
+	lg.rotation.y = 0.04 * (i % 3 - 1)
+	stack.append(lg)
+	return true
+
+## 사람이 그루터기 앞에서 C — 나무꾼이 패거나 오는 중이면 자리는 그의 것. 아니면 그 자리에 서서 두 번 팬다(나무꾼이 근처면 한마디)
+func chop_use(sp: Dictionary, now: float) -> void:
+	for r in sp.get("taken", []):
+		if r != null: return
+	var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(body, "position", sp["pos"] + Vector3(0, 0.02, 0), 0.3)
+	player.face(sp["yaw"]); player.pose_request = "chop"
+	use_until = now + StickPoses.CHOP_T * 2.0; action_until = use_until
+	for r in residents:
+		if r.job == "woodcutter" and r.state != "drive" and r.global_position.distance_to(body.global_position) < 12.0:
+			r.say(r.mind.line("chop_watch"), 1.8); break
+
+## 장작을 들고 더미 앞에서 C — 쌓는다(꽉 찼으면 아래 '내려놓기'로)
+func stack_log(now: float) -> bool:
+	if woodcut.is_empty() or body.global_position.distance_to((woodcut["pile"] as Dictionary)["pos"]) > 1.4 or not pile_put(): return false
+	player.release(self, Vector3.ZERO).queue_free()
+	player.action = "grab"; action_until = now + 0.4
+	return true
+
+## 매 프레임(town_systems _tick): 누가 패고 있으면 도끼가 그 오른손을 따라가고, 찍기 전엔 그루터기 위에 통나무가 서 있다가 찍는 순간 둘로 갈라져 좌우로 튄다.
+## 아무도 없으면 도끼는 그루터기에 꽂힌다. 해 질 녘에 더미에 장작이 있으면 난로가 붙고, 해 뜰 때 셋을 태운 만큼 더미가 준다
+func _woodcut(now: float) -> void:
+	if woodcut.is_empty(): return
+	var night := is_night()
+	if night != woodcut["night"]:
+		woodcut["night"] = night
+		var stack: Array = woodcut["stack"]
+		var lit := night and not stack.is_empty()
+		(woodcut["light"] as OmniLight3D).visible = lit
+		var glow: MeshInstance3D = woodcut["glow"]; glow.material_override = glow.get_meta("lit") if lit else glow.get_meta("cold")
+		if not night:
+			for k in mini(3, stack.size()): (stack.pop_back() as Node3D).queue_free()   # 밤새 태운 것
+	var w := woodcutter_at_work()
+	var f: Stick3D = w.fig if w != null else null
+	if f == null and player.pose_request == "chop" and body.global_position.distance_to((woodcut["work"] as Dictionary)["pos"]) < 1.5: f = player
+	var axe: Node3D = woodcut["axe"]; var block: Node3D = woodcut["block"]
+	if f == null:
+		axe.global_transform = woodcut["rest"]; block.visible = false; woodcut["who"] = null
+		return
+	if woodcut["who"] != f: woodcut["who"] = f; woodcut["cut"] = -1
+	axe.global_transform = f.hand_r.global_transform
+	var cyc := int(f.pose_t / StickPoses.CHOP_T); var c := fmod(f.pose_t, StickPoses.CHOP_T)
+	var room := loose_logs().size() < LOOSE_MAX
+	block.visible = room and c < StickPoses.CHOP_HIT and cyc != int(woodcut["cut"])
+	if c < StickPoses.CHOP_HIT or cyc == int(woodcut["cut"]): return
+	woodcut["cut"] = cyc
+	if not room: return   # 통나무가 없었다 — 빈 그루터기를 찍었을 뿐
+	var st: Vector3 = woodcut["stump"]
+	for side: float in [-1.0, 1.0]:   # 찍는 사람은 +x 를 본다 — 반쪽은 좌우(±z)로 튄다
+		var lg := make_item("log", st + Vector3(0, 0.5, side * 0.06))
+		lg.rotation.y = PI / 2.0
+		flying.append({ "node": lg, "vel": Vector3(randf_range(-0.2, 0.3), 1.6, side * randf_range(1.0, 1.5)), "spin": side * 5.0 })
+	shake(st, 0.05)
 
 # ── 호숫가 마을(동쪽 135m): 연못보다 큰 호수(물 애셋 — 헤엄·물보라 그대로), 나무 부두와 낚시 자리, 호수를 보는 집 셋, 물가 길과 벤치·가로등 ──
 func _site_lakeside(c: Vector3) -> void:
