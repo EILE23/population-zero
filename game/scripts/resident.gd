@@ -406,6 +406,7 @@ func _arrive(now: float) -> void:
 			else:
 				busy_until = now + randf_range(2.0, 4.0)
 		_:
+			if spot.has("fish") and _fish_arrive(now): return   # 부두 끝(run 91): 셋에 하나는 걸터앉아 낚는다(resident_life)
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
 			# 개가 곁에 있으면 쪼그려 앉아 쓰다듬는다(사람이 C 로 하는 것과 같은 자세·같은 개 반응)

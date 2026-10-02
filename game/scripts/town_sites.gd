@@ -12,6 +12,8 @@ var game_node: Node = null
 var _signs: Array = []   # [{label, game}]
 const STACK_MAX := 12          # 쪼갠 장작더미 칸 — 넷씩 세 단
 const LOOSE_MAX := 8           # 그루터기 둘레에 흩어진 장작이 이만큼이면 더 쪼개지 않는다(통나무가 안 올라온다) — 나르는 게 먼저
+const BITE_WIN := 1.2          # 찌가 두 번 잠기는 동안 — 이 안에 C 면 감아올려 물고기, 놓치면 "It got away." 하고 다음 입질을 기다린다
+var fishers: Array = []        # 낚는 사람마다 {fig, who: 주민|null, rod, tip, line, bob, spot, to: 찌 자리, state: cast/wait/dip/reel, bite, caught, end}
 var woodcut: Dictionary = {}   # {work, pile: 자리, stump, block, axe, rest: 도끼가 꽂힌 자세, stack: [장작 노드], base, stove: {light, glow}, who, cut, night}
 
 func _sites() -> void:
@@ -175,6 +177,116 @@ func _woodcut(now: float) -> void:
 		flying.append({ "node": lg, "vel": Vector3(randf_range(-0.2, 0.3), 1.6, side * randf_range(1.0, 1.5)), "spin": side * 5.0 })
 	shake(st, 0.05)
 
+# ── 부두 낚시(운영자 2026-10-01 "열린 세계의 장소에 할 일" — 호숫가 2조각, run 91): 빈손으로 부두 끝 C = 던지고(cast) 걸터앉아 찌를 본다. 4–12초 뒤 찌가 두 번 잠기고
+## 그 1.2초 안에 C 면 감아올려(reel) 물고기 한 마리(FOOD, 세 입), 놓치면 "It got away." — 계속 앉아 있으면 다음 입질이 온다. 움직이면 거둔다.
+## 시간 여유 있는 주민이 부두 끝 자리에 오면 셋에 하나는 같은 자세로 앉아 낚고(resident_life _fish_arrive), 낚으면 그 자리에서 먹는다. 낚싯대는 사람 것이 아니라 부두의 것 — 손엔 남지 않는다
+
+## 던지기 — 낚싯대(두 마디, 끝 마디가 휜다)·줄·찌를 만들어 fig 의 오른손에 붙인다. 찌는 CAST_FLICK 에 손을 떠나 앞으로 4m 날아간다
+func cast_line(fig: Stick3D, who: Node3D, sp: Dictionary, now: float) -> void:
+	var rod := Node3D.new(); _add(rod)   # 원점 = 손잡이, −z 로 뻗는다(looking_at)
+	var cork := _mat(Color("6b4a35")); var cane := _mat(Color("c9a77a"))
+	_box(Vector3(0.03, 0.03, 0.9), Vector3(0, -0.015, -0.45), cane, false, rod)
+	_box(Vector3(0.04, 0.04, 0.16), Vector3(0, -0.02, 0.0), cork, false, rod)
+	var tip := Node3D.new(); tip.position = Vector3(0, 0, -0.9); rod.add_child(tip)
+	_box(Vector3(0.016, 0.016, 0.7), Vector3(0, -0.008, -0.35), cane, false, tip)
+	var line := MeshInstance3D.new(); var lm := BoxMesh.new(); lm.size = Vector3(0.006, 0.006, 1.0); line.mesh = lm; line.material_override = _mat(Color("efe9e2")); _add(line)
+	var bob := MeshInstance3D.new(); var bm := SphereMesh.new(); bm.radius = 0.045; bm.height = 0.09; bob.mesh = bm; bob.material_override = _mat(Color("ff2d55")); _add(bob)
+	_box(Vector3(0.012, 0.08, 0.012), Vector3(0, 0.02, 0), _mat(Color("efe9e2")), false, bob)   # 찌 꼭지 — 흰 막대
+	var yaw: float = sp["yaw"]
+	var to: Vector3 = sp["pos"] + Vector3(sin(yaw), 0, cos(yaw)) * 4.3; to.y = Water3D.SURFACE_Y + 0.02
+	fig.pose_request = "cast"
+	fishers.append({ "fig": fig, "who": who, "rod": rod, "tip": tip, "line": line, "bob": bob, "spot": sp, "to": to, "state": "cast", "bite": now + FishPoses.CAST_T + randf_range(4.0, 12.0), "caught": false, "end": 0.0 })
+
+func _fisher(fig: Stick3D) -> Dictionary:
+	for e in fishers:
+		if e["fig"] == fig: return e
+	return {}
+
+## 사람이 부두 끝에서 빈손 C — 주민이 낚고 있거나 오는 중이면 자리는 그의 것. 아니면 끝으로 가 걸터앉아 던진다
+func fish_use(sp: Dictionary, now: float) -> void:
+	for r in sp.get("taken", []):
+		if r != null: say_toast("Taken."); return
+	var yaw: float = sp["yaw"]
+	var tw := create_tween(); tw.set_ease(Tween.EASE_IN_OUT); tw.set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(body, "position", sp["pos"] + Vector3(sin(yaw), 0.02, cos(yaw)) * 0.3, 0.3)
+	player.face(yaw); cast_line(player, null, sp, now)
+	action_until = now + FishPoses.CAST_T
+
+## 낚는 중의 C — 입질(dip) 중이면 감아 낚고, 아니면 빈 줄을 감아 거둔다. 낚는 중이 아니면 false(다른 C 로)
+func fish_c(now: float) -> bool:
+	var e := _fisher(player)
+	if e.is_empty() or e["state"] == "reel": return not e.is_empty()
+	if e["state"] == "cast": return true
+	_reel(e, now, e["state"] == "dip")
+	if not e["caught"]: say_toast("Nothing yet.")
+	return true
+
+func _reel(e: Dictionary, now: float, caught: bool) -> void:
+	e["state"] = "reel"; e["caught"] = caught; e["end"] = now + FishPoses.REEL_T
+	(e["fig"] as Stick3D).pose_request = "reel"
+	if e["fig"] == player: action_until = now + FishPoses.REEL_T
+
+## 매 프레임(town_systems _tick): 대는 오른손에서 rod_pitch 로 뻗고, 줄은 대 끝에서 찌까지. 찌는 날아가 물에 닿고(물결), 입질이면 두 번 잠긴다.
+## 자세가 풀렸으면(움직였다, 맞았다, 주민이 떠났다) 대·줄·찌를 거둔다
+func _fish(now: float) -> void:
+	for e in fishers.duplicate():
+		var fv: Variant = e["fig"]   # 타입을 박으면 지워진 노드를 넣을 때 멈춘다
+		if not is_instance_valid(fv) or not ((fv as Stick3D).pose_request in ["cast", "reel"]):
+			for k in ["rod", "line", "bob"]: (e[k] as Node3D).queue_free()
+			fishers.erase(e); continue
+		var fig: Stick3D = fv
+		var fwd := Vector3(sin(fig.rotation.y), 0, cos(fig.rotation.y))
+		var a := FishPoses.rod_pitch(fig)
+		var dir := fwd * cos(a) + Vector3.UP * sin(a)
+		var rod: Node3D = e["rod"]; var bob: Node3D = e["bob"]
+		rod.global_transform = Transform3D(Basis.looking_at(dir, fwd.cross(Vector3.UP).cross(dir)), fig.hand_r.global_position)
+		var tip_pos: Vector3 = (e["tip"] as Node3D).to_global(Vector3(0, 0, -0.7))
+		var to: Vector3 = e["to"]
+		match String(e["state"]):
+			"cast":
+				var fl := (fig.pose_t - FishPoses.CAST_FLICK) / 0.5   # 찌가 날아가는 0..1
+				if fl < 0.0: bob.global_position = tip_pos
+				elif fl < 1.0: bob.global_position = tip_pos.lerp(to, fl) + Vector3(0, sin(fl * PI) * 1.2, 0)
+				else:
+					e["state"] = "wait"; bob.global_position = to
+					water._ring(to, 0.05, 0.5, 0.8, 0.6); water.splash(to, false)
+			"wait":
+				bob.global_position = to + Vector3(0, sin(now * 2.0) * 0.008, 0)
+				if now >= e["bite"]: e["state"] = "dip"; water._ring(to, 0.04, 0.35, 0.6, 0.7)
+			"dip":
+				var d: float = now - float(e["bite"])
+				bob.global_position = to - Vector3(0, 0.07 * maxf(0.0, sin(d / BITE_WIN * TAU * 2.0)), 0)   # 두 번 쑥 잠긴다
+				var r: Node3D = e["who"]
+				if r != null and d > 0.45: _reel(e, now, true)   # 주민은 두 번째 잠김 전에 챈다 — 사람과 같은 창 안
+				elif d > BITE_WIN:
+					e["state"] = "wait"; e["bite"] = now + randf_range(4.0, 12.0)
+					if fig == player: say_toast("It got away.")
+			"reel":
+				var rk := clampf(1.0 - (float(e["end"]) - now) / FishPoses.REEL_T, 0.0, 1.0)
+				bob.global_position = to.lerp(tip_pos, rk) + Vector3(0, sin(rk * PI) * 0.3, 0)
+				(e["tip"] as Node3D).rotation.x = -0.5 * (1.0 - rk) if e["caught"] else 0.0   # 걸렸으면 끝 마디가 물 쪽으로 휜다
+				if now >= float(e["end"]): _landed(e, now)
+		var ln: MeshInstance3D = e["line"]
+		var span := bob.global_position - tip_pos
+		if span.length() > 0.01:
+			var lb := Basis.looking_at(span, Vector3.UP if absf(span.normalized().y) < 0.99 else fwd); lb.z *= span.length()   # 길이 1 상자를 대 끝–찌 거리로 늘인다
+			ln.global_transform = Transform3D(lb, tip_pos + span / 2.0)
+
+## 다 감았다 — 걸렸으면 물고기를 손에. 사람은 그대로 서고, 주민은 그 자리에서 세 입에 먹는다(resident_base 의 한입 규칙)
+func _landed(e: Dictionary, now: float) -> void:
+	var fig: Stick3D = e["fig"]
+	fig.pose_request = ""
+	if not e["caught"]: return
+	var fish := make_item("fish", Vector3.ZERO)
+	if not fig.hold(fish): fish.queue_free(); return
+	var r: Node3D = e["who"]
+	if r == null:
+		say_toast("A fish.")
+		for x in residents:
+			if x.state != "drive" and x.global_position.distance_to(body.global_position) < 8.0: x.say(x.mind.line("fish_watch"), 1.6); break
+	else:
+		r.call("_fish_caught", now)
+
 # ── 호숫가 마을(동쪽 135m): 연못보다 큰 호수(물 애셋 — 헤엄·물보라 그대로), 나무 부두와 낚시 자리, 호수를 보는 집 셋, 물가 길과 벤치·가로등 ──
 func _site_lakeside(c: Vector3) -> void:
 	var lake := c + Vector3(-9, 0, 4)
@@ -182,7 +294,7 @@ func _site_lakeside(c: Vector3) -> void:
 	var plank := _mat(Color("a07a52"))
 	_box(Vector3(5.2, 0.12, 1.2), lake + Vector3(5.6, 0.05, 0), plank)   # 동쪽 물가에서 서쪽으로 뻗은 부두(윗면 0.17 — 턱 오르기 안)
 	for i in 4: _box(Vector3(0.12, 0.5, 0.12), lake + Vector3(3.6 + i * 1.3, -0.3, 0.62 if i % 2 == 0 else -0.62), _mat(Color("6b4a35")), false)   # 말뚝
-	spots.append({ "pos": lake + Vector3(3.5, 0.17, 0), "kind": "bank", "yaw": -PI / 2.0 })   # 부두 끝 — 서서 호수를 본다
+	spots.append({ "pos": lake + Vector3(3.5, 0.17, 0), "kind": "bank", "yaw": -PI / 2.0, "fish": true })   # 부두 끝 — 서서 호수를 보거나, 빈손이면 걸터앉아 낚시(_fish)
 	spots.append({ "pos": lake + Vector3(0, 0, 8.9), "kind": "bank", "yaw": PI })
 	spots.append({ "pos": lake + Vector3(-8.9, 0, 0), "kind": "bank", "yaw": PI / 2.0 })
 	_house(c + Vector3(-10, 0, -12), Vector3(4.2, 2.8, 3.4), Color("dfe6ea"), "wood", false, 32)

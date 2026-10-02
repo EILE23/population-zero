@@ -201,7 +201,7 @@ func _physics_process(delta: float) -> void:
 		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
-	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop"]) and dir != Vector3.ZERO:
+	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel"]) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
 			getup_until = now + FightPoses.GETUP_T; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 맞고 일어날 때와 같은 동작·같은 길이(0.6 이 남아 있어 진행이 0.4 에서 시작해 튀었다, polish 79)
 		reading = false; leaning = false; resting = false; player.pose_request = ""
@@ -251,6 +251,7 @@ func _interact_check(now: float) -> void:
 		return
 	if rowing:
 		boat_leave(now); return   # 배 위(run 78): C = 그 자리 북쪽 둑에 내린다(town_boat)
+	if fish_c(now): return   # 부두 끝에서 낚는 중(run 91): C = 입질이면 감아 낚고, 아니면 빈 줄을 거둔다(town_sites)
 	var p := body.global_position
 	var fwd := Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
 	if not carrying_big.is_empty():
@@ -334,9 +335,9 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop"]): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop"] or sp.has("fish")): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
 		var d8: float = p.distance_to(sp["pos"])
-		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": sp["kind"], "spot": sp }; best_d = d8
+		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "fish" if sp.has("fish") else sp["kind"], "spot": sp }; best_d = d8   # 부두 끝 bank 는 빈손이면 낚시 자리(run 91)
 	var pl := near_plot(p)
 	if not pl.is_empty() and plot_dist(p, pl) < best_d: best = { "kind": "plot", "spot": pl }; best_d = plot_dist(p, pl)
 	for c in cars:
@@ -382,6 +383,8 @@ func _interact_check(now: float) -> void:
 			wheel_use(best["spot"], now)   # 칼갈이(run 81): 가는 중이면 손님 자리에서 두 바퀴 기다리기, 아니면 갈기 한 바퀴 — 주민과 같은 자리·같은 자세(town_trades)
 		"chop":
 			chop_use(best["spot"], now)   # 오두막 그루터기: 두 번 패기 — 나무꾼과 같은 자리·같은 자세, 장작이 튄다(town_sites)
+		"fish":
+			fish_use(best["spot"], now)   # 부두 끝(run 91): 걸터앉아 던진다 — 주민과 같은 자리·같은 자세(town_sites)
 		"gate":
 			enter_game(String(best["spot"]["game"]))   # 미니게임 입구(town_sites) — 마을은 멈춰 기다리고, 끝나면 이 문 앞으로
 		"boat":

@@ -306,6 +306,12 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 			var lb := BoxMesh.new(); lb.size = Vector3(0.3, 0.07, 0.12); mi.mesh = lb; mi.material_override = _mat(Color("d9b98a"))
 			mi.position = at + Vector3(0, 0.035, 0)
 			_box(Vector3(0.3, 0.03, 0.12), Vector3(0, 0.035, 0), _mat(Color("6b4a35")), false, mi)
+		"fish":
+			# 물고기(run 91, 호숫가 부두 낚시): 납작하게 누른 은빛 캡슐 + 꼬리지느러미(세운 납작 상자 둘이 V) + 잉크 눈. 세 입에 먹는다(FOOD)
+			var fc := CapsuleMesh.new(); fc.radius = 0.045; fc.height = 0.26; mi.mesh = fc; mi.material_override = _mat(Color("b9c4cc"))
+			mi.rotation.z = PI / 2.0; mi.scale = Vector3(0.55, 1.0, 1.0); mi.position = at + Vector3(0, 0.03, 0)   # 옆으로 누운 물고기 — 눌린 쪽(로컬 x)이 위아래
+			for sd: float in [-1.0, 1.0]: _box(Vector3(0.012, 0.07, 0.03), Vector3(0, -0.17, sd * 0.025), _mat(Color("8e9aa4")), false, mi).rotation.x = sd * 0.5
+			_box(Vector3(0.1, 0.016, 0.016), Vector3(0, 0.07, 0.012), _mat(Color("1b0c15")), false, mi)   # 눈 — 몸을 꿰뚫어 양쪽 옆구리에 잉크 점
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)
@@ -331,7 +337,7 @@ var leaning := false      # 가로등에 기댄 중(움직이면 끝)
 
 const STEP := 0.42
 
-const FOOD := ["apple", "bread", "tomato", "cabbage", "pumpkin"]   # C 로 한입씩 먹는 것 — 텃밭 작물도(run 70)
+const FOOD := ["apple", "bread", "tomato", "cabbage", "pumpkin", "fish"]   # C 로 한입씩 먹는 것 — 텃밭 작물도(run 70)
 
 var _hud_at := 0.0
 

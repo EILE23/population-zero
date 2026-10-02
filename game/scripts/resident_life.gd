@@ -241,6 +241,24 @@ func _wood_pick(now: float) -> bool:
 	target = route[0]["pos"]; state = "walk"; busy_until = now
 	return true
 
+## 부두 끝에 닿음(run 91) — 빈손이고 비가 안 오고 아무도 그 자리에서 낚고 있지 않으면 셋에 하나는 걸터앉아 던진다(사람이 C 로 하는 것과 같은 cast_line).
+## 입질이 오면 town 이 같은 창 안에서 챈다(_fish) — 낚으면 _fish_caught. 60초 안에 안 물면 일어나 다른 데로(자세가 풀리면 대도 거둔다)
+func _fish_arrive(now: float) -> bool:
+	if fig.carrying or weather == "rain" or randf() >= 1.0 / 3.0: return false
+	for e in town.fishers:
+		if e["spot"] == spot: return false
+	var yaw: float = spot["yaw"]
+	global_position = spot["pos"] + Vector3(sin(yaw), 0.05, cos(yaw)) * 0.3
+	fig.face(yaw); town.cast_line(fig, self, spot, now)
+	busy_until = now + 60.0
+	say(mind.line("fish"), 1.6)
+	return true
+
+## 낚았다 — 손에 든 물고기를 그 자리에서 세 입에(_bite: eat 자세, 한입마다 작아진다). 다 먹으면 떠난다
+func _fish_caught(now: float) -> void:
+	carrying_kind = "fish"; bites = 3; bite_at = now + 1.0; busy_until = now + 0.9 * 3 + 1.6
+	say(mind.line("fish_catch"), 1.8)
+
 ## 손님으로 왔는데 장인이 없다 — 한마디 하고 곧 다른 자리로
 func _trade_closed(now: float) -> void:
 	busy_until = now + 1.0; say(["Closed, then.", "Another day.", "Gone to lunch."][uid % 3], 1.4)
