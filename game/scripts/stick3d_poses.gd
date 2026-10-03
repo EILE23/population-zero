@@ -81,6 +81,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		lean = FishPoses.lean(f)   # 낚시(run 91) — 걸터앉는 골반 높이도 거기서(stick3d_fish.gd)
 	if p == "bicker" or p == "makeup": lean = PairPoses.lean(f)   # 짝 다툼(run 95)·화해(run 96), stick3d_pair.gd
 	if p == "shelve": lean = ShelfPoses.lean(f)   # 책 상자에 꽂기·꺼내기(run 98, stick3d_shelf.gd)
+	if p == "sort": lean = PostPoses.lean(f)   # 우편함에 꽂기·꺼내기(run 99, stick3d_post.gd)
 	if p == "moor": lean = DockPoses.lean(f)   # 배 매기(run 94) — 쪼그린 골반 높이도 거기서(stick3d_dock.gd)
 	if p == "stoke": lean = HearthPoses.lean(f)   # 난로에 장작 넣기(run 92) — 쪼그린 골반 높이도 거기서(stick3d_hearth.gd)
 	if p == "rest":
@@ -231,7 +232,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker"]   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
+	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "sort"]   # sort: 오른손이 편지를 칸에 넣는다(run 99)   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 우산(run 76, "Weather people feel" 2조각): 오른팔만 쓴다 — 다리와 왼팔은 걷기·서기·앉기 그대로라 limbs() 의 match 에 없고, stick3d.gd 가 팔다리를 다 정한 뒤 이걸 부른다(세 변형이 팔 하나를 나눠 쓴다).
 ## k = f.umbr_k(0..1, UMBR_T 에 걸쳐 오간다): 팔이 늘어진 곳에서 머리 위로 오르고 캐노피(우산 meta "umb")가 펴진다; 접힐 땐 같은 길을 거꾸로. 걸을수록 진행 방향으로 조금 더 기운다 — 정지화가 아니다
@@ -438,5 +439,5 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			if s > 0.0:
 				f.neck.rotation.x -= 0.55 * k; f.chest.rotation.x -= 0.06 * k   # 고개만 든다 — 몸통은 조금
 		_:
-			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s)   # 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
+			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s) or PostPoses.limbs(f, s)   # 우편 가족(run 99)· 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
 	return true

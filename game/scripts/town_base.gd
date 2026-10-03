@@ -318,6 +318,12 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 			mi.material_override = _mat([Color("7b526c"), Color("5b6b7a"), Color("6b7a52"), Color("8a5a4a")][randi() % 4])
 			mi.position = at + Vector3(0, 0.02, 0)
 			_box(Vector3(0.012, 0.03, 0.2), Vector3(0.078, -0.015, 0), _mat(Color("efe9e2")), false, mi)
+		"letter":
+			# 편지(run 99, 편지방 우편함): 접은 봉투 0.16×0.012×0.11 + 덮개 선(종이보다 짙은 띠) + 가운데 작은 분홍 봉랍. 바닥엔 눕고, 우편함엔 비스듬히 선다(town_letters)
+			var lb2 := BoxMesh.new(); lb2.size = Vector3(0.16, 0.012, 0.11); mi.mesh = lb2; mi.material_override = _mat(Color("f7f4ef"))
+			mi.position = at + Vector3(0, 0.006, 0)
+			_box(Vector3(0.15, 0.004, 0.012), Vector3(0, 0.006, -0.01), _mat(Color("cfc7c2")), false, mi)
+			_box(Vector3(0.026, 0.006, 0.026), Vector3(0, 0.006, 0.0), _mat(Color("ad7096")), false, mi)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)

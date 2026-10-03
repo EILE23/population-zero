@@ -1,5 +1,5 @@
 class_name Resident
-extends ResidentShelf
+extends ResidentLetters
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
@@ -241,8 +241,8 @@ func _pick_spot() -> void:
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	if _trade_pick(Time.get_ticks_msec() / 1000.0): return   # 구두장이의 낮 일, 닳은 밑창(run 80, resident_life)
-	if _pair_pick(Time.get_ticks_msec() / 1000.0) or _swap_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair), 책 상자(run 98, resident_shelf)
-	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap"]))
+	if _pair_pick(Time.get_ticks_msec() / 1000.0) or _swap_pick(Time.get_ticks_msec() / 1000.0) or _post_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair), 책 상자(run 98, resident_shelf), 편지방(run 99, resident_letters)
+	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap", "letters"]))
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
 	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
 	if weather == "rain" and has_umb:
@@ -411,7 +411,7 @@ func _arrive(now: float) -> void:
 			else:
 				busy_until = now + randf_range(2.0, 4.0)
 		_:
-			if (spot.has("fish") and _fish_arrive(now)) or _swap_arrive(now): return   # 부두 끝(run 91): 셋에 하나는 걸터앉아 낚는다(resident_life); 책 상자(run 98, resident_shelf)
+			if (spot.has("fish") and _fish_arrive(now)) or _swap_arrive(now) or _post_arrive(now): return   # 편지방 우편함(run 99, resident_letters); 부두 끝(run 91): 셋에 하나는 걸터앉아 낚는다(resident_life); 책 상자(run 98, resident_shelf)
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
 			# 개가 곁에 있으면 쪼그려 앉아 쓰다듬는다(사람이 C 로 하는 것과 같은 자세·같은 개 반응)
@@ -488,7 +488,7 @@ func _leave() -> void:
 	_umb_pose()
 	if spot.get("kind", "") == "bench":
 		global_position += Vector3(0, 0, 0.45)
-	if spot.get("kind", "") in ["chair", "bed", "shelf", "stove"] and not door_ref.is_empty():
+	if spot.get("kind", "") in ["chair", "bed", "shelf", "stove", "letters"] and not door_ref.is_empty():
 		global_position += Vector3(0, 0, 0.35)
 		var dp: Vector3 = door_ref["pos"]
 		route = [{ "pos": dp + Vector3(0, 0, -0.9), "act": "open" }, { "pos": dp + Vector3(0, 0, 0.9), "act": "close" }]   # 들어가면 등 뒤로 닫고, 나올 땐 열고 나와 닫는다(운영자 2026-09-29: 문을 안 닫고 다님)

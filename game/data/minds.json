@@ -50,6 +50,8 @@
     "sulk": ["Not yet.", "I'm still cross.", "Give it a minute.", "Ask me later."],
     "go_on": ["Fine. Fine.", "If I must.", "All right, I'll go.", "Only because you asked."],
     "book_swap": ["One in, one out.", "Bring one back sometime.", "That one is good.", "Mind the spine.", "Straight rows, please."],
+    "letter_in": ["Filed.", "Third row, as ever.", "It will reach them.", "Mind the corners.", "Morning post."],
+    "letter_out": ["That one is not addressed to you. Read it anyway.", "Return it when finished.", "Someone wrote that carefully.", "One less to sort."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },

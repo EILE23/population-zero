@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownSwap
+extends TownLetters
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -198,10 +198,10 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request == "lwave": player.pose_request = "umbr" if player.umbr_k > 0.5 else ""   # 왼손 인사(CI run 77)가 끝나면 우산은 있던 대로
-		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop", "stoke", "moor", "shelve"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
+		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop", "stoke", "moor", "shelve", "sort"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
-	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel", "stoke", "moor", "shelve"]) and dir != Vector3.ZERO:
+	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel", "stoke", "moor", "shelve", "sort"]) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
 			getup_until = now + FightPoses.GETUP_T; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 맞고 일어날 때와 같은 동작·같은 길이(0.6 이 남아 있어 진행이 0.4 에서 시작해 튀었다, polish 79)
 		reading = false; leaning = false; resting = false; player.pose_request = ""
@@ -294,7 +294,8 @@ func _interact_check(now: float) -> void:
 			return
 		if kind == "log" and (stoke_log(now) or stack_log(now)): return   # 난로 앞이면 넣고(run 92), 장작더미 앞이면 쌓는다(town_woods) — 아니면 아래 '내려놓기'
 		if kind == "book" and swap_use(now): return   # 책 상자 앞이면 꽂기(run 98, town_swap) — 아니면 아래처럼 펼쳐 읽는다
-		if kind in ["paper", "book"]:
+		if kind in ["paper", "letter"] and letters_use(now): return   # 우편함 앞이면 꽂기(run 99, town_letters) — 아니면 아래처럼 펼쳐 읽는다
+		if kind in ["paper", "book", "letter"]:
 			reading = not reading; player.pose_request = "read" if reading else ""
 			return
 		# 들고 있어도 손 닿는 곳에 다른 물건이 있으면 그것부터 줍는다(셋까지); 없으면 맨 위 것을 앞에 내려놓는다
@@ -336,7 +337,7 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop", "swap"] or sp.has("fish")): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop", "swap", "letters"] or sp.has("fish")): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "fish" if sp.has("fish") else sp["kind"], "spot": sp }; best_d = d8   # 부두 끝 bank 는 빈손이면 낚시 자리(run 91)
 	var pl := near_plot(p)
@@ -376,6 +377,8 @@ func _interact_check(now: float) -> void:
 			oven_use(best["spot"], now)   # 화덕: 반죽 한 바퀴(knead 자세)로 창구에 빵 하나 — 빵집 주인이 하는 것과 같은 자세·같은 효과(town_places)
 		"swap":
 			swap_use(now)   # 책 상자(run 98): 빈손이면 하나 꺼낸다 — 주민이 지나가다 하는 것과 같은 shelve 자세(town_swap)
+		"letters":
+			letters_use(now)   # 편지방 우편함(run 99): 빈손이면 하나 꺼낸다 — 서기·지나는 주민과 같은 sort 자세(town_letters)
 		"rack":
 			rack_use(now)   # 우산꽂이(run 76): 하나 빌린다 — 주민이 비 올 때 하는 것과 같은 take_umbrella(town_places)
 		"cobbler", "stool":

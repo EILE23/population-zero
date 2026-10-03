@@ -151,7 +151,7 @@ func _nudge(now: float) -> bool:
 	if not _sulking(now) or _mending != null or in_boat or not riding_swing.is_empty() or riding_seesaw != null: return false
 	var o := sulk_with
 	if o.state in ["down", "getup", "chase", "drive"] or o.in_boat or o.global_position.distance_to(global_position) > 12.0: return false
-	if String(spot.get("kind", "")) in ["chair", "bed", "shelf", "stove"] or (state == "walk" and route.any(func(st: Dictionary) -> bool: return st.get("act", "") != "")): return false
+	if String(spot.get("kind", "")) in ["chair", "bed", "shelf", "stove", "letters"] or (state == "walk" and route.any(func(st: Dictionary) -> bool: return st.get("act", "") != "")): return false
 	town.call("say_toast", "Go on.")
 	if state == "busy": call("_leave")
 	_go_mend(o, now); _nudged = true

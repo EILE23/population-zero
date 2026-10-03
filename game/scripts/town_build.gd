@@ -70,7 +70,7 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 
 ## 집 — 시드로 정하는 사양(진짜 집처럼, 운영자 2026-09-28): 층수 1~2, 박공/평지붕, 벽 재질(널빤지·벽돌·회벽·색벽), 트림 색, 창 배치와 덧문·창턱,
 ## 처마·홈통·굴뚝·현관 지붕·계단·화단·우체통. 속은 비어 있고(벽 네 장) 경첩 문으로 들어간다. 들어가면 지붕·앞벽·천장이 사라져 안이 보인다(컷어웨이).
-func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false, seed := 0) -> void:
+func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false, seed := 0, inside := "") -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 1000 + seed + int(at.x * 7.0 + at.z * 13.0)
 	var storeys := 2 if (rng.randf() < 0.35 and not flat_roof) else 1
 	size.y = size.y * (1.7 if storeys == 2 else 1.0)
@@ -170,9 +170,10 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		parts.append(chim); parts.append(cap)
 	parts.append(_box(Vector3(size.x, 0.06, size.z), at + Vector3(0, ceiling_y - 0.06, 0), trim, false))
 	var before := spots.size()
-	_interior(at, size, rng)
+	if inside == "": _interior(at, size, rng)
+	else: call(inside, at, size)   # 집마다 다른 실내(편지방 run 99, town_letters) — 윗층 빌더라 이름으로 부른다
 	for k in range(before, spots.size()):
-		if spots[k]["kind"] in ["chair", "bed", "shelf"]: spots[k]["door"] = doors[doors.size() - 1]   # 의자만 달아 줬더니 침대·선반은 문 없이 벽을 향해 곧장 걷다 포기했고, 밤엔 아무도 침대에서 못 잤다
+		if spots[k]["kind"] in ["chair", "bed", "shelf", "letters"]: spots[k]["door"] = doors[doors.size() - 1]   # 의자만 달아 줬더니 침대·선반은 문 없이 벽을 향해 곧장 걷다 포기했고, 밤엔 아무도 침대에서 못 잤다
 	houses.append({ "min": at + Vector3(-hw, 0, -hd), "max": at + Vector3(hw, size.y, hd), "parts": parts, "inside": false, "shell": shell, "behind": false, "chim": cap, "door": doors[doors.size() - 1] })   # chim·door: 굴뚝 연기(run 77)가 이 집 자리의 taken 을 찾는 열쇠
 
 ## 옮길 수 있는 가구 — 의자(앉는 자리 포함)·화분·소형 램프. 들면 충돌을 끄고, 놓으면 다시 켠다
