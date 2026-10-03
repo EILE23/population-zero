@@ -26,6 +26,7 @@ var sulk_until := 0.0
 var _mending: ResidentPair = null    # 화해하러 가는 중 — 그 사람 벤치 옆 칸이나 그 사람 앞으로
 var _mend_until := 0.0               # 그때까지 못 닿으면 그만둔다(움직이는 목표라 막힘 판정을 끈다)
 var _nudged := false                 # 사람이 등을 떠밀어 간 길 — 이때만 상대가 거절할 수 있다
+var _cold_until := 0.0               # 거절당했다 — 토라짐이 끝날 때까지 저절로 옆 칸에 오지 않는다(polish run 97: 거절 몇 초 뒤 둘 중 하나가 일어나면 곧장 화해해 거절이 무의미했다)
 
 ## 자리 고르기 앞(resident.gd _pick_spot): 8m 안에서 막 바깥 자리로 나선 친구가 있으면 넷에 한 번 그 목적지로 함께 간다
 func _pair_pick(now: float, chance := PAIR_CHANCE) -> bool:
@@ -175,7 +176,7 @@ func _mend_tick(now: float) -> void:
 ## 화해 한 번 — 둘 다 서로를 보고 makeup(한숨 → 끄덕 → 손바닥), 정 +0.05, 토라짐과 짝 쿨다운이 풀린다. 등 떠밀려 온 길이면 성미 급한 상대는 거절
 func _reconcile(o: ResidentPair, now: float) -> void:
 	if _nudged and o.mind.temper > 0.7:
-		_mending = null; _nudged = false
+		_mending = null; _nudged = false; _cold_until = sulk_until; o._cold_until = o.sulk_until
 		if state != "busy": _release(); state = "busy"; spot = { "kind": "mend" }; route = []; busy_until = now + 1.5
 		if not o.fig.seated: o.fig.face(atan2(o.global_position.x - global_position.x, o.global_position.z - global_position.z))   # 등을 돌린다
 		o.say(o.mind.line("sulk"), 1.8)
@@ -198,6 +199,7 @@ func _sulk_tick(now: float) -> void:
 		sulk_with = null; _mending = null; _nudged = false; return
 	if _mending != null: _mend_tick(now); return
 	var o := sulk_with
+	if now < _cold_until or now < o._cold_until: return   # 거절 뒤엔 사람이 다시 떠밀 때만
 	if state != "busy" or not fig.seated or String(spot.get("kind", "")) != "bench" or o._mending != null or o.pair != null or o.in_boat: return
 	if not (o.state in ["routine", "walk"]) or o.global_position.distance_to(global_position) > 6.0: return
 	if o.state == "walk" and o.route.any(func(st: Dictionary) -> bool: return st.get("act", "") != ""): return   # 문·나루를 지나는 길은 끊지 않는다

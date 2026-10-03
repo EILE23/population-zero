@@ -2,6 +2,7 @@ extends SceneTree
 ## 둘이 함께 걷기 점검(헤드리스, run 95): 친구 사이 둘 중 하나가 바깥 자리로 나서면 다른 하나가 그 목적지로 따라붙어 0.6m 옆에서 나란히 걷나,
 ## 앞사람이 닿으면 곁에 서나, 걷던 중 하나를 때리면 짝이 깨지고 둘 다 bicker 를 하나(맞은 쪽은 움찔이 끝난 뒤), 90초 안엔 다시 짝을 안 맺나
 ## 2조각(run 96): 다툰 둘이 토라져 있나, 하나가 벤치에 앉으면 다른 하나가 와서 옆 칸에 앉고 둘 다 makeup 을 하나, 사람의 C 가 한쪽을 보내 화해시키나(성미 급한 상대는 거절)
+## polish run 97: 거절당한 둘은 토라짐이 끝날 때까지 저절로 벤치 옆 칸에 오지 않는다
 ## godot --headless --path game -s res://tools/probe_pair.gd
 func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
@@ -89,4 +90,14 @@ func _init() -> void:
 		await physics_frame
 		if a._mending == null: break
 	print("REFUSE still sulking=", a._sulking(Time.get_ticks_msec() / 1000.0), " b said='", b.say_label.text, "' (want true + a sulk line)")
+	# 거절 뒤: b 가 벤치에 앉고 a 가 곁에서 한가해도 저절로 화해하지 않는다(polish run 97 — 전엔 몇 초 뒤 곧장 makeup)
+	for r: ResidentPair in [a, b]: r._leave()
+	now2 = Time.get_ticks_msec() / 1000.0
+	b.spot = bench; b.slot = 0; b._claim(bench, 0); b.global_position = bench["pos"] + Vector3(-0.45, 0.05, 0.02); b.fig.seated = true; b.state = "busy"; b.busy_until = now2 + 30.0; b.collision_layer = 0; b.collision_mask = 0
+	a.global_position = bench["pos"] + Vector3(3.0, 0.1, 2.0); a.state = "routine"; a.busy_until = now2 + 60.0
+	made = false
+	for i in 300:
+		await physics_frame
+		if a._mending != null or a.fig.pose_request == "makeup": made = true; break
+	print("COLD after refusal auto-mend=", made, " (want false) cold=", a._cold_until > now2)
 	quit()
