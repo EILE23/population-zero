@@ -79,7 +79,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		f.pelvis.position.y = 0.3
 	if p == "cast" or p == "reel":
 		lean = FishPoses.lean(f)   # 낚시(run 91) — 걸터앉는 골반 높이도 거기서(stick3d_fish.gd)
-	if p == "bicker": lean = PairPoses.lean(f)   # 짝 다툼(run 95, stick3d_pair.gd)
+	if p == "bicker" or p == "makeup": lean = PairPoses.lean(f)   # 짝 다툼(run 95)·화해(run 96), stick3d_pair.gd
 	if p == "moor": lean = DockPoses.lean(f)   # 배 매기(run 94) — 쪼그린 골반 높이도 거기서(stick3d_dock.gd)
 	if p == "stoke": lean = HearthPoses.lean(f)   # 난로에 장작 넣기(run 92) — 쪼그린 골반 높이도 거기서(stick3d_hearth.gd)
 	if p == "rest":

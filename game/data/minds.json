@@ -46,6 +46,9 @@
     "moored": ["Tied off.", "Made fast.", "That knot will hold.", "Left it for the next one."],
     "pair_walk": ["Same way. I'll come along.", "Walk with you.", "Wait for me.", "Going there too."],
     "bicker": ["That was your elbow.", "You walked into it.", "I was keeping pace.", "Not my fault.", "Then walk alone."],
+    "made_up": ["Fair enough.", "We're square.", "Forget the elbow.", "Shall we, then?", "All forgotten."],
+    "sulk": ["Not yet.", "I'm still cross.", "Give it a minute.", "Ask me later."],
+    "go_on": ["Fine. Fine.", "If I must.", "All right, I'll go.", "Only because you asked."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },

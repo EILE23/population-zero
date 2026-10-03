@@ -5,6 +5,9 @@ extends ResidentLife
 ## 바깥쪽(따라 걷는 이)은 몇 초마다 고개를 돌려 짝을 본다(Stick3D look_yaw). 닿으면 벤치면 옆 칸, 아니면 곁에 서서 짝이 일어날 때까지 함께 있다.
 ## 둘 중 누구든 맞으면 짝이 깨지고 둘 다 서서 마주 보고 bicker(PairPoses) — 맞는 것(움찔·넘어짐)은 예전 그대로이고, 다툼은 그 뒤에 온다(세 번째 변형이 아니다).
 ## 짝은 무작위로 맺지 않는다(관계가 정한다). 사슬: base → life → pair → resident. 아래 층(base.hit)은 call("_pair_hit") 으로 부른다
+## 2조각(run 96): 다툰 둘은 90초 동안 서로 토라져 있다(sulk). 하나가 벤치에 앉아 있고 다른 하나가 6m 안에서 한가하면 와서 옆 칸에 앉고,
+## 둘이 고개를 돌려 한숨 → 끄덕(makeup, PairPoses) — 정이 0.05 오르고 토라짐이 풀린다. 사람의 C(인사)는 토라진 한쪽을 상대에게 보낼 뿐이다("Go on.") —
+## 성미가 급한(temper > 0.7) 상대는 그래도 거절할 수 있다. 억지로 짝을 맺는 길은 없다(base.greet 가 call("_nudge"))
 
 const PAIR_KINDS := ["bench", "lamp", "tree", "lookout", "grass", "bank", "door"]   # 바깥 자리만 — 집 안(문 열기)·나루·일터·놀이기구는 둘이 나란히 못 간다
 const SIDE := 0.6
@@ -18,6 +21,11 @@ var _pair_cool := 0.0           # 다툰 뒤 90초는 다시 짝을 맺지 않�
 var _bicker_with: ResidentPair = null   # 맞은 쪽: 움찔·일어나기가 끝나면 이 사람과 다툰다
 var _homing := false            # 앞사람이 닿았다 — 따라 걷던 이는 제 끝점으로
 var _caught := false            # 한 번은 옆에 붙었다(그 뒤에 3m 처지면 짝이 풀린다)
+var sulk_with: ResidentPair = null   # 다툰 상대(2조각) — sulk_until 까지 토라져 있다
+var sulk_until := 0.0
+var _mending: ResidentPair = null    # 화해하러 가는 중 — 그 사람 벤치 옆 칸이나 그 사람 앞으로
+var _mend_until := 0.0               # 그때까지 못 닿으면 그만둔다(움직이는 목표라 막힘 판정을 끈다)
+var _nudged := false                 # 사람이 등을 떠밀어 간 길 — 이때만 상대가 거절할 수 있다
 
 ## 자리 고르기 앞(resident.gd _pick_spot): 8m 안에서 막 바깥 자리로 나선 친구가 있으면 넷에 한 번 그 목적지로 함께 간다
 func _pair_pick(now: float, chance := PAIR_CHANCE) -> bool:
@@ -97,6 +105,7 @@ func _pair_hit() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	_unpair()
 	_bicker_with = o; _pair_cool = now + 90.0
+	sulk_with = o; sulk_until = now + 90.0; o.sulk_with = self; o.sulk_until = now + 90.0   # 둘 다 토라진다 — 짝 다시 맺기 쿨다운과 같은 90초
 	if o.state in ["walk", "busy", "routine"] and not o.in_boat and o.riding_swing.is_empty() and o.riding_seesaw == null: o._bicker(self, now)
 
 ## 다툼 한 번 — 서서 마주 보고 bicker(BICKER_T), 한마디. 끝나면 busy 가 풀려(_leave) 각자 제 갈 길로
@@ -111,12 +120,97 @@ func _bicker(o: ResidentPair, now: float) -> void:
 	_pair_cool = now + 90.0
 	say(mind.line("bicker"), 1.6)
 
+func _sulking(now: float) -> bool:
+	return sulk_with != null and is_instance_valid(sulk_with) and now < sulk_until and sulk_with.sulk_with == self
+
+## 벤치에 앉은 나 — 바로 옆 칸이 비었나(사람이 앉은 칸도 찬 자리)
+func _slot_beside() -> int:
+	var taken: Array = spot.get("taken", [])
+	for i: int in [slot - 1, slot + 1]:
+		if i < 0 or i > 2 or (i < taken.size() and taken[i] != null) or _player_on(spot, i): continue
+		return i
+	return -1
+
+## 화해하러 간다: 상대가 벤치에 앉아 있고 옆 칸이 비었으면 거기 앉으러, 아니면 그 사람 앞까지(따라가며)
+func _go_mend(o: ResidentPair, now: float) -> void:
+	if pair != null: _unpair()
+	_release()
+	_mending = o; _mend_until = now + 20.0; pace = 1.0; fig.pose_request = ""; fig.seated = false; busy_until = now
+	var bi := o._slot_beside() if o.state == "busy" and o.fig.seated and String(o.spot.get("kind", "")) == "bench" else -1
+	if bi >= 0:
+		spot = o.spot; slot = bi; _claim(spot, bi)
+		route = town.via_bridge(global_position, [{ "pos": spot["pos"] + Vector3([-0.45, 0.0, 0.45][bi], 0, 0.45), "act": "" }])
+	else:
+		spot = { "kind": "mend", "pos": o.global_position }
+		route = [{ "pos": o.global_position, "act": "" }]
+	target = route[0]["pos"]; state = "walk"
+
+## 사람의 C(인사) — 토라진 한쪽이면 인사 대신 상대에게 보낸다. 집 안·배·그네 위는 아니다(인사로 처리)
+func _nudge(now: float) -> bool:
+	if not _sulking(now) or _mending != null or in_boat or not riding_swing.is_empty() or riding_seesaw != null: return false
+	var o := sulk_with
+	if o.state in ["down", "getup", "chase", "drive"] or o.in_boat or o.global_position.distance_to(global_position) > 12.0: return false
+	if String(spot.get("kind", "")) in ["chair", "bed", "shelf", "stove"] or (state == "walk" and route.any(func(st: Dictionary) -> bool: return st.get("act", "") != "")): return false
+	town.call("say_toast", "Go on.")
+	if state == "busy": call("_leave")
+	_go_mend(o, now); _nudged = true
+	say(mind.line("go_on"), 1.6)
+	return true
+
+## 화해하러 가는 이가 매 프레임: 벤치면 앉으면 끝, 아니면 상대를 따라가 1.3m 안이면 끝. 맞거나 쫓거나 상대가 일어나면 그만(토라짐은 남는다)
+func _mend_tick(now: float) -> void:
+	var o := _mending
+	var kind := String(spot.get("kind", ""))
+	if not is_instance_valid(o) or now > _mend_until or not (state in ["walk", "busy"]) or not (o.state in ["walk", "busy", "routine"]) or not (kind in ["mend", "bench"]):
+		_mending = null; _nudged = false; return
+	if kind == "bench":
+		if not is_same(o.spot, spot) or not o.fig.seated: _mending = null; _nudged = false; return   # 그새 일어났다 — 앉는 건 그대로, 화해는 아니다
+		if state == "busy": _reconcile(o, now)   # 앉았다(닿자마자 옆 사람과 수다로 붙잡혀 서 있어도 — 거기서 화해한다)
+		return
+	var to := global_position - o.global_position; to.y = 0.0
+	if to.length() < 1.3: _reconcile(o, now); return
+	if state == "walk":
+		target = o.global_position + to.normalized() * 0.8; route = [{ "pos": target, "act": "" }]; stuck_since = -1.0
+
+## 화해 한 번 — 둘 다 서로를 보고 makeup(한숨 → 끄덕 → 손바닥), 정 +0.05, 토라짐과 짝 쿨다운이 풀린다. 등 떠밀려 온 길이면 성미 급한 상대는 거절
+func _reconcile(o: ResidentPair, now: float) -> void:
+	if _nudged and o.mind.temper > 0.7:
+		_mending = null; _nudged = false
+		if state != "busy": _release(); state = "busy"; spot = { "kind": "mend" }; route = []; busy_until = now + 1.5
+		if not o.fig.seated: o.fig.face(atan2(o.global_position.x - global_position.x, o.global_position.z - global_position.z))   # 등을 돌린다
+		o.say(o.mind.line("sulk"), 1.8)
+		return
+	for pr in [[self, o], [o, self]]:
+		var a: ResidentPair = pr[0]; var b: ResidentPair = pr[1]
+		a._mending = null; a._nudged = false; a.sulk_with = null; a._pair_cool = now; a.mind.befriend(b, 0.05)
+		if a.fig.pose_request in ["share", "pass"]: continue   # 앉자마자 반씩 나누는 중(run 85) — 그게 화해다
+		if a.state != "busy":
+			a._release(); a.state = "busy"; a.spot = { "kind": "mend" }; a.route = []
+		var yaw := atan2(b.global_position.x - a.global_position.x, b.global_position.z - a.global_position.z)
+		if a.fig.seated: a.fig.look_yaw = clampf(wrapf(yaw - a.fig.rotation.y, -PI, PI), -1.0, 1.0)   # 앉은 이는 몸 대신 고개만
+		else: a.fig.face(yaw)
+		a.fig.pose_request = "makeup"; a.busy_until = maxf(a.busy_until, now + PairPoses.MAKEUP_T + (4.0 if a.fig.seated else 0.4))   # 앉은 둘은 조금 더 같이 앉아 있다
+	say(mind.line("made_up"), 1.8)
+
+## 토라진 동안: 내가 벤치에 앉아 있고 상대가 6m 안에서 한가하면(돌아다니거나 고르는 중) 상대가 옆 칸으로 온다
+func _sulk_tick(now: float) -> void:
+	if not _sulking(now):
+		sulk_with = null; _mending = null; _nudged = false; return
+	if _mending != null: _mend_tick(now); return
+	var o := sulk_with
+	if state != "busy" or not fig.seated or String(spot.get("kind", "")) != "bench" or o._mending != null or o.pair != null or o.in_boat: return
+	if not (o.state in ["routine", "walk"]) or o.global_position.distance_to(global_position) > 6.0: return
+	if o.state == "walk" and o.route.any(func(st: Dictionary) -> bool: return st.get("act", "") != ""): return   # 문·나루를 지나는 길은 끊지 않는다
+	if _slot_beside() >= 0: o._go_mend(self, now)
+
 func _process(delta: float) -> void:
 	super(delta)
 	if state == "drive": return
 	var now := Time.get_ticks_msec() / 1000.0
 	if pair != null and pair_follow: _pair_tick(now)
 	elif pair != null and not (state in ["walk", "busy"]): _unpair()
+	if sulk_with != null: _sulk_tick(now)
+	if pair == null and fig.look_yaw != 0.0 and fig.pose_request != "makeup": fig.look_yaw = 0.0   # 화해하며 돌린 고개를 되돌린다
 	if _bicker_with != null:
 		var o := _bicker_with
 		if state == "routine":
