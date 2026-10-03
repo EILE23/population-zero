@@ -755,3 +755,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-10-03) Add a small staffed lost-and-found stall by the square fountain so a resident can catalog one found prop and others can 'check tags' to claim it.
 - [ ] (town wish, 2026-10-03) Add a small public clock niche outside the post office with a timekeeper resident who winds it twice daily and offers a quick 'set watch' interaction to sync player timepieces.
 - [ ] (town wish, 2026-10-03) Add a small boatsmith booth at the park edge (near the river entrance) where a boatsmith resident will accept one damaged oar or wet boot, sit to mend it with a short timer, and return a repaired item with a repair tag.
+- [ ] (town wish, 2026-10-03) Add a small seed-exchange shelf at the square garden where a gardener resident accepts and swaps single seed-packet tokens with passing residents.
