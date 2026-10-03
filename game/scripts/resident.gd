@@ -1,5 +1,5 @@
 class_name Resident
-extends ResidentLife
+extends ResidentPair
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
@@ -63,7 +63,7 @@ func _physics_process(delta: float) -> void:
 					target = route[0]["pos"]
 			else:
 				var dir := to.normalized()
-				var spd := WALK * (1.7 if weather == "rain" and not has_umb else 1.0) * (1.9 if spot.get("kind", "") == "flee" else 1.0)  # 비 오면 서두른다 — 우산을 폈으면 그냥 걷는다(run 76)
+				var spd := WALK * pace * (1.7 if weather == "rain" and not has_umb else 1.0) * (1.9 if spot.get("kind", "") == "flee" else 1.0)  # 비 오면 서두른다 — 우산을 폈으면 그냥 걷는다(run 76)
 				v.x = dir.x * spd; v.z = dir.z * spd
 				fig.move_dir = dir; fig.speed = Vector2(velocity.x, velocity.z).length()   # 걸음은 실제 속도로 — 벽에 막히면 제자리 뛰기가 안 난다
 				# 막힘은 진행 거리로 판단: 1.2초 동안 목표에 0.15m 도 못 다가가면 옆으로 우회 지점을 하나 두고, 두 번째면 포기
@@ -241,6 +241,7 @@ func _pick_spot() -> void:
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	if _trade_pick(Time.get_ticks_msec() / 1000.0): return   # 구두장이의 낮 일, 닳은 밑창(run 80, resident_life)
+	if _pair_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair)
 	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove"]))
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
 	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
@@ -494,5 +495,3 @@ func _leave() -> void:
 		target = route[0]["pos"]; state = "walk"
 		return
 	state = "routine"; busy_until = Time.get_ticks_msec() / 1000.0 + randf_range(0.5, 2.0)
-
-

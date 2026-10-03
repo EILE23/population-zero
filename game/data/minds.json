@@ -44,6 +44,8 @@
     "pass_thanks": ["Thank you.", "Oh. Ta.", "Much obliged."],
     "ferry": ["Across, then.", "Quicker by water.", "I will take the punt.", "Mind the oars."],
     "moored": ["Tied off.", "Made fast.", "That knot will hold.", "Left it for the next one."],
+    "pair_walk": ["Same way. I'll come along.", "Walk with you.", "Wait for me.", "Going there too."],
+    "bicker": ["That was your elbow.", "You walked into it.", "I was keeping pace.", "Not my fault.", "Then walk alone."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },

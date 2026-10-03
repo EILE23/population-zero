@@ -29,6 +29,7 @@ var swing_k := 0.0             # 그네: 각속도 정규화(-1..1) — 앞으�
 var squash := 0.0             # jump stretch(+)/land squash(-), decays to 0
 var base_scale := Vector3.ONE  # 기준 배율(차 안 0.8, 차에 깔리면 납작) — scale 은 매 프레임 여기에 찌그러짐을 곱해 다시 쓴다(polish 79: 바깥에서 scale 을 만지면 다음 프레임에 지워졌다)
 var push_t := 9.0              # 밀기: 0 에서 시작해 1 까지(팔을 뻗었다 거둔다), 9 = 쉼
+var look_yaw := 0.0            # 고개만 돌려 보기(rad, 몸 기준) — 나란히 걷는 짝을 돌아본다(run 95, resident_pair). 0 이면 정면
 var pose_t := 0.0              # 지금 pose_request 가 시작된 뒤 흐른 시간 — 자세마다 예비·유지·회수 타이밍(StickPoses). 자세가 바뀌면 0
 var _pose_prev := ""
 
@@ -39,7 +40,7 @@ var _fidget_next := randf_range(3.0, 8.0)   # 다음 기지개까지 남은 시�
 
 var _phase := 0.0
 var _pose_since := 0.0
-const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer", "grind", "wait", "sew", "teeter", "share", "pass", "chop", "cast", "reel", "stoke", "moor"]
+const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer", "grind", "wait", "sew", "teeter", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker"]
 var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0
@@ -145,6 +146,7 @@ func _process(delta: float) -> void:
 		neck.rotation.x -= 0.35  # 고개를 젖힌다(2D yawn 과 같은 방향)
 	elif _fidget == "look":
 		neck.rotation.y = sin(_fidget_t * 2.2) * 0.35  # 좌우로 둘러본다(2D look)
+	neck.rotation.y += look_yaw   # 블렌딩이 돌림을 부드럽게 한다
 	hand_r.rotation = Vector3.ZERO   # 손목은 블렌딩 대상이 아니다 — 물주기가 기울인 걸 프레임마다 되돌린다
 	for side in [-1.0, 1.0]:
 		var s: float = side

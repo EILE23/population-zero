@@ -176,6 +176,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool, push := -1.0, lift := -1.0)
 	# 누가 했나: 사람의 주먹·발, 또는 사람이 모는 차. 주민이 모는 차는 사고라 쫓지 않는다. 사람이면 기억하고, 곁에서 본 이들도 사람을 조금 덜 좋아하게 된다
 	var by_player: bool = by == town.body or (by is Car3D and (by as Car3D).driver == town.body)
 	quarry = town.body if by_player else (null if by is Car3D else by)
+	call("_pair_hit")   # 나란히 걷던 짝이 깨진다 — 다툼은 맞은 뒤에(run 95, resident_pair). 맞음 자체는 아래 그대로
 	if by_player:
 		mind.hurt_by_player(heavy)
 		for o in town.residents:
