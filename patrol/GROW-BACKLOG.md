@@ -740,3 +740,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-10-03) Add a small book-exchange booth outside the church on Street that a single 'librarian' resident tends and that makes residents carrying books pause to swap them.
 - [ ] (town wish, 2026-10-03) Add a small mender stall on the square where a resident 'mender' can fix small props (buttons, tags, straps) with a short service action and a tiny queue.
 - [ ] (town wish, 2026-10-03) Add a tiny Lost & Found corner in Market Alley: a claim booth where residents can tag and place a single found item and a small waiting step where a volunteer tends and accepts returns.
+- [ ] (town wish, 2026-10-03) Add a tiny seed-exchange corner in the park where residents can leave or take single seed packets, sign the donation on a small ledger board, and a volunteer action tidies and re-bundles packets.
