@@ -748,3 +748,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-10-03) Add a small indoor 'Letter Room' map off Old Court with a scribe NPC who accepts one-page notes from players, bundles them into pigeonholes, and pauses routed residents so they can drop or collect mail.
 - [ ] (town wish, 2026-10-03) Add a small unmanned 'community pantry' stall on the street (near the bakery) with a pantry volunteer who quietly refills shelf items and lets any passing resident take one food token when low.
 - [ ] (town wish, 2026-10-03) Add a small staffed lost-and-found stall by the square fountain so a resident can catalog one found prop and others can 'check tags' to claim it.
+- [ ] (town wish, 2026-10-03) Add a small public clock niche outside the post office with a timekeeper resident who winds it twice daily and offers a quick 'set watch' interaction to sync player timepieces.
