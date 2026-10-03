@@ -49,6 +49,7 @@
     "made_up": ["Fair enough.", "We're square.", "Forget the elbow.", "Shall we, then?", "All forgotten."],
     "sulk": ["Not yet.", "I'm still cross.", "Give it a minute.", "Ask me later."],
     "go_on": ["Fine. Fine.", "If I must.", "All right, I'll go.", "Only because you asked."],
+    "book_swap": ["One in, one out.", "Bring one back sometime.", "That one is good.", "Mind the spine.", "Straight rows, please."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },

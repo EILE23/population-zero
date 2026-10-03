@@ -26,6 +26,7 @@ var oven: Dictionary = {}      # 빵집 화덕(run 72) {spot, counter, fire, dou
 func _lane(at: Vector3) -> void:
 	_path(at + Vector3(-14, 0, 2), at + Vector3(14, 0, 2), 2.0)
 	_house(at + Vector3(-8, 0, -1.5), Vector3(4.2, 2.7, 3.4), Color("8fb8cc"), "wood", false, 5)
+	doors[doors.size() - 1]["job"] = "librarian"   # 이 집 주민이 책 상자 관리인 — 빵집 옆 상자(town_swap)가 낮 일터(run 98)
 	_house(at + Vector3(0, 0, -2), Vector3(3.8, 2.9, 3.2), Color("efe9e2"), "brick", false, 6)
 	_house(at + Vector3(8, 0, -1.5), Vector3(4.6, 2.5, 3.6), Color("e6d3a5"), "wood", false, 7)
 	_bench(at + Vector3(4, 0, 3.6)); _lamp(at + Vector3(-3.5, 0, 3.4))

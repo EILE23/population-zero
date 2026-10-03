@@ -1,5 +1,5 @@
 class_name Resident
-extends ResidentPair
+extends ResidentShelf
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
@@ -241,8 +241,8 @@ func _pick_spot() -> void:
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	if _trade_pick(Time.get_ticks_msec() / 1000.0): return   # 구두장이의 낮 일, 닳은 밑창(run 80, resident_life)
-	if _pair_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair)
-	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove"]))
+	if _pair_pick(Time.get_ticks_msec() / 1000.0) or _swap_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair), 책 상자(run 98, resident_shelf)
+	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap"]))
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
 	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
 	if weather == "rain" and has_umb:
@@ -411,7 +411,7 @@ func _arrive(now: float) -> void:
 			else:
 				busy_until = now + randf_range(2.0, 4.0)
 		_:
-			if spot.has("fish") and _fish_arrive(now): return   # 부두 끝(run 91): 셋에 하나는 걸터앉아 낚는다(resident_life)
+			if (spot.has("fish") and _fish_arrive(now)) or _swap_arrive(now): return   # 부두 끝(run 91): 셋에 하나는 걸터앉아 낚는다(resident_life); 책 상자(run 98, resident_shelf)
 			fig.face(spot.get("yaw", PI))
 			busy_until = now + randf_range(2.0, 5.0)
 			# 개가 곁에 있으면 쪼그려 앉아 쓰다듬는다(사람이 C 로 하는 것과 같은 자세·같은 개 반응)

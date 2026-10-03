@@ -80,6 +80,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 	if p == "cast" or p == "reel":
 		lean = FishPoses.lean(f)   # 낚시(run 91) — 걸터앉는 골반 높이도 거기서(stick3d_fish.gd)
 	if p == "bicker" or p == "makeup": lean = PairPoses.lean(f)   # 짝 다툼(run 95)·화해(run 96), stick3d_pair.gd
+	if p == "shelve": lean = ShelfPoses.lean(f)   # 책 상자에 꽂기·꺼내기(run 98, stick3d_shelf.gd)
 	if p == "moor": lean = DockPoses.lean(f)   # 배 매기(run 94) — 쪼그린 골반 높이도 거기서(stick3d_dock.gd)
 	if p == "stoke": lean = HearthPoses.lean(f)   # 난로에 장작 넣기(run 92) — 쪼그린 골반 높이도 거기서(stick3d_hearth.gd)
 	if p == "rest":
@@ -437,5 +438,5 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			if s > 0.0:
 				f.neck.rotation.x -= 0.55 * k; f.chest.rotation.x -= 0.06 * k   # 고개만 든다 — 몸통은 조금
 		_:
-			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s)   # 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
+			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s)   # 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
 	return true

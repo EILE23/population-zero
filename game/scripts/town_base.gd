@@ -312,6 +312,12 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 			mi.rotation.z = PI / 2.0; mi.scale = Vector3(0.55, 1.0, 1.0); mi.position = at + Vector3(0, 0.03, 0)   # 옆으로 누운 물고기 — 눌린 쪽(로컬 x)이 위아래
 			for sd: float in [-1.0, 1.0]: _box(Vector3(0.012, 0.07, 0.03), Vector3(0, -0.17, sd * 0.025), _mat(Color("8e9aa4")), false, mi).rotation.x = sd * 0.5
 			_box(Vector3(0.1, 0.016, 0.016), Vector3(0, 0.07, 0.012), _mat(Color("1b0c15")), false, mi)   # 눈 — 몸을 꿰뚫어 양쪽 옆구리에 잉크 점
+		"book":
+			# 책(run 98, 빵집 옆 책 상자): 얇은 상자 0.16×0.04×0.22, 표지는 잉크를 죽인 네 색 중 하나 + 종이색 책장 띠(앞쪽 옆면). 바닥엔 눕고, 상자엔 세워 꽂힌다(town_swap)
+			var bb := BoxMesh.new(); bb.size = Vector3(0.16, 0.04, 0.22); mi.mesh = bb
+			mi.material_override = _mat([Color("7b526c"), Color("5b6b7a"), Color("6b7a52"), Color("8a5a4a")][randi() % 4])
+			mi.position = at + Vector3(0, 0.02, 0)
+			_box(Vector3(0.012, 0.03, 0.2), Vector3(0.078, -0.015, 0), _mat(Color("efe9e2")), false, mi)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)
