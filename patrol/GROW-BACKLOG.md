@@ -732,3 +732,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-10-03) Add a small Listening Bench interaction: a bench/step spot where a designated 'listener' resident pauses to deliver one short memory line on tap and accepts a single offered token to extend their stay.
 - [ ] (town wish, 2026-10-03) Add a small interactive noticeboard spot on the square's north wall so residents pause to read and players can pin a single paper note token.
 - [ ] (town wish, 2026-10-03) Add a tiny rooftop hatch on Sound Passage where a messenger resident pauses to fold and drop single, pickable notes onto the street below that other residents can intercept or collect.
+- [ ] (town wish, 2026-10-03) Add a small parcel-drop interaction at the street post office: a timed public locker players can leave wrapped packages in that flags a courier pickup job for messenger residents.
