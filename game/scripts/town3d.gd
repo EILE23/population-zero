@@ -18,6 +18,7 @@ func _ready() -> void:
 	_path(Vector3(3.35, 0, 0.8), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
 	_district("lane", Vector3(0, 0, -15), _lane)
 	_district("letters", ROOM_AT, _letter_room)   # 편지방(run 99, town_letters) — 골목 동쪽 끝의 새 집, 시장 쪽 오솔길
+	_noticeboard(NOTICE_AT)   # 광장 게시판(run 100, town_letters) — 가운데 집 뒤, 구역 밖이라 늘 서 있다(쪽지가 시간 따라 바뀐다)
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
 	_stones()   # 디딤돌(CI run 84) — 시장 서쪽 끝 x 23 의 둘째 건널목
 	_jetty()   # 부두와 거룻배(CI run 78) — 다리 동쪽 북쪽 둑, 강 위를 다닌다

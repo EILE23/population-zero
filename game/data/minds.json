@@ -52,6 +52,8 @@
     "book_swap": ["One in, one out.", "Bring one back sometime.", "That one is good.", "Mind the spine.", "Straight rows, please."],
     "letter_in": ["Filed.", "Third row, as ever.", "It will reach them.", "Mind the corners.", "Morning post."],
     "letter_out": ["That one is not addressed to you. Read it anyway.", "Return it when finished.", "Someone wrote that carefully.", "One less to sort."],
+    "notice": ["Lost: one glove. Left.", "Meeting postponed. Again.", "Someone is selling a ladder.", "Hm. Thursday.", "Noted.", "That one has been up a while."],
+    "notice_down": ["A day is long enough.", "Filed, not forgotten.", "The board needs room.", "Down they come."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },

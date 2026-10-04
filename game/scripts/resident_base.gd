@@ -137,7 +137,7 @@ func say(text: String, secs := 2.2) -> void:
 	say_label.text = text; say_label.visible = true
 	say_until = Time.get_ticks_msec() / 1000.0 + secs
 func _free_slot(sp: Dictionary) -> int:
-	var n := 3 if sp["kind"] in ["bench", "rack"] else (2 if sp["kind"] in ["seesaw", "swap", "letters"] else 1)   # 우산꽂이 칸 = 우산 수(run 76)
+	var n := 3 if sp["kind"] in ["bench", "rack"] else (2 if sp["kind"] in ["seesaw", "swap", "letters", "notice"] else 1)   # 우산꽂이 칸 = 우산 수(run 76)
 	var taken: Array = sp.get("taken", [])
 	for i in n:
 		if i < taken.size() and taken[i] != null and taken[i] != self: continue
@@ -153,7 +153,7 @@ func _player_on(sp: Dictionary, i: int) -> bool:
 	return Vector2(p.x - at.x, p.z - at.z).length() < 0.35
 
 func _claim(sp: Dictionary, i: int) -> void:
-	var n := 3 if sp["kind"] in ["bench", "rack"] else (2 if sp["kind"] in ["seesaw", "swap", "letters"] else 1)
+	var n := 3 if sp["kind"] in ["bench", "rack"] else (2 if sp["kind"] in ["seesaw", "swap", "letters", "notice"] else 1)
 	if not sp.has("taken") or (sp["taken"] as Array).size() < n:
 		var arr := []; arr.resize(n); sp["taken"] = arr
 	sp["taken"][i] = self

@@ -4,10 +4,15 @@ extends TownSwap
 ## 1조각(run 99, 구조) 편지방: 북쪽 골목 동쪽 끝에 새 집 한 채 — 문·벽장·침상이 있는 실내, 안쪽 벽에 열두 칸 우편함(칸마다 편지가 보인다).
 ## 골목 길이 집 앞까지 늘고, 집 옆으로 시장(책 상자) 쪽 남북 오솔길이 새로 난다 — 골목과 시장이 처음으로 바로 이어진다.
 ## 문에 "scribe" — 이 집 주민이 서기. 종이나 편지를 들고 칸 앞에서 C = 꽂기(sort), 빈손 C = 하나 꺼내기(같은 자세). 꺼낸 편지는 C 로 펼쳐 읽는다.
-## 사슬: … → sites → swap → **letters** → player → town3d. 다음 조각(광장 게시판·옥상 쪽지·아침 배달)도 여기에
+## 2조각(run 100, 밀도) 광장 게시판: 가운데 집 뒤 빈 땅에 기둥 둘·코르크 판. 종이·편지를 들고 C = 핀으로 꽂기(pin, 여섯 장까지), 빈손 C = 가장 새 쪽지 떼기.
+## 지나는 주민은 다섯에 하나 멈춰 뒷짐 지고 읽고(scan), 서기는 16시에 와서 하루 넘은 쪽지를 떼어 우편함에 넣는다(재고 +장수).
+## 사슬: … → sites → swap → **letters** → player → town3d. 다음 조각(옥상 쪽지·아침 배달)도 여기에
 
 const LETTER_MAX := 12
 const ROOM_AT := Vector3(18, 0, -16.6)   # 골목(z −13) 동쪽 끝 x 14 너머 빈 땅 — 골목 담(x ≤13)·나무(12.5, −16)·빵집(x ≥22.5) 사이, 큰길에서 멀다
+const NOTICE_AT := Vector3(-5.5, 0, -9.4)   # 가운데 집(−7, −4) 뒤·넷째 집(x ≤ −10.2) 옆 빈 땅 — 큰길 띠(z −0.1..4.1)에서 9m, 골목길(z −13) 앞
+const NOTE_MAX := 6
+var notice: Dictionary = {}   # 게시판 자리 {pos, kind "notice", yaw, at, notes: 꽂힌 차례대로 쪽지 노드(meta slot·at·kind), taken}
 var letterwall: Dictionary = {}   # 우편함 자리 {pos, kind "letters", yaw, stock, shown: 칸마다 편지, taken(칸 둘 — 서기와 손님), door}
 
 ## 편지방 — 집 생성기(_house)에 실내만 바꿔 끼운다(침대·식탁 대신 우편함·서안·침상). 골목 길을 이 문 앞까지 늘이고 시장 쪽 오솔길을 낸다
@@ -62,8 +67,9 @@ func _letter_inside(at: Vector3, size: Vector3) -> void:
 ## 손이 칸에 닿은 순간 — 종이·편지가 아직 손에 있고 칸이 남았으면 손을 떠나 칸에 편지 한 통이 보인다. 사람도 주민도 이걸 부른다
 func post_letter(fig: Stick3D, paper: Node3D) -> bool:
 	if paper == null or fig.carrying != paper or int(letterwall["stock"]) >= LETTER_MAX: return false
+	var n := int(paper.get_meta("count", 1))   # 서기가 게시판에서 떼어 온 다발은 한 번에 여러 통(run 100)
 	fig.release(self, Vector3.ZERO).queue_free()
-	letterwall["stock"] = int(letterwall["stock"]) + 1; _show_stock(letterwall)
+	letterwall["stock"] = mini(LETTER_MAX, int(letterwall["stock"]) + n); _show_stock(letterwall)
 	return true
 
 ## 꺼내기 — 손이 비었고 남은 편지가 있으면 칸 하나가 비고 손에 편지
@@ -95,3 +101,64 @@ func _sort_hand(put: bool, it: Node3D) -> void:
 	if player.pose_request != "sort": return   # 그새 움직였거나 맞았다 — 없던 일
 	if put: post_letter(player, it)
 	else: unpost_letter(player)
+
+## 광장 게시판(run 100) — 기둥 둘, 코르크 판, 비 가림 판자. 처음부터 쪽지 둘이 꽂혀 있어 "쓰는 게시판"으로 읽힌다
+func _noticeboard(at: Vector3) -> void:
+	var post := _mat(Color("6b4a35"))
+	for sx: float in [-0.62, 0.62]: _box(Vector3(0.08, 1.45, 0.08), at + Vector3(sx, 0, 0), post)
+	_box(Vector3(1.32, 0.66, 0.05), at + Vector3(0, 0.72, 0), _mat(Color("c49a6c")), false)   # 코르크 — 사람 키(어깨 0.84)보다 조금 위까지
+	_box(Vector3(1.46, 0.05, 0.16), at + Vector3(0, 1.45, 0.02), post, false)
+	notice = { "pos": at + Vector3(0, 0, 0.75), "kind": "notice", "yaw": PI, "at": at, "notes": [] }
+	spots.append(notice)
+	_add_note(1, 0.0, "paper"); _add_note(5, 0.0, "paper")
+
+## 빈 핀 자리(3칸×2단) — 없으면 −1. 뗀 자리가 다시 찬다(쪽지마다 제 자리를 기억한다)
+func note_slot() -> int:
+	var used: Array = (notice["notes"] as Array).map(func(n: Node3D) -> int: return int(n.get_meta("slot")))
+	for i in NOTE_MAX:
+		if not (i in used): return i
+	return -1
+
+func _add_note(slot: int, now: float, kind: String) -> void:
+	var at: Vector3 = notice["at"]
+	var n := _box(Vector3(0.17, 0.2, 0.006), at + Vector3(-0.4 + 0.4 * (slot % 3) + randf_range(-0.05, 0.05), 1.08 - 0.3 * (slot / 3), 0.03), _mat(Color("f7f4ef") if kind == "paper" else Color("efe9e2")), false)
+	n.rotation.z = randf_range(-0.14, 0.14)   # 장마다 조금씩 비뚤게 — 사람 손으로 꽂은 판
+	_box(Vector3(0.024, 0.024, 0.02), Vector3(0, 0.07, 0.006), _mat(Color("ad7096")), false, n)   # 핀 머리(악센트는 작은 면에만)
+	n.set_meta("slot", slot); n.set_meta("at", now); n.set_meta("kind", kind)
+	(notice["notes"] as Array).append(n)
+
+## 꽂기 — 손에 든 종이·편지가 판의 쪽지가 된다. 자리가 없으면 false. 사람도 주민도 이걸 부른다
+func pin_note(fig: Stick3D, paper: Node3D, now: float) -> bool:
+	if paper == null or fig.carrying != paper or note_slot() < 0: return false
+	var kind := String(paper.get_meta("kind", "paper"))
+	fig.release(self, Vector3.ZERO).queue_free()
+	_add_note(note_slot(), now, kind)
+	return true
+
+## 떼기 — 가장 새 쪽지가 손으로(꽂힌 그대로 종이는 종이, 편지는 편지)
+func unpin_note(fig: Stick3D) -> bool:
+	var notes: Array = notice["notes"]
+	if fig.carrying != null or notes.is_empty(): return false
+	var n: Node3D = notes.pop_back()
+	fig.hold(make_item(String(n.get_meta("kind")), Vector3.ZERO)); n.queue_free()
+	return true
+
+## 하루(DAY_LEN) 넘게 꽂힌 쪽지 — 서기가 떼어 간다
+func old_notes(now: float) -> Array:
+	return (notice["notes"] as Array).filter(func(n: Node3D) -> bool: return now - float(n.get_meta("at")) > DAY_LEN)
+
+## 사람이 게시판 앞(1.1m)에서 C — 종이·편지를 들었으면 꽂고, 빈손이면 가장 새 것을 뗀다(PIN_T 한 바퀴). 꽉 찼거나 비었으면 false — 호출자가 다음 규칙(읽기)으로
+func notice_use(now: float) -> bool:
+	if notice.is_empty() or body.global_position.distance_to(notice["pos"]) > 1.1: return false
+	var it := player.carrying
+	var put := it != null and String(it.get_meta("kind", "")) in ["paper", "letter"]
+	if (put and note_slot() < 0) or (not put and (it != null or (notice["notes"] as Array).is_empty())): return false
+	player.face(notice["yaw"]); reading = false
+	player.pose_request = "pin"; use_until = now + PostPoses.PIN_T; action_until = now + PostPoses.PIN_T
+	get_tree().create_timer(PostPoses.PIN_IN).timeout.connect(_pin_hand.bind(put, it))
+	return true
+
+func _pin_hand(put: bool, it: Node3D) -> void:
+	if player.pose_request != "pin": return   # 그새 움직였거나 맞았다 — 없던 일
+	if put: pin_note(player, it, Time.get_ticks_msec() / 1000.0)
+	else: unpin_note(player)
