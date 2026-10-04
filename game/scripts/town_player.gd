@@ -58,6 +58,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if down_until > 0.0 and down_until <= now and getup_until < 0.0:
 		down_until = -1.0; getup_until = now + FightPoses.GETUP_T; player.lying = false; player.action = "getup"; player.action_t = 0.0; body.collision_layer = 4; body.collision_mask = 7
+		player_up_at = now   # 이야기방 방석이 30초 동안 달래 준다(town_sunroom cushion_use, run 104)
 	if getup_until > now:
 		player.action_t = 1.0 - (getup_until - now) / FightPoses.GETUP_T; body.velocity = Vector3.ZERO
 		_tick(delta, now)

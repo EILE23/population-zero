@@ -9,6 +9,7 @@ const SUN_AT := Vector3(-19.5, 0, -16.6)   # 골목(z −13, x −14..14) 서쪽
 const STORY_FROM := 14.5   # 아이들이 나서는 시각(부모가 "세 시에 이야기"를 말한다) — 하루 12분이라 한 시간이 30초뿐
 const STORY_TO := 16.0
 var sunroom: Dictionary = {}   # {door, chair: 안락의자 자리, cushions: 방석 자리 셋}
+var player_up_at := -999.0   # 사람이 넘어졌다 일어나기 시작한 시각(town_player) — 30초 안에 방석에 앉으면 달래는 줄, 본 이들이 끄덕(run 104)
 
 func _sunroom(at: Vector3) -> void:
 	_path(Vector3(-13.5, 0, -13), Vector3(-21.5, 0, -13), 2.0)   # 골목의 서쪽 연장 — 문 앞(z −14.8)에서 끝난다
@@ -102,8 +103,16 @@ func cushion_use(sp: Dictionary, now: float) -> void:
 	tw.tween_property(body, "position", sp["pos"] + Vector3(0, -0.08 if not chair else 0.0, 0), SunroomPoses.DOWN_T)
 	player.face(sp["yaw"])
 	var k := storysitter_here()
-	if k and not chair: k.say(k.mind.line("story"), 2.4)   # 듣는 사람에게 옛이야기 한 줄(Listening Bench 소원)
+	var shaken: bool = now - player_up_at < 30.0   # 방금 넘어졌던 사람 — 주민이 같은 자리에서 듣는 것과 같은 줄(resident_sunroom)
+	if k and not chair: k.say(k.mind.line("story_calm" if shaken else "story"), 2.4)   # 듣는 사람에게 옛이야기 한 줄(Listening Bench 소원)
 	elif not chair and story_time(): say_toast("The storysitter is on the way.")
+	if shaken and not chair: _room_nods(now)
+
+## 흔들린 사람이 앉았다 — 방석에 앉은 이들 가운데 그 사람이 남을 때리는 걸 본(witnessed, 60초 안) 이는 차갑게 있는 대신 한 번 깊이 끄덕인다(makeup 의 nod). 호감이 조금 돌아온다
+func _room_nods(now: float) -> void:
+	for r in residents:
+		if r.state != "busy" or r.fig.pose_request != "crossleg" or r.spot.get("kind", "") != "cushion" or now - r.mind.witnessed_at > 60.0: continue
+		r.fig.set_meta("nod_at", r.fig._t); r.mind.fond = clampf(r.mind.fond + 0.05, -1.0, 1.0)
 
 ## 매 프레임(town_systems _tick) — 사람이 방석에서 일어서면 회수(UP_T) 뒤에 자세를 푼다
 func _story_tick(_now: float) -> void:

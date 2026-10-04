@@ -37,6 +37,7 @@ var fond := 0.0                # -1 미움 .. 1 좋아함
 var met := 0                   # 인사를 나눈 횟수
 var hurt := 0                  # 맞은 횟수(누적, 판을 넘어 남는다)
 var last_hurt := -999.0
+var witnessed_at := -999.0      # 사람이 남을 때리는 걸 본 시각 — 이야기방에서 그 사람이 넘어졌다 와 앉으면 끄덕여 준다(run 104)
 var last_greet := -999.0
 var spoke_at := -999.0         # 알아보고 먼저 말 건 시각
 var notice_at := 0.0
@@ -178,7 +179,7 @@ func hurt_by_player(heavy: bool) -> void:
 	fond = clampf(fond - (0.3 if heavy else 0.15), -1.0, 1.0); mood = maxf(-1.0, mood - 0.3)
 
 func witnessed() -> void:
-	fond = clampf(fond - 0.08, -1.0, 1.0)
+	fond = clampf(fond - 0.08, -1.0, 1.0); witnessed_at = _now()
 
 ## 맞고 나서 — 쫓아가 되갚을까(성미·배짱), 아니면 피할까
 func retaliates() -> bool:

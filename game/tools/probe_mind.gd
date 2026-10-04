@@ -41,11 +41,11 @@ func _init() -> void:
 	g.take_gift(town.make_item("apple", Vector3.ZERO))
 	for i in 300: await physics_frame
 	print("GIFT ", g.handle, " fond %.2f -> %.2f full=%.2f carrying=%s" % [gf, g.mind.fond, g.mind.full, g.fig.carrying])
-	# 고르기 분포: 게으른 사람 vs 호기심 많은 사람
+	# 고르기 분포: 게으른 사람 vs 호기심 많은 사람 — 거르는 목록은 resident.gd _pick_spot 의 pool 과 같게(polish run 105: 일터·이야기방 자리가 섞여 버그처럼 보였다)
 	for who in [walkers.reduce(func(a, x): return x if x.mind.lazy > a.mind.lazy else a), walkers.reduce(func(a, x): return x if x.mind.curious > a.mind.curious else a)]:
 		var tally := {}
 		for i in 200:
-			var sp: Dictionary = who.mind.pick(town.spots.filter(func(s): return not (s["kind"] in ["oven", "rack"])), who._schedule_kinds())
+			var sp: Dictionary = who.mind.pick(town.spots.filter(func(s): return not (s["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap", "letters", "notice", "story", "cushion"])), who._schedule_kinds())
 			tally[sp["kind"]] = tally.get(sp["kind"], 0) + 1
 		print("PICK ", who.handle, " lazy=%.2f curious=%.2f energy=%.2f " % [who.mind.lazy, who.mind.curious, who.mind.energy], tally)
 	quit()

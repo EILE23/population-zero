@@ -5,6 +5,7 @@ extends RefCounted
 ## 회수는 meta "cross_up"(그 몸의 _t 시각)부터 — 주민은 앉을 때 끝날 시각을 적고, 사람은 일어서는 순간 town_sunroom 이 적는다.
 ## `story` 안락의자에서 소리 내어 읽기: 두 손이 무릎 위에 책을 펴 들고, STORY_T 마다 오른손이 책장 귀퉁이를 집어(0.3 예비) 넘기고(0.5 유지)
 ## 돌아온다(0.3 회수); 그 사이 고개는 글줄을 따라 끄덕이다가 한 번 들어 아이들을 본다. 박자는 벽시계(ticks)라 듣는 아이들의 쏠림과 맞는다
+## 끄덕(run 104): 앉은 몸의 meta "nod_at"(그 몸의 _t) 부터 0.4초 — makeup 의 nod 와 같은 곡선. 상체가 조금 따라 숙는다
 
 const DOWN_T := 0.3
 const UP_T := 0.3
@@ -28,12 +29,15 @@ static func prop_k(f: Stick3D) -> float:
 	var up := clampf((f._t - float(f.get_meta("cross_up", INF))) / UP_T, 0.0, 1.0)
 	return sin(clampf(f.pose_t / DOWN_T, 0.0, 1.0) * PI) + sin(up * PI)
 
+static func nod_k(f: Stick3D) -> float:
+	return PairPoses.nod(0.4 + f._t - float(f.get_meta("nod_at", -INF)))   # 없으면(−INF) 0
+
 static func lean(f: Stick3D) -> float:
 	if f.pose_request == "story":
 		return 0.06 + 0.04 * turn_k(page_t())   # 책 위로 조금 숙이고, 넘길 때 조금 더
 	var k := sit_k(f)
 	f.pelvis.position.y = lerpf(StickRig.HIP_Y, 0.14, k)
-	return 0.25 * prop_k(f) + (0.05 + 0.07 * rock_k(page_t())) * k   # 짚을 때 숙고, 앉아선 책장마다 앞으로 한 번
+	return 0.25 * prop_k(f) + (0.05 + 0.07 * rock_k(page_t()) + 0.08 * nod_k(f)) * k   # 짚을 때 숙고, 앉아선 책장마다 앞으로 한 번, 끄덕일 때도
 
 static func limbs(f: Stick3D, s: float) -> bool:
 	if not (f.pose_request in ["crossleg", "story"]): return false
@@ -55,6 +59,7 @@ static func limbs(f: Stick3D, s: float) -> bool:
 	if s > 0.0:
 		# 짚는 손: 옆 아래로 뻗어 바닥을 짚었다가(전환 한가운데) 무릎으로 온다
 		sh.rotation.x = -(0.15 + 0.55 * k * (1.0 - minf(pk, 1.0))); sh.rotation.z = s * (0.1 + 0.55 * minf(pk, 1.0)); el.rotation.x = -(0.2 + 0.5 * k * (1.0 - minf(pk, 1.0)))
+		f.neck.rotation.x += 0.4 * nod_k(f) * k   # 한 번 깊이 끄덕(run 104) — 앉아 있을 때만
 	else:
 		sh.rotation.x = -(0.1 + 0.6 * k); sh.rotation.z = s * 0.15 * k; el.rotation.x = -(0.35 + 0.35 * k)
 	return true

@@ -115,7 +115,7 @@ func _physics_process(delta: float) -> void:
 					state = "chase"; chase_until = now + 4.5; say(mind.line("grudge" if mind.hurt > 1 else "hurt"))
 				elif quarry and mind.flees(): _flee(quarry.global_position)   # 겁 많은 사람은 되갚지 않고 피한다
 				else:
-					state = "routine"; busy_until = now + 0.5
+					state = "routine"; busy_until = now + 0.5; shaken_at = now   # 쫓지도 피하지도 않은 사람 — 이야기 시간이면 가까운 방석으로(resident_sunroom, run 104)
 		"chase":
 			var cv := _chase(now)   # 싸움 — 기술표·실력·연계(resident_life)
 			v.x = cv.x; v.z = cv.y
