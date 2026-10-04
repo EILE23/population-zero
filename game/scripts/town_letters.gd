@@ -127,9 +127,13 @@ func _add_note(slot: int, now: float, kind: String) -> void:
 	n.set_meta("slot", slot); n.set_meta("at", now); n.set_meta("kind", kind)
 	(notice["notes"] as Array).append(n)
 
+## 핀으로 꽂을 수 있는 것 — 종이·편지 한 장. 서기의 다발(meta count)은 우편함으로만 간다: 판에 꽂으면 여러 장이 한 장으로 줄던 구멍(run 101)
+func pinnable(it: Node3D) -> bool:
+	return it != null and String(it.get_meta("kind", "")) in ["paper", "letter"] and not it.has_meta("count")
+
 ## 꽂기 — 손에 든 종이·편지가 판의 쪽지가 된다. 자리가 없으면 false. 사람도 주민도 이걸 부른다
 func pin_note(fig: Stick3D, paper: Node3D, now: float) -> bool:
-	if paper == null or fig.carrying != paper or note_slot() < 0: return false
+	if not pinnable(paper) or fig.carrying != paper or note_slot() < 0: return false
 	var kind := String(paper.get_meta("kind", "paper"))
 	fig.release(self, Vector3.ZERO).queue_free()
 	_add_note(note_slot(), now, kind)
@@ -151,7 +155,7 @@ func old_notes(now: float) -> Array:
 func notice_use(now: float) -> bool:
 	if notice.is_empty() or body.global_position.distance_to(notice["pos"]) > 1.1: return false
 	var it := player.carrying
-	var put := it != null and String(it.get_meta("kind", "")) in ["paper", "letter"]
+	var put := pinnable(it)   # 다발은 아래 조건에서 false — 읽기로 넘어간다
 	if (put and note_slot() < 0) or (not put and (it != null or (notice["notes"] as Array).is_empty())): return false
 	player.face(notice["yaw"]); reading = false
 	player.pose_request = "pin"; use_until = now + PostPoses.PIN_T; action_until = now + PostPoses.PIN_T

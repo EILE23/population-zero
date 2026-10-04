@@ -7,7 +7,6 @@ extends ResidentShelf
 ## 광장 게시판(run 100): 10m 안을 지나는 이는 다섯에 하나 들른다 — 종이·편지를 들었으면 핀으로 꽂고(pin), 아니면 뒷짐 지고 3–5초 읽는다(scan);
 ## 빈손으로 읽은 이는 넷에 하나 가장 새 쪽지를 떼어 간다(사람의 빈손 C 와 같다). 서기는 16시대에 하루 넘은 쪽지를 떼어 다발로 들고 우편함에 넣는다
 
-var _bundle := 0   # 서기가 게시판에서 이번에 뗀 쪽지 수(run 100)
 var _posted := -1e9   # 서기가 마지막으로 아침 편지를 넣은 시각 — 하루(반나절 넘게 지나야) 한 번. 마을엔 날짜 셈이 없다
 
 ## 편지 일로 갈 곳 — 게시판, 아니면 우편함. 못 가면 false(_pick_spot 이 다음 규칙으로)
@@ -83,7 +82,7 @@ func _notice_pick(now: float) -> bool:
 	var go := false
 	if job == "scribe": go = _hour() >= 16.0 and _hour() < 17.0 and fig.carrying == null and not town.old_notes(now).is_empty()
 	elif global_position.distance_to(nb["pos"]) < 10.0 and randf() < 0.2:
-		go = (carrying_kind in ["paper", "letter"] and town.note_slot() >= 0) or not (nb["notes"] as Array).is_empty()
+		go = (town.pinnable(fig.carrying) and town.note_slot() >= 0) or not (nb["notes"] as Array).is_empty()
 	if not go: return false
 	slot = _free_slot(nb); spot = nb; _claim(nb, slot)
 	route = town.via_bridge(global_position, [{ "pos": nb["pos"] + Vector3(-0.35 + 0.7 * slot, 0, 0.05), "act": "" }])
@@ -100,7 +99,7 @@ func _notice_arrive(now: float) -> bool:
 		fig.pose_request = "pin"; busy_until = now + T * old + 0.4
 		for i in old: _notice_after(T * i + PostPoses.PIN_IN, "old")
 		_notice_after(T * old, "bundle")
-	elif carrying_kind in ["paper", "letter"] and town.note_slot() >= 0:
+	elif town.pinnable(fig.carrying) and town.note_slot() >= 0:
 		fig.pose_request = "pin"; busy_until = now + T + 0.3
 		_notice_after(PostPoses.PIN_IN, "pin"); _notice_after(T, "stand")
 	else:
@@ -127,11 +126,13 @@ func _notice_step(step: String) -> void:
 		"old":
 			var old: Array = town.old_notes(now)
 			if not old.is_empty():
-				(town.notice["notes"] as Array).erase(old[0]); (old[0] as Node3D).queue_free(); _bundle += 1
+				(town.notice["notes"] as Array).erase(old[0]); (old[0] as Node3D).queue_free()
+				# 다발은 첫 장부터 손에 있다 — 셈만 하다 마지막에 쥐여 주던 때(run 100)는 도중에 넘어지면 뗀 쪽지가 통째로 사라졌다. 이제 넘어지면 다발이 바닥에 떨어진다
+				if fig.carrying != null and fig.carrying.has_meta("count"): fig.carrying.set_meta("count", int(fig.carrying.get_meta("count")) + 1)
+				elif fig.carrying == null:
+					var b: Node3D = town.make_item("paper", Vector3.ZERO); b.set_meta("count", 1); fig.hold(b); carrying_kind = "paper"
 		"bundle":
-			if _bundle > 0 and fig.carrying == null:
-				var b: Node3D = town.make_item("paper", Vector3.ZERO); b.set_meta("count", _bundle)
-				fig.hold(b); carrying_kind = "paper"; say(mind.line("notice_down"), 1.8)
-			_bundle = 0; fig.pose_request = ""
+			if fig.carrying != null and fig.carrying.has_meta("count"): say(mind.line("notice_down"), 1.8)
+			fig.pose_request = ""
 		"stand":
 			fig.pose_request = ""

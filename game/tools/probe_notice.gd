@@ -57,4 +57,20 @@ func _init() -> void:
 		sc._post_arrive(Time.get_ticks_msec() / 1000.0)
 		await create_timer(1.5).timeout
 		print("SCRIBE file stock 5->", lw["stock"], " hand=", sc.fig.carrying, " (want 8 null)")
+		# run 101: 떼는 도중 넘어지면 이미 뗀 쪽지가 다발로 바닥에 떨어진다(전엔 셈만 하다 통째로 사라졌다)
+		town.clock = (16.3 - 6.0) / 24.0
+		for i in 3: town._add_note(town.note_slot(), -1000.0, "paper")
+		sc._leave(); sc.global_position = nb["pos"] + Vector3(-0.35, 0.1, 0.05); sc.spot = nb; sc.slot = 0; sc._claim(nb, 0); sc.state = "busy"
+		sc._post_arrive(Time.get_ticks_msec() / 1000.0)
+		await create_timer(PostPoses.PIN_T + PostPoses.PIN_IN + 0.1).timeout
+		var left := notes.size()
+		sc.hit(Vector3(0, 0, 1), town.body, true)
+		var dropped: Array = town.items.filter(func(it: Node3D) -> bool: return is_instance_valid(it) and it.has_meta("count"))
+		var dc: int = int(dropped[0].get_meta("count")) if not dropped.is_empty() else 0
+		print("KNOCK notes 3->", left, " dropped bundle=", dc, " (want 1, 2: nothing vanishes)")
+		# 다발은 판에 못 꽂는다 — 들고 C 면 false(읽기로 넘어간다)
+		town.body.global_position = nb["pos"] + Vector3(0, 0.02, 0)
+		var b: Node3D = town.make_item("paper", Vector3.ZERO); b.set_meta("count", 2); town.player.hold(b)
+		var n1 := notes.size()
+		print("BUNDLE pin=", town.notice_use(Time.get_ticks_msec() / 1000.0), " notes ", n1, "->", notes.size(), " (want false, same)")
 	quit()
