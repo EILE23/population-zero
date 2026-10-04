@@ -777,3 +777,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (owner, mobile 3) HUD and labels readable on a phone: the help line, toasts, name tags and speech labels scale with `get_viewport().get_visible_rect().size` (min 14 px text); Climb HUD the same.
 - [ ] (town wish, 2026-10-04) Add a small Story House at the park edge and a 'storyteller' job so elder residents run short timed reading sessions that draw children in and calm nearby, shaken residents.
 - [ ] (town wish, 2026-10-04) Add an Intergenerational Community Centre map called The Silver & Spark and a program_coordinator job who runs short craft, reading and quiet-play sessions that invite elders and children together.
+- [ ] (town wish, 2026-10-04) Add a wooden horse-trolley vehicle and elder driver job that slowly shuttles children and senior residents along the street with timed stops.
