@@ -40,7 +40,7 @@ var _fidget_next := randf_range(3.0, 8.0)   # 다음 기지개까지 남은 시�
 
 var _phase := 0.0
 var _pose_since := 0.0
-const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer", "grind", "wait", "sew", "teeter", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "makeup", "shelve", "sort", "pin", "scan", "skip"]
+const CI_POSES := ["water", "knead", "shade", "storm", "lwave", "hammer", "grind", "wait", "sew", "teeter", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "makeup", "shelve", "sort", "pin", "scan", "skip", "crossleg", "story"]
 var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0
@@ -148,6 +148,7 @@ func _process(delta: float) -> void:
 		neck.rotation.y = sin(_fidget_t * 2.2) * 0.35  # 좌우로 둘러본다(2D look)
 	neck.rotation.y += look_yaw   # 블렌딩이 돌림을 부드럽게 한다
 	hand_r.rotation = Vector3.ZERO   # 손목은 블렌딩 대상이 아니다 — 물주기가 기울인 걸 프레임마다 되돌린다
+	hips[-1.0].rotation.z = 0.0; hips[1.0].rotation.z = 0.0   # 허벅지 벌림은 책상다리(run 103)만 쓴다 — 다른 자세는 매 프레임 모은다(블렌딩이 부드럽게 푼다)
 	for side in [-1.0, 1.0]:
 		var s: float = side
 		var hip: Node3D = hips[s]; var knee: Node3D = knees[s]

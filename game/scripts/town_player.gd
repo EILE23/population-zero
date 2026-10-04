@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownLetters
+extends TownSunroom
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -380,6 +380,8 @@ func _interact_check(now: float) -> void:
 			swap_use(now)   # 책 상자(run 98): 빈손이면 하나 꺼낸다 — 주민이 지나가다 하는 것과 같은 shelve 자세(town_swap)
 		"letters":
 			letters_use(now)   # 편지방 우편함(run 99): 빈손이면 하나 꺼낸다 — 서기·지나는 주민과 같은 sort 자세(town_letters)
+		"cushion", "story":
+			cushion_use(best["spot"], now)   # 이야기방(run 103): 빈 방석에 책상다리 — 아이들과 같은 crossleg, 의자에선 책을 들었으면 story(town_sunroom)
 		"notice":
 			notice_use(now)   # 광장 게시판(run 100): 빈손이면 가장 새 쪽지를 뗀다 — 주민과 같은 pin 자세(town_letters)
 		"rack":

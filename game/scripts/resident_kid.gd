@@ -57,6 +57,7 @@ func _beside() -> Vector3:
 func _pick_spot() -> void:
 	if not _with():
 		super._pick_spot(); return
+	if _exit_house() or _story_pick(Time.get_ticks_msec() / 1000.0): return   # 이야기방(run 103): 방석에서 일어나면 문으로 먼저 나오고, 이야기 시간이면 부모 곁을 떠나 방석으로
 	var ps: Dictionary = parent.spot
 	route = []
 	if parent.state == "busy" and ps.get("kind", "") == "bench" and _free_slot(ps) >= 0:
@@ -104,7 +105,7 @@ func _follow(now: float) -> void:
 		call("_leave"); busy_until = now   # 부모가 일어나 걸어가면 따라 일어난다 — 쉬지 않고 곧장
 	elif state == "busy" and k == "follow" and spot.has("wait") and not parent.spot.has("door"):
 		call("_leave"); busy_until = now   # 부모가 나왔다
-	if gap > LOST and now > _fetch_at: _fetch(now)
+	if gap > LOST and now > _fetch_at and not (k in ["cushion", "story"]): _fetch(now)   # 이야기방에 간 아이는 찾으러 오지 않는다 — 어디 있는지 안다
 
 ## 부모가 아이를 놓쳤다 — 하던 걸 접고(가벼운 일일 때만) 아이에게 걸어간다. 닿으면 한마디. 앉아 있거나 실내·탈것이면 다음 기회에
 func _fetch(now: float) -> void:

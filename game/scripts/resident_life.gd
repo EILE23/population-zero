@@ -1,6 +1,6 @@
 class_name ResidentLife
 extends ResidentBase
-## 주민의 하루 — 일과표(시간대·직업이 고르는 자리), 수다, 운전. resident.gd 가 500줄에 닿아 뗐다(2026-09-30). 사슬: base → life → pair(resident_pair.gd) → shelf → letters → resident → kid(resident_kid.gd, 아이 — run 102)
+## 주민의 하루 — 일과표(시간대·직업이 고르는 자리), 수다, 운전. resident.gd 가 500줄에 닿아 뗐다(2026-09-30). 사슬: base → life → pair(resident_pair.gd) → shelf → letters → sunroom(resident_sunroom.gd, 이야기방 — run 103) → resident → kid(resident_kid.gd, 아이 — run 102)
 
 var car_seat: Car3D = null
 var own_car: Car3D = null     # 내 차 — 끌려 내려도 일이 끝나면 돌아가 다시 탄다
@@ -30,7 +30,7 @@ func _schedule_kinds() -> Array:
 
 ## 수다 — 자리에 닿았을 때 2m 안에 쉬는 주민이 있으면 서로 마주 보고 번갈아 말한다(8~14초). 말 많은 사람일수록 자주. 사람이 끼어들면(인사) 그만
 func _chat(now: float) -> bool:
-	if spot.get("kind", "") in ["bed", "chair", "shelf", "swing", "seesaw", "plot", "oven", "repair", "grass", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "swap", "letters", "notice"] or randf() > 0.15 + 0.4 * mind.social: return false
+	if spot.get("kind", "") in ["bed", "chair", "shelf", "swing", "seesaw", "plot", "oven", "repair", "grass", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "swap", "letters", "notice", "story", "cushion"] or randf() > 0.15 + 0.4 * mind.social: return false
 	return _chat_force(now)
 
 ## 수다를 곧장(시트 도구·이벤트용). 상대는 친한 사람부터. 화제는 제 관심사(minds.json topics), 답은 사이가 정한다 — 친구는 맞장구, 앙숙은 반박하고 한 번 더 받아친다.
