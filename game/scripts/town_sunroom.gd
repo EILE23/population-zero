@@ -4,18 +4,19 @@ extends TownLetters
 ## 안에는 날개 달린 안락의자(방을 본다)·둥근 깔개·방석 셋·주인의 침상. 주인은 마을에서 가장 '늙은 마음'(기운이 가장 낮고 어울림이 가장 높은 어른)이 되고 일은 "storysitter".
 ## 15–16시 그 사람이 안락의자에서 소리 내어 읽고(story, 책장 4초), 아이들이 걸어와 방석에 책상다리로 앉는다(crossleg). 사람도 빈 방석에서 C — 같은 자세, 읽는 이의 옛이야기 한 줄.
 ## 사슬: … → letters → **sunroom** → player → town3d. 다음 조각(현관 탁자·기억 우체통·손수레·낮잠방·장난감 선반)도 이 집에
+## 책 건네기(run 106, items): 책을 들고 읽는 이 앞에서 C — 집 책은 덮이고 네 책을 읽는다. 끝나면 네 책은 의자 옆 두 칸 선반에(책등이 보인다), 다음 날 10시 주인이 책 상자로 돌려놓는다(resident_sunroom)
 
 const SUN_AT := Vector3(-19.5, 0, -16.6)   # 골목(z −13, x −14..14) 서쪽 끝 너머 빈 땅 — 공원 북쪽 끝(z ≥ −10.5)·골목 울타리(z −19, x ≥ −13)와 떨어져, 큰길에서 멀다
 const STORY_FROM := 14.5   # 아이들이 나서는 시각(부모가 "세 시에 이야기"를 말한다) — 하루 12분이라 한 시간이 30초뿐
 const STORY_TO := 16.0
-var sunroom: Dictionary = {}   # {door, chair: 안락의자 자리, cushions: 방석 자리 셋}
+var sunroom: Dictionary = {}   # {door, chair: 안락의자 자리, cushions: 방석 자리 셋, shelf: 의자 옆 두 칸 선반 {stock, shown}}
 var player_up_at := -999.0   # 사람이 넘어졌다 일어나기 시작한 시각(town_player) — 30초 안에 방석에 앉으면 달래는 줄, 본 이들이 끄덕(run 104)
 
 func _sunroom(at: Vector3) -> void:
 	_path(Vector3(-13.5, 0, -13), Vector3(-21.5, 0, -13), 2.0)   # 골목의 서쪽 연장 — 문 앞(z −14.8)에서 끝난다
 	_house(at, Vector3(4.6, 2.6, 3.6), Color("efe9e2"), "shingle", false, 43, "_sunroom_inside")   # seed 43 = 단층(첫 randf 0.67 ≥ 0.35)
 	var dr: Dictionary = doors[doors.size() - 1]; sunroom["door"] = dr
-	for sp: Dictionary in [sunroom["chair"]] + (sunroom["cushions"] as Array): sp["door"] = dr   # 주인이 밤에 침대를 못 잡으면 여기라도(resident.gd 밤 규칙)
+	for sp: Dictionary in [sunroom["chair"], sunroom["shelf"]] + (sunroom["cushions"] as Array): sp["door"] = dr   # 주인이 밤에 침대를 못 잡으면 여기라도(resident.gd 밤 규칙)
 	# 유리 앞면: 문 양쪽 벽 토막마다 창틀 상자 + 옅은 유리 + 가는 문설주 둘(모두 넷) — 집 생성기의 앞창을 덮는다. 컷어웨이 대상에 넣어 안에 들면 같이 감춘다
 	var parts: Array = houses[houses.size() - 1]["parts"]
 	var frame := _mat(Color("8a6a4a")); var pane := _mat(Color("dfe6ea")); var hd := 1.8
@@ -55,7 +56,18 @@ func _sunroom_inside(at: Vector3, size: Vector3) -> void:
 		c.material_override = _mat(cc[i]); c.position = at + cpos[i] + Vector3(0, 0.085, 0); c.rotation.y = i * 0.7; _add(c)
 		var sp := { "pos": at + cpos[i] + Vector3(0, 0.1, 0), "kind": "cushion", "yaw": atan2(cp.x - (at.x + cpos[i].x), cp.z - (at.z + cpos[i].z)) }
 		cushions.append(sp); spots.append(sp)
-	sunroom = { "chair": chair, "cushions": cushions }
+	# 책 선반(run 106): 의자 앞쪽 왼쪽 벽에 작은 널 하나, 책등 둘이 방을 본다(+x). spots 엔 넣지 않는다 — 산책하던 이가 고르지 않게. 주인만 10시에 책을 가지러 온다
+	var shp := at + Vector3(-hw + 0.13, 1.0, 0.75)
+	_box(Vector3(0.26, 0.03, 0.44), shp, wood, false)
+	for sz: float in [-0.17, 0.17]: _box(Vector3(0.03, 0.12, 0.03), shp + Vector3(-0.1, -0.12, sz), wood, false)   # 받침 둘
+	var spines: Array = []
+	for i in 2:
+		var b := make_item("book", Vector3.ZERO); var hk := 0.88 + 0.1 * i
+		b.scale = Vector3(1.0, 1.0, hk); b.rotation = Vector3(PI / 2.0, -PI / 2.0, PI / 2.0)   # 세워서 책등이 +x(방 안쪽)으로 — 책 상자의 꽂음새를 90도 돌린 것
+		b.position = shp + Vector3(0.0, 0.015 + 0.11 * hk, -0.07 + 0.12 * i); spines.append(b)
+	var shelf := { "pos": at + Vector3(-hw + 0.5, 0, 0.75), "kind": "sshelf", "yaw": -PI / 2.0, "stock": 0, "shown": spines }
+	_show_stock(shelf)
+	sunroom = { "chair": chair, "cushions": cushions, "shelf": shelf }
 	# 침상: 오른쪽 뒤 구석 — 이 집 주인이 밤에 잔다
 	var bx := hw - 0.45; var bz := -hd + 0.8
 	_box(Vector3(0.8, 0.3, 1.5), at + Vector3(bx, 0, bz), _mat(Color("8a6a4a")))
@@ -121,3 +133,41 @@ func _story_tick(_now: float) -> void:
 	var up := float(player.get_meta("cross_up", INF))
 	if up == INF: player.set_meta("cross_up", player._t)
 	elif player._t > up + SunroomPoses.UP_T: player.pose_request = ""
+
+## 읽는 이에게 책 건네기(run 106, items 축): 책을 들고 안락의자의 읽는 이 앞 1.2m 에서 C — 앉은 사람은 give_to_resident 가 건너뛰니(seated·손이 참) town_player 가 이걸 먼저 묻는다.
+## 막는 가지 없음: 조건이 맞으면 100% 건넨다. 책을 든 채 이야기방에 온 주민도 방석에 앉기 전에 같은 lend_book(resident_sunroom)
+func sunroom_give(now: float) -> bool:
+	var it: Node3D = player.carrying
+	if it == null or String(it.get_meta("kind", "")) != "book": return false
+	var k := storysitter_here()
+	if k == null or k.fig.carrying == null: return false
+	var to: Vector3 = k.global_position - body.global_position; to.y = 0.0
+	if to.length() > 1.2 or to.normalized().dot(Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))) < 0.5: return false
+	lend_book(player, k); k.mind.gifted()
+	player.action = "grab"; action_until = now + 0.4
+	return true
+
+## 책이 손에서 손으로 — 집 책은 덮여 사라지고(집 것이라 선반엔 안 간다), 앞서 받은 책이었으면 선반으로; 받은 책(lent)을 펴 읽는다(이야기가 끝나면 그 책도 선반으로, resident_sunroom _close_book).
+## 읽는 이는 새 책을 들어 표지를 본다(newbook_at — SunroomPoses), 방석의 아이들은 다음 세 장을 더 쏠려 듣는다(keen_until). 사람도 주민도 이걸 부른다
+func lend_book(from: Stick3D, k: ResidentBase) -> void:
+	shelf_put(k.fig.release(self, Vector3.ZERO))
+	var nb: Node3D = from.release(self, Vector3.ZERO)
+	nb.set_meta("story", true); nb.set_meta("lent", true)
+	k.fig.hold(nb); k.carrying_kind = "book"; k.fig.set_meta("newbook_at", k.fig._t)
+	k.say(k.mind.line("story_new"), 2.0)
+	for r in residents:
+		if r.state == "busy" and r.fig.pose_request == "crossleg" and r.spot.get("kind", "") == "cushion": r.fig.set_meta("keen_until", r.fig._t + 3.0 * SunroomPoses.STORY_T)
+
+## 책을 선반에(두 칸) — 받은 책(lent)만 남고 집 책은 사라진다. 칸이 다 찼으면 그 책도 집 것이 된다(사라진다). 주민도 사람도 이걸 부른다
+func shelf_put(book: Node3D) -> void:
+	if book == null: return
+	var sh: Dictionary = sunroom["shelf"]
+	if book.has_meta("lent") and int(sh["stock"]) < 2: sh["stock"] = int(sh["stock"]) + 1; _show_stock(sh)
+	book.queue_free()
+
+## 선반에서 하나 — 손이 비었고 책이 남았으면 책등 하나가 사라지고 손에 책(lent — 책 상자로 돌아갈 것)
+func shelf_take(fig: Stick3D) -> bool:
+	var sh: Dictionary = sunroom["shelf"]
+	if fig.carrying != null or not counter_take(sh): return false
+	var b := make_item("book", Vector3.ZERO); b.set_meta("lent", true); fig.hold(b)
+	return true

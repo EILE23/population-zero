@@ -6,6 +6,7 @@ extends ResidentLetters
 ## 나올 땐 _leave 뒤 _exit_house 가 문으로 데리고 나간다. 사슬: … → letters → **sunroom** → resident → kid
 ## 2b(run 104): 넘어졌다 일어난 어른(쫓지도 피하지도 않은 — 쫓는 쪽이 이긴다)이 이야기 시간에 문에서 14m 안이면 방석에 6–10초 앉는다 —
 ## 맞은 기억(last_hurt)이 15초 뒤로 밀려 기분이 먼저 돌아오고, 읽는 이가 달래는 한 줄(story_calm). 사람도 같은 자리에서 같은 줄(town_sunroom)
+## 책 돌려놓기(run 106): 받은 책(lent)은 이야기가 끝나면 의자 옆 선반에 남고, 다음 날 10시대 주인이 shelve 자세로 집어 들고 나가 책 상자에 꽂는다(resident_shelf _swap_pick 이 그 책만은 꼭 보낸다) — 책이 상자와 이야기방 사이를 돈다
 
 var shaken_at := -999.0   # resident.gd 가 일어선 순간 적는다 — 30초 안에만 센다
 
@@ -15,7 +16,7 @@ func _story_pick(now: float) -> bool:
 	if sr.is_empty() or not town.story_time(): return false
 	var sp: Dictionary = {}
 	if job == "storysitter" and _hour() >= 14.75 and _free_slot(sr["chair"]) >= 0: sp = sr["chair"]
-	elif job == "child" or (now - shaken_at < 30.0 and global_position.distance_to(sr["door"]["pos"] as Vector3) < 14.0):
+	elif job == "child" or (global_position.distance_to(sr["door"]["pos"] as Vector3) < 14.0 and (now - shaken_at < 30.0 or (carrying_kind == "book" and town.storysitter_here() != null))):   # 책을 든 어른도 읽는 이에게 가져다준다(run 106)
 		for c: Dictionary in sr["cushions"]:
 			if _free_slot(c) >= 0: sp = c; break
 	if sp.is_empty(): return false
@@ -30,14 +31,28 @@ func _story_pick(now: float) -> bool:
 	return true
 
 func _post_pick(now: float) -> bool:
-	return _story_pick(now) or super._post_pick(now)
+	return _story_pick(now) or _shelf_pick(now) or super._post_pick(now)
+
+## 10시대, 빈손인 주인, 선반에 받은 책이 있으면 — 문을 열고 들어가 선반 앞(+x 쪽, 벽을 본다)으로. 이야기 시간 밖의 유일한 이 집 볼일
+func _shelf_pick(now: float) -> bool:
+	var sr: Dictionary = town.sunroom
+	if sr.is_empty() or job != "storysitter" or fig.carrying != null or _hour() < 10.0 or _hour() >= 11.0: return false
+	var sh: Dictionary = sr["shelf"]
+	if int(sh["stock"]) <= 0 or _free_slot(sh) < 0: return false
+	slot = 0; spot = sh; _claim(sh, 0)
+	door_ref = sr["door"]; var dp: Vector3 = door_ref["pos"]
+	route = town.via_bridge(global_position, call("_approach", door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -1.3), "act": "close" }, { "pos": sh["pos"], "act": "" }])
+	target = route[0]["pos"]; state = "walk"; busy_until = now
+	return true
 
 ## 이야기방 자리에 닿음 — 남은 이야기 시간만큼 앉는다(시계 한 시간 = DAY_LEN/24 초)
 func _post_arrive(now: float) -> bool:
 	var k: String = spot.get("kind", "")
+	if k == "sshelf": return _shelf_arrive(now)
 	if k != "story" and k != "cushion": return super._post_arrive(now)
-	var shaken: bool = k == "cushion" and job != "child"   # 어른이 방석에 왔다면 넘어졌다 온 사람(_story_pick) — 끝까지가 아니라 잠깐
-	var left := randf_range(6.0, 10.0) if shaken else maxf(2.0, (town.STORY_TO - _hour()) * town.DAY_LEN / 24.0)
+	var adult: bool = k == "cushion" and job != "child"   # 어른이 방석에 왔다면 넘어졌다 온 사람이거나 책을 가져온 사람(_story_pick) — 끝까지가 아니라 잠깐
+	var shaken: bool = adult and shaken_at > 0.0
+	var left := randf_range(6.0, 10.0) if adult else maxf(2.0, (town.STORY_TO - _hour()) * town.DAY_LEN / 24.0)
 	fig.seated = true; collision_layer = 0; collision_mask = 0
 	fig.face(spot.get("yaw", 0.0)); busy_until = now + left
 	if k == "story":
@@ -51,9 +66,22 @@ func _post_arrive(now: float) -> bool:
 		if shaken: shaken_at = -999.0; mind.last_hurt -= 15.0   # 한 번만, 그리고 맞은 기억이 15초 먼저 옅어진다(mind.tick 의 30초 항)
 		var reader: ResidentBase = town.storysitter_here()
 		if reader: reader.say(reader.mind.line("story_calm" if shaken else "story"), 2.4); mind.befriend(reader, 0.1)
+		if adult and reader and carrying_kind == "book" and fig.carrying != null and reader.fig.carrying != null:
+			town.lend_book(fig, reader); carrying_kind = ""; reader.mind.befriend(self, 0.1)   # 책을 가져온 어른(run 106) — 사람의 C 와 같은 lend_book, 읽는 이가 기억한다
 	return true
 
-## 이야기가 끝났다 — 주인의 책은 이 집 것이라 덮어 둔다(맞아서 떨어뜨렸으면 그 책은 마을에 남는다)
+## 선반 앞 — 책 상자와 같은 shelve 한 바퀴, 손이 칸에 닿는 순간(SHELVE_IN) 책등 하나가 손으로. 그 뒤 _leave → _exit_house 가 문으로 데리고 나가고 _swap_pick 이 상자로 보낸다
+func _shelf_arrive(now: float) -> bool:
+	fig.face(spot.get("yaw", -PI / 2.0))
+	fig.pose_request = "shelve"; busy_until = now + ShelfPoses.SHELVE_T + 0.2
+	get_tree().create_timer(ShelfPoses.SHELVE_IN).timeout.connect(_shelf_hand)
+	return true
+
+func _shelf_hand() -> void:
+	if state != "busy" or spot.get("kind", "") != "sshelf" or fig.pose_request != "shelve": return   # 그새 맞았거나 떠났다 — 없던 일
+	if town.shelf_take(fig): carrying_kind = "book"; say(mind.line("book_swap"), 1.6)
+
+## 이야기가 끝났다 — 주인의 책은 이 집 것이라 덮어 둔다(맞아서 떨어뜨렸으면 그 책은 마을에 남는다); 받은 책(lent)은 의자 옆 선반에 남는다(run 106)
 func _close_book() -> void:
 	if fig.carrying != null and fig.carrying.has_meta("story"):
-		fig.release(town, Vector3.ZERO).queue_free(); carrying_kind = ""
+		town.shelf_put(fig.release(town, Vector3.ZERO)); carrying_kind = ""

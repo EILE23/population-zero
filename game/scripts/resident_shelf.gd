@@ -13,6 +13,7 @@ func _swap_pick(now: float) -> bool:
 	if bx.is_empty() or town.is_night() or weather == "rain" or has_umb or _free_slot(bx) < 0: return false
 	var h := _hour(); var go := false
 	if job == "librarian": go = h >= 9.0 and h < 17.0 and randf() < 0.75
+	elif carrying_kind == "book" and fig.carrying != null and fig.carrying.has_meta("lent"): go = int(bx["stock"]) < town.BOOK_MAX   # 이야기방 선반에서 집어 온 책(run 106)은 멀어도 꼭 돌려놓는다 — 칸이 다 찼으면 들고 다니다 다음에
 	elif global_position.distance_to(bx["pos"]) < 12.0 and randf() < 1.0 / 6.0:
 		go = carrying_kind == "book" or (fig.carrying == null and int(bx["stock"]) > 1)
 	if not go: return false

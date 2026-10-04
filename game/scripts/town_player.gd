@@ -272,7 +272,7 @@ func _interact_check(now: float) -> void:
 		if prev: player.hold(prev)
 		player.action = "grab"; action_until = now + 0.35
 		return
-	if player.carrying and give_to_resident(now): return   # 앞의 주민에게 건네기가 먹기·내려놓기보다 먼저(town_critters)
+	if player.carrying and (sunroom_give(now) or give_to_resident(now)): return   # 앞의 주민에게 건네기가 먹기·내려놓기보다 먼저(town_critters); 안락의자의 읽는 이는 앉아 있어 따로(run 106, town_sunroom)
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind in FOOD:
