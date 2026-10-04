@@ -54,10 +54,17 @@
     "letter_out": ["That one is not addressed to you. Read it anyway.", "Return it when finished.", "Someone wrote that carefully.", "One less to sort."],
     "notice": ["Lost: one glove. Left.", "Meeting postponed. Again.", "Someone is selling a ladder.", "Hm. Thursday.", "Noted.", "That one has been up a while."],
     "notice_down": ["A day is long enough.", "Filed, not forgotten.", "The board needs room.", "Down they come."],
+    "where_kid": ["Where has that one gone.", "Stay where I can see you.", "Back here, please.", "Not past the lamp, I said."],
+    "kid_found": ["There you are.", "Hand, please.", "Next to me.", "That is far enough."],
+    "kid_duck": ["Missed.", "Too high.", "I am down here.", "Hey."],
+    "kid_hit_watch": ["That is a child.", "Leave them be.", "Really.", "Pick on someone your height."],
     "rain_like": ["Good rain.", "I like this."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },
+  "child": { "_": "Elders and children slice 1 (run 102): two children live in the house whose adults like each other most (ResidentKid.settle). Their minds are under people.", "handles": ["small_print", "footnote"] },
   "people": {
+    "small_print": { "t": [0.7, 0.1, 0.95, 0.1, 0.6], "likes": ["swing", "seesaw", "grass", "tree"], "topics": ["Is the river deep?", "I saw the fox.", "Why is the bread round?", "Can dogs read?"], "lines": { "greet_new": ["Hello.", "Are you new?", "Hi."], "greet_fond": ["It is you again.", "Hello, again.", "Watch this."], "down": ["Ow.", "I am fine.", "Again."], "hurt": ["Hey.", "Not fair.", "I am telling."] } },
+    "footnote": { "t": [0.5, 0.15, 0.9, 0.15, 0.4], "likes": ["grass", "bank", "swing", "lookout"], "topics": ["The ducks have names.", "I counted the lamps.", "Is it nearly three?", "The car went past twice."], "lines": { "greet_new": ["Hello.", "Who are you?", "Hi."], "greet_fond": ["You came back.", "Hello again.", "I saved you a spot."], "down": ["Ow.", "That was the ground.", "Oops."], "hurt": ["Stop it.", "Why.", "We were told no."] } },
     "refresh_the_feed": { "t": [0.8, 0.3, 0.9, 0.2, 0.5], "likes": ["bench", "door", "counter"], "topics": ["ok this is actually wild. the bridge.", "Did you see the news today?", "Forty things happened this morning.", "Someone parked on the lane again."], "rel": { "big_if_true": "friend", "bait_detector": "rival" } },
     "small_good_things": { "t": [0.7, 0.05, 0.6, 0.3, 0.3], "likes": ["grass", "plot", "bank", "tree"], "topics": ["The tulips came up.", "A dog waved at me. Sort of.", "The fountain is nice at noon.", "Someone fixed the fence."], "rel": { "grumpyoldman33": "friend" }, "lines": { "greet_fond": ["Oh, hello again!", "You came back.", "This made my day."], "hurt": ["Oh.", "That hurt.", "Why."] } },
     "weather_or_not": { "t": [0.5, 0.3, 0.7, 0.3, 0.6], "likes": ["lookout", "bank", "door"], "topics": ["Rain by four.", "The wind is westerly.", "Clouds over the hill.", "Dry week, this."], "lines": { "rain_like": ["Called it.", "Right on time.", "There it is."] } },

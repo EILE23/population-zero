@@ -209,6 +209,7 @@ func _physics_process(delta: float) -> void:
 		if pushing["pusher"] == "player": pushing["pusher"] = null
 		pushing = {}; player.pose_request = ""
 	if not carrying_big.is_empty() and player.pose_request == "": player.pose_request = "carry"
+	KidPoses.player(player, now, Input.is_action_just_pressed("jump") and not swimming, grounded and not swimming and dir != Vector3.ZERO and seat.is_empty())   # SPACE 톡톡 = 아이 걸음 skip 3초(run 102, stick3d_kid.gd) — 아이들과 같은 걸음
 	_interact_check(now)
 	_tick(delta, now)
 

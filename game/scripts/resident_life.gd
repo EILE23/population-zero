@@ -1,6 +1,6 @@
 class_name ResidentLife
 extends ResidentBase
-## 주민의 하루 — 일과표(시간대·직업이 고르는 자리), 수다, 운전. resident.gd 가 500줄에 닿아 뗐다(2026-09-30). 사슬: base → life → pair(resident_pair.gd) → resident
+## 주민의 하루 — 일과표(시간대·직업이 고르는 자리), 수다, 운전. resident.gd 가 500줄에 닿아 뗐다(2026-09-30). 사슬: base → life → pair(resident_pair.gd) → shelf → letters → resident → kid(resident_kid.gd, 아이 — run 102)
 
 var car_seat: Car3D = null
 var own_car: Car3D = null     # 내 차 — 끌려 내려도 일이 끝나면 돌아가 다시 탄다

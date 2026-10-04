@@ -359,7 +359,7 @@ static func _flatten(n: Node3D) -> void:
 	var tw := n.create_tween(); tw.set_trans(Tween.TRANS_BACK); tw.set_ease(Tween.EASE_OUT)
 	tw.tween_property(n, prop, Vector3(1.25, 0.35, 1.25), 0.06)
 	tw.tween_interval(0.5)
-	tw.tween_property(n, prop, Vector3.ONE, 0.45)
+	tw.tween_property(n, prop, n.get_meta("size", Vector3.ONE) as Vector3, 0.45)   # 제 키로 — 아이(run 102, ResidentKid)는 0.62 로 돌아간다(전엔 깔리고 나면 어른이 됐다)
 
 ## 벤치·울타리 토막을 들이받으면 부서져 조각이 날아간다 — 수리공이 나중에 다시 세운다
 func _smash_props(fwd: Vector3) -> void:
