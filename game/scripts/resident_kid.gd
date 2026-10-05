@@ -105,7 +105,7 @@ func _follow(now: float) -> void:
 		call("_leave"); busy_until = now   # 부모가 일어나 걸어가면 따라 일어난다 — 쉬지 않고 곧장
 	elif state == "busy" and k == "follow" and spot.has("wait") and not parent.spot.has("door"):
 		call("_leave"); busy_until = now   # 부모가 나왔다
-	if gap > LOST and now > _fetch_at and not (k in ["cushion", "story"]): _fetch(now)   # 이야기방에 간 아이는 찾으러 오지 않는다 — 어디 있는지 안다
+	if gap > LOST and now > _fetch_at and not (k in ["cushion", "story", "cot"]): _fetch(now)   # 이야기방에 간 아이는 찾으러 오지 않는다 — 어디 있는지 안다
 
 ## 부모가 아이를 놓쳤다 — 하던 걸 접고(가벼운 일일 때만) 아이에게 걸어간다. 닿으면 한마디. 앉아 있거나 실내·탈것이면 다음 기회에
 func _fetch(now: float) -> void:

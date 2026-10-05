@@ -83,6 +83,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 	if p == "shelve": lean = ShelfPoses.lean(f)   # 책 상자에 꽂기·꺼내기(run 98, stick3d_shelf.gd)
 	if p in ["sort", "pin", "scan"]: lean = PostPoses.lean(f)   # 우편함에 꽂기·꺼내기(run 99), 게시판 꽂기·읽기(run 100) — stick3d_post.gd
 	if p == "crossleg" or p == "story": lean = SunroomPoses.lean(f)   # 방석 책상다리·안락의자 읽기(run 103) — 내려앉는 골반 높이도 거기서(stick3d_sunroom.gd)
+	if p == "rock" or p == "rub": lean = NapPoses.lean(f)   # 흔들의자·깨어남(run 108) — 골반의 기울기와 높이도 거기서(stick3d_nap.gd)
 	if p == "stoop": lean = CoinPoses.lean(f)   # 동전 집어 주머니에(run 107) — 굽는 무릎의 골반 높이도 거기서(stick3d_coin.gd)
 	if p == "skip": lean = KidPoses.lean(f, lean)   # 아이 걸음(run 102) — 걸음마다 뜨는 골반 높이도 거기서(stick3d_kid.gd)
 	if p == "moor": lean = DockPoses.lean(f)   # 배 매기(run 94) — 쪼그린 골반 높이도 거기서(stick3d_dock.gd)
@@ -442,5 +443,5 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			if s > 0.0:
 				f.neck.rotation.x -= 0.55 * k; f.chest.rotation.x -= 0.06 * k   # 고개만 든다 — 몸통은 조금
 		_:
-			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s) or PostPoses.limbs(f, s) or KidPoses.limbs(f, s) or SunroomPoses.limbs(f, s) or CoinPoses.limbs(f, s)   # 이야기방(run 103)· 아이 걸음(run 102)· 우편 가족(run 99)· 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
+			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s) or PostPoses.limbs(f, s) or KidPoses.limbs(f, s) or SunroomPoses.limbs(f, s) or CoinPoses.limbs(f, s) or NapPoses.limbs(f, s)   # 이야기방(run 103)· 아이 걸음(run 102)· 우편 가족(run 99)· 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
 	return true

@@ -1,10 +1,10 @@
 class_name TownCoins
-extends TownSunroom
+extends TownNap
 ## 동전("Money in hands" — 마을이 설계한 스무째 시스템, 1조각 run 107): 마을의 첫 돈. `coin` 은 바닥의 물건(make_item)이지만 손에 들지 않고 주머니로 간다 —
 ## 바닥의 동전 앞에서 C = stoop(숙여 쥐고 허리 주머니에, stick3d_coin.gd): STOOP_IN 에 손으로, STOOP_AWAY 에 주머니로. 주머니는 HUD 오른쪽 위 잉크 글자 하나(막대·아이콘 줄 없음).
 ## 주민도 걷다 0.8m 안의 동전을 보면 멈춰 같은 자세로 집고(mind.line "finders") 제 주머니(coins)에 넣는다. 넘어지면 셋 중 하나는 동전을 떨군다 — 주머니에 있으면 그것, 주민은 없어도 하나(마을에 돈이 생기는 길),
 ## 사람은 주머니가 비면 아무것도. 평범한 결과(든 것만 떨어진다)가 70%. 창구는 주머니에 동전이 있으면 하나 받고(상판 끝 접시에 셋까지 보인다), 없으면 그냥 준다("On the house.") — 돈이 없어도 핵심 동작은 그대로.
-## 다음 조각(주민의 아침 동전·주인의 수입과 훔치기·시장 노점에 작물 팔기)은 백로그 "Money in hands". 사슬: … → sunroom → **coins** → player → town3d
+## 다음 조각(주민의 아침 동전·주인의 수입과 훔치기·시장 노점에 작물 팔기)은 백로그 "Money in hands". 사슬: … → sunroom → nap → **coins** → player → town3d
 
 var coins := 0                  # 내 주머니(이 판에서만 — 저장은 다음 조각)
 var stooping: Array = []        # 집는 중 [{fig, coin, t0, who, at, phase}] — who: ResidentBase 또는 "player"; phase 0 숙임 · 1 손에 · 2 주머니에

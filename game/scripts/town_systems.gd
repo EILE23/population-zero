@@ -25,6 +25,7 @@ func _tick(delta: float, now: float) -> void:
 	if has_method("_fish"): call("_fish", now)         # 위층(town_sites) — 부두 끝 낚싯대·줄·찌(run 91)
 	if has_method("_story_tick"): call("_story_tick", now)   # 위층(town_sunroom) — 방석에서 일어서는 회수(run 103)
 	if has_method("_coins_tick"): call("_coins_tick", now)   # 위층(town_coins) — 걷다 동전을 보는 주민, 집는 손의 진행(run 107)
+	if has_method("_nap_tick"): call("_nap_tick", now)   # 위층(town_nap) — 아침의 공사 한 단계, 흔들의자, 문소리에 깨는 아이(run 108)
 
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
 func _stream() -> void:
@@ -347,6 +348,9 @@ func _daylight(delta: float) -> void:
 ## 문 열기/닫기 — 사람도 주민도 이걸 쓴다
 func set_door(dr: Dictionary, open: bool) -> void:
 	if dr["open"] == open: return
+	if not open:
+		for r in residents:   # 뒤따라 이 문을 지나려는 이(아직 "close" 경유지가 남은 걷는 주민)가 3m 안에 있으면 열어 둔다 — 셋이 같이 들어가면 첫 사람이 닫은 문짝에 둘이 막혀 우회하다 벽에 갇혔다(run 108, 낮잠방)
+			if r.state == "walk" and is_same(r.door_ref, dr) and r.global_position.distance_to(dr["pos"]) < 3.0 and r.route.any(func(st: Dictionary) -> bool: return st.get("act", "") == "close"): return
 	dr["open"] = open
 	var tw := create_tween(); tw.set_ease(Tween.EASE_OUT); tw.set_trans(Tween.TRANS_CUBIC)
 	tw.tween_property(dr["hinge"], "rotation:y", 1.85 if open else 0.0, 0.45)

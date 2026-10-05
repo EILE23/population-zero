@@ -9,9 +9,11 @@ extends ResidentLetters
 ## 책 돌려놓기(run 106): 받은 책(lent)은 이야기가 끝나면 의자 옆 선반에 남고, 다음 날 10시대 주인이 shelve 자세로 집어 들고 나가 책 상자에 꽂는다(resident_shelf _swap_pick 이 그 책만은 꼭 보낸다) — 책이 상자와 이야기방 사이를 돈다
 
 var shaken_at := -999.0   # resident.gd 가 일어선 순간 적는다 — 30초 안에만 센다
+var nap_done := -999.0   # 낮잠방 간이침대에 누운 시각(run 108) — 한 번 누웠다 나온(깬) 아이는 60초(두 시간)는 다시 안 눕는다
 
 ## 이야기방으로 갈 이유가 있나 — 있으면 걸어간다(true). 아이는 resident_kid 의 _pick_spot 도 이걸 먼저 부른다
 func _story_pick(now: float) -> bool:
+	if _nap_pick(now): return true   # 낮잠방(run 108) — 13–14시, 다 지어진 뒤에만
 	var sr: Dictionary = town.sunroom
 	if sr.is_empty() or not town.story_time(): return false
 	var sp: Dictionary = {}
@@ -49,6 +51,7 @@ func _shelf_pick(now: float) -> bool:
 func _post_arrive(now: float) -> bool:
 	var k: String = spot.get("kind", "")
 	if k == "sshelf": return _shelf_arrive(now)
+	if k == "cot" or k == "rocker": return _nap_arrive(now)
 	if k != "story" and k != "cushion": return super._post_arrive(now)
 	var adult: bool = k == "cushion" and job != "child"   # 어른이 방석에 왔다면 넘어졌다 온 사람이거나 책을 가져온 사람(_story_pick) — 끝까지가 아니라 잠깐
 	var shaken: bool = adult and shaken_at > 0.0
@@ -85,3 +88,35 @@ func _shelf_hand() -> void:
 func _close_book() -> void:
 	if fig.carrying != null and fig.carrying.has_meta("story"):
 		town.shelf_put(fig.release(town, Vector3.ZERO)); carrying_kind = ""
+
+## 낮잠방(run 108, "Elders and children" 6조각) — 다 지어진 뒤에만(town.nap stage 3). 13–14시 주인은 흔들의자로, 아이는 빈 간이침대로; 사람이 흔들의자에서 부른 아이(town.nap "call")는 시간 밖에도 온다.
+## 사람이 C 로 하는 것과 같은 자리·같은 자세(town_nap nap_use). 문을 열고 들어가 흔들의자는 앞(+x)에서, 간이침대는 복도(−x) 쪽에서 다가간다
+func _nap_pick(now: float) -> bool:
+	var nl: Dictionary = town.nap
+	if nl.is_empty() or int(nl.get("stage", 0)) < 3: return false
+	var sp: Dictionary = {}
+	if job == "storysitter" and town.nap_time() and _free_slot(nl["rocker"]) >= 0: sp = nl["rocker"]
+	elif job == "child" and (town.nap_time() or nl.get("call") == self) and now - nap_done > 60.0:
+		for c: Dictionary in nl["cots"]:
+			if _free_slot(c) >= 0: sp = c; break
+	if sp.is_empty(): return false
+	slot = 0; spot = sp; _claim(sp, 0)
+	door_ref = nl["door"]; var dp: Vector3 = door_ref["pos"]
+	var off := Vector3(0.45, 0, 0) if sp["kind"] == "rocker" else Vector3(-0.55, 0, 0)
+	route = town.via_bridge(global_position, call("_approach", door_ref) + [{ "pos": dp + Vector3(0, 0, 0.8), "act": "open" }, { "pos": dp + Vector3(0, 0, -1.3), "act": "close" }, { "pos": Vector3(sp["pos"].x, 0, sp["pos"].z) + off, "act": "" }])
+	target = route[0]["pos"]; state = "walk"; busy_until = now
+	return true
+
+## 낮잠방 자리에 닿음 — 간이침대엔 눕고(rest, 침대와 같은 자세) 흔들의자엔 앉아 흔든다(rock, 콧노래는 town_nap 이 7초마다). 남은 낮잠 시간만큼, 시간 밖에 불려 온 아이는 30초
+func _nap_arrive(now: float) -> bool:
+	var left := maxf(4.0, (town.NAP_TO - _hour()) * town.DAY_LEN / 24.0) if town.nap_time() else 30.0
+	fig.face(spot.get("yaw", 0.0)); busy_until = now + left
+	global_position = spot["pos"] + Vector3(0, 0.02, 0)
+	if spot["kind"] == "rocker":
+		fig.seated = true; collision_layer = 0; collision_mask = 0
+		fig.pose_request = "rock"; fig.set_meta("hum_at", now); say(mind.line("hum"), 2.0)
+	else:
+		fig.pose_request = "rest"; fig.set_meta("nap_at", now); nap_done = now
+		say(mind.line("nap_down"), 1.6)
+		if town.nap.get("call") == self: town.nap.erase("call")
+	return true

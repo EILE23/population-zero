@@ -3,7 +3,7 @@ extends TownLetters
 ## 이야기방("Elders and children" — 마을이 설계한 열아홉째 시스템, 2조각 run 103, 구조): 북쪽 골목 서쪽(공원) 끝에 새 집 한 채 — 앞이 유리창인 단층집.
 ## 안에는 날개 달린 안락의자(방을 본다)·둥근 깔개·방석 셋·주인의 침상. 주인은 마을에서 가장 '늙은 마음'(기운이 가장 낮고 어울림이 가장 높은 어른)이 되고 일은 "storysitter".
 ## 15–16시 그 사람이 안락의자에서 소리 내어 읽고(story, 책장 4초), 아이들이 걸어와 방석에 책상다리로 앉는다(crossleg). 사람도 빈 방석에서 C — 같은 자세, 읽는 이의 옛이야기 한 줄.
-## 사슬: … → letters → **sunroom** → player → town3d. 다음 조각(현관 탁자·기억 우체통·손수레·낮잠방·장난감 선반)도 이 집에
+## 사슬: … → letters → **sunroom** → nap(town_nap.gd, 낮잠방 — run 108) → coins → player → town3d. 다음 조각(현관 탁자·기억 우체통·손수레·낮잠방·장난감 선반)도 이 집에
 ## 책 건네기(run 106, items): 책을 들고 읽는 이 앞에서 C — 집 책은 덮이고 네 책을 읽는다. 끝나면 네 책은 의자 옆 두 칸 선반에(책등이 보인다), 다음 날 10시 주인이 책 상자로 돌려놓는다(resident_sunroom)
 
 const SUN_AT := Vector3(-19.5, 0, -16.6)   # 골목(z −13, x −14..14) 서쪽 끝 너머 빈 땅 — 공원 북쪽 끝(z ≥ −10.5)·골목 울타리(z −19, x ≥ −13)와 떨어져, 큰길에서 멀다
@@ -28,6 +28,7 @@ func _sunroom(at: Vector3) -> void:
 		for mx: float in [-0.8, -0.27, 0.27, 0.8]: parts.append(_box(Vector3(0.04 if absf(mx) < 0.5 else 0.06, 1.45, 0.08), c + Vector3(mx, 0.25, 0.06), frame, false))
 	var sign := Label3D.new(); sign.text = "Stories at three"; sign.font_size = 18; sign.pixel_size = 0.004; sign.modulate = Color("1b0c15")
 	sign.position = at + Vector3(0, 2.25, 1.86); _add(sign); parts.append(sign)
+	call("_nap_site", at)   # 낮잠방 공사장(run 108, town_nap) — 동쪽 벽에 기대어, 같은 구역 노드 아래
 
 ## 실내(_house 가 call 로 부른다) — 왼쪽 벽 앞에 안락의자(+x 를 본다), 가운데 둥근 깔개, 그 위 방석 셋(의자를 본다), 오른쪽 뒤 구석에 침상
 func _sunroom_inside(at: Vector3, size: Vector3) -> void:
