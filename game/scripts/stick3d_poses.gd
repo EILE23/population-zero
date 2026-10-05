@@ -84,7 +84,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 	if p in ["sort", "pin", "scan"]: lean = PostPoses.lean(f)   # 우편함에 꽂기·꺼내기(run 99), 게시판 꽂기·읽기(run 100) — stick3d_post.gd
 	if p == "crossleg" or p == "story": lean = SunroomPoses.lean(f)   # 방석 책상다리·안락의자 읽기(run 103) — 내려앉는 골반 높이도 거기서(stick3d_sunroom.gd)
 	if p == "rock" or p == "rub": lean = NapPoses.lean(f)   # 흔들의자·깨어남(run 108) — 골반의 기울기와 높이도 거기서(stick3d_nap.gd)
-	if p == "stoop": lean = CoinPoses.lean(f)   # 동전 집어 주머니에(run 107) — 굽는 무릎의 골반 높이도 거기서(stick3d_coin.gd)
+	if p == "stoop" or p == "palm": lean = CoinPoses.lean(f)   # 동전 집어 주머니에(run 107)·상판에서 쓸어 쥐기(run 110) — 굽는 무릎의 골반 높이도 거기서(stick3d_coin.gd)
 	if p == "skip": lean = KidPoses.lean(f, lean)   # 아이 걸음(run 102) — 걸음마다 뜨는 골반 높이도 거기서(stick3d_kid.gd)
 	if p == "moor": lean = DockPoses.lean(f)   # 배 매기(run 94) — 쪼그린 골반 높이도 거기서(stick3d_dock.gd)
 	if p == "stoke": lean = HearthPoses.lean(f)   # 난로에 장작 넣기(run 92) — 쪼그린 골반 높이도 거기서(stick3d_hearth.gd)
@@ -236,7 +236,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "sort", "pin", "stoop"]   # stoop: 오른손이 바닥에서 주머니로(run 107). pin: 오른손이 쪽지를 판에 누른다(run 100)   # sort: 오른손이 편지를 칸에 넣는다(run 99)   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
+	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "sort", "pin", "stoop", "palm"]   # palm: 오른손이 상판에서 주머니로(run 110)   # stoop: 오른손이 바닥에서 주머니로(run 107). pin: 오른손이 쪽지를 판에 누른다(run 100)   # sort: 오른손이 편지를 칸에 넣는다(run 99)   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 우산(run 76, "Weather people feel" 2조각): 오른팔만 쓴다 — 다리와 왼팔은 걷기·서기·앉기 그대로라 limbs() 의 match 에 없고, stick3d.gd 가 팔다리를 다 정한 뒤 이걸 부른다(세 변형이 팔 하나를 나눠 쓴다).
 ## k = f.umbr_k(0..1, UMBR_T 에 걸쳐 오간다): 팔이 늘어진 곳에서 머리 위로 오르고 캐노피(우산 meta "umb")가 펴진다; 접힐 땐 같은 길을 거꾸로. 걸을수록 진행 방향으로 조금 더 기운다 — 정지화가 아니다

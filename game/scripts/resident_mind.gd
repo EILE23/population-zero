@@ -36,6 +36,7 @@ var mood := 0.3
 var fond := 0.0                # -1 미움 .. 1 좋아함
 var met := 0                   # 인사를 나눈 횟수
 var hurt := 0                  # 맞은 횟수(누적, 판을 넘어 남는다)
+var stole := 0                 # 내 창구 접시에서 집어 간 횟수(누적, 남는다) — 가게 주인의 첫 평판 열쇠(run 110, town_coins _robbed)
 var last_hurt := -999.0
 var witnessed_at := -999.0      # 사람이 남을 때리는 걸 본 시각 — 이야기방에서 그 사람이 넘어졌다 와 앉으면 끄덕여 준다(run 104)
 var last_greet := -999.0
@@ -76,7 +77,7 @@ func _init(res: ResidentBase) -> void:
 	if topics.is_empty(): topics = voice.get("topics", ["Hm."])
 	energy = 0.7 + 0.3 * float(hs % 10) / 9.0; full = 0.4 + 0.5 * float((hs / 10) % 10) / 9.0; fun = 0.3 + 0.5 * curious
 	var m: Dictionary = _saved.get(str(res.uid), {})
-	fond = float(m.get("fond", 0.0)); met = int(m.get("met", 0)); hurt = int(m.get("hurt", 0))
+	fond = float(m.get("fond", 0.0)); met = int(m.get("met", 0)); hurt = int(m.get("hurt", 0)); stole = int(m.get("stole", 0))
 	var fr: Dictionary = m.get("friends", {})
 	for k in fr: friends[int(k)] = float(fr[k])
 
@@ -167,6 +168,7 @@ func greeted() -> void:
 	last_greet = now
 
 func greet_line() -> String:
+	if stole > 0 and fond < 0.3: return line("greet_till")   # 접시에서 집어 간 사람은 인사부터 다르다 — 정이 쌓이면 잊는다
 	if fond < -0.3: return line("grudge" if _now() - last_hurt < 120.0 else "greet_cold")
 	if fond > 0.3: return line("greet_fond")
 	return line("greet_new")
@@ -177,6 +179,10 @@ func gifted() -> void:
 func hurt_by_player(heavy: bool) -> void:
 	hurt += 1; last_hurt = _now()
 	fond = clampf(fond - (0.3 if heavy else 0.15), -1.0, 1.0); mood = maxf(-1.0, mood - 0.3)
+
+## 내 접시에서 집어 갔다 — 세고, 정이 깎인다(막지는 않는다: 평범한 결과는 늘 가져가는 것)
+func robbed() -> void:
+	stole += 1; fond = clampf(fond - 0.2, -1.0, 1.0); mood = maxf(-1.0, mood - 0.2)
 
 func witnessed() -> void:
 	fond = clampf(fond - 0.08, -1.0, 1.0); witnessed_at = _now()
@@ -196,6 +202,7 @@ func status() -> String:
 	if fun < 0.25: out.append("bored")
 	if company < 0.25: out.append("lonely")
 	if out.is_empty(): out.append("cheerful" if mood > 0.45 else ("grumpy" if mood < -0.15 else "fine"))
+	if stole > 0: out.append("remembers the till")
 	if fond > 0.3: out.append("likes you")
 	elif fond < -0.3: out.append("angry at you" if _now() - last_hurt < 120.0 else "wary of you")
 	elif met == 0: out.append("new to you")
@@ -212,6 +219,6 @@ static func save_all(residents: Array, force := false) -> void:
 		if m == null: continue
 		var fr := {}
 		for k in m.friends: fr[str(k)] = snappedf(m.friends[k], 0.01)
-		_saved[str(x.uid)] = { "fond": snappedf(m.fond, 0.01), "met": m.met, "hurt": m.hurt, "friends": fr }
+		_saved[str(x.uid)] = { "fond": snappedf(m.fond, 0.01), "met": m.met, "hurt": m.hurt, "stole": m.stole, "friends": fr }
 	var f := FileAccess.open(SAVE, FileAccess.WRITE)
 	if f: f.store_string(JSON.stringify(_saved))

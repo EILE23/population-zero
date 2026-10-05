@@ -50,6 +50,7 @@ var _door_wait := -1.0   # 문을 열었으면 문짝이 다 열릴 때까지 �
 
 func setup(t: Node3D, id: int, h: String) -> void:
 	town = t; uid = id; handle = h
+	coins = uid % 3 + 1   # 주머니는 비지 않은 채 시작한다(run 110) — 아침 8시마다 하나 더(town_coins _coin_hours); 아이는 settle 이 비운다
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new(); cap.radius = 0.18; cap.height = 0.95
 	col.shape = cap; col.position.y = 0.5

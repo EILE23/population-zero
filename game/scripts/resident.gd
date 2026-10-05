@@ -1,5 +1,5 @@
 class_name Resident
-extends ResidentSunroom
+extends ResidentTill
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
@@ -241,7 +241,7 @@ func _pick_spot() -> void:
 			route = town.crossings(global_position, spot["pos"]) + [{ "pos": spot["pos"] + Vector3(0, 0, 0.4), "act": "" }]
 			target = route[0]["pos"]; state = "walk"; return
 	if _trade_pick(Time.get_ticks_msec() / 1000.0): return   # 구두장이의 낮 일, 닳은 밑창(run 80, resident_life)
-	if _pair_pick(Time.get_ticks_msec() / 1000.0) or _swap_pick(Time.get_ticks_msec() / 1000.0) or _post_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair), 책 상자(run 98, resident_shelf), 편지방(run 99, resident_letters)
+	if _pair_pick(Time.get_ticks_msec() / 1000.0) or _swap_pick(Time.get_ticks_msec() / 1000.0) or _post_pick(Time.get_ticks_msec() / 1000.0) or _till_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair), 책 상자(run 98, resident_shelf), 편지방(run 99, resident_letters)
 	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap", "letters", "notice", "story", "cushion", "cot", "rocker"]))
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
 	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
@@ -378,6 +378,7 @@ func _arrive(now: float) -> void:
 				else: fig.hold(u); has_umb = true; carrying_kind = "umbrella"; fig.pose_request = "umbr"; say(["Borrowed.", "Just for now.", "Back by tonight."][uid % 3], 1.6)
 		"cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "logs", "stove":
 			_trade_arrive(now)   # 구두장이 작업대(run 80)·칼갈이 숫돌(run 81)·바느질 탁자(run 82, resident_life)
+		"till": _till_arrive(now)   # 빵집 주인이 접시의 수입을 거둔다(run 110, resident_till)
 		"oven":
 			# 화덕(run 72): 창구에 모자란 만큼(최대 셋) 반죽 — 한 바퀴(KNEAD_T)에 빵 하나가 창구에 오른다(town_places _bakery). 사람이 C 로 하는 것과 같은 자세·같은 효과
 			var n: int = maxi(1, 3 - int((town.oven["counter"] as Dictionary).get("stock", 0)))
@@ -388,12 +389,13 @@ func _arrive(now: float) -> void:
 			# 창구(run 72): 빈손이고 재고가 있는 창구(빵집)면 빵을 받아 세 입에 먹는다(사람과 같은 eat 자세, 한입마다 작아진다 — _bite). 비었으면 "Sold out."
 			# 카페 창구(재고 없음)는 아직 서서 구경만 — 컵을 비우는 조각(비전 5단계)이 오면 같은 길로 마신다
 			fig.face(spot.get("yaw", PI))
+			var had: bool = coins > 0   # counter_take 가 낸 뒤엔 알 수 없다
 			if fig.carrying or not spot.has("stock"):
 				busy_until = now + randf_range(2.0, 4.0)
-			elif town.counter_take(spot, self):   # 주머니에 동전이 있으면 하나 낸다(run 107, town_coins)
+			elif town.counter_take(spot, self):   # 주머니에 동전이 있으면 하나 낸다(run 107, town_coins); 비어도 받는다 — 외상 한마디(run 110, 장부는 4조각)
 				carrying_kind = String(spot["item"]); fig.hold(town.make_item(carrying_kind, Vector3.ZERO))
 				bites = 3; bite_at = now + 0.9; busy_until = now + 0.9 * 3 + 1.2
-				say(["One, please.", "The usual.", "Still warm?"][uid % 3], 1.4)
+				say(mind.line("order" if had else "no_coin"), 1.4)
 			else:
 				busy_until = now + 2.0
 				say(["Sold out.", "Nothing left.", "Could someone knead one?"][uid % 3], 1.8)

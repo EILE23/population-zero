@@ -36,7 +36,7 @@ static func settle(t: Node3D) -> void:
 		var kid := ResidentKid.new()
 		t.add_child(kid)
 		kid.setup(t, 9001 + i, String(names[i % names.size()]))
-		kid.home_door = p.home_door; kid.job = "child"; kid.parent = p
+		kid.home_door = p.home_door; kid.job = "child"; kid.parent = p; kid.coins = 0   # 아이 주머니는 빈다(run 110) — 동전은 어른의 것, 아이가 먼저 찾는 건 백로그
 		kid.fig.base_scale = Vector3.ONE * SIZE; kid.fig.set_meta("size", kid.fig.base_scale)   # 차에 깔렸다 펴질 때도 제 키로(car3d _flatten)
 		kid.name_label.position.y = 0.95; kid.say_label.position.y = 1.1
 		kid.position = p.position + Vector3(0.7, 0.0, 0.3)
