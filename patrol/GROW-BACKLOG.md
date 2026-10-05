@@ -827,3 +827,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-10-05) Add a pawnbroker stall interaction: a pawnbroker resident who will buy one small nonessential prop from a player or resident for an immediate small coin, with a short haggle animation.
 - [ ] (town wish, 2026-10-05) Add a small secure coin-deposit booth (the Small-Change Safe) with a clerk NPC who accepts one coin per person and holds deposits behind a short withdraw timer so residents can tuck away a coin to avoid losing it when kn
 - [ ] (town wish, 2026-10-05) Add a busker stage on the square so residents can perform a short looping 'busk' action and players can drop one coin to tip them with a small tip-transfer animation.
+- [ ] (town wish, 2026-10-05) Add a public penny-pool raffle stall on the square where residents can drop one coin for a simple daily draw (small toy or voucher) so loose change can circulate and sometimes come back as a prize.
