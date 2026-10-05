@@ -825,3 +825,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (owner, mobile 3) HUD and labels readable on a phone: the help line, toasts, name tags and speech labels scale with `get_viewport().get_visible_rect().size` (min 14 px text); Climb HUD the same.
 - [ ] (town wish, 2026-10-05) Add an Odd Jobs system: a routable board that spawns short paid microtasks residents or players can accept and complete for a small coin reward.
 - [ ] (town wish, 2026-10-05) Add a pawnbroker stall interaction: a pawnbroker resident who will buy one small nonessential prop from a player or resident for an immediate small coin, with a short haggle animation.
+- [ ] (town wish, 2026-10-05) Add a small secure coin-deposit booth (the Small-Change Safe) with a clerk NPC who accepts one coin per person and holds deposits behind a short withdraw timer so residents can tuck away a coin to avoid losing it when kn
