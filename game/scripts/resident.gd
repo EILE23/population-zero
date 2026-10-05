@@ -390,7 +390,7 @@ func _arrive(now: float) -> void:
 			fig.face(spot.get("yaw", PI))
 			if fig.carrying or not spot.has("stock"):
 				busy_until = now + randf_range(2.0, 4.0)
-			elif town.counter_take(spot):
+			elif town.counter_take(spot, self):   # 주머니에 동전이 있으면 하나 낸다(run 107, town_coins)
 				carrying_kind = String(spot["item"]); fig.hold(town.make_item(carrying_kind, Vector3.ZERO))
 				bites = 3; bite_at = now + 0.9; busy_until = now + 0.9 * 3 + 1.2
 				say(["One, please.", "The usual.", "Still warm?"][uid % 3], 1.4)

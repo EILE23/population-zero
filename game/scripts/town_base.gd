@@ -324,6 +324,11 @@ func make_item(kind: String, at: Vector3) -> MeshInstance3D:
 			mi.position = at + Vector3(0, 0.006, 0)
 			_box(Vector3(0.15, 0.004, 0.012), Vector3(0, 0.006, -0.01), _mat(Color("cfc7c2")), false, mi)
 			_box(Vector3(0.026, 0.006, 0.026), Vector3(0, 0.006, 0.0), _mat(Color("ad7096")), false, mi)
+		"coin":
+			# 동전(run 107, 마을의 첫 돈): 납작한 금빛 원판 r 0.045 + 윗면의 짙은 띠(민무늬가 아니게). 바닥엔 눕고, 손에선 세워 쥔다 — 손에 남지 않고 주머니로 간다(town_coins)
+			var cn := CylinderMesh.new(); cn.top_radius = 0.045; cn.bottom_radius = 0.045; cn.height = 0.012; cn.radial_segments = 16; mi.mesh = cn; mi.material_override = _mat(Color("e8c766"))
+			mi.position = at + Vector3(0, 0.006, 0)
+			_box(Vector3(0.05, 0.004, 0.012), Vector3(0, 0.006, 0), _mat(Color("c9a64a")), false, mi)
 		_:
 			var b := BoxMesh.new(); b.size = Vector3(0.22, 0.02, 0.16); mi.mesh = b; mi.material_override = _mat(Color("efe9e2"))
 			mi.position = at + Vector3(0, 0.01, 0)

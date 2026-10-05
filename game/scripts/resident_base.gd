@@ -35,6 +35,7 @@ var job := ""                # 일자리 — 집 문에 적힌 것(town_build _r
 var bites := 0               # 창구에서 받은 빵의 남은 입(run 72) — 0 이면 먹는 중이 아니다
 var bite_at := 0.0           # 다음 한입 시각
 var in_boat := false         # 거룻배에 탄 중(run 78) — 배가 옮긴다(town_boat _boats), 내릴 땐 town.unboard
+var coins := 0               # 주머니의 동전(run 107, town_coins) — 걷다 집은 것; 창구에서 하나 내고, 넘어지면 셋 중 한 번 떨군다
 var has_umb := false         # 꽂이에서 빌린 우산을 든 중(run 76) — 비가 그치면(또는 밤이면) 돌려놓으러 간다. 맞아 떨어뜨리면 그냥 바닥의 물건(누구든 주워 돌려놓는다)
 
 var weather := "clear"
@@ -205,6 +206,7 @@ func hit(from_dir: Vector3, by: Node3D, heavy: bool, push := -1.0, lift := -1.0)
 		velocity = from_dir * (push if push >= 0.0 else 4.2) + Vector3(0, 3.2 + maxf(lift, 0.0), 0)   # 뒤로 붕 떠서 쓰러진다 — 기술마다 밀리는 세기·뜨는 높이가 다르다(FightMoves)
 		say(mind.line("down"), 1.6)
 		Wear.tear(fig.worn.get("back"))   # 바닥에 쓸려 등의 가방·목도리가 찢어진다 — 재봉사(run 82, town_trades)에게 간다
+		town.call("drop_coin", global_position + Vector3(0, 0.9, 0), from_dir, self)   # 셋 중 한 번 동전이 튄다(run 107, town_coins) — 든 것은 아래서 그대로 떨어진다
 		while fig.carrying:   # 들고 있던 걸 전부 떨어뜨린다(셋까지 든다)
 			var it: Node3D = fig.release(town, global_position + from_dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0))
 			it.set_meta("dropped_at", now)   # 넘어져 떨어뜨린 표시 — 여우가 6초 안에 노린다(town_systems _fox). 내려놓은 것·던진 것과 구별

@@ -242,11 +242,12 @@ func _oven(at: Vector3, counter: Dictionary) -> void:
 	spots.append(sp)
 	oven = { "spot": sp, "counter": counter, "fire": fire, "dough": dough, "queue": 0, "done_at": -1.0, "by": null }
 
-## 창구 재고 하나 줄이기 — 진열 빵이 하나 사라지고, 다 떨어지면 팻말. 없으면 false. 사람도 주민도 이걸 부른다
-func counter_take(sp: Dictionary) -> bool:
+## 창구 재고 하나 줄이기 — 진열 빵이 하나 사라지고, 다 떨어지면 팻말. 없으면 false. 사람도 주민도 이걸 부른다; by(주민)를 주면 그 주머니에서 동전 하나(run 107, town_coins — 없으면 그냥)
+func counter_take(sp: Dictionary, by: Variant = null) -> bool:
 	if int(sp.get("stock", 0)) <= 0: return false
 	sp["stock"] = int(sp["stock"]) - 1
 	_show_stock(sp)
+	if by != null: call("pay_counter", sp, by)
 	return true
 
 func _show_stock(sp: Dictionary) -> void:
@@ -295,12 +296,13 @@ func oven_use(sp: Dictionary, now: float) -> void:
 	player.pose_request = "knead"; use_until = now + StickPoses.KNEAD_T + 0.15; action_until = now + StickPoses.KNEAD_T + 0.15   # 자세가 빵보다 먼저 풀리면 _bakery 가 '떠났다'로 읽어 빵이 안 나온다 — 0.15 뒤에 푼다
 	bake(now, 1, "player")
 
-## 사람이 창구 앞에서 C(town_player) — 재고가 있으면 빵(빵집)이나 컵(카페, 재고 없음 = 늘 있음)을 손에. 빵집이 비었으면 팻말이 답한다(코인 결제는 다음 조각)
+## 사람이 창구 앞에서 C(town_player) — 재고가 있으면 빵(빵집)이나 컵(카페, 재고 없음 = 늘 있음)을 손에. 빵집이 비었으면 팻말이 답한다. 주머니에 동전이 있으면 하나 낸다(run 107, town_coins) — 없어도 받는다
 func counter_use(sp: Dictionary, now: float) -> void:
 	player.face(sp["yaw"])
 	if sp.has("stock") and not counter_take(sp): return
 	var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
 	player.hold(it); player.action = "grab"; action_until = now + 0.4
+	call("pay_counter", sp, body)
 
 # ── 우산꽂이("Weather people feel" 2조각, run 76): 카페 창구 오른쪽 양동이에 우산 셋(모브·잉크·종이색). 빈손으로 C = 하나 빌린다(재고 3 → 0, 창구와 같은 counter_take/_show_stock),
 #    들고 C = 펴기/접기(umbr 자세 — 걷든 앉든 그대로, 아무것도 막지 않는다: 비는 벽이 아니다), 든 채 꽂이 앞에서 C = 돌려놓기. 비가 시작되면 10m 안의 밖에 있던 주민이 와서 빌려 펴고

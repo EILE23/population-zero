@@ -157,6 +157,7 @@ func resident_hits_player(r: Node3D, dir: Vector3, m := "") -> void:
 		down_until = now + 1.6; player.lying = true; player.action = ""; action_until = now
 		body.velocity = dir * float(mv.get("push", 3.5)) + Vector3(0, 2.0 + float(mv.get("lift", 0.0)), 0)
 		if Wear.tear(player.worn.get("back")): call("say_toast", "Torn. The tailor on the east plaza mends these.")   # 주민과 같은 규칙(run 82) — 토스트는 위층
+		call("drop_coin", body.global_position + Vector3(0, 0.9, 0), dir, "player")   # 주민과 같은 규칙(run 107): 주머니에 있으면 셋 중 한 번 동전이 튄다 — 위층(town_coins)
 		while player.carrying:   # 들고 있던 걸 전부 떨어뜨린다(주민과 같은 규칙)
 			var it: Node3D = player.release(self, body.global_position + dir * randf_range(0.4, 0.8) + Vector3(randf_range(-0.3, 0.3), 0.1, 0)); it.set_meta("dropped_at", Time.get_ticks_msec() / 1000.0); items.append(it)   # 여우가 노린다(_fox)
 	else:

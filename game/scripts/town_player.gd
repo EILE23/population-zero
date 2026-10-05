@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownSunroom
+extends TownCoins
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -272,6 +272,7 @@ func _interact_check(now: float) -> void:
 		if prev: player.hold(prev)
 		player.action = "grab"; action_until = now + 0.35
 		return
+	if stoop_near(now): return   # 발치의 동전(run 107, town_coins): 든 게 있어도 먼저 — 손이 아니라 주머니로 간다
 	if player.carrying and (sunroom_give(now) or give_to_resident(now)): return   # 앞의 주민에게 건네기가 먹기·내려놓기보다 먼저(town_critters); 안락의자의 읽는 이는 앉아 있어 따로(run 106, town_sunroom)
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))

@@ -1,6 +1,6 @@
 extends TownPlayer
 ## 3D 마을 — 루트. 세계를 짓고(_ready) 프레임마다 카메라·범례를 돌린다(_process). 나머지는 상속 계층에 있다:
-##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_player.gd(조작) → 여기.
+##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_coins.gd(동전) → town_player.gd(조작) → 여기.
 
 func _ready() -> void:
 	_light()
