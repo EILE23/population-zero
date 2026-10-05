@@ -8,7 +8,7 @@ extends TownNap
 ## 빵집 접시면 도둑질: 주인이 14m 안이면 "Those are mine."(mind.line "till_mine")을 하고 기억한다(mind.stole — 주민의 첫 가게 평판, 저장된다). 막지는 않는다(평범한 결과 = 늘 가져간다).
 ## 주인도 같은 자세로 거둔다: 17시(또는 접시가 다섯)에 접시가 `closing` 이 되고 빵집 주인이 와서(resident_till.gd) 하나에 PALM_T 씩 제 주머니로. 주민 주머니는 uid % 3 + 1 로 시작해 아침 8시마다 하나 는다(주민의 하루 벌이는 아직 없다).
 ## 빈 주머니의 사람·주민은 그냥 받는다("On the house." / mind.line "no_coin") — 돈 때문에 문을 닫는 건 없다(백로그 규칙; 외상 장부는 4조각).
-## 다음 조각(길거리 악사·장부·심부름판·시장 노점에 작물 팔기)은 백로그 "Money in hands". 사슬: … → sunroom → nap → **coins** → player → town3d
+## 다음 조각(길거리 악사·장부·심부름판·시장 노점에 작물 팔기)은 백로그 "Money in hands". 사슬: … → sunroom → nap → **coins** → busk(town_busk.gd, 악사 — run 111) → player → town3d
 
 const TILL_MAX := 5             # 접시에 보이는 동전 수 — 차면 주인이 거두러 온다
 
@@ -66,12 +66,12 @@ func _stoop(fig: Stick3D, c: Node3D, who: Variant) -> void:
 	stooping.append({ "fig": fig, "coin": c, "t0": Time.get_ticks_msec() / 1000.0, "who": who, "at": c.global_position, "phase": 0, "pose": "stoop", "tm": [CoinPoses.STOOP_IN, CoinPoses.STOOP_AWAY, CoinPoses.STOOP_T] })
 
 ## 접시 맨 위 동전을 쓸어 쥔다(사람의 C·주인의 거두기, resident_till) — 셈은 바로 줄고(둘이 같은 동전을 못 쥔다) 접시의 원판은 손에 닿을 때 옮겨 간다; 끊기면 셈도 원판도 돌아온다
-func palm_till(fig: Stick3D, sp: Dictionary, who: Variant) -> void:
+func palm_till(fig: Stick3D, sp: Dictionary, who: Variant, pose := "palm") -> void:
 	var n := int(sp.get("till", 0))
 	if n <= 0: return
 	var c: Node3D = (sp["till_shown"] as Array)[mini(n, TILL_MAX) - 1]
 	sp["till"] = n - 1
-	stooping.append({ "fig": fig, "coin": c, "t0": Time.get_ticks_msec() / 1000.0, "who": who, "at": c.global_position, "phase": 0, "pose": "palm", "tm": [CoinPoses.PALM_IN, CoinPoses.PALM_AWAY, CoinPoses.PALM_T], "sp": sp })
+	stooping.append({ "fig": fig, "coin": c, "t0": Time.get_ticks_msec() / 1000.0, "who": who, "at": c.global_position, "phase": 0, "pose": pose, "tm": [CoinPoses.STOOP_IN, CoinPoses.STOOP_AWAY, CoinPoses.STOOP_T] if pose == "stoop" else [CoinPoses.PALM_IN, CoinPoses.PALM_AWAY, CoinPoses.PALM_T], "sp": sp })   # 악사의 모자는 바닥이라 stoop 으로(run 111, town_busk)
 
 ## 매 프레임(town_systems _tick): 걷는 주민이 동전을 보면 멈춰 집는다(자리는 놓는다 — 일어나면 다시 고른다; 짝 걷기·배·아이는 지나간다), 그리고 집는 손들의 진행
 func _coins_tick(now: float) -> void:
@@ -104,7 +104,7 @@ func _coins_tick(now: float) -> void:
 		elif int(e["phase"]) == 2 and t >= float(tm[2]):
 			stooping.erase(e)
 			if e.has("sp") and who is ResidentBase and (who as ResidentBase).state == "busy" and int((e["sp"] as Dictionary).get("till", 0)) > 0:
-				fig.pose_t = 0.0; palm_till(fig, e["sp"], who); continue   # 주인은 접시가 빌 때까지 이어 집는다 — 자세 이름이 같으니 시계만 되감는다
+				fig.pose_t = 0.0; palm_till(fig, e["sp"], who, pose); continue   # 주인은 접시가 빌 때까지 이어 집는다 — 자세 이름이 같으니 시계만 되감는다
 			if fig.pose_request == pose: fig.pose_request = ""
 
 func _put_back(e: Dictionary) -> void:
