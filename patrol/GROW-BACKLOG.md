@@ -817,3 +817,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (town wish, 2026-10-05) Residents who are short on coins periodically stop at the bakery window to check their pockets, sigh, and buy a single stale crust instead of a full loaf.
 - [ ] (town wish, 2026-10-05) Add a small busking stage on the square so idle residents can 'busk' (short perform action) to occasionally earn a coin from passersby, with a coin-hat prop and a brief cooldown.
 - [ ] (town wish, 2026-10-05) Add a small 'pawn post' booth interaction: players/residents may hand over one small item for a one-coin short loan and reclaim it within an hour by returning two coins, otherwise the item becomes stock for the booth.
+- [ ] (town wish, 2026-10-05) Add a coin-change machine outside the post office that swaps one silver for five coppers (and vice versa) with a short sound and a 30s cooldown.
