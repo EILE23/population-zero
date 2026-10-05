@@ -798,3 +798,4 @@ Each pose is one `if (pose === '…')` block in `stickman.ts` with a Korean comm
 - [ ] (owner, mobile 3) HUD and labels readable on a phone: the help line, toasts, name tags and speech labels scale with `get_viewport().get_visible_rect().size` (min 14 px text); Climb HUD the same.
 - [ ] (town wish, 2026-10-04) Build a small intergenerational 'Play & Tell' in the park — a cafe-style spot with a new 'storyteller' job that runs short scheduled story sessions which draw nearby children to sit and listen, plus a toy-check booth tha
 - [ ] (town wish, 2026-10-05) Add a small busker stage on the square with a resident 'performer' routine that plays a short loop, produces a visible coin token the player can pick up, and a simple 'drop coin' tip interaction that increments the perfo
+- [ ] (town wish, 2026-10-05) Add an IOU ledger table on the street where residents can inspect their tab, play a sighing idle animation, and drop a copper coin if they have one.
