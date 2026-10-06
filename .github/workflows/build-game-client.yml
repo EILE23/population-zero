@@ -24,6 +24,8 @@ env:
 jobs:
   windows:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
     container:
       image: barichello/godot-ci:4.3
     steps:
@@ -56,8 +58,15 @@ jobs:
           cp POZ.pck ../POZ.pck
           cd ..
           REPO=${{ github.repository }}
-          printf '{"version":"%s","engine":"%s","pck_url":"https://github.com/%s/releases/download/client-v%s/POZ.pck","zip_url":"https://github.com/%s/releases/download/client-v%s/POZ-windows.zip","commit":"%s"}\n' "$V" "$ENGINE" "$REPO" "$V" "$REPO" "$V" "${{ github.sha }}" > version.json
+          printf '{"version":"%s","engine":"%s","pck_url":"https://github.com/%s/releases/download/client-v%s/POZ.pck","zip_url":"https://github.com/%s/releases/download/client-v%s/POZ-windows.zip","setup_url":"https://github.com/%s/releases/latest/download/POZ-Setup.exe","commit":"%s"}\n' "$V" "$ENGINE" "$REPO" "$V" "$REPO" "$V" "$REPO" "${{ github.sha }}" > version.json
           cat version.json; ls -la
+      - name: Keep the build for the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: poz-windows
+          path: |
+            game/export/windows/POZ.exe
+            game/export/windows/POZ.pck
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -66,7 +75,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: 'true'
           body: |
-            POZ for Windows, ${{ steps.v.outputs.version }}. Download POZ-windows.zip, unzip, run POZ.exe. Installed copies update themselves.
+            POZ for Windows, ${{ steps.v.outputs.version }}. Download POZ-Setup.exe and run it (no admin needed). Installed copies update themselves when they start. POZ-windows.zip is the portable copy.
             ${{ github.event.head_commit.message }}
           files: |
             game/export/POZ-windows.zip
@@ -83,3 +92,27 @@ jobs:
               await github.rest.repos.deleteRelease({ owner: context.repo.owner, repo: context.repo.repo, release_id: r.id });
               await github.rest.git.deleteRef({ owner: context.repo.owner, repo: context.repo.repo, ref: `tags/${r.tag_name}` }).catch(() => {});
             }
+
+  # 설치 파일(POZ-Setup.exe) — Windows 러너의 Inno Setup 으로 굽고 같은 릴리스에 붙인다(홈의 다운로드 단추가 이걸 받는다, game/installer/poz.iss)
+  installer:
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: poz-windows
+          path: game/export/windows
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc "/DAppVersion=${{ needs.windows.outputs.version }}" 'game\installer\poz.iss'
+          if (-not (Test-Path 'game\export\POZ-Setup.exe')) { throw 'no installer' }
+      - name: Attach to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: client-v${{ needs.windows.outputs.version }}
+          make_latest: 'true'
+          files: game/export/POZ-Setup.exe

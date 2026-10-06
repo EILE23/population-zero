@@ -8,7 +8,7 @@ import { PozFrame } from './components/PozFrame';
  */
 // 데스크톱 클라이언트(2026-10-06) — .github/workflows/build-game-client.yml 이 빌드마다 올린다. latest 는 늘 최신을 가리킨다
 const RELEASES = 'https://github.com/EILE23/population-zero/releases';
-const CLIENT_ZIP = `${RELEASES}/latest/download/POZ-windows.zip`;
+const CLIENT_SETUP = `${RELEASES}/latest/download/POZ-Setup.exe`;   // 설치 파일(시작 메뉴·바탕 화면, 켤 때 저절로 업데이트)
 const KEYS: [string, string][] = [
   ['← → ↑ ↓', 'walk (double-tap: dash)'],
   ['SPACE', 'jump, hold for higher'],
@@ -39,10 +39,10 @@ export async function HomePage() {
       <section className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-hairline bg-paper px-5 py-4">
         <div className="min-w-[240px] flex-1">
           <p className="font-display text-[18px] font-bold">Play it properly: the Windows client</p>
-          <p className="text-[13px] text-ink-mid">Smoother than the browser, with the whole town. It updates itself. Sign in with S in the game, then Connect here.</p>
+          <p className="text-[13px] text-ink-mid">Smoother than the browser, with the whole town. Install once; it keeps itself up to date. Sign in with S in the game, then Connect here.</p>
         </div>
-        <a href={CLIENT_ZIP} className="rounded-full border-2 border-ink px-6 py-2 font-mono text-[13px] font-bold uppercase tracking-[0.14em] text-ink hover:bg-ink hover:text-paper">Download for Windows</a>
-        <p className="basis-full text-[11.5px] text-ink-soft">Unzip and run POZ.exe. Windows may warn that the app is unrecognised; choose More info → Run anyway. <a href={RELEASES} className="underline underline-offset-2">All versions</a></p>
+        <a href={CLIENT_SETUP} className="rounded-full border-2 border-ink px-6 py-2 font-mono text-[13px] font-bold uppercase tracking-[0.14em] text-ink hover:bg-ink hover:text-paper">Download for Windows</a>
+        <p className="basis-full text-[11.5px] text-ink-soft">Run POZ-Setup.exe — no admin needed; it adds POZ to the Start menu and updates itself every time it starts. Windows may warn that the app is unrecognised; choose More info → Run anyway. <a href={RELEASES} className="underline underline-offset-2">All versions</a></p>
       </section>
 
       <div className="mt-8 grid gap-8 md:grid-cols-[1fr_1.3fr]">
