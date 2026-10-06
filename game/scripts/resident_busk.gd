@@ -2,7 +2,7 @@ class_name ResidentBusk
 extends ResidentTill
 ## 악사와 모자("Money in hands" 3조각, run 111 — town_busk): 악사(job "busker")는 칸이 열리면 상자로 가 올라서서 세트가 끝날 때까지 strum(stick3d_busk.gd); 끝나면(또는 끊기면) 모자의 동전을
 ## stoop 으로 제 주머니에(palm_till 의 사슬, 자세만 stoop — 사람이 빈 모자를 거둘 때와 같다). 듣다 내기로 한 주민(meta "tip" = 세트 번호, town_busk _busk_listen)은 모자 앞으로 와
-## stoop 으로 한 닢(town.tip — 사람의 C 와 같은 시계). 사슬: … → sunroom → till → **busk** → resident
+## stoop 으로 한 닢(town.tip — 사람의 C 와 같은 시계). 사슬: … → sunroom → till → **busk** → ledger(resident_ledger.gd, 외상 장부 — run 112) → resident
 
 func _post_pick(now: float) -> bool:
 	return _busk_pick(now) or super._post_pick(now)
