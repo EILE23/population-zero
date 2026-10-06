@@ -16,7 +16,7 @@ var emote_until := 0.0
 var _emote_t0 := 0.0
 var menu: GameMenu
 var typing: bool:
-	get: return (chat != null and chat.busy()) or (menu != null and menu.open)
+	get: return (chat != null and chat.busy()) or (menu != null and menu.open) or bool(get_meta("menu_open", false))   # 집 모양 고르기(town_plots)도
 
 var _who: Label   # 오른쪽 위 한 줄 — 버전 · 계정(또는 S 안내·연결 코드) · 업데이트
 

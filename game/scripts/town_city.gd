@@ -29,6 +29,10 @@ func _city_init() -> void:
 		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
 
+## 위층(town_plots)이 정한다 — 사람이 고른 모양, 내 집인가
+func _style_for(_l: Dictionary) -> String: return ""
+func _is_mine(_k: int) -> bool: return false
+
 ## 이 자리를 맡는 구역 — 블록마다 하나(멀면 꺼진다)
 func _root_for(at: Vector3) -> Node3D:
 	var b := CityMap.block_of(Vector2(at.x, at.z))
@@ -50,10 +54,10 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		_pave(l)
 		var hsp := TownPlan.house_spec(l); var nd := doors.size()
 		var hkeep := _build_parent; _build_parent = _root_for(c)
-		var hs := HouseStyles.build(self, c, l, hsp)
+		var hs := HouseStyles.build(self, c, l, hsp, _style_for(l))
 		_flower_bed(c + Vector3(-hs.x / 2.0 - 0.6, 0, hs.z / 2.0 + 0.4))
 		_build_parent = hkeep
-		if doors.size() > nd: _move_in(doors[nd], live)
+		if doors.size() > nd and not _is_mine(hk): _move_in(doors[nd], live)   # 내가 산 필지면 주민이 들어오지 않는다(내 집)
 		_footpath(l, c)
 		if live: _dust(c + Vector3(0, 0.5, 0)); say_toast("A new house is finished.")
 		return

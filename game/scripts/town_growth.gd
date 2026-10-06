@@ -7,7 +7,7 @@ extends TownLedger
 ## 진행은 user://growth.json — 꺼 둔 동안 흐른 시간만큼도 자라 있다(한 번에 최대 OFFLINE_MAX 채). 공사장 곁엔 구경 자리가 있어 지나가던 주민이 멈춰 본다
 
 const GROWTH := "user://growth.json"
-const SITES_AT_ONCE := 2       # 동시에 짓는 공사장 수
+const SITES_AT_ONCE := 4       # 동시에 짓는 공사장 수(건축가 공사장 — 사람이 산 필지는 따로, town_plots)
 const STAGE_WORK := 4          # 한 단계에 필요한 일 단위(건축가 한 명 25초)
 const WORK_T := 25.0
 const OFFLINE_HOUSE_S := 240.0 # 꺼 둔 동안 이만큼마다 한 채
@@ -59,14 +59,18 @@ func _save_growth() -> void:
 func _hire_builders() -> void:
 	var have := residents.filter(func(r: Resident) -> bool: return r.job == "builder").size()
 	for r in residents:
-		if have >= 2: break
+		if have >= maxi(2, residents.size() / 9): break   # 주민 아홉에 하나(운영자 2026-10-06: "주민들이 모두 활동하며 발전시켜") — 전엔 늘 둘
 		if r.job != "" or r is ResidentKid or r.state == "drive": continue
 		r.job = "builder"; r.fig.wear(Wear.make("cap", Color("f2c84b"))); have += 1
 
 ## 다음 공사장들 — 순번 built .. built+SITES_AT_ONCE-1
 func _open_sites() -> void:
 	var lots := TownPlan.lots()
-	for k in range(built, mini(built + SITES_AT_ONCE, lots.size())):
+	var n := 0; var k := built - 1
+	while n < SITES_AT_ONCE and k + 1 < lots.size():
+		k += 1
+		if _done.has(k) or (has_method("_claimed") and call("_claimed", k)): continue   # 다 지었거나 누가 산 필지(town_plots)는 건너뛴다
+		n += 1
 		if _site_nodes.has(k): continue
 		if gen.flat_limit < k + 1:
 			gen.flat_limit = k + SITES_AT_ONCE; gen.reflat(lots[k]["c"])   # 산 위의 필지면 블록째 깎는다
