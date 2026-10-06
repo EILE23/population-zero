@@ -33,6 +33,7 @@ func _growth_init() -> void:
 		if d is Dictionary:
 			built = int(d.get("built", 0)); saved_t = float(d.get("t", 0.0))
 			for k in (d.get("work", {}) as Dictionary): site_work[int(k)] = float(d["work"][k])
+	built = maxi(built, CityMap.founded())   # 기본 마을 — 처음부터 이만큼은 지어져 있다(운영자 2026-10-06: 탑 가는 길에 아무것도 없다, data/map/town.json)
 	if saved_t > 0.0 and not _tool_run():   # 꺼 둔 동안
 		var gained := mini(OFFLINE_MAX, int((Time.get_unix_time_from_system() - saved_t) / OFFLINE_HOUSE_S))
 		built += gained
@@ -224,7 +225,7 @@ func sell_here(now: float) -> bool:
 	if not sell.has(kind): return false
 	var near := false
 	for sp in spots:
-		if sp["kind"] == "counter" and (sp["pos"] as Vector3).distance_to(body.global_position) < 1.4: near = true; player.face(sp["yaw"]); break
+		if (sp["kind"] == "counter" or (sp["kind"] == "shop" and call("shop_open", sp))) and (sp["pos"] as Vector3).distance_to(body.global_position) < 1.4: near = true; player.face(sp["yaw"]); break   # 지도의 가게도 주인이 있으면 산다(town_city)
 	if not near: return false
 	var p := int(sell[kind])
 	player.release(self, Vector3.ZERO).queue_free()

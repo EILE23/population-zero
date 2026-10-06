@@ -1,5 +1,5 @@
 class_name TownSocial
-extends TownGrowth
+extends TownCity
 ## 사람끼리(운영자 2026-10-06: "게임이 시작하는 거니까 채팅 같은 것도", "진짜 상호작용", "단축키 명령어도 따로 볼 수 있는 곳") — 같은 방(poz_net)의 사람과:
 ##   채팅: ChatBox(chat_box.gd, 미니게임도 같은 부품) — Enter 로 쓰고 Esc 로 닫는다. 쓰는 동안 몸은 멈춘다(typing → town_player)
 ##   감정 표현: 1 손 흔들기 · 2 환호 · 3 꾸벅 · 4 춤 · 5 하늘 보고 눕기 — 자세 이름이 방의 pose 로 가서 남의 화면에서도 같은 자세(poz_net)

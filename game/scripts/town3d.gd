@@ -64,6 +64,7 @@ func _ready() -> void:
 	_hire_busker()   # 악사 — 남은 어른 중 어울림이 가장 높은 이, 등에 상자 기타(운전사보다 먼저, town_busk)
 	_hire_drivers()
 	_growth_init()   # 마을이 자란다 — 지은 집을 다시 세우고, 건축가를 정하고, 공사장을 연다(town_growth)
+	_city_init()   # 지도대로(data/map/town.json) — 관공서·공원 블록, 장소 길의 가로등·나무, 이정표, 가게 주인(town_city)
 	_social_init()   # 채팅·조작법 창·감정 표현(town_social)
 	call_deferred("_net_town")   # 웹 계정·멀티(poz_net.gd) — 루트에 하나, 마을 방에 들어간다
 	ResidentKid.settle(self)   # 아이 둘 — 서로 가장 좋아하는 어른 둘의 집에(run 102, resident_kid)

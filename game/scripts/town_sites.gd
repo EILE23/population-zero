@@ -21,7 +21,7 @@ func _sites() -> void:
 	for s in WorldGen.SITES:
 		var c: Vector3 = s["c"]; var from: Vector3 = s["from"]
 		var dir := Vector3(c.x - from.x, 0, c.z - from.z)
-		_path(from, c - dir.normalized() * 6.0, 1.8)   # 큰길(또는 골목)에서 장소 앞까지 자갈길
+		_path(from, c - dir.normalized() * 6.0, 3.2 if s["name"] == "tower" else 1.8)   # Tower Road 는 넓게(번화가 사이, data/map/town.json)   # 큰길(또는 골목)에서 장소 앞까지 자갈길
 		_district(s["name"], c, Callable(self, "_site_" + String(s["name"])))
 		var rng := RandomNumberGenerator.new(); rng.seed = int(c.x * 7.0 + c.z * 3.0)
 		for i in 40:   # 깎은 평지가 맨땅으로 보이지 않게 — 둘레에 풀·꽃·덤불(가운데 8m 는 비운다)

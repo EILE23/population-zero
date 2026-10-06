@@ -33,8 +33,9 @@ func _tick(delta: float, now: float) -> void:
 func _stream() -> void:
 	var p := focus_pos()
 	gen.stream(p)   # 열린 세계 칸 — 둘레를 짓고 먼 칸을 지운다
+	var reach := 48.0 * maxf(1.0, float(get("zoom")) * 0.75) if get("zoom") != null else 48.0   # 줌을 빼면 더 멀리까지 켠다 — 위에서 본 마을이 비어 보이지 않게
 	for d in districts:
-		var on: bool = Vector2(p.x - d["center"].x, p.z - d["center"].z).length() < 48.0   # 열린 세계의 장소는 남북으로도 멀다 — x 만 보면 북쪽 탑이 늘 켜져 있었다
+		var on: bool = Vector2(p.x - d["center"].x, p.z - d["center"].z).length() < reach   # 열린 세계의 장소는 남북으로도 멀다 — x 만 보면 북쪽 탑이 늘 켜져 있었다
 		if on != d["on"]:
 			d["on"] = on
 			var n: Node3D = d["node"]

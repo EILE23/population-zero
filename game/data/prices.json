@@ -1,6 +1,30 @@
 {
   "_": "Town prices in coins (owner 2026-10-06: real currency). buy = what a counter charges for its item; sell = what any staffed counter pays for an item you hand over. Every price that gates something must have an earning path nearby (sell, prizes, wages). Never real money.",
-  "buy": { "bread": 2, "cup": 2 },
-  "sell": { "apple": 1, "tomato": 1, "cabbage": 2, "pumpkin": 3, "fish": 3, "log": 1, "book": 1 },
-  "prize": { "climb_per_m": 0.05, "climb_cap": 80, "race": [12, 6, 3] }
+  "buy": {
+    "bread": 2,
+    "cup": 2,
+    "apple": 2,
+    "can": 2,
+    "book": 3,
+    "fish": 4,
+    "umbrella": 5
+  },
+  "sell": {
+    "apple": 1,
+    "tomato": 1,
+    "cabbage": 2,
+    "pumpkin": 3,
+    "fish": 3,
+    "log": 1,
+    "book": 1
+  },
+  "prize": {
+    "climb_per_m": 0.05,
+    "climb_cap": 80,
+    "race": [
+      12,
+      6,
+      3
+    ]
+  }
 }
