@@ -28,6 +28,11 @@ func _shop_pick(now: float) -> bool:
 
 func _shop_arrive(now: float) -> bool:
 	if spot.get("kind", "") != "keeper": return false
-	fig.face(float(spot.get("yaw", 0.0))); fig.pose_request = "wait"; busy_until = now + 90.0
+	if not spot.has("inner"): return false   # 가게 방이 아직 없다(지어지기 전) — 그냥 다음 일과
+	var ks := spot
+	global_position = ks["inner"]   # 문 앞에서 가게 방 계산대 뒤로(town_interior — 로딩 없는 방)
+	fig.face(float(ks.get("yaw", 0.0))); fig.pose_request = "wait"; busy_until = now + 90.0
 	say(["Open.", "Morning.", "Right then.", "Shop's open."][randi() % 4], 1.4)
+	get_tree().create_timer(89.5).timeout.connect(func() -> void:   # 일이 끝나면 문 앞으로 나온다
+		if is_instance_valid(self) and spot == ks: global_position = ks["pos"])
 	return true

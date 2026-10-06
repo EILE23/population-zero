@@ -100,7 +100,7 @@ func _process(delta: float) -> void:
 		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 		zoom = lerpf(zoom, zoom_want, minf(1.0, delta * 6.0))
 		var want := Vector3(px, fp.y, clampf(fp.z, -OPEN + 6.0, OPEN - 4.0)) + Vector3(0, 8.5, 7.5) * zoom   # 휠·-/= 로 멀리(운영자: 위에서 봤을 때 도시)
-		for k in [0.3, 0.55, 0.8]:   # 카메라와 나 사이 언덕이 시선을 가리면 그 위로 올린다(열린 세계 남쪽 언덕)
+		for k in ([] if is_inside() else [0.3, 0.55, 0.8]):   # (방 안이면 안 본다 — town_interior) 카메라와 나 사이 언덕이 시선을 가리면 그 위로 올린다(열린 세계 남쪽 언덕)
 			var hk: float = gen.height(px, fp.z + 7.5 * zoom * k) + 0.9
 			want.y = maxf(want.y, fp.y + 0.6 + (hk - fp.y - 0.6) / k)
 		cam.far = 400.0 + 120.0 * zoom

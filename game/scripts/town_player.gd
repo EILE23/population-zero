@@ -256,7 +256,7 @@ func _interact_check(now: float) -> void:
 		return
 	if rowing:
 		boat_leave(now); return   # 배 위(run 78): C = 가까운 부두 쪽 둑에 내린다 — 부두에 대었으면 moor(run 94, town_boat)
-	if fish_c(now): return   # 부두 끝에서 낚는 중(run 91): C = 입질이면 감아 낚고, 아니면 빈 줄을 거둔다(town_sites)
+	if fish_c(now) or inner_use(now): return   # 부두 끝에서 낚는 중(run 91): C = 입질이면 감아 낚고, 아니면 빈 줄을 거둔다(town_sites)
 	var p := body.global_position
 	var fwd := Vector3(sin(player.rotation.y), 0, cos(player.rotation.y))
 	if not carrying_big.is_empty():

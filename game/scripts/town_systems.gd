@@ -32,7 +32,7 @@ func _tick(delta: float, now: float) -> void:
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
 func _stream() -> void:
 	var p := focus_pos()
-	gen.stream(p)   # 열린 세계 칸 — 둘레를 짓고 먼 칸을 지운다
+	if not (has_method("is_inside") and call("is_inside")): gen.stream(p)   # 방 안(town_interior)에선 땅을 안 짓는다   # 열린 세계 칸 — 둘레를 짓고 먼 칸을 지운다
 	var reach := 48.0 * maxf(1.0, float(get("zoom")) * 0.75) if get("zoom") != null else 48.0   # 줌을 빼면 더 멀리까지 켠다 — 위에서 본 마을이 비어 보이지 않게
 	for d in districts:
 		var on: bool = Vector2(p.x - d["center"].x, p.z - d["center"].z).length() < reach   # 열린 세계의 장소는 남북으로도 멀다 — x 만 보면 북쪽 탑이 늘 켜져 있었다

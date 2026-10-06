@@ -1,5 +1,5 @@
 class_name TownSocial
-extends TownCity
+extends TownInterior
 ## 사람끼리(운영자 2026-10-06: "게임이 시작하는 거니까 채팅 같은 것도", "진짜 상호작용", "단축키 명령어도 따로 볼 수 있는 곳") — 같은 방(poz_net)의 사람과:
 ##   채팅: ChatBox(chat_box.gd, 미니게임도 같은 부품) — Enter 로 쓰고 Esc 로 닫는다. 쓰는 동안 몸은 멈춘다(typing → town_player)
 ##   감정 표현: 1 손 흔들기 · 2 환호 · 3 꾸벅 · 4 춤 · 5 하늘 보고 눕기 — 자세 이름이 방의 pose 로 가서 남의 화면에서도 같은 자세(poz_net)
@@ -76,6 +76,7 @@ func _emote(e: String, secs := EMOTE_T) -> void:
 
 ## 매 물리 프레임(town_player 맨 앞) — 감정 표현 진행·끝(움직이거나 기술을 쓰면 끊긴다), X 밀치기
 func _social_tick(now: float, dir: Vector3) -> void:
+	_inner_tick(now, dir)   # 문 열고 들어가면 방(town_interior)
 	if _who and int(now * 2.0) != int((now - 0.02) * 2.0): _who.text = _who_line()
 	if emote != "":
 		var dance := LOOPS.has(emote)

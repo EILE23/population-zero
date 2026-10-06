@@ -24,6 +24,8 @@ func _city_init() -> void:
 		var at := Vector3(float(sg["at"][0]), 0, float(sg["at"][1]))
 		_build_parent = _root_for(at); _signpost(at, String(sg["text"]))
 	_build_parent = keep
+	for i in doors.size():   # 가게 방은 처음에 다 — 주인이 창구 뒤에 서야 하니까
+		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
 
 ## 이 자리를 맡는 구역 — 블록마다 하나(멀면 꺼진다)
@@ -65,6 +67,7 @@ func _shop_lot(l: Dictionary, c: Vector3) -> void:
 	var sp := TownPlan.house_spec(l); var s: Vector3 = sp["size"]; s.x = maxf(s.x, 4.4)
 	var shop := CityMap.shop_of(l)
 	_house(c, s, sp["wall"], sp["roof"], true, sp["seed"])
+	doors[doors.size() - 1]["shop_id"] = shops.size()   # 이 문으로 들어가면 가게 방(town_interior)
 	var hd := s.z / 2.0
 	var aw := _box(Vector3(s.x + 0.3, 0.07, 1.1), c + Vector3(0, 2.25, hd + 0.5), _mat(Color(String(shop["awning"]))), false); aw.rotation.x = 0.28
 	_box(Vector3(s.x * 0.8, 0.5, 0.06), c + Vector3(0, 2.45, hd + 0.04), _mat(Color("efe9e2")), false)
@@ -77,8 +80,8 @@ func _shop_lot(l: Dictionary, c: Vector3) -> void:
 		it.set_meta("display", true); _add_display(it)
 	var id := shops.size()
 	var sh := { "kind": "shop", "pos": c + Vector3(cx, 0, hd + 1.75), "yaw": PI, "item": String(shop["item"]), "type": String(shop["type"]), "id": id,
-		"keeper": { "kind": "keeper", "pos": c + Vector3(cx, 0, hd + 0.45), "yaw": 0.0, "shop_id": id } }
-	shops.append(sh); spots.append(sh)
+		"keeper": { "kind": "keeper", "pos": c + Vector3(0, 0, hd + 1.0), "yaw": 0.0, "shop_id": id } }   # 주인은 문 앞까지 걸어와 안(방의 계산대 뒤, inner)으로 들어간다
+	shops.append(sh)   # 사고팔기는 가게 방 안에서(town_interior) — 바깥 창구는 진열대일 뿐
 
 ## 진열품 — 집을 수 없게(items 에 안 넣는다) 구역 노드에 그냥 단다
 func _add_display(it: Node3D) -> void:
@@ -113,6 +116,7 @@ func _civic(c: Vector3, kind: String, name: String) -> void:
 	var wall: Color = { "town_hall": Color("efe9e2"), "library": Color("b56a5a"), "school": Color("e6d3a5") }.get(kind, Color("dfe6ea"))
 	var at := c + Vector3(0, 0, -5.0)
 	_house(at, size, wall, "brick", kind != "school", 900 + absi(int(c.x * 3.0 + c.z)))
+	doors[doors.size() - 1]["civic"] = kind
 	var front := at + Vector3(0, 0, size.z / 2.0)
 	for x in [-3.0, -1.0, 1.0, 3.0]:
 		if kind == "town_hall": _box(Vector3(0.36, size.y, 0.36), front + Vector3(x * size.x / 9.0, 0, 0.9), _mat(Color("f7f4ef")))
