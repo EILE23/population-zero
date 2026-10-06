@@ -84,6 +84,10 @@
     "rain_like": ["Good rain.", "I like this."],
     "bought": ["New.", "Fits.", "Worth it.", "There."],
     "store_closed": ["Shut.", "Nobody in.", "Later, then."],
+    "job_post": ["Pinned. A coin on it.", "Somebody will.", "Worth a coin to me.", "Up it goes."],
+    "job_take": ["I can do that.", "A coin is a coin.", "Mine, then.", "On it."],
+    "job_done": ["Done. Paid.", "A coin earned.", "There. Mine now.", "Easy coin."],
+    "job_down": ["Nobody, then.", "Back in the pocket.", "I will do it myself.", "Tomorrow, maybe."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },
   "child": { "_": "Elders and children slice 1 (run 102): two children live in the house whose adults like each other most (ResidentKid.settle). Their minds are under people.", "handles": ["small_print", "footnote"] },

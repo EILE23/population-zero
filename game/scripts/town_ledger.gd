@@ -5,9 +5,11 @@ extends TownBusk
 ## 거절은 없다: 장부는 기억만 하지 창구를 막지 않는다(평범한 결과 100%). 외상이 있고 동전이 있는 주민은 하루 한 번 장부로(mind.score 의 +3 × tab 항, resident_ledger) —
 ## 제 줄을 읽고(scan, run 100) 한숨 쉬고(sigh, stick3d_ledger.gd) 그릇에 한 닢 stoop(악사 모자의 tip 사슬, town_busk — 0.12 에 주머니에서 손으로, STOOP_IN 에 그릇으로) → tab −1.
 ## 사람도 장부 앞에서 C — 같은 세 박자로 제 줄을 읽고 동전이 있으면 한 닢(C 한 번에 하나). 외상이 없으면 읽기만. 빵집 주인은 17시(closing)에 그릇의 동전을 stoop 으로 거둔다(resident_ledger, palm_till 의 사슬).
+## 상한(운영자 2026-10-06 money 3): 외상은 여섯까지 — 여섯이 적힌 빈 주머니는 창구가 더는 긋지 않는다(tab_full, counter_take 가 먼저 묻는다; 주인이 곁이면 한마디). 동전이 있으면 여느 때처럼 산다
 ## 사슬: … → coins → busk → **ledger** → growth → city → plots → interior → cabin → social → wages(town_wages.gd, 품삯 — run 113) → player → town3d
 
 const TURN_T := PostPoses.SCAN_T + LedgerPoses.SIGH_T + CoinPoses.STOOP_T   # 한 차례: 읽기 → 한숨 → 한 닢
+const TAB_MAX := 6   # 외상 상한 — 그 위로는 창구가 긋지 않는다(money 3)
 
 var ledger: Dictionary = {}   # 자리 {pos, kind "ledger", yaw, till, till_shown, bowl, at} — 그릇은 악사의 모자와 같은 꼴(till/till_shown)이라 tip·palm_till 이 그대로 섬긴다
 var tab := 0                  # 내 외상(이 판에서만 — 동전처럼 저장은 다음 조각)
@@ -36,10 +38,20 @@ func _ledger(at: Vector3) -> void:
 func tab_note(by: Variant) -> void:
 	if by is ResidentBase:
 		var r: ResidentBase = by
-		if r.job != "baker": r.mind.tab += 1
+		if r.job != "baker": r.mind.tab = mini(TAB_MAX, r.mind.tab + 1)
 		return
-	tab += 1
-	say_toast("On the house. That is %d on the tab." % tab)
+	tab = mini(TAB_MAX, tab + 1)
+	say_toast("On the house. That is %d on the tab." % tab + (" The limit." if tab >= TAB_MAX else ""))
+
+## 창구가 긋기를 거절하나(town_places counter_take 가 재고를 내기 전에 묻는다) — 빈 주머니에 여섯이 적혀 있으면. 빵집 주인이 14m 안이면 한마디. 동전이 있으면 거절은 없다
+func tab_full(by: Variant) -> bool:
+	if coins_of(by) > 0 or tab_of(by) < TAB_MAX: return false
+	var p: Vector3 = (by as ResidentBase).global_position if by is ResidentBase else body.global_position
+	for r in residents:
+		if r.job == "baker" and not (r.state in ["down", "getup", "drive", "chase"]) and r.global_position.distance_to(p) < 14.0:
+			r.say(["Settle up first.", "Six on the tab. No.", "Not till you pay something."][randi() % 3], 1.8); break
+	if by is String: say_toast("Six on the tab. Settle something first.")
+	return true
 
 ## 그릇에 한 닢이 들어갔다(town_busk _tips_tick, dish 가 장부일 때): 외상이 하나 준다 — 주민은 한 줄(tab_pay)과 오늘 다녀간 표, 사람은 토스트
 func tab_paid(who: Variant) -> void:

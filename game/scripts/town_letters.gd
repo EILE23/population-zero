@@ -104,13 +104,16 @@ func _sort_hand(put: bool, it: Node3D) -> void:
 
 ## 광장 게시판(run 100) — 기둥 둘, 코르크 판, 비 가림 판자. 처음부터 쪽지 둘이 꽂혀 있어 "쓰는 게시판"으로 읽힌다
 func _noticeboard(at: Vector3) -> void:
-	var post := _mat(Color("6b4a35"))
-	for sx: float in [-0.62, 0.62]: _box(Vector3(0.08, 1.45, 0.08), at + Vector3(sx, 0, 0), post)
-	_box(Vector3(1.32, 0.66, 0.05), at + Vector3(0, 0.72, 0), _mat(Color("c49a6c")), false)   # 코르크 — 사람 키(어깨 0.84)보다 조금 위까지
-	_box(Vector3(1.46, 0.05, 0.16), at + Vector3(0, 1.45, 0.02), post, false)
+	_board_frame(at, _mat(Color("6b4a35")))
 	notice = { "pos": at + Vector3(0, 0, 0.75), "kind": "notice", "yaw": PI, "at": at, "notes": [] }
 	spots.append(notice)
 	_add_note(1, 0.0, "paper"); _add_note(5, 0.0, "paper")
+
+## 기둥 둘·코르크 판·비 가림 판자 — 게시판과 심부름판(run 115, town_jobs)이 같은 틀을 쓴다; 틀 색만 다르다
+func _board_frame(at: Vector3, post: Material) -> void:
+	for sx: float in [-0.62, 0.62]: _box(Vector3(0.08, 1.45, 0.08), at + Vector3(sx, 0, 0), post)
+	_box(Vector3(1.32, 0.66, 0.05), at + Vector3(0, 0.72, 0), _mat(Color("c49a6c")), false)   # 코르크 — 사람 키(어깨 0.84)보다 조금 위까지
+	_box(Vector3(1.46, 0.05, 0.16), at + Vector3(0, 1.45, 0.02), post, false)
 
 ## 빈 핀 자리(3칸×2단) — 없으면 −1. 뗀 자리가 다시 찬다(쪽지마다 제 자리를 기억한다)
 func note_slot() -> int:

@@ -28,6 +28,7 @@ func _tick(delta: float, now: float) -> void:
 	if has_method("_nap_tick"): call("_nap_tick", now)   # 위층(town_nap) — 아침의 공사 한 단계, 흔들의자, 문소리에 깨는 아이(run 108)
 	if has_method("_busk_tick"): call("_busk_tick", now)   # 위층(town_busk) — 세트의 시작과 끝, 서서 듣는 주민, 모자에 넣는 손(run 111)
 	if has_method("_ledger_tick"): call("_ledger_tick", now)   # 위층(town_ledger) — 장부 앞의 세 박자: 읽기 → 한숨 → 한 닢(run 112)
+	if has_method("_jobs_tick"): call("_jobs_tick", now)   # 위층(town_jobs) — 든 카드의 일이 곁에서 되면 품삯, 저녁·아침의 되돌림(run 115)
 
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
 func _stream() -> void:

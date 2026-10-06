@@ -245,6 +245,7 @@ func _oven(at: Vector3, counter: Dictionary) -> void:
 ## 창구 재고 하나 줄이기 — 진열 빵이 하나 사라지고, 다 떨어지면 팻말. 없으면 false. 사람도 주민도 이걸 부른다; by(주민)를 주면 그 주머니에서 동전 하나(run 107, town_coins — 없으면 그냥)
 func counter_take(sp: Dictionary, by: Variant = null) -> bool:
 	if int(sp.get("stock", 0)) <= 0: return false
+	if by != null and sp.has("stock") and has_method("tab_full") and call("tab_full", by): return false   # 외상이 여섯이고 빈 주머니면 안 준다(money 3, town_ledger)
 	sp["stock"] = int(sp["stock"]) - 1
 	_show_stock(sp)
 	if by != null: call("pay_counter", sp, by)

@@ -1,6 +1,6 @@
 extends TownPlayer
 ## 3D 마을 — 루트. 세계를 짓고(_ready) 프레임마다 카메라·범례를 돌린다(_process). 나머지는 상속 계층에 있다:
-##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_nap.gd(낮잠방) → town_coins.gd(동전) → town_busk.gd(악사) → town_ledger.gd(외상 장부) → … → town_social.gd(채팅) → town_wages.gd(품삯) → town_store.gd(잡화점) → town_player.gd(조작) → 여기.
+##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_nap.gd(낮잠방) → town_coins.gd(동전) → town_busk.gd(악사) → town_ledger.gd(외상 장부) → … → town_social.gd(채팅) → town_wages.gd(품삯) → town_store.gd(잡화점) → town_jobs.gd(심부름판) → town_player.gd(조작) → 여기.
 
 func _ready() -> void:
 	_light()
@@ -20,6 +20,7 @@ func _ready() -> void:
 	_district("letters", ROOM_AT, _letter_room)   # 편지방(run 99, town_letters) — 골목 동쪽 끝의 새 집, 시장 쪽 오솔길
 	_district("sunroom", SUN_AT, _sunroom)   # 이야기방(run 103, town_sunroom) — 골목 서쪽(공원) 끝의 새 집, 골목 길이 문 앞까지
 	_noticeboard(NOTICE_AT)   # 광장 게시판(run 100, town_letters) — 가운데 집 뒤, 구역 밖이라 늘 서 있다(쪽지가 시간 따라 바뀐다)
+	_jobsboard(JOBS_AT)   # 심부름판(run 115, town_jobs) — 게시판 서쪽 3m, 넷째 집 동쪽 벽에서 1m; 동전이 붙은 카드가 꽂히고 떼인다
 	_busk_stage(NOTICE_AT + Vector3(4.0, 0, -1.2))   # 악사의 상자 무대와 모자(run 111, town_busk) — 게시판 동쪽 4m, 가운데 집 뒷벽(z −7.6)에서 1.6m, 골목 가로등(−3.5, −11.6)과 2.2m
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
 	_stones()   # 디딤돌(CI run 84) — 시장 서쪽 끝 x 23 의 둘째 건널목

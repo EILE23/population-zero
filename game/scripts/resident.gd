@@ -1,5 +1,5 @@
 class_name Resident
-extends ResidentStore
+extends ResidentJobs
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 
@@ -242,7 +242,7 @@ func _pick_spot() -> void:
 			target = route[0]["pos"]; state = "walk"; return
 	if _trade_pick(Time.get_ticks_msec() / 1000.0): return   # 구두장이의 낮 일, 닳은 밑창(run 80, resident_life)
 	if _pair_pick(Time.get_ticks_msec() / 1000.0) or _swap_pick(Time.get_ticks_msec() / 1000.0) or _post_pick(Time.get_ticks_msec() / 1000.0) or _till_pick(Time.get_ticks_msec() / 1000.0): return   # 막 나선 친구와 나란히(run 95, resident_pair), 책 상자(run 98, resident_shelf), 편지방(run 99, resident_letters)
-	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap", "letters", "notice", "story", "cushion", "cot", "rocker", "stage", "hat"]) and (sp["kind"] != "ledger" or _ledger_ok()))   # 장부는 외상이 있고 동전이 있는 날만(run 112, resident_ledger)
+	var pool: Array = town.spots.filter(func(sp): return not (sp["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap", "letters", "notice", "story", "cushion", "cot", "rocker", "stage", "hat", "jobs"]) and (sp["kind"] != "ledger" or _ledger_ok()))   # 심부름판은 이유가 있을 때만(run 115, resident_jobs); 장부는 외상이 있고 동전이 있는 날만(run 112, resident_ledger)
 	# 하루 일과(운영자 2026-09-30: 주민 활동을 디테일하게): 시간대와 직업이 고르는 자리 — 열에 일곱은 지금 할 일, 셋은 아무 데나(주민은 자유다)
 	var want: Array = _schedule_kinds()   # 일과는 점수의 한 항(mind.score) — 배고프면 일하다가도 빵집으로, 게으르면 가까운 벤치로
 	if weather == "rain" and has_umb:
