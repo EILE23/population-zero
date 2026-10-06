@@ -6,7 +6,7 @@ extends TownCoins
 ## 모자로 와 stoop 으로 한 닢(tip 표 → resident_busk) — 어울림 반 × 0.66 ≈ 셋 중 하나. 평범한 결과: 셋에 둘은 그냥 지나가고, 세트는 아무도 안 내도 끝까지 간다.
 ## 사람도 모자 앞에서 C — 동전이 있으면 같은 stoop 으로 한 닢(0.12 에 주머니에서 손으로, STOOP_IN 에 손에서 모자로), 없으면 악사가 끄덕이고 busk_thanks 한 줄. 세트가 끝나면 악사가 모자의
 ## 동전을 stoop 으로 제 주머니에(palm_till 의 사슬, 자세만 stoop). 악사가 없을 때 사람이 상자 앞에서 C — 옆의 기타를 들고 올라서서 한 시간(30초) 세트: 주민은 똑같이 서고 똑같이 낸다.
-## 다음 조각(장부·심부름판·묵은 빵·전당포)은 백로그 "Money in hands". 사슬: … → nap → coins → **busk** → player → town3d
+## 다음 조각(심부름판·묵은 빵·전당포)은 백로그 "Money in hands". 사슬: … → nap → coins → **busk** → ledger(town_ledger.gd, 외상 장부 — run 112) → player → town3d
 
 const BUSK_SLOTS := [[12.0, 13.5], [17.0, 18.0]]   # 세트 칸(0..24 시계)
 const PLAYER_SET := 30.0                           # 사람의 세트 — 마을 시계 한 시간
@@ -129,14 +129,16 @@ func _busk_listen(now: float) -> void:
 		r.fig.face(atan2(at.x - r.global_position.x, at.z - r.global_position.z)); r.fig.pose_request = "wait"
 		if r.job != "child" and r.mind.social > 0.5 and r.coins > 0 and randf() < 0.66: r.set_meta("tip", n)   # 평범한 결과 = 그냥 간다(어울림 반 × 0.66 → 셋 중 하나쯤 낸다)
 
-## 모자에 한 닢(주민 _busk_arrive · 사람 busk_tip) — 호출자가 stoop 자세를 올린 뒤 부른다. 진행은 _tips_tick
-func tip(fig: Stick3D, who: Variant) -> void:
-	tipping.append({ "fig": fig, "who": who, "t0": Time.get_ticks_msec() / 1000.0, "coin": null, "phase": 0 })
+## 모자에 한 닢(주민 _busk_arrive · 사람 busk_tip) — 호출자가 stoop 자세를 올린 뒤 부른다. 진행은 _tips_tick. dish 를 주면 모자 대신 그 그릇에(장부의 그릇, run 112 town_ledger — 같은 till/till_shown 꼴)
+func tip(fig: Stick3D, who: Variant, dish: Dictionary = {}) -> void:
+	var e := { "fig": fig, "who": who, "t0": Time.get_ticks_msec() / 1000.0, "coin": null, "phase": 0 }
+	if not dish.is_empty(): e["dish"] = dish
+	tipping.append(e)
 
 ## stoop 의 시계로: 0.12 에 주머니에서 손으로(수가 준다), STOOP_IN 에 손에서 모자로(원판이 하나 더 보인다, 악사가 고마워한다). 손에 든 채 끊기면 주머니로 돌아간다
 func _tips_tick(now: float) -> void:
-	var hat: Dictionary = busk["hat"]
 	for e in tipping.duplicate():
+		var hat: Dictionary = e.get("dish", busk["hat"])
 		var fig: Stick3D = e["fig"]; var who: Variant = e["who"]; var t: float = now - float(e["t0"]); var ph: int = e["phase"]
 		var broke: bool = fig.pose_request != "stoop" or (who is String and player.move_dir != Vector3.ZERO) or (who is ResidentBase and (who as ResidentBase).state != "busy")
 		if broke and ph < 2:
@@ -159,7 +161,8 @@ func _tips_tick(now: float) -> void:
 			(e["coin"] as Node3D).queue_free(); e["coin"] = null; e["phase"] = 2
 			hat["till"] = int(hat["till"]) + 1
 			for i in TILL_MAX: ((hat["till_shown"] as Array)[i] as Node3D).visible = i < int(hat["till"])
-			_thanks(who)
+			if e.has("dish"): call("tab_paid", who)   # 장부의 그릇(run 112, town_ledger) — 외상이 하나 준다
+			else: _thanks(who)
 		elif ph == 2 and t >= CoinPoses.STOOP_T:
 			tipping.erase(e)
 			if fig.pose_request == "stoop": fig.pose_request = ""

@@ -8,7 +8,7 @@ extends TownNap
 ## 빵집 접시면 도둑질: 주인이 14m 안이면 "Those are mine."(mind.line "till_mine")을 하고 기억한다(mind.stole — 주민의 첫 가게 평판, 저장된다). 막지는 않는다(평범한 결과 = 늘 가져간다).
 ## 주인도 같은 자세로 거둔다: 17시(또는 접시가 다섯)에 접시가 `closing` 이 되고 빵집 주인이 와서(resident_till.gd) 하나에 PALM_T 씩 제 주머니로. 주민 주머니는 uid % 3 + 1 로 시작해 아침 8시마다 하나 는다(주민의 하루 벌이는 아직 없다).
 ## 빈 주머니의 사람·주민은 그냥 받는다("On the house." / mind.line "no_coin") — 돈 때문에 문을 닫는 건 없다(백로그 규칙; 외상 장부는 4조각).
-## 다음 조각(길거리 악사·장부·심부름판·시장 노점에 작물 팔기)은 백로그 "Money in hands". 사슬: … → sunroom → nap → **coins** → busk(town_busk.gd, 악사 — run 111) → player → town3d
+## 다음 조각(심부름판·묵은 빵·전당포·시장 노점에 작물 팔기)은 백로그 "Money in hands". 사슬: … → sunroom → nap → **coins** → busk(town_busk.gd, 악사 — run 111) → ledger(town_ledger.gd, 외상 장부 — run 112) → player → town3d
 
 const TILL_MAX := 5             # 접시에 보이는 동전 수 — 차면 주인이 거두러 온다
 
@@ -138,7 +138,7 @@ func _coin_hours() -> void:
 			if r.job != "child": r.coins += 1
 	if _coin_h >= 0.0 and _coin_h < 17.0 and h >= 17.0:
 		for sp in spots:
-			if sp["kind"] == "counter" and int(sp.get("till", 0)) > 0: sp["closing"] = true
+			if sp["kind"] in ["counter", "ledger"] and int(sp.get("till", 0)) > 0: sp["closing"] = true   # 장부의 그릇도 같은 시각에(run 112) — 주인이 stoop 으로 거둔다
 	_coin_h = h
 
 ## 넘어진 이의 동전(resident_base.hit · town_critters.resident_hits_player): 셋 중 하나 — 주머니에 있으면 그것, 주민은 비어도 하나, 사람은 비면 없다. 날아가 바닥에 한 번 튀고 눕는다(_fly)
@@ -156,10 +156,14 @@ func drop_coin(at: Vector3, dir: Vector3, from: Variant) -> void:
 func pay_counter(sp: Dictionary, by: Variant) -> void:
 	if by is ResidentBase:
 		var r: ResidentBase = by
-		if r.coins <= 0: return
+		if r.coins <= 0:
+			if sp.has("stock") and has_method("tab_note"): call("tab_note", r)   # 빈 주머니 — 빵집 장부에 적힌다(run 112, town_ledger); 카페 접시엔 장부가 없다
+			return
 		r.coins -= 1
 	elif coins <= 0:
-		say_toast("On the house."); return
+		if sp.has("stock") and has_method("tab_note"): call("tab_note", "player")
+		else: say_toast("On the house.")
+		return
 	else: _set_coins(coins - 1)
 	sp["till"] = int(sp.get("till", 0)) + 1
 	if not sp.has("till_shown"):

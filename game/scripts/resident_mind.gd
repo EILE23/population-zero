@@ -37,6 +37,7 @@ var fond := 0.0                # -1 미움 .. 1 좋아함
 var met := 0                   # 인사를 나눈 횟수
 var hurt := 0                  # 맞은 횟수(누적, 판을 넘어 남는다)
 var stole := 0                 # 내 창구 접시에서 집어 간 횟수(누적, 남는다) — 가게 주인의 첫 평판 열쇠(run 110, town_coins _robbed)
+var tab := 0                   # 빵집 장부의 외상(빈 주머니로 받아 간 빵 수, 남는다) — 동전이 있는 날 장부로 가 하나씩 갚는다(run 112, town_ledger)
 var last_hurt := -999.0
 var witnessed_at := -999.0      # 사람이 남을 때리는 걸 본 시각 — 이야기방에서 그 사람이 넘어졌다 와 앉으면 끄덕여 준다(run 104)
 var last_greet := -999.0
@@ -77,7 +78,7 @@ func _init(res: ResidentBase) -> void:
 	if topics.is_empty(): topics = voice.get("topics", ["Hm."])
 	energy = 0.7 + 0.3 * float(hs % 10) / 9.0; full = 0.4 + 0.5 * float((hs / 10) % 10) / 9.0; fun = 0.3 + 0.5 * curious
 	var m: Dictionary = _saved.get(str(res.uid), {})
-	fond = float(m.get("fond", 0.0)); met = int(m.get("met", 0)); hurt = int(m.get("hurt", 0)); stole = int(m.get("stole", 0))
+	fond = float(m.get("fond", 0.0)); met = int(m.get("met", 0)); hurt = int(m.get("hurt", 0)); stole = int(m.get("stole", 0)); tab = int(m.get("tab", 0))
 	var fr: Dictionary = m.get("friends", {})
 	for k in fr: friends[int(k)] = float(fr[k])
 
@@ -115,6 +116,7 @@ func score(sp: Dictionary, sched: Array) -> float:
 	if k in sched: s += 1.2
 	if k in REST: s += (1.0 - energy) * 3.0 * (0.5 + lazy)
 	if k == "counter": s += (1.0 - full) * 4.0
+	if k == "ledger": s += 3.0 * tab   # 외상은 마음에 걸린다 — 많이 적힐수록(run 112; 풀에 남는 조건은 resident_ledger _ledger_ok)
 	if k in FUN: s += (1.0 - fun) * 2.5 * (0.5 + curious)
 	if k in SOCIAL: s += (1.0 - company) * 2.0 * social
 	for o in sp.get("taken", []):
@@ -203,6 +205,7 @@ func status() -> String:
 	if company < 0.25: out.append("lonely")
 	if out.is_empty(): out.append("cheerful" if mood > 0.45 else ("grumpy" if mood < -0.15 else "fine"))
 	if stole > 0: out.append("remembers the till")
+	if tab > 0: out.append("owes the baker")
 	if fond > 0.3: out.append("likes you")
 	elif fond < -0.3: out.append("angry at you" if _now() - last_hurt < 120.0 else "wary of you")
 	elif met == 0: out.append("new to you")
@@ -219,6 +222,6 @@ static func save_all(residents: Array, force := false) -> void:
 		if m == null: continue
 		var fr := {}
 		for k in m.friends: fr[str(k)] = snappedf(m.friends[k], 0.01)
-		_saved[str(x.uid)] = { "fond": snappedf(m.fond, 0.01), "met": m.met, "hurt": m.hurt, "stole": m.stole, "friends": fr }
+		_saved[str(x.uid)] = { "fond": snappedf(m.fond, 0.01), "met": m.met, "hurt": m.hurt, "stole": m.stole, "tab": m.tab, "friends": fr }
 	var f := FileAccess.open(SAVE, FileAccess.WRITE)
 	if f: f.store_string(JSON.stringify(_saved))

@@ -45,7 +45,7 @@ func _init() -> void:
 	for who in [walkers.reduce(func(a, x): return x if x.mind.lazy > a.mind.lazy else a), walkers.reduce(func(a, x): return x if x.mind.curious > a.mind.curious else a)]:
 		var tally := {}
 		for i in 200:
-			var sp: Dictionary = who.mind.pick(town.spots.filter(func(s): return not (s["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap", "letters", "notice", "story", "cushion"])), who._schedule_kinds())
+			var sp: Dictionary = who.mind.pick(town.spots.filter(func(s): return not (s["kind"] in ["oven", "rack", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "chop", "pile", "stove", "swap", "letters", "notice", "story", "cushion", "cot", "rocker", "stage", "hat"]) and (s["kind"] != "ledger" or who._ledger_ok())), who._schedule_kinds())   # run 112: resident.gd 의 목록과 다시 같게(낮잠방·악사·장부)
 			tally[sp["kind"]] = tally.get(sp["kind"], 0) + 1
 		print("PICK ", who.handle, " lazy=%.2f curious=%.2f energy=%.2f " % [who.mind.lazy, who.mind.curious, who.mind.energy], tally)
 	quit()
