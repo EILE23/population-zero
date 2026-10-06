@@ -54,12 +54,15 @@ func _process(delta: float) -> void:
 	elif room != "" and _retry_at > 0.0 and _t >= _retry_at:
 		_retry_at = -1.0; _open()
 	_ghosts(delta)
-	if OS.has_feature("web") and int(_t / 5.0) != int((_t - delta) / 5.0) and _t < 40.0: _diag()
+	if OS.has_feature("web") and int(_t / 5.0) != int((_t - delta) / 5.0) and _t < 40.0:
+		if _t < 6.0: _diag_on = "diag" in String(JavaScriptBridge.eval("location.search", true))
+		if _diag_on: _diag()
 	if _loaded and not guest and _t >= _save_at:
 		_save_at = _t + SAVE_EVERY; _upload_if_changed()
 
-## 웹 점검(브라우저 콘솔, 처음 40초 5초마다) — 웹에서 3D 가 비어 보였을 때(2026-10-06) 카메라·그린 물체 수를 본다
-## 주소 뒤 ?nofog / ?noshadow / ?noomni 로 하나씩 꺼 보고 원인을 가린다
+## 웹 점검(주소 뒤 ?diag — 브라우저 콘솔에 처음 40초 5초마다) — 웹에서 3D 가 비어 보였을 때(2026-10-06) 카메라·그린 물체 수를 봤다
+## (원인은 스레드 없는 웹의 컬링 — project.godot threaded_cull_minimum_instances.web). ?diag&nofog / noshadow / noomni 로 하나씩 꺼 본다
+var _diag_on := false
 func _diag() -> void:
 	var q: Variant = JavaScriptBridge.eval("location.search", true)
 	var qs := String(q) if q is String else ""
