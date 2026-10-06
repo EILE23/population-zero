@@ -9,6 +9,7 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
+	if gating: _tick(delta, now); return   # 미니게임 문 장면(town_sites) — 몸은 장면이 옮긴다
 	if passenger:
 		_passenger_tick(now); _tick(delta, now); return   # 조수석(town_ride): 주민이 몬다, C 로 세워 달라 한다
 	# 운전 중: 차가 몸이다 — 방향키·SPACE 를 차에 넘기고 C 로 내린다. 세계 시스템은 계속 돈다

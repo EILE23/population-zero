@@ -227,6 +227,7 @@ var seesaw_ride: Seesaw3D = null   # 내가 탄 시소
 var cracks: Array = []            # 벽의 금 {node, house, at, out, by} — 수리공이 고친다. 부서진 벤치·울타리도 여기 들어간다(kind "wreck")
 
 var wreckables: Array = []        # 부술 수 있는 소품 {node, at, r, out, rebuild(Callable), bench?, spot?}
+var gating := false               # 미니게임 문 장면 중(town_sites) — 조작을 잠근다
 var passenger: Car3D = null       # 내가 조수석에 탄 차(주민이 몬다)
 var driving: Car3D = null         # 내가 모는 차(null 이면 걷는 중)
 

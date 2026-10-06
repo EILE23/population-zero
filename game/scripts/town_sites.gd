@@ -195,14 +195,14 @@ func _site_lakeside(c: Vector3) -> void:
 func _garage(at: Vector3) -> void:
 	_box(Vector3(4.6, 2.6, 4.0), at, _mat(Color("c9c2bb")))
 	_box(Vector3(5.0, 0.2, 4.4), at + Vector3(0, 2.6, 0), _mat(Color("5b5560")), false)
-	_box(Vector3(3.0, 2.0, 0.1), at + Vector3(0, 0, 2.0), _mat(Color("3a2f36")), false)   # 열린 셔터 안의 어둠
+	_box(Vector3(3.0, 2.0, 0.1), at + Vector3(0, 0, 2.0), _mat(Color("3a2f36")), false)   # 셔터 안의 어둠
 	for k in 8:   # 체크무늬 간판: 8×2 칸
 		for r in 2: _box(Vector3(0.45, 0.3, 0.06), at + Vector3(-1.575 + k * 0.45, 2.85 + r * 0.3, 2.05), _mat(Color("1b0c15") if (k + r) % 2 == 0 else Color("efe9e2")), false)
 	var tyre := _mat(Color("2f2a2e"))
 	for i in 3:   # 타이어 셋 — 눕혀 쌓았다
 		var ty := MeshInstance3D.new(); var tm := CylinderMesh.new(); tm.top_radius = 0.38; tm.bottom_radius = 0.38; tm.height = 0.24; ty.mesh = tm; ty.material_override = tyre
 		ty.position = at + Vector3(-3.0, 0.12 + i * 0.25, 2.2); _add(ty)
-	_gate(at + Vector3(0, 0, 3.2), PI, "race", "RACE")
+	_gate(at + Vector3(0, 0, 3.2), PI, "race", "RACE", _gate_door(at + Vector3(0, 0, 2.1)))
 	_path(at + Vector3(-11, 0, 3.6), at + Vector3(0, 0, 3.6), 1.6)   # 호숫가로 오는 자갈길에서 차고 문 앞까지
 
 # ── Climb 탑 언덕(북쪽 골목 너머): 돌탑(꼭대기 깃발, 둘레를 감아 오르는 발판 장식), 문 앞의 입구 자리와 기록 표지판, 둘레 벤치·가로등·나무 ──
@@ -211,14 +211,14 @@ func _site_tower(c: Vector3) -> void:
 	var t := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 2.8; cm.bottom_radius = 3.2; cm.height = 14.0; cm.radial_segments = 24; t.mesh = cm; t.material_override = stone
 	t.position = c + Vector3(0, 7.0, -2.0); _add(t)
 	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 3.2; cy.height = 14.0; cs.shape = cy; sb.add_child(cs); t.add_child(sb)
-	for i in 14:   # 감아 오르는 발판(장식) — 안에 들어가면 진짜로 오른다
-		var a := -i * 0.85   # 미니게임 탑과 같은 방향(각이 줄어드는 쪽) — 밖에서 보면 오른쪽으로 오른다
-		var p := _box(Vector3(1.0, 0.18, 0.7), c + Vector3(cos(a) * 3.5, 0.6 + i * 0.95, -2.0 + sin(a) * 3.5), dark, false); p.rotation.y = -a
+	for i in 6:   # 창 — 탑 안에 세상이 있다(운영자 2026-10-06: 바깥을 오르는 게 아니라 안의 세상) — 바깥 발판 장식은 뺐다, 창마다 따뜻한 빛
+		var a := i * 1.05 + 0.3; var wy := 3.0 + i * 1.8
+		var wn := _box(Vector3(0.5, 0.9, 0.08), c + Vector3(cos(a) * 3.05, wy, -2.0 + sin(a) * 3.05), _mat(Color("f2c84b")), false); wn.rotation.y = -a + PI / 2.0
 	var flag_pole := _box(Vector3(0.08, 2.0, 0.08), c + Vector3(0, 14.0, -2.0), dark, false)
 	var flag := _box(Vector3(0.9, 0.5, 0.03), c + Vector3(0.5, 15.4, -2.0), _mat(Color("ad7096")), false)
 	flag_pole.set_meta("flag", flag)
-	_box(Vector3(1.3, 2.1, 0.2), c + Vector3(0, 0, 1.15), _mat(Color("3a2f36")), false)   # 문(어두운 아치)
-	_gate(c + Vector3(0, 0, 2.2), PI, "climb", "CLIMB")
+	_box(Vector3(1.3, 2.1, 0.2), c + Vector3(0, 0, 1.1), _mat(Color("3a2f36")), false)   # 문틀 안의 어둠
+	_gate(c + Vector3(0, 0, 2.2), PI, "climb", "CLIMB", _gate_door(c + Vector3(0, 0, 1.25)))
 	_path(c + Vector3(0, 0, 2.0), c + Vector3(0, 0, 8.0), 2.0)
 	_bench(c + Vector3(-4.5, 0, 4.5)); _bench(c + Vector3(4.5, 0, 4.5))
 	_lamp(c + Vector3(-2.2, 0, 3.0)); _lamp(c + Vector3(2.2, 0, 3.0))
@@ -228,8 +228,8 @@ func _site_tower(c: Vector3) -> void:
 		_tree(c + Vector3(cos(a) * 12.0, 0, -sin(a) * 12.0 - 2.0), 1.2)
 
 ## 입구 — 자리(kind gate)와 표지판(이름 + 내 기록). 사람이 C 로 들어간다(town_player). 주민은 문 앞에 서서 구경한다(같은 자리 — door 처럼 잠깐 선다)
-func _gate(at: Vector3, yaw: float, game: String, title: String) -> void:
-	spots.append({ "pos": at, "kind": "gate", "yaw": yaw, "game": game })
+func _gate(at: Vector3, yaw: float, game: String, title: String, door: Node3D = null) -> void:
+	spots.append({ "pos": at, "kind": "gate", "yaw": yaw, "game": game, "door": door })
 	var post := _box(Vector3(0.1, 1.5, 0.1), at + Vector3(1.4, 0, 0.3), _mat(Color("6b4a35")), false)
 	var board := _box(Vector3(1.1, 0.6, 0.06), at + Vector3(1.4, 1.3, 0.3), _mat(Color("efe9e2")), false)
 	var lb := Label3D.new(); lb.font_size = 64; lb.pixel_size = 0.004; lb.modulate = Color("1b0c15"); lb.outline_size = 0
@@ -251,8 +251,35 @@ func _fmt(id: String, v: float) -> String:
 
 ## 들어가기 — 미니게임을 띄우고 마을은 그대로 멈춘다(숨김 + 처리 끔). 돌아오면 나온 자리에서 이어진다
 func enter_game(id: String) -> void:
-	if game_node != null or not ResourceLoader.exists("res://scripts/games/%s.gd" % id): return
+	if game_node != null or gating or not ResourceLoader.exists("res://scripts/games/%s.gd" % id): return
+	var sp: Dictionary = {}
+	for s in spots:
+		if s["kind"] == "gate" and s["game"] == id: sp = s
+	gating = true
+	# 문 장면(운영자 2026-10-06: "들어갔다 나갈 때 문 열고 나가는 애니메이션"): 문 쪽을 보고, 문이 열리고, 걸어 들어가며 화면이 어두워진다
+	var yaw: float = sp.get("yaw", PI); var fwd := Vector3(sin(yaw), 0, cos(yaw))
+	var door: Node3D = sp.get("door")
+	var into: Vector3 = (door.global_position if door else body.global_position + fwd * 1.2) + fwd * 0.4; into.y = body.global_position.y
+	player.face(yaw); player.move_dir = fwd; player.speed = 1.4
+	if door: get_tree().create_tween().tween_property(door.get_node("leaf"), "rotation:y", -1.6, 0.3)
+	var tw := get_tree().create_tween()
+	tw.tween_property(body, "global_position", into, 0.9)
+	tw.parallel().tween_property(_fader(), "color:a", 1.0, 0.45).set_delay(0.45)
+	tw.tween_callback(func() -> void: _start_game(id))
+
+## 화면 어둡게 하기 — 마을이 숨어도 남도록 뿌리(root)에 둔다
+var _fade_rect: ColorRect
+func _fader() -> ColorRect:
+	if _fade_rect == null or not is_instance_valid(_fade_rect):
+		var cl := CanvasLayer.new(); cl.layer = 50; get_tree().root.add_child(cl)
+		_fade_rect = ColorRect.new(); _fade_rect.color = Color(0, 0, 0, 0); _fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT); _fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE; cl.add_child(_fade_rect)
+	return _fade_rect
+
+func _start_game(id: String) -> void:
+	player.move_dir = Vector3.ZERO; player.speed = 0.0
+	_fader().color.a = 0.0
 	game_node = (load("res://scripts/games/%s.gd" % id) as GDScript).new()
+	if "start_camp" in game_node: game_node.set("start_camp", int(records.get("climb_camp", 0)))   # Climb: 지난번 나간 쉼터에서
 	game_node.set("best", float(records.get(id, 0.0)))
 	if "rivals" in game_node:   # 상대가 필요한 게임(Race) — 성미 급한 주민 둘이 나선다
 		var hot := residents.duplicate(); hot.sort_custom(func(a: Resident, b: Resident) -> bool: return a.mind.temper > b.mind.temper)
@@ -267,6 +294,8 @@ func _game_done(result: Dictionary, id: String) -> void:
 	game_node = null
 	visible = true; process_mode = Node.PROCESS_MODE_INHERIT
 	(get_node("UI") as CanvasLayer).visible = true; cam.current = true
+	if result.has("camp"): records["climb_camp"] = int(result["camp"])   # 쉼터 문으로 나갔으면 다음엔 거기서
+	_walk_out(id)
 	var score := float(result.get("score", 0.0)); var old := float(records.get(id, 0.0))
 	if score > 0.0 and ((old <= 0.0 or score < old) if id in TIMED else score > old):
 		records[id] = score
@@ -281,3 +310,32 @@ func _game_done(result: Dictionary, id: String) -> void:
 		var f2 := FileAccess.open(RECORDS, FileAccess.WRITE)
 		if f2: f2.store_string(JSON.stringify(records))
 	_refresh_signs()
+
+## 나오는 문 장면 — 어두운 데서 밝아지며 문이 열리고 문 앞으로 걸어 나온 뒤 문이 닫힌다. 그동안 조작은 잠긴다(gating)
+func _walk_out(id: String) -> void:
+	var sp: Dictionary = {}
+	for s in spots:
+		if s["kind"] == "gate" and s["game"] == id: sp = s
+	if sp.is_empty(): gating = false; return
+	var yaw: float = sp.get("yaw", PI); var back := -Vector3(sin(yaw), 0, cos(yaw))
+	var door: Node3D = sp.get("door")
+	var from: Vector3 = (door.global_position if door else sp["pos"]) - back * 0.4; from.y = body.global_position.y
+	var to: Vector3 = sp["pos"] + back * 0.6; to.y = body.global_position.y
+	body.global_position = from; body.velocity = Vector3.ZERO
+	player.face(atan2(back.x, back.z)); player.move_dir = back; player.speed = 1.4
+	_fader().color.a = 1.0
+	var tw := get_tree().create_tween()
+	tw.tween_property(_fader(), "color:a", 0.0, 0.4)
+	if door: tw.parallel().tween_property(door.get_node("leaf"), "rotation:y", -1.6, 0.3)
+	tw.tween_property(body, "global_position", to, 0.9)
+	if door: tw.tween_property(door.get_node("leaf"), "rotation:y", 0.0, 0.35)
+	tw.tween_callback(func() -> void: player.move_dir = Vector3.ZERO; player.speed = 0.0; gating = false)
+
+## 경첩 문 — 문틀 앞의 나무 문짝(leaf). 열면 바깥쪽으로 돈다
+func _gate_door(at: Vector3) -> Node3D:
+	var d := Node3D.new(); d.position = at; _add(d)
+	var hinge := Node3D.new(); hinge.name = "leaf"; hinge.position = Vector3(-0.55, 0, 0); d.add_child(hinge)
+	var leaf := _box(Vector3(1.1, 2.0, 0.08), Vector3(0.55, 0, 0), _mat(Color("8a6a4a")), false, hinge)
+	_box(Vector3(0.08, 0.08, 0.06), Vector3(0.95, 1.0, 0.06), _mat(Color("e3c46a")), false, hinge)   # 손잡이
+	leaf.name = "plank"
+	return d
