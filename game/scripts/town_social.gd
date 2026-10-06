@@ -4,38 +4,19 @@ extends TownInterior
 ##   채팅: ChatBox(chat_box.gd, 미니게임도 같은 부품) — Enter 로 쓰고 Esc 로 닫는다. 쓰는 동안 몸은 멈춘다(typing → town_player)
 ##   감정 표현: 1 손 흔들기 · 2 환호 · 3 꾸벅 · 4 춤 · 5 하늘 보고 눕기 — 자세 이름이 방의 pose 로 가서 남의 화면에서도 같은 자세(poz_net)
 ##   밀치기: 앞 1.3m 의 사람에게 X — 그 사람 화면에서 밀려난다(hitp), 누가 밀었는지 토스트
-##   H: 조작법 창(KeyHelp) — 범례 줄엔 "H controls · Enter chat" 만
+##   Esc: 게임 메뉴(game_menu — 조작·키 바꾸기·설정·계정), H: 조작 화면 바로. 화면 아래엔 시각·날씨만
 
-const EMOTES := { KEY_1: "wave", KEY_2: "cheer", KEY_3: "bow", KEY_4: "dance", KEY_5: "sky" }
 const EMOTE_T := 2.6
 ## 되풀이 자세(이름 → 한 번의 초) — 감정 표현과 산스장(town_mountain). 남의 화면에서도 같은 박자(poz_net)
 const LOOPS := { "cheer": 0.65, "bow": 2.6, "dance": 0.65, "pullup": 1.5, "situp": 1.7, "twist": 1.1, "squat": 1.6 }
-const HELP := [
-	["MOVE", "Arrows   (double-tap: dash)"],
-	["JUMP", "SPACE   (hold: higher)"],
-	["PUNCH", "X   again: jab > cross > hook > uppercut"],
-	["KICK", "Z   again: front > push kick > roundhouse"],
-	["MIX", "X after Z: backfist · Z after X: knee"],
-	["IN THE AIR", "X hammer · Z flying kick"],
-	["USE", "C   pick up, sit, doors, give, sell, game doors, cars"],
-	["CARRY / THROW", "C on furniture · hold X while holding"],
-	["CAR", "Up/Down drive · Left/Right steer · SPACE drift (boost) · C out"],
-	["SOMEONE'S CAR", "C: ride along · X at the door: pull them out"],
-	["CHAT", "Enter: type · Enter: send · Esc: close"],
-	["EMOTES", "1 wave · 2 cheer · 3 bow · 4 dance · 5 lie down"],
-	["PEOPLE", "X next to a player: shove"],
-	["CAMERA", "mouse wheel or - / =   (zoom out over the town)"],
-	["ACCOUNT", "S sign in (desktop: connects through your browser) · Shift+S sign out"],
-	["UPDATE", "F9 restart into a downloaded update · U download page"],
-	["HELP", "H"],
-]
 
 var chat: ChatBox
 var emote := ""               # 지금 하는 감정 표현(방으로 가는 자세 이름)
 var emote_until := 0.0
 var _emote_t0 := 0.0
+var menu: GameMenu
 var typing: bool:
-	get: return chat != null and chat.busy()
+	get: return (chat != null and chat.busy()) or (menu != null and menu.open)
 
 var _who: Label   # 오른쪽 위 한 줄 — 버전 · 계정(또는 S 안내·연결 코드) · 업데이트
 
@@ -44,8 +25,10 @@ func _social_init() -> void:
 	_who = Label.new(); _who.set_anchors_preset(Control.PRESET_TOP_RIGHT); _who.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _who.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_who.position = Vector2(-12, 8); _who.add_theme_color_override("font_color", Color("7b526c")); _who.add_theme_color_override("font_outline_color", Color("f7f4ef")); _who.add_theme_constant_override("outline_size", 6); _who.add_theme_font_size_override("font_size", 13)
 	ui.add_child(_who)
+	GameMenu.ensure_actions()   # 채팅·감정 표현·줌·H 도 바꿀 수 있는 행동(game_menu)
 	chat = ChatBox.new(); chat.me_node = body; ui.add_child(chat)
-	var h := KeyHelp.new(); h.chat = chat; h.setup("CONTROLS — TOWN · v" + PozUpdate.version(), HELP); ui.add_child(h)
+	menu = GameMenu.new(); menu.town = self; add_child(menu)   # Esc 메뉴 — 조작(키 바꾸기)·설정·계정·나가기
+	get_tree().create_timer(3.0).timeout.connect(func() -> void: say_toast("Esc: menu  ·  %s: controls" % GameMenu.key_of("controls")))
 
 ## 마을 방에 붙을 때마다(처음·미니게임에서 돌아옴) — 내 감정 표현을 pose 에 싣고, 밀침을 받는다
 func _net_town() -> void:
@@ -60,8 +43,9 @@ func _net_town() -> void:
 func _unhandled_key_input(e: InputEvent) -> void:
 	if not e.pressed or e.echo or typing or driving or game_node != null: return
 	var k: int = (e as InputEventKey).keycode
-	if EMOTES.has(k): _emote(String(EMOTES[k]))
-	elif k == KEY_S and net and net.account:
+	for n in 5:
+		if e.is_action_pressed("emote_%d" % (n + 1)): _emote(["wave", "cheer", "bow", "dance", "sky"][n]); return
+	if e.is_action_pressed("sign_in") and net and net.account:
 		if (e as InputEventKey).shift_pressed: net.account.sign_out()
 		else: net.account.sign_in()
 	elif k == KEY_F9 and net and net.update: net.update.apply(true)
@@ -113,7 +97,7 @@ func _on_room(m: Dictionary) -> void:
 func _who_line() -> String:
 	var parts: Array[String] = ["v" + PozUpdate.version()]
 	if net == null: pass
-	elif net.account and net.account.status == "linking": parts.append("Code %s — press Connect in your browser (S opens it again)" % net.account.code)
+	elif net.account and net.account.status == "linking": parts.append("Code %s — press Connect in your browser (%s opens it again)" % [net.account.code, GameMenu.key_of("sign_in")])
 	elif not net.guest: parts.append(net.handle + (" · %d here" % net.online() if net.online() > 1 else ""))
 	elif net.account: parts.append("Guest — press S to sign in")
 	else: parts.append("Guest")

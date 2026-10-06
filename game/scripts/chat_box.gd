@@ -35,7 +35,7 @@ func _input(e: InputEvent) -> void:
 	var k: int = (e as InputEventKey).keycode
 	if typing:
 		if k == KEY_ESCAPE: _close(); get_viewport().set_input_as_handled()
-	elif k == KEY_ENTER or k == KEY_KP_ENTER:
+	elif e.is_action_pressed("chat") or k == KEY_KP_ENTER:
 		typing = true; _in.visible = true; _in.grab_focus(); get_viewport().set_input_as_handled()
 
 func _send(t: String) -> void:

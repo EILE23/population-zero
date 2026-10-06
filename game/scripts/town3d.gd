@@ -120,5 +120,5 @@ func _unhandled_input(e: InputEvent) -> void:
 		if e.button_index == MOUSE_BUTTON_WHEEL_UP: zoom_want = maxf(1.0, zoom_want / 1.2)
 		elif e.button_index == MOUSE_BUTTON_WHEEL_DOWN: zoom_want = minf(30.0, zoom_want * 1.2)
 	elif e is InputEventKey and e.pressed:
-		if e.keycode == KEY_EQUAL: zoom_want = maxf(1.0, zoom_want / 1.25)
-		elif e.keycode == KEY_MINUS: zoom_want = minf(30.0, zoom_want * 1.25)
+		if e.is_action_pressed("zoom_in"): zoom_want = maxf(1.0, zoom_want / 1.25)   # 키는 Esc 메뉴에서 바꾼다(game_menu)
+		elif e.is_action_pressed("zoom_out"): zoom_want = minf(30.0, zoom_want * 1.25)

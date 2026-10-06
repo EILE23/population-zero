@@ -402,5 +402,5 @@ func _hud(now: float) -> void:
 	for r in residents: c[r.state] = c.get(r.state, 0) + 1
 	var hour := int(fmod(clock * 24.0 + 6.0, 24.0))
 	var leg := get_node_or_null("UI/Legend") as Label
-	if leg: leg.text = "Arrows move · SPACE jump · X punch · Z kick · C use · H controls · Enter chat   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
+	if leg: leg.text = "%02d:00 · %s" % [hour, weather]   # 조작 안내는 Esc 메뉴의 조작 화면(game_menu) — 화면 아래 글줄로 늘어놓지 않는다(운영자 2026-10-06)
 

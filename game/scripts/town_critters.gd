@@ -117,7 +117,7 @@ func _someone_home(h: Dictionary) -> bool:
 	var p := body.global_position; var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
 	if (resting or not seat.is_empty()) and p.x > mn.x and p.x < mx.x and p.z > mn.z and p.z < mx.z and p.y < mx.y: return true
 	for sp in spots:
-		if not sp.has("taken") or sp.get("door") != h["door"]: continue
+		if not sp.has("taken") or not (sp.get("door") is Dictionary) or sp["door"] != h["door"]: continue   # 게임 문은 Node(town_sites) — 견주면 오류
 		for t in sp["taken"]:
 			if t != null: return true
 	return false
