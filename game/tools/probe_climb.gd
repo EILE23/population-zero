@@ -11,7 +11,7 @@ func _lands(a: Dictionary, b: Dictionary) -> bool:
 			for ci in range(1, 15):
 				var ch := ci * 0.05
 				var x: float = sx; var y: float = a["y"]; var vy := C.JUMP_MIN + (C.JUMP_V - C.JUMP_MIN) * (ch / C.CHARGE); var vx: float = d * C.RUN
-				var zz: float = float(a.get("z", 0.0)); var bz: float = float(b.get("z", 0.0)); var dzs := signf(bz - zz) if absf(bz - zz) > 6.0 else 0.0; var vz: float = dzs * C.RUN_Z
+				var zz: float = C.PLAYER_Z; var bz: float = float(b.get("z", 0.0)); var dzs := 0.0; var vz := 0.0   # 사람은 늘 절벽 앞
 				for f in 240:
 					var dt := 1.0 / 60.0
 					vy -= C.G * dt; vx = clampf(vx + d * C.AIR * dt, -C.RUN, C.RUN)

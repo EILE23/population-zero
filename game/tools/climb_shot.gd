@@ -8,7 +8,7 @@ func _init() -> void:
 	var g: Node3D = town.game_node
 	for n in [3, 8, 31, 60]:
 		var p: Dictionary = g.band(n)[1 if n % 5 != 0 else 0]
-		g.x = p["x"] + p["w"] / 2.0; g.y = p["y"]; g.z = float(p.get("z", 0.0)); g.on = p; g.vy = 0.0
+		g.x = p["x"] + p["w"] / 2.0; g.y = p["y"]; g.z = g.PLAYER_Z; g.on = p; g.vy = 0.0
 		if n == 60:   # 바위벽에 매달린 모습
 			var wl: Dictionary = g._walls[60][0]; g.gear = "axe-shot"; g.on = {}; g.x = float(wl["x0"]) - 10.0; g.y = float(wl["y0"]) + 200.0; g.z = 0.0; g.hanging = wl; g.hang_side = 1.0
 		for i in 80: await process_frame

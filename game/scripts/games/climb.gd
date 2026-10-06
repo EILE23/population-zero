@@ -36,6 +36,11 @@ const RUN_Z := 170.0
 const AIR_Z := 900.0
 const HZ := 8.0
 const DEPTH_HALF := 90.0
+## 절벽(운영자 2026-10-06: "앞뒤로 존재하니 옆으로 뛰는지 앞으로 뛰는지 구별이 안 가 — 암벽등산과 점프킹을 섞은 느낌"): 오르는 지반은 거대한 바위 절벽(WALL_Z)이고
+## 발판은 모두 절벽에 붙은 바위 턱(뒤끝이 절벽, 튀어나온 폭 d 만 다르다). 사람은 늘 절벽 앞(PLAYER_Z)에 — 앞뒤로 헷갈릴 일이 없다.
+## 턱 사이 절벽엔 색 손잡이(홀드): 공중에서 ↑ 로 붙잡아 매달리고, 매달린 채 SPACE 로 모았다 놓아 다음 턱·홀드로 뛴다(볼더링 + 점프킹). ↓ 로 놓는다, 힘이 닳는다
+const WALL_Z := -70.0
+const PLAYER_Z := -48.0
 ## 1km(60층)부터 등반(운영자: "어느 정도 높이 올라가면 점프킹 + 등반해서 조금 더 위태로워지고", "장착 안 하면 못 가", "다른 유저가 이미 먹었으면 그 사람만"):
 ## 층마다 점프로는 닿지 않는 매끈한 바위벽(380~480px) — 손도끼가 있어야 매달려(→ 벽 쪽으로) 오른다(↑↓), SPACE 로 벽을 차고 뛴다. 매달린 동안 힘이 닳는다.
 ## 손도끼는 50~59층 곳곳에 하나씩, 고유 번호(axe-<층>) — 한 번 가지면 내 것(마을 기록 climb_gear), 그 자리는 비었다. 멀티가 붙으면 같은 번호를 서버가 '누가 가졌나'로 쥔다
@@ -76,6 +81,8 @@ var apex := 0.0
 var z := 0.0
 var vz := 0.0
 var hanging: Dictionary = {}
+var holding: Dictionary = {}   # 붙잡은 홀드
+var _holds := {}               # 층 -> [{id, x, y, node}]
 var hang_side := 1.0
 var stamina := 1.0
 var _walls := {}              # 층 -> [{x0,x1,y0,y1,ledge}]
@@ -137,7 +144,7 @@ func band(n: int) -> Array:
 			if p["kind"] != "rest" and p["kind"] != "short": prev_last = p
 	var cx: float = prev_last["x"] + prev_last["w"] / 2.0 if not prev_last.is_empty() else WORLD_W / 2.0
 	var pz: float = float(prev_last.get("z", 0.0)); var pd: float = float(prev_last.get("d", 200.0))
-	var walls: Array = []; var gears: Array = []
+	var walls: Array = []; var gears: Array = []; var holds: Array = []
 	var side := -1.0 if cx > WORLD_W / 2.0 else 1.0
 	var py: float = (prev_last["y"] if not prev_last.is_empty() else base) + 96.0 + r.call() * 28.0
 	if n % REST_EVERY == 0 and n > 0: py = base + 96.0 + r.call() * 28.0
@@ -158,14 +165,17 @@ func band(n: int) -> Array:
 			var k: float = r.call()
 			kind = "spring" if k < 0.3 else ("ice" if k < 0.55 else ("move" if k < 0.8 else "crumble"))
 		# 앞뒤: 이 높이차의 체공 시간 동안 앞뒤로 갈 수 있는 거리 안에서만 엇갈린다
-		var d: float = 90.0 - stretch * 30.0 - r.call() * 20.0
+		var d: float = 82.0 - stretch * 26.0 - r.call() * 24.0   # 절벽에서 튀어나온 폭(px) — 위로 갈수록 좁은 턱
 		var tl := (JUMP_V + sqrt(JUMP_V * JUMP_V - 2.0 * G * dy)) / G
 		var dz_max := minf(DEPTH_HALF * 2.0, RUN_Z * tl * 0.75 + (d + pd) / 2.0 - 10.0)
-		var nz := clampf(pz + (r.call() - 0.5) * 2.0 * minf(dz_max, 70.0 + stretch * 40.0), -DEPTH_HALF + d / 2.0, DEPTH_HALF - d / 2.0)
+		var nz := WALL_Z + d / 2.0   # 뒤끝이 절벽에 붙는다(dz_max 는 이제 쓰지 않는다 — 앞뒤로 엇갈리지 않는다)
 		pz = nz; pd = d
 		var p := { "id": "%d.%d" % [n, i], "x": nx - w / 2.0, "y": py, "w": w, "kind": kind, "z": nz, "d": d }
 		if kind == "move": p["amp"] = 60.0 + r.call() * 80.0; p["freq"] = 0.25 + r.call() * 0.3; p["phase"] = r.call() * 6.28
 		out.append(p)
+		if i >= 1 and r.call() < 0.45:   # 앞 발판과 이 발판 사이 절벽의 손잡이 — 지름길·쉼표가 된다
+			var pv: Dictionary = out[out.size() - 2]
+			holds.append({ "id": "%d.h%d" % [n, i], "x": (float(pv["x"]) + float(pv["w"]) / 2.0 + nx) / 2.0 + (r.call() - 0.5) * 60.0, "y": (float(pv["y"]) + py) / 2.0 + 60.0 + r.call() * 50.0 })
 		py += dy
 		if n >= GEAR_BAND and i == 2:   # 바위벽: 이 발판 옆에 서서 점프로는 못 닿는 높이 — 꼭대기 턱에서 다음 발판이 이어진다
 			var right: bool = p["x"] + p["w"] + 24.0 + WALL_W + 140.0 < WORLD_W
@@ -182,7 +192,7 @@ func band(n: int) -> Array:
 		out.append(sh)
 		if n >= GEAR_BAND - 10 and n < GEAR_BAND: gears.append({ "id": "axe-%d" % n, "x": sh["x"] + 30.0, "y": sh["y"], "z": sh["z"] })   # 지름길 끝의 손도끼 — 어려운 자리
 	if n == GEAR_BAND - 5: gears.append({ "id": "axe-%dr" % n, "x": out[0]["x"] + 320.0, "y": out[0]["y"], "z": 0.0 })   # 55층 쉼터의 손도끼 — 쉬운 자리(먼저 오는 사람 것)
-	_walls[n] = walls; _gear_at[n] = gears.filter(func(g: Dictionary) -> bool: return not (String(g["id"]) in taken))
+	_walls[n] = walls; _holds[n] = holds; _gear_at[n] = gears.filter(func(g: Dictionary) -> bool: return not (String(g["id"]) in taken))
 	_bands[n] = { "plats": out, "node": null }
 	return out
 
@@ -267,6 +277,16 @@ func _build_band(n: int) -> void:
 		_box(root, Vector3(0.12, 2.5 + r.call() * 4.0, 0.1), Vector3(vx0, y0 + hgt - 2.0 - r.call() * 3.0, -8.6), acc.darkened(0.2))
 	for s in [-1.0, 1.0]:   # 양옆 기둥(벽 튕김이 보인다)
 		_box(root, Vector3(1.0, hgt, DEPTH + 2.0), Vector3(s * (halfw + 0.5), y0 + hgt / 2.0, -1.0), wall.darkened(0.1))
+	var cliff := wall.lerp(Color("6e645c"), 0.6).darkened(0.18)   # 절벽은 짙게 — 턱(밝은 윗면)이 그 앞에서 읽힌다
+	_box(root, Vector3(WORLD_W * K + 2.0, hgt, 0.3), Vector3(0, y0 + hgt / 2.0, WALL_Z * K - 0.15), cliff)   # 절벽 면
+	var rb := rng(SEED ^ _imul(n + 991, 2654435761))
+	for i in 26:   # 바위 결 — 크고 작은 돌출
+		var bw: float = 0.6 + rb.call() * 1.8; var bh: float = 0.4 + rb.call() * 1.2
+		_box(root, Vector3(bw, bh, 0.25 + rb.call() * 0.3), Vector3(-WORLD_W * K / 2.0 + rb.call() * WORLD_W * K, y0 + rb.call() * hgt, WALL_Z * K + 0.02), cliff.darkened(0.08 + rb.call() * 0.12))
+	for h in _holds.get(n, []):
+		var hn := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 0.24; sm.height = 0.3; sm.radial_segments = 8; sm.rings = 4; hn.mesh = sm
+		hn.material_override = _mat([Color("e8473c"), Color("f2c84b"), Color("4f8fd8"), Color("6aa04c")][absi(hash(h["id"])) % 4])
+		hn.position = to3(h["x"], h["y"], WALL_Z * K + 0.12); root.add_child(hn); h["node"] = hn
 	for p in _bands[n]["plats"]: _build_plat(root, n, p, wall, acc)
 	for wl in _walls.get(n, []):   # 바위벽 — 깊이 전체, 결이 진 회색 돌, 손도끼 자국
 		var wh: float = (wl["y1"] - wl["y0"]) * K
@@ -296,6 +316,7 @@ func _build_plat(root: Node3D, n: int, p: Dictionary, wall: Color, acc: Color) -
 	if kind == "ledge": col = Color("8a7f76"); th = 0.6
 	_box(node, Vector3(w, th, dep), Vector3(0, -th / 2.0, 0), col)
 	_box(node, Vector3(w, 0.06, dep), Vector3(0, -0.03, 0), col.lightened(0.25))   # 윗면 테두리
+	_box(node, Vector3(w, th, 0.06), Vector3(0, -th / 2.0, dep / 2.0), col.darkened(0.3))   # 앞면 테두리 — 턱 끝이 또렷하게
 	if kind in ["std", "move", "ice"]: _decor(node, n, w)
 	match kind:
 		"crumble":
@@ -329,6 +350,7 @@ func _physics_process(delta: float) -> void:
 	dirz = signf(dirz) if absf(dirz) > 0.3 else 0.0
 	var jump_held := not locked and Input.is_action_pressed("jump")
 	if not hanging.is_empty(): _hang(dt, dir, dirz); _after_step(now, locked); return
+	if not holding.is_empty(): _hold(dt, dir, dirz, jump_held); _after_step(now, locked); return
 	if locked and now < _scene_until: dir = signf(_scene_dx)
 	var was_air := on.is_empty()
 	hurt = maxf(0.0, hurt - dt)
@@ -339,24 +361,24 @@ func _physics_process(delta: float) -> void:
 			if dir != 0.0: face = dir
 		elif charge > 0.0:
 			vy = JUMP_MIN + (JUMP_V - JUMP_MIN) * (charge / CHARGE)
-			vx = dir * RUN; vz = dirz * RUN_Z
+			vx = dir * RUN; vz = 0.0
 			if dir != 0.0: face = dir
 			on = {}; charge = 0.0; apex = y
 		else:
 			var target := dir * WALK * (0.55 if locked else 1.0)
 			vx = vx + (target - vx) * minf(1.0, dt * 1.6) if on["kind"] == "ice" else target
-			var tz := dirz * ZWALK
+			var tz := 0.0   # 앞뒤로 걷지 않는다(절벽 앞) — ↑ 는 손잡이 붙잡기
 			vz = vz + (tz - vz) * minf(1.0, dt * 1.6) if on["kind"] == "ice" else tz
 			if dir != 0.0: face = dir
 	if not on.is_empty() and on["kind"] == "move": x += plat_x(on, _t) - plat_x(on, _t - dt)
 	if on.is_empty():
 		vy -= G * dt; x += wind_of(floori(y / BAND_H)) * dt; apex = maxf(apex, y)
 		if dir != 0.0 and hurt <= 0.0: vx = clampf(vx + dir * AIR * dt, -RUN, RUN); face = dir
-		if dirz != 0.0 and hurt <= 0.0: vz = clampf(vz + dirz * AIR_Z * dt, -RUN_Z, RUN_Z)
+		if dirz < 0.0 and hurt <= 0.0: _try_grab()
 	var ny := y + vy * dt
 	var ox := x
 	x += vx * dt
-	z = clampf(z + vz * dt, -DEPTH_HALF - 40.0, DEPTH_HALF + 40.0)
+	z = PLAYER_Z
 	_wall_push(ox, dir)
 	if x < HW:
 		x = HW
@@ -388,7 +410,7 @@ func _physics_process(delta: float) -> void:
 	if not on.is_empty(): stamina = minf(1.0, stamina + dt * 0.6)
 	if y < 0.0:   # 맨 아래는 땅 — 어디로 걸어 나가도 꺼지지 않는다(운영자 2026-10-06: 바닥 앞뒤 끝 밖으로 나가 끝없이 떨어졌다)
 		y = 0.0; vy = 0.0; vx = 0.0; vz = 0.0; on = band(0)[0]; apex = 0.0
-	if y < 1.0: z = clampf(z, -DEPTH_HALF, DEPTH_HALF)   # 바닥에선 앞뒤도 땅 안에서
+
 	_after_step(now, locked)
 
 func _after_step(now: float, locked: bool) -> void:
@@ -429,8 +451,9 @@ func _figure() -> void:
 	if not hanging.is_empty(): fig.face(PI / 2.0 if hang_side > 0.0 else -PI / 2.0)
 	elif absf(vz) > absf(vx) * 1.2 and absf(vz) > 20.0: fig.face(0.0 if vz > 0.0 else PI)   # 앞뒤로 걸을 땐 그쪽을 본다
 	else: fig.face(PI / 2.0 if face > 0.0 else -PI / 2.0)
-	if not hanging.is_empty():
-		fig.action = "fight"; fig.move = "climb"; fig.action_t = fmod(_t * (1.6 if absf(vy) > 1.0 else 0.4), 1.0)
+	if not hanging.is_empty() or not holding.is_empty():
+		fig.action = "fight"; fig.move = "climb"; fig.action_t = fmod(_t * (1.6 if absf(vy) > 1.0 else 0.4), 1.0) if holding.is_empty() else 0.25
+		if not holding.is_empty(): fig.crouch = charge / CHARGE * 0.6
 	elif fig.move == "climb": fig.action = ""; fig.move = ""
 	_drop_shadow()
 	fig.move_dir = Vector3(signf(vx), 0, 0) if absf(vx) > 20.0 and not on.is_empty() else Vector3.ZERO
@@ -442,9 +465,9 @@ func _figure() -> void:
 ## 카메라 — 옆에서(웹처럼), 사람보다 조금 위를 보고 따라간다. 테마가 바뀌면 배경색도 천천히
 func _camera(delta: float) -> void:
 	var p := to3(x, y)
-	var want := Vector3(clampf(p.x * 0.6, -6.0, 6.0), p.y + 5.2, 12.5)   # 위에서 비스듬히(약 20°) — 발판의 앞뒤가 보인다(2.5D)
+	var want := Vector3(clampf(p.x * 0.6, -6.0, 6.0), p.y + 3.6, 13.0)   # 옆에서 살짝 위(약 10°) — 절벽과 턱이 읽히고 거리를 잰다
 	cam.global_position = cam.global_position.lerp(want, minf(1.0, delta * 4.0)) if cam.global_position.length() > 0.1 else want
-	cam.look_at(Vector3(cam.global_position.x * 0.7, cam.global_position.y - 4.3, 0), Vector3.UP)
+	cam.look_at(Vector3(cam.global_position.x * 0.7, cam.global_position.y - 2.4, WALL_Z * K * 0.5), Vector3.UP)
 	var n := floori(y / BAND_H)
 	var th := theme(n)
 	_env.background_color = _env.background_color.lerp((th[2] as Color).darkened(0.25), minf(1.0, delta * 1.5))   # 배경은 테마의 짙은 색
@@ -458,8 +481,8 @@ func _hud(now: float) -> void:
 	var fl := n / REST_EVERY * REST_EVERY
 	if fl != _floor_shown and n % REST_EVERY == 0 and n > 0: _floor_shown = fl; _say("Floor %d · %s" % [n, theme(n)[0]], 2.2)
 	var m := y * K
-	var g := ("   ice axe" if gear != "" else "") + ("   grip %d%%" % int(stamina * 100.0) if not hanging.is_empty() or stamina < 0.99 else "")
-	hud.text = "CLIMB   %d m   best %d m   floor %d   %s%s\n← → ↑ ↓ walk · hold SPACE to charge, release to jump · C at a door: leave here · Esc: leave" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]
+	var g := ("   ice axe" if gear != "" else "") + ("   grip %d%%" % int(stamina * 100.0) if not hanging.is_empty() or not holding.is_empty() or stamina < 0.99 else "")
+	hud.text = "CLIMB   %d m   best %d m   floor %d   %s%s\n← → walk · hold SPACE to charge, release to jump · ↑ grab a hold · C at a door: leave here · Esc: leave" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]
 	if now > _banner_until and not _leaving: banner.text = ""
 
 static func _clock(s: float) -> String:
@@ -545,7 +568,7 @@ func _wall_push(ox: float, dir: float) -> void:
 func _hang(dt: float, dir: float, dirz: float) -> void:
 	var wl := hanging
 	vx = 0.0; vz = 0.0
-	z = move_toward(z, 0.0, dt * 60.0)
+	z = PLAYER_Z
 	vy = (-dirz) * (CLIMB_UP if dirz < 0.0 else CLIMB_DOWN)
 	stamina -= dt * (0.13 if dirz < 0.0 else 0.07)   # 가장 높은 벽(약 520px)을 쉬지 않고 오르면 85% 를 쓴다 — 아슬아슬하게
 	y += vy * dt
@@ -587,3 +610,26 @@ func _drop_shadow() -> void:
 		if x > px and x < px + p["w"] and absf(z - float(p.get("z", 0.0))) < float(p.get("d", 999.0)) / 2.0 + HZ: best = maxf(best, float(p["y"]))
 	_shadow.visible = best > -1e8
 	if _shadow.visible: _shadow.position = to3(x, best, z * K) + Vector3(0, 0.03, 0)
+
+## 손잡이 붙잡기 — 공중에서 ↑, 손이 닿는 곳(몸 위 40~75px, 좌우 26px)에 홀드가 있으면 매달린다
+func _try_grab() -> void:
+	if stamina < 0.08: return
+	var n := floori(y / BAND_H)
+	for k in [n - 1, n, n + 1]:
+		for h in _holds.get(k, []):
+			if absf(x - float(h["x"])) < 26.0 and absf(y + 58.0 - float(h["y"])) < 22.0:
+				holding = h; vx = 0.0; vy = 0.0; x = h["x"]; y = float(h["y"]) - 58.0; charge = 0.0; apex = y
+				return
+
+## 홀드에 매달림 — 점프킹처럼 SPACE 로 모았다 놓으면 그 방향으로 뛴다(땅보다 조금 약하게). ↓ 놓기. 힘이 닳고 다하면 미끄러진다
+func _hold(dt: float, dir: float, dirz: float, jump_held: bool) -> void:
+	stamina -= dt * 0.09
+	if dir != 0.0: face = dir
+	if jump_held:
+		charge = minf(CHARGE, charge + dt)
+	elif charge > 0.0:
+		vy = (JUMP_MIN + (JUMP_V - JUMP_MIN) * (charge / CHARGE)) * 0.9; vx = dir * RUN * 0.9
+		holding = {}; charge = 0.0; apex = y; return
+	if dirz > 0.0 or stamina <= 0.0:
+		if stamina <= 0.0: _say("Slipped.", 1.0)
+		holding = {}; vy = 0.0; charge = 0.0; apex = y
