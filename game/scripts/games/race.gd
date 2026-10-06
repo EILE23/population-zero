@@ -124,12 +124,13 @@ func _progress(r: Dictionary, now: float) -> void:
 		if dd < bd: bd = dd; bi = j
 	if bi < idx - HALF_N:
 		r["lap"] = int(r["lap"]) + 1
-		if r["car"] == driving and int(r["lap"]) > 1:
+		if bool(r.get("dirty", false)): r["dirty"] = false   # 뒤로 넘었다 다시 넘은 바퀴는 기록하지 않는다(리뷰: 선 앞뒤로 오가 몇 초짜리 최고 랩이 남았다)
+		elif r["car"] == driving and int(r["lap"]) > 1:
 			last_lap = now - float(r["lap_t0"])
 			if best_lap <= 0.0 or last_lap < best_lap: best_lap = last_lap
 		r["lap_t0"] = now
 		if int(r["lap"]) > LAPS and float(r["done_at"]) < 0.0: r["done_at"] = now
-	elif bi > idx + HALF_N: r["lap"] = int(r["lap"]) - 1
+	elif bi > idx + HALF_N: r["lap"] = int(r["lap"]) - 1; r["dirty"] = true
 	r["idx"] = bi
 	# 풀밭: 길 밖이면 6m/s 위로는 끌린다(사람이든 주민이든 같다)
 	var car: Car3D = r["car"]

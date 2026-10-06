@@ -241,7 +241,10 @@ func _gate(at: Vector3, yaw: float, game: String, title: String) -> void:
 func _refresh_signs() -> void:
 	for s in _signs:
 		var best := float(records.get(String(s["game"]), 0.0))
-		(s["label"] as Label3D).text = String(s["title"]) + ("\nbest " + _fmt(String(s["game"]), best) if best > 0.0 else "\nC to enter")
+		var extra := ""
+		if String(s["game"]) == "climb" and float(records.get("climb_time", 0.0)) > 0.0:   # 꼭대기까지 간 적이 있으면 최고 시간과 별
+			extra = "\ntop in %d:%04.1f · stars %d" % [int(records["climb_time"]) / 60, fmod(float(records["climb_time"]), 60.0), int(records.get("climb_stars", 0))]
+		(s["label"] as Label3D).text = String(s["title"]) + ("\nbest " + _fmt(String(s["game"]), best) if best > 0.0 else "\nC to enter") + extra
 
 func _fmt(id: String, v: float) -> String:
 	return "%.1f s" % v if id in TIMED else "%d m" % int(v)
@@ -271,4 +274,10 @@ func _game_done(result: Dictionary, id: String) -> void:
 		if f: f.store_string(JSON.stringify(records))
 		say_toast("New best: " + _fmt(id, score))
 	elif int(result.get("place", 0)) > 0: say_toast("Finished %s." % ["1st", "2nd", "3rd"][int(result["place"]) - 1])
+	if id == "climb" and bool(result.get("top", false)):   # Climb: 꼭대기까지의 최고 시간(짧을수록)과 별 수(많을수록)도 따로 남긴다
+		var t := float(result.get("time", 0.0)); var bt := float(records.get("climb_time", 0.0))
+		if bt <= 0.0 or t < bt: records["climb_time"] = t; say_toast("Fastest climb: %d:%04.1f" % [int(t) / 60, fmod(t, 60.0)])
+		records["climb_stars"] = maxi(int(records.get("climb_stars", 0)), int(result.get("stars", 0)))
+		var f2 := FileAccess.open(RECORDS, FileAccess.WRITE)
+		if f2: f2.store_string(JSON.stringify(records))
 	_refresh_signs()
