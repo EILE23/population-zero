@@ -139,6 +139,9 @@ static func move(f: Stick3D, m: String, a: float) -> void:
 		"block": _block(f, a)
 		"dodge": _dodge(f, a)
 		"climb": _climb(f, a)
+		"cheer": _cheer(f, a)
+		"bow": _bow(f, a)
+		"dance": _dance(f, a)
 		_: _straight(f, a, -1.0, 0.55)
 
 ## 가드 — 주먹을 턱 앞에(차는 동안·기다릴 때 공통)
@@ -297,3 +300,26 @@ static func _climb(f: Stick3D, a: float) -> void:
 		f.shoulders[s].rotation.x = -(2.4 + 0.5 * up); f.shoulders[s].rotation.z = -s * 0.25; f.elbows[s].rotation.x = -(0.9 - 0.6 * up)
 		f.hips[s].rotation.x = -(0.5 + 0.8 * (1.0 - up)); f.knees[s].rotation.x = 0.8 + 0.9 * (1.0 - up)
 	f.torso.rotation.x = 0.2; f.neck.rotation.x = -0.35
+
+## 감정 표현(사람끼리, town_social) — a 는 0..1 을 되풀이한다
+## 환호 — 두 팔을 머리 위로 번쩍, 리듬 맞춰 들썩
+static func _cheer(f: Stick3D, a: float) -> void:
+	var b := absf(sin(a * TAU))
+	for s in [-1.0, 1.0]:
+		f.shoulders[s].rotation.x = -(2.7 + 0.25 * b); f.shoulders[s].rotation.z = -s * (0.45 + 0.2 * b); f.elbows[s].rotation.x = -0.3
+	f.neck.rotation.x = -0.3; f.pelvis.position.y = Stick3D.HIP_Y + 0.05 * b
+
+## 꾸벅 — 허리를 숙였다 편다(한 번 = a 0..1), 팔은 옆에
+static func _bow(f: Stick3D, a: float) -> void:
+	var k := bump(a, 0.0, 0.35, 0.65, 1.0)
+	f.torso.rotation.x = 0.85 * k; f.neck.rotation.x = 0.3 * k
+	for s in [-1.0, 1.0]: f.shoulders[s].rotation.x = 0.25 * k; f.shoulders[s].rotation.z = -s * 0.05
+
+## 춤 — 골반을 좌우로, 팔을 번갈아 위아래로, 무릎을 굽혔다 편다
+static func _dance(f: Stick3D, a: float) -> void:
+	var ph := sin(a * TAU); var b := absf(sin(a * TAU * 2.0))
+	f.pelvis.rotation.z = 0.18 * ph; f.torso.rotation.z = -0.22 * ph; f.neck.rotation.z = 0.15 * ph
+	f.pelvis.position.y = Stick3D.HIP_Y - 0.06 * b
+	for s in [-1.0, 1.0]:
+		f.shoulders[s].rotation.x = -(1.4 + 1.0 * ph * s); f.shoulders[s].rotation.z = -s * 0.5; f.elbows[s].rotation.x = -(1.0 + 0.5 * ph * s)
+		f.hips[s].rotation.x = -(0.25 * b); f.knees[s].rotation.x = 0.5 * b

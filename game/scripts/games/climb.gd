@@ -59,6 +59,18 @@ const THEMES := [
 ]
 
 var fig: Stick3D
+var chat: ChatBox
+const HELP := [
+	["WALK", "← →"],
+	["JUMP", "hold SPACE to charge, release to jump"],
+	["HOLDS", "↑ grab a hold · SPACE from a hold: jump off it"],
+	["WALLS", "above 1 km: sheer walls need an ice axe (one per axe, first come)"],
+	["SHOVE", "X next to another climber"],
+	["CAMPS", "C at a camp door: leave here, start here next time"],
+	["CHAT", "Enter: type · Enter: send · Esc: close"],
+	["LEAVE", "Esc"],
+	["HELP", "H"],
+]
 var cam: Camera3D
 var hud: Label
 var banner: Label
@@ -225,6 +237,8 @@ func _ready() -> void:
 	var ui := CanvasLayer.new(); add_child(ui)
 	hud = Label.new(); hud.position = Vector2(14, 10); hud.add_theme_color_override("font_color", Color("1b0c15")); hud.add_theme_color_override("font_outline_color", Color("f7f4ef")); hud.add_theme_constant_override("outline_size", 6); ui.add_child(hud)
 	banner = Label.new(); banner.position = Vector2(14, 64); banner.add_theme_font_size_override("font_size", 28); banner.add_theme_color_override("font_color", Color("7b526c")); banner.add_theme_color_override("font_outline_color", Color("f7f4ef")); banner.add_theme_constant_override("outline_size", 8); ui.add_child(banner)
+	chat = ChatBox.new(); chat.me_node = fig; ui.add_child(chat)   # 같이 오르는 사람과 채팅(chat_box)
+	var kh := KeyHelp.new(); kh.chat = chat; kh.setup("CONTROLS — CLIMB", HELP); ui.add_child(kh)
 	fade = ColorRect.new(); fade.color = Color(0, 0, 0, 1); fade.set_anchors_preset(Control.PRESET_FULL_RECT); fade.mouse_filter = Control.MOUSE_FILTER_IGNORE; ui.add_child(fade)
 	# 시작: 그 쉼터(없으면 바닥)의 문 앞에서 문을 열고 걸어 나온다
 	var n := start_camp if start_camp > 0 and start_camp % REST_EVERY == 0 else 0
@@ -343,7 +357,7 @@ func _build_plat(root: Node3D, n: int, p: Dictionary, wall: Color, acc: Color) -
 func _physics_process(delta: float) -> void:
 	var now := _now(); _t += delta
 	var dt := minf(delta, 1.0 / 30.0)
-	var locked := now < _scene_until or _leaving
+	var locked := now < _scene_until or _leaving or chat.busy()
 	var dir := 0.0 if locked else Input.get_axis("move_left", "move_right")
 	dir = signf(dir) if absf(dir) > 0.3 else 0.0
 	var dirz := 0.0 if locked else Input.get_axis("move_up", "move_down")
@@ -423,7 +437,7 @@ func _after_step(now: float, locked: bool) -> void:
 	_camera(delta)
 	_hud(now)
 	if not locked and Input.is_action_just_pressed("act") and not on.is_empty() and on["kind"] == "rest" and on.has("node"): _exit_here(on)
-	if not _leaving and Input.is_action_just_pressed("ui_cancel"): _leave({})
+	if not _leaving and not chat.busy() and Input.is_action_just_pressed("ui_cancel"): _leave({})
 	if not locked and Input.is_action_just_pressed("hit"): _shove()   # X 밀치기(같이 오르는 사람)
 
 ## 무너지는 발판: 밟고 0.6초 흔들리다 사라지고 3초 뒤 돌아온다
@@ -483,7 +497,7 @@ func _hud(now: float) -> void:
 	if fl != _floor_shown and n % REST_EVERY == 0 and n > 0: _floor_shown = fl; _say("Floor %d · %s" % [n, theme(n)[0]], 2.2)
 	var m := y * K
 	var g := ("   ice axe" if gear != "" else "") + ("   grip %d%%" % int(stamina * 100.0) if not hanging.is_empty() or not holding.is_empty() or stamina < 0.99 else "")
-	hud.text = "CLIMB   %d m   best %d m   floor %d   %s%s\n← → walk · hold SPACE to charge, release to jump · ↑ grab a hold · C at a door: leave here · Esc: leave" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]
+	hud.text = "CLIMB   %d m   best %d m   floor %d   %s%s\n← → walk · hold SPACE to charge, release to jump · ↑ grab a hold · C at a door: leave here · H controls · Enter chat · Esc: leave" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]
 	if now > _banner_until and not _leaving: banner.text = ""
 
 static func _clock(s: float) -> String:
@@ -575,7 +589,7 @@ func _hang(dt: float, dir: float, dirz: float) -> void:
 	y += vy * dt
 	var n := floori(y / BAND_H)
 	if wind_of(n) != 0.0: stamina -= dt * 0.04   # 바람 부는 층은 더 위태롭다
-	if Input.is_action_just_pressed("jump"):
+	if not chat.busy() and Input.is_action_just_pressed("jump"):
 		hanging = {}; vy = JUMP_MIN * 1.25; vx = -hang_side * RUN * 0.8; face = -hang_side; apex = y; _say("Leap!", 0.8); return
 	if dir == -hang_side or stamina <= 0.0:
 		hanging = {}; vy = 0.0; apex = y

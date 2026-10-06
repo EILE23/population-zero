@@ -147,7 +147,12 @@ func _ghosts(delta: float) -> void:
 		var mv := tf.origin - was; mv.y = 0.0
 		g.move_dir = mv.normalized() if mv.length() > 0.02 else Vector3.ZERO; g.speed = mv.length() / maxf(delta, 0.001) if mv.length() > 0.02 else 0.0
 		if g.move_dir == Vector3.ZERO: g.face(tf.basis.get_euler().y)
-		g.airborne = String(o.get("pose", "")) in ["jump", "fall"]
+		var ps := String(o.get("pose", ""))
+		g.airborne = ps in ["jump", "fall"]
+		# 감정 표현(town_social) — 같은 자세로: 손 흔들기·눕기는 일과 자세, 환호·꾸벅·춤은 FightPoses 기술처럼 되풀이
+		g.pose_request = ps if ps in ["wave", "sky"] else ""
+		if ps in ["cheer", "bow", "dance"]: g.action = "fight"; g.move = ps; g.action_t = fmod(_t / (2.6 if ps == "bow" else 0.65), 1.0)
+		elif g.action == "fight": g.action = ""; g.move = ""
 
 # ── 저장 ──
 func _load_save() -> void:

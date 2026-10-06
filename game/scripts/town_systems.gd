@@ -400,5 +400,5 @@ func _hud(now: float) -> void:
 	for r in residents: c[r.state] = c.get(r.state, 0) + 1
 	var hour := int(fmod(clock * 24.0 + 6.0, 24.0))
 	var leg := get_node_or_null("UI/Legend") as Label
-	if leg: leg.text = "← → ↑ ↓ move · SPACE jump (hold: higher) · X punch · Z kick · C use   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
+	if leg: leg.text = "← → ↑ ↓ move · SPACE jump · X punch · Z kick · C use · H controls · Enter chat   |   %02d:00 · %s · residents walk %d busy %d chase %d down %d" % [hour, weather, c["walk"], c["busy"], c["chase"], c["down"]]
 

@@ -1,8 +1,8 @@
 extends SceneTree
-## 실시간 방 통신 점검(헤드리스): 사이트의 방(wss://population.town/ws/square)에 구경꾼으로 붙어 init 을 받나 — PozNet 이 쓰는 같은 WebSocketPeer·같은 형식
+## 실시간 방 통신 점검(헤드리스): 사이트의 방(wss://population.town/ws/poz/town)에 구경꾼으로 붙어 init 을 받나 — PozNet 이 쓰는 같은 WebSocketPeer·같은 형식
 func _init() -> void:
 	var ws := WebSocketPeer.new()
-	print("WS connect=", ws.connect_to_url("wss://population.town/ws/square"))
+	print("WS connect=", ws.connect_to_url("wss://population.town/ws/poz/town"))
 	for i in 600:
 		await process_frame
 		ws.poll()

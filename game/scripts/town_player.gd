@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownGrowth
+extends TownSocial
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -9,7 +9,9 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector3(Input.get_axis("move_left", "move_right"), 0, Input.get_axis("move_up", "move_down"))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	if gating: _tick(delta, now); return   # 미니게임 문 장면(town_sites) — 몸은 장면이 옮긴다
+	if typing: dir = Vector3.ZERO   # 채팅 입력 중(town_social) — 글자가 조작으로 읽히지 않게
+	_social_tick(now, dir)
+	if gating or typing: _tick(delta, now); return   # 미니게임 문 장면(town_sites) — 몸은 장면이 옮긴다
 	if passenger:
 		_passenger_tick(now); _tick(delta, now); return   # 조수석(town_ride): 주민이 몬다, C 로 세워 달라 한다
 	# 운전 중: 차가 몸이다 — 방향키·SPACE 를 차에 넘기고 C 로 내린다. 세계 시스템은 계속 돈다
@@ -193,7 +195,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			var dur := FightMoves.dur(player.move) if player.action == "fight" else FightPoses.PUNCH_T if player.action == "punch" else ((FightPoses.ROUND_T if player.kick_step == 2 else FightPoses.KICK_T) if player.action == "kick" else 0.4)
 			player.action_t = 1.0 - (action_until - now) / dur
-	else:
+	elif emote == "" or player.move != emote:   # 환호·꾸벅·춤은 town_social 이 끝낸다
 		player.action = ""; player.action_t = 0.0
 	if shake_until > 0.0 and now >= shake_until:
 		shake_until = -1.0; player.pose_request = ""
