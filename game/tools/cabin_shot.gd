@@ -3,9 +3,11 @@ extends SceneTree
 func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 40: await process_frame
+	var want := OS.get_cmdline_user_args()[0] if OS.get_cmdline_user_args().size() > 0 else ""
 	var car: Car3D = null; var bd := 1e9
 	for c in town.find_children("*", "Car3D", true, false):
 		if (c as Car3D).ai: continue
+		if want != "" and (c as Car3D).kind != want: continue
 		var d: float = (c as Car3D).global_position.distance_to(town.body.global_position)
 		if d < bd: bd = d; car = c
 	town._enter_car(car, Time.get_ticks_msec() / 1000.0)
@@ -15,7 +17,7 @@ func _init() -> void:
 	for v in 3:
 		town.car_view = v
 		for i in 40: await process_frame
-		root.get_texture().get_image().save_png("user://shots/cabin-%d.png" % v)
+		root.get_texture().get_image().save_png("user://shots/cabin-%s-%d.png" % [want, v])
 	town._honk(car); town._set_lights(car, true); town._tune(1)
 	for i in 60: await process_frame
 	print("CABIN double=%s view=%d lights=%s station=%d speed=%.1f hud=%s" % [town._double != null, town.car_view, town._lights_on, town._station, car.v, town._car_hud.text if town._car_hud else "-"])

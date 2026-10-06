@@ -29,6 +29,9 @@ var _note_t := 0.0
 var _note_i := 0
 var _horn: AudioStreamWAV = null
 var _chase := Vector3.ZERO
+var _eye := Vector3.ZERO          # 눈 자리(차 로컬) — 차 모델 높이마다(트랙터는 높고 카트는 낮다)
+var _carshell: Array = []            # 1인칭에서 감추는 차 껍데기 메시들
+const SHELL_LAYER := 1 << 19      # 내 카메라만 안 그리는 층 — 남의 화면엔 차가 그대로
 
 func _in_car() -> Car3D:
 	return driving if driving else passenger
@@ -43,6 +46,7 @@ func _cabin_tick(now: float) -> void:
 	var seat_at := c.seat_pos() if driving else c.passenger_pos()
 	_double.global_position = seat_at; _double.face(c.rotation.y + PI)
 	_double.visible = car_view != 2
+	_carshell_hidden(car_view == 2)
 	if _double.pose_request == "" or _double.pose_request == "drive": _double.pose_request = "drive" if driving else ""
 	if _steer: _steer.rotation.z = -float(c.input.get("steer", 0.0)) * 1.4 if driving else 0.0
 	var kmh := int(absf(c.v) * 3.6)
@@ -65,9 +69,19 @@ func _enter_cabin(c: Car3D) -> void:
 	_leave_cabin()
 	_double = Stick3D.new(); _double.color = player.color; _double.head_color = player.head_color; _double.seated = true
 	_double.set_meta("car", c); add_child(_double)
-	_dash = Node3D.new(); c.add_child(_dash)
+	# 눈 자리: 운전석 위, 차 지붕(모델 위끝)보다 조금 아래 — 고정 높이였을 땐 트랙터 차체 속에 눈이 들어갔다
+	var seat_l := c.to_local(c.seat_pos() if driving else c.passenger_pos())
+	var top := seat_l.y + 1.0
+	_carshell.clear()
+	for mi in c.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		_carshell.append(m)
+		var b: AABB = c.global_transform.affine_inverse() * m.global_transform * m.get_aabb()
+		top = maxf(top, b.end.y) if b.size.y < 4.0 else top
+	_eye = Vector3(seat_l.x, clampf(top - 0.15, seat_l.y + 0.7, seat_l.y + 1.7), seat_l.z + 0.12)
+	_dash = Node3D.new(); _dash.position = Vector3(0, _eye.y - 0.74, _eye.z - 0.17); c.add_child(_dash)   # 계기판은 눈에 맞춰(아래 자리들은 눈 0.74·0.17 기준)
 	var dark := _mat(Color("2a2a30")); var trim := _mat(Color("4a4a52"))
-	_box(Vector3(1.25, 0.1, 0.3), Vector3(0, 0.42, -0.66), dark, false, _dash)   # 계기판 선반
+	_box(Vector3(1.25, 0.06, 0.3), Vector3(0, 0.36, -0.8), dark, false, _dash)   # 계기판 선반
 	var wheel_root := Node3D.new(); wheel_root.position = Vector3(-0.28, 0.5, -0.5); wheel_root.rotation.x = -1.0; _dash.add_child(wheel_root)
 	_steer = Node3D.new(); wheel_root.add_child(_steer)
 	var tm := TorusMesh.new(); tm.inner_radius = 0.1; tm.outer_radius = 0.12; var w := MeshInstance3D.new(); w.mesh = tm; w.material_override = dark; w.rotation.x = PI / 2.0; _steer.add_child(w)
@@ -83,7 +97,14 @@ func _enter_cabin(c: Car3D) -> void:
 		set_meta("cabin_told", true)
 		say_toast("%s: view  ·  %s: horn  ·  %s: lights  ·  %s: radio" % [GameMenu.key_of("car_view"), GameMenu.key_of("horn"), GameMenu.key_of("lights"), GameMenu.key_of("radio")])
 
+## 1인칭이면 차 껍데기를 내 카메라에서만 감춘다(속이 없는 모델이라 — 운전대·계기판만 남아 길이 보인다)
+func _carshell_hidden(on: bool) -> void:
+	for m in _carshell:
+		if is_instance_valid(m): (m as MeshInstance3D).layers = SHELL_LAYER if on else 1
+	cam.cull_mask = (0xFFFFF & ~SHELL_LAYER) if on else 0xFFFFF
+
 func _leave_cabin() -> void:
+	_carshell_hidden(false); _carshell.clear()
 	var c: Variant = _double.get_meta("car") if _double else null
 	if _double: _double.queue_free(); _double = null
 	if _dash and is_instance_valid(_dash): _dash.queue_free()
@@ -105,7 +126,7 @@ func _cabin_cam(delta: float) -> void:
 		cam.global_position = _chase
 		cam.look_at(c.global_position + fwd * 4.0 + up * 0.8, Vector3.UP)
 	else:
-		var head := (c.seat_pos() if driving else c.passenger_pos()) + up * 0.82 - fwd * 0.12   # 눈높이 — 운전대·계기판이 아래쪽에 걸리게
+		var head := c.to_global(_eye)
 		cam.global_position = head
 		cam.look_at(head + fwd * 10.0 - up * 1.7 + c.global_transform.basis.x * float(c.input.get("steer", 0.0)) * 1.2, Vector3.UP)
 
