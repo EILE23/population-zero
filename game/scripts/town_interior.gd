@@ -108,30 +108,7 @@ func _house_room(rm: Dictionary, rng: RandomNumberGenerator) -> void:
 
 ## 가게 — 뒤 가운데 계산대(주인 자리 뒤), 양옆·가운데 진열대(그 가게 물건), 간판
 func _shop_room(rm: Dictionary, rng: RandomNumberGenerator) -> void:
-	var o: Vector3 = rm["o"]; var w: float = rm["w"]; var d: float = rm["d"]
-	var dr: Dictionary = doors[rm["door"]]
-	var sh: Dictionary = shops[int(dr["shop_id"])]
-	var wood := _mat(Color("8a6a4a"))
-	var ct := o + Vector3(0, 0, -d / 2.0 + 1.8)
-	_box(Vector3(2.6, 0.95, 0.6), ct, wood); _box(Vector3(0.4, 0.25, 0.3), ct + Vector3(0.8, 0.95, 0), _mat(Color("4a4a52")), false)   # 금전등록기
-	_spot(rm, "counter", ct + Vector3(0, 0, 0.85), PI)
-	sh["keeper"]["inner"] = ct + Vector3(0, 0.05, -0.75)
-	sh["room"] = rm["door"]
-	var item := String(sh["item"])
-	for col in [-1, 0, 1]:
-		var sx := float(col) * (w / 2.0 - 1.2) if col != 0 else 0.0
-		var at := o + Vector3(sx, 0, 0.6 if col == 0 else -0.2)
-		var len := 3.0 if col == 0 else d - 4.0
-		var shelf := _box(Vector3(0.6 if col != 0 else 2.4, 1.3, len if col != 0 else 0.6), at, wood)
-		for k in 4:
-			var p := at + (Vector3(0, 1.3, -len / 2.0 + 0.4 + k * (len - 0.8) / 3.0) if col != 0 else Vector3(-0.9 + k * 0.6, 1.3, 0))
-			var it := make_item(item, p); _add_display(it)
-		var face := Vector3(-signf(sx) * 0.75, 0, 0) if col != 0 else Vector3(0, 0, 0.75)
-		_spot(rm, "shelf", at + face, atan2(-face.x, -face.z), { "item": item })
-	var lb := Label3D.new(); lb.text = String(sh["type"]); lb.font_size = 72; lb.pixel_size = 0.005; lb.modulate = Color("1b0c15"); lb.outline_size = 0
-	lb.position = o + Vector3(0, 2.3, -d / 2.0 + 0.09); _add(lb)
-	var pr := Label3D.new(); pr.text = "%s  %d coins" % [item.capitalize(), int((prices.get("buy", {}) as Dictionary).get(item, 1))]; pr.font_size = 40; pr.pixel_size = 0.004; pr.modulate = Color("7b526c"); pr.outline_size = 0
-	pr.position = o + Vector3(0, 1.8, -d / 2.0 + 0.09); _add(pr)
+	ShopKit.build(self, rm, shops[int(doors[rm["door"]]["shop_id"])])   # 배치 셋 × 종류마다 꾸밈(shop_kit.gd)
 
 ## 관공서 — 시청: 민원 창구·대기 의자 줄·게시판 / 도서관: 서가 줄·열람 탁자 / 학교: 책상 줄·칠판
 func _civic_room(rm: Dictionary, rng: RandomNumberGenerator) -> void:
