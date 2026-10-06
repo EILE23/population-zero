@@ -138,6 +138,7 @@ static func move(f: Stick3D, m: String, a: float) -> void:
 		"hammer": _hammer(f, a)
 		"block": _block(f, a)
 		"dodge": _dodge(f, a)
+		"climb": _climb(f, a)
 		_: _straight(f, a, -1.0, 0.55)
 
 ## 가드 — 주먹을 턱 앞에(차는 동안·기다릴 때 공통)
@@ -287,3 +288,12 @@ static func _dodge(f: Stick3D, a: float) -> void:
 	_guard(f, 1.0, k); _guard(f, -1.0, k)
 	f.hips[1.0].rotation.x = -(-0.35 * k); f.knees[1.0].rotation.x = 0.3 * k; f.hips[-1.0].rotation.x = -(0.3 * k); f.knees[-1.0].rotation.x = 0.4 * k
 	f.pelvis.position.y = Stick3D.HIP_Y - 0.04 * k
+
+## 벽 타기(Climb 손도끼) — 두 팔을 번갈아 머리 위로 뻗어 찍고, 무릎을 번갈아 끌어올린다. 몸은 벽(앞)에 붙여 살짝 숙인다
+static func _climb(f: Stick3D, a: float) -> void:
+	var ph := sin(a * TAU)
+	for s in [-1.0, 1.0]:
+		var up: float = 0.5 + 0.5 * ph * s
+		f.shoulders[s].rotation.x = -(2.4 + 0.5 * up); f.shoulders[s].rotation.z = -s * 0.25; f.elbows[s].rotation.x = -(0.9 - 0.6 * up)
+		f.hips[s].rotation.x = -(0.5 + 0.8 * (1.0 - up)); f.knees[s].rotation.x = 0.8 + 0.9 * (1.0 - up)
+	f.torso.rotation.x = 0.2; f.neck.rotation.x = -0.35

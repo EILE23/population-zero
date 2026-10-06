@@ -11,11 +11,14 @@ func _lands(a: Dictionary, b: Dictionary) -> bool:
 			for ci in range(1, 15):
 				var ch := ci * 0.05
 				var x: float = sx; var y: float = a["y"]; var vy := C.JUMP_MIN + (C.JUMP_V - C.JUMP_MIN) * (ch / C.CHARGE); var vx: float = d * C.RUN
+				var zz: float = float(a.get("z", 0.0)); var bz: float = float(b.get("z", 0.0)); var dzs := signf(bz - zz) if absf(bz - zz) > 6.0 else 0.0; var vz: float = dzs * C.RUN_Z
 				for f in 240:
 					var dt := 1.0 / 60.0
 					vy -= C.G * dt; vx = clampf(vx + d * C.AIR * dt, -C.RUN, C.RUN)
+					if absf(bz - zz) < 4.0: dzs = 0.0; vz = 0.0
+					vz = clampf(vz + dzs * C.AIR_Z * dt, -C.RUN_Z, C.RUN_Z); zz += vz * dt
 					var ny := y + vy * dt; x = clampf(x + vx * dt, C.HW, C.WORLD_W - C.HW)
-					if vy <= 0.0 and x + C.HW > b["x"] and x - C.HW < b["x"] + b["w"] and y >= b["y"] and ny <= b["y"]: return true
+					if vy <= 0.0 and x + C.HW > b["x"] and x - C.HW < b["x"] + b["w"] and y >= b["y"] and ny <= b["y"] and absf(zz - bz) < float(b.get("d", 999.0)) / 2.0 + C.HZ: return true
 					y = ny
 					if y < a["y"] - 400.0: break
 	return false
@@ -30,14 +33,31 @@ func _init() -> void:
 	print("ENTER game=", g != null, " town_mode=", town.process_mode)
 	# 닿기: 층 0..30 의 발판을 생성 순서대로(지름길 short 는 빼고) — 앞 발판에서 다음 발판
 	var seq: Array = []
-	for n in 31:
+	for n in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 60, 61, 62, 63]:
 		for p in g.band(n):
 			if p["kind"] != "short" and not (p["kind"] == "rest" and n == 0): seq.append(p)
 	var bad := 0
 	for i in range(1, seq.size()):
-		if seq[i]["kind"] == "rest": continue   # 쉼터는 층 바닥 — 이전 층 꼭대기에서 떨어져 닿는다
+		if seq[i]["kind"] in ["rest", "ledge"]: continue   # 쉼터는 층 바닥(떨어져 닿는다), 바위 턱은 등반으로만
 		if not _lands(seq[i - 1], seq[i]): bad += 1; if bad <= 3: print("UNREACH ", seq[i - 1]["id"], " -> ", seq[i]["id"])
 	print("REACH pairs=", seq.size() - 1, " unreachable=", bad)
+	# 등반: 60층 바위벽 — 손도끼 없이 뛰어들면 못 매달리고, 있으면 매달려 올라 턱에 선다
+	g.band(60)
+	var wl: Dictionary = g._walls[60][0]
+	for with_gear in [false, true]:
+		g.gear = "axe-test" if with_gear else ""; g.hanging = {}; g.stamina = 1.0
+		var left: bool = true
+		g.x = float(wl["x0"]) - 30.0; g.y = float(wl["y0"]) + 120.0; g.z = 0.0; g.vy = 0.0; g.vx = 0.0; g.on = {}
+		Input.action_press("move_right")
+		for i in 20: await physics_frame
+		Input.action_release("move_right")
+		var hung: bool = not g.hanging.is_empty()
+		Input.action_press("move_up")
+		for i in 600:
+			await physics_frame
+			if g.hanging.is_empty(): break
+		Input.action_release("move_up")
+		print("CLIMB gear=", with_gear, " grabbed=", hung, " on_ledge=", (not g.on.is_empty() and g.on.get("kind", "") == "ledge"), " y=%.0f wall_top=%.0f stamina=%.2f" % [g.y, float(wl["y1"]), g.stamina])
 	# 모아 뛰기: 꽉 모아 뛰면 몇 m 오르나
 	for i in 60: await physics_frame
 	var y0: float = g.y

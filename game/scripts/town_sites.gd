@@ -279,7 +279,8 @@ func _start_game(id: String) -> void:
 	player.move_dir = Vector3.ZERO; player.speed = 0.0
 	_fader().color.a = 0.0
 	game_node = (load("res://scripts/games/%s.gd" % id) as GDScript).new()
-	if "start_camp" in game_node: game_node.set("start_camp", int(records.get("climb_camp", 0)))   # Climb: 지난번 나간 쉼터에서
+	if "start_camp" in game_node: game_node.set("start_camp", int(records.get("climb_camp", 0)))
+	if "gear" in game_node: game_node.set("gear", String(records.get("climb_gear", ""))); game_node.set("taken", records.get("climb_axes", []))   # 내 손도끼, 이미 가져간 자리들   # Climb: 지난번 나간 쉼터에서
 	game_node.set("best", float(records.get(id, 0.0)))
 	if "rivals" in game_node:   # 상대가 필요한 게임(Race) — 성미 급한 주민 둘이 나선다
 		var hot := residents.duplicate(); hot.sort_custom(func(a: Resident, b: Resident) -> bool: return a.mind.temper > b.mind.temper)
@@ -295,6 +296,10 @@ func _game_done(result: Dictionary, id: String) -> void:
 	visible = true; process_mode = Node.PROCESS_MODE_INHERIT
 	(get_node("UI") as CanvasLayer).visible = true; cam.current = true
 	if result.has("camp"): records["climb_camp"] = int(result["camp"])   # 쉼터 문으로 나갔으면 다음엔 거기서
+	if String(result.get("gear", "")) != "" and String(records.get("climb_gear", "")) == "":   # 손도끼를 얻었다 — 내 것, 그 자리는 다음에도 비어 있다
+		records["climb_gear"] = result["gear"]; var ax: Array = records.get("climb_axes", []); ax.append(result["gear"]); records["climb_axes"] = ax
+		var fg := FileAccess.open(RECORDS, FileAccess.WRITE)
+		if fg: fg.store_string(JSON.stringify(records))
 	_walk_out(id)
 	var score := float(result.get("score", 0.0)); var old := float(records.get(id, 0.0))
 	if score > 0.0 and ((old <= 0.0 or score < old) if id in TIMED else score > old):
