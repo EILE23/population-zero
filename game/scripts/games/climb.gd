@@ -60,6 +60,7 @@ const THEMES := [
 
 var fig: Stick3D
 var chat: ChatBox
+var signs: ClimbSigns
 const HELP := [
 	["WALK", "Left/Right"],
 	["JUMP", "hold SPACE to charge, release to jump"],
@@ -238,6 +239,7 @@ func _ready() -> void:
 	hud = Label.new(); hud.position = Vector2(14, 10); hud.add_theme_color_override("font_color", Color("1b0c15")); hud.add_theme_color_override("font_outline_color", Color("f7f4ef")); hud.add_theme_constant_override("outline_size", 6); ui.add_child(hud)
 	banner = Label.new(); banner.position = Vector2(14, 64); banner.add_theme_font_size_override("font_size", 28); banner.add_theme_color_override("font_color", Color("7b526c")); banner.add_theme_color_override("font_outline_color", Color("f7f4ef")); banner.add_theme_constant_override("outline_size", 8); ui.add_child(banner)
 	chat = ChatBox.new(); chat.me_node = fig; ui.add_child(chat)   # 같이 오르는 사람과 채팅(chat_box)
+	signs = ClimbSigns.new(); signs.game = self; add_child(signs)   # 안내판 — 조작·층 안내는 화면 글줄이 아니라 쉼터의 판(C 로 크게)
 	var kh := KeyHelp.new(); kh.chat = chat; kh.setup("CONTROLS — CLIMB", HELP); ui.add_child(kh)
 	fade = ColorRect.new(); fade.color = Color(0, 0, 0, 1); fade.set_anchors_preset(Control.PRESET_FULL_RECT); fade.mouse_filter = Control.MOUSE_FILTER_IGNORE; ui.add_child(fade)
 	# 시작: 그 쉼터(없으면 바닥)의 문 앞에서 문을 열고 걸어 나온다
@@ -350,14 +352,15 @@ func _build_plat(root: Node3D, n: int, p: Dictionary, wall: Color, acc: Color) -
 			var hinge := Node3D.new(); hinge.name = "leaf"; hinge.position = Vector3(-0.55, 0, 0.08); door.add_child(hinge)
 			_box(hinge, Vector3(1.1, 2.0, 0.08), Vector3(0.55, 1.0, 0), Color("8a6a4a"))
 			_bands[n]["door"] = door
-			var lb := Label3D.new(); lb.text = ("FLOOR %d\nC: leave here" % n) if n > 0 else "THE TOWER\nC: leave"
+			signs.place(node, n, w, p, GEAR_BAND, REST_EVERY)
+			var lb := Label3D.new(); lb.text = ("FLOOR %d" % n) if n > 0 else "THE TOWER"   # 쓰는 법은 옆 안내판(climb_signs)
 			lb.font_size = 64; lb.pixel_size = 0.005; lb.modulate = Color("1b0c15"); lb.outline_size = 10; lb.outline_modulate = Color("f7f4ef"); lb.position = Vector3(-w / 2.0 + 1.6, 2.8, -DEPTH / 2.0 + 0.2); node.add_child(lb)
 
 # ── 한 틱(웹 step() 그대로, px) ──
 func _physics_process(delta: float) -> void:
 	var now := _now(); _t += delta
 	var dt := minf(delta, 1.0 / 30.0)
-	var locked := now < _scene_until or _leaving or chat.busy()
+	var locked := now < _scene_until or _leaving or chat.busy() or signs.busy()
 	var dir := 0.0 if locked else Input.get_axis("move_left", "move_right")
 	dir = signf(dir) if absf(dir) > 0.3 else 0.0
 	var dirz := 0.0 if locked else Input.get_axis("move_up", "move_down")
@@ -436,8 +439,9 @@ func _after_step(now: float, locked: bool) -> void:
 	_figure()
 	_camera(delta)
 	_hud(now)
-	if not locked and Input.is_action_just_pressed("act") and not on.is_empty() and on["kind"] == "rest" and on.has("node"): _exit_here(on)
-	if not _leaving and not chat.busy() and Input.is_action_just_pressed("ui_cancel"): _leave({})
+	if signs.tick(x, y, not locked and Input.is_action_just_pressed("act")): pass   # 판 앞이면 C 는 읽기
+	elif not locked and Input.is_action_just_pressed("act") and not on.is_empty() and on["kind"] == "rest" and on.has("node"): _exit_here(on)
+	if not _leaving and not chat.busy() and not signs.busy() and Input.is_action_just_pressed("ui_cancel"): _leave({})
 	if not locked and Input.is_action_just_pressed("hit"): _shove()   # X 밀치기(같이 오르는 사람)
 
 ## 무너지는 발판: 밟고 0.6초 흔들리다 사라지고 3초 뒤 돌아온다
@@ -497,7 +501,7 @@ func _hud(now: float) -> void:
 	if fl != _floor_shown and n % REST_EVERY == 0 and n > 0: _floor_shown = fl; _say("Floor %d · %s" % [n, theme(n)[0]], 2.2)
 	var m := y * K
 	var g := ("   ice axe" if gear != "" else "") + ("   grip %d%%" % int(stamina * 100.0) if not hanging.is_empty() or not holding.is_empty() or stamina < 0.99 else "")
-	hud.text = "CLIMB   %d m   best %d m   floor %d   %s%s\nLeft/Right walk · hold SPACE to charge, release to jump · Up grab a hold · C at a door: leave here · H controls · Enter chat · Esc: leave" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]
+	hud.text = "%d m   best %d m   floor %d   %s%s" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]   # 조작은 0층 안내판(climb_signs) — 화면엔 기록만
 	if now > _banner_until and not _leaving: banner.text = ""
 
 static func _clock(s: float) -> String:
