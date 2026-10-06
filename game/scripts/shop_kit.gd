@@ -4,7 +4,9 @@ extends RefCounted
 ## 진열 배치 셋(양벽+섬 / 뒷벽 두 줄+옆벽 / 통로 두 줄) × 종류마다 파는 것·꾸밈(카페: 커피 기계·케이크 진열장·메뉴판·탁자, 빵집: 큰 화덕·빵 선반, 식료품: 과일 통·저울 …)
 ## 진열대 C = 그 칸 물건을 집는다(값은 계산대에서). 꾸밈 가구는 room_kit 의 PIECES
 
-const SELLS := { "CAFE": ["cup", "bread"], "BAKERY": ["bread"], "GROCER": ["apple", "can"], "BOOKSHOP": ["book"], "FISHMONGER": ["fish"], "CORNER SHOP": ["can", "letter", "apple"], "UMBRELLAS": ["umbrella"] }
+const SELLS := { "CAFE": ["cup", "bread"], "BAKERY": ["bread"], "GROCER": ["apple", "can"], "BOOKSHOP": ["book"], "FISHMONGER": ["fish"], "CORNER SHOP": ["can", "letter", "apple"], "UMBRELLAS": ["umbrella"], "GENERAL STORE": ["cap", "scarf", "backpack"] }
+## 한 진열대에 여러 가지(run 114, 잡화점): 칸마다 다른 것이 놓이고 집을 때마다 다음 것 — 모자 넷, 가방 칸엔 우산도
+const MIX := { "cap": ["cap", "beanie", "straw", "tophat"], "backpack": ["backpack", "umbrella"] }
 ## [가구, x(벽 반폭 비율), z(벽 반깊이 비율), 각도°] — 계산대·진열대 자리를 피하게 가장자리 위주
 const DECOR := {
 	"CAFE": [["menu_board", 0.0, -0.98, 0], ["tea_table", 0.55, 0.35, 0], ["chair", 0.4, 0.35, 90], ["chair", 0.7, 0.35, -90], ["tea_table", -0.55, 0.35, 0], ["chair", -0.7, 0.35, 90], ["chair", -0.4, 0.35, -90], ["plant_big", 0.9, 0.7, 0]],
@@ -14,6 +16,7 @@ const DECOR := {
 	"FISHMONGER": [["ice_counter", 0.6, 0.4, -90], ["nets", 0.0, -0.98, 0], ["barrel", -0.85, 0.65, 0]],
 	"CORNER SHOP": [["can_fridge", 0.88, -0.2, -90], ["magazine_rack", -0.88, 0.45, 90], ["snacks", 0.6, 0.65, 0]],
 	"UMBRELLAS": [["umbrella_stand", -0.6, 0.55, 0], ["umbrella_stand", 0.6, 0.55, 0], ["mirror", 0.98, -0.1, -90], ["umbrella_stand", 0.0, 0.7, 0]],
+	"GENERAL STORE": [["mirror", 0.98, -0.1, -90], ["umbrella_stand", 0.6, 0.65, 0], ["barrel", -0.85, 0.65, 0], ["plant", -0.9, 0.8, 0]],
 }
 
 static func build(t: Node, rm: Dictionary, sh: Dictionary) -> void:
@@ -46,11 +49,12 @@ static func build(t: Node, rm: Dictionary, sh: Dictionary) -> void:
 		t.call("_box", sz, at, wood)
 		var kind: String = sells[i % sells.size()]
 		var long_x := sz.x > sz.z
+		var mix: Array = MIX.get(kind, [kind])
 		for k in 4:
 			var f := -0.38 + k * 0.25
 			var p := at + (Vector3(f * sz.x, sz.y, 0) if long_x else Vector3(0, sz.y, f * sz.z))
-			var it: Node3D = t.call("make_item", kind, p); t.call("_add_display", it)
-		t.call("_spot", rm, "shelf", at + face, atan2(-face.x, -face.z), { "item": kind })
+			var it: Node3D = t.call("make_goods", String(mix[k % mix.size()]), p); t.call("_add_display", it)   # 입는 것도 진열된다(town_store)
+		t.call("_spot", rm, "shelf", at + face, atan2(-face.x, -face.z), { "item": kind, "mix": mix, "next": 0 })
 	# 꾸밈 — 종류마다
 	for dc in DECOR.get(type, []):
 		var at := o + Vector3(float(dc[1]) * (w / 2.0 - 0.5), 0, float(dc[2]) * (d / 2.0 - 0.4))

@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownWages
+extends TownStore
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -202,10 +202,10 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request == "lwave": player.pose_request = "umbr" if player.umbr_k > 0.5 else ""   # 왼손 인사(CI run 77)가 끝나면 우산은 있던 대로
-		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop", "stoke", "moor", "shelve", "sort", "pin", "rub", "strum", "scan", "sigh"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
+		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop", "stoke", "moor", "shelve", "sort", "pin", "rub", "strum", "scan", "sigh", "don", "doff"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
-	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel", "stoke", "moor", "shelve", "sort", "pin", "strum", "scan", "sigh"]) and dir != Vector3.ZERO:
+	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel", "stoke", "moor", "shelve", "sort", "pin", "strum", "scan", "sigh", "don", "doff"]) and dir != Vector3.ZERO:
 		if resting and player.pose_request in ["sky", "rest"]:
 			getup_until = now + FightPoses.GETUP_T; player.action = "getup"; player.action_t = 0.0   # 누웠다 일어나는 건 맞고 일어날 때와 같은 동작·같은 길이(0.6 이 남아 있어 진행이 0.4 에서 시작해 튀었다, polish 79)
 		reading = false; leaning = false; resting = false; player.pose_request = ""
@@ -270,11 +270,7 @@ func _interact_check(now: float) -> void:
 		player.action = "grab"; action_until = now + 0.4
 		return
 	if player.carrying and player.carrying.get_meta("wearable", false):
-		# 입는 것을 든 채 C → 쓴다. 같은 슬롯에 있던 건 손으로 온다
-		var prev := player.wear(player.carrying)
-		if prev: player.hold(prev)
-		player.action = "grab"; action_until = now + 0.35
-		return
+		wear_held(now); return   # 입는 것을 든 채 C → don 자세로 머리에(run 114, town_store). 값을 안 치른 것이면 계산대부터
 	if stoop_near(now): return   # 발치의 동전(run 107, town_coins): 든 게 있어도 먼저 — 손이 아니라 주머니로 간다
 	if busk_tip(now): return   # 악사의 모자 앞(run 111, town_busk): 동전이 있으면 stoop 으로 한 닢, 없으면 악사가 끄덕인다 — 들고 있어도
 	if player.carrying and (sunroom_give(now) or give_to_resident(now)): return   # 앞의 주민에게 건네기가 먹기·내려놓기보다 먼저(town_critters); 안락의자의 읽는 이는 앉아 있어 따로(run 106, town_sunroom)
@@ -367,8 +363,7 @@ func _interact_check(now: float) -> void:
 		elif d5 < 1.1 and d5 < best_d: best = { "kind": sp["kind"], "spot": sp }; best_d = d5
 	if best.is_empty():
 		# 근처에 아무것도 없고 빈손이면 모자를 벗어 손에 든다
-		if not player.carrying and player.worn.has("hat"):
-			var h := player.take_off("hat"); player.hold(h); player.action = "grab"; action_until = now + 0.35
+		if not player.carrying and player.worn.has("hat"): doff_hat(now)   # doff 자세로 벗어 손에(run 114, town_store)
 		return
 	match best["kind"]:
 		"hatstand":

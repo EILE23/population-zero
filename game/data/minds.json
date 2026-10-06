@@ -82,6 +82,8 @@
     "kid_duck": ["Missed.", "Too high.", "I am down here.", "Hey."],
     "kid_hit_watch": ["That is a child.", "Leave them be.", "Really.", "Pick on someone your height."],
     "rain_like": ["Good rain.", "I like this."],
+    "bought": ["New.", "Fits.", "Worth it.", "There."],
+    "store_closed": ["Shut.", "Nobody in.", "Later, then."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },
   "child": { "_": "Elders and children slice 1 (run 102): two children live in the house whose adults like each other most (ResidentKid.settle). Their minds are under people.", "handles": ["small_print", "footnote"] },

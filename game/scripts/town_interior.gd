@@ -301,9 +301,10 @@ func inner_use(now: float) -> bool:
 		"shelf":
 			player.face(float(best["yaw"]))
 			if player.carrying: return false
-			var it := make_item(String(best["item"]), p + Vector3(0, 0.9, 0)); it.set_meta("unpaid", true)
+			var mix: Array = best.get("mix", [best["item"]]); var kind := String(mix[int(best.get("next", 0)) % mix.size()]); best["next"] = int(best.get("next", 0)) + 1   # 집을 때마다 다음 것(잡화점의 모자 넷)
+			var it: Node3D = call("make_goods", kind, p + Vector3(0, 0.9, 0)); it.set_meta("unpaid", true)   # 위층(town_store)
 			player.hold(it); player.action = "grab"; action_until = now + 0.4
-			say_toast("%s — pay at the counter." % String(best["item"]).capitalize())
+			say_toast("%s — pay at the counter." % kind.capitalize())
 		"counter":
 			player.face(float(best["yaw"]))
 			_till_use(now)

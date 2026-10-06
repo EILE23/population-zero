@@ -1,6 +1,6 @@
 extends TownPlayer
 ## 3D 마을 — 루트. 세계를 짓고(_ready) 프레임마다 카메라·범례를 돌린다(_process). 나머지는 상속 계층에 있다:
-##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_nap.gd(낮잠방) → town_coins.gd(동전) → town_busk.gd(악사) → town_ledger.gd(외상 장부) → … → town_social.gd(채팅) → town_wages.gd(품삯) → town_player.gd(조작) → 여기.
+##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_nap.gd(낮잠방) → town_coins.gd(동전) → town_busk.gd(악사) → town_ledger.gd(외상 장부) → … → town_social.gd(채팅) → town_wages.gd(품삯) → town_store.gd(잡화점) → town_player.gd(조작) → 여기.
 
 func _ready() -> void:
 	_light()
@@ -65,6 +65,7 @@ func _ready() -> void:
 	_hire_drivers()
 	_growth_init()   # 마을이 자란다 — 지은 집을 다시 세우고, 건축가를 정하고, 공사장을 연다(town_growth)
 	_city_init()   # 지도대로(data/map/town.json) — 관공서·공원 블록, 장소 길의 가로등·나무, 이정표, 가게 주인(town_city)
+	_store_init()   # 잡화점에서 사 쓴 것을 다시 쓴다(records["worn"], town_store)
 	_social_init()   # 채팅·조작법 창·감정 표현(town_social)
 	call_deferred("_net_town")   # 웹 계정·멀티(poz_net.gd) — 루트에 하나, 마을 방에 들어간다
 	ResidentKid.settle(self)   # 아이 둘 — 서로 가장 좋아하는 어른 둘의 집에(run 102, resident_kid)

@@ -2,7 +2,7 @@ class_name ResidentShop
 extends ResidentBuild
 ## 가게 주인(town_city.gd, 지도의 번화가) — job "shopkeep" 은 낮이면 제 가게 창구 뒤에 가서 서 있는다(wait 팔짱, 90초씩). 서 있는 동안만 가게가 연다.
 ## 밤엔 다른 주민처럼 집으로 간다(가게도 닫는다). 다섯에 하나는 쉰다(주민은 자유다 — 그동안은 닫혀 있다)
-## 사슬: … → build → **shop** → resident
+## 사슬: … → build → **shop** → store(resident_store.gd, 잡화점 손님 — run 114) → resident
 
 func _post_pick(now: float) -> bool:
 	return _shop_pick(now) or super._post_pick(now)

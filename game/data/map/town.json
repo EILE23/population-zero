@@ -20,7 +20,8 @@
     { "type": "BOOKSHOP", "item": "book", "awning": "5a6f9a" },
     { "type": "CORNER SHOP", "item": "can", "awning": "b56a5a" },
     { "type": "FISHMONGER", "item": "fish", "awning": "4a8a9a" },
-    { "type": "UMBRELLAS", "item": "umbrella", "awning": "7b526c" }
+    { "type": "UMBRELLAS", "item": "umbrella", "awning": "7b526c" },
+    { "type": "GENERAL STORE", "item": "cap", "awning": "4a4a52" }
   ],
   "signs": [
     { "text": "HIGH STREET", "at": [13.0, -36.0] },

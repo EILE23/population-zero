@@ -7,7 +7,13 @@
     "can": 2,
     "book": 3,
     "fish": 4,
-    "umbrella": 5
+    "umbrella": 5,
+    "cap": 4,
+    "beanie": 4,
+    "straw": 5,
+    "tophat": 8,
+    "scarf": 4,
+    "backpack": 7
   },
   "sell": {
     "apple": 1,

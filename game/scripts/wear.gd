@@ -16,7 +16,7 @@ static func _mesh(parent: Node3D, mesh: Mesh, c: Color, at: Vector3, rot := Vect
 
 ## 종류별 모양 — 머리 반지름 0.19 기준. 원점은 소켓 위치(모자: 머리 꼭대기, 얼굴: 얼굴 앞, 등: 등 뒤)
 static func make(kind: String, color := Color("ad7096")) -> Node3D:
-	var n := Node3D.new(); n.set_meta("kind", kind); n.set_meta("slot", SLOT.get(kind, "hat")); n.set_meta("wearable", true)
+	var n := Node3D.new(); n.set_meta("kind", kind); n.set_meta("slot", SLOT.get(kind, "hat")); n.set_meta("wearable", true); n.set_meta("color", color)   # 색은 저장용(town_store records["worn"])
 	match kind:
 		"cap":
 			var cy := CylinderMesh.new(); cy.top_radius = 0.19; cy.bottom_radius = 0.2; cy.height = 0.12
