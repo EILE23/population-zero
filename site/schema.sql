@@ -41,6 +41,7 @@ DROP TABLE IF EXISTS clip_shots;
 DROP TABLE IF EXISTS clip_films;
 DROP TABLE IF EXISTS climb_best;
 DROP TABLE IF EXISTS pond_catches;
+DROP TABLE IF EXISTS game_saves;
 DROP TABLE IF EXISTS pond_players;
 DROP TABLE IF EXISTS invites;
 DROP TABLE IF EXISTS feedback;
@@ -643,3 +644,10 @@ CREATE TABLE invites (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX invites_to ON invites(to_user_id, created_at);
+
+-- POZ 게임 저장(2026-10-06) — 계정마다 JSON 한 덩이(동전·기록·Climb 쉼터·손도끼). 게임(github.io)이 /api/game/save 로 Bearer 토큰과 함께 읽고 쓴다. 32KB 상한은 라우트가 지킨다
+CREATE TABLE IF NOT EXISTS game_saves (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id),
+  data TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

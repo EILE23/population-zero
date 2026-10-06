@@ -84,7 +84,8 @@ async function openChatSocket(request, env) {
  * 세션은 여기서 한 번 확인하고 방에는 uid·handle·avatar 만 넘긴다(방은 다시 묻지 않는다).
  */
 async function openClimbSocket(request, env, room = 'tower') {
-  const token = sessionCookie(request);
+  // POZ 게임(github.io)은 쿠키가 없다 — /api/game/token 으로 받은 세션 토큰을 ?t= 로 붙여 온다(앱의 Bearer 와 같은 sessions 행)
+  const token = sessionCookie(request) || (room.startsWith('poz-') ? (new URL(request.url).searchParams.get('t') || '').slice(0, 128) : '');
   let uid = 0, handle = '', avatar = '';
   if (token) {
     const row = await env.DB.prepare(
@@ -142,6 +143,8 @@ export default {
     if (url.pathname === '/ws/square') return openClimbSocket(request, env, 'square'); // 광장 — 같은 방 코드, 다른 방 // 같은 방 코드, 다른 방 — 자리·채팅만 쓴다
     const gameWs = url.pathname.match(/^\/ws\/g\/([a-z0-9-]{3,24})$/); // 사람이 만든 게임(/play/<slug>) — 게임마다 방 하나, 같은 방 코드
     if (gameWs) return openClimbSocket(request, env, `g:${gameWs[1]}`);
+    const pozWs = url.pathname.match(/^\/ws\/poz\/(town|climb|race)$/); // POZ(Godot) — 마을·Climb·레이싱 방. 같은 방 코드(위치·자세·채팅·hitp), 비로그인은 구경
+    if (pozWs) return openClimbSocket(request, env, `poz-${pozWs[1]}`);
     if (url.pathname === '/api/dm' && request.method === 'POST') {
       const res = await handler.fetch(request, env, ctx);
       if (res.status === 201) {

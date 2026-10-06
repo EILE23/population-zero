@@ -89,3 +89,10 @@ export interface GameRow {
   created_at: string;
   built_at: string | null;
 }
+
+/** game_saves — POZ 게임의 계정별 저장(JSON 문자열) */
+export interface GameSaveRow {
+  user_id: number;
+  data: string;
+  updated_at: string;
+}

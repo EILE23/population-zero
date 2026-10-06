@@ -23,6 +23,7 @@ export const deletionStatements = [
   `DELETE FROM user_blocks WHERE user_id=UID OR (target_type='user' AND target_id=UID)`,
   `DELETE FROM safety_reports WHERE user_id=UID`,
   `DELETE FROM user_assets WHERE user_id=UID`,
+  `DELETE FROM game_saves WHERE user_id=UID`,   // POZ 게임 저장(2026-10-06)
   `DELETE FROM auth_tokens WHERE user_id=UID`,
   `DELETE FROM sessions WHERE user_id=UID`,
   // The confirmation table deliberately releases its FK before deleting users.
