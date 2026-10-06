@@ -77,6 +77,14 @@ func _call_pusher(sw: Dictionary) -> void:
 func _seesaws(delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for ss in seesaws:
+		# 혼자 타면 곁의 한가한 주민을 반대쪽으로 부른다(운영자 2026-10-06: "시소 같이 타야 하는데 같이 안 타지잖아") — 그네의 미는 사람과 같은 길
+		var me_side := ss.side_of("player")
+		if me_side >= 0 and ss.riders[1 - me_side] == null and now > float(ss.get_meta("call_at", 0.0)):
+			ss.set_meta("call_at", now + 4.0)
+			var ssp: Array = spots.filter(func(sp: Dictionary) -> bool: return sp["kind"] == "seesaw" and sp["ss"] == ss)
+			for r in residents:
+				if not ssp.is_empty() and r.state in ["routine", "walk"] and r.global_position.distance_to(ss.global_position) < 16.0 and r.riding_seesaw == null and not r.has_meta("ss_coming"):
+					r.go_seesaw(ssp[0], 1 - me_side); break
 		for i in 2:
 			var r = ss.riders[i]
 			if r is Resident and ss.riders[1 - i] != null and now > float(r.get_meta("ss_push_at", 0.0)):   # 짝이 있을 때만 박찬다

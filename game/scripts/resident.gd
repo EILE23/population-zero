@@ -296,7 +296,7 @@ func _arrive(now: float) -> void:
 			var ss: Seesaw3D = spot["ss"]
 			var side := ss.side_near(global_position)
 			if not ss.sit(self, side): side = 1 - side
-			if ss.riders[side] == self or ss.sit(self, side):
+			if Seesaw3D._same(ss.riders[side], self) or ss.sit(self, side):
 				riding_seesaw = ss; fig.seated = true; collision_layer = 0; collision_mask = 0
 				busy_until = now + randf_range(10.0, 20.0)
 			else:
@@ -460,6 +460,17 @@ func go_push(sw: Dictionary) -> void:
 	target = route[0]["pos"]; state = "walk"
 	say(["Hold on.", "Here.", "Higher?"][uid % 3], 1.5)
 
+
+## 시소 반대쪽으로 — 사람이 혼자 타고 있으면 와서 앉는다(town_systems _seesaws). 도착하면 _arrive 의 "seesaw" 가 가까운 쪽(= 빈 쪽)에 앉힌다
+func go_seesaw(sp: Dictionary, side: int) -> void:
+	_release()
+	var ss: Seesaw3D = sp["ss"]
+	var seat := ss.seat_pos(side); seat.y = 0.0
+	spot = sp; slot = 0; set_meta("ss_coming", true)
+	route = town.crossings(global_position, seat) + [{ "pos": seat + (seat - ss.global_position).normalized() * 0.35, "act": "" }]
+	target = route[0]["pos"]; state = "walk"
+	say(["I'll take the other end.", "Room for one?", "Hold still."][uid % 3], 1.6)
+	get_tree().create_timer(20.0).timeout.connect(func() -> void: if is_instance_valid(self): remove_meta("ss_coming"))
 
 ## 시소에서 튀어 오름 — 날아올랐다 발로 착지하고, 한마디
 func seesaw_launch(vy: float) -> void:

@@ -41,11 +41,15 @@ func sit(who, side: int) -> bool:
 	riders[side] = who; return true
 
 func leave(who) -> void:
-	for i in 2: if riders[i] == who: riders[i] = null
+	for i in 2: if _same(riders[i], who): riders[i] = null
 
 func side_of(who) -> int:
-	for i in 2: if riders[i] == who: return i
+	for i in 2: if _same(riders[i], who): return i
 	return -1
+
+## 탄 사람 견주기 — 사람은 "player"(글자), 주민은 Node 라 그냥 == 하면 오류였다(사람과 주민이 같이 탈 때)
+static func _same(a: Variant, b: Variant) -> bool:
+	return typeof(a) == typeof(b) and a == b
 
 ## 낮은 쪽이면 박차고 올라간다(높은 쪽이 누르면 무시)
 func push(side: int) -> void:
