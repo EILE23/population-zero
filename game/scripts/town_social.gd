@@ -42,7 +42,7 @@ func _social_init() -> void:
 	_who.position = Vector2(-12, 8); _who.add_theme_color_override("font_color", Color("7b526c")); _who.add_theme_color_override("font_outline_color", Color("f7f4ef")); _who.add_theme_constant_override("outline_size", 6); _who.add_theme_font_size_override("font_size", 13)
 	ui.add_child(_who)
 	chat = ChatBox.new(); chat.me_node = body; ui.add_child(chat)
-	var h := KeyHelp.new(); h.chat = chat; h.setup("CONTROLS — TOWN", HELP); ui.add_child(h)
+	var h := KeyHelp.new(); h.chat = chat; h.setup("CONTROLS — TOWN · v" + PozUpdate.version(), HELP); ui.add_child(h)
 
 ## 마을 방에 붙을 때마다(처음·미니게임에서 돌아옴) — 내 감정 표현을 pose 에 싣고, 밀침을 받는다
 func _net_town() -> void:
