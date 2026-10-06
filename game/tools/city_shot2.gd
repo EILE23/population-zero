@@ -5,10 +5,12 @@ func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 10: await process_frame
 	print("LOAD %d ms built=%d shops=%d keepers=%d residents=%d districts=%d" % [Time.get_ticks_msec() - t0, town.built, town.shops.size(), town.residents.filter(func(r): return r.job == "shopkeep").size(), town.residents.size(), town.districts.size()])
-	var shots := [["tower_road", Vector3(15.5, 0.05, -34), 1.6], ["high_street", Vector3(-4, 0.05, -40), 1.4], ["hall", Vector3(76, 0.05, -40), 1.8], ["above", Vector3(10, 0.05, -40), 6.0], ["south", Vector3(0, 0.05, 50), 3.0], ["park", Vector3(116, 0.05, 66), 2.0]]
+	var shots := [["tower_road", Vector3(15.5, 0.05, -34), 1.6], ["high_street", Vector3(-4, 0.05, -40), 1.4], ["hall", Vector3(76, 0.05, -40), 1.8], ["above", Vector3(10, 0.05, -40), 6.0], ["south", Vector3(0, 0.05, 50), 3.0], ["park", Vector3(116, 0.05, 66), 2.0], ["wild", Vector3(-130, 0.05, 70), 3.0], ["fields", Vector3(180, 0.05, 40), 3.0]]
 	for s in shots:
 		var p: Vector3 = s[1]
+		p.y = town.gen.height(p.x, p.z) + 0.3
 		town.body.global_position = p; town.body.velocity = Vector3.ZERO
+		town.gen.fill(p)
 		town.zoom_want = s[2]; town.zoom = s[2]
 		for i in 150: await process_frame
 		root.get_texture().get_image().save_png("user://shots/city2-%s.png" % s[0])

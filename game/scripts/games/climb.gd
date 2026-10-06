@@ -256,7 +256,7 @@ func _door_scene(out: bool) -> void:
 	_scene_dx = 120.0 if out else -90.0
 	if _door_of:
 		var leaf: Node3D = _door_of.get_node("leaf")
-		var tw := create_tween(); tw.tween_property(leaf, "rotation:y", -1.6, 0.3)
+		var tw := create_tween(); tw.tween_property(leaf, "rotation:y", 1.6, 0.3)   # 벽 안쪽으로 연다(바깥으로 열면 나오는 사람을 가렸다)
 		if out: tw.tween_interval(0.6); tw.tween_property(leaf, "rotation:y", 0.0, 0.35)
 
 ## 가까운 층만 짓고 먼 층은 지운다

@@ -261,7 +261,7 @@ func enter_game(id: String) -> void:
 	var door: Node3D = sp.get("door")
 	var into: Vector3 = (door.global_position if door else body.global_position + fwd * 1.2) + fwd * 0.4; into.y = body.global_position.y
 	player.face(yaw); player.move_dir = fwd; player.speed = 1.4
-	if door: get_tree().create_tween().tween_property(door.get_node("leaf"), "rotation:y", -1.6, 0.3)
+	if door: get_tree().create_tween().tween_property(door.get_node("leaf"), "rotation:y", 1.6, 0.3)   # 안쪽(−z)으로 연다 — 바깥으로 열리면 문짝이 카메라와 사람 사이에 서서 가렸다
 	var tw := get_tree().create_tween()
 	tw.tween_property(body, "global_position", into, 0.9)
 	tw.parallel().tween_property(_fader(), "color:a", 1.0, 0.45).set_delay(0.45)
@@ -337,7 +337,7 @@ func _walk_out(id: String) -> void:
 	_fader().color.a = 1.0
 	var tw := get_tree().create_tween()
 	tw.tween_property(_fader(), "color:a", 0.0, 0.4)
-	if door: tw.parallel().tween_property(door.get_node("leaf"), "rotation:y", -1.6, 0.3)
+	if door: tw.parallel().tween_property(door.get_node("leaf"), "rotation:y", 1.6, 0.3)   # 안쪽(−z)으로 연다 — 바깥으로 열리면 문짝이 카메라와 사람 사이에 서서 가렸다
 	tw.tween_property(body, "global_position", to, 0.9)
 	if door: tw.tween_property(door.get_node("leaf"), "rotation:y", 0.0, 0.35)
 	tw.tween_callback(func() -> void: player.move_dir = Vector3.ZERO; player.speed = 0.0; gating = false)

@@ -40,6 +40,7 @@ var town: TownBase
 var _big := FastNoiseLite.new()
 var _mid := FastNoiseLite.new()
 var _moist := FastNoiseLite.new()
+var _paths := FastNoiseLite.new()   # 들판의 흙길 — 이 잡음의 0 근처 등고선을 따라 구불구불(사람이 다녀 생긴 길처럼)
 var chunks := {}               # Vector2i -> Node3D
 var _src := {}                 # 모델 id -> {parts: [[Mesh, Transform3D]], h}
 var _ground: StandardMaterial3D
@@ -63,6 +64,7 @@ func setup(t: TownBase) -> void:
 	_big.seed = SEED; _big.frequency = 0.0045; _big.fractal_octaves = 4
 	_mid.seed = SEED + 1; _mid.frequency = 0.022; _mid.fractal_octaves = 2
 	_moist.seed = SEED + 2; _moist.frequency = 0.006; _moist.fractal_octaves = 2
+	_paths.seed = SEED + 3; _paths.frequency = 0.0035; _paths.fractal_octaves = 2
 	_ground = t._mat(Color.WHITE, t._tex("ground/grass"))
 	_ground.vertex_color_use_as_albedo = true
 	_lake = Water3D.surface(); _lake.set_shader_parameter("flow", 0.05)
@@ -160,7 +162,12 @@ static func trail_xz(pk: Dictionary) -> PackedVector2Array:
 	return out
 
 var _trail_cells := {}   # 3m 칸 → 계단 길이 지나간다(나무를 안 심는다)
+## 들판 흙길 위인가(잡음 등고선 ±폭) — 깎인 마을 안·산·호수엔 없다
+func dirt_at(x: float, z: float) -> bool:
+	return absf(_paths.get_noise_2d(x, z)) < 0.018 and peak_k(x, z) < 0.05 and _h(x, z) > 0.2
+
 func on_trail(x: float, z: float) -> bool:
+	if dirt_at(x, z): return true
 	if _trail_cells.has(Vector2i(floori(x / 3.0), floori(z / 3.0))): return true
 	for pk in PEAKS:   # 꼭대기 마당도 비운다(산스장·정자 자리)
 		if Vector2(x - pk["c"].x, z - pk["c"].z).length() < float(pk["top"]) + 1.0: return true
@@ -292,6 +299,8 @@ func _build(key: Vector2i, defer := false) -> void:
 		if not city:
 			var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(CHUNK, 1.0, CHUNK); cs.shape = bx
 			cs.position = o + Vector3(CHUNK / 2.0, -0.5, CHUNK / 2.0); sb.add_child(cs); n.add_child(sb)
+			if defer: _later.append([n, key, o])   # 평지도 비워 두지 않는다 — 길·골목·필지·강을 피해 풀·꽃·덤불(운영자 2026-10-06: "이런 공간들 디테일하게 다 채워")
+			else: _nature(n, key, o)
 	if CITY_ON and Rect2(CityGen.X0, CityGen.Z0, CityGen.X1 - CityGen.X0, CityGen.Z1 - CityGen.Z0).intersects(Rect2(o.x, o.z, CHUNK, CHUNK)):
 		if defer: _later.append([n, key, o, "city"])
 		else: CityGen.build_chunk(self, n, o, CHUNK)   # 도시 칸: 도로·건물·나무(city_gen.gd)
@@ -311,18 +320,30 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 		"forest": plan = [[FOREST, 16, 4.2, 0.28], [UNDER, 14, 0.6, 0.0], [BUSHES, 5, 1.0, 0.0], [GRASS, 18, 0.9, 0.0], [ROCKS, 1, 1.0, 0.5]]
 		"high": plan = [[HIGH, 9, 5.0, 0.25], [ROCKS, 4, 1.2, 0.55], [PEBBLES, 8, 0.8, 0.0], [GRASS, 12, 0.8, 0.0]]
 		"dry": plan = [[ROCKS, 3, 1.0, 0.5], [PEBBLES, 10, 0.9, 0.0], [GRASS, 22, 0.9, 0.0], [FOREST, 1, 3.8, 0.28]]
-		_: plan = [[FLOWERS, 18, 1.0, 0.0], [GRASS, 40, 1.0, 0.0], [BUSHES, 3, 1.0, 0.0], [FOREST, 2, 4.0, 0.28], [PEBBLES, 2, 0.8, 0.0]]
+		_: plan = [[FLOWERS, 34, 1.1, 0.0], [GRASS, 60, 1.25, 0.0], [BUSHES, 9, 1.15, 0.0], [FOREST, 4, 4.2, 0.28], [PEBBLES, 4, 0.8, 0.0], [ROCKS, 1, 1.0, 0.5], [UNDER, 4, 0.7, 0.0]]
+	var flat := wild_k(c.x, c.z) < 0.05 and wild_k(o.x, o.z) < 0.05 and wild_k(o.x + CHUNK, o.z + CHUNK) < 0.05
+	if flat: plan = [[GRASS, 46, 1.1, 0.0], [FLOWERS, 22, 1.0, 0.0], [BUSHES, 7, 1.05, 0.0], [FOREST, 3, 4.0, 0.28], [PEBBLES, 3, 0.8, 0.0]]   # 마을 가의 평지 — 빈 잔디로 두지 않는다
+	var clusters: Array = []   # 꽃·덤불은 무리로(고르게 흩으면 멀리선 안 보였다)
+	for q in 4: clusters.append(Vector2(o.x + rng.randf() * CHUNK, o.z + rng.randf() * CHUNK))
 	for row in plan:
 		var mountain: bool = row[0] is String
 		var ids: Array = FOREST if mountain else row[0]
+		var grouped: bool = ids == FLOWERS or ids == BUSHES or ids == UNDER
+		var tall_row := float(row[2]) > 2.0
 		for i in int(row[1]):
 			var x := o.x + rng.randf() * CHUNK; var z := o.z + rng.randf() * CHUNK
+			if grouped and rng.randf() < 0.75:
+				var cc: Vector2 = clusters[rng.randi() % clusters.size()]
+				x = clampf(cc.x + rng.randfn(0.0, 2.2), o.x, o.x + CHUNK); z = clampf(cc.y + rng.randfn(0.0, 2.2), o.z, o.z + CHUNK)
 			if on_trail(x, z): continue   # 계단 길은 비운다
 			if mountain: ids = HIGH if height(x, z) > 24.0 + 8.0 * rng.randf() else FOREST
 			var k := wild_k(x, z)
-			if k < 0.45: continue
 			var h := k * raw(x, z)   # = _h — 한 번만 잰다
-			if h < 0.7 or rng.randf() > k: continue   # 물가 1m 안엔 안 난다(물속 풀)
+			if k < 0.45:   # 깎인 땅(마을 가·길 가): 키 작은 것만, 마을 것을 피해서. 나무는 길·필지에서 멀 때만
+				if not _town_clear(x, z, 4.5 if tall_row else 1.4): continue
+				if tall_row and k < 0.05 and rng.randf() < 0.5: continue
+				h = maxf(h, 0.0)
+			elif h < 0.7 or rng.randf() > k: continue   # 물가 1m 안엔 안 난다(물속 풀)
 			if absf(height(x + 1.0, z) - h) > 0.9 or absf(height(x, z + 1.0) - h) > 0.9: continue   # 벼랑엔 안 선다
 			var id: String = ids[rng.randi() % ids.size()]
 			var src := _model_src(id)
@@ -334,6 +355,8 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 			if float(row[3]) > 0.0:
 				var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = float(row[3]) * (1.0 if tall else sc); cy.height = 1.6
 				cs.shape = cy; cs.position = Vector3(x, h + 0.8, z); body.add_child(cs)
+	if not flat and biome in ["meadow", "forest", "dry"] and rng.randf() < 0.22: _feature(put, o, rng)
+	_dirt_patches(n, o)
 	for id in put:
 		var src := _model_src(id)
 		for part in src["parts"]:
@@ -341,6 +364,73 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 			var xs: Array = put[id]; mm.instance_count = xs.size()
 			for i in xs.size(): mm.set_instance_transform(i, (xs[i] as Transform3D) * (part[1] as Transform3D))
 			var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; n.add_child(mmi)
+			if not (id in FOREST or id in HIGH or id in ROCKS):   # 풀·꽃·덤불 — 그림자 없이, 70m 넘으면 안 그린다(채운 들판에 44fps 로 떨어졌다)
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; mmi.visibility_range_end = 70.0; mmi.visibility_range_end_margin = 8.0
+
+## 흙길 조각 — 1.4m 격자에서 길 위인 점마다 납작한 원반(땅 기울기대로), 한 칸에 MultiMesh 하나
+static var _dirt_mesh: CylinderMesh
+func _dirt_patches(n: Node3D, o: Vector3) -> void:
+	var xs: Array[Transform3D] = []
+	var step := 1.4
+	for j in int(CHUNK / step):
+		for i in int(CHUNK / step):
+			var x := o.x + (i + 0.5) * step; var z := o.z + (j + 0.5) * step
+			if not dirt_at(x, z) or wild_k(x, z) < 0.3: continue
+			var h := height(x, z)
+			var nrm := Vector3(height(x - 0.7, z) - height(x + 0.7, z), 1.4, height(x, z - 0.7) - height(x, z + 0.7)).normalized()
+			var b := Basis(Quaternion(Vector3.UP, nrm)) * Basis(Vector3.UP, fposmod(x * 1.7 + z, TAU))
+			xs.append(Transform3D(b.scaled(Vector3(1.0 + fposmod(x * 0.37, 0.4), 1.0, 1.0 + fposmod(z * 0.29, 0.4))), Vector3(x, h + 0.02, z)))
+	if xs.is_empty(): return
+	if _dirt_mesh == null:
+		_dirt_mesh = CylinderMesh.new(); _dirt_mesh.top_radius = 0.95; _dirt_mesh.bottom_radius = 0.95; _dirt_mesh.height = 0.02; _dirt_mesh.radial_segments = 10
+		var m := StandardMaterial3D.new(); m.albedo_color = Color("b59a74"); _dirt_mesh.material = m
+	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = _dirt_mesh; mm.instance_count = xs.size()
+	for k in xs.size(): mm.set_instance_transform(k, xs[k])
+	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(mmi)
+
+## 마을 것을 피하나 — 허브·큰길·강·골목(필지 격자)·장소 길·필지 둘레(r)
+func _town_clear(x: float, z: float, r: float) -> bool:
+	if absf(x) < HUB_X + 2.0 and absf(z) < HUB_Z + 2.0: return false
+	if absf(z - ROAD_Z) < 3.4 + r * 0.3: return false
+	if absf(z - town.RIVER_Z) < town.RIVER_HW + 1.5: return false
+	var gx := fposmod(x - TownPlan.OX, TownPlan.PITCH); var gz := fposmod(z - TownPlan.OZ, TownPlan.PITCH)
+	if gx < 2.4 or gx > TownPlan.PITCH - 2.4 or gz < 2.4 or gz > TownPlan.PITCH - 2.4: return false   # 골목
+	for s in SITES:
+		var sc: Vector3 = s["c"]
+		if Vector2(x - sc.x, z - sc.z).length() < float(s["r"]) + 1.0: return false
+		if _seg_dist(Vector2(x, z), Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 3.5: return false
+	var b := CityMap.block_of(Vector2(x, z))
+	if CityMap.whole_block(b) and Vector2(x, z).distance_to(Vector2(CityMap.block_center(b).x, CityMap.block_center(b).z)) < 19.0: return false   # 관공서·공원 블록
+	for l in _lots_near(b):
+		if Vector2(x, z).distance_to(l["c"]) < 6.5 + r * 0.5: return false
+	return true
+
+var _lots_by_block := {}
+func _lots_near(b: Vector2i) -> Array:
+	if _lots_by_block.is_empty():
+		for l in TownPlan.lots():
+			var k: Vector2i = l["b"]
+			if not _lots_by_block.has(k): _lots_by_block[k] = []
+			_lots_by_block[k].append(l)
+	return _lots_by_block.get(b, [])
+
+## 들판의 볼거리 — 들 칸 다섯에 하나: 버섯 고리·바윗들·고사리 숲·꽃밭(모양만, MultiMesh 에 같이 넣는다)
+func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -> void:
+	var c := Vector2(o.x + 8.0 + rng.randf() * (CHUNK - 16.0), o.z + 8.0 + rng.randf() * (CHUNK - 16.0))
+	if wild_k(c.x, c.y) < 0.6 or on_trail(c.x, c.y): return
+	var add := func(id: String, p: Vector2, sc: float) -> void:
+		var h := height(p.x, p.y)
+		if not put.has(id): put[id] = []
+		put[id].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * sc), Vector3(p.x, h - 0.03, p.y)))
+	match rng.randi() % 4:
+		0:
+			for i in 11: add.call(["Mushroom_Common", "Mushroom_Laetiporus"][i % 2], c + Vector2.from_angle(i * TAU / 11.0) * 2.4, 1.1)
+		1:
+			for i in 7: add.call(ROCKS[i % ROCKS.size()], c + Vector2(rng.randfn(0, 3.0), rng.randfn(0, 3.0)), rng.randf_range(1.2, 2.4))
+		2:
+			for i in 16: add.call(["Fern_1", "Plant_7_Big", "Plant_1_Big"][i % 3], c + Vector2(rng.randfn(0, 2.5), rng.randfn(0, 2.5)), rng.randf_range(0.9, 1.5))
+		_:
+			for i in 40: add.call(FLOWERS[i % FLOWERS.size()], c + Vector2(rng.randfn(0, 3.2), rng.randfn(0, 3.2)), rng.randf_range(0.9, 1.4))
 
 ## 모델 하나를 한 번만 읽어 메시 조각과 그 변환(뿌리 기준), 높이를 기억한다 — MultiMesh 재료
 func _model_src(id: String) -> Dictionary:

@@ -18,11 +18,11 @@ static func layouts() -> Array:
 ## 가구 — b: 상자 [크기x,y,z, 자리x,y,z, 빛깔("cloth"=그 집 천, "wood", "metal" 또는 "#hex")], c: 원기둥 [반지름, 높이, x,y,z, 빛깔], s: 공 [반지름, x,y,z, 빛깔], m: 풀 모형 [id, x, z, 배율],
 ## spot: [종류, 앞으로 몇 m, 더할 것] — 종류 sit·bed·read·stove·fridge·pose·emote·play·search·tv·board(town_interior.inner_use). solid: 몸이 막히나(앉는 가구는 아니다)
 const PIECES := {
-	"bed": { "b": [[1.6, 0.35, 2.1, 0, 0, 0, "wood"], [1.5, 0.12, 1.9, 0, 0.35, 0.05, "#f7f4ef"], [1.5, 0.06, 0.7, 0, 0.45, 0.68, "cloth"], [0.7, 0.1, 0.32, 0, 0.47, -0.75, "#efe9e2"]], "spot": ["bed", 0.1], "solid": false },
-	"bed_double": { "b": [[2.2, 0.35, 2.2, 0, 0, 0, "wood"], [2.1, 0.12, 2.0, 0, 0.35, 0.05, "#f7f4ef"], [2.1, 0.06, 0.8, 0, 0.45, 0.62, "cloth"], [0.6, 0.1, 0.32, -0.5, 0.47, -0.78, "#efe9e2"], [0.6, 0.1, 0.32, 0.5, 0.47, -0.78, "#efe9e2"]], "spot": ["bed", 0.1], "solid": false },
-	"bed_low": { "b": [[1.5, 0.15, 2.0, 0, 0, 0, "#efe9e2"], [1.4, 0.05, 0.7, 0, 0.15, 0.6, "cloth"]], "spot": ["bed", 0.1], "solid": false },
-	"bunk": { "b": [[1.0, 0.3, 2.0, 0, 0, 0, "wood"], [1.0, 0.1, 2.0, 0, 1.3, 0, "wood"], [0.08, 1.8, 0.08, 0.46, 0, 0.96, "wood"], [0.08, 1.8, 0.08, -0.46, 0, 0.96, "wood"], [0.9, 0.08, 1.8, 0, 0.3, 0, "cloth"], [0.9, 0.08, 1.8, 0, 1.4, 0, "#ad7096"]], "spot": ["bed", 0.0], "solid": false },
-	"hammock": { "b": [[0.08, 1.6, 0.08, 0, 0, -1.1, "wood"], [0.08, 1.6, 0.08, 0, 0, 1.1, "wood"], [0.7, 0.06, 2.0, 0, 0.75, 0, "cloth"]], "spot": ["bed", 0.0], "solid": false },
+	"bed": { "b": [[1.6, 0.35, 2.1, 0, 0, 0, "wood"], [1.5, 0.12, 1.9, 0, 0.35, 0.05, "#f7f4ef"], [1.5, 0.06, 0.7, 0, 0.45, 0.68, "cloth"], [0.7, 0.1, 0.32, 0, 0.47, -0.75, "#efe9e2"]], "spot": ["bed", 0.1, { "top": 0.58 }], "solid": true },
+	"bed_double": { "b": [[2.2, 0.35, 2.2, 0, 0, 0, "wood"], [2.1, 0.12, 2.0, 0, 0.35, 0.05, "#f7f4ef"], [2.1, 0.06, 0.8, 0, 0.45, 0.62, "cloth"], [0.6, 0.1, 0.32, -0.5, 0.47, -0.78, "#efe9e2"], [0.6, 0.1, 0.32, 0.5, 0.47, -0.78, "#efe9e2"]], "spot": ["bed", 0.1, { "top": 0.58 }], "solid": true },
+	"bed_low": { "b": [[1.5, 0.15, 2.0, 0, 0, 0, "#efe9e2"], [1.4, 0.05, 0.7, 0, 0.15, 0.6, "cloth"]], "spot": ["bed", 0.1, { "top": 0.21 }], "solid": true },
+	"bunk": { "b": [[1.0, 0.3, 2.0, 0, 0, 0, "wood"], [1.0, 0.1, 2.0, 0, 1.3, 0, "wood"], [0.08, 1.8, 0.08, 0.46, 0, 0.96, "wood"], [0.08, 1.8, 0.08, -0.46, 0, 0.96, "wood"], [0.9, 0.08, 1.8, 0, 0.3, 0, "cloth"], [0.9, 0.08, 1.8, 0, 1.4, 0, "#ad7096"]], "spot": ["bed", 0.0, { "top": 0.39 }], "solid": true },
+	"hammock": { "b": [[0.08, 1.6, 0.08, 0, 0, -1.1, "wood"], [0.08, 1.6, 0.08, 0, 0, 1.1, "wood"], [0.7, 0.06, 2.0, 0, 0.75, 0, "cloth"]], "spot": ["bed", 0.0, { "top": 0.82 }], "solid": true },
 	"nightstand": { "b": [[0.5, 0.5, 0.45, 0, 0, 0, "wood"]], "s": [[0.07, 0, 0.6, 0, "#f2c84b"]] },
 	"wardrobe": { "b": [[1.2, 2.0, 0.6, 0, 0, 0, "wood"], [0.02, 1.8, 0.02, 0, 0.1, 0.31, "#4a4a52"]] },
 	"dresser": { "b": [[1.3, 0.9, 0.5, 0, 0, 0, "wood"], [0.5, 0.6, 0.04, 0, 0.95, -0.2, "#bfe3f2"]] },
@@ -209,6 +209,7 @@ static func piece(t: Node, rm: Dictionary, kind: String, at: Vector3, yaw: float
 		var extra: Dictionary = sp[2] if sp.size() > 2 and sp[2] is Dictionary else {}
 		var local := Vector3(side if key == "spot2" else (-0.55 if kind == "sofa" else 0.0), 0, float(sp[1]))
 		var world := at + local.rotated(Vector3.UP, yaw)
+		if extra.has("top"): world.y += float(extra["top"])   # 침대 위 — 누운 몸이 이불에 묻히지 않게(운영자 2026-10-06)
 		t.call("_spot", rm, String(sp[0]), world, yaw + (0.0 if String(sp[0]) in ["sit", "bed"] else PI), extra)
 
 static func _col(t: Node, c: Variant, p: Dictionary) -> Material:

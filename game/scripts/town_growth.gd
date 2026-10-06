@@ -79,7 +79,7 @@ func _draw_site(k: int) -> void:
 	var n: Node3D = _site_nodes[k]
 	for c in n.get_children(): c.queue_free()
 	var l: Dictionary = TownPlan.lots()[k]
-	var c := Vector3(l["c"].x, 0, l["c"].y)
+	var c := TownPlan.spot_of(l)
 	var sp := TownPlan.house_spec(l); var s: Vector3 = sp["size"]
 	var stage := int(float(site_work.get(k, 0.0)) / STAGE_WORK)
 	var wood := _mat(Color("b48a5a")); var dark := _mat(Color("6b4a35"))
@@ -109,7 +109,7 @@ func build_spot(r: ResidentBase) -> Dictionary:
 		var sp: Dictionary = _site_nodes[k].get_meta("spot", {})
 		if sp.is_empty():
 			var s: Vector3 = TownPlan.house_spec(l)["size"]
-			sp = { "pos": Vector3(l["c"].x, 0, l["c"].y + s.z / 2.0 + 0.9), "kind": "build", "yaw": PI, "lot": k }
+			sp = { "pos": TownPlan.spot_of(l) + Vector3(0, 0, s.z / 2.0 + 0.9), "kind": "build", "yaw": PI, "lot": k }
 			_site_nodes[k].set_meta("spot", sp)
 		var d: float = r.global_position.distance_to(sp["pos"])
 		if r._free_slot(sp) >= 0 and d < bd: bd = d; best = sp
@@ -143,7 +143,7 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 	if not live: built = maxi(built, k + 1)
 	_pave(l)
 	var sp := TownPlan.house_spec(l)
-	var c := Vector3(l["c"].x, 0, l["c"].y)
+	var c := TownPlan.spot_of(l)
 	var nd := doors.size()
 	var keep := _build_parent; _build_parent = _built_root
 	_house(c, sp["size"], sp["wall"], sp["roof"], false, sp["seed"])

@@ -40,11 +40,13 @@ func _root_for(at: Vector3) -> Node3D:
 # ── 필지 ──
 func _finish_lot(l: Dictionary, live: bool) -> void:
 	var kind := CityMap.lot_kind(l)
-	var c := Vector3(l["c"].x, 0, l["c"].y)
+	var c := TownPlan.spot_of(l)
 	if kind == "house":
 		var keep_root := _built_root; _built_root = _root_for(c)
+		var had := _done.has(int(l["order"]))
 		super(l, live)
 		_built_root = keep_root
+		if not had: _footpath(l, c)
 		return
 	var k := int(l["order"])
 	if _done.has(k): return
@@ -57,6 +59,7 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		"workshop": _workshop_lot(l, c)
 		_: _green_lot(l, c)
 	_build_parent = keep
+	_footpath(l, c)
 	if live:
 		_dust(c + Vector3(0, 0.5, 0))
 		say_toast("A new %s opened." % ("shop" if kind == "shop" else ("workshop" if kind == "workshop" else "green")))
@@ -166,6 +169,29 @@ func _pave(l: Dictionary) -> void:
 	var keep := _build_parent; _build_parent = _root_for(Vector3(x0 + 20.0, 0, vz))
 	_lamp(Vector3(x0 + 12.3, 0, vz))
 	_tree(Vector3(x0 + 24.5, 0, vz + s * 0.6), 1.0); _tree(Vector3(x0 + 2.0, 0, vz + s * 0.6), 0.95)
+	_build_parent = keep
+
+## 문 앞 흙길 — 문에서 앞으로 나와 골목까지, 집마다 조금씩 다르게 꺾인다(반듯한 자갈 골목 사이의 비포장 오솔길)
+func _footpath(l: Dictionary, c: Vector3) -> void:
+	if CityMap.lot_kind(l) == "green": return
+	var rng := RandomNumberGenerator.new(); rng.seed = hash("path/" + String(l["id"]))
+	var hd := float((TownPlan.house_spec(l)["size"] as Vector3).z) / 2.0
+	var a := c + Vector3(0, 0, hd + 0.9)
+	var keep := _build_parent; _build_parent = _root_for(c)
+	var dirt := _mat(Color("b59a74"))
+	var pts: Array[Vector3] = [a]
+	if int(l["row"]) == 1:   # 앞(남쪽)이 골목 — 두어 번 꺾여 골목 가로
+		var z1: float = float(l["street_z"]) - TownPlan.PATH_W / 2.0
+		pts.append(a + Vector3(rng.randf_range(-1.2, 1.2), 0, (z1 - a.z) * 0.5))
+		pts.append(Vector3(a.x + rng.randf_range(-1.8, 1.8), 0, z1))
+	else:   # 앞이 블록 안쪽 — 앞마당으로 나와 가까운 남북 골목 쪽으로
+		var gx := TownPlan.OX + (int(l["b"].x) + (0 if fposmod(c.x - TownPlan.OX, TownPlan.PITCH) < TownPlan.PITCH / 2.0 else 1)) * TownPlan.PITCH
+		var mid := a + Vector3(rng.randf_range(-0.8, 0.8), 0, rng.randf_range(1.6, 2.6))
+		pts.append(mid); pts.append(Vector3(gx + (1.6 if gx < c.x else -1.6), 0, mid.z + rng.randf_range(-1.0, 1.0)))
+	for k in pts.size() - 1:
+		var p0 := pts[k]; var p1 := pts[k + 1]; var d := p1 - p0
+		var seg := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(d.length() + 0.5, 0.015, rng.randf_range(0.8, 1.1)); seg.mesh = bm; seg.material_override = dirt
+		seg.position = (p0 + p1) / 2.0 + Vector3(0, 0.012, 0); seg.rotation.y = -atan2(d.z, d.x); _add(seg)
 	_build_parent = keep
 
 ## 장소로 가는 길 — 16m 마다 가로등(번갈아 양쪽), 그 사이 나무

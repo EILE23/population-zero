@@ -174,6 +174,7 @@ func _sign_in(rm: Dictionary, text: String) -> void:
 ## 매 물리 프레임(town_social._social_tick 맨 앞) — 문 가까이면 방을 미리, 열린 문으로 걸어 들면 들어가고, 깔개를 밟고 나가면 나간다
 func _inner_tick(now: float, dir: Vector3) -> void:
 	if is_inside():
+		if now >= _near_at: _near_at = now + 0.5; _mirror(now)
 		var o: Vector3 = inside["o"]
 		if body.global_position.z > o.z + float(inside["d"]) / 2.0 - 0.35 and dir.z > 0.3: _leave_room()
 		elif body.global_position.y < -3.0: body.global_position = inside["entry"]   # 떨어지면 입구로
@@ -191,6 +192,55 @@ func _inner_tick(now: float, dir: Vector3) -> void:
 			var shs: Array = shops.filter(func(sh: Dictionary) -> bool: return int(sh["id"]) == int(r.get_meta("shop_id", -1)))
 			r.global_position = (shs[0]["keeper"]["pos"] as Vector3) if not shs.is_empty() else Vector3(0, 0.05, 4)
 
+## 집에 들어가 있는 주민 — 그 집 벽 안에 있거나 그 집 자리(침대·의자)를 잡은 주민을 방에도 세운다(운영자 2026-10-06: "주민이 집에 들어갔는데 막상 들어가 보면 없어").
+## 누웠으면 방 침대에, 앉았으면 의자·소파에, 아니면 부엌·책장 앞에. 다가가면 인사하고, C 로 인사를 나눈다. 나가면 사라진다(진짜 몸은 밖의 집 안에 그대로)
+func _mirror(now: float) -> void:
+	if inside.get("kind", "") != "house": return
+	var dr: Dictionary = doors[inside["door"]]
+	var h: Dictionary = {}
+	for hh in houses:
+		if hh["door"] == dr: h = hh; break
+	var here := {}
+	for r in residents:
+		var p: Vector3 = r.global_position
+		var in_walls: bool = not h.is_empty() and p.x > h["min"].x and p.x < h["max"].x and p.z > h["min"].z and p.z < h["max"].z
+		var on_spot: bool = r.state == "busy" and r.spot.get("door") is Dictionary and r.spot["door"] == dr
+		if in_walls or on_spot: here[r.uid] = r
+	var px: Dictionary = inside.get("proxies", {})
+	for uid in px.keys():
+		if not here.has(uid): (px[uid]["node"] as Node3D).queue_free(); px.erase(uid)
+	var spots: Array = inside["spots"]
+	var used := {}
+	for uid in px: used[px[uid]["spot"]] = true
+	for uid in here:
+		var r: Resident = here[uid]
+		var lying: bool = r.fig.lying or r.fig.pose_request in ["rest", "sky"]
+		var want: String = "bed" if lying else ("sit" if r.fig.seated else "")
+		if px.has(uid) and px[uid]["want"] == want: continue
+		if px.has(uid): (px[uid]["node"] as Node3D).queue_free(); used.erase(px[uid]["spot"])
+		var pick := -1
+		for k in spots.size():
+			var kd := String(spots[k]["kind"])
+			if used.has(k): continue
+			if (want != "" and kd == want) or (want == "" and kd in ["stove", "read", "fridge", "pose", "tv"]): pick = k; break
+		var g := Stick3D.new(); g.color = r.fig.color; g.head_color = r.fig.head_color; (inside["node"] as Node3D).add_child(g)
+		var at: Vector3 = (spots[pick]["pos"] as Vector3) if pick >= 0 else (inside["entry"] as Vector3) - Vector3(0, 0, 2.0)
+		g.global_position = at if want != "" else Vector3(at.x, 0.02, at.z)
+		g.face(float(spots[pick]["yaw"]) + (0.0 if want != "" else PI) if pick >= 0 else PI)
+		if want == "bed": g.pose_request = "rest"
+		elif want == "sit": g.seated = true
+		else: g.pose_request = String(r.fig.pose_request) if r.fig.pose_request != "" else ""
+		var lb := Label3D.new(); lb.text = r.handle; lb.font_size = 40; lb.pixel_size = 0.002; lb.modulate = Color("7b526c"); lb.outline_size = 8; lb.outline_modulate = Color("f7f4ef")
+		lb.billboard = BaseMaterial3D.BILLBOARD_ENABLED; lb.no_depth_test = true; lb.position = Vector3(0, 1.4, 0); g.add_child(lb)
+		px[uid] = { "node": g, "want": want, "spot": pick, "r": r, "said": -999.0 }
+		if pick >= 0: used[pick] = true
+	inside["proxies"] = px
+	for uid in px:   # 다가가면 먼저 한마디(30초에 한 번)
+		var e: Dictionary = px[uid]
+		if body.global_position.distance_to((e["node"] as Node3D).global_position) < 2.2 and now - float(e["said"]) > 30.0:
+			e["said"] = now
+			ChatBox.bubble(e["node"], ["Oh. Hello.", "Come in, then.", "Shoes.", "I was just sitting.", "You found the door."][randi() % 5] if e["want"] != "bed" else "Mm. Sleeping.", 1.7)
+
 func _enter_room(i: int) -> void:
 	var rm := _room(i)
 	_fade_move(func() -> void:
@@ -204,6 +254,8 @@ func _enter_room(i: int) -> void:
 
 func _leave_room() -> void:
 	var dr: Dictionary = doors[inside["door"]]
+	for uid in inside.get("proxies", {}): (inside["proxies"][uid]["node"] as Node3D).queue_free()   # 방에 세운 주민은 나가면 지운다
+	inside["proxies"] = {}
 	_unpaid_check()
 	_fade_move(func() -> void:
 		inside = {}
@@ -233,6 +285,15 @@ func _unpaid_check() -> void:
 func inner_use(now: float) -> bool:
 	if not is_inside(): return false
 	var p := body.global_position
+	for uid in inside.get("proxies", {}):   # 집에 있는 주민에게 인사
+		var e: Dictionary = inside["proxies"][uid]
+		var g: Node3D = e["node"]
+		if p.distance_to(g.global_position) < 1.3:
+			player.pose_request = "wave"; use_until = now + 1.2; action_until = now + 0.3
+			player.face(atan2(g.global_position.x - p.x, g.global_position.z - p.z))
+			var r: Resident = e["r"]
+			ChatBox.bubble(g, r.mind.line("greet_fond") if r.mind.fond > 0.3 else (r.mind.line("greet_cold") if r.mind.fond < -0.3 else r.mind.line("greet_new")), 1.7)
+			return true
 	var best: Dictionary = {}; var bd := 1.25
 	for sp in inside["spots"]:
 		var d := Vector2(p.x - sp["pos"].x, p.z - sp["pos"].z).length()

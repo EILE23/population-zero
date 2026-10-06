@@ -45,6 +45,11 @@ static func _ok(c: Vector2) -> bool:
 		if c.distance_to(Vector2(pk["c"].x, pk["c"].z)) < float(pk["r"]) * 0.9: return false
 	return true
 
+## 집이 실제로 서는 자리 — 필지 가운데에서 조금씩 앞뒤·좌우로(운영자 2026-10-06: "너무 규칙적이니까 별로") — 필지 순번마다 늘 같다
+static func spot_of(l: Dictionary) -> Vector3:
+	var rng := RandomNumberGenerator.new(); rng.seed = hash("at/" + String(l["id"]))
+	return Vector3(l["c"].x + rng.randf_range(-1.5, 1.5), 0, l["c"].y + rng.randf_range(-1.1, 1.1))
+
 static func _seg(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab := b - a
 	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
