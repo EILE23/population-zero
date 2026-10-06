@@ -23,6 +23,8 @@ const HELP := [
 	["EMOTES", "1 wave · 2 cheer · 3 bow · 4 dance · 5 lie down"],
 	["PEOPLE", "X next to a player: shove"],
 	["CAMERA", "mouse wheel or - / =   (zoom out over the town)"],
+	["ACCOUNT", "S sign in (desktop: connects through your browser) · Shift+S sign out"],
+	["UPDATE", "F9 restart into a downloaded update · U download page"],
 	["HELP", "H"],
 ]
 
@@ -32,8 +34,13 @@ var emote_until := 0.0
 var typing: bool:
 	get: return chat != null and chat.busy()
 
+var _who: Label   # 오른쪽 위 한 줄 — 버전 · 계정(또는 S 안내·연결 코드) · 업데이트
+
 func _social_init() -> void:
 	var ui := get_node("UI") as CanvasLayer
+	_who = Label.new(); _who.set_anchors_preset(Control.PRESET_TOP_RIGHT); _who.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _who.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_who.position = Vector2(-12, 8); _who.add_theme_color_override("font_color", Color("7b526c")); _who.add_theme_color_override("font_outline_color", Color("f7f4ef")); _who.add_theme_constant_override("outline_size", 6); _who.add_theme_font_size_override("font_size", 13)
+	ui.add_child(_who)
 	chat = ChatBox.new(); chat.me_node = body; ui.add_child(chat)
 	var h := KeyHelp.new(); h.chat = chat; h.setup("CONTROLS — TOWN", HELP); ui.add_child(h)
 
@@ -51,6 +58,11 @@ func _unhandled_key_input(e: InputEvent) -> void:
 	if not e.pressed or e.echo or typing or driving or game_node != null: return
 	var k: int = (e as InputEventKey).keycode
 	if EMOTES.has(k): _emote(String(EMOTES[k]))
+	elif k == KEY_S and net and net.account:
+		if (e as InputEventKey).shift_pressed: net.account.sign_out()
+		else: net.account.sign_in()
+	elif k == KEY_F9 and net and net.update: net.update.apply(true)
+	elif k == KEY_U and net and net.update and net.update.status == "full": net.update.open_download()
 
 func _emote(e: String) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -61,6 +73,7 @@ func _emote(e: String) -> void:
 
 ## 매 물리 프레임(town_player 맨 앞) — 감정 표현 진행·끝(움직이거나 기술을 쓰면 끊긴다), X 밀치기
 func _social_tick(now: float, dir: Vector3) -> void:
+	if _who and int(now * 2.0) != int((now - 0.02) * 2.0): _who.text = _who_line()
 	if emote != "":
 		var dance := emote in ["cheer", "bow", "dance"]
 		if now > emote_until or dir != Vector3.ZERO or driving or (dance and player.move != emote):
@@ -92,3 +105,13 @@ func _on_room(m: Dictionary) -> void:
 	player.action = "flinch"; player.action_t = 0.0; action_until = Time.get_ticks_msec() / 1000.0 + FightPoses.FLINCH_T
 	var by: Dictionary = net.others.get(int(m.get("uid", m.get("by", 0))), {})
 	say_toast("%s shoved you." % String(by.get("handle", "Someone")))
+
+func _who_line() -> String:
+	var parts: Array[String] = ["v" + PozUpdate.version()]
+	if net == null: pass
+	elif net.account and net.account.status == "linking": parts.append("Code %s — press Connect in your browser (S opens it again)" % net.account.code)
+	elif not net.guest: parts.append(net.handle + (" · %d here" % net.online() if net.online() > 1 else ""))
+	elif net.account: parts.append("Guest — press S to sign in")
+	else: parts.append("Guest")
+	if net and net.update and net.update.line() != "": parts.append(net.update.line())
+	return "  ·  ".join(parts)

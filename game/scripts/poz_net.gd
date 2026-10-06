@@ -6,6 +6,7 @@ extends Node
 ## 3) 방: wss://population.town/ws/poz/<town|climb|race>?t=토큰 — 사이트의 방 코드(위치·자세·채팅·hitp 중계)를 그대로 쓴다. 비로그인은 보기만.
 ##    방마다 좌표를 방 칸에 싣는 법은 보내는 쪽(마을·게임)이 정한다 — 여기선 받은 값을 넘겨주고(ghost_place), 이름표 달린 졸라맨(Stick3D)을 세운다.
 ## 위치는 10Hz, 끊기면 3초 뒤 다시 붙는다. 네트워크가 없거나 막혀도 게임은 혼자 계속 된다
+## 데스크톱 클라이언트: 입장권 대신 기기 연결 로그인(poz_account.gd, S), 자동 업데이트(client_update.gd) — 서버·저장·방은 웹판과 같다
 
 const API := "https://population.town"
 const WS := "wss://population.town/ws/poz/"
@@ -32,10 +33,25 @@ var _last_saved := ""
 var _loaded := false
 var _retry_at := -1.0
 var _http: HTTPRequest
+var account: PozAccount = null        # 데스크톱만
+var update: PozUpdate = null          # 내보낸 Windows 판만
 
 func _ready() -> void:
 	name = "PozNet"
 	_http = HTTPRequest.new(); add_child(_http)
+	if not OS.has_feature("web"):
+		account = PozAccount.new(); account.net = self; add_child(account)
+		if PozUpdate.enabled(): update = PozUpdate.new(); add_child(update)
+
+## 로그인됨(데스크톱 기기 연결) — 저장을 받고, 들어가 있던 방에 내 이름으로 다시
+func signed_in(t: String, h: String) -> void:
+	token = t; handle = h; guest = false; _loaded = false
+	_load_save()
+	if room != "": join(room)
+
+func signed_out() -> void:
+	token = ""; handle = ""; guest = true; _loaded = false
+	if room != "": join(room)
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -189,11 +205,16 @@ func _ghosts(delta: float) -> void:
 # ── 저장 ──
 func _load_save() -> void:
 	if token == "": return
-	_http.request_completed.connect(_on_loaded, CONNECT_ONE_SHOT)
+	_http.cancel_request()   # 올리던 중이면 접고 받기부터(받은 뒤 다시 올린다)
+	if not _http.request_completed.is_connected(_on_loaded): _http.request_completed.connect(_on_loaded, CONNECT_ONE_SHOT)
 	_http.request(API + "/api/game/save", ["Authorization: Bearer " + token])
 
 func _on_loaded(_result: int, code: int, _h: PackedStringArray, body: PackedByteArray) -> void:
 	_loaded = true
+	if code == 401 and account != null:   # 웹에서 로그아웃했거나 세션이 끝났다 — 이 기기의 토큰을 버린다
+		account.forget()
+		if town and town.has_method("say_toast"): town.call("say_toast", "Signed out. Press S to sign in again.")
+		return
 	if code != 200 or town == null: return
 	var d: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not (d is Dictionary): return
