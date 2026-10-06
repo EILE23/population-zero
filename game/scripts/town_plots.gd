@@ -171,9 +171,10 @@ func build_spot_of(k: int) -> Dictionary:
 		n.set_meta("spot", sp)
 	return sp
 
-## 망치질 — 2.5초 hammer 자세, 끝나면 일 한 단위(건축가와 같은 build_work). 누구 공사장이든 도울 수 있다
+## 망치질 — 2.5초 hammer 자세, 끝나면 일 한 단위(건축가와 같은 build_work). 누구 공사장이든 도울 수 있다; 남의 집이면 품삯(money 1, town_wages), 제 집이면 없다
 func site_use(sp: Dictionary, now: float) -> void:
 	if not _site_nodes.has(int(sp["lot"])): return
 	player.face(float(sp["yaw"])); player.pose_request = "hammer"; use_until = now + 2.5; action_until = now + 2.5
+	var by: Variant = null if _is_mine(int(sp["lot"])) else "player"
 	get_tree().create_timer(2.4).timeout.connect(func() -> void:
-		if player.pose_request == "hammer": build_work(sp))
+		if player.pose_request == "hammer": build_work(sp, by))

@@ -46,5 +46,5 @@ func _build_arrive(now: float) -> bool:
 	fig.face(sp.get("yaw", PI)); fig.pose_request = "hammer"; busy_until = now + town.WORK_T
 	say(["Morning.", "Another wall.", "Mind the planks.", "Nearly there."][randi() % 4], 1.6)
 	get_tree().create_timer(town.WORK_T - 0.2).timeout.connect(func() -> void:
-		if state == "busy" and spot == sp: town.call("build_work", sp))
+		if state == "busy" and spot == sp: town.call("build_work", sp, self))   # 일 한 단위에 품삯 하나(money 1, town_wages)
 	return true

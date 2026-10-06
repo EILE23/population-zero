@@ -192,7 +192,7 @@ func _wheel(delta: float, now: float) -> void:
 	(wheel["spark"] as CPUParticles3D).emitting = k > 0.95
 	if sharp_at < 0.0 or now < sharp_at: return
 	sharp_at = -1.0
-	if w != null and player.pose_request == "wait": w.say("Sharp.", 1.6)
+	if w != null and player.pose_request == "wait": w.say("Sharp.", 1.6); call("wage", w, "cutler", 1.8)
 
 ## 지금 작업대에서 망치질하는 구두장이(주민) — 없으면 null. 손님은 이 사람이 있을 때만 온다
 func cobbler_at_work() -> ResidentBase:
@@ -239,7 +239,7 @@ func _trades(delta: float, now: float) -> void:
 	var w := cobbler_at_work()
 	if w == null or not seat.get("chair", false) or cobbler.is_empty() or (seat["pos"] as Vector3) != cobbler["stool"]["pos"]: return
 	walked = 0.0; _sole_told = false
-	w.say("Resoled.", 1.6)
+	w.say("Resoled.", 1.6); call("wage", w, "cobbler", 1.8)   # 손님 하나에 품삯 하나(money 1, town_wages) — "Resoled." 뒤에 한마디
 
 ## 사람이 걸상에서 꿰매 받는 중이면 한 바퀴 뒤에 찢어진 곳이 없어진다(재봉사가 떠났거나 사람이 일어났으면 없던 일)
 func _mend(now: float) -> void:
@@ -249,4 +249,4 @@ func _mend(now: float) -> void:
 	mend_at = -1.0
 	var w := tailor_at_work()
 	if w == null or tailor.is_empty() or not seat.get("chair", false) or (seat["pos"] as Vector3) != tailor["fitting"]["pos"]: return
-	Wear.mend(player.worn.get("back")); w.say("There.", 1.6)
+	Wear.mend(player.worn.get("back")); w.say("There.", 1.6); call("wage", w, "tailor", 1.8)

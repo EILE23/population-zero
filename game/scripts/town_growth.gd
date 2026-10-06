@@ -119,10 +119,11 @@ func build_spot(r: ResidentBase) -> Dictionary:
 		if r._free_slot(sp) >= 0 and d < bd: bd = d; best = sp
 	return best
 
-## 일 한 단위(건축가 25초) — 단계가 오르면 모습이 바뀌고, 다 쌓이면 집이 선다
-func build_work(sp: Dictionary) -> void:
+## 일 한 단위(건축가 25초) — 단계가 오르면 모습이 바뀌고, 다 쌓이면 집이 선다. by(주민 또는 "player")가 있으면 품삯(town_wages); null 이면 없다(제 집, 점검)
+func build_work(sp: Dictionary, by: Variant = null) -> void:
 	var k: int = sp["lot"]
 	if not _site_nodes.has(k): return
+	if by != null and has_method("wage"): call("wage", by, "build")
 	var before := int(float(site_work.get(k, 0.0)) / STAGE_WORK)
 	site_work[k] = float(site_work.get(k, 0.0)) + 1.0
 	var after := int(float(site_work[k]) / STAGE_WORK)

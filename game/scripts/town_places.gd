@@ -278,10 +278,13 @@ func _bakery(now: float) -> void:
 	(oven["dough"] as Node3D).scale = Vector3(1.0 + 0.25 * sq, 1.0 - 0.3 * sq, 1.0 + 0.25 * sq)
 	if now < float(oven["done_at"]): return
 	var c: Dictionary = oven["counter"]
+	var landed: bool = int(c.get("stock", 0)) < 3   # 셋이 찼으면 자세만 — 빵도 품삯도 없다
 	c["stock"] = mini(3, int(c.get("stock", 0)) + 1); _show_stock(c)
 	var q := int(oven["queue"]) - 1
 	oven["queue"] = q; oven["done_at"] = now + StickPoses.KNEAD_T
 	if q <= 0: _oven_stop()
+	if landed and has_method("wage"): call("wage", by, "bread", 0.0 if q <= 0 else -1.0)   # 품삯(money 1, town_wages): 오른 빵 하나에 하나 — 주민은 줄이 끝날 때 한마디, 사람은 토스트
+	elif not landed and by is String: call("say_toast", "The rack is full.")   # 토스트는 systems 층(위층) — 이름으로 부른다
 
 ## 빵집 주인이 화덕에 갈 이유(resident.gd _pick_spot) — 창구가 덜 찼고, 판이 비었고, 빈손이면 화덕 자리. 아니면 {}
 func bake_spot(r: ResidentBase) -> Dictionary:

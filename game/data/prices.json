@@ -1,5 +1,5 @@
 {
-  "_": "Town prices in coins (owner 2026-10-06: real currency). buy = what a counter charges for its item; sell = what any staffed counter pays for an item you hand over. Every price that gates something must have an earning path nearby (sell, prizes, wages). Never real money.",
+  "_": "Town prices in coins (owner 2026-10-06: real currency). buy = what a counter charges for its item; sell = what any staffed counter pays for an item you hand over. wage = what a job pays per unit (a loaf landed, a work unit hammered, a customer served) to residents and to the player alike. Every price that gates something must have an earning path nearby (sell, prizes, wages). Never real money.",
   "buy": {
     "bread": 2,
     "cup": 2,
@@ -17,6 +17,13 @@
     "fish": 3,
     "log": 1,
     "book": 1
+  },
+  "wage": {
+    "bread": 1,
+    "build": 1,
+    "cobbler": 1,
+    "cutler": 1,
+    "tailor": 1
   },
   "prize": {
     "climb_per_m": 0.05,

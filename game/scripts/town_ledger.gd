@@ -5,7 +5,7 @@ extends TownBusk
 ## 거절은 없다: 장부는 기억만 하지 창구를 막지 않는다(평범한 결과 100%). 외상이 있고 동전이 있는 주민은 하루 한 번 장부로(mind.score 의 +3 × tab 항, resident_ledger) —
 ## 제 줄을 읽고(scan, run 100) 한숨 쉬고(sigh, stick3d_ledger.gd) 그릇에 한 닢 stoop(악사 모자의 tip 사슬, town_busk — 0.12 에 주머니에서 손으로, STOOP_IN 에 그릇으로) → tab −1.
 ## 사람도 장부 앞에서 C — 같은 세 박자로 제 줄을 읽고 동전이 있으면 한 닢(C 한 번에 하나). 외상이 없으면 읽기만. 빵집 주인은 17시(closing)에 그릇의 동전을 stoop 으로 거둔다(resident_ledger, palm_till 의 사슬).
-## 사슬: … → coins → busk → **ledger** → player → town3d
+## 사슬: … → coins → busk → **ledger** → growth → city → plots → interior → cabin → social → wages(town_wages.gd, 품삯 — run 113) → player → town3d
 
 const TURN_T := PostPoses.SCAN_T + LedgerPoses.SIGH_T + CoinPoses.STOOP_T   # 한 차례: 읽기 → 한숨 → 한 닢
 

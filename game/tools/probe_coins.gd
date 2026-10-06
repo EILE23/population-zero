@@ -52,7 +52,7 @@ func _init() -> void:
 	# 창구: 동전 하나로 빵을 사면 접시에 쌓이고, 빈 주머니면 그냥 받는다; 주민은 제 주머니에서
 	var sp: Dictionary = town.spots.filter(func(s): return s["kind"] == "counter" and s.has("stock"))[0]
 	sp["stock"] = 3; town._show_stock(sp)
-	town._set_coins(1)
+	town._set_coins(town.price_of(sp))   # 값대로(진짜 화폐, prices.json — 빵 2; 전엔 1 이라 can_pay 가 막아 접시가 안 생겼다)
 	b.global_position = sp["pos"]; town.player.rotation.y = PI
 	while town.player.carrying: town.player.release(town, Vector3.ZERO).queue_free()
 	town.action_until = 0.0
