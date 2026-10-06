@@ -13,9 +13,10 @@ const ROWS := [
 	["Use", "act", "Use · doors · sit · get in (hold: carry furniture)"],
 	["People", "chat", "Chat"], ["People", "emote_1", "Wave"], ["People", "emote_2", "Cheer"], ["People", "emote_3", "Bow"], ["People", "emote_4", "Dance"], ["People", "emote_5", "Lie down"],
 	["Camera", "zoom_in", "Zoom in"], ["Camera", "zoom_out", "Zoom out"],
+	["Car", "car_view", "Car view: town · chase · driver's seat"], ["Car", "horn", "Horn"], ["Car", "lights", "Headlights"], ["Car", "radio", "Radio (next station)"],
 	["Menu", "controls", "Controls (this screen)"], ["Menu", "sign_in", "Sign in (desktop)"],
 ]
-const EXTRA := { "chat": KEY_ENTER, "emote_1": KEY_1, "emote_2": KEY_2, "emote_3": KEY_3, "emote_4": KEY_4, "emote_5": KEY_5, "zoom_in": KEY_EQUAL, "zoom_out": KEY_MINUS, "controls": KEY_H, "sign_in": KEY_S }
+const EXTRA := { "chat": KEY_ENTER, "emote_1": KEY_1, "emote_2": KEY_2, "emote_3": KEY_3, "emote_4": KEY_4, "emote_5": KEY_5, "zoom_in": KEY_EQUAL, "zoom_out": KEY_MINUS, "controls": KEY_H, "sign_in": KEY_S, "car_view": KEY_V, "horn": KEY_Q, "lights": KEY_L, "radio": KEY_R }
 const NOTES := "Mouse wheel zooms too. Double-tap a direction to dash. In a car: Up/Down drive, Left/Right steer, Jump = handbrake drift, Use = get out. Next to a resident's car: Use rides along, Punch at the door pulls the driver out."
 
 var town: Node = null
