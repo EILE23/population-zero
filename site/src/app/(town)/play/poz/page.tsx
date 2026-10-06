@@ -1,9 +1,6 @@
-import type { Metadata } from 'next';
-import { PozPage } from '@/features/play/PozPage';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'POZ — the town, playable', description: 'The 3D town you can walk into: residents, animals, houses you can enter, swings, fights, coffee. Runs in the browser.' };
-
+// 2026-10-06: 게임은 홈(/)에 있다 — 예전 링크는 그리로
 export default function Page() {
-  return <PozPage />;
+  redirect('/');
 }

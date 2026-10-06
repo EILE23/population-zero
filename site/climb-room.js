@@ -18,6 +18,7 @@ const CONTROL = new RegExp('[\\u0000-\\u0009\\u000b-\\u001f\\u007f]', 'g');
 const MAX_RAW = 2048;          // 메시지 한 개의 바이트 상한
 const POS_INTERVAL = 66;       // 위치 중계 최소 간격 ms (≈15Hz) — 클라이언트 권장 10~15Hz 를 서버가 강제한다
 const EV_PER_SEC = 10;         // 세계 이벤트 초당 상한 (연결당)
+const CHAT_BURST = 5, CHAT_WINDOW = 10000; // 채팅: 10초에 5줄까지(도배만 막는다). 전엔 깨어 있는 동안 60줄 누적 상한이라 게임 채팅엔 빡빡했다(2026-10-06)
 const LOOSE_MAX = 200;         // 바닥에 놓인 물건 상한 — 넘치면 가장 오래된 것부터
 const SAVE_MS = 5000, FALLBACK_MS = 30000;
 
@@ -29,7 +30,7 @@ export class ClimbRoom extends DurableObject {
     this.savedBest = new Map(); // uid → D1 에 마지막으로 쓴 best. 5초 저장 시점의 bestUp 만 보면 그 사이의 최고점을 놓친다(실측)
     this.lastPos = new Map();   // uid → 마지막 위치 중계 시각
     this.evTimes = new Map();   // uid → 최근 1초의 이벤트 시각들
-    this.chatCount = new Map();
+    this.chatTimes = new Map(); // uid → 최근 CHAT_WINDOW 의 채팅 시각들
     this.world = null;      // { loose: {id: item}, broken: {key: {hp, brokeAt}}, npc: {who: override} } — 광장의 공유 상태
     this.worldSavedAt = 0;
   }
@@ -201,8 +202,10 @@ export class ClimbRoom extends DurableObject {
       if (!att.uid) return;
       const body = String(m.body ?? '').replace(CONTROL, '').replace(/\s+/g, ' ').trim().slice(0, 140);
       if (!body) return;
-      const n = (this.chatCount.get(att.uid) ?? 0) + 1; this.chatCount.set(att.uid, n);
-      if (n > 60) return; // 이 DO 가 깨어 있는 동안 60줄이면 충분하다
+      const now = Date.now();
+      const times = (this.chatTimes.get(att.uid) ?? []).filter((t) => now - t < CHAT_WINDOW);
+      if (times.length >= CHAT_BURST) return;
+      times.push(now); this.chatTimes.set(att.uid, times);
       this.broadcast({ t: 'chat', uid: att.uid, handle: att.handle, body });
     }
   }

@@ -13,8 +13,8 @@ import { usePathname } from 'next/navigation';
 // /memes 의 이름이 'Shitposts' 인 이유: 한 장짜리 병맛 그림판을 인터넷이 부르는 말이 그것이라서. 주소는 그대로.
 const SECTIONS = [
   // 2026-09-28: 게임이 사이트의 얼굴이다. 홈이 광장이고, 글 피드는 Community 로 내려왔다.
-  { href: '/', label: 'Square', match: (p: string) => p === '/' || p.startsWith('/square') },
-  { href: '/play', label: 'Play', match: (p: string) => p.startsWith('/play') || p.startsWith('/climb') },
+  // 2026-10-06: 예전 웹 Square 와 Play 를 합친 것이 POZ 게임이다 — 한 칸. 예전 페이지들(/square·/climb·/play)은 참고용 코드로만 남는다
+  { href: '/', label: 'Play', match: (p: string) => p === '/' || p.startsWith('/square') || p.startsWith('/play') || p.startsWith('/climb') },
   { href: '/memes', label: 'Shitposts', match: (p: string) => p.startsWith('/memes') || p.startsWith('/m/') },
   { href: '/community', label: 'Community', match: (p: string) => p.startsWith('/community') || p.startsWith('/p/') || p.startsWith('/blogs') },
   { href: '/news', label: 'News', match: (p: string) => p.startsWith('/news') },
