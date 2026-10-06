@@ -61,9 +61,9 @@ const THEMES := [
 var fig: Stick3D
 var chat: ChatBox
 const HELP := [
-	["WALK", "← →"],
+	["WALK", "Left/Right"],
 	["JUMP", "hold SPACE to charge, release to jump"],
-	["HOLDS", "↑ grab a hold · SPACE from a hold: jump off it"],
+	["HOLDS", "Up grab a hold · SPACE from a hold: jump off it"],
 	["WALLS", "above 1 km: sheer walls need an ice axe (one per axe, first come)"],
 	["SHOVE", "X next to another climber"],
 	["CAMPS", "C at a camp door: leave here, start here next time"],
@@ -497,7 +497,7 @@ func _hud(now: float) -> void:
 	if fl != _floor_shown and n % REST_EVERY == 0 and n > 0: _floor_shown = fl; _say("Floor %d · %s" % [n, theme(n)[0]], 2.2)
 	var m := y * K
 	var g := ("   ice axe" if gear != "" else "") + ("   grip %d%%" % int(stamina * 100.0) if not hanging.is_empty() or not holding.is_empty() or stamina < 0.99 else "")
-	hud.text = "CLIMB   %d m   best %d m   floor %d   %s%s\n← → walk · hold SPACE to charge, release to jump · ↑ grab a hold · C at a door: leave here · H controls · Enter chat · Esc: leave" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]
+	hud.text = "CLIMB   %d m   best %d m   floor %d   %s%s\nLeft/Right walk · hold SPACE to charge, release to jump · Up grab a hold · C at a door: leave here · H controls · Enter chat · Esc: leave" % [int(m), int(maxf(best, top * K)), n, _clock(now - t0), g]
 	if now > _banner_until and not _leaving: banner.text = ""
 
 static func _clock(s: float) -> String:
@@ -609,7 +609,7 @@ func _pickup() -> void:
 				gear = g["id"]
 				if g.has("node") and is_instance_valid(g["node"]): (g["node"] as Node3D).queue_free()
 				(_gear_at[k] as Array).erase(g)
-				_say("Ice axe! Jump into a rock wall to grab it · ↑↓ climb · SPACE leap", 4.0)
+				_say("Ice axe! Jump into a rock wall to grab it · Up/Down climb · SPACE leap", 4.0)
 				return
 
 ## 발밑 그림자 — 내 아래(앞뒤 같은 줄) 가장 높은 발판 위에 짙은 원. 2.5D 에서 착지 자리를 읽는 단서

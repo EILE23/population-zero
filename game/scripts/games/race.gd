@@ -167,13 +167,13 @@ func _physics_process(delta: float) -> void:
 		if ahead or (done_at < 0.0 and int(r["lap"]) * N + int(r["idx"]) > int(me["lap"]) * N + int(me["idx"])): pos += 1
 	if float(me["done_at"]) > 0.0 and done_at < 0.0: done_at = float(me["done_at"]); place = pos
 	if not started:
-		hud.text = "RACE   %d\n↑ ↓ drive · ← → steer · SPACE drift · Esc leave" % int(ceil(go_at - now))
+		hud.text = "RACE   %d\nUp/Down drive · Left/Right steer · SPACE drift · Esc leave" % int(ceil(go_at - now))
 	elif done_at > 0.0:
 		hud.text = "Finished %s.   best lap %s" % [["1st", "2nd", "3rd"][place - 1], _t(best_lap)]
 		if now - done_at > 4.0: _leave()
 	else:
 		var lap_t := now - float(me["lap_t0"]) if int(me["lap"]) > 0 else 0.0
-		hud.text = "RACE   lap %d/%d   P%d   %s   last %s   best %s\n↑ ↓ drive · ← → steer · SPACE drift · Esc leave" % [clampi(int(me["lap"]), 1, LAPS), LAPS, pos, _t(lap_t), _t(last_lap), _t(best_lap if best_lap > 0.0 and (best <= 0.0 or best_lap < best) else best)]
+		hud.text = "RACE   lap %d/%d   P%d   %s   last %s   best %s\nUp/Down drive · Left/Right steer · SPACE drift · Esc leave" % [clampi(int(me["lap"]), 1, LAPS), LAPS, pos, _t(lap_t), _t(last_lap), _t(best_lap if best_lap > 0.0 and (best <= 0.0 or best_lap < best) else best)]
 	if Input.is_action_just_pressed("ui_cancel"): _leave()
 
 func _t(s: float) -> String:

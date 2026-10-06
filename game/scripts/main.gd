@@ -11,7 +11,7 @@ var cam: float = 0.0
 func _ready() -> void:
 	player.world_w = stage.world_w
 	cam = clampf(player.x - Stage.W / 2.0, 0.0, stage.world_w - Stage.W)
-	legend.text = "← → ↑ ↓ move · SPACE hold, release to jump · X punch · Z kick"
+	legend.text = "Arrows move · SPACE hold, release to jump · X punch · Z kick"
 
 func _process(delta: float) -> void:
 	cam = Stage.follow(cam, player.x, stage.world_w, delta)

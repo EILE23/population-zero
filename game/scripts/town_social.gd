@@ -9,15 +9,15 @@ extends TownGrowth
 const EMOTES := { KEY_1: "wave", KEY_2: "cheer", KEY_3: "bow", KEY_4: "dance", KEY_5: "sky" }
 const EMOTE_T := 2.6
 const HELP := [
-	["MOVE", "← → ↑ ↓   (double-tap: dash)"],
+	["MOVE", "Arrows   (double-tap: dash)"],
 	["JUMP", "SPACE   (hold: higher)"],
-	["PUNCH", "X   again: jab → cross → hook → uppercut"],
-	["KICK", "Z   again: front → push kick → roundhouse"],
+	["PUNCH", "X   again: jab > cross > hook > uppercut"],
+	["KICK", "Z   again: front > push kick > roundhouse"],
 	["MIX", "X after Z: backfist · Z after X: knee"],
 	["IN THE AIR", "X hammer · Z flying kick"],
 	["USE", "C   pick up, sit, doors, give, sell, game doors, cars"],
 	["CARRY / THROW", "C on furniture · hold X while holding"],
-	["CAR", "↑ ↓ drive · ← → steer · SPACE drift (boost) · C out"],
+	["CAR", "Up/Down drive · Left/Right steer · SPACE drift (boost) · C out"],
 	["SOMEONE'S CAR", "C: ride along · X at the door: pull them out"],
 	["CHAT", "Enter: type · Enter: send · Esc: close"],
 	["EMOTES", "1 wave · 2 cheer · 3 bow · 4 dance · 5 lie down"],

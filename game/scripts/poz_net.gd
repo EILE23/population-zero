@@ -54,8 +54,15 @@ func _process(delta: float) -> void:
 	elif room != "" and _retry_at > 0.0 and _t >= _retry_at:
 		_retry_at = -1.0; _open()
 	_ghosts(delta)
+	if OS.has_feature("web") and int(_t / 5.0) != int((_t - delta) / 5.0) and _t < 40.0: _diag()
 	if _loaded and not guest and _t >= _save_at:
 		_save_at = _t + SAVE_EVERY; _upload_if_changed()
+
+## 웹 점검(브라우저 콘솔, 처음 40초 5초마다) — 웹에서 3D 가 비어 보였을 때(2026-10-06) 카메라·그린 물체 수를 본다
+func _diag() -> void:
+	var c := get_viewport().get_camera_3d()
+	print("POZ diag t=%d fps=%d cam=%s far=%s objects=%d prims=%d draws=%d vp=%s" % [int(_t), Engine.get_frames_per_second(), str(c.global_position) if c else "none", str(c.far) if c else "-",
+		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), str(get_viewport().get_visible_rect().size)])
 
 ## 입장권 읽기(웹만) — /play/poz 가 건넨 토큰, 또는 구경꾼 표시
 func _read_ticket() -> void:
