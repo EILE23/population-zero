@@ -386,6 +386,9 @@ func _physics_process(delta: float) -> void:
 			var px := plat_x(on, _t)
 			if x + HW <= px or x - HW >= px + on["w"] or _crumbled.has(on["id"]) or absf(z - float(on.get("z", 0.0))) >= float(on.get("d", 999.0)) / 2.0 + HZ: on = {}; apex = y
 	if not on.is_empty(): stamina = minf(1.0, stamina + dt * 0.6)
+	if y < 0.0:   # 맨 아래는 땅 — 어디로 걸어 나가도 꺼지지 않는다(운영자 2026-10-06: 바닥 앞뒤 끝 밖으로 나가 끝없이 떨어졌다)
+		y = 0.0; vy = 0.0; vx = 0.0; vz = 0.0; on = band(0)[0]; apex = 0.0
+	if y < 1.0: z = clampf(z, -DEPTH_HALF, DEPTH_HALF)   # 바닥에선 앞뒤도 땅 안에서
 	_after_step(now, locked)
 
 func _after_step(now: float, locked: bool) -> void:
