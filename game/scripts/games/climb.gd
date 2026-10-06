@@ -424,6 +424,7 @@ func _after_step(now: float, locked: bool) -> void:
 	_hud(now)
 	if not locked and Input.is_action_just_pressed("act") and not on.is_empty() and on["kind"] == "rest" and on.has("node"): _exit_here(on)
 	if not _leaving and Input.is_action_just_pressed("ui_cancel"): _leave({})
+	if not locked and Input.is_action_just_pressed("hit"): _shove()   # X 밀치기(같이 오르는 사람)
 
 ## 무너지는 발판: 밟고 0.6초 흔들리다 사라지고 3초 뒤 돌아온다
 func _crumble(now: float) -> void:
@@ -633,3 +634,40 @@ func _hold(dt: float, dir: float, dirz: float, jump_held: bool) -> void:
 	if dirz > 0.0 or stamina <= 0.0:
 		if stamina <= 0.0: _say("Slipped.", 1.0)
 		holding = {}; vy = 0.0; charge = 0.0; apex = y
+
+# ── 같이 오르기(poz_net, 방 "climb") — 남의 졸라맨이 같은 절벽에 보이고, X 로 곁(좌우 60px·위아래 70px)의 사람을 밀친다(hitp).
+# 밀린 사람 화면에서 그 사람이 튕겨 난다(운영자 2026-10-06: "Climb 에서 싸워서 밀쳐가지고 애들 떨굴 수도 있어야") ──
+var _net: PozNet
+
+func net_attach(n: Node) -> void:
+	_net = n as PozNet
+	_net.ghost_parent = self
+	_net.ghost_place = func(o: Dictionary) -> Transform3D:
+		return Transform3D(Basis(Vector3.UP, PI / 2.0 if int(o.get("face", 1)) > 0 else -PI / 2.0), to3(float(o.get("x", 0.0)), float(o.get("y", 0.0)), PLAYER_Z * K))
+	_net.pos_source = func() -> Dictionary:
+		var pose := "climb" if (not hanging.is_empty() or not holding.is_empty()) else ("jump" if on.is_empty() else ("walk" if absf(vx) > 20.0 else "stand"))
+		return { "x": x, "y": y, "z": 0, "pose": pose, "face": 1 if face > 0.0 else -1, "s": "", "m": "climb" }
+	_net.message.connect(_on_net)
+	_net.join("climb")
+
+func _on_net(m: Dictionary) -> void:
+	if String(m.get("t", "")) != "ev": return
+	var ev: Dictionary = m.get("ev", {})
+	if String(ev.get("k", "")) != "hitp" or int(ev.get("who", 0)) != _net.me: return
+	# 내가 밀렸다 — 매달림·손잡이를 놓치고 옆·위로 튕긴다
+	hanging = {}; holding = {}; on = {}; charge = 0.0
+	vx = float(ev.get("dx", 0.0)) * 40.0; vy = float(ev.get("dy", 0.0)) * 80.0; apex = y
+	fig.squash = 0.8
+	_say("Shoved!", 1.0)
+
+func _shove() -> void:
+	if _net == null: return
+	for id in _net.others:
+		var o: Dictionary = _net.others[id]
+		if String(o.get("m", "")) != "climb": continue
+		var dx := float(o.get("x", 0.0)) - x; var dy := float(o.get("y", 0.0)) - y
+		if absf(dx) < 60.0 and absf(dy) < 70.0:
+			_net.send_ev({ "k": "hitp", "who": id, "dx": signf(dx) * 8.0, "dy": 4.0 })
+			fig.squash = -0.4
+			_say("Shove!", 0.6)
+			return

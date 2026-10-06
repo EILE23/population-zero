@@ -286,6 +286,10 @@ func _start_game(id: String) -> void:
 		var hot := residents.duplicate(); hot.sort_custom(func(a: Resident, b: Resident) -> bool: return a.mind.temper > b.mind.temper)
 		game_node.set("rivals", hot.slice(0, 2).map(func(r: Resident) -> Dictionary: return { "handle": r.handle, "color": r.fig.color }))
 	game_node.connect("finished", _game_done.bind(id))
+	var nt: Node = get_tree().root.get_node_or_null("PozNet")
+	if nt != null:
+		if game_node.has_method("net_attach"): game_node.call("net_attach", nt)   # 같은 게임에 들어온 사람끼리(Climb 밀치기·레이싱)
+		else: (nt as PozNet).leave()
 	get_tree().root.add_child(game_node)
 	visible = false; process_mode = Node.PROCESS_MODE_DISABLED
 	(get_node("UI") as CanvasLayer).visible = false
@@ -295,6 +299,7 @@ func _game_done(result: Dictionary, id: String) -> void:
 	game_node = null
 	visible = true; process_mode = Node.PROCESS_MODE_INHERIT
 	(get_node("UI") as CanvasLayer).visible = true; cam.current = true
+	if has_method("_net_town"): call("_net_town")   # 마을 방으로 돌아온다
 	if result.has("camp"): records["climb_camp"] = int(result["camp"])   # 쉼터 문으로 나갔으면 다음엔 거기서
 	if String(result.get("gear", "")) != "" and String(records.get("climb_gear", "")) == "":   # 손도끼를 얻었다 — 내 것, 그 자리는 다음에도 비어 있다
 		records["climb_gear"] = result["gear"]; var ax: Array = records.get("climb_axes", []); ax.append(result["gear"]); records["climb_axes"] = ax

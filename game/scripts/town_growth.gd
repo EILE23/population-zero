@@ -244,3 +244,22 @@ func _game_prize(id: String, result: Dictionary) -> void:
 	if won > 0:
 		_set_coins(coins + won)
 		get_tree().create_timer(1.6).timeout.connect(func() -> void: say_toast("Prize: %d coins." % won))
+
+# ── 계정·멀티(poz_net.gd) — 마을 방의 좌표: x+10000, 깊이 z+10000(방의 y), 높이×10(방의 z), 방향은 s 에 ──
+var net: PozNet
+
+func _net_town() -> void:
+	net = get_tree().root.get_node_or_null("PozNet") as PozNet
+	if net == null:
+		net = PozNet.new(); get_tree().root.add_child(net)
+	net.town = self
+	net.ghost_parent = self
+	net.ghost_place = func(o: Dictionary) -> Transform3D:
+		var yaw := float(String(o.get("s", "y:0")).trim_prefix("y:"))
+		return Transform3D(Basis(Vector3.UP, yaw), Vector3(float(o.get("x", 10000.0)) - 10000.0, float(o.get("z", 0.0)) / 10.0, float(o.get("y", 10000.0)) - 10000.0))
+	net.pos_source = func() -> Dictionary:
+		var p := focus_pos()
+		var pose := "drive" if driving else ("jump" if not body.is_on_floor() else ("walk" if player.speed > 0.2 else "stand"))
+		return { "x": p.x + 10000.0, "y": p.z + 10000.0, "z": clampf(p.y * 10.0, 0.0, 400.0), "pose": pose, "face": 1, "s": "y:%.2f" % player.rotation.y, "m": "town" }
+	if _tool_run(): return   # 점검 도구는 네트워크에 붙지 않는다
+	net.join("town")
