@@ -90,6 +90,15 @@ export interface GameRow {
   built_at: string | null;
 }
 
+/** game_links — POZ 클라이언트 기기 연결(10분짜리, device = 기기 비밀의 sha256) */
+export interface GameLinkRow {
+  device: string;
+  code: string;
+  user_id: number | null;
+  token: string | null;
+  expires_at: string;
+}
+
 /** game_saves — POZ 게임의 계정별 저장(JSON 문자열) */
 export interface GameSaveRow {
   user_id: number;

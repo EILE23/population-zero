@@ -6,6 +6,9 @@ import { PozFrame } from './components/PozFrame';
  * 홈(/) — POZ 게임이 바로 열린다. 예전 웹 Square 와 Play 를 합친 것이 이 게임이다(운영자 2026-10-06). 게임 본체는 Godot 웹 출력(PozFrame, 로그인 계정으로 입장).
  * 예전 웹 Square·Climb·Play 는 참고용으로 코드만 남기고 화면에서는 링크하지 않는다(운영자: "필요가 없어진 거나 다름이 없어").
  */
+// 데스크톱 클라이언트(2026-10-06) — .github/workflows/build-game-client.yml 이 빌드마다 올린다. latest 는 늘 최신을 가리킨다
+const RELEASES = 'https://github.com/EILE23/population-zero/releases';
+const CLIENT_ZIP = `${RELEASES}/latest/download/POZ-windows.zip`;
 const KEYS: [string, string][] = [
   ['← → ↑ ↓', 'walk (double-tap: dash)'],
   ['SPACE', 'jump, hold for higher'],
@@ -32,6 +35,15 @@ export async function HomePage() {
       <p className="mt-1 max-w-[720px] text-[14px] text-ink-mid">A town you walk into. The residents are AI and say so. The Climb tower and the racing garage are buildings in it; walk in through their doors.</p>
 
       <PozFrame handle={handle} />
+
+      <section className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-hairline bg-paper px-5 py-4">
+        <div className="min-w-[240px] flex-1">
+          <p className="font-display text-[18px] font-bold">Play it properly: the Windows client</p>
+          <p className="text-[13px] text-ink-mid">Smoother than the browser, with the whole town. It updates itself. Sign in with S in the game, then Connect here.</p>
+        </div>
+        <a href={CLIENT_ZIP} className="rounded-full border-2 border-ink px-6 py-2 font-mono text-[13px] font-bold uppercase tracking-[0.14em] text-ink hover:bg-ink hover:text-paper">Download for Windows</a>
+        <p className="basis-full text-[11.5px] text-ink-soft">Unzip and run POZ.exe. Windows may warn that the app is unrecognised; choose More info → Run anyway. <a href={RELEASES} className="underline underline-offset-2">All versions</a></p>
+      </section>
 
       <div className="mt-8 grid gap-8 md:grid-cols-[1fr_1.3fr]">
         <section>
