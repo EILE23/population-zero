@@ -22,6 +22,7 @@ var _paved := {}               # 깔린 골목 토막
 var _roster: Array = []
 
 func _growth_init() -> void:
+	_economy_init()
 	var f := FileAccess.open("res://data/residents.json", FileAccess.READ)
 	if f: _roster = (JSON.parse_string(f.get_as_text()) as Dictionary).get("residents", [])
 	_built_root = Node3D.new(); _built_root.name = "Built"; add_child(_built_root)
@@ -184,3 +185,62 @@ func _pave(l: Dictionary) -> void:
 			_paved[vk] = true
 			_path(Vector3(xv, 0, TownPlan.OZ + b.y * TownPlan.PITCH), Vector3(xv, 0, TownPlan.OZ + (b.y + 1) * TownPlan.PITCH), TownPlan.PATH_W)
 	_build_parent = keep
+
+# ── 화폐(운영자 2026-10-06: "진짜 화폐로 키우자") — 값(data/prices.json), 사기·팔기·상금, 지갑 저장. 버는 길이 늘 곁에 있어야 막는 값이 있다 ──
+var prices := {}
+
+func _economy_init() -> void:
+	var f := FileAccess.open("res://data/prices.json", FileAccess.READ)
+	if f: prices = JSON.parse_string(f.get_as_text())
+	coins = int(records.get("coins", 0))
+	set_meta("wallet_loaded", true)
+	if coins > 0: _set_coins(coins)
+
+func _save_records() -> void:
+	if _tool_run(): return
+	records["coins"] = coins
+	var f := FileAccess.open(RECORDS, FileAccess.WRITE)
+	if f: f.store_string(JSON.stringify(records))
+
+func price_of(sp: Dictionary) -> int:
+	return int((prices.get("buy", {}) as Dictionary).get(String(sp.get("item", "")), 1))
+
+## 살 수 있나 — 주인 없는 창구(카페)는 아직 공짜. 모자라면 주인이 값을 말하고 버는 길을 알려 준다
+func can_pay(sp: Dictionary) -> bool:
+	if not sp.has("stock"): return true
+	var p := price_of(sp)
+	if coins >= p: return true
+	say_toast("That's %d coins. Sell something at a counter, or win in a game." % p)
+	for r in residents:
+		if r.job == "baker" and r.global_position.distance_to(body.global_position) < 14.0: r.say(["Two coins, love.", "Coins first.", "Come back with coins."][randi() % 3], 1.8); break
+	return false
+
+## 팔기 — 든 것이 값이 있는 물건이고 1.4m 안에 창구가 있으면 내주고 값을 받는다
+func sell_here(now: float) -> bool:
+	var it: Node3D = player.carrying
+	if it == null: return false
+	var kind := String(it.get_meta("kind", ""))
+	var sell: Dictionary = prices.get("sell", {})
+	if not sell.has(kind): return false
+	var near := false
+	for sp in spots:
+		if sp["kind"] == "counter" and (sp["pos"] as Vector3).distance_to(body.global_position) < 1.4: near = true; player.face(sp["yaw"]); break
+	if not near: return false
+	var p := int(sell[kind])
+	player.release(self, Vector3.ZERO).queue_free()
+	player.action = "grab"; action_until = now + 0.4
+	_set_coins(coins + p)
+	say_toast("Sold %s · +%d" % [kind, p])
+	return true
+
+## 상금 — Climb 는 오른 높이(m)에 비례(한 번에 상한), 레이싱은 순위
+func _game_prize(id: String, result: Dictionary) -> void:
+	var pr: Dictionary = prices.get("prize", {})
+	var won := 0
+	if id == "climb": won = mini(int(pr.get("climb_cap", 80)), int(float(result.get("score", 0.0)) * float(pr.get("climb_per_m", 0.05))))
+	elif id == "race":
+		var place := int(result.get("place", 0)); var table: Array = pr.get("race", [12, 6, 3])
+		if place >= 1 and place <= table.size(): won = int(table[place - 1])
+	if won > 0:
+		_set_coins(coins + won)
+		get_tree().create_timer(1.6).timeout.connect(func() -> void: say_toast("Prize: %d coins." % won))

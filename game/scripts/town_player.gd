@@ -276,6 +276,7 @@ func _interact_check(now: float) -> void:
 	if stoop_near(now): return   # 발치의 동전(run 107, town_coins): 든 게 있어도 먼저 — 손이 아니라 주머니로 간다
 	if busk_tip(now): return   # 악사의 모자 앞(run 111, town_busk): 동전이 있으면 stoop 으로 한 닢, 없으면 악사가 끄덕인다 — 들고 있어도
 	if player.carrying and (sunroom_give(now) or give_to_resident(now)): return   # 앞의 주민에게 건네기가 먹기·내려놓기보다 먼저(town_critters); 안락의자의 읽는 이는 앉아 있어 따로(run 106, town_sunroom)
+	if player.carrying and call("sell_here", now): return   # 창구 앞에서 든 것을 판다(town_growth — 진짜 화폐)
 	if player.carrying:
 		var kind := String(player.carrying.get_meta("kind", ""))
 		if kind in FOOD:

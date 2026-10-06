@@ -299,6 +299,7 @@ func oven_use(sp: Dictionary, now: float) -> void:
 ## 사람이 창구 앞에서 C(town_player) — 재고가 있으면 빵(빵집)이나 컵(카페, 재고 없음 = 늘 있음)을 손에. 빵집이 비었으면 팻말이 답한다. 주머니에 동전이 있으면 하나 낸다(run 107, town_coins) — 없어도 받는다
 func counter_use(sp: Dictionary, now: float) -> void:
 	player.face(sp["yaw"])
+	if not call("can_pay", sp): return   # 진짜 화폐(운영자 2026-10-06) — 모자라면 안 준다(town_growth)
 	if sp.has("stock") and not counter_take(sp): return
 	var it := make_item(sp["item"], body.global_position + Vector3(0, 0.9, 0))
 	player.hold(it); player.action = "grab"; action_until = now + 0.4

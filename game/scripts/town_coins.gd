@@ -165,8 +165,8 @@ func pay_counter(sp: Dictionary, by: Variant) -> void:
 		if sp.has("stock") and has_method("tab_note"): call("tab_note", "player")
 		else: say_toast("On the house.")
 		return
-	else: _set_coins(coins - 1)
-	sp["till"] = int(sp.get("till", 0)) + 1
+	else: _set_coins(coins - int(call("price_of", sp)))   # 값대로(진짜 화폐, data/prices.json) — 사람은 can_pay 가 먼저 모자람을 막는다
+	sp["till"] = int(sp.get("till", 0)) + (1 if by is ResidentBase else int(call("price_of", sp)))
 	if not sp.has("till_shown"):
 		var shown: Array = []
 		for i in TILL_MAX: shown.append(make_item("coin", till_pos(sp) + Vector3(0, i * 0.013, 0)))
@@ -176,8 +176,9 @@ func pay_counter(sp: Dictionary, by: Variant) -> void:
 
 ## 주머니 수 — HUD 오른쪽 위 글자(첫 동전에 생긴다). 첫 동전엔 한 줄 토스트: 쓰는 법은 놀면서 배운다(범례엔 안 붙인다)
 func _set_coins(n: int) -> void:
-	if coins == 0 and n > 0: say_toast("A coin. Counters take one when you have one.")
-	coins = n
+	if coins == 0 and n > 0 and not has_meta("wallet_loaded"): say_toast("A coin. Counters take coins; sell things at a counter, win them in games.")
+	coins = maxi(0, n)
+	if has_meta("wallet_loaded"): call("_save_records")   # 지갑은 저장된다(운영자 2026-10-06: 진짜 화폐)
 	var ui := get_node_or_null("UI") as CanvasLayer
 	if ui == null: return
 	var l := ui.get_node_or_null("Coins") as Label

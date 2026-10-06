@@ -301,6 +301,7 @@ func _game_done(result: Dictionary, id: String) -> void:
 		var fg := FileAccess.open(RECORDS, FileAccess.WRITE)
 		if fg: fg.store_string(JSON.stringify(records))
 	_walk_out(id)
+	if has_method("_game_prize"): call("_game_prize", id, result)   # 상금(town_growth)
 	var score := float(result.get("score", 0.0)); var old := float(records.get(id, 0.0))
 	if score > 0.0 and ((old <= 0.0 or score < old) if id in TIMED else score > old):
 		records[id] = score
