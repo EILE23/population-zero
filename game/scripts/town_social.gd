@@ -8,6 +8,8 @@ extends TownGrowth
 
 const EMOTES := { KEY_1: "wave", KEY_2: "cheer", KEY_3: "bow", KEY_4: "dance", KEY_5: "sky" }
 const EMOTE_T := 2.6
+## 되풀이 자세(이름 → 한 번의 초) — 감정 표현과 산스장(town_mountain). 남의 화면에서도 같은 박자(poz_net)
+const LOOPS := { "cheer": 0.65, "bow": 2.6, "dance": 0.65, "pullup": 1.5, "situp": 1.7, "twist": 1.1, "squat": 1.6 }
 const HELP := [
 	["MOVE", "Arrows   (double-tap: dash)"],
 	["JUMP", "SPACE   (hold: higher)"],
@@ -31,6 +33,7 @@ const HELP := [
 var chat: ChatBox
 var emote := ""               # 지금 하는 감정 표현(방으로 가는 자세 이름)
 var emote_until := 0.0
+var _emote_t0 := 0.0
 var typing: bool:
 	get: return chat != null and chat.busy()
 
@@ -64,10 +67,10 @@ func _unhandled_key_input(e: InputEvent) -> void:
 	elif k == KEY_F9 and net and net.update: net.update.apply(true)
 	elif k == KEY_U and net and net.update and net.update.status == "full": net.update.open_download()
 
-func _emote(e: String) -> void:
+func _emote(e: String, secs := EMOTE_T) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if action_until >= now or not body.is_on_floor(): return   # 기술 중·공중엔 안 한다
-	emote = e; emote_until = now + EMOTE_T
+	emote = e; emote_until = now + secs; _emote_t0 = now
 	if e in ["wave", "sky"]: player.pose_request = e; use_until = emote_until
 	else: player.action = "fight"; player.move = e
 
@@ -75,13 +78,13 @@ func _emote(e: String) -> void:
 func _social_tick(now: float, dir: Vector3) -> void:
 	if _who and int(now * 2.0) != int((now - 0.02) * 2.0): _who.text = _who_line()
 	if emote != "":
-		var dance := emote in ["cheer", "bow", "dance"]
+		var dance := LOOPS.has(emote)
 		if now > emote_until or dir != Vector3.ZERO or driving or (dance and player.move != emote):
 			if dance and player.move == emote: player.action = ""; player.move = ""; player.action_t = 0.0
 			if player.pose_request == emote: player.pose_request = ""
 			emote = ""
 		elif dance:
-			player.action_t = fmod((now - (emote_until - EMOTE_T)) / (EMOTE_T if emote == "bow" else 0.65), 1.0)
+			player.action_t = fmod((now - _emote_t0) / float(LOOPS[emote]), 1.0)
 	if not typing and not driving and Input.is_action_just_pressed("hit"): _shove_near()
 
 ## 밀치기 — 앞 1.3m 안의 사람. 내 주먹은 평소대로 나가고, 그 사람에겐 hitp 가 간다

@@ -58,6 +58,7 @@ func _ready() -> void:
 	add_child(body)
 	cam = $Camera3D
 	_sites()   # 열린 세계의 장소들(숲 오두막·호숫가 마을·Climb 탑) — 주민 집이 생기니 주민보다 먼저(town_sites)
+	_mountains()   # 마을 뒤 산 — 나선 돌계단·꼭대기 산스장·정자(town_mountain, 땅은 WorldGen.PEAKS)
 	_residents(32)   # 동쪽 마을 집 넷이 생겨 여덟 명 더(2026-09-30)
 	_hire_storysitter()   # 이야기방 주인 — 일 없는 어른 중 가장 '늙은 마음'(운전사보다 먼저 골라야 운전대에 앉지 않는다, town_sunroom)
 	_hire_busker()   # 악사 — 남은 어른 중 어울림이 가장 높은 이, 등에 상자 기타(운전사보다 먼저, town_busk)

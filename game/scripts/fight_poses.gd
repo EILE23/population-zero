@@ -142,6 +142,10 @@ static func move(f: Stick3D, m: String, a: float) -> void:
 		"cheer": _cheer(f, a)
 		"bow": _bow(f, a)
 		"dance": _dance(f, a)
+		"pullup": GymPoses.pullup(f, a)
+		"situp": GymPoses.situp(f, a)
+		"twist": GymPoses.twist(f, a)
+		"squat": GymPoses.squat(f, a)
 		_: _straight(f, a, -1.0, 0.55)
 
 ## 가드 — 주먹을 턱 앞에(차는 동안·기다릴 때 공통)

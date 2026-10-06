@@ -101,7 +101,8 @@ func _swings(delta: float) -> void:
 		var me_on: bool = not riding.is_empty() and riding == sw
 		if me_on:
 			sw["rider"] = "player"
-			var pump := Input.get_axis("move_up", "move_down")   # ↓ = 앞으로 밀기(+z), ↑ = 뒤로
+			# 누른 쪽으로 간다: ↑ = 화면 위(−z, 각 +), ↓ = 화면 아래(+z). rotation.x 가 +면 좌석이 −z 로 가서 전엔 거꾸로였다(운영자 2026-10-06)
+			var pump := Input.get_axis("move_down", "move_up")
 			if absf(pump) > 0.1 and absf(sw["vel"]) > 0.05:
 				acc += signf(sw["vel"]) * 2.2 * absf(pump) if (signf(pump) == signf(sw["vel"])) else 0.0
 			elif absf(pump) > 0.1:

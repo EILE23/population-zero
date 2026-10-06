@@ -224,8 +224,8 @@ func _pick_spot() -> void:
 			return
 	if town.is_night() and not home_door.is_empty() and carrying_kind != "log":   # 장작을 든 나무꾼은 난로부터(run 92, _wood_pick)
 		# 밤: 집으로 가서 침대에 눕는다(집에 침대가 있으면), 아니면 의자
-		var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door and sp["kind"] == "bed")
-		if mine.is_empty(): mine = town.spots.filter(func(sp): return sp.has("door") and sp["door"] == home_door)
+		var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] is Dictionary and sp["door"] == home_door and sp["kind"] == "bed")
+		if mine.is_empty(): mine = town.spots.filter(func(sp): return sp.has("door") and sp["door"] is Dictionary and sp["door"] == home_door)
 		mine = mine.filter(func(sp): return _free_slot(sp) >= 0)
 		if not mine.is_empty():
 			spot = mine[0]; slot = 0; _claim(spot, 0)

@@ -40,6 +40,8 @@ static func _ok(c: Vector2) -> bool:
 		var sc: Vector3 = s["c"]
 		if c.distance_to(Vector2(sc.x, sc.z)) < float(s["r"]) + 12.0: return false
 		if _seg(c, Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 7.0: return false   # 장소 가는 길 위
+	for pk in WorldGen.PEAKS:   # 산엔 필지가 없다 — 깎으면 산에 구덩이가 난다(지은 집 순번 0..40 은 70m 안이라 그대로)
+		if c.distance_to(Vector2(pk["c"].x, pk["c"].z)) < float(pk["r"]) * 0.9: return false
 	return true
 
 static func _seg(p: Vector2, a: Vector2, b: Vector2) -> float:

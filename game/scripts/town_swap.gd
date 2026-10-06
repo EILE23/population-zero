@@ -1,5 +1,5 @@
 class_name TownSwap
-extends TownSites
+extends TownMountain
 ## 하나 두고 하나 가져가기("Leave one, take one" — 마을이 설계한 열일곱째 시스템): 한 사람이 돌보는 작은 선반, 하나 놓고 하나 가져간다. 동전은 없다.
 ## 1조각(run 98) 책 상자: 빵집 서쪽 옆, 기둥 위 두 칸 상자에 책등 여섯 칸. 책을 들고 C = 꽂기, 빈손 C = 하나 꺼내기 — 같은 shelve 자세, 손이 칸에 닿는 순간(SHELVE_IN) 책이 바뀐다.
 ## 가져가기만 해도 된다(평범한 C 는 막지 않는다 — 곁의 관리인이 한마디 할 뿐). 주민도 지나가다 같은 자세로 바꾸고 꺼낸다(resident_shelf.gd).

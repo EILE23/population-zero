@@ -21,7 +21,20 @@ const SITES := [
 	{ "name": "cabin", "c": Vector3(-150, 0, -38), "r": 15.0, "from": Vector3(-150, 0, 3.8) },
 	{ "name": "lakeside", "c": Vector3(135, 0, -50), "r": 24.0, "from": Vector3(135, 0, 0.2) },
 	{ "name": "tower", "c": Vector3(16, 0, -82), "r": 18.0, "from": Vector3(15.5, 0, -13.0) },
+	{ "name": "pell", "c": Vector3(-58, 0, -80), "r": 8.0, "from": Vector3(-58, 0, -13.0) },     # 산 들머리(PEAKS head) — 표지판·볼라드·벤치(town_mountain)
+	{ "name": "gorse", "c": Vector3(104, 0, -108), "r": 8.0, "from": Vector3(104, 0, 0.2) },
 ]
+
+## 산(운영자 2026-10-06: "언덕 같은 곳에 나무가 엄청 많이 생기면서 실제 산이 돼야", "차로는 도저히 못 올라갈 길… 사람만 올라갈 수 있게", "산스장도") —
+## 마을 뒤(북쪽)에 봉우리. 아랫자락은 차도 오르는 숲 비탈, 꼭대기 둘레는 벼랑 띠(65° 안팎: 차 42°·사람 45° 한계를 넘는다), 꼭대기는 평평한 마당.
+## 꼭대기로 가는 건 나선 돌계단 하나(한 단 28cm, 경사판 없음 — 사람은 턱 오르기 42cm 로 오르고 차 바퀴는 못 넘는다). 들머리엔 볼라드(차 폭보다 좁다)
+## head = 들머리(마을 쪽 자락), top = 꼭대기 마당 반지름, turns = 계단이 산을 몇 바퀴 감는지. 짓는 건 town_mountain.gd
+const PEAKS := [
+	{ "name": "pell", "title": "MT. PELL", "c": Vector3(-80, 0, -210), "r": 135.0, "h": 64.0, "top": 13.0, "head": Vector3(-58, 0, -80), "turns": 1.15, "gym": true },
+	{ "name": "gorse", "title": "GORSE HILL", "c": Vector3(125, 0, -195), "r": 95.0, "h": 40.0, "top": 9.0, "head": Vector3(104, 0, -108), "turns": 0.9, "gym": false },
+]
+const TREAD := 0.6             # 계단 한 칸 길이(m)
+const RISE := 0.28             # 한 단 높이 — town_base STEP(0.42) 보다 낮고 차의 바닥 붙기(0.25)보다 높다
 
 var town: TownBase
 var _big := FastNoiseLite.new()
@@ -56,6 +69,31 @@ func setup(t: TownBase) -> void:
 	# 지평선: 지은 칸 너머는 낮은 초록 판(안개가 흐린다) — 세계 끝이 허공으로 안 보이게
 	var hz := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(12000, 12000); hz.mesh = pm
 	hz.material_override = t._mat(Color("7fa65e")); hz.position.y = -2.5; add_child(hz)
+	for pk in PEAKS:
+		for p in trail_xz(pk):
+			for dx in [-1, 0, 1]:
+				for dz in [-1, 0, 1]: _trail_cells[Vector2i(floori(p.x / 3.0) + dx, floori(p.y / 3.0) + dz)] = true
+		_far_peak(pk)
+
+## 멀리서 보이는 산 — 칸(지은 땅)은 플레이어 둘레만 있어서 마을에선 산이 안 보였다. 거친 격자 한 장(충돌 없음)을 늘 두고, 가까워져 칸이 지어지면 그 밑에 묻힌다(0.6m 낮게)
+func _far_peak(pk: Dictionary) -> void:
+	var c: Vector3 = pk["c"]; var r: float = pk["r"]; var n := 28; var step := r * 2.0 / n
+	var verts := PackedVector3Array(); var cols := PackedColorArray(); var idx := PackedInt32Array()
+	for j in n + 1:
+		for i in n + 1:
+			var x := c.x - r + i * step; var z := c.z - r + j * step
+			var h := height(x, z) - 0.6
+			verts.append(Vector3(x, h, z))
+			cols.append(Color(0.42, 0.56, 0.38).lerp(Color(0.62, 0.64, 0.6), smoothstep(40.0, 70.0, h)))
+	for j in n:
+		for i in n:
+			var a := j * (n + 1) + i
+			idx.append_array([a, a + 1, a + n + 1, a + 1, a + n + 2, a + n + 1])
+	var arr := []; arr.resize(Mesh.ARRAY_MAX); arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_INDEX] = idx
+	var st := SurfaceTool.new(); st.create_from_arrays(arr); st.generate_normals()
+	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.name = "Far_" + String(pk["name"])
+	var m := StandardMaterial3D.new(); m.vertex_color_use_as_albedo = true; mi.material_override = m
+	add_child(mi)
 
 # ── 땅 ──
 ## 0 = 평지로 깎인 곳(허브·큰길·강), 1 = 자연 지형
@@ -76,9 +114,57 @@ static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
 	return p.distance_to(a + ab * t)
 
-## 깎기 전 높이 — 큰 굽이 + 작은 기복. 0 아래는 호수가 된다
+## 깎기 전 높이 — 큰 굽이 + 작은 기복 + 산. 0 아래는 호수가 된다
 func raw(x: float, z: float) -> float:
-	return 3.4 + 13.0 * _big.get_noise_2d(x, z) + 2.4 * _mid.get_noise_2d(x, z)
+	var pk := peak_h(x, z)
+	return 3.4 + 13.0 * _big.get_noise_2d(x, z) + (2.4 + 3.5 * pk.y) * _mid.get_noise_2d(x, z) + pk.x
+
+## 산이 더하는 높이(x)와 거친 정도(y, 0..1 — 자락의 잔기복을 키우되 꼭대기 마당 둘레는 0 이라 평평하다)
+func peak_h(x: float, z: float) -> Vector2:
+	var add := 0.0; var rough := 0.0
+	for pk in PEAKS:
+		var c: Vector3 = pk["c"]; var r: float = pk["r"]; var h: float = pk["h"]; var top: float = pk["top"]
+		var d := Vector2(x - c.x, z - c.z).length()
+		if d >= r: continue
+		var tp := top / r
+		var t := maxf(d / r, tp)
+		var v := h * pow(1.0 - t, 1.35) + 0.18 * h * (1.0 - smoothstep(tp, tp + 0.08, t))   # 자락 + 꼭대기 둘레 벼랑 띠
+		add = maxf(add, v)
+		rough = maxf(rough, smoothstep(1.0, 0.6, d / r) * smoothstep(top, top + 3.0, d))
+	return Vector2(add, rough)
+
+## 꼭대기 마당 높이 — 지을 때 쓴다
+func summit_y(pk: Dictionary) -> float:
+	var c: Vector3 = pk["c"]
+	return height(c.x, c.z)
+
+## 산의 0..1(자락 바깥 0) — 숲 밀도
+func peak_k(x: float, z: float) -> float:
+	var k := 0.0
+	for pk in PEAKS:
+		var c: Vector3 = pk["c"]
+		k = maxf(k, 1.0 - Vector2(x - c.x, z - c.z).length() / float(pk["r"]))
+	return k
+
+## 계단 길(나선) — 들머리에서 꼭대기 마당 안까지 TREAD 간격의 점(x, z). 높이는 짓는 쪽이 정한다(town_mountain)
+static func trail_xz(pk: Dictionary) -> PackedVector2Array:
+	var c := Vector2(pk["c"].x, pk["c"].z); var hd := Vector2(pk["head"].x, pk["head"].z)
+	var a0 := (hd - c).angle(); var d0 := (hd - c).length(); var d1 := float(pk["top"]) - 3.0
+	var turn := float(pk["turns"]) * TAU
+	var out := PackedVector2Array([hd]); var u := 0.0; var last := hd
+	while u < 1.0:
+		u = minf(1.0, u + 0.0004)
+		var p := c + Vector2.from_angle(a0 + turn * u) * lerpf(d0, d1, pow(u, 0.85))
+		if p.distance_to(last) >= TREAD or u >= 1.0:
+			out.append(p); last = p
+	return out
+
+var _trail_cells := {}   # 3m 칸 → 계단 길이 지나간다(나무를 안 심는다)
+func on_trail(x: float, z: float) -> bool:
+	if _trail_cells.has(Vector2i(floori(x / 3.0), floori(z / 3.0))): return true
+	for pk in PEAKS:   # 꼭대기 마당도 비운다(산스장·정자 자리)
+		if Vector2(x - pk["c"].x, z - pk["c"].z).length() < float(pk["top"]) + 1.0: return true
+	return false
 
 func _h(x: float, z: float) -> float:
 	return wild_k(x, z) * raw(x, z)
@@ -217,15 +303,21 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 	var c := o + Vector3(CHUNK / 2.0, 0, CHUNK / 2.0)
 	var biome := _biome(c.x, c.z, height(c.x, c.z))
 	var plan: Array = []   # [목록, 개수, 크기(목표 높이 m 또는 배율), 충돌 반지름]
+	var pkk := peak_k(c.x, c.z)
+	if pkk > 0.03: biome = "mountain"   # 산: 빽빽한 숲 — 아래는 활엽, 위로 갈수록 솔(그 자리 높이로 고른다)
 	match biome:
+		"mountain": plan = [["MOUNTAIN", int(18 + 22 * minf(1.0, pkk * 2.5)), 5.2, 0.28], [UNDER, 16, 0.7, 0.0], [BUSHES, 6, 1.0, 0.0], [ROCKS, 5, 1.3, 0.55], [GRASS, 14, 0.9, 0.0], [PEBBLES, 6, 0.8, 0.0]]
 		"forest": plan = [[FOREST, 16, 4.2, 0.28], [UNDER, 14, 0.6, 0.0], [BUSHES, 5, 1.0, 0.0], [GRASS, 18, 0.9, 0.0], [ROCKS, 1, 1.0, 0.5]]
 		"high": plan = [[HIGH, 9, 5.0, 0.25], [ROCKS, 4, 1.2, 0.55], [PEBBLES, 8, 0.8, 0.0], [GRASS, 12, 0.8, 0.0]]
 		"dry": plan = [[ROCKS, 3, 1.0, 0.5], [PEBBLES, 10, 0.9, 0.0], [GRASS, 22, 0.9, 0.0], [FOREST, 1, 3.8, 0.28]]
 		_: plan = [[FLOWERS, 18, 1.0, 0.0], [GRASS, 40, 1.0, 0.0], [BUSHES, 3, 1.0, 0.0], [FOREST, 2, 4.0, 0.28], [PEBBLES, 2, 0.8, 0.0]]
 	for row in plan:
-		var ids: Array = row[0]
+		var mountain: bool = row[0] is String
+		var ids: Array = FOREST if mountain else row[0]
 		for i in int(row[1]):
 			var x := o.x + rng.randf() * CHUNK; var z := o.z + rng.randf() * CHUNK
+			if on_trail(x, z): continue   # 계단 길은 비운다
+			if mountain: ids = HIGH if height(x, z) > 24.0 + 8.0 * rng.randf() else FOREST
 			var k := wild_k(x, z)
 			if k < 0.45: continue
 			var h := k * raw(x, z)   # = _h — 한 번만 잰다
