@@ -63,6 +63,16 @@ func _diag() -> void:
 	var c := get_viewport().get_camera_3d()
 	print("POZ diag t=%d fps=%d cam=%s far=%s objects=%d prims=%d draws=%d vp=%s" % [int(_t), Engine.get_frames_per_second(), str(c.global_position) if c else "none", str(c.far) if c else "-",
 		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), str(get_viewport().get_visible_rect().size)])
+	var ms := get_tree().root.find_children("*", "MeshInstance3D", true, false)
+	var nomesh := 0; var hidden := 0; var near := 0; var sample := ""
+	for m in ms:
+		var mi := m as MeshInstance3D
+		if mi.mesh == null: nomesh += 1
+		elif not mi.is_visible_in_tree(): hidden += 1
+		elif c and mi.global_position.distance_to(c.global_position) < 30.0:
+			near += 1
+			if sample == "": sample = "%s %s aabb=%s mat=%s" % [mi.name, mi.mesh.get_class(), str(mi.get_aabb()), str(mi.get_active_material(0))]
+	print("POZ diag meshes=%d nomesh=%d hidden=%d near=%d vram=%dMB sample=%s" % [ms.size(), nomesh, hidden, near, RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) / 1048576, sample])
 
 ## 입장권 읽기(웹만) — /play/poz 가 건넨 토큰, 또는 구경꾼 표시
 func _read_ticket() -> void:
