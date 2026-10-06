@@ -59,7 +59,19 @@ func _process(delta: float) -> void:
 		_save_at = _t + SAVE_EVERY; _upload_if_changed()
 
 ## 웹 점검(브라우저 콘솔, 처음 40초 5초마다) — 웹에서 3D 가 비어 보였을 때(2026-10-06) 카메라·그린 물체 수를 본다
+## 주소 뒤 ?nofog / ?noshadow / ?noomni 로 하나씩 꺼 보고 원인을 가린다
 func _diag() -> void:
+	var q: Variant = JavaScriptBridge.eval("location.search", true)
+	var qs := String(q) if q is String else ""
+	for n in get_tree().root.find_children("*", "WorldEnvironment", true, false):
+		if "nofog" in qs: (n as WorldEnvironment).environment.fog_enabled = false
+		print("POZ diag env fog=", (n as WorldEnvironment).environment.fog_enabled, " density=", (n as WorldEnvironment).environment.fog_density, " glow=", (n as WorldEnvironment).environment.glow_enabled, " tonemap=", (n as WorldEnvironment).environment.tonemap_mode)
+	if "noshadow" in qs:
+		for n in get_tree().root.find_children("*", "DirectionalLight3D", true, false): (n as Light3D).shadow_enabled = false
+	var omni := get_tree().root.find_children("*", "OmniLight3D", true, false)
+	if "noomni" in qs:
+		for n in omni: (n as Node3D).visible = false
+	print("POZ diag q=", qs, " omni=", omni.size(), " dir=", get_tree().root.find_children("*", "DirectionalLight3D", true, false).size())
 	var c := get_viewport().get_camera_3d()
 	print("POZ diag t=%d fps=%d cam=%s far=%s objects=%d prims=%d draws=%d vp=%s" % [int(_t), Engine.get_frames_per_second(), str(c.global_position) if c else "none", str(c.far) if c else "-",
 		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), str(get_viewport().get_visible_rect().size)])
