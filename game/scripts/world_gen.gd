@@ -178,6 +178,7 @@ func has_ground(p: Vector3) -> bool:
 	return (absf(p.x) < HUB_X + 4.0 and absf(p.z) < HUB_Z + 4.0) or chunks.has(Vector2i(floori(p.x / CHUNK), floori(p.z / CHUNK)))
 
 func lake_at(p: Vector3) -> bool:
+	if p.x > TownInterior.ZONE.x - 60.0 and p.z > TownInterior.ZONE.y - 60.0: return false   # 방 구역(town_interior) — 그 자리 땅 높이가 물 아래라 방 안에서 헤엄쳤다
 	return p.y < 0.3 and _h(p.x, p.z) < -0.05
 
 func _biome(x: float, z: float, h: float) -> String:

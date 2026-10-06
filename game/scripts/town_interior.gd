@@ -37,8 +37,15 @@ func _room(i: int) -> Dictionary:
 	_slot_of[slot] = i
 	var o := Vector3(ZONE.x + (slot % ROW) * SLOT, 0.0, ZONE.y + (slot / ROW) * SLOT)
 	var dim: Vector2 = { "house": Vector2(10.0, 8.0), "shop": Vector2(11.0, 9.0), "civic": Vector2(15.0, 11.0) }[kind]
+	var kit := {}
+	if kind == "house":   # 그 집 사람이 꾸민 틀과 손질(room_kit) — 크기·모양·빛깔이 집마다
+		var owner: Node = null
+		for r in residents:
+			if r.home_door == dr: owner = r; break
+		kit = RoomKit.plan(self, i, owner)
+		dim = Vector2(kit["w"], kit["d"])
 	var n := Node3D.new(); n.name = "Room_%d" % i; add_child(n)
-	var rm := { "node": n, "o": o, "w": dim.x, "d": dim.y, "kind": kind, "door": i, "spots": [], "entry": o + Vector3(0, 0.05, dim.y / 2.0 - 1.1), "slot": slot }
+	var rm := { "node": n, "o": o, "w": dim.x, "d": dim.y, "kind": kind, "door": i, "spots": [], "entry": o + Vector3(0, 0.05, dim.y / 2.0 - 1.1), "slot": slot, "kit": kit }
 	_rooms[i] = rm; _order.append(i)
 	if _void == null:   # 방 둘레 어둠 — 세계의 지평선 판(초록)이 방 밖으로 보이지 않게
 		_void = MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(ROW * SLOT + 200.0, ROW * SLOT + 200.0); _void.mesh = pm
@@ -67,8 +74,9 @@ func _free_room(i: int) -> void:
 func _shell(rm: Dictionary, rng: RandomNumberGenerator) -> void:
 	var o: Vector3 = rm["o"]; var w: float = rm["w"]; var d: float = rm["d"]
 	var walls := [Color("efe2cf"), Color("dfe6ea"), Color("e8d4d8"), Color("dfe8d6"), Color("f2e6c8")]
-	var wm := _mat((walls[rng.randi() % walls.size()] as Color).darkened(0.12))   # 벽 윗면이 해를 받아 하얗게 날아갔다
-	var fm := _mat(Color.WHITE, _tex("faces/wall-plank"), Vector3(w / 1.6, d / 1.6, 1))
+	var kit: Dictionary = rm.get("kit", {})
+	var wm := _mat(((kit["wall"] as Color) if kit.has("wall") else (walls[rng.randi() % walls.size()] as Color)).darkened(0.24))   # 벽 윗면이 해를 받아 하얗게 날아갔다
+	var fm := _mat((kit["floor"] as Color) if kit.has("floor") else Color.WHITE, _tex("faces/wall-plank"), Vector3(w / 1.6, d / 1.6, 1))
 	_box(Vector3(w, 0.2, d), o + Vector3(0, -0.2, 0), fm)
 	_box(Vector3(w + 0.3, 2.8, 0.15), o + Vector3(0, 0, -d / 2.0), wm)
 	for s in [-1.0, 1.0]: _box(Vector3(0.15, 2.8, d), o + Vector3(s * (w / 2.0 + 0.075), 0, 0), wm)
@@ -86,39 +94,10 @@ func _spot(rm: Dictionary, kind: String, at: Vector3, yaw: float, extra := {}) -
 	sp.merge(extra)
 	(rm["spots"] as Array).append(sp)
 
-## 집 — 왼쪽 침실(칸막이), 오른쪽 뒤 부엌(조리대·화덕·냉장고), 앞쪽 거실(소파·탁자·러그), 식탁과 의자 둘, 책장, 화분, 액자. 문패
+## 집 — 틀(data/interiors.json)과 그 사람의 손(room_kit.gd). 문패
 func _house_room(rm: Dictionary, rng: RandomNumberGenerator) -> void:
-	var o: Vector3 = rm["o"]; var w: float = rm["w"]; var d: float = rm["d"]
-	var wood := _mat(Color("8a6a4a")); var cloth := _mat([Color("ad7096"), Color("5a6f9a"), Color("6f9a5a"), Color("d8a24a")][rng.randi() % 4])
-	var wall := w / 2.0 - 3.6
-	_box(Vector3(0.12, 2.4, d * 0.55), o + Vector3(-wall, 0, -d * 0.22), _mat(Color("e6d9c8")))   # 침실 칸막이
-	var bed := o + Vector3(-w / 2.0 + 1.3, 0, -d / 2.0 + 1.5)
-	_box(Vector3(1.6, 0.35, 2.1), bed, wood, false); _box(Vector3(1.5, 0.14, 1.95), bed + Vector3(0, 0.35, 0.05), _mat(Color("f7f4ef")), false)
-	_box(Vector3(1.5, 0.06, 0.7), bed + Vector3(0, 0.45, 0.68), cloth, false)   # 이불은 발치에만 — 누우면 사람이 이불 속에 묻혔다; _box(Vector3(0.7, 0.12, 0.35), bed + Vector3(0, 0.49, -0.75), _mat(Color("efe9e2")), false)
-	_spot(rm, "bed", bed + Vector3(0, 0, 0.1), 0.0)   # 마을 침대와 같다 — 몸은 바닥, rest 자세가 침대 높이로 눕는다
-	_box(Vector3(0.5, 0.5, 0.45), bed + Vector3(1.2, 0, -0.75), wood)   # 협탁
-	var k := o + Vector3(w / 2.0 - 2.2, 0, -d / 2.0 + 0.45)
-	_box(Vector3(3.2, 0.9, 0.6), k, _mat(Color("cfc7c2"))); _box(Vector3(0.7, 0.03, 0.5), k + Vector3(-0.6, 0.9, 0), _mat(Color("2a2a30")), false)
-	_spot(rm, "stove", k + Vector3(-0.6, 0, 0.8), PI)
-	var fr := o + Vector3(w / 2.0 - 0.5, 0, -d / 2.0 + 0.45)
-	_box(Vector3(0.75, 1.9, 0.65), fr, _mat(Color("f7f4ef")))
-	_spot(rm, "fridge", fr + Vector3(0, 0, 0.9), PI)
-	var tb := o + Vector3(w / 2.0 - 2.4, 0, -0.4)
-	_box(Vector3(1.4, 0.75, 0.9), tb, wood)
-	for s in [-1.0, 1.0]:
-		_box(Vector3(0.45, 0.45, 0.45), tb + Vector3(s * 1.05, 0, 0), wood)
-		_spot(rm, "sit", tb + Vector3(s * 1.05, 0.45, 0), -s * PI / 2.0)
-	var sofa := o + Vector3(1.0, 0, d / 2.0 - 2.4)
-	_box(Vector3(2.2, 0.42, 0.85), sofa, cloth); _box(Vector3(2.2, 0.5, 0.2), sofa + Vector3(0, 0.42, -0.33), cloth, false)
-	for s in [-0.55, 0.55]: _spot(rm, "sit", sofa + Vector3(s, 0.42, 0.05), 0.0)
-	_box(Vector3(2.8, 0.01, 1.8), sofa + Vector3(0, 0, 1.2), _mat(Color("c9b18a")), false)   # 러그
-	var bk := o + Vector3(-wall + 1.2, 0, -d / 2.0 + 0.3)
-	_box(Vector3(1.6, 2.0, 0.4), bk, wood)
-	for r in 4:
-		for c in 6: _box(Vector3(0.18, 0.32, 0.25), bk + Vector3(-0.6 + c * 0.24, 0.12 + r * 0.48, 0.1), _mat([Color("b56a5a"), Color("5a6f9a"), Color("d8a24a"), Color("6f9a5a")][(r + c) % 4]), false)
-	_spot(rm, "read", bk + Vector3(0, 0, 0.8), PI)
-	for p in [o + Vector3(-w / 2.0 + 0.5, 0, d / 2.0 - 1.0), o + Vector3(w / 2.0 - 0.5, 0, d / 2.0 - 1.4)]: _scatter("Plant_1", p, 0.7)
-	for i in 3: _box(Vector3(0.5, 0.4, 0.03), o + Vector3(-1.0 + i * 0.9, 1.5, -d / 2.0 + 0.08), _mat([Color("ad7096"), Color("5a6f9a"), Color("d8a24a")][i]), false)   # 액자
+	var o: Vector3 = rm["o"]; var d: float = rm["d"]
+	RoomKit.build(self, rm, rm["kit"])
 	var owner := ""
 	for r in residents:
 		if r.home_door == doors[rm["door"]]: owner = r.handle; break
@@ -292,6 +271,25 @@ func inner_use(now: float) -> bool:
 			_till_use(now)
 		"board":
 			player.face(float(best["yaw"])); say_toast(String(best.get("text", "")))
+		"pose":   # 기구 앞에서 그 일의 자세(망치질·바느질·손차양…) — 움직이면 풀린다(town_player)
+			player.face(float(best["yaw"])); player.pose_request = String(best.get("pose", "wait")); use_until = now + 3.0
+			if best.has("text"): say_toast(String(best["text"]))
+		"emote":   # 매트·아령·철봉 — 산스장과 같은 되풀이 자세(town_social)
+			body.global_position = Vector3(best["pos"].x, 0.05, best["pos"].z); player.face(float(best["yaw"]) + PI)
+			action_until = now - 0.01; call("_emote", String(best.get("move", "squat")), 8.0)
+		"play":   # 피아노·전축 — 음 몇 개(차 라디오와 같은 소리 만들기, town_cabin)
+			player.face(float(best["yaw"])); player.pose_request = "strum"; use_until = now + 2.0
+			var notes := [262.0, 330.0, 392.0, 523.0, 440.0, 349.0]
+			var tone := AudioStreamPlayer.new(); tone.stream = TownCabin._tone_wav([notes[randi() % notes.size()], notes[randi() % notes.size()] * 1.5], 0.6); tone.volume_db = -10.0; add_child(tone); tone.play(); tone.finished.connect(tone.queue_free)
+			say_toast("A tune, more or less." if not best.has("tune") else ["The record skips. You let it.", "Something from before you were born.", "It plays the B-side. It is better."][randi() % 3])
+		"tv":
+			player.face(float(best["yaw"])); say_toast(["The weather, again.", "A cookery programme. Someone burns an onion.", "Snooker. Nobody moves.", "The news. It is about the bench."][randi() % 4])
+		"search":   # 상자·통 뒤지기 — 방마다 1분에 한 번 무언가
+			player.face(float(best["yaw"])); player.action = "grab"; action_until = now + 0.4
+			if player.carrying == null and now - float(_fridge_at.get(-1 - int(inside["door"]), -999.0)) > 60.0:
+				_fridge_at[-1 - int(inside["door"])] = now
+				player.hold(make_item(["book", "apple", "can", "umbrella", "letter"][randi() % 5], p + Vector3(0, 0.9, 0)))
+			else: say_toast("Mostly string.")
 	return true
 
 ## 계산대 — 안 치른 물건이면 값 치르기, 값이 있는 내 물건이면 팔기. 주인이 서 있어야
