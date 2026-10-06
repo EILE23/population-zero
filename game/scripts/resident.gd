@@ -1,5 +1,5 @@
 class_name Resident
-extends ResidentLedger
+extends ResidentBuild
 ## 주민의 일과 — 자리를 골라 걸어가 벤치에 앉고, 가로등에 기대고, 나무를 흔들고, 텃밭에 물을 주고, 빵집에서 빵을 사 먹고, 다음 자리로 간다.
 ## 넘어지면 일어나서 때린 사람을 쫓다가 포기한다. 몸·상태·맞음·인사는 resident_base.gd.
 

@@ -62,6 +62,7 @@ func _ready() -> void:
 	_hire_storysitter()   # 이야기방 주인 — 일 없는 어른 중 가장 '늙은 마음'(운전사보다 먼저 골라야 운전대에 앉지 않는다, town_sunroom)
 	_hire_busker()   # 악사 — 남은 어른 중 어울림이 가장 높은 이, 등에 상자 기타(운전사보다 먼저, town_busk)
 	_hire_drivers()
+	_growth_init()   # 마을이 자란다 — 지은 집을 다시 세우고, 건축가를 정하고, 공사장을 연다(town_growth)
 	ResidentKid.settle(self)   # 아이 둘 — 서로 가장 좋아하는 어른 둘의 집에(run 102, resident_kid)
 	if "--sheet" in OS.get_cmdline_user_args():
 		add_child(load("res://tools/motion_sheet.gd").new())   # 개발용 동작 시트(연속 프레임) — `-- --sheet` 로만 켜진다
@@ -93,11 +94,27 @@ func _process(delta: float) -> void:
 	else:
 		# 3/4 시점: 플레이어 뒤·위에서 내려다본다
 		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-		var want := Vector3(px, fp.y, clampf(fp.z, -OPEN + 6.0, OPEN - 4.0)) + Vector3(0, 8.5, 7.5)
+		zoom = lerpf(zoom, zoom_want, minf(1.0, delta * 6.0))
+		var want := Vector3(px, fp.y, clampf(fp.z, -OPEN + 6.0, OPEN - 4.0)) + Vector3(0, 8.5, 7.5) * zoom   # 휠·-/= 로 멀리(운영자: 위에서 봤을 때 도시)
 		for k in [0.3, 0.55, 0.8]:   # 카메라와 나 사이 언덕이 시선을 가리면 그 위로 올린다(열린 세계 남쪽 언덕)
-			var hk: float = gen.height(px, fp.z + 7.5 * k) + 0.9
+			var hk: float = gen.height(px, fp.z + 7.5 * zoom * k) + 0.9
 			want.y = maxf(want.y, fp.y + 0.6 + (hk - fp.y - 0.6) / k)
+		cam.far = 400.0 + 120.0 * zoom
+		gen.radius = clampi(int(3.0 + zoom * 0.55), 3, 11)   # 멀리 볼수록 넓게 짓는다
+		var env: Environment = ($WorldEnvironment as WorldEnvironment).environment
+		env.fog_density = 0.011 / zoom   # 멀리 볼수록 옅게 — sqrt 면 도시가 하얗게 바랬다
 		cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))
 		if cam_kick > 0.0:
 			cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)
-		cam.look_at(Vector3(cam.position.x, cam.position.y - 7.9, cam.position.z - 7.5), Vector3.UP)
+		cam.look_at(Vector3(cam.position.x, cam.position.y - 7.9 * zoom, cam.position.z - 7.5 * zoom), Vector3.UP)
+
+## 줌 — 마우스 휠 또는 -/= (1 = 기본, 30 = 도시를 내려다본다)
+var zoom := 1.0
+var zoom_want := 1.0
+func _unhandled_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed:
+		if e.button_index == MOUSE_BUTTON_WHEEL_UP: zoom_want = maxf(1.0, zoom_want / 1.2)
+		elif e.button_index == MOUSE_BUTTON_WHEEL_DOWN: zoom_want = minf(30.0, zoom_want * 1.2)
+	elif e is InputEventKey and e.pressed:
+		if e.keycode == KEY_EQUAL: zoom_want = maxf(1.0, zoom_want / 1.25)
+		elif e.keycode == KEY_MINUS: zoom_want = minf(30.0, zoom_want * 1.25)

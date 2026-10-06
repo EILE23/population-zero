@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownLedger
+extends TownGrowth
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──

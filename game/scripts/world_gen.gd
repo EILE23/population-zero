@@ -7,7 +7,10 @@ extends Node3D
 
 const CHUNK := 32.0
 const RES := 16                # 칸 한 변 격자 수(2m 간격)
-const RADIUS := 3              # 플레이어 칸 둘레 몇 칸(7×7 = 224m 사방)
+const RADIUS := 3              # 플레이어 칸 둘레 몇 칸(7×7 = 224m 사방) — 기본값. 카메라를 멀리 빼면 radius 가 커진다(town3d 줌)
+var radius := RADIUS
+var flat_limit := 0             # 이 순번 미만의 필지(지은·짓는 집)가 있는 블록은 평지로 깎는다(town_growth, TownPlan)
+const CITY_ON := false         # 한 번에 까는 도시(city_gen.gd)는 끈다 — 운영자: "가짜 도시는 없어, 다 진짜여야 해". 마을은 건축가가 지은 만큼만
 const SEED := 20260930
 const HUB_X := 72.0            # 허브(마을) 평지 반폭 — town_base WORLD_X 와 같다
 const HUB_Z := 26.0
@@ -61,6 +64,7 @@ func wild_k(x: float, z: float) -> float:
 	var k := smoothstep(0.0, 30.0, dh)
 	k = minf(k, smoothstep(4.0, 16.0, absf(z - ROAD_Z)))
 	k = minf(k, smoothstep(town.RIVER_HW + 2.0, town.RIVER_HW + 14.0, absf(z - town.RIVER_Z)))
+	if flat_limit > 0: k = minf(k, smoothstep(0.0, 26.0, TownPlan.flat_dist(x, z, flat_limit)))   # 지은·짓는 집 블록은 평지 — 둘레 26m 에 걸쳐 산으로
 	for s in SITES:
 		var c: Vector3 = s["c"]; var r: float = s["r"]
 		k = minf(k, smoothstep(r, r + 22.0, Vector2(x - c.x, z - c.z).length()))
@@ -116,11 +120,13 @@ func stream(p: Vector3, defer := true) -> void:
 	var t0 := Time.get_ticks_usec()
 	if not _later.is_empty():
 		var job: Array = _later.pop_front()
-		if is_instance_valid(job[0]) and not (job[0] as Node3D).is_queued_for_deletion(): _nature(job[0], job[1], job[2])   # 그사이 멀어져 지운 칸은 건너뛴다
+		if is_instance_valid(job[0]) and not (job[0] as Node3D).is_queued_for_deletion():
+			if job.size() > 3: CityGen.build_chunk(self, job[0], job[2], CHUNK)   # 도시 칸도 다음 프레임에(33ms 걸려 한 프레임을 넘겼다)
+			else: _nature(job[0], job[1], job[2])   # 그사이 멀어져 지운 칸은 건너뛴다
 	else:
 		var best := Vector2i.ZERO; var bd := 1e9; var need := false
-		for dz in range(-RADIUS, RADIUS + 1):
-			for dx in range(-RADIUS, RADIUS + 1):
+		for dz in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
 				var key := Vector2i(cx + dx, cz + dz)
 				if chunks.has(key): continue
 				var d := dx * dx + dz * dz
@@ -129,12 +135,12 @@ func stream(p: Vector3, defer := true) -> void:
 	var us := Time.get_ticks_usec() - t0
 	build_us_sum += us; build_us_max = maxi(build_us_max, us)
 	for key in chunks.keys():
-		if absi(key.x - cx) > RADIUS + 1 or absi(key.y - cz) > RADIUS + 1:
+		if absi(key.x - cx) > radius + 1 or absi(key.y - cz) > radius + 1:
 			(chunks[key] as Node3D).queue_free(); chunks.erase(key)
 
 ## 처음 둘레 전부(시작할 때 한 번에 — 빈 땅이 보이지 않게)
 func fill(p: Vector3) -> void:
-	for i in (RADIUS * 2 + 1) * (RADIUS * 2 + 1): stream(p, false)
+	for i in (radius * 2 + 1) * (radius * 2 + 1): stream(p, false)
 
 ## 칸 하나 — defer 면 자연(나무·풀 MultiMesh·충돌)은 _later 에 맡기고 다음 stream 이 짓는다
 func _build(key: Vector2i, defer := false) -> void:
@@ -194,6 +200,14 @@ func _build(key: Vector2i, defer := false) -> void:
 		sb.add_child(cs); n.add_child(sb)
 		if defer: _later.append([n, key, o])
 		else: _nature(n, key, o)
+	elif absf(o.x + CHUNK / 2.0) > HUB_X or absf(o.z + CHUNK / 2.0) > HUB_Z:   # 허브 바깥의 완전한 평지 칸(도시·길) — 바닥 충돌판(허브는 _solid_floor 가 있다)
+		var city := CITY_ON and Rect2(CityGen.X0, CityGen.Z0, CityGen.X1 - CityGen.X0, CityGen.Z1 - CityGen.Z0).intersects(Rect2(o.x, o.z, CHUNK, CHUNK))
+		if not city:
+			var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(CHUNK, 1.0, CHUNK); cs.shape = bx
+			cs.position = o + Vector3(CHUNK / 2.0, -0.5, CHUNK / 2.0); sb.add_child(cs); n.add_child(sb)
+	if CITY_ON and Rect2(CityGen.X0, CityGen.Z0, CityGen.X1 - CityGen.X0, CityGen.Z1 - CityGen.Z0).intersects(Rect2(o.x, o.z, CHUNK, CHUNK)):
+		if defer: _later.append([n, key, o, "city"])
+		else: CityGen.build_chunk(self, n, o, CHUNK)   # 도시 칸: 도로·건물·나무(city_gen.gd)
 
 ## 칸의 자연 — 생물군마다 다른 밀도. 평지(허브·길·강)와 물·가파른 곳엔 안 놓는다
 func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
@@ -250,3 +264,15 @@ func _model_src(id: String) -> Dictionary:
 	root.free()
 	_src[id] = { "parts": parts, "h": hi }
 	return _src[id]
+
+## 새 공사장이 산 위면 그 둘레 칸을 지워 다시 짓는다(이번엔 깎인 땅으로) — town_growth._open_sites
+func reflat(c: Vector2) -> void:
+	for key in chunks.keys():
+		var o := Vector2(key.x * CHUNK + CHUNK / 2.0, key.y * CHUNK + CHUNK / 2.0)
+		if o.distance_to(c) < 80.0:
+			(chunks[key] as Node3D).queue_free(); chunks.erase(key)
+
+func rebuild_all(p: Vector3) -> void:
+	for key in chunks.keys(): (chunks[key] as Node3D).queue_free()
+	chunks.clear(); _later.clear()
+	fill(p)

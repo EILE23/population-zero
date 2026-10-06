@@ -1,0 +1,186 @@
+class_name TownGrowth
+extends TownLedger
+## 마을이 자란다(운영자 2026-10-06: "가짜 도시는 없어 다 진짜여야 해, 모든 집들은 다 동작해야 하고", "빌딩을 실제로 짓는 건축가들").
+## 도시계획(town_plan.gd)의 필지를 순서대로 — 건축가 주민(job "builder", 노란 모자) 둘이 공사장에 출근해 망치질한다(hammer 자세, 한 번에 25초 = 일 한 단위).
+## 단계: 0 말뚝·끈·판자 더미 → 1 바닥 → 2 기둥·보 → 3 벽 → 4 지붕 틀 → 완성: 마을의 다른 집과 같은 진짜 집(_house: 문, 실내, 계단·컷어웨이)이 서고
+## 명부의 다음 주민이 입주한다(그 문이 집, 밤엔 거기서 잔다). 필지 앞 골목은 공사가 시작될 때 깔리고, 땅이 산이면 블록째 평평하게 깎인다(WorldGen).
+## 진행은 user://growth.json — 꺼 둔 동안 흐른 시간만큼도 자라 있다(한 번에 최대 OFFLINE_MAX 채). 공사장 곁엔 구경 자리가 있어 지나가던 주민이 멈춰 본다
+
+const GROWTH := "user://growth.json"
+const SITES_AT_ONCE := 2       # 동시에 짓는 공사장 수
+const STAGE_WORK := 4          # 한 단계에 필요한 일 단위(건축가 한 명 25초)
+const WORK_T := 25.0
+const OFFLINE_HOUSE_S := 240.0 # 꺼 둔 동안 이만큼마다 한 채
+const OFFLINE_MAX := 12
+const RES_MAX := 90            # 몸이 있는 주민 상한 — 넘으면 입주는 하되 집에 불만 켜진다(성능)
+
+var built := 0                 # 지은 필지 수(순번 0..built-1)
+var site_work := {}            # 순번 -> 쌓인 일(0 .. 5·STAGE_WORK)
+var _site_nodes := {}          # 순번 -> 공사장 노드
+var _built_root: Node3D
+var _paved := {}               # 깔린 골목 토막
+var _roster: Array = []
+
+func _growth_init() -> void:
+	var f := FileAccess.open("res://data/residents.json", FileAccess.READ)
+	if f: _roster = (JSON.parse_string(f.get_as_text()) as Dictionary).get("residents", [])
+	_built_root = Node3D.new(); _built_root.name = "Built"; add_child(_built_root)
+	var g := FileAccess.open(GROWTH, FileAccess.READ)
+	var saved_t := 0.0
+	if g:
+		var d: Variant = JSON.parse_string(g.get_as_text())
+		if d is Dictionary:
+			built = int(d.get("built", 0)); saved_t = float(d.get("t", 0.0))
+			for k in (d.get("work", {}) as Dictionary): site_work[int(k)] = float(d["work"][k])
+	if saved_t > 0.0 and not _tool_run():   # 꺼 둔 동안
+		var gained := mini(OFFLINE_MAX, int((Time.get_unix_time_from_system() - saved_t) / OFFLINE_HOUSE_S))
+		built += gained
+		if gained > 0: get_tree().create_timer(2.0).timeout.connect(func() -> void: say_toast("While you were away the builders finished %d house%s." % [gained, "" if gained == 1 else "s"]))
+	gen.flat_limit = built + SITES_AT_ONCE
+	if built > 0: gen.rebuild_all(body.global_position)   # 지은 집 블록이 평지가 되게 칸을 다시(처음 칸은 성장 상태를 읽기 전에 지어졌다)
+	var lots := TownPlan.lots()
+	for k in mini(built, lots.size()): _finish_lot(lots[k], false)
+	_hire_builders()
+	_open_sites()
+
+func _tool_run() -> bool:
+	return DisplayServer.get_name() == "headless" or "-s" in OS.get_cmdline_args() or "--script" in OS.get_cmdline_args() or "--sheet" in OS.get_cmdline_user_args()
+
+func _save_growth() -> void:
+	if _tool_run(): return
+	var w := {}
+	for k in site_work: w[str(k)] = site_work[k]
+	var f := FileAccess.open(GROWTH, FileAccess.WRITE)
+	if f: f.store_string(JSON.stringify({ "built": built, "work": w, "t": Time.get_unix_time_from_system() }))
+
+## 건축가 둘 — 일자리 없는 어른 중 배짱 있는 사람(노란 모자). 이미 있으면 그대로
+func _hire_builders() -> void:
+	var have := residents.filter(func(r: Resident) -> bool: return r.job == "builder").size()
+	for r in residents:
+		if have >= 2: break
+		if r.job != "" or r is ResidentKid or r.state == "drive": continue
+		r.job = "builder"; r.fig.wear(Wear.make("cap", Color("f2c84b"))); have += 1
+
+## 다음 공사장들 — 순번 built .. built+SITES_AT_ONCE-1
+func _open_sites() -> void:
+	var lots := TownPlan.lots()
+	for k in range(built, mini(built + SITES_AT_ONCE, lots.size())):
+		if _site_nodes.has(k): continue
+		if gen.flat_limit < k + 1:
+			gen.flat_limit = k + SITES_AT_ONCE; gen.reflat(lots[k]["c"])   # 산 위의 필지면 블록째 깎는다
+		_pave(lots[k])
+		_site_nodes[k] = Node3D.new(); _built_root.add_child(_site_nodes[k])
+		_draw_site(k)
+
+## 공사장 모습 — 단계마다 하나씩 더해진다
+func _draw_site(k: int) -> void:
+	var n: Node3D = _site_nodes[k]
+	for c in n.get_children(): c.queue_free()
+	var l: Dictionary = TownPlan.lots()[k]
+	var c := Vector3(l["c"].x, 0, l["c"].y)
+	var sp := TownPlan.house_spec(l); var s: Vector3 = sp["size"]
+	var stage := int(float(site_work.get(k, 0.0)) / STAGE_WORK)
+	var wood := _mat(Color("b48a5a")); var dark := _mat(Color("6b4a35"))
+	for cx in [-1.0, 1.0]:   # 말뚝 넷과 끈
+		for cz in [-1.0, 1.0]: _box(Vector3(0.08, 0.6, 0.08), c + Vector3(cx * (s.x / 2.0 + 0.5), 0, cz * (s.z / 2.0 + 0.5)), dark, false, n)
+	for i in 4: _box(Vector3(2.2, 0.08, 0.3), c + Vector3(s.x / 2.0 + 1.8, 0.08 * i, s.z / 2.0 - 0.3 - (i % 2) * 0.35), wood, false, n)   # 판자 더미
+	if stage >= 1: _box(Vector3(s.x, 0.18, s.z), c, _mat(Color("bfb6b0")), true, n)   # 바닥
+	if stage >= 2:
+		for cx in [-1.0, 1.0]:
+			for cz in [-1.0, 1.0]: _box(Vector3(0.16, s.y, 0.16), c + Vector3(cx * (s.x / 2.0 - 0.1), 0.18, cz * (s.z / 2.0 - 0.1)), wood, false, n)
+		for cz in [-1.0, 1.0]: _box(Vector3(s.x, 0.14, 0.14), c + Vector3(0, s.y + 0.1, cz * (s.z / 2.0 - 0.1)), wood, false, n)
+	if stage >= 3:
+		_box(Vector3(s.x - 0.3, s.y * 0.7, 0.12), c + Vector3(0, 0.18, -s.z / 2.0 + 0.1), _mat(sp["wall"]), false, n)
+		for sx in [-1.0, 1.0]: _box(Vector3(0.12, s.y * 0.55, s.z - 0.3), c + Vector3(sx * (s.x / 2.0 - 0.1), 0.18, 0), _mat(sp["wall"]), false, n)
+		for i in 3: _box(Vector3(0.06, s.y + 0.6, 0.06), c + Vector3(-s.x / 2.0 - 0.6 + i * 0.05, 0, s.z / 2.0 + 0.6), _mat(Color("8a8a92")), false, n)   # 비계
+	if stage >= 4:
+		for i in 5:
+			var rafter := _box(Vector3(0.1, 0.1, s.z + 0.4), c + Vector3(-s.x / 2.0 + i * s.x / 4.0, s.y + 0.45 + (0.5 - absf(i - 2) * 0.25), 0), wood, false, n)
+	var lb := Label3D.new(); lb.text = "Building — %d%%" % int(100.0 * float(site_work.get(k, 0.0)) / (STAGE_WORK * 5.0)); lb.font_size = 48; lb.pixel_size = 0.004
+	lb.modulate = Color("1b0c15"); lb.outline_size = 8; lb.outline_modulate = Color("f7f4ef"); lb.billboard = BaseMaterial3D.BILLBOARD_ENABLED; lb.position = c + Vector3(0, s.y + 1.6, 0); n.add_child(lb)
+
+## 건축가가 일할 자리 — 짓는 중인 공사장 앞(문 쪽), 칸 둘. 없으면 {}
+func build_spot(r: ResidentBase) -> Dictionary:
+	var best: Dictionary = {}; var bd := 1e9
+	for k in _site_nodes:
+		var l: Dictionary = TownPlan.lots()[k]
+		var sp: Dictionary = _site_nodes[k].get_meta("spot", {})
+		if sp.is_empty():
+			var s: Vector3 = TownPlan.house_spec(l)["size"]
+			sp = { "pos": Vector3(l["c"].x, 0, l["c"].y + s.z / 2.0 + 0.9), "kind": "build", "yaw": PI, "lot": k }
+			_site_nodes[k].set_meta("spot", sp)
+		var d: float = r.global_position.distance_to(sp["pos"])
+		if r._free_slot(sp) >= 0 and d < bd: bd = d; best = sp
+	return best
+
+## 일 한 단위(건축가 25초) — 단계가 오르면 모습이 바뀌고, 다 쌓이면 집이 선다
+func build_work(sp: Dictionary) -> void:
+	var k: int = sp["lot"]
+	if not _site_nodes.has(k): return
+	var before := int(float(site_work.get(k, 0.0)) / STAGE_WORK)
+	site_work[k] = float(site_work.get(k, 0.0)) + 1.0
+	var after := int(float(site_work[k]) / STAGE_WORK)
+	if after >= 5:
+		(_site_nodes[k] as Node3D).queue_free(); _site_nodes.erase(k); site_work.erase(k)
+		_finish_lot(TownPlan.lots()[k], true)
+		while built < TownPlan.lots().size() and (built in _done_set()): built += 1
+		_open_sites()
+	else:
+		_draw_site(k)
+	_save_growth()
+
+var _done := {}
+func _done_set() -> Dictionary:
+	return _done
+
+## 집이 선다 — 마을의 다른 집과 같은 _house(문·실내·계단·컷어웨이·자리 등록). live 면 새 주민이 입주하고 한마디
+func _finish_lot(l: Dictionary, live: bool) -> void:
+	var k := int(l["order"])
+	if _done.has(k): return
+	_done[k] = true
+	if not live: built = maxi(built, k + 1)
+	_pave(l)
+	var sp := TownPlan.house_spec(l)
+	var c := Vector3(l["c"].x, 0, l["c"].y)
+	var nd := doors.size()
+	var keep := _build_parent; _build_parent = _built_root
+	_house(c, sp["size"], sp["wall"], sp["roof"], false, sp["seed"])
+	_flower_bed(c + Vector3(-(sp["size"] as Vector3).x / 2.0 - 0.9, 0, (sp["size"] as Vector3).z / 2.0 + 0.4))
+	_build_parent = keep
+	if doors.size() > nd: _move_in(doors[doors.size() - 1], live)
+	if live:
+		_dust(c + Vector3(0, 0.5, 0)); say_toast("A new house is finished.")
+
+func _flower_bed(at: Vector3) -> void:
+	for i in 4: _scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers", "Clover_1"][i], at + Vector3(i * 0.35, 0, 0), 0.5)
+
+## 입주 — 명부에서 아직 마을에 없는 다음 사람. 몸이 있는 주민이 RES_MAX 를 넘으면 문에 이름만(불 켜진 집)
+func _move_in(door: Dictionary, live: bool) -> void:
+	if _roster.is_empty(): return
+	var i := residents.size()
+	var row: Dictionary = _roster[(i * 7) % _roster.size()]
+	if residents.size() >= RES_MAX: door["owner"] = String(row["handle"]); return
+	var r := Resident.new(); add_child(r)
+	r.setup(self, int(row["id"]), String(row["handle"]))
+	r.home_door = door
+	var dp: Vector3 = door["pos"]
+	r.position = dp + Vector3(0, 0.02, 1.2)
+	residents.append(r)
+	if live: get_tree().create_timer(1.5).timeout.connect(func() -> void: if is_instance_valid(r): r.say(["Moved in.", "Home.", "It's lovely."][r.uid % 3], 2.4))
+
+## 골목 — 필지 앞(문 쪽) 동서 골목 한 토막(블록 폭), 처음 공사가 시작될 때 깔린다
+func _pave(l: Dictionary) -> void:
+	var b: Vector2i = l["b"]
+	var key := "%d,%d,%d" % [b.x, b.y, int(l["row"])]
+	if _paved.has(key): return
+	_paved[key] = true
+	var z: float = l["street_z"]
+	var x0 := TownPlan.OX + b.x * TownPlan.PITCH; var x1 := x0 + TownPlan.PITCH
+	var keep := _build_parent; _build_parent = _built_root
+	_path(Vector3(x0, 0, z), Vector3(x1, 0, z), TownPlan.PATH_W)
+	for xv in [x0, x1]:   # 남북 골목도 그 블록만큼
+		var vk := "v%d,%d" % [int(xv), b.y]
+		if not _paved.has(vk):
+			_paved[vk] = true
+			_path(Vector3(xv, 0, TownPlan.OZ + b.y * TownPlan.PITCH), Vector3(xv, 0, TownPlan.OZ + (b.y + 1) * TownPlan.PITCH), TownPlan.PATH_W)
+	_build_parent = keep
