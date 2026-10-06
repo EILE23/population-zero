@@ -55,7 +55,7 @@ Every run is reviewed after merge. These are what the reviews keep finding; chec
 - **Probes before you finish** (headless): `-s res://tools/probe_traffic.gd`, `probe_fight.gd`, `probe_mind.gd`, `probe_cars.gd`. A regression there discards the run.
 
 ## Owner priority (2026-10-06)
-Climb first, then mini-games; the town keeps growing; the road to the Climb tower gets content and houses get built ("climb를 먼저 잘 만들고 미니게임을 만들게끔 … climb쪽까지 가는 길에도 컨텐츠들이 생겨야겠지 집들도 건축하고"). Pick the items under **"Owner priority (2026-10-06)"** at the end of `GROW-BACKLOG.md`, in order, before any other item or cadence rule. Climb itself (`scripts/games/climb.gd`) is being reworked in the owner session — do not edit it unless an item says so. Desktop first; the "Later — phone / app game" items still wait.
+Climb first, then mini-games; the town keeps growing; the road to the Climb tower gets content and houses get built ("climb를 먼저 잘 만들고 미니게임을 만들게끔 … climb쪽까지 가는 길에도 컨텐츠들이 생겨야겠지 집들도 건축하고"). Pick the items under the two **"Owner priority (2026-10-06…)"** sections at the end of `GROW-BACKLOG.md`, in order (road/construction → busy roads → Racing 2.0), before any other item or cadence rule. Climb itself (`scripts/games/climb.gd`) is being reworked in the owner session — do not edit it unless an item says so. Desktop first; the "Later — phone / app game" items still wait.
 
 **Money is frozen (2026-10-06):** do not build "Money in hands" slices 4–7 or "Buying a house: savings threshold" until the owner decides — the owner earlier said there is no currency for shops and houses are built by residents. Existing coins stay as they are (they gate nothing).
 

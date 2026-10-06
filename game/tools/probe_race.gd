@@ -7,7 +7,7 @@ func _init() -> void:
 	var gate: Dictionary = town.spots.filter(func(s): return s["kind"] == "gate" and s["game"] == "race")[0]
 	print("GATE at ", gate["pos"], " h=", town.gen.height(gate["pos"].x, gate["pos"].z))
 	town.enter_game("race")
-	for i in 10: await physics_frame
+	for i in 90: await physics_frame   # 문 장면(0.9초) 뒤에 게임이 뜬다
 	var g: Node3D = town.game_node
 	print("ENTER game=", g != null, " town_mode=", town.process_mode, " rivals=", g.rivals.map(func(r): return r["handle"]))
 	for i in 200: await physics_frame   # 출발 신호(3초)
