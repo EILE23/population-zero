@@ -20,6 +20,7 @@ func _city_init() -> void:
 		if bl["zone"] == "park": _park_block(CityMap.block_center(b), String(bl.get("name", "Park")))
 		else: _civic(CityMap.block_center(b), String(bl.get("building", "")), String(bl.get("name", "")))
 	for s in WorldGen.SITES: _dress_road(s)
+	_dress_loop()
 	for sg in CityMap.data().get("signs", []):
 		var at := Vector3(float(sg["at"][0]), 0, float(sg["at"][1]))
 		_build_parent = _root_for(at); _signpost(at, String(sg["text"]))
@@ -41,12 +42,20 @@ func _root_for(at: Vector3) -> Node3D:
 func _finish_lot(l: Dictionary, live: bool) -> void:
 	var kind := CityMap.lot_kind(l)
 	var c := TownPlan.spot_of(l)
-	if kind == "house":
-		var keep_root := _built_root; _built_root = _root_for(c)
-		var had := _done.has(int(l["order"]))
-		super(l, live)
-		_built_root = keep_root
-		if not had: _footpath(l, c)
+	if kind == "house":   # 집 — 모양은 house_styles(오두막·타운하우스·방갈로·차고·날개채·탑·옥상 정원), 문·실내·입주는 같은 길
+		var hk := int(l["order"])
+		if _done.has(hk): return
+		_done[hk] = true
+		if not live: built = maxi(built, hk + 1)
+		_pave(l)
+		var hsp := TownPlan.house_spec(l); var nd := doors.size()
+		var hkeep := _build_parent; _build_parent = _root_for(c)
+		var hs := HouseStyles.build(self, c, l, hsp)
+		_flower_bed(c + Vector3(-hs.x / 2.0 - 0.6, 0, hs.z / 2.0 + 0.4))
+		_build_parent = hkeep
+		if doors.size() > nd: _move_in(doors[nd], live)
+		_footpath(l, c)
+		if live: _dust(c + Vector3(0, 0.5, 0)); say_toast("A new house is finished.")
 		return
 	var k := int(l["order"])
 	if _done.has(k): return
@@ -67,9 +76,9 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 
 ## 가게 — 집과 같은 건물(문·실내)에 차양·간판·창구. 창구 뒤 주인 자리에 주민이 서 있어야 판다
 func _shop_lot(l: Dictionary, c: Vector3) -> void:
-	var sp := TownPlan.house_spec(l); var s: Vector3 = sp["size"]; s.x = maxf(s.x, 4.4)
+	var sp := TownPlan.house_spec(l)
 	var shop := CityMap.shop_of(l)
-	_house(c, s, sp["wall"], sp["roof"], true, sp["seed"])
+	var s := HouseStyles.build(self, c, l, sp, ["townhouse", "terrace", "cottage", "bungalow", "townhouse", "turret"][int(l["order"]) % 6])   # 가게도 모양이 저마다
 	doors[doors.size() - 1]["shop_id"] = shops.size()   # 이 문으로 들어가면 가게 방(town_interior)
 	var hd := s.z / 2.0
 	var aw := _box(Vector3(s.x + 0.3, 0.07, 1.1), c + Vector3(0, 2.25, hd + 0.5), _mat(Color(String(shop["awning"]))), false); aw.rotation.x = 0.28
@@ -77,10 +86,7 @@ func _shop_lot(l: Dictionary, c: Vector3) -> void:
 	var lb := Label3D.new(); lb.text = String(shop["type"]); lb.font_size = 64; lb.pixel_size = 0.005; lb.modulate = Color("1b0c15"); lb.outline_size = 0
 	lb.position = c + Vector3(0, 2.7, hd + 0.08); _add(lb)
 	var cx := -s.x / 2.0 + 0.8
-	_box(Vector3(1.2, 0.95, 0.55), c + Vector3(cx, 0, hd + 1.0), _mat(Color("8a6a4a")))
-	for i in 3:
-		var it := make_item(String(shop["item"]), c + Vector3(cx - 0.35 + i * 0.35, 0.95, hd + 1.0))
-		it.set_meta("display", true); _add_display(it)
+	HouseStyles.shop_front(self, c, s, String(shop["type"]), String(shop["item"]))   # 가게 앞 — 카페 테라스·빵 바구니·과일 상자·책 수레…
 	var id := shops.size()
 	var sh := { "kind": "shop", "pos": c + Vector3(cx, 0, hd + 1.75), "yaw": PI, "item": String(shop["item"]), "type": String(shop["type"]), "id": id,
 		"keeper": { "kind": "keeper", "pos": c + Vector3(0, 0, hd + 1.0), "yaw": 0.0, "shop_id": id } }   # 주인은 문 앞까지 걸어와 안(방의 계산대 뒤, inner)으로 들어간다
@@ -164,11 +170,12 @@ func _pave(l: Dictionary) -> void:
 	super(l)
 	if not fresh: return
 	var z: float = l["street_z"]; var x0 := TownPlan.OX + b.x * TownPlan.PITCH + TownPlan.PATH_W / 2.0
-	var s := -1.0 if int(l["row"]) == 1 else 1.0
+	var s := -1.0   # 두 줄 다 길의 북쪽에 선다(앞이 남쪽)
 	var vz := z + s * (TownPlan.PATH_W / 2.0 + 0.9)
 	var keep := _build_parent; _build_parent = _root_for(Vector3(x0 + 20.0, 0, vz))
-	_lamp(Vector3(x0 + 12.3, 0, vz))
-	_tree(Vector3(x0 + 24.5, 0, vz + s * 0.6), 1.0); _tree(Vector3(x0 + 2.0, 0, vz + s * 0.6), 0.95)
+	var gap := (TownPlan.PITCH - TownPlan.PATH_W) / TownPlan.PER_ROW   # 집과 집 사이 틈에 — 문길(필지 가운데)은 비운다
+	_lamp(Vector3(x0 + gap * 2.0, 0, vz))
+	_tree(Vector3(x0 + gap * 4.0, 0, vz + s * 0.3), 0.9); _tree(Vector3(x0 + 0.3, 0, vz + s * 0.3), 0.85)
 	_build_parent = keep
 
 ## 문 앞 흙길 — 문에서 앞으로 나와 골목까지, 집마다 조금씩 다르게 꺾인다(반듯한 자갈 골목 사이의 비포장 오솔길)
@@ -180,14 +187,10 @@ func _footpath(l: Dictionary, c: Vector3) -> void:
 	var keep := _build_parent; _build_parent = _root_for(c)
 	var dirt := _mat(Color("b59a74"))
 	var pts: Array[Vector3] = [a]
-	if int(l["row"]) == 1:   # 앞(남쪽)이 골목 — 두어 번 꺾여 골목 가로
-		var z1: float = float(l["street_z"]) - TownPlan.PATH_W / 2.0
-		pts.append(a + Vector3(rng.randf_range(-1.2, 1.2), 0, (z1 - a.z) * 0.5))
-		pts.append(Vector3(a.x + rng.randf_range(-1.8, 1.8), 0, z1))
-	else:   # 앞이 블록 안쪽 — 앞마당으로 나와 가까운 남북 골목 쪽으로
-		var gx := TownPlan.OX + (int(l["b"].x) + (0 if fposmod(c.x - TownPlan.OX, TownPlan.PITCH) < TownPlan.PITCH / 2.0 else 1)) * TownPlan.PITCH
-		var mid := a + Vector3(rng.randf_range(-0.8, 0.8), 0, rng.randf_range(1.6, 2.6))
-		pts.append(mid); pts.append(Vector3(gx + (1.6 if gx < c.x else -1.6), 0, mid.z + rng.randf_range(-1.0, 1.0)))
+	var z1: float = float(l["street_z"]) - TownPlan.PATH_W / 2.0   # 앞(남쪽) 길 — 앞 골목이거나 블록 가운데 뒷골목
+	if z1 - a.z > 0.6:
+		pts.append(a + Vector3(rng.randf_range(-0.5, 0.5), 0, (z1 - a.z) * 0.5))
+		pts.append(Vector3(a.x + rng.randf_range(-0.9, 0.9), 0, z1))
 	for k in pts.size() - 1:
 		var p0 := pts[k]; var p1 := pts[k + 1]; var d := p1 - p0
 		var seg := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(d.length() + 0.5, 0.015, rng.randf_range(0.8, 1.1)); seg.mesh = bm; seg.material_override = dirt
@@ -209,6 +212,21 @@ func _dress_road(s: Dictionary) -> void:
 			_tree(p + dir * 8.0 + side * (off + 1.4) * (-1.0 if i % 2 == 0 else 1.0), 1.0)
 		_build_parent = keep
 		t += 16.0; i += 1
+
+## 둘레길 — 60m 마다 벤치, 240m 마다 이정표(WorldGen.loop_at 이 길을 그린다). 길 바깥쪽 1.6m 에
+func _dress_loop() -> void:
+	var r0 := WorldGen.loop_r(0.0); var steps := int(TAU * r0 / 60.0)
+	for i in steps:
+		var a := i * TAU / steps
+		var r := WorldGen.loop_r(a) + 1.9
+		var p := Vector3(WorldGen.LOOP_C.x + cos(a) * r, 0, WorldGen.LOOP_C.y + sin(a) * r)
+		if not gen.loop_at(p.x - cos(a) * 1.9, p.z - sin(a) * 1.9): continue
+		p.y = gen.height(p.x, p.z)
+		var keep := _build_parent; _build_parent = _root_for(p)
+		if i % 4 == 0: _signpost(p, "TOWN LOOP
+%d m around" % int(TAU * r0))
+		else: _bench(p)
+		_build_parent = keep
 
 ## 이정표 — 기둥과 판, 양면 글씨
 func _signpost(at: Vector3, text: String) -> void:

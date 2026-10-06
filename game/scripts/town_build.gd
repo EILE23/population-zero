@@ -70,9 +70,10 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 
 ## 집 — 시드로 정하는 사양(진짜 집처럼, 운영자 2026-09-28): 층수 1~2, 박공/평지붕, 벽 재질(널빤지·벽돌·회벽·색벽), 트림 색, 창 배치와 덧문·창턱,
 ## 처마·홈통·굴뚝·현관 지붕·계단·화단·우체통. 속은 비어 있고(벽 네 장) 경첩 문으로 들어간다. 들어가면 지붕·앞벽·천장이 사라져 안이 보인다(컷어웨이).
-func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false, seed := 0, inside := "") -> void:
+func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false, seed := 0, inside := "", force_storeys := 0) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 1000 + seed + int(at.x * 7.0 + at.z * 13.0)
 	var storeys := 2 if (rng.randf() < 0.35 and not flat_roof) else 1
+	if force_storeys > 0: storeys = force_storeys   # 집 모양(house_styles.gd)이 정한다 — 타운하우스는 2층, 방갈로는 1층
 	size.y = size.y * (1.7 if storeys == 2 else 1.0)
 	var mats := ["plank", "brick", "stucco", "colour"]
 	var material: String = mats[rng.randi() % mats.size()]
@@ -148,7 +149,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var ceiling_y := size.y
 	var cap: Node3D = null   # 굴뚝 갓 — 박공지붕에만 있다; 연기(town_systems _smoke)가 이 위에 선다
 	if flat_roof:
-		parts.append(_box(Vector3(size.x + 0.2, 0.16, size.z + 0.2), at + Vector3(0, size.y, 0), _mat(Color("cfc7c2"))))
+		parts.append(_box(Vector3(size.x + 0.2, 0.16, size.z + 0.2), at + Vector3(0, size.y, 0), _mat([Color("8a7f86"), Color("6f7a6a"), Color("9a8a7a")][rng.randi() % 3])))   # 평지붕 — 위에서 보면 하얀 판이었다
 		parts.append(_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, hd + 0.04), trim))
 		parts.append(_box(Vector3(size.x + 0.2, 0.5, 0.12), at + Vector3(0, size.y + 0.16, -hd - 0.04), trim))
 		parts.append(_box(Vector3(0.12, 0.5, size.z + 0.2), at + Vector3(-hw - 0.04, size.y + 0.16, 0), trim))

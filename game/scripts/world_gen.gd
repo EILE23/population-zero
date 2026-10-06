@@ -164,7 +164,16 @@ static func trail_xz(pk: Dictionary) -> PackedVector2Array:
 var _trail_cells := {}   # 3m 칸 → 계단 길이 지나간다(나무를 안 심는다)
 ## 들판 흙길 위인가(잡음 등고선 ±폭) — 깎인 마을 안·산·호수엔 없다
 func dirt_at(x: float, z: float) -> bool:
-	return absf(_paths.get_noise_2d(x, z)) < 0.018 and peak_k(x, z) < 0.05 and _h(x, z) > 0.2
+	return (absf(_paths.get_noise_2d(x, z)) < 0.018 and peak_k(x, z) < 0.05 and _h(x, z) > 0.2) or loop_at(x, z)
+
+## 둘레길(운영자 2026-10-06: "둘레길도 존재해야") — 마을을 한 바퀴 도는 흙길. 반지름이 출렁이고(산 자락·호숫가를 스친다), 깎인 마을 땅에선 마을 것을 피한다
+const LOOP_C := Vector2(20.0, -10.0)
+static func loop_r(a: float) -> float:
+	return 128.0 + 9.0 * sin(3.0 * a + 1.0) + 5.0 * sin(5.0 * a + 0.4)
+func loop_at(x: float, z: float) -> bool:
+	var v := Vector2(x, z) - LOOP_C
+	if absf(v.length() - loop_r(v.angle())) > 1.25 or peak_k(x, z) > 0.4: return false
+	return wild_k(x, z) > 0.3 or _town_clear(x, z, 0.0)
 
 func on_trail(x: float, z: float) -> bool:
 	if dirt_at(x, z): return true
@@ -375,7 +384,7 @@ func _dirt_patches(n: Node3D, o: Vector3) -> void:
 	for j in int(CHUNK / step):
 		for i in int(CHUNK / step):
 			var x := o.x + (i + 0.5) * step; var z := o.z + (j + 0.5) * step
-			if not dirt_at(x, z) or wild_k(x, z) < 0.3: continue
+			if not dirt_at(x, z) or (wild_k(x, z) < 0.3 and not loop_at(x, z)): continue
 			var h := height(x, z)
 			var nrm := Vector3(height(x - 0.7, z) - height(x + 0.7, z), 1.4, height(x, z - 0.7) - height(x, z + 0.7)).normalized()
 			var b := Basis(Quaternion(Vector3.UP, nrm)) * Basis(Vector3.UP, fposmod(x * 1.7 + z, TAU))
@@ -402,7 +411,7 @@ func _town_clear(x: float, z: float, r: float) -> bool:
 	var b := CityMap.block_of(Vector2(x, z))
 	if CityMap.whole_block(b) and Vector2(x, z).distance_to(Vector2(CityMap.block_center(b).x, CityMap.block_center(b).z)) < 19.0: return false   # 관공서·공원 블록
 	for l in _lots_near(b):
-		if Vector2(x, z).distance_to(l["c"]) < 6.5 + r * 0.5: return false
+		if Vector2(x, z).distance_to(l["c"]) < 3.6 + r * 0.5: return false   # 집 둘레만(필지 간격 7.4m)
 	return true
 
 var _lots_by_block := {}

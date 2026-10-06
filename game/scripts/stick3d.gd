@@ -420,6 +420,14 @@ func _process(delta: float) -> void:
 		pv.rotation = Vector3(lerp_angle(was.x, want.x, k), lerp_angle(was.y, want.y, k), lerp_angle(was.z, want.z, k))
 	pelvis.position.y = lerpf(prev_pelvis_y, pelvis.position.y, k)
 	pelvis.rotation.x = lerp_angle(prev_pelvis_rot.x, pelvis.rotation.x, k)
+	_keep_upright()
+
+## 컵·캔·빵·사과 같은 건 손이 어떻게 돌든 바로 선 채로(운영자 2026-10-06: 컵을 옆으로 눕혀 들고 다녔다) — 손 자리는 따라가고 방향만 세계 기준으로 세운다
+const UPRIGHT := ["cup", "can", "bread", "apple", "tomato", "cabbage", "pumpkin", "fish", "coin"]
+func _keep_upright() -> void:
+	for it in [carrying] + pocket:
+		if it != null and is_instance_valid(it) and it.is_inside_tree() and String(it.get_meta("kind", "")) in UPRIGHT:
+			it.global_basis = Basis(Vector3.UP, global_rotation.y)
 
 ## 바깥에서 방향을 정한다(벤치에 앉을 때 등) — 부드럽게 돌아간다
 func face(yaw: float) -> void:

@@ -10,7 +10,8 @@ const PATH_W := 3.2          # 동물의 숲 같은 흙·돌 골목(차도가 �
 const OX := 16.0
 const OZ := 2.0
 const REACH := 640.0         # 계획이 닿는 반경(m) — 그 안 필지 수천 개, 다 지으려면 오래 걸린다(끝없는 성장)
-const LOT := 12.0
+const LOT := 7.0
+const PER_ROW := 5           # 한 줄 다섯 채(7.4m 간격) — 전엔 셋(12m)이라 집 사이가 휑했다
 
 static var _lots: Array = []   # [{id, c: Vector2, b: Vector2i, i, street_z}] — 순서 = 지을 순서
 
@@ -21,11 +22,12 @@ static func lots() -> Array:
 		for bz in range(-n, n):
 			var x0 := OX + bx * PITCH + PATH_W / 2.0; var z0 := OZ + bz * PITCH + PATH_W / 2.0
 			var inner := PITCH - PATH_W
+			var lane := z0 + inner * 0.5   # 블록 한가운데 뒷골목 — 두 줄 다 길을 본다(운영자 2026-10-06: "집들 간격도 좁히고")
 			for row in 2:
-				for i in 3:
-					var c := Vector2(x0 + inner / 6.0 * (1 + 2 * i), z0 + inner * (0.27 if row == 0 else 0.73))
+				for i in PER_ROW:
+					var c := Vector2(x0 + inner / (PER_ROW * 2.0) * (1 + 2 * i), lane - 4.8 if row == 0 else z0 + inner - 4.6)
 					if not _ok(c): continue
-					_lots.append({ "id": "%d,%d,%d" % [bx, bz, row * 3 + i], "c": c, "b": Vector2i(bx, bz), "row": row, "street_z": z0 + inner + PATH_W / 2.0 if row == 1 else z0 - PATH_W / 2.0 })
+					_lots.append({ "id": "%d,%d,%d" % [bx, bz, row * PER_ROW + i], "c": c, "b": Vector2i(bx, bz), "row": row, "street_z": lane if row == 0 else z0 + inner + PATH_W / 2.0 })
 	_lots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return (a["c"] as Vector2).length_squared() < (b["c"] as Vector2).length_squared())
 	for k in _lots.size(): _lots[k]["order"] = k
 	return _lots
@@ -48,7 +50,7 @@ static func _ok(c: Vector2) -> bool:
 ## 집이 실제로 서는 자리 — 필지 가운데에서 조금씩 앞뒤·좌우로(운영자 2026-10-06: "너무 규칙적이니까 별로") — 필지 순번마다 늘 같다
 static func spot_of(l: Dictionary) -> Vector3:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash("at/" + String(l["id"]))
-	return Vector3(l["c"].x + rng.randf_range(-1.5, 1.5), 0, l["c"].y + rng.randf_range(-1.1, 1.1))
+	return Vector3(l["c"].x + rng.randf_range(-0.45, 0.45), 0, l["c"].y + rng.randf_range(-0.7, 0.5))
 
 static func _seg(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab := b - a
