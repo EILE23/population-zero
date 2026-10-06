@@ -857,3 +857,4 @@ Owner: "Climb, 레이싱까지 가는 길이라던지 이런 곳에 마을 엄�
 - [ ] (owner, race 3) Map 3 "Forest Switchback": tight S-bends between trees, bumpy root sections (small random bumps in the road mesh), a log-bridge over a creek, a shortcut through a muddy trail (slow but shorter).
 - [ ] (owner, race 4) KartRider feel: a drift gauge that fills while drifting and grants a boost charge (N2O-style, up to 2 stored, SPACE+↑ to fire), boost pads on the track, a start countdown with a "start boost" if you press ↑ on GO, and rivals that also drift and boost. Lap/position HUD, minimap.
 - [ ] (owner, race 5) Map 4 "Snow Peak" (icy low-grip corners, a tunnel, a ski-jump) and map 5 "Night Harbour" (lit by lamps, cargo containers as walls, a ferry ramp jump).
+- [ ] (town wish, 2026-10-06) Add a shared broom-rack on the square so residents can take a broom, perform a short sweeping action that clears nearby litter tokens, and return the broom to earn a small community token.
