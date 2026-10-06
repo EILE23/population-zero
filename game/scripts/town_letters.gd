@@ -9,7 +9,7 @@ extends TownSwap
 ## 사슬: … → sites → swap → **letters** → sunroom → player → town3d. 다음 조각(옥상 쪽지·아침 배달)도 여기에
 
 const LETTER_MAX := 12
-const ROOM_AT := Vector3(18, 0, -16.6)   # 골목(z −13) 동쪽 끝 x 14 너머 빈 땅 — 골목 담(x ≤13)·나무(12.5, −16)·빵집(x ≥22.5) 사이, 큰길에서 멀다
+const ROOM_AT := Vector3(19.6, 0, -16.6)   # x 18 이면 서쪽 벽이 Climb 탑 길(x 14.6..16.4)에 0.5m 걸쳤다(리뷰 2026-10-06) — 빵집(x ≥22.5) 전까지   # 골목(z −13) 동쪽 끝 x 14 너머 빈 땅 — 골목 담(x ≤13)·나무(12.5, −16)·빵집(x ≥22.5) 사이, 큰길에서 멀다
 const NOTICE_AT := Vector3(-5.5, 0, -9.4)   # 가운데 집(−7, −4) 뒤·넷째 집(x ≤ −10.2) 옆 빈 땅 — 큰길 띠(z −0.1..4.1)에서 9m, 골목길(z −13) 앞
 const NOTE_MAX := 6
 var notice: Dictionary = {}   # 게시판 자리 {pos, kind "notice", yaw, at, notes: 꽂힌 차례대로 쪽지 노드(meta slot·at·kind), taken}

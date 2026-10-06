@@ -154,6 +154,7 @@ func drop_coin(at: Vector3, dir: Vector3, from: Variant) -> void:
 
 ## 창구 값(town_places counter_use · counter_take): 주머니에 있으면 하나 — 상판 왼쪽 끝의 접시에 쌓인다(다섯까지 보인다; 다섯이 차면 주인이 거두러 온다). 없으면 그냥("On the house." — 주민은 resident.gd 가 no_coin 을 말한다)
 func pay_counter(sp: Dictionary, by: Variant) -> void:
+	if not sp.has("stock"): return   # 주인 없는 창구(카페)는 받지 않는다 — 받으면 아무도 안 걷어 가 접시에 쌓였다(리뷰 2026-10-06)
 	if by is ResidentBase:
 		var r: ResidentBase = by
 		if r.coins <= 0:
