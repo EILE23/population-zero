@@ -1,0 +1,22 @@
+{
+  "_": "Climb content pack 'Bouncy mushrooms' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_mushroom.gd reads this file: plan(n, plats) picks the gaps of band n that grow a cap, build(root, caps) draws them (stem, cap, spots, gills), step_vy(...) throws a body that falls onto a cap, `pose` is the Stick3D pose_request while thrown (stick3d_bounce.gd). tools/probe_mushroom.gd checks the plan, the launch, the squash and the pose.",
+  "id": "mushroom",
+  "name": "Bouncy mushrooms",
+  "pose": "bounce",
+  "kinds": {
+    "cap": {
+      "_": "radius: half-width of the cap (px). depth: half-depth in z (px). height: stem + cap, the trampoline top above the root (px). launch: upward speed a body gets when it falls onto the top (px/s; apex = launch^2 / 2G = 252 px = 7 m, enough to clear the next hop's 92..140 px). sink: how far below the lower platform the root sits (px) so a short jump or a step off the edge falls onto the cap. squash: seconds of the cap's squash-and-spring. spots: cream dots on the cap. boing_hz: the spring tone's base pitch.",
+      "radius": 30,
+      "depth": 40,
+      "height": 40,
+      "launch": 1100,
+      "sink": 60,
+      "squash": 0.35,
+      "spots": 3,
+      "boing_hz": 220
+    }
+  },
+  "pieces": [
+    { "_": "From band 1, every 4th band (between the vent floors 3, 7, 11…): the two widest gaps between consecutive std hops (>= min_gap px edge to edge) each grow a cap in the middle of the gap, sink px below the lower hop. Rest bands have no std hops and get none.", "kind": "cap", "from": 1, "every": 4, "on": ["std"], "min_gap": 70, "max": 2 }
+  ]
+}

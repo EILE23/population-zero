@@ -87,6 +87,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 	if p == "strum": lean = BuskPoses.lean(f)   # 상자 기타 치기(run 111) — 기타를 등과 가슴 사이로 옮기는 것도 거기서(stick3d_busk.gd)
 	if p == "sigh": lean = LedgerPoses.lean(f)   # 장부 앞의 한숨(run 112, stick3d_ledger.gd)
 	if p == "glide": lean = GlidePoses.lean(f)   # 상승기류에 뜬 몸(run 118, Climb 팩 updraft — stick3d_glide.gd)
+	if p == "bounce": lean = BouncePoses.lean(f)   # 버섯 갓에 튕겨 오른 몸(run 119, Climb 팩 mushroom — stick3d_bounce.gd)
 	if p == "plonk": lean = FurnishPoses.lean(f)   # 납작 상자를 바닥에(run 117, 내 집 꾸미기 — stick3d_furnish.gd)
 	if p == "don" or p == "doff": lean = WearPoses.lean(f)   # 모자 쓰기·벗기(run 114, 잡화점 — stick3d_wear.gd)
 	if p == "stoop" or p == "palm" or p == "put": lean = CoinPoses.lean(f)   # put: 주머니에서 접시로(run 116, 전당포)   # 동전 집어 주머니에(run 107)·상판에서 쓸어 쥐기(run 110) — 굽는 무릎의 골반 높이도 거기서(stick3d_coin.gd)
@@ -241,7 +242,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "sort", "pin", "stoop", "palm", "put", "strum", "sigh", "don", "doff", "plonk", "glide"]   # glide: 두 팔이 옆으로 벌어진다(run 118)   # plonk: 두 손이 상자를 바닥에(run 117)   # put: 오른손이 주머니에서 접시로(run 116)   # don·doff: 두 손/오른손이 모자를 머리로·머리에서(run 114)   # sigh: 두 손이 탁자 모서리를 짚는다(run 112)   # palm: 오른손이 상판에서 주머니로(run 110)   # stoop: 오른손이 바닥에서 주머니로(run 107). pin: 오른손이 쪽지를 판에 누른다(run 100)   # sort: 오른손이 편지를 칸에 넣는다(run 99)   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
+	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "sort", "pin", "stoop", "palm", "put", "strum", "sigh", "don", "doff", "plonk", "glide", "bounce"]   # bounce: 두 팔이 정강이를 감싸고 머리 위로(run 119)   # glide: 두 팔이 옆으로 벌어진다(run 118)   # plonk: 두 손이 상자를 바닥에(run 117)   # put: 오른손이 주머니에서 접시로(run 116)   # don·doff: 두 손/오른손이 모자를 머리로·머리에서(run 114)   # sigh: 두 손이 탁자 모서리를 짚는다(run 112)   # palm: 오른손이 상판에서 주머니로(run 110)   # stoop: 오른손이 바닥에서 주머니로(run 107). pin: 오른손이 쪽지를 판에 누른다(run 100)   # sort: 오른손이 편지를 칸에 넣는다(run 99)   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 우산(run 76, "Weather people feel" 2조각): 오른팔만 쓴다 — 다리와 왼팔은 걷기·서기·앉기 그대로라 limbs() 의 match 에 없고, stick3d.gd 가 팔다리를 다 정한 뒤 이걸 부른다(세 변형이 팔 하나를 나눠 쓴다).
 ## k = f.umbr_k(0..1, UMBR_T 에 걸쳐 오간다): 팔이 늘어진 곳에서 머리 위로 오르고 캐노피(우산 meta "umb")가 펴진다; 접힐 땐 같은 길을 거꾸로. 걸을수록 진행 방향으로 조금 더 기운다 — 정지화가 아니다
@@ -448,5 +449,5 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			if s > 0.0:
 				f.neck.rotation.x -= 0.55 * k; f.chest.rotation.x -= 0.06 * k   # 고개만 든다 — 몸통은 조금
 		_:
-			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s) or PostPoses.limbs(f, s) or KidPoses.limbs(f, s) or SunroomPoses.limbs(f, s) or CoinPoses.limbs(f, s) or NapPoses.limbs(f, s) or BuskPoses.limbs(f, s) or LedgerPoses.limbs(f, s) or WearPoses.limbs(f, s) or FurnishPoses.limbs(f, s) or GlidePoses.limbs(f, s)   # 이야기방(run 103)· 아이 걸음(run 102)· 우편 가족(run 99)· 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
+			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s) or PostPoses.limbs(f, s) or KidPoses.limbs(f, s) or SunroomPoses.limbs(f, s) or CoinPoses.limbs(f, s) or NapPoses.limbs(f, s) or BuskPoses.limbs(f, s) or LedgerPoses.limbs(f, s) or WearPoses.limbs(f, s) or FurnishPoses.limbs(f, s) or GlidePoses.limbs(f, s) or BouncePoses.limbs(f, s)   # 이야기방(run 103)· 아이 걸음(run 102)· 우편 가족(run 99)· 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
 	return true
