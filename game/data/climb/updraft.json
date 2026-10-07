@@ -1,0 +1,22 @@
+{
+  "_": "Climb content pack 'Updraft vents' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_updraft.gd reads this file: plan(n, plats) picks the platforms of band n that get a vent, build(root, vents) draws them (grated tile, four dust streaks, a low hum), step_vy(...) bends gravity for a figure in a lit column, `pose` is the Stick3D pose_request while lifted (stick3d_glide.gd). tools/probe_updraft.gd checks the beat, the apex and the pose.",
+  "id": "updraft",
+  "name": "Updraft vents",
+  "pose": "glide",
+  "kinds": {
+    "vent": {
+      "_": "radius: half-width of the column (px). height: how far above the tile the lift reaches (px, 6 m). gravity: gravity scale inside a lit column. lift: steady rise (px/s, 2.2 m/s). beat: seconds for one on/off cycle of a pair. tile: grate width (px). streaks: dust emitters. hum_hz: fan tone.",
+      "radius": 32,
+      "height": 216,
+      "gravity": 0.35,
+      "lift": 79,
+      "beat": 4.0,
+      "tile": 48,
+      "streaks": 4,
+      "hum_hz": 55
+    }
+  },
+  "pieces": [
+    { "_": "From band 3, every 4th band: the two widest std platforms (>= min_w px) each get a vent; phases 0 and 0.5 of the beat so one is always lit and the jump has to be timed. Rest bands have no std platforms and get none.", "kind": "vent", "from": 3, "every": 4, "on": ["std"], "min_w": 140, "pair": [0.0, 0.5] }
+  ]
+}
