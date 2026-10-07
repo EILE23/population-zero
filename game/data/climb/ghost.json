@@ -1,0 +1,25 @@
+{
+  "_": "Climb content pack 'Ghost platforms' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_ghost.gd reads this file: plan(n, plats) picks the longest gap of band n and puts a slab in its middle, build(root, slabs) draws them (a std-shaped slab while solid, a dotted outline while ghost), land(...)/holds(...)/fading(...) are the pure checks the loader runs around its own landing test, `pose` is the Stick3D pose_request while the slab under the feet fades (the existing teeter), `pose_drop` is the pose for the body the slab just let go of (stick3d_lurch.gd). tools/probe_ghost.gd checks the plan, the beat, the fade warning and the poses.",
+  "id": "ghost",
+  "name": "Ghost platforms",
+  "pose": "teeter",
+  "pose_drop": "lurch",
+  "kinds": {
+    "slab": {
+      "_": "beat: seconds for one solid/ghost cycle (the vent pack's clock, phase per piece). solid: the part of the beat the slab is solid (0.5 = half). fade: seconds before the end of the solid part the slab starts to dissolve — a standing body gets that long of warning (teeter). appear: seconds the slab takes to harden back. margin: px kept free on each side of the gap so the slab never touches a hop (a narrow gap keeps at least 8 px each side). w_min/w_max: narrowest and widest slab (px). thick: slab thickness (px). dots: outline dots along the front edge while ghost. chime_hz: the pitch of the ping when it hardens.",
+      "beat": 4.0,
+      "solid": 0.5,
+      "fade": 0.4,
+      "appear": 0.15,
+      "margin": 20,
+      "w_min": 44,
+      "w_max": 120,
+      "thick": 18,
+      "dots": 7,
+      "chime_hz": 660
+    }
+  },
+  "pieces": [
+    { "_": "From band 2, every 4th band (between the mushroom floors 1, 5, 9… and the vent floors 3, 7, 11…): the longest gap between two consecutive hops that are both std (>= min_gap px edge to edge; a pair with an ice/move/spring/crumble hop between or beside it is skipped so the slab never sits on another platform) gets one slab in its middle, halfway up between the two hops, phase 0 of the beat; a spot that would overlap any other platform is skipped. Rest bands have no std hops and get none.", "kind": "slab", "from": 2, "every": 4, "on": ["std"], "min_gap": 60, "max": 1, "phase": 0.0 }
+  ]
+}
