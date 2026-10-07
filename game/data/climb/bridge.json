@@ -1,0 +1,30 @@
+{
+  "_": "Climb content pack 'Rope bridge' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_bridge.gd reads this file: plan(n, plats) picks the longest std-to-std gap of band n inside min_gap..max_gap and hangs a bridge between the two facing hop edges, build(root, bridges) draws it (planks on a sagging catenary, two handrail ropes, four posts), land(x, y, ny, z) is the pure landing check the loader runs after its own comes up empty (a body crossing the deck, or stepping down onto it from a hop within `catch` px), stand(on, x, dt, fig) is called every tick while standing on a `bridge` kind and returns the deck height under the feet (the deck dips `dip` px under a body and swings in z with `period`), `pose` is the Stick3D pose_request while on the deck (stick3d_sway.gd). tools/probe_bridge.gd checks the plan, the catenary, the landing, the dip and swing, the visuals and the pose.",
+  "id": "bridge",
+  "name": "Rope bridge",
+  "pose": "sway",
+  "kinds": {
+    "bridge": {
+      "_": "sag: px the empty deck hangs below the chord at mid-span. dip: extra px it dips under a body (11 px = 0.3 m), eased over load_t seconds and shed as fast once the body leaves. period: seconds of one swing in z while loaded; swing: its amplitude in px; roll: the deck's tilt (rad) at the swing's ends. plank_w/plank_gap/thick: one plank (px). rope_h: handrail height over the deck (px, 32 = 0.9 m); post_h: the anchor posts. catch: px a descending body may be above the deck and still be set on it (a step down from a hop onto the planks; the loader may keep vx when the returned dict has step = true). min_gap/max_gap: the span a bridge may cross (px, edge to edge); max_dy: the most the two anchors may differ in height. creak_hz: the pitch of the creak when a body loads the deck.",
+      "sag": 28,
+      "dip": 11,
+      "load_t": 0.25,
+      "period": 1.2,
+      "swing": 6,
+      "roll": 0.05,
+      "plank_w": 14,
+      "plank_gap": 4,
+      "thick": 6,
+      "rope_h": 32,
+      "post_h": 36,
+      "catch": 14,
+      "min_gap": 90,
+      "max_gap": 320,
+      "max_dy": 150,
+      "creak_hz": 110
+    }
+  },
+  "pieces": [
+    { "_": "From band 4, every 4th band (the fourth slot after the mushroom floors 1, 5, 9…, the ghost floors 2, 6, 10… and the vent floors 3, 7, 11…): the longest gap between two consecutive hops that are both std and 90..320 px apart edge to edge, with anchors at most max_dy apart in height, gets one bridge from the lower hop's facing edge to the upper hop's facing edge; a span another platform would sit inside (within 40 px of the deck's height band) is skipped so a shortcut slab never pokes through the planks.", "kind": "bridge", "from": 4, "every": 4, "on": ["std"], "max": 1 }
+  ]
+}
