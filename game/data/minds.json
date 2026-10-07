@@ -83,6 +83,7 @@
     "kid_hit_watch": ["That is a child.", "Leave them be.", "Really.", "Pick on someone your height."],
     "rain_like": ["Good rain.", "I like this."],
     "bought": ["New.", "Fits.", "Worth it.", "There."],
+    "furnished": ["There. Home.", "Against the wall, I think.", "It will do.", "The room is less empty."],
     "store_closed": ["Shut.", "Nobody in.", "Later, then."],
     "job_post": ["Pinned. A coin on it.", "Somebody will.", "Worth a coin to me.", "Up it goes."],
     "job_take": ["I can do that.", "A coin is a coin.", "Mine, then.", "On it."],

@@ -56,7 +56,7 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		(_mine()[str(k)] as Dictionary)["done"] = true
 		var dr: Dictionary = doors[doors.size() - 1]
 		var net: Variant = get_tree().root.get_node_or_null("PozNet")
-		dr["owner"] = String(net.handle) if net and not net.guest else "you"; dr["mine"] = true
+		dr["owner"] = String(net.handle) if net and not net.guest else "you"; dr["mine"] = true; dr["lot"] = k   # lot: 가구 기록을 찾는 열쇠(town_furnish)
 		if live: say_toast("Your house is finished. The door is yours.")
 	if k >= built:
 		var ex: Array = records.get("done_extra", [])

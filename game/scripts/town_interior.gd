@@ -43,6 +43,7 @@ func _room(i: int) -> Dictionary:
 		for r in residents:
 			if r.home_door == dr: owner = r; break
 		kit = RoomKit.plan(self, i, owner)
+		if dr.get("mine", false): kit["layout"] = { "name": "Yours", "walls": [], "pieces": [] }   # 내 집은 빈 방으로 선다 — 가구는 잡화점에서 사 온다(town_furnish, run 117)
 		dim = Vector2(kit["w"], kit["d"])
 	var n := Node3D.new(); n.name = "Room_%d" % i; add_child(n)
 	var rm := { "node": n, "o": o, "w": dim.x, "d": dim.y, "kind": kind, "door": i, "spots": [], "entry": o + Vector3(0, 0.05, dim.y / 2.0 - 1.1), "slot": slot, "kit": kit }
@@ -103,8 +104,9 @@ func _house_room(rm: Dictionary, rng: RandomNumberGenerator) -> void:
 		if r.home_door == doors[rm["door"]]: owner = r.handle; break
 	if owner == "": owner = String(doors[rm["door"]].get("owner", ""))
 	if owner != "":
-		var lb := Label3D.new(); lb.text = "Home of %s" % owner; lb.font_size = 40; lb.pixel_size = 0.004; lb.modulate = Color("7b526c"); lb.outline_size = 0
+		var lb := Label3D.new(); lb.text = "Your house" if doors[rm["door"]].get("mine", false) else "Home of %s" % owner; lb.font_size = 40; lb.pixel_size = 0.004; lb.modulate = Color("7b526c"); lb.outline_size = 0
 		lb.position = o + Vector3(1.5, 2.2, -d / 2.0 + 0.09); _add(lb)
+	call("furnish_restore", rm)   # 사 들인 가구를 그 자리에(위층 town_furnish)
 
 ## 가게 — 뒤 가운데 계산대(주인 자리 뒤), 양옆·가운데 진열대(그 가게 물건), 간판
 func _shop_room(rm: Dictionary, rng: RandomNumberGenerator) -> void:

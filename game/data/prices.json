@@ -13,7 +13,15 @@
     "straw": 5,
     "tophat": 8,
     "scarf": 4,
-    "backpack": 7
+    "backpack": 7,
+    "chair": 3,
+    "table_small": 4,
+    "bookshelf": 6,
+    "sofa": 8,
+    "bed": 8,
+    "rug": 3,
+    "floor_lamp": 3,
+    "plant": 2
   },
   "sell": {
     "apple": 1,
@@ -22,7 +30,15 @@
     "pumpkin": 3,
     "fish": 3,
     "log": 1,
-    "book": 1
+    "book": 1,
+    "chair": 1,
+    "table_small": 2,
+    "bookshelf": 3,
+    "sofa": 4,
+    "bed": 4,
+    "rug": 1,
+    "floor_lamp": 1,
+    "plant": 1
   },
   "wage": {
     "bread": 1,

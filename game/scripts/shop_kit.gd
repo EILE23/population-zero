@@ -4,9 +4,9 @@ extends RefCounted
 ## 진열 배치 셋(양벽+섬 / 뒷벽 두 줄+옆벽 / 통로 두 줄) × 종류마다 파는 것·꾸밈(카페: 커피 기계·케이크 진열장·메뉴판·탁자, 빵집: 큰 화덕·빵 선반, 식료품: 과일 통·저울 …)
 ## 진열대 C = 그 칸 물건을 집는다(값은 계산대에서). 꾸밈 가구는 room_kit 의 PIECES
 
-const SELLS := { "CAFE": ["cup", "bread"], "BAKERY": ["bread"], "GROCER": ["apple", "can"], "BOOKSHOP": ["book"], "FISHMONGER": ["fish"], "CORNER SHOP": ["can", "letter", "apple"], "UMBRELLAS": ["umbrella"], "GENERAL STORE": ["cap", "scarf", "backpack"] }
+const SELLS := { "CAFE": ["cup", "bread"], "BAKERY": ["bread"], "GROCER": ["apple", "can"], "BOOKSHOP": ["book"], "FISHMONGER": ["fish"], "CORNER SHOP": ["can", "letter", "apple"], "UMBRELLAS": ["umbrella"], "GENERAL STORE": ["cap", "scarf", "backpack", "flatpack"] }   # flatpack: 넷째 진열 = 문 옆 카탈로그 탁자(town_furnish, run 117)
 ## 한 진열대에 여러 가지(run 114, 잡화점): 칸마다 다른 것이 놓이고 집을 때마다 다음 것 — 모자 넷, 가방 칸엔 우산도
-const MIX := { "cap": ["cap", "beanie", "straw", "tophat"], "backpack": ["backpack", "umbrella"] }
+const MIX := { "cap": ["cap", "beanie", "straw", "tophat"], "backpack": ["backpack", "umbrella"], "flatpack": ["chair", "table_small", "bookshelf", "sofa", "bed", "rug", "floor_lamp", "plant"] }   # flatpack: RoomKit.PIECES 의 이름 그대로 — TownFurnish.FURN 이 이 목록을 읽는다
 ## [가구, x(벽 반폭 비율), z(벽 반깊이 비율), 각도°] — 계산대·진열대 자리를 피하게 가장자리 위주
 const DECOR := {
 	"CAFE": [["menu_board", 0.0, -0.98, 0], ["tea_table", 0.55, 0.35, 0], ["chair", 0.4, 0.35, 90], ["chair", 0.7, 0.35, -90], ["tea_table", -0.55, 0.35, 0], ["chair", -0.7, 0.35, 90], ["chair", -0.4, 0.35, -90], ["plant_big", 0.9, 0.7, 0]],
@@ -55,6 +55,13 @@ static func build(t: Node, rm: Dictionary, sh: Dictionary) -> void:
 			var p := at + (Vector3(f * sz.x, sz.y, 0) if long_x else Vector3(0, sz.y, f * sz.z))
 			var it: Node3D = t.call("make_goods", String(mix[k % mix.size()]), p); t.call("_add_display", it)   # 입는 것도 진열된다(town_store)
 		t.call("_spot", rm, "shelf", at + face, atan2(-face.x, -face.z), { "item": kind, "mix": mix, "next": 0 })
+	for i in range(3, sells.size()):   # 넷째부터는 문 옆(오른쪽 앞) 낮은 탁자 — 세 배치의 진열대·꾸밈이 다 비켜 가는 자리(잡화점의 납작 상자, town_furnish run 117)
+		var at := o + Vector3(w / 2.0 - 1.6, 0, d / 2.0 - 1.1 - (i - 3) * 1.0)
+		t.call("_box", Vector3(1.4, 0.75, 0.6), at, wood)
+		var kind: String = sells[i]; var mix: Array = MIX.get(kind, [kind])
+		for k in 4:
+			var it: Node3D = t.call("make_goods", String(mix[k % mix.size()]), at + Vector3(-0.5 + k * 0.33, 0.75, 0)); t.call("_add_display", it)
+		t.call("_spot", rm, "shelf", at + Vector3(0, 0, 0.75), PI, { "item": kind, "mix": mix, "next": 0 })
 	# 꾸밈 — 종류마다
 	for dc in DECOR.get(type, []):
 		var at := o + Vector3(float(dc[1]) * (w / 2.0 - 0.5), 0, float(dc[2]) * (d / 2.0 - 0.4))
@@ -64,6 +71,6 @@ static func build(t: Node, rm: Dictionary, sh: Dictionary) -> void:
 	var lb := Label3D.new(); lb.text = type; lb.font_size = 72; lb.pixel_size = 0.005; lb.modulate = Color("1b0c15"); lb.outline_size = 0
 	lb.position = o + Vector3(0, 2.4, -d / 2.0 + 0.09); t.call("_add", lb)
 	var buy: Dictionary = (t.get("prices") as Dictionary).get("buy", {})
-	var price_lines := ", ".join(sells.map(func(k: String) -> String: return "%s %d" % [k.capitalize(), int(buy.get(k, 1))]))
+	var price_lines := ", ".join(sells.map(func(k: String) -> String: return "%s %d" % [k.capitalize(), int(buy.get(k, 1))] if buy.has(k) else "%s from %d" % [k.capitalize(), (MIX.get(k, [k]) as Array).map(func(m: String) -> int: return int(buy.get(m, 1))).min()]))   # 섞어 파는 것(납작 상자)은 가장 싼 값부터
 	var pr := Label3D.new(); pr.text = price_lines; pr.font_size = 40; pr.pixel_size = 0.004; pr.modulate = Color("7b526c"); pr.outline_size = 0
 	pr.position = o + Vector3(0, 1.95, -d / 2.0 + 0.09); t.call("_add", pr)
