@@ -88,6 +88,10 @@
     "job_take": ["I can do that.", "A coin is a coin.", "Mine, then.", "On it."],
     "job_done": ["Done. Paid.", "A coin earned.", "There. Mine now.", "Easy coin."],
     "job_down": ["Nobody, then.", "Back in the pocket.", "I will do it myself.", "Tomorrow, maybe."],
+    "pawn": ["Safe with me.", "One more and it is yours again.", "Tagged.", "I will keep it dry."],
+    "pawn_open": ["Open.", "Shutter's up.", "Bring what you have.", "Ten till four."],
+    "hocked": ["Just till Friday.", "Bread first.", "I will be back for it.", "Needs must."],
+    "redeemed": ["There it is.", "Mine again.", "Missed that.", "Good as new."],
     "topics": ["Lovely weather.", "Did you hear about the bakery?", "The river is high today.", "Busy day?", "That car again."]
   },
   "child": { "_": "Elders and children slice 1 (run 102): two children live in the house whose adults like each other most (ResidentKid.settle). Their minds are under people.", "handles": ["small_print", "footnote"] },

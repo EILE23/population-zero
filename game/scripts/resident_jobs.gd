@@ -3,7 +3,7 @@ extends ResidentStore
 ## 심부름판(money 3, run 115 — town_jobs.gd): 동전이 있고 진짜 모자란 게 있는 어른은 하루 한 번 판에 가서 카드를 꽂는다(pin, PIN_IN 에 동전 −1). 일 없는 빈손 어른이 12m 안을 지나면 넷에 하나 들러
 ## 읽고(scan) 맨 위 카드를 떼어(pin) 그 일의 자리로 간다 — 장작은 나무꾼의 _wood_pick 길 그대로(패고 줍고 쌓고 저녁엔 난로에), 반죽은 화덕(bake_spot 과 같은 조건; resident.gd 의 "oven" 가지가 반죽한다).
 ## 일이 되면 town 이 동전을 주머니에 넣는다(_jobs_tick, job_done). 17시엔 쓴 이가 안 뗀 제 카드를 떼러 온다(동전 돌려받기). 사람이 C 로 하는 것과 같은 자세·같은 시각.
-## 사슬: … → shop → store → **jobs** → resident
+## 사슬: … → shop → store → **jobs** → pawn(resident_pawn.gd, 전당포 손님 — run 116) → resident
 
 func _post_pick(now: float) -> bool:
 	return _job_pick(now) or super._post_pick(now)

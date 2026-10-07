@@ -7,7 +7,7 @@ extends TownStore
 ## 더미+화실이 둘 늘거나(쌓거나 넣거나) 창구가 하나 늘면 — 그때 동전이 그 주머니로(mind.line "job_done"). 사람도 같다: 판 앞 빈손 C 로 맨 위 카드를 떼면 종이(meta job)가 손에,
 ## 같은 자리에서 같은 일을 하면 같은 동전(토스트). 종이를 든 채 판 앞 C 면 도로 꽂는다. 아무도 안 뗀 카드는 17시에 쓴 이가 와서 떼고 동전을 도로 주머니에(pin).
 ## 뗀 채 반나절이 가거나 남이 먼저 해 버리면 동전은 쓴 이에게 조용히 돌아간다(아침 8시 안전망도 같다). 평범한 결과: 모든 일은 전부터 공짜로 할 수 있었다 — 판은 부탁과 동전만 얹는다.
-## 사슬: … → wages → store → **jobs** → player → town3d
+## 사슬: … → wages → store → **jobs** → pawn(town_pawn.gd, 전당포 — run 116) → player → town3d
 
 const JOBS_AT := Vector3(-8.5, 0, -9.4)   # 게시판(NOTICE_AT −5.5) 서쪽 3m — 넷째 집(x ≤ −10.2) 동쪽 벽에서 1m, 큰길 띠에서 9m
 const CARD_MAX := 3

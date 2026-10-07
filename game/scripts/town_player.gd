@@ -1,5 +1,5 @@
 class_name TownPlayer
-extends TownJobs
+extends TownPawn
 ## 플레이어 — 이동·점프·대시·연속기·제트킥·던지기·턱 오르기, 타격 판정과 피격, C 상호작용(집기·문·앉기·눕기·가구·동물·그네·인사).
 
 # ── 조작 ──
@@ -202,7 +202,7 @@ func _physics_process(delta: float) -> void:
 	if use_until > 0.0 and now >= use_until:
 		use_until = -1.0
 		if player.pose_request == "lwave": player.pose_request = "umbr" if player.umbr_k > 0.5 else ""   # 왼손 인사(CI run 77)가 끝나면 우산은 있던 대로
-		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop", "stoke", "moor", "shelve", "sort", "pin", "rub", "strum", "scan", "sigh", "don", "doff"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
+		elif player.pose_request in ["eat", "drink", "wave", "pet", "water", "knead", "hammer", "grind", "wait", "sew", "share", "pass", "chop", "stoke", "moor", "shelve", "sort", "pin", "rub", "strum", "scan", "sigh", "don", "doff", "put"]: player.pose_request = ""   # hammer 는 run 80 이 빠뜨려 사람이 망치를 영영 들고 있었다(run 81)
 	if player.pose_request == "pet" and dir != Vector3.ZERO:
 		player.pose_request = ""; use_until = -1.0   # 쓰다듬다 움직이면 바로 일어난다
 	if (reading or leaning or resting or player.pose_request in ["water", "knead", "shade", "storm", "hammer", "grind", "wait", "sew", "chop", "cast", "reel", "stoke", "moor", "shelve", "sort", "pin", "strum", "scan", "sigh", "don", "doff"]) and dir != Vector3.ZERO:
@@ -269,6 +269,7 @@ func _interact_check(now: float) -> void:
 		carrying_big = {}; player.pose_request = ""
 		player.action = "grab"; action_until = now + 0.4
 		return
+	if pawn_use(now): return   # 전당포 부스 앞(run 116, town_pawn): 값 있는 것을 든 채면 pass 로 맡기고, 빈손이면 put 으로 값을 내고 찾는다 — 모자도 맡기니 쓰기보다 먼저
 	if player.carrying and player.carrying.get_meta("wearable", false):
 		wear_held(now); return   # 입는 것을 든 채 C → don 자세로 머리에(run 114, town_store). 값을 안 치른 것이면 계산대부터
 	if stoop_near(now): return   # 발치의 동전(run 107, town_coins): 든 게 있어도 먼저 — 손이 아니라 주머니로 간다

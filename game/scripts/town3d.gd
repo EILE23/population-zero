@@ -1,6 +1,6 @@
 extends TownPlayer
 ## 3D 마을 — 루트. 세계를 짓고(_ready) 프레임마다 카메라·범례를 돌린다(_process). 나머지는 상속 계층에 있다:
-##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_nap.gd(낮잠방) → town_coins.gd(동전) → town_busk.gd(악사) → town_ledger.gd(외상 장부) → … → town_social.gd(채팅) → town_wages.gd(품삯) → town_store.gd(잡화점) → town_jobs.gd(심부름판) → town_player.gd(조작) → 여기.
+##   town_base.gd(상태·도우미) → town_build.gd(건설) → town_places.gd(골목·강·풀밭) → town_boat.gd(부두·거룻배) → town_trades.gd(거리의 장인) → town_critters.gd(동물) → town_systems.gd(시스템) → … → town_sites.gd(열린 세계 장소) → town_swap.gd(하나 두고 하나 가져가기) → town_letters.gd(편지방) → town_sunroom.gd(이야기방) → town_nap.gd(낮잠방) → town_coins.gd(동전) → town_busk.gd(악사) → town_ledger.gd(외상 장부) → … → town_social.gd(채팅) → town_wages.gd(품삯) → town_store.gd(잡화점) → town_jobs.gd(심부름판) → town_pawn.gd(전당포) → town_player.gd(조작) → 여기.
 
 func _ready() -> void:
 	_light()
@@ -21,6 +21,7 @@ func _ready() -> void:
 	_district("sunroom", SUN_AT, _sunroom)   # 이야기방(run 103, town_sunroom) — 골목 서쪽(공원) 끝의 새 집, 골목 길이 문 앞까지
 	_noticeboard(NOTICE_AT)   # 광장 게시판(run 100, town_letters) — 가운데 집 뒤, 구역 밖이라 늘 서 있다(쪽지가 시간 따라 바뀐다)
 	_jobsboard(JOBS_AT)   # 심부름판(run 115, town_jobs) — 게시판 서쪽 3m, 넷째 집 동쪽 벽에서 1m; 동전이 붙은 카드가 꽂히고 떼인다
+	_pawn_post(PAWN_AT)   # 전당포 부스(run 116, town_pawn) — 계단집 뒤 광장 동쪽, 골목길 앞; 10–16시 주인이 서면 셔터가 오른다
 	_busk_stage(NOTICE_AT + Vector3(4.0, 0, -1.2))   # 악사의 상자 무대와 모자(run 111, town_busk) — 게시판 동쪽 4m, 가운데 집 뒷벽(z −7.6)에서 1.6m, 골목 가로등(−3.5, −11.6)과 2.2m
 	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
 	_stones()   # 디딤돌(CI run 84) — 시장 서쪽 끝 x 23 의 둘째 건널목
@@ -62,6 +63,7 @@ func _ready() -> void:
 	_mountains()   # 마을 뒤 산 — 나선 돌계단·꼭대기 산스장·정자(town_mountain, 땅은 WorldGen.PEAKS)
 	_residents(32)   # 동쪽 마을 집 넷이 생겨 여덟 명 더(2026-09-30)
 	_hire_storysitter()   # 이야기방 주인 — 일 없는 어른 중 가장 '늙은 마음'(운전사보다 먼저 골라야 운전대에 앉지 않는다, town_sunroom)
+	_hire_broker()   # 전당포 주인 — uid % 24 == 5 인 어른(운전사보다 먼저, town_pawn)
 	_hire_busker()   # 악사 — 남은 어른 중 어울림이 가장 높은 이, 등에 상자 기타(운전사보다 먼저, town_busk)
 	_hire_drivers()
 	_growth_init()   # 마을이 자란다 — 지은 집을 다시 세우고, 건축가를 정하고, 공사장을 연다(town_growth)
