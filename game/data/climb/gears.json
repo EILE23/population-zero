@@ -1,0 +1,31 @@
+{
+  "_": "Climb content pack 'Conveyor gears' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_gears.gd reads this file: plan(n, plats) lays a belt over the top of up to `max` std hops of a themed floor (the Clockwork floors; vent floors are skipped so a belt never sits under an updraft) — the first std hop of the floor stays plain so the floor always has a quiet landing; build(root, belts) draws it (a dark rubber belt with steel slats that scroll, a toothed brass gear at each end on the hop's front face that turns with the belt); the belt runs one way for run_s, stalls stall_s with the gears still, then runs the other way (a clank when it starts) — the same clock for everyone; belt_of(on) says whether a hop a body stands on wears a belt; carry(on, dt, fig, walk) is called every tick while standing on such a hop and returns the px the body is carried this tick (the loader adds it to x the way it adds a 'move' platform's drift) and writes the pose's metas; boost(on) is the px/s the belt adds to a jump taken from it (optional); sweep(x, y, z) is the shove for an airborne body beside the hop that meets a gear's teeth; `pose` is the Stick3D pose_request while on a belt (stick3d_tread.gd). tools/probe_gears.gd checks the plan, the clock, the carry, the metas, the visuals and the pose.",
+  "id": "gears",
+  "name": "Conveyor gears",
+  "pose": "tread",
+  "themes": ["Clockwork"],
+  "kinds": {
+    "belt": {
+      "_": "speed: px/s the belt carries a standing body (walking is 260, so walking against it still gains 170 px/s — a hop is never a trap; standing still on a 110 px hop you are off it in ~1.2 s, the plain fall the tower already has). run_s: seconds it runs one way; stall_s: seconds the gears stand still between directions (a full cycle is 2·(run_s + stall_s) = 11.2 s). inset: px from each end of the hop to the gear's axle. gear_r: gear radius (px); teeth: per gear. slat: steel slat width (px); pitch: px between slats; thick: belt thickness above the hop top (px, visual — the body still stands at the hop's y). min_w: a hop narrower than this gets no belt. clank_hz: the pitch of the iron clank when the gears start again — the 'it reversed' cue. jolt_s: seconds a standing body lurches after a start (the pose reads it from meta tread_j). body_h: the body box height sweep tests (px). bite: px the teeth reach beyond the gear disc. shove_vx/shove_vy: px/s a gear's teeth give an airborne body that meets them from beside the hop (sideways the way the belt runs — outward when it stands still — and up, never down; like the windmill's sail).",
+      "speed": 90,
+      "run_s": 5.0,
+      "stall_s": 0.6,
+      "inset": 10,
+      "gear_r": 14,
+      "teeth": 8,
+      "slat": 6,
+      "pitch": 16,
+      "thick": 3,
+      "min_w": 110,
+      "clank_hz": 140,
+      "jolt_s": 0.25,
+      "body_h": 40,
+      "bite": 4,
+      "shove_vx": 200,
+      "shove_vy": 220
+    }
+  },
+  "pieces": [
+    { "_": "Clockwork floors (15..19, 50..54, 85..89 …) except the updraft floors ((n − 3) % 4 == 0 — vents sit on hop tops too, and a belt under a vent would carry a body out of the lift): every std hop at least min_w wide after the first, up to max per floor, each belt's clock offset by stagger of a cycle from the one below so a floor's belts never run in step and alternating which way they start (flip), so the climber reads each one by its gears.", "kind": "belt", "on": ["std"], "max": 3, "skip_first": true, "not": { "from": 3, "every": 4 }, "stagger": 0.31 }
+  ]
+}
