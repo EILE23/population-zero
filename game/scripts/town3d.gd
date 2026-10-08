@@ -68,6 +68,7 @@ func _ready() -> void:
 	_hire_drivers()
 	_growth_init()   # 마을이 자란다 — 지은 집을 다시 세우고, 건축가를 정하고, 공사장을 연다(town_growth)
 	_city_init()   # 지도대로(data/map/town.json) — 관공서·공원 블록, 장소 길의 가로등·나무, 이정표, 가게 주인(town_city)
+	_traffic_init()   # 자기 차로 볼일 보러 다니는 주민(town_traffic)
 	_store_init()   # 잡화점에서 사 쓴 것을 다시 쓴다(records["worn"], town_store)
 	_social_init()   # 채팅·조작법 창·감정 표현(town_social)
 	call_deferred("_net_town")   # 웹 계정·멀티(poz_net.gd) — 루트에 하나, 마을 방에 들어간다

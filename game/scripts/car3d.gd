@@ -61,6 +61,7 @@ var stop_until := -9.0             # 손님이 내리겠다고 하면 이 시각
 var route: Array[Vector3] = []
 var cruise := 8.0                  # 경유지 사이 바라는 속도 — 마을 길은 8, 레이싱 주민은 더(race.gd)
 var _ri := 0
+var reach := 3.0                  # 경유지에 닿았다고 치는 거리 — 볼일 차(town_traffic)는 넉넉히(회전 반경 안의 점을 빙빙 돌았다)
 var _wk: Array = []               # 지난 더듬이 결과 — 화면 밖·멀리 있는 주민 차는 네 틱에 한 번만 새로 쏜다(2026-10-01 성능 패스)
 var _wk_n := 0
 var _rest_at := Vector3.INF       # 지난 물리 틱이 끝난 자리 — 바깥에서 옮겨 놓았는지 본다
@@ -142,7 +143,7 @@ func _drive_ai() -> void:
 		input = { "throttle": -0.6, "steer": _rev_steer, "brake": false }; return   # 뒤로 빼며 반대로 꺾는다
 	var tgt: Vector3 = _detour if _detour != Vector3.INF else route[_ri]
 	var to := tgt - global_position; to.y = 0.0
-	if to.length() < 3.0:
+	if to.length() < (3.0 if _detour != Vector3.INF else reach):
 		if _detour != Vector3.INF: _detour = Vector3.INF
 		else: _ri = (_ri + 1) % route.size()
 		return
@@ -171,6 +172,7 @@ func _drive_ai() -> void:
 		var off := global_position.z - tgt.z
 		if absf(off) > 1.4: st = clampf(st + signf(off) * signf(fwd.x) * -0.6 * minf(absf(off) - 1.4, 1.0), -1.0, 1.0)
 	var tspd := cruise * clampf(1.0 - absf(diff) / 1.2, 0.3, 1.0)   # 꺾을수록 천천히
+	if to.length() < 10.0 and absf(diff) > 0.8: tspd = minf(tspd, 2.6)   # 가까운 모퉁이 — 거의 서서 돈다(교차로에서 GTA 차처럼 속도를 죽이고 꺾는다)
 	var block: Object = wk[0][1]
 	if block != null: tspd = minf(tspd, maxf(0.0, (c0 - 1.2) * 1.3))   # 제동거리 — 남은 거리만큼만
 	var thr := 0.6 if v < tspd else (-0.5 if v > tspd + 0.8 else 0.0)
@@ -200,7 +202,7 @@ func _drive_ai() -> void:
 
 func _physics_process(delta: float) -> void:
 	# 밑의 칸이 지워졌으면(플레이어가 멀리 감) 그 자리에 선다 — 안 그러면 허공으로 떨어져 y −24 에서 발견됐다(2026-10-01 성능 패스)
-	if "gen" in town and not (town.gen as WorldGen).has_ground(global_position): return
+	if "gen" in town and not (town.gen as WorldGen).car_ground(global_position): return
 	# 세워 둔 채 가만한 차는 물리를 쉰다 — 마을 차 열 대 중 여덟이 늘 이렇다. 누가 타거나, 다른 차가 밀거나(v·side), 누가 옮겨 놓으면(위에 얹기·집 안) 다시 돈다
 	if driver == null and absf(v) < 0.05 and absf(side) < 0.05 and absf(yaw_rate) < 0.01 and absf(_roll) + absf(_pitch) < 0.002 and global_position == _rest_at: return
 	if ai and driver is Resident:

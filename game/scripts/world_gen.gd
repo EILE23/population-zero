@@ -71,6 +71,8 @@ func setup(t: TownBase) -> void:
 	# 지평선: 지은 칸 너머는 낮은 초록 판(안개가 흐린다) — 세계 끝이 허공으로 안 보이게
 	var hz := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(12000, 12000); hz.mesh = pm
 	hz.material_override = t._mat(Color("7fa65e")); hz.position.y = -2.5; add_child(hz)
+	var floor := StaticBody3D.new(); var fcs := CollisionShape3D.new(); var wb := WorldBoundaryShape3D.new()   # 높이 0 바닥 판 — 깎인 마을 땅은 칸이 지어지기 전에도 밟힌다(차·주민이 멀리서도 떨어지지 않게)
+	wb.plane = Plane(Vector3.UP, -0.03); fcs.shape = wb; floor.add_child(fcs); add_child(floor)
 	for pk in PEAKS:
 		for p in trail_xz(pk):
 			for dx in [-1, 0, 1]:
@@ -207,6 +209,11 @@ func height(x: float, z: float) -> float:
 ## 이 자리 밑에 땅(충돌)이 있나 — 허브 바닥 상자 안이거나 지어 둔 칸. 플레이어가 멀어져 칸이 지워지면 거기 있던 차·주민은 서서 기다린다(떨어지지 않게)
 func has_ground(p: Vector3) -> bool:
 	return (absf(p.x) < HUB_X + 4.0 and absf(p.z) < HUB_Z + 4.0) or chunks.has(Vector2i(floori(p.x / CHUNK), floori(p.z / CHUNK)))
+
+## 차가 달려도 되나 — 지은 칸이거나, 마을 260m 안의 깎인 평지(아직 칸이 없어도 밑에 바닥 판이 있다: setup).
+## 전엔 먼 칸이 안 지어져 있으면 차가 칸 경계에서 서서 기다렸다 — 볼일 보는 차가 x −96(칸 경계)에 줄지어 섰다(2026-10-08)
+func car_ground(p: Vector3) -> bool:
+	return has_ground(p) or (Vector2(p.x, p.z).length() < 260.0 and wild_k(p.x, p.z) < 0.05)
 
 func lake_at(p: Vector3) -> bool:
 	if p.x > TownInterior.ZONE.x - 60.0 and p.z > TownInterior.ZONE.y - 60.0: return false   # 방 구역(town_interior) — 그 자리 땅 높이가 물 아래라 방 안에서 헤엄쳤다
