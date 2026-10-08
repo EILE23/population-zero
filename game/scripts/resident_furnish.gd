@@ -11,6 +11,7 @@ func _post_arrive(now: float) -> bool:
 	return _furnish_arrive(now) or super._post_arrive(now)
 
 func _furnish_pick(now: float) -> bool:
+	remove_meta("furn_act")   # 새로 고르면 지난 길은 끝났다 — 끊긴 길의 "buy" 가 남아 모자 사러 와서 가구를 샀다(리뷰 2026-10-08)
 	if self is ResidentKid or town.is_night() or weather == "rain" or fig.carrying or has_umb or home_door.is_empty() or coins < 6: return false
 	if now - float(get_meta("furn_day", -1e9)) < town.DAY_LEN * 0.9 or randf() > 0.03 + 0.08 * (1.0 - mind.lazy): return false
 	if town.furn_count(home_door) >= town.FURN_MAX: return false

@@ -109,7 +109,7 @@ func pawn_use(now: float) -> bool:
 	if body.global_position.distance_to(sp["pos"]) > 1.2: return false
 	var it := player.carrying
 	if it != null:
-		if pawn_value(String(it.get_meta("kind", ""))) <= 0 or it.has_meta("unpaid") or it.has_meta("job"): return false
+		if pawn_value(String(it.get_meta("kind", ""))) <= 0 or it.has_meta("unpaid") or it.has_meta("job") or it.has_meta("free"): return false   # 공짜로 얻은 것(모자 걸이·우산꽂이·방 상자·냉장고)은 안 받는다 — 공짜 돈 구멍(리뷰 2026-10-08)
 		if not pawn["open"]: say_toast("Shut. Ten till four."); action_until = now + 0.5; return true
 		if pawn_slot_free() < 0: say_toast("The shelf is full."); action_until = now + 0.5; return true
 		player.face(sp["yaw"]); player.set_meta("share_side", 1.0); player.pose_request = "pass"

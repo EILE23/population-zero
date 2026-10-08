@@ -50,6 +50,7 @@ func tab_full(by: Variant) -> bool:
 	for r in residents:
 		if r.job == "baker" and not (r.state in ["down", "getup", "drive", "chase"]) and r.global_position.distance_to(p) < 14.0:
 			r.say(["Settle up first.", "Six on the tab. No.", "Not till you pay something."][randi() % 3], 1.8); break
+	if by is Node: (by as Node).set_meta("no_counter_until", Time.get_ticks_msec() / 1000.0 + 300.0)   # 거절당한 사람은 한동안 창구로 안 간다(전엔 배고파 계속 돌아와 같은 말을 들었다)
 	if by is String: say_toast("Six on the tab. Settle something first.")
 	return true
 

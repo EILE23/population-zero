@@ -158,11 +158,12 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		var r := MeshInstance3D.new()
 		var pr := PrismMesh.new(); pr.size = Vector3(size.z + 0.7, size.y * (0.42 if storeys == 1 else 0.28), size.x + 0.7)
 		var roof_tex := "faces/roof-%s" % roof if rng.randf() < 0.6 else "faces/roof-shingle"
-		r.mesh = pr; r.material_override = _mat(Color.WHITE, _tex(roof_tex), Vector3(3.2, 2.4, 1))   # (2.0, 1.5) 는 벽지처럼 보였다
+		var tint: Color = [Color.WHITE, Color("e0875a"), Color("c45a4a"), Color("7a90b0"), Color("7c9a62"), Color("6a6470"), Color("e0b880"), Color("d06a50")][rng.randi() % 8]   # 지붕 빛깔 — 붉은 기와·주황·청기와·초록·먹색(운영자 사진: 마을은 지붕 색이 저마다)
+		r.mesh = pr; r.material_override = _mat(tint, _tex(roof_tex), Vector3(3.2, 2.4, 1))   # (2.0, 1.5) 는 벽지처럼 보였다
 		r.material_override.uv1_triplanar = true
 		r.position = at + Vector3(0, size.y + pr.size.y / 2.0, 0)
 		r.rotation.y = PI / 2.0
-		add_child(r); parts.append(r)
+		_add(r); parts.append(r)   # 구역 안에 — 전엔 마을 뿌리에 달려 멀어도 그려지고 합치기(mesh_merge)에서도 빠졌다
 		parts.append(_box(Vector3(size.x + 0.7, 0.07, 0.09), at + Vector3(0, size.y - 0.02, hd + 0.33), _mat(Color("4a4a52")), false))
 		_box(Vector3(size.x + 0.7, 0.07, 0.09), at + Vector3(0, size.y - 0.02, -hd - 0.33), _mat(Color("4a4a52")), false)
 		var chim := _box(Vector3(0.36, 0.7, 0.36), at + Vector3(size.x * (0.28 if rng.randf() < 0.5 else -0.28), size.y + pr.size.y * 0.55, -0.3), _mat(Color("b56a5a")), false)

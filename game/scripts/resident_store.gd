@@ -11,6 +11,7 @@ func _post_arrive(now: float) -> bool:
 	return _store_arrive(now) or super._post_arrive(now)
 
 func _store_pick(now: float) -> bool:
+	remove_meta("furn_act")   # 새로 고르면 지난 길은 끝났다 — 끊긴 길의 "buy" 가 남아 모자 사러 와서 가구를 샀다(리뷰 2026-10-08)
 	if self is ResidentKid or town.is_night() or weather == "rain" or fig.carrying or coins < 4 or randf() > 0.06 + 0.12 * mind.social: return false   # 보통 모자값 넷
 	if fig.worn.has("hat") and fig.worn.has("back") and randf() < 0.7: return false   # 다 갖춘 사람은 가끔만(다른 모자)
 	var sh: Dictionary = town.call("store_near", global_position)

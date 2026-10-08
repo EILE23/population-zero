@@ -49,6 +49,7 @@ func _stream() -> void:
 func _cutaway() -> void:
 	var p := body.global_position
 	for h in houses:
+		if h.get("merged", false): continue   # 합친 집(mesh_merge) — 안은 방(town_interior)이라 열 일이 없다
 		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
 		var inside: bool = p.x > mn.x and p.x < mx.x and p.z > mn.z and p.z < mx.z and p.y < mx.y
 		var near: bool = p.x > mn.x - 2.0 and p.x < mx.x + 2.0 and p.z > mn.z - 1.0 and p.z < mx.z + 2.5 and p.y < mx.y

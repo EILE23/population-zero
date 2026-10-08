@@ -86,7 +86,7 @@ func _reach(a: Vector3, b: Vector3) -> float:
 
 ## 방 안의 진짜 물건 — 집어 들고 나갈 수 있다(room_kit ITEMS)
 func _room_item(kind: String, at: Vector3) -> void:
-	var it := make_item(kind, at)
+	var it := make_item(kind, at); it.set_meta("free", true)   # 방 물건 — 들고 나가도 되지만 전당포는 안 받는다
 	var g := it.global_position
 	it.get_parent().remove_child(it); _build_parent.add_child(it); it.global_position = g
 	items.append(it)
@@ -396,7 +396,7 @@ func inner_use(now: float) -> bool:
 		"read":
 			player.face(float(best["yaw"])); player.pose_request = "read"; reading = true
 			if best.has("borrow") and player.carrying == null:
-				player.hold(make_item("book", p + Vector3(0, 0.9, 0))); say_toast("Borrowed a book. Bring it back whenever.")
+				var bi := make_item("book", p + Vector3(0, 0.9, 0)); bi.set_meta("free", true); player.hold(bi); say_toast("Borrowed a book. Bring it back whenever.")
 		"stove":
 			player.face(float(best["yaw"])); player.pose_request = "stoke"; use_until = now + 2.0; action_until = now + 2.0
 			say_toast("The kettle, on.")
@@ -404,7 +404,7 @@ func inner_use(now: float) -> bool:
 			player.face(float(best["yaw"]))
 			if player.carrying == null and now - float(_fridge_at.get(inside["door"], -999.0)) > 60.0:
 				_fridge_at[inside["door"]] = now
-				player.hold(make_item(["apple", "can"][randi() % 2], p + Vector3(0, 0.9, 0))); player.action = "grab"; action_until = now + 0.4
+				var fi := make_item(["apple", "can"][randi() % 2], p + Vector3(0, 0.9, 0)); fi.set_meta("free", true); player.hold(fi); player.action = "grab"; action_until = now + 0.4
 			else: say_toast("Nothing else in there but mustard.")
 		"shelf":
 			player.face(float(best["yaw"]))
@@ -435,7 +435,7 @@ func inner_use(now: float) -> bool:
 			player.face(float(best["yaw"])); player.action = "grab"; action_until = now + 0.4
 			if player.carrying == null and now - float(_fridge_at.get(-1 - int(inside["door"]), -999.0)) > 60.0:
 				_fridge_at[-1 - int(inside["door"])] = now
-				player.hold(make_item(["book", "apple", "can", "umbrella", "letter"][randi() % 5], p + Vector3(0, 0.9, 0)))
+				var si := make_item(["book", "apple", "can", "umbrella", "letter"][randi() % 5], p + Vector3(0, 0.9, 0)); si.set_meta("free", true); player.hold(si)
 			else: say_toast("Mostly string.")
 	return true
 
@@ -455,7 +455,7 @@ func _till_use(now: float) -> void:
 		say_toast("%s · -%d" % [kind.capitalize(), price])
 		return
 	var sell: Dictionary = prices.get("sell", {})
-	if sell.has(kind):
+	if sell.has(kind) and not it.has_meta("free"):
 		player.release(self, Vector3.ZERO).queue_free(); player.action = "grab"; action_until = now + 0.4
 		_set_coins(coins + int(sell[kind])); k.coins = maxi(0, k.coins - int(sell[kind]))
 		say_toast("Sold %s · +%d" % [kind, int(sell[kind])])

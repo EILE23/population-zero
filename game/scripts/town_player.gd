@@ -342,7 +342,7 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop", "swap", "letters", "notice", "cot", "rocker", "stage", "ledger", "jobs", "gym", "shop", "sale", "build"] or sp.has("fish")): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop", "swap", "letters", "notice", "cot", "rocker", "stage", "ledger", "jobs", "gym", "sale", "build"] or sp.has("fish")): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "fish" if sp.has("fish") else sp["kind"], "spot": sp }; best_d = d8   # 부두 끝 bank 는 빈손이면 낚시 자리(run 91)
 	var pl := near_plot(p)
@@ -372,7 +372,7 @@ func _interact_check(now: float) -> void:
 			player.face(sp["yaw"])
 			var kinds := ["cap", "straw", "tophat", "beanie", "glasses", "sunglasses", "backpack", "scarf"]
 			var h := make_wearable(kinds[randi() % kinds.size()], body.global_position, Wear.palette(randi() % 6))
-			player.hold(h); player.action = "grab"; action_until = now + 0.4
+			player.hold(h); h.set_meta("free", true); player.action = "grab"; action_until = now + 0.4   # 공짜 — 전당포가 안 받는다
 		"plot":
 			garden_use(best["spot"], now)   # 텃밭: 물뿌리개를 들었으면 물 주기, 빈손이면 익은 것 따기(town_places)
 		"counter":
@@ -407,7 +407,6 @@ func _interact_check(now: float) -> void:
 		"fish": fish_use(best["spot"], now)   # 부두 끝(run 91): 걸터앉아 던진다 — 주민과 같은 자리·같은 자세(town_sites)
 		"gate": enter_game(String(best["spot"]["game"]))   # 미니게임 입구(town_sites) — 마을은 멈춰 기다리고, 끝나면 이 문 앞으로
 		"gym": gym_use(best["spot"], now)   # 산스장 기구(Mt. Pell 꼭대기, town_mountain) — 턱걸이·윗몸일으키기·허리돌리기·스쿼트
-		"shop": shop_use(best["spot"], now)   # 지도의 가게(town_city) — 주인이 서 있으면 동전 내고 하나
 		"boat": boat_use(now)   # 부두(run 78): 거룻배에 탄다 — 주민이 같은 자리에서 하는 것과 같은 board(town_boat)
 		"car": _enter_car(best["car"], now)
 		"sale": sale_use(best["spot"], now)   # 팔 필지 표지판(town_plots) — 모양 고르고 사서 내가 짓는다

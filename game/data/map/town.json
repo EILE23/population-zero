@@ -1,32 +1,121 @@
 {
   "_": "POZ town map (owner 2026-10-06: the town must read like a designed map, not empty grass). Blocks are TownPlan grid cells: block bx,bz spans x = 16 + 40*bx .. +40, z = 2 + 40*bz .. +40. zone: high_street (every lot a staffed shop), residential (houses, every 9th lot a pocket green), workshop (sheds), civic (one big enterable building on the whole block, no lots), park (whole block green, no lots). Anything not listed is residential. Blocks with built lots (orders 0..13) must keep a lot zone, or saved houses move. This file is the format a future map editor writes.",
-  "founded": 60,
+  "founded": 90,
   "blocks": {
-    "-1,-2": { "zone": "high_street", "name": "High Street" },
-    "0,-2": { "zone": "high_street", "name": "High Street" },
-    "1,-2": { "zone": "civic", "building": "town_hall", "name": "Town Hall" },
-    "-3,-2": { "zone": "civic", "building": "school", "name": "Pell Lane School" },
-    "1,1": { "zone": "civic", "building": "library", "name": "The Library" },
-    "2,1": { "zone": "park", "name": "River Meadow" },
-    "-3,1": { "zone": "park", "name": "Fern Common" },
-    "2,-1": { "zone": "workshop", "name": "Garage Row" },
-    "3,-1": { "zone": "workshop", "name": "Garage Row" },
-    "-2,-2": { "zone": "high_street", "name": "Market Lane" }
+    "-1,-2": {
+      "zone": "high_street",
+      "name": "High Street"
+    },
+    "0,-2": {
+      "zone": "high_street",
+      "name": "High Street"
+    },
+    "1,-2": {
+      "zone": "civic",
+      "building": "town_hall",
+      "name": "Town Hall"
+    },
+    "-3,-2": {
+      "zone": "civic",
+      "building": "school",
+      "name": "Pell Lane School"
+    },
+    "1,1": {
+      "zone": "civic",
+      "building": "library",
+      "name": "The Library"
+    },
+    "2,1": {
+      "zone": "park",
+      "name": "River Meadow"
+    },
+    "-3,1": {
+      "zone": "park",
+      "name": "Fern Common"
+    },
+    "2,-1": {
+      "zone": "workshop",
+      "name": "Garage Row"
+    },
+    "3,-1": {
+      "zone": "workshop",
+      "name": "Garage Row"
+    },
+    "-2,-2": {
+      "zone": "high_street",
+      "name": "Market Lane"
+    }
   },
   "shops": [
-    { "type": "GROCER", "item": "apple", "awning": "6f9a5a" },
-    { "type": "BAKERY", "item": "bread", "awning": "d8a24a" },
-    { "type": "CAFE", "item": "cup", "awning": "ad7096" },
-    { "type": "BOOKSHOP", "item": "book", "awning": "5a6f9a" },
-    { "type": "CORNER SHOP", "item": "can", "awning": "b56a5a" },
-    { "type": "FISHMONGER", "item": "fish", "awning": "4a8a9a" },
-    { "type": "UMBRELLAS", "item": "umbrella", "awning": "7b526c" },
-    { "type": "GENERAL STORE", "item": "cap", "awning": "4a4a52" }
+    {
+      "type": "GROCER",
+      "item": "apple",
+      "awning": "6f9a5a"
+    },
+    {
+      "type": "BAKERY",
+      "item": "bread",
+      "awning": "d8a24a"
+    },
+    {
+      "type": "CAFE",
+      "item": "cup",
+      "awning": "ad7096"
+    },
+    {
+      "type": "BOOKSHOP",
+      "item": "book",
+      "awning": "5a6f9a"
+    },
+    {
+      "type": "CORNER SHOP",
+      "item": "can",
+      "awning": "b56a5a"
+    },
+    {
+      "type": "FISHMONGER",
+      "item": "fish",
+      "awning": "4a8a9a"
+    },
+    {
+      "type": "UMBRELLAS",
+      "item": "umbrella",
+      "awning": "7b526c"
+    },
+    {
+      "type": "GENERAL STORE",
+      "item": "cap",
+      "awning": "4a4a52"
+    }
   ],
   "signs": [
-    { "text": "HIGH STREET", "at": [13.0, -36.0] },
-    { "text": "TOWER ROAD\nClimb 60 m", "at": [18.5, -15.0] },
-    { "text": "MT. PELL TRAIL\n70 m", "at": [-55.5, -15.0] },
-    { "text": "GARAGE ROW\nRacing", "at": [92.0, -1.5] }
+    {
+      "text": "HIGH STREET",
+      "at": [
+        13.0,
+        -36.0
+      ]
+    },
+    {
+      "text": "TOWER ROAD\nClimb 60 m",
+      "at": [
+        18.5,
+        -15.0
+      ]
+    },
+    {
+      "text": "MT. PELL TRAIL\n70 m",
+      "at": [
+        -55.5,
+        -15.0
+      ]
+    },
+    {
+      "text": "GARAGE ROW\nRacing",
+      "at": [
+        92.0,
+        -1.5
+      ]
+    }
   ]
 }

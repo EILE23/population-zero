@@ -347,6 +347,7 @@ func rack_use(now: float) -> void:
 	player.face(rack["yaw"])
 	var u := take_umbrella()
 	if u == null: return
+	u.set_meta("free", true)   # 빌린 것 — 전당포가 안 받는다
 	player.hold(u); player.action = "grab"; action_until = now + 0.4
 
 ## 사람이 우산을 들고 C(town_player) — 꽂이 앞(1.1m)이고 칸이 비었으면 돌려놓고, 아니면 펴기/접기(umbr, 0.3초 예비·회수는 Stick3D.umbr_k). 전엔 아래 '내려놓기'가 먼저 잡았다

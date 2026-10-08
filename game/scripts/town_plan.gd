@@ -28,7 +28,12 @@ static func lots() -> Array:
 					var c := Vector2(x0 + inner / (PER_ROW * 2.0) * (1 + 2 * i), lane - 4.8 if row == 0 else z0 + inner - 4.6)
 					if not _ok(c): continue
 					_lots.append({ "id": "%d,%d,%d" % [bx, bz, row * PER_ROW + i], "c": c, "b": Vector2i(bx, bz), "row": row, "street_z": lane if row == 0 else z0 + inner + PATH_W / 2.0 })
-	_lots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return (a["c"] as Vector2).length_squared() < (b["c"] as Vector2).length_squared())
+	# 블록 단위로 — 가까운 블록부터 그 블록을 다 채우고 다음 블록(운영자 2026-10-08: 섹션마다 빼곡해야). 전엔 필지마다 거리순이라 블록들이 반쯤 빈 채 흩어졌다
+	var bd := func(l: Dictionary) -> float: return Vector2(OX + (l["b"].x + 0.5) * PITCH, OZ + (l["b"].y + 0.5) * PITCH).length()
+	_lots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var da: float = bd.call(a); var db: float = bd.call(b)
+		if absf(da - db) > 0.01: return da < db
+		return String(a["id"]) < String(b["id"]))
 	for k in _lots.size(): _lots[k]["order"] = k
 	return _lots
 

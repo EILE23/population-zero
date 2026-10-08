@@ -365,6 +365,7 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 				var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = float(row[3]) * (1.0 if tall else sc); cy.height = 1.6
 				cs.shape = cy; cs.position = Vector3(x, h + 0.8, z); body.add_child(cs)
 	if not flat and biome in ["meadow", "forest", "dry"] and rng.randf() < 0.22: _feature(put, o, rng)
+	if not flat and biome in ["meadow", "dry"] and Vector2(c.x, c.z).length() < 300.0 and rng.randf() < 0.45: _farm(n, put, o, rng)
 	_dirt_patches(n, o)
 	for id in put:
 		var src := _model_src(id)
@@ -422,6 +423,38 @@ func _lots_near(b: Vector2i) -> Array:
 			if not _lots_by_block.has(k): _lots_by_block[k] = []
 			_lots_by_block[k].append(l)
 	return _lots_by_block.get(b, [])
+
+## 밭(운영자 2026-10-08 사진: 마을 둘레는 밭·과수원) — 마을 300m 안의 완만한 들 칸에 밭 하나: 채소 이랑·밀밭·꽃밭·과수원 중 하나, 흙 이랑은 땅 기울기대로
+func _farm(n: Node3D, put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -> void:
+	var c := Vector2(o.x + 6.0 + rng.randf() * (CHUNK - 12.0), o.z + 6.0 + rng.randf() * (CHUNK - 12.0))
+	if wild_k(c.x, c.y) < 0.7 or on_trail(c.x, c.y) or _h(c.x, c.y) < 0.5: return
+	var ang := rng.randf() * PI; var ax := Vector2.from_angle(ang); var ay := Vector2(-ax.y, ax.x)
+	var kind := rng.randi() % 4
+	var rows := 7; var cols := 12
+	var soil: Array[Transform3D] = []
+	var add := func(id: String, p: Vector2, sc: float) -> void:
+		if not put.has(id): put[id] = []
+		put[id].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * sc), Vector3(p.x, height(p.x, p.y) - 0.02, p.y)))
+	for r in rows:
+		for q in cols:
+			var p := c + ax * ((q - cols / 2.0) * 0.9) + ay * ((r - rows / 2.0) * 1.3)
+			if absf(height(p.x, p.y) - height(c.x, c.y)) > 2.5: continue   # 가파르면 그 칸은 비운다
+			match kind:
+				0: add.call(["Bush_Common", "Plant_1"][(r + q) % 2], p, 0.3)   # 채소
+				1: add.call("Grass_Common_Tall", p, 1.3); add.call("Grass_Wispy_Tall", p + ax * 0.4, 1.2)   # 밀
+				2: add.call(["Flower_3_Group", "Flower_4_Group"][r % 2], p, 1.2)   # 꽃밭
+				_: if q % 3 == 0 and r % 2 == 0: add.call(FOREST[(r + q) % 3], p, 0.55)   # 과수원(낮은 나무 줄)
+			if kind != 3 and q % 2 == 0:
+				var h := height(p.x, p.y)
+				soil.append(Transform3D(Basis(Vector3.UP, -ang) * Basis.from_scale(Vector3(1.9, 1.0, 0.55)), Vector3(p.x, h + 0.01, p.y)))
+	if soil.is_empty(): return
+	if _soil_mesh == null:
+		_soil_mesh = BoxMesh.new(); _soil_mesh.size = Vector3(1.0, 0.04, 1.0)
+		var m := StandardMaterial3D.new(); m.albedo_color = Color("8a6a48"); _soil_mesh.material = m
+	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = _soil_mesh; mm.instance_count = soil.size()
+	for k in soil.size(): mm.set_instance_transform(k, soil[k])
+	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(mmi)
+static var _soil_mesh: BoxMesh
 
 ## 들판의 볼거리 — 들 칸 다섯에 하나: 버섯 고리·바윗들·고사리 숲·꽃밭(모양만, MultiMesh 에 같이 넣는다)
 func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -> void:

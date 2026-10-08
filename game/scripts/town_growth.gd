@@ -232,7 +232,7 @@ func sell_here(now: float) -> bool:
 	if it == null: return false
 	var kind := String(it.get_meta("kind", ""))
 	var sell: Dictionary = prices.get("sell", {})
-	if not sell.has(kind): return false
+	if not sell.has(kind) or it.has_meta("free"): return false   # 공짜로 얻은 건 팔리지 않는다
 	var near := false
 	for sp in spots:
 		if (sp["kind"] == "counter" or (sp["kind"] == "shop" and call("shop_open", sp))) and (sp["pos"] as Vector3).distance_to(body.global_position) < 1.4: near = true; player.face(sp["yaw"]); break   # 지도의 가게도 주인이 있으면 산다(town_city)

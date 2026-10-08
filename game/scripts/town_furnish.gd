@@ -139,7 +139,12 @@ func furn_add(r: ResidentBase, kind: String) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash("%d/%d" % [i, list.size()])
 	var rm: Dictionary = _rooms.get(i, {})
 	var w := float(rm.get("w", 8.0)); var d := float(rm.get("d", 7.0))
-	var x := rng.randf_range(1.3, w / 2.0 - 0.9) * (1.0 if rng.randf() < 0.5 else -1.0)   # 문길(|x| < 1.2)은 비워 둔다
-	var e := [kind, x, rng.randf_range(-d * 0.1, d / 2.0 - 2.4), rng.randf() * TAU]
+	var stair: Rect2 = rm.get("stair", Rect2())
+	var x := 0.0; var z := 0.0
+	for tries in 8:   # 계단 자리는 피한다(2층집, town_interior)
+		x = rng.randf_range(1.3, w / 2.0 - 0.9) * (1.0 if rng.randf() < 0.5 else -1.0)   # 문길(|x| < 1.2)은 비워 둔다
+		z = rng.randf_range(-d * 0.1, d / 2.0 - 2.4)
+		if not (stair.has_area() and stair.grow(0.7).has_point(Vector2(x, z))): break
+	var e := [kind, x, z, rng.randf() * TAU]
 	list.append(e); _extra[i] = list
 	if not rm.is_empty(): _place(rm, e)

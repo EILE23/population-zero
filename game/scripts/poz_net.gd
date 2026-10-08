@@ -44,7 +44,12 @@ func _ready() -> void:
 		if PozUpdate.enabled(): update = PozUpdate.new(); add_child(update)
 
 ## 로그인됨(데스크톱 기기 연결) — 저장을 받고, 들어가 있던 방에 내 이름으로 다시
+## 점검 도구(헤드리스·-s 스크립트)는 계정에 붙지 않는다 — 전엔 프로브가 운영자 계정으로 로그인해 시험 상태(동전·필지)를 서버 저장에 덮어썼다(리뷰 2026-10-08)
+static func tool_run() -> bool:
+	return DisplayServer.get_name() == "headless" or "-s" in OS.get_cmdline_args() or "--script" in OS.get_cmdline_args() or "--sheet" in OS.get_cmdline_user_args()
+
 func signed_in(t: String, h: String) -> void:
+	if tool_run(): return
 	token = t; handle = h; guest = false; _loaded = false
 	_load_save()
 	if room != "": join(room)
@@ -204,6 +209,7 @@ func _ghosts(delta: float) -> void:
 
 # ── 저장 ──
 func _load_save() -> void:
+	if tool_run(): return
 	if token == "": return
 	_http.cancel_request()   # 올리던 중이면 접고 받기부터(받은 뒤 다시 올린다)
 	if not _http.request_completed.is_connected(_on_loaded): _http.request_completed.connect(_on_loaded, CONNECT_ONE_SHOT)
@@ -233,6 +239,7 @@ func _snapshot() -> Dictionary:
 	return { "records": r }
 
 func _upload_if_changed() -> void:
+	if tool_run(): return
 	if token == "" or town == null or _http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED: return
 	var snap := JSON.stringify(_snapshot())
 	if snap == _last_saved: return

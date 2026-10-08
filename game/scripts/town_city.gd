@@ -21,6 +21,7 @@ func _city_init() -> void:
 		else: _civic(CityMap.block_center(b), String(bl.get("building", "")), String(bl.get("name", "")))
 	for s in WorldGen.SITES: _dress_road(s)
 	_dress_loop()
+	_green_belt()
 	for sg in CityMap.data().get("signs", []):
 		var at := Vector3(float(sg["at"][0]), 0, float(sg["at"][1]))
 		_build_parent = _root_for(at); _signpost(at, String(sg["text"]))
@@ -28,6 +29,49 @@ func _city_init() -> void:
 	for i in doors.size():   # 가게 방은 처음에 다 — 주인이 창구 뒤에 서야 하니까
 		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
+
+## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무,
+## 뒤뜰 텃밭(흙 이랑 + 채소), 빨랫줄, 마당 의자. 길 쪽 가운데(문길)는 비운다. 모양만(충돌 없음 — 주민 길을 막지 않게), 다 합쳐 그리기 몇 번
+func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = hash("yard/" + String(l["id"]))
+	var half := TownPlan.LOT / 2.0 + 0.1
+	var front := c.z + hs.z / 2.0 + 1.9; var back := c.z - hs.z / 2.0 - 3.2
+	var kind: int = rng.randi() % 4
+	var col: Color = [Color("f7f4ef"), Color("5f8a3e"), Color("a8a29a"), Color.WHITE][kind]
+	var hgt: float = [0.55, 0.8, 0.5, 0.0][kind]
+	if hgt > 0.0:
+		var thick := 0.06 if kind == 0 else 0.35
+		for side in [-1.0, 1.0]:
+			_box(Vector3(half - 0.9, hgt, thick), Vector3(c.x + side * (half + 0.9) / 2.0, 0, front), _mat(col), false)   # 앞(문길 빼고)
+			_box(Vector3(thick, hgt, front - back), Vector3(c.x + side * half, 0, (front + back) / 2.0), _mat(col), false)   # 옆
+		_box(Vector3(half * 2.0, hgt, thick), Vector3(c.x, 0, back), _mat(col), false)   # 뒤
+	for k in 1 + rng.randi() % 2:   # 마당 나무
+		_tree(Vector3(c.x + rng.randf_range(-half + 0.8, half - 0.8), 0, back + rng.randf_range(0.6, 1.4)), rng.randf_range(0.75, 1.0))
+	if rng.randf() < 0.6:   # 뒤뜰 텃밭 — 흙 이랑 셋과 채소
+		var gx := c.x + rng.randf_range(-1.0, 1.0); var gz := c.z - hs.z / 2.0 - 1.4
+		for r in 3:
+			_box(Vector3(1.8, 0.08, 0.35), Vector3(gx, 0, gz - r * 0.5), _mat(Color("7a5a3a")), false)
+			for q in 4: _scatter(["Bush_Common", "Plant_1", "Fern_1", "Clover_2"][(r + q) % 4], Vector3(gx - 0.7 + q * 0.47, 0.08, gz - r * 0.5), 0.32)
+	if rng.randf() < 0.45:   # 빨랫줄
+		var lx := c.x + (hs.x / 2.0 + 0.9) * (1.0 if rng.randf() < 0.5 else -1.0)
+		for e in [-1.2, 1.2]: _box(Vector3(0.05, 1.6, 0.05), Vector3(lx, 0, c.z + e), _mat(Color("8a6a4a")), false)
+		_box(Vector3(0.02, 0.02, 2.4), Vector3(lx, 1.55, c.z), _mat(Color("efe9e2")), false)
+		for q in 3: _box(Vector3(0.03, 0.4, 0.35), Vector3(lx, 1.15, c.z - 0.6 + q * 0.55), _mat([Color("ad7096"), Color("7a90b0"), Color("f2c84b"), Color("f7f4ef")][(q + rng.randi()) % 4]), false)
+	if rng.randf() < 0.35:   # 마당 의자
+		_box(Vector3(0.45, 0.45, 0.45), Vector3(c.x + rng.randf_range(-2.0, 2.0), 0, back + 1.2), _mat(Color("8a6a4a")), false)
+
+## 합치기(mesh_merge) — 지은 것의 움직이지 않는 메시를 재질 생김새끼리 한 덩이로. 문짝은 빼고
+func _merge_mark() -> Array:
+	return [_build_parent, _build_parent.get_child_count(), doors.size(), houses.size()]
+
+func _merge_done(mark: Array) -> void:
+	var par: Node3D = mark[0]
+	var nodes: Array = []
+	for i in range(int(mark[1]), par.get_child_count()): nodes.append(par.get_child(i))
+	var ex: Array = []
+	for k in range(int(mark[2]), doors.size()): ex.append(doors[k]["hinge"])
+	MeshMerge.merge(par, nodes, ex)
+	for k in range(int(mark[3]), houses.size()): houses[k]["merged"] = true
 
 ## 위층(town_plots)이 정한다 — 사람이 고른 모양, 내 집인가
 func _style_for(_l: Dictionary) -> String: return ""
@@ -54,8 +98,11 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		_pave(l)
 		var hsp := TownPlan.house_spec(l); var nd := doors.size()
 		var hkeep := _build_parent; _build_parent = _root_for(c)
+		var mark := _merge_mark()
 		var hs := HouseStyles.build(self, c, l, hsp, _style_for(l))
 		_flower_bed(c + Vector3(-hs.x / 2.0 - 0.6, 0, hs.z / 2.0 + 0.4))
+		_house_yard(l, c, hs)
+		_merge_done(mark)
 		_build_parent = hkeep
 		if doors.size() > nd and not _is_mine(hk): _move_in(doors[nd], live, owner_row(hk))   # 내가 산 필지면 주민이 들어오지 않는다(내 집)
 		_footpath(l, c)
@@ -67,10 +114,12 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 	if not live: built = maxi(built, k + 1)
 	_pave(l)
 	var keep := _build_parent; _build_parent = _root_for(c)
+	var mark := _merge_mark()
 	match kind:
 		"shop": _shop_lot(l, c)
 		"workshop": _workshop_lot(l, c)
 		_: _green_lot(l, c)
+	_merge_done(mark)
 	_build_parent = keep
 	_footpath(l, c)
 	if live:
@@ -217,6 +266,34 @@ func _dress_road(s: Dictionary) -> void:
 		_build_parent = keep
 		t += 16.0; i += 1
 
+## 녹지 띠 — 옛 마을(허브)과 첫 필지 사이 빈 띠(북 z −31.5, 남 z +34)에 7m 마다 나무, 사이사이 꽃밭, 21m 마다 벤치 — 길·장소 길은 비운다
+## Tower Road 양옆은 6m 마다 가로수(운영자 2026-10-08: 탑 가는 길이 휑했다)
+func _green_belt() -> void:
+	var keep := _build_parent
+	for z in [-31.5, 34.0]:
+		var i := 0
+		for xi in range(-70, 71, 7):
+			var x := float(xi); i += 1
+			var skip := false
+			for s in WorldGen.SITES:
+				if absf(x - float(s["from"].x)) < 4.0 and absf(z - float(s["from"].z)) < 40.0: skip = true
+			if skip: continue
+			var at := Vector3(x, 0, z)
+			_build_parent = _root_for(at)
+			var mark := _merge_mark()
+			_tree(at, 0.95 + fmod(absf(x) * 0.13, 0.35))
+			if i % 3 == 0: _bench(at + Vector3(3.5, 0, 0.9 if z < 0.0 else -0.9))
+			else:
+				_box(Vector3(2.2, 0.25, 0.9), at + Vector3(3.5, 0, 0), _mat(Color("7a5a3a")), false)
+				for q in 4: _scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers", "Clover_1"][(q + i) % 4], at + Vector3(2.7 + q * 0.55, 0.25, 0), 0.6)
+			_merge_done(mark)
+	for zi in range(-20, -70, -6):   # Tower Road(x 15.5) 양옆 가로수
+		for side in [-1.0, 1.0]:
+			var at := Vector3(15.5 + side * 3.6, 0, float(zi))
+			_build_parent = _root_for(at)
+			_tree(at, 0.9)
+	_build_parent = keep
+
 ## 둘레길 — 60m 마다 벤치, 240m 마다 이정표(WorldGen.loop_at 이 길을 그린다). 길 바깥쪽 1.6m 에
 func _dress_loop() -> void:
 	var r0 := WorldGen.loop_r(0.0); var steps := int(TAU * r0 / 60.0)
@@ -264,18 +341,3 @@ func _keeper(sh: Dictionary) -> Resident:
 		if r.job == "shopkeep" and int(r.get_meta("shop_id", -1)) == int(sh["id"]): return r
 	return null
 
-## C 로 사기 — 열었고 동전이 있으면 값(data/prices.json buy)을 내고 하나 받는다. 값은 주인 주머니로 간다(돈이 돈다)
-func shop_use(sh: Dictionary, now: float) -> void:
-	player.face(float(sh["yaw"]))
-	if not shop_open(sh):
-		say_toast("%s — closed. Nobody at the counter." % String(sh["type"]).capitalize() if not is_night() else "%s — closed for the night." % String(sh["type"]).capitalize())
-		return
-	var p := price_of(sh)
-	if coins < p:
-		say_toast("That's %d coins. Sell something here, or win in a game." % p); return
-	_set_coins(coins - p)
-	var k := _keeper(sh)
-	if k: k.coins += p; k.say(["Thank you.", "There you are.", "Anything else?", "Mind how you go."][randi() % 4], 1.6)
-	var it := make_item(String(sh["item"]), body.global_position + Vector3(0, 0.9, 0))
-	player.hold(it); player.action = "grab"; action_until = now + 0.4
-	say_toast("%s · -%d" % [String(sh["item"]).capitalize(), p])
