@@ -28,7 +28,21 @@ func _is_mine(k: int) -> bool:
 
 func _style_for(l: Dictionary) -> String:
 	var e: Variant = _mine().get(str(int(l["order"])))
-	return String(e["style"]) if e is Dictionary else ""
+	if e is Dictionary: return String(e["style"])
+	return style_for_person(String(owner_row(int(l["order"])).get("handle", "")))   # 들어올 사람의 취향(운영자 2026-10-06: 주민이 직접)
+
+## 성격이 고르는 집 — 가장 센 성격 하나로(같은 성격이어도 이름으로 조금 흔든다)
+static func style_for_person(handle: String) -> String:
+	if handle == "": return ""
+	var t := ResidentMind.traits_of(handle)
+	var pick := { "brave": "turret", "social": "townhouse", "lazy": "bungalow", "curious": "wing", "temper": "garage" }
+	var best := "social"; var bv := -1.0
+	for k in pick:
+		var v := float(t[k]) + float(absi((handle + k).hash()) % 100) / 400.0
+		if v > bv: bv = v; best = k
+	if best == "lazy" and float(t["lazy"]) < 0.55: return "cottage"
+	if best == "social" and float(t["curious"]) > 0.6: return "terrace"
+	return pick[best]
 
 ## 성장 시작 — 건너 지은 필지·내 필지를 먼저 표시해 두고(그 자리에 공사장을 다시 열지 않게), 성장 엔진이 돈 뒤에 짓는다
 func _growth_init() -> void:
@@ -135,9 +149,11 @@ func _open_my_site(k: int) -> void:
 func _draw_site(k: int) -> void:
 	super(k)
 	if not _site_nodes.has(k): return
-	if _is_mine(k):
-		for ch in (_site_nodes[k] as Node3D).get_children():
-			if ch is Label3D: (ch as Label3D).text = "Your house — %d%%" % int(100.0 * float(site_work.get(k, 0.0)) / (STAGE_WORK * 5.0)); (ch as Label3D).modulate = Color("ad7096")
+	var who := "Your house" if _is_mine(k) else "Building for %s" % String(owner_row(k).get("handle", "someone"))   # 누구 집인지 — 그 사람 취향으로 짓는다
+	for ch in (_site_nodes[k] as Node3D).get_children():
+		if ch is Label3D:
+			(ch as Label3D).text = "%s — %d%%" % [who, int(100.0 * float(site_work.get(k, 0.0)) / (STAGE_WORK * 5.0))]
+			if _is_mine(k): (ch as Label3D).modulate = Color("ad7096")
 	var sp: Dictionary = build_spot_of(k)   # 어느 공사장이든 사람도 거들 수 있다
 	if not spots.has(sp): spots.append(sp)
 

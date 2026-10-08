@@ -57,7 +57,7 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		var hs := HouseStyles.build(self, c, l, hsp, _style_for(l))
 		_flower_bed(c + Vector3(-hs.x / 2.0 - 0.6, 0, hs.z / 2.0 + 0.4))
 		_build_parent = hkeep
-		if doors.size() > nd and not _is_mine(hk): _move_in(doors[nd], live)   # 내가 산 필지면 주민이 들어오지 않는다(내 집)
+		if doors.size() > nd and not _is_mine(hk): _move_in(doors[nd], live, owner_row(hk))   # 내가 산 필지면 주민이 들어오지 않는다(내 집)
 		_footpath(l, c)
 		if live: _dust(c + Vector3(0, 0.5, 0)); say_toast("A new house is finished.")
 		return

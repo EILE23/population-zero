@@ -47,6 +47,14 @@ var friends: Dictionary = {}   # 다른 주민 uid -> -1..1 (수다·소문이 �
 var recent: Array = []         # 최근 간 자리 종류 넷 — 호기심 많은 사람은 새 데를 원한다
 var reason := ""               # 방금 고른 이유(욕구 이름) — 혼잣말로 나온다
 
+## 이름만으로 성격 다섯(아직 마을에 없는 사람 — 집을 지어 줄 때 그 사람 취향으로, town_plots) — _init 과 같은 규칙
+static func traits_of(handle: String) -> Dictionary:
+	_load()
+	var t: Array = ((_data.get("people", {}) as Dictionary).get(handle, {}) as Dictionary).get("t", [])
+	if t.size() == 5: return { "social": t[0], "temper": t[1], "curious": t[2], "lazy": t[3], "brave": t[4] }
+	var hs: int = absi(handle.hash())
+	return { "social": float(hs % 97) / 96.0, "temper": float((hs / 97) % 89) / 88.0, "curious": float((hs / 8633) % 83) / 82.0, "lazy": float((hs / 716539) % 79) / 78.0, "brave": float((hs / 7) % 73) / 72.0 }
+
 static func _load() -> void:
 	if _loaded: return
 	_loaded = true

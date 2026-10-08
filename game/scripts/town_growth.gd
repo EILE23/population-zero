@@ -162,10 +162,15 @@ func _flower_bed(at: Vector3) -> void:
 	for i in 4: _scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers", "Clover_1"][i], at + Vector3(i * 0.35, 0, 0), 0.5)
 
 ## 입주 — 명부에서 아직 마을에 없는 다음 사람. 몸이 있는 주민이 RES_MAX 를 넘으면 문에 이름만(불 켜진 집)
-func _move_in(door: Dictionary, live: bool) -> void:
+## 이 필지에 들어올 사람 — 필지마다 정해져 있다(공사장 이름표·집 모양이 그 사람 것, town_plots)
+func owner_row(k: int) -> Dictionary:
+	return _roster[(k * 7 + 3) % _roster.size()] if not _roster.is_empty() else {}
+
+func _move_in(door: Dictionary, live: bool, want: Dictionary = {}) -> void:
 	if _roster.is_empty(): return
 	var i := residents.size()
 	var row: Dictionary = _roster[(i * 7) % _roster.size()]
+	if not want.is_empty() and not residents.any(func(x: Resident) -> bool: return x.handle == String(want["handle"])): row = want   # 그 집을 기다리던 사람(이미 마을에 있으면 다음 사람)
 	if residents.size() >= RES_MAX: door["owner"] = String(row["handle"]); return
 	var r := Resident.new(); add_child(r)
 	r.setup(self, int(row["id"]), String(row["handle"]))
