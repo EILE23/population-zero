@@ -108,7 +108,7 @@ func _process(delta: float) -> void:
 			var hk: float = gen.height(px, fp.z + 7.5 * zoom * k) + 0.9
 			want.y = maxf(want.y, fp.y + 0.6 + (hk - fp.y - 0.6) / k)
 		cam.far = 400.0 + 120.0 * zoom
-		gen.radius = clampi(int(3.0 + zoom * 0.55), 3, 11)   # 멀리 볼수록 넓게 짓는다
+		gen.radius = clampi(int(3.0 + zoom * 0.4), 3, 7)   # 멀리 볼수록 넓게 짓는다 — 11(23×23칸)이면 칸마다 나무·바위 그리기로 수천 번이라 멀리서 렉이 났다(운영자 2026-10-08)
 		var env: Environment = ($WorldEnvironment as WorldEnvironment).environment
 		env.fog_density = 0.011 / zoom   # 멀리 볼수록 옅게 — sqrt 면 도시가 하얗게 바랬다
 		cam.position = cam.position.lerp(want, minf(1.0, delta * 4.0))

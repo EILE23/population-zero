@@ -209,7 +209,13 @@ func _sign_in(rm: Dictionary, text: String) -> void:
 ## 매 물리 프레임(town_social._social_tick 맨 앞) — 문 가까이면 방을 미리, 열린 문으로 걸어 들면 들어가고, 깔개를 밟고 나가면 나간다
 func _inner_tick(now: float, dir: Vector3) -> void:
 	if is_inside():
-		if now >= _near_at: _near_at = now + 0.5; _mirror(now)
+		if now >= _near_at:
+			_near_at = now + 0.5; _mirror(now)
+			for r in residents:   # 따라 들어왔다 포기한 주민은 문으로 나간다
+				if r.has_meta("in_room") and r.state != "chase" and int(r.get_meta("in_room")) == int(inside["door"]):
+					var dr0: Dictionary = doors[int(r.get_meta("in_room"))]
+					r.remove_meta("in_room"); r.say("Hmph.", 1.2)
+					r.global_position = (dr0["pos"] as Vector3) + Vector3(0, 0.05, 1.3)
 		var o: Vector3 = inside["o"]
 		var bp := body.global_position
 		if inside.has("stair"):
@@ -229,7 +235,11 @@ func _inner_tick(now: float, dir: Vector3) -> void:
 		var d := p.distance_to(dr["pos"])
 		if d < 6.0: _room(i)   # 다가가면 미리 짓는다 — 들어갈 땐 이미 있다
 		if dr["open"] and d < 0.75 and dir.z < -0.3: _enter_room(i); return
-	for r in residents:   # 방 구역에 남은 주민(주인 일이 끝났는데 못 나온) — 가게 문 앞으로
+	for r in residents:   # 방 구역에 남은 주민(주인 일이 끝났는데 못 나온, 쫓다 포기한) — 문 앞으로
+		if r.has_meta("in_room"):
+			var ri := int(r.get_meta("in_room"))
+			r.remove_meta("in_room"); r.global_position = (doors[ri]["pos"] as Vector3) + Vector3(0, 0.05, 1.3) if ri < doors.size() else Vector3(0, 0.05, 4)
+			continue
 		if r.global_position.x > ZONE.x - 50.0 and not (r.state == "busy" and String(r.spot.get("kind", "")) == "keeper"):
 			var shs: Array = shops.filter(func(sh: Dictionary) -> bool: return int(sh["id"]) == int(r.get_meta("shop_id", -1)))
 			r.global_position = (shs[0]["keeper"]["pos"] as Vector3) if not shs.is_empty() else Vector3(0, 0.05, 4)
@@ -312,6 +322,7 @@ func _enter_room(i: int) -> void:
 		_zoom_out = float(get("zoom_want")); set("zoom_want", 1.6); set("zoom", 1.6)   # 방 하나가 다 보이게
 		cam.global_position = body.global_position + Vector3(0, 8.5, 7.5) * float(get("zoom"))
 		var dr: Dictionary = doors[i]
+		_followers_in(rm, dr)
 		var t := String(shops[int(dr["shop_id"])]["type"]).capitalize() if dr.has("shop_id") else (String(dr["civic"]).replace("_", " ").capitalize() if dr.has("civic") else "")
 		if t != "": say_toast(t))
 
@@ -335,8 +346,32 @@ func _clear_proxies() -> void:
 	for uid in inside.get("proxies", {}): (inside["proxies"][uid]["node"] as Node3D).queue_free()
 	inside["proxies"] = {}
 
+## 쫓아 들어오기(운영자 2026-10-08: "주민 때리고 쫓아오면 집 안까지 쫓아와야") — 나를 쫓던 주민은 1초 뒤 문으로 따라 들어와 방에서도 쫓는다
+func _followers_in(rm: Dictionary, dr: Dictionary) -> void:
+	for r in residents:
+		if r.state != "chase" or r.quarry != body or r.global_position.distance_to(dr["pos"]) > 18.0: continue
+		var who: Resident = r
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			if not is_instance_valid(who) or who.state != "chase" or inside != rm: return
+			who.global_position = (rm["entry"] as Vector3) + Vector3(randf_range(-0.6, 0.6), 0, 0.5); who.velocity = Vector3.ZERO
+			who.chase_until = Time.get_ticks_msec() / 1000.0 + 4.5
+			who.set_meta("in_room", int(rm["door"]))
+			who.say(["You can't hide in there.", "Out. Now.", "I saw that."][randi() % 3], 1.6))
+
+## 따라 나오기 — 방에 들어와 있던 주민은 사람이 나가면 0.8초 뒤 문 앞으로(쫓던 중이면 계속 쫓는다)
+func _followers_out(i: int, dr: Dictionary) -> void:
+	for r in residents:
+		if int(r.get_meta("in_room", -1)) != i: continue
+		var who: Resident = r
+		get_tree().create_timer(0.8).timeout.connect(func() -> void:
+			if not is_instance_valid(who): return
+			who.remove_meta("in_room")
+			who.global_position = (dr["pos"] as Vector3) + Vector3(randf_range(-0.5, 0.5), 0.05, 1.3); who.velocity = Vector3.ZERO
+			if who.state == "chase": who.chase_until = Time.get_ticks_msec() / 1000.0 + 3.0)
+
 func _leave_room() -> void:
 	var dr: Dictionary = doors[inside["door"]]
+	_followers_out(int(inside["door"]), dr)
 	for uid in inside.get("proxies", {}): (inside["proxies"][uid]["node"] as Node3D).queue_free()   # 방에 세운 주민은 나가면 지운다
 	inside["proxies"] = {}
 	_unpaid_check()
@@ -442,10 +477,22 @@ func inner_use(now: float) -> bool:
 ## 계산대 — 안 치른 물건이면 값 치르기, 값이 있는 내 물건이면 팔기. 주인이 서 있어야
 func _till_use(now: float) -> void:
 	var sh: Dictionary = shops[int(doors[inside["door"]]["shop_id"])]
-	if not shop_open(sh): say_toast("Nobody at the counter."); return
 	var k := _keeper(sh)
+	var open := shop_open(sh)
 	var it: Node3D = player.carrying
-	if it == null: k.say(["Morning.", "Help yourself.", "Shelves are there."][randi() % 3], 1.6); return
+	if it == null:
+		if open: k.say(["Morning.", "Help yourself.", "Shelves are there."][randi() % 3], 1.6)
+		else: say_toast("Nobody at the counter. There's an honesty box by the till.")
+		return
+	if not open and not it.has_meta("unpaid"): say_toast("Nobody here to buy that."); return
+	if not open:   # 주인이 없으면 정직함 상자 — 값을 두고 간다(주인 주머니로). 전엔 주인이 자리를 비우면 아무것도 못 들고 나왔다(운영자 2026-10-08)
+		var pk := String(it.get_meta("kind", ""))
+		var pp := int((prices.get("buy", {}) as Dictionary).get(pk, 1))
+		if coins < pp: say_toast("That's %d coins. You have %d." % [pp, coins]); return
+		_set_coins(coins - pp); it.remove_meta("unpaid")
+		if k: k.coins += pp
+		say_toast("You leave %d coins in the honesty box." % pp)
+		return
 	var kind := String(it.get_meta("kind", ""))
 	if it.has_meta("unpaid"):
 		var price := int((prices.get("buy", {}) as Dictionary).get(kind, 1))

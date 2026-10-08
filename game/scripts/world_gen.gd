@@ -105,11 +105,26 @@ func wild_k(x: float, z: float) -> float:
 	k = minf(k, smoothstep(4.0, 16.0, absf(z - ROAD_Z)))
 	k = minf(k, smoothstep(town.RIVER_HW + 2.0, town.RIVER_HW + 14.0, absf(z - town.RIVER_Z)))
 	if flat_limit > 0: k = minf(k, smoothstep(0.0, 26.0, TownPlan.flat_dist(x, z, flat_limit)))   # 지은·짓는 집 블록은 평지 — 둘레 26m 에 걸쳐 산으로
+	k = minf(k, smoothstep(0.0, 26.0, _civic_dist(x, z)))   # 관공서·공원 블록도 평지 — 필지가 없어 빠졌고, 시청·학교·도서관이 언덕에 묻혔다(운영자 2026-10-08)
 	for s in SITES:
 		var c: Vector3 = s["c"]; var r: float = s["r"]
 		k = minf(k, smoothstep(r, r + 22.0, Vector2(x - c.x, z - c.z).length()))
 		k = minf(k, smoothstep(3.0, 13.0, _seg_dist(Vector2(x, z), Vector2(s["from"].x, s["from"].z), Vector2(c.x, c.z))))   # 장소로 가는 길
 	return k
+
+## 관공서·공원 블록(data/map/town.json)까지 거리 — 블록 사각형 밖이면 그 거리, 안이면 0
+static var _civic_rects: Array = []
+static func _civic_dist(x: float, z: float) -> float:
+	if _civic_rects.is_empty():
+		for key in (CityMap.data()["blocks"] as Dictionary):
+			var pp := String(key).split(","); var b := Vector2i(int(pp[0]), int(pp[1]))
+			if CityMap.whole_block(b): _civic_rects.append(Rect2(TownPlan.OX + b.x * TownPlan.PITCH, TownPlan.OZ + b.y * TownPlan.PITCH, TownPlan.PITCH, TownPlan.PITCH))
+		if _civic_rects.is_empty(): _civic_rects.append(Rect2(1e6, 1e6, 1, 1))
+	var best := 1e9
+	for r in _civic_rects:
+		var dx := maxf(maxf(r.position.x - x, x - r.end.x), 0.0); var dz := maxf(maxf(r.position.y - z, z - r.end.y), 0.0)
+		best = minf(best, Vector2(dx, dz).length())
+	return best
 
 static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab := b - a
@@ -364,7 +379,7 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 			if float(row[3]) > 0.0:
 				var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = float(row[3]) * (1.0 if tall else sc); cy.height = 1.6
 				cs.shape = cy; cs.position = Vector3(x, h + 0.8, z); body.add_child(cs)
-	if not flat and biome in ["meadow", "forest", "dry"] and rng.randf() < 0.22: _feature(put, o, rng)
+	if not flat and biome in ["meadow", "forest", "dry"] and rng.randf() < 0.22: _feature(put, o, rng, body)
 	if not flat and biome in ["meadow", "dry"] and Vector2(c.x, c.z).length() < 300.0 and rng.randf() < 0.45: _farm(n, put, o, rng)
 	_dirt_patches(n, o)
 	for id in put:
@@ -374,6 +389,8 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 			var xs: Array = put[id]; mm.instance_count = xs.size()
 			for i in xs.size(): mm.set_instance_transform(i, (xs[i] as Transform3D) * (part[1] as Transform3D))
 			var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; n.add_child(mmi)
+			if id in FOREST or id in HIGH or id in ROCKS:
+				mmi.visibility_range_end = 240.0; mmi.visibility_range_end_margin = 20.0   # 나무·바위도 240m 넘으면 안 그린다(안개 속)
 			if not (id in FOREST or id in HIGH or id in ROCKS):   # 풀·꽃·덤불 — 그림자 없이, 70m 넘으면 안 그린다(채운 들판에 44fps 로 떨어졌다)
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; mmi.visibility_range_end = 70.0; mmi.visibility_range_end_margin = 8.0
 
@@ -457,7 +474,7 @@ func _farm(n: Node3D, put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -
 static var _soil_mesh: BoxMesh
 
 ## 들판의 볼거리 — 들 칸 다섯에 하나: 버섯 고리·바윗들·고사리 숲·꽃밭(모양만, MultiMesh 에 같이 넣는다)
-func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -> void:
+func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator, body: StaticBody3D = null) -> void:
 	var c := Vector2(o.x + 8.0 + rng.randf() * (CHUNK - 16.0), o.z + 8.0 + rng.randf() * (CHUNK - 16.0))
 	if wild_k(c.x, c.y) < 0.6 or on_trail(c.x, c.y): return
 	var add := func(id: String, p: Vector2, sc: float) -> void:
@@ -468,7 +485,12 @@ func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -> void:
 		0:
 			for i in 11: add.call(["Mushroom_Common", "Mushroom_Laetiporus"][i % 2], c + Vector2.from_angle(i * TAU / 11.0) * 2.4, 1.1)
 		1:
-			for i in 7: add.call(ROCKS[i % ROCKS.size()], c + Vector2(rng.randfn(0, 3.0), rng.randfn(0, 3.0)), rng.randf_range(1.2, 2.4))
+			for i in 7:
+				var rp := c + Vector2(rng.randfn(0, 3.0), rng.randfn(0, 3.0)); var rs := rng.randf_range(1.2, 2.4)
+				add.call(ROCKS[i % ROCKS.size()], rp, rs)
+				if body:   # 바위는 막는다 — 전엔 볼거리 바위를 그냥 지나갔다(운영자 2026-10-08)
+					var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 0.5 * rs; cy.height = 1.2 * rs
+					cs.shape = cy; cs.position = Vector3(rp.x, height(rp.x, rp.y) + 0.6 * rs, rp.y); body.add_child(cs)
 		2:
 			for i in 16: add.call(["Fern_1", "Plant_7_Big", "Plant_1_Big"][i % 3], c + Vector2(rng.randfn(0, 2.5), rng.randfn(0, 2.5)), rng.randf_range(0.9, 1.5))
 		_:
