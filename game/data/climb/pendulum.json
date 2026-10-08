@@ -1,0 +1,38 @@
+{
+  "_": "Climb content pack 'Pendulum weights' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_pendulum.gd reads this file: plan(n, plats) works only on the `themes` floors minus the `not` floors (the vent/windmill floors), looks at every gap between two consecutive still hops (the piece's `on` kinds) that is min_gap..max_gap wide and at most max_dy apart in height, drops the floor's longest one or two (the piece's `skip` — the bridge, the ghost slab or the two mushrooms own those) and hangs one clock weight in the next longest: a bracket on the cliff `rise` px above the upper hop, an iron rod down to a brass crossbar you grab, the weight under it; the rod's length puts the bar `hang` px above the mean of the two hop heights at the bottom of the swing (a body hanging from it has its feet level with that mean), and the swing's amplitude is chosen so the weight's outer edge stops `clear` px short of each hop's edge; it swings on the loader's clock, a full there-and-back every period_s, the same for everyone. build(root, planned) draws it; grab(x, y, z) is the pure test the loader runs for an airborne body pressing Up (like its own hold grab — hands within reach_x/reach_y of the bar); hang_on(on, fig) every tick while hanging returns the body's x and y under the bar and writes the pose metas; let_go(on) is the bar's velocity in px/s to add when the body jumps or drops off; sweep(x, y, z) is the shove the weight gives an airborne body it meets at speed (never within grace_s of letting go). `pose` is the Stick3D pose_request while hanging (stick3d_dangle.gd). tools/probe_pendulum.gd checks the plan, the bar's path, the grab, the hang, the let-go velocity, the shove, the visuals, the tock and the pose.",
+  "id": "pendulum",
+  "name": "Pendulum weights",
+  "pose": "dangle",
+  "themes": ["Clockwork"],
+  "kinds": {
+    "weight": {
+      "_": "period_s: one full swing there and back (a half swing from one hop's side to the other takes half of it). rise: px the pivot bracket sits above the upper hop's top. hang: px from the bar to a hanging body's feet (the holds use 58 too). clear: px between a hop's edge and the weight's outer edge at the end of the swing. bob_r/bob_h: the brass weight's radius and height (px); bar_gap: px between the bar and the weight's top; bar_w: the crossbar's width. reach_x/reach_y: how far the hands (feet + hang) may be from the bar for Up to catch it. body_h: the body box height sweep tests. shove_vx/shove_vy: px/s the weight gives an airborne body it meets — sideways the way it swings, and up, never down. shove_min: the weight only hits when its speed is at least this fraction of its top speed (at the ends of the swing it is still — a body may stand under it). grace_s: no shove for this long after a body let go of that weight (it is still beside it). min_gap/max_gap: the gap a weight may hang in (px, edge to edge); max_dy: how far apart in height the two hops may be; min_reach: the shortest half-swing worth building (px). skip_longest: how many of the floor's longest gaps are left to the other packs when a piece does not say (`skip`). tock_hz: the pitch of the clock's tock at each end of the swing — the 'grab now' cue.",
+      "period_s": 2.4,
+      "rise": 150,
+      "hang": 58,
+      "clear": 8,
+      "bob_r": 12,
+      "bob_h": 30,
+      "bar_gap": 6,
+      "bar_w": 24,
+      "reach_x": 26,
+      "reach_y": 22,
+      "body_h": 40,
+      "shove_vx": 220,
+      "shove_vy": 240,
+      "shove_min": 0.35,
+      "grace_s": 0.3,
+      "min_gap": 80,
+      "max_gap": 200,
+      "max_dy": 150,
+      "min_reach": 14,
+      "skip_longest": 2,
+      "tock_hz": 110
+    }
+  },
+  "pieces": [
+    { "_": "Clockwork floors are 15..19, 50..54, 85..89 …; the vent/windmill floors ((n − 3) % 4 == 0: 15, 19, 51 …) stay without a weight — the wheel already fills a gap there. On the other Clockwork floors one weight hangs in a gap of 80..200 px between two hops that stand still (std, ice, spring or crumble — never a moving hop, its gap changes) whose hops differ at most 150 px in height, after the floor's longest gap or two are left to the pack that owns them: the bridge floors (n % 4 == 0: 16, 52 …) and the ghost-slab floors ((n − 2) % 4 == 0: 18, 50, 54 …) give up one, the mushroom floors ((n − 1) % 4 == 0: 17, 53 …) give up two. A gap whose swept wedge (the rod, the weight and a hanging body) another platform cuts is skipped.", "kind": "weight", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 4, "every": 4 }, "skip": 1, "phase": 0.0 },
+    { "kind": "weight", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 2, "every": 4 }, "skip": 1, "phase": 0.0 },
+    { "kind": "weight", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 1, "every": 4 }, "skip": 2, "phase": 0.0 }
+  ]
+}
