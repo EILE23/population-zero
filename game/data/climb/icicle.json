@@ -1,0 +1,32 @@
+{
+  "_": "Climb content pack 'Falling icicles' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960, G 2400 px/s²). scripts/games/climb_icicle.gd reads this file: plan(n, plats) runs only on floors whose theme is in `themes` (Wind cliffs 20..24, 55..59 …; Starlit 30..34, 65..69 …) and hangs `per_hop` icicles under the lip of a hop that faces the hop before it — preferring lips that have another platform below them so the shatter is seen; build(root, planned) draws them growing from the lip; each icicle keeps its own clock on the loader's `_t`: grow → tremble → fall (the tower's gravity) → shatter on the platform below (or vanish `fall_px` down when nothing is there) → regrow. near(x, y, z) is the warning the loader turns into the `duck` pose for a standing body (stick3d_duck.gd), strike(x, y, z, airborne) is the hit — an airborne body is shoved down with `lurch`, a standing one is hurt in its duck. tools/probe_icicle.gd checks the plan, the clock, the warning, the hit and the pose.",
+  "id": "icicle",
+  "name": "Falling icicles",
+  "pose": "duck",
+  "pose_drop": "lurch",
+  "themes": ["Wind cliffs", "Starlit"],
+  "kinds": {
+    "icicle": {
+      "_": "grow: seconds from a bead to full length. tremble: seconds of shiver before the drop (the warning). regrow: seconds the lip stays bare after a shatter. len: full length (px). r: root radius (px). per_hop: icicles per lip. inset: px from the lip's edge to the first one, spacing: px between them. fall_px: how far a drop goes when nothing is below before it vanishes. near_x/near_y: a trembling or falling icicle within near_x sideways and near_y above a standing body's feet makes it duck. body_h: the body box height the hit test uses (px). shove_vy: px/s downward an airborne body gets when a falling icicle meets it (a shove, never a splat), hurt_air/hurt_ground: seconds of hurt for a hit body in the air / standing. glass_hz: the shatter's pitch.",
+      "grow": 6.0,
+      "tremble": 0.5,
+      "regrow": 1.0,
+      "len": 34,
+      "r": 5,
+      "per_hop": 2,
+      "inset": 10,
+      "spacing": 14,
+      "fall_px": 280,
+      "near_x": 30,
+      "near_y": 220,
+      "body_h": 40,
+      "shove_vy": 320,
+      "hurt_air": 0.4,
+      "hurt_ground": 0.6,
+      "glass_hz": 1800
+    }
+  },
+  "pieces": [
+    { "_": "On themed floors only (the theme repeats every 35 floors, five floors at a time, so the icicles are a season of the tower rather than a constant): every hop after the first whose kind is in `on` gets its lip — the edge facing the previous hop — judged; lips with a platform below (a hop two steps down in a zigzag) come first, then the rest; `max` lips per floor, `per_hop` icicles each, clocks offset by `stagger` of the cycle per icicle so a floor never drops everything at once.", "kind": "icicle", "from": 20, "on": ["std", "ice"], "max": 2, "stagger": 0.37 }
+  ]
+}
