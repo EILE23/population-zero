@@ -6,6 +6,14 @@ extends RefCounted
 ## 같은 틀이어도 집마다 다르다. 가구는 PIECES 표 하나(상자·원기둥·공·풀 모형 + C 자리) — 새 가구는 한 줄
 
 const FILE := "res://data/interiors.json"
+## 2층집이면 이것들은 위층으로(town_interior — 계단으로 올라간다)
+const BEDROOM := ["bed", "bed_double", "bed_low", "bunk", "hammock", "nightstand", "wardrobe", "dresser", "mirror"]
+## 가구 위의 진짜 물건(집어 들고 나갈 수 있다 — town_interior._room_item) [종류, x, y, z]
+const ITEMS := {
+	"table": [["cup", -0.3, 0.75, 0.0], ["apple", 0.3, 0.75, 0.1]], "table_small": [["cup", 0.0, 0.7, 0.0]], "tea_table": [["cup", 0.1, 0.7, 0.0]],
+	"nightstand": [["book", 0.0, 0.5, 0.0]], "desk": [["book", -0.4, 0.75, 0.1], ["letter", 0.2, 0.75, 0.15]], "kitchen": [["bread", -0.6, 0.94, 0.0], ["cup", 0.2, 0.94, 0.0]],
+	"island": [["apple", 0.0, 0.94, 0.0], ["apple", 0.3, 0.94, 0.1]], "books_pile": [["book", 0.0, 0.32, 0.0]], "paint_table": [["can", 0.35, 0.75, 0.0]],
+}
 static var _layouts: Array = []
 
 static func layouts() -> Array:
@@ -94,6 +102,8 @@ const PIECES := {
 	"weights": { "b": [[0.9, 0.5, 0.4, 0, 0, 0, "#4a4a52"]], "c": [[0.08, 0.3, -0.25, 0.5, 0, "#2a2a30"], [0.08, 0.3, 0.25, 0.5, 0, "#2a2a30"]], "spot": ["emote", 0.8, { "move": "squat" }] },
 	"pullup_bar": { "b": [[0.08, 2.3, 0.08, -0.6, 0, 0, "#4a4a52"], [0.08, 2.3, 0.08, 0.6, 0, 0, "#4a4a52"], [1.3, 0.05, 0.05, 0, 2.15, 0, "#4a4a52"]], "spot": ["emote", 0.1, { "move": "pullup" }], "solid": false },
 	"blackboard": { "b": [[2.4, 1.2, 0.04, 0, 0.9, 0, "#2f4a3a"]], "label": ["E = mc² (probably)", 1.5], "solid": false },
+	"bath": { "b": [[1.7, 0.55, 0.8, 0, 0, 0, "#f7f4ef"], [1.5, 0.05, 0.6, 0, 0.5, 0, "#bfe3f2"]], "spot": ["pose", 0.8, { "pose": "wait", "text": "The bath. You consider it." }] },
+	"sink": { "b": [[0.6, 0.85, 0.45, 0, 0, 0, "#efe9e2"], [0.5, 0.6, 0.03, 0, 1.0, -0.2, "#bfe3f2"]], "spot": ["board", 0.7, { "text": "You wash your hands. Good." }] },
 	# 가게 꾸밈(shop_kit.gd)
 	"espresso": { "b": [[0.5, 0.45, 0.4, 0, 0, 0, "#8a8a92"], [0.4, 0.06, 0.3, 0, 0.45, 0, "#4a4a52"], [0.06, 0.1, 0.06, -0.1, 0.12, 0.2, "#2a2a30"], [0.06, 0.1, 0.06, 0.1, 0.12, 0.2, "#2a2a30"]], "solid": false, "spot": ["pose", 0.9, { "pose": "grind", "text": "The machine hisses. Nobody knows what it is doing." }] },
 	"cake_dome": { "c": [[0.22, 0.04, 0, 0, 0, "#f7f4ef"], [0.16, 0.12, 0, 0.04, 0, "#e8bfa4"]], "s": [[0.24, 0, 0.0, 0, "#dff2f7"]], "solid": false },
@@ -158,29 +168,42 @@ static func _by_mind(ls: Array, m: Variant, rng: RandomNumberGenerator) -> Dicti
 	return scored[rng.randi() % mini(4, scored.size())][1]
 
 ## 짓기 — 바닥·벽(town_interior._shell)이 선 뒤. ㄱ자면 뒤 모서리 하나를 막고 그 안 가구는 뺀다. 좌우 뒤집기, 크기 비율대로 자리
-static func build(t: Node, rm: Dictionary, p: Dictionary) -> void:
+static func build(t: Node, rm: Dictionary, p: Dictionary, mode := "all") -> void:
 	var o: Vector3 = rm["o"]; var w: float = rm["w"]; var d: float = rm["d"]
 	var rng := RandomNumberGenerator.new(); rng.seed = int(p["seed"])
 	var mx := -1.0 if p["mirror"] else 1.0
 	var wall_m: Material = t.call("_mat", (p["wall"] as Color).darkened(0.12))
 	var cut := Rect2()
-	if p["shape"] == "ell":   # ㄱ자 — 뒤쪽 한 모서리를 벽으로 막는다
+	if p["shape"] == "ell" and mode != "upper":   # ㄱ자 — 뒤쪽 한 모서리를 벽으로 막는다(위층은 통으로)
 		var cw := w * 0.32; var cd := d * 0.38; var side := 1.0 if rng.randf() < 0.5 else -1.0
 		cut = Rect2(Vector2(w / 2.0 - cw if side > 0 else -w / 2.0, -d / 2.0), Vector2(cw, cd))
 		t.call("_box", Vector3(cw, 2.8, cd), o + Vector3(cut.position.x + cw / 2.0, 0, cut.position.y + cd / 2.0), wall_m)
 	var lay: Dictionary = p["layout"]
-	for wl in lay.get("walls", []):
+	for wl in (lay.get("walls", []) if mode != "upper" else []):
 		var a := Vector2(float(wl[0]) * mx * p["sx"], float(wl[1]) * p["sz"]); var b := Vector2(float(wl[2]) * mx * p["sx"], float(wl[3]) * p["sz"])
 		var mid := (a + b) / 2.0; var len := a.distance_to(b)
 		var wb: MeshInstance3D = t.call("_box", Vector3(0.12 if absf(a.x - b.x) < 0.01 else len, 2.4, len if absf(a.x - b.x) < 0.01 else 0.12), o + Vector3(mid.x, 0, mid.y), wall_m)
+	var stair: Rect2 = rm.get("stair", Rect2())   # 계단 자리(2층집) — 그 위엔 가구를 두지 않는다
 	for pc in lay.get("pieces", []):
+		var kind := String(pc[0])
+		if (mode == "ground" and kind in BEDROOM) or (mode == "upper" and not kind in BEDROOM): continue
 		var at := Vector2(float(pc[1]) * mx * p["sx"], float(pc[2]) * p["sz"])
 		at.x = clampf(at.x, -w / 2.0 + 0.5, w / 2.0 - 0.5); at.y = clampf(at.y, -d / 2.0 + 0.35, d / 2.0 - 1.9)
 		if cut.has_area() and cut.grow(0.4).has_point(at): continue
 		if absf(at.x) < 1.0 and at.y > d / 2.0 - 2.2: continue   # 문길
+		if stair.has_area() and stair.grow(0.6).has_point(at): continue
 		var yaw := deg_to_rad(float(pc[3])) * mx
 		piece(t, rm, String(pc[0]), o + Vector3(at.x, 0, at.y), yaw, p)
 	# 그 사람의 손 — 게으르면 잡동사니, 부지런하면 화분·액자, 좋아하는 것
+	if mode == "upper" and not (rm["spots"] as Array).any(func(sp: Dictionary) -> bool: return sp["kind"] == "bed"):   # 틀의 침대가 계단 자리에 걸렸다 — 계단 반대쪽 뒤에
+		var far := -signf(stair.position.x + stair.size.x / 2.0) if stair.has_area() else 1.0
+		piece(t, rm, "bed", o + Vector3(far * (w / 2.0 - 1.3), 0, -d / 2.0 + 1.5), 0.0, p)
+		piece(t, rm, "wardrobe", o + Vector3(far * (w / 2.0 - 3.0), 0, -d / 2.0 + 0.45), 0.0, p)
+	if mode == "upper":   # 위층 — 욕실 한쪽, 러그, 화분
+		piece(t, rm, "bath", o + Vector3(-w / 2.0 + 1.3, 0, d / 2.0 - 2.4), PI / 2.0 * mx, p)
+		piece(t, rm, "sink", o + Vector3(-w / 2.0 + 0.5, 0, d / 2.0 - 1.0), PI / 2.0 * mx, p)
+		piece(t, rm, "rug", o + Vector3(0.6, 0, 0.4), 0.0, p); piece(t, rm, "plant", o + Vector3(w / 2.0 - 0.6, 0, d / 2.0 - 0.8), 0.0, p)
+		return
 	var m: Variant = p["mind"]
 	var lazy := float(m.get("lazy")) if m else 0.5
 	var extras: Array = []
@@ -190,7 +213,7 @@ static func build(t: Node, rm: Dictionary, p: Dictionary) -> void:
 	for e in extras:
 		for tries in 8:
 			var at := Vector2(rng.randf_range(-w / 2.0 + 0.8, w / 2.0 - 0.8), rng.randf_range(-d / 2.0 + 0.8, d / 2.0 - 2.2))
-			if (cut.has_area() and cut.grow(0.4).has_point(at)) or absf(at.x) < 1.2: continue
+			if (cut.has_area() and cut.grow(0.4).has_point(at)) or absf(at.x) < 1.2 or (stair.has_area() and stair.grow(0.6).has_point(at)): continue
 			piece(t, rm, e, o + Vector3(at.x, 0, at.y), rng.randf() * TAU if e != "frames" else 0.0, p); break
 
 ## 가구 하나 — 표(PIECES)대로
@@ -215,6 +238,8 @@ static func piece(t: Node, rm: Dictionary, kind: String, at: Vector3, yaw: float
 	if spec.get("books", false):
 		for r in 4:
 			for k in 6: t.call("_box", Vector3(0.18, 0.32, 0.25), Vector3(-0.6 + k * 0.24, 0.12 + r * 0.48, 0.1), _col(t, ["#b56a5a", "#5a6f9a", "#d8a24a", "#6f9a5a"][(r + k) % 4], p), false, root)
+	for it in ITEMS.get(kind, []):   # 가구 위 진짜 물건
+		t.call("_room_item", String(it[0]), root.to_global(Vector3(it[1], it[2], it[3])))
 	if spec.has("label"):
 		var lb := Label3D.new(); lb.text = String(spec["label"][0]); lb.font_size = 56; lb.pixel_size = 0.004; lb.modulate = Color("f7f4ef"); lb.outline_size = 0
 		lb.position = Vector3(0, float(spec["label"][1]), 0.03); root.add_child(lb)

@@ -11,6 +11,8 @@ const ZONE := Vector2(1700.0, 1700.0)
 const SLOT := 40.0
 const ROW := 8
 const KEEP := 24
+const UP := 100000             # 위층 방 번호 = 문 번호 + UP(2층집, 계단으로 올라간다)
+const STEPS := 8               # 계단 단 수 — 한 단 RISE 28cm·폭 38cm(사람 턱 오르기 42cm 안)
 
 var inside: Dictionary = {}     # 지금 들어와 있는 방
 var _rooms := {}                # 문 번호 -> 방 {node, o, w, d, kind, door, spots, entry}
@@ -30,6 +32,7 @@ func _door_index(dr: Dictionary) -> int:
 # ── 짓기 ──
 func _room(i: int) -> Dictionary:
 	if _rooms.has(i): return _rooms[i]
+	if i >= UP: return _room_up(i - UP)
 	var dr: Dictionary = doors[i]
 	var kind := "shop" if dr.has("shop_id") else ("civic" if dr.has("civic") else "house")
 	var slot := 0
@@ -47,6 +50,9 @@ func _room(i: int) -> Dictionary:
 		dim = Vector2(kit["w"], kit["d"])
 	var n := Node3D.new(); n.name = "Room_%d" % i; add_child(n)
 	var rm := { "node": n, "o": o, "w": dim.x, "d": dim.y, "kind": kind, "door": i, "spots": [], "entry": o + Vector3(0, 0.05, dim.y / 2.0 - 1.1), "slot": slot, "kit": kit }
+	if kind == "house" and int(dr.get("storeys", 1)) == 2:   # 2층집 — 오른쪽(뒤집혔으면 왼쪽) 벽을 따라 뒤로 오르는 계단
+		var sx := (dim.x / 2.0 - 0.75) * (-1.0 if kit.get("mirror", false) else 1.0)
+		rm["stair"] = Rect2(Vector2(sx - 0.55, -dim.y / 2.0 + 0.4), Vector2(1.1, STEPS * 0.38 + 0.3))
 	_rooms[i] = rm; _order.append(i)
 	if _void == null:   # 방 둘레 어둠 — 세계의 지평선 판(초록)이 방 밖으로 보이지 않게
 		_void = MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(ROW * SLOT + 200.0, ROW * SLOT + 200.0); _void.mesh = pm
@@ -58,6 +64,7 @@ func _room(i: int) -> Dictionary:
 		"shop": _shop_room(rm, rng)
 		"civic": _civic_room(rm, rng)
 		_: _house_room(rm, rng)
+	if rm.has("stair"): _stairs_up(rm)
 	_build_parent = keep
 	while _order.size() > KEEP:   # 오래된 방부터 — 가게 방·지금 방은 남긴다
 		var old: int = -1
@@ -69,7 +76,56 @@ func _room(i: int) -> Dictionary:
 
 func _free_room(i: int) -> void:
 	var rm: Dictionary = _rooms[i]
-	(rm["node"] as Node3D).queue_free(); _slot_of.erase(rm["slot"]); _rooms.erase(i); _order.erase(i)
+	var nd: Node3D = rm["node"]
+	items = items.filter(func(it: Node3D) -> bool: return is_instance_valid(it) and not nd.is_ancestor_of(it))   # 방에 남은 물건(들고 나간 건 이미 밖이다)
+	nd.queue_free(); _slot_of.erase(rm["slot"]); _rooms.erase(i); _order.erase(i)
+
+## 손 닿는 거리 — 발에서 잰 거리라 탁자(75cm) 위 물건이 늘 멀었다. 옆 거리로 재고 높이는 1.3m 안이면 된다(운영자 2026-10-06: "집 안에서 물건 못 가져 나온다")
+func _reach(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length() if b.y - a.y < 1.3 and b.y - a.y > -0.5 else 99.0
+
+## 방 안의 진짜 물건 — 집어 들고 나갈 수 있다(room_kit ITEMS)
+func _room_item(kind: String, at: Vector3) -> void:
+	var it := make_item(kind, at)
+	var g := it.global_position
+	it.get_parent().remove_child(it); _build_parent.add_child(it); it.global_position = g
+	items.append(it)
+
+## 1층 계단 — 단마다 상자(경사판 없이, 사람은 턱 오르기로 오른다), 난간. 꼭대기에 서면 위층으로
+func _stairs_up(rm: Dictionary) -> void:
+	var o: Vector3 = rm["o"]; var r: Rect2 = rm["stair"]
+	var wood := _mat(Color("8a6a4a")); var x := o.x + r.position.x + r.size.x / 2.0
+	var z0 := o.z + r.position.y + r.size.y   # 계단 앞(아래)
+	for k in STEPS:
+		_box(Vector3(1.1, 0.28 * (k + 1), 0.38), Vector3(x, 0, z0 - 0.19 - k * 0.38), wood)
+	var side := -1.0 if x > o.x else 1.0
+	var rail := _box(Vector3(0.05, 0.05, STEPS * 0.38), Vector3(x + side * 0.55, 0.9 + STEPS * 0.14, z0 - STEPS * 0.19), _mat(Color("4a4a52")), false)
+	rail.rotation.x = atan2(0.28, 0.38)
+	var lb := Label3D.new(); lb.text = "UP"; lb.font_size = 40; lb.pixel_size = 0.004; lb.modulate = Color("7b526c"); lb.position = Vector3(x, 0.3, z0 + 0.25); lb.rotation.x = -PI / 2.0; _add(lb)
+
+## 위층 — 같은 사람 손(같은 틀·빛깔)으로 침실·욕실. 계단 구멍에 난간, 구멍에 서면 아래로
+func _room_up(i: int) -> Dictionary:
+	var key := i + UP
+	if _rooms.has(key): return _rooms[key]
+	var down := _room(i)
+	var slot := 0
+	while _slot_of.has(slot): slot += 1
+	_slot_of[slot] = key
+	var o := Vector3(ZONE.x + (slot % ROW) * SLOT, 0.0, ZONE.y + (slot / ROW) * SLOT)
+	var n := Node3D.new(); n.name = "RoomUp_%d" % i; add_child(n)
+	var r: Rect2 = down["stair"]
+	var rm := { "node": n, "o": o, "w": down["w"], "d": down["d"], "kind": "house", "door": i, "spots": [], "slot": slot, "kit": down["kit"], "upper": true, "stair": r,
+		"entry": o + Vector3(r.position.x + r.size.x / 2.0 - (1.4 if r.position.x > 0.0 else -1.4), 0.05, r.position.y + 0.9) }
+	_rooms[key] = rm; _order.append(key)
+	var keep := _build_parent; _build_parent = n
+	_shell(rm, RandomNumberGenerator.new())
+	RoomKit.build(self, rm, rm["kit"], "upper")
+	var hole := o + Vector3(r.position.x + r.size.x / 2.0, 0.005, r.position.y + r.size.y / 2.0)
+	_box(Vector3(r.size.x, 0.01, r.size.y), hole, _mat(Color("2a1e26")), false)   # 계단 구멍
+	for sx in [-1.0, 1.0]: _box(Vector3(0.05, 0.9, r.size.y), hole + Vector3(sx * r.size.x / 2.0, 0, 0), _mat(Color("4a4a52")), false)
+	var lb := Label3D.new(); lb.text = "DOWN"; lb.font_size = 40; lb.pixel_size = 0.004; lb.modulate = Color("7b526c"); lb.position = hole + Vector3(0, 0.02, 0); lb.rotation.x = -PI / 2.0; _add(lb)
+	_build_parent = keep
+	return rm
 
 ## 바닥·벽(앞벽은 낮다 — 3/4 시점으로 속이 보이게)·문틈·불빛
 func _shell(rm: Dictionary, rng: RandomNumberGenerator) -> void:
@@ -98,7 +154,7 @@ func _spot(rm: Dictionary, kind: String, at: Vector3, yaw: float, extra := {}) -
 ## 집 — 틀(data/interiors.json)과 그 사람의 손(room_kit.gd). 문패
 func _house_room(rm: Dictionary, rng: RandomNumberGenerator) -> void:
 	var o: Vector3 = rm["o"]; var d: float = rm["d"]
-	RoomKit.build(self, rm, rm["kit"])
+	RoomKit.build(self, rm, rm["kit"], "ground" if rm.has("stair") else "all")   # 2층집이면 침대·옷장은 위층(_room_up)
 	var owner := ""
 	for r in residents:
 		if r.home_door == doors[rm["door"]]: owner = r.handle; break
@@ -155,6 +211,13 @@ func _inner_tick(now: float, dir: Vector3) -> void:
 	if is_inside():
 		if now >= _near_at: _near_at = now + 0.5; _mirror(now)
 		var o: Vector3 = inside["o"]
+		var bp := body.global_position
+		if inside.has("stair"):
+			var r: Rect2 = inside["stair"]; var lp := Vector2(bp.x - o.x, bp.z - o.z)
+			if inside.get("upper", false):
+				if r.grow(-0.15).has_point(lp) and not get_meta("stair_lock", false): _floor_move(int(inside["door"]), false); return   # 구멍에 서면 아래로
+			elif bp.y > 0.28 * (STEPS - 1) and lp.y < r.position.y + 0.9 and r.grow(0.2).has_point(lp): _floor_move(int(inside["door"]), true); return   # 꼭대기 단 — 위로
+		if inside.get("upper", false): return   # 위층엔 바깥문이 없다
 		if body.global_position.z > o.z + float(inside["d"]) / 2.0 - 0.35 and dir.z > 0.3: _leave_room()
 		elif body.global_position.y < -3.0: body.global_position = inside["entry"]   # 떨어지면 입구로
 		return
@@ -195,6 +258,8 @@ func _mirror(now: float) -> void:
 		var r: Resident = here[uid]
 		var lying: bool = r.fig.lying or r.fig.pose_request in ["rest", "sky"]
 		var want: String = "bed" if lying else ("sit" if r.fig.seated else "")
+		if inside.get("upper", false) and want != "bed": continue   # 위층엔 자는 사람만(침실)
+		if inside.has("stair") and not inside.get("upper", false) and want == "bed": continue   # 1층엔 침대가 없다 — 위층에 있다
 		if px.has(uid) and px[uid]["want"] == want: continue
 		if px.has(uid): (px[uid]["node"] as Node3D).queue_free(); used.erase(px[uid]["spot"])
 		var pick := -1
@@ -214,6 +279,25 @@ func _mirror(now: float) -> void:
 		px[uid] = { "node": g, "want": want, "spot": pick, "r": r, "said": -999.0 }
 		if pick >= 0: used[pick] = true
 	inside["proxies"] = px
+	for uid in px:   # 서 있는 사람은 방 안에서 일과 — 6~12초마다 다른 자리로 걸어가 그 자리 자세
+		var e: Dictionary = px[uid]
+		if e["want"] != "" or now < float(e.get("next", 0.0)): continue
+		e["next"] = now + randf_range(6.0, 12.0)
+		var opts: Array = []
+		for k in spots.size():
+			if String(spots[k]["kind"]) in ["stove", "read", "fridge", "pose", "tv", "board", "play"] and not used.has(k): opts.append(k)
+		if opts.is_empty(): continue
+		var pick: int = opts[randi() % opts.size()]
+		var g: Stick3D = e["node"]; var to: Vector3 = spots[pick]["pos"]; to.y = 0.02
+		var dist := g.global_position.distance_to(to)
+		g.pose_request = ""; g.move_dir = (to - g.global_position).normalized(); g.speed = 1.2
+		g.face(atan2(g.move_dir.x, g.move_dir.z))
+		var tw := create_tween(); tw.tween_property(g, "global_position", to, maxf(0.4, dist / 1.2))
+		var face_yaw := float(spots[pick]["yaw"]) + PI
+		var pose: String = String(spots[pick].get("pose", "wait")) if spots[pick]["kind"] == "pose" else ["read", "wait", "drink", "wait"][randi() % 4]
+		tw.tween_callback(func() -> void:
+			if is_instance_valid(g): g.move_dir = Vector3.ZERO; g.speed = 0.0; g.face(face_yaw); g.pose_request = pose)
+		used.erase(e["spot"]); e["spot"] = pick; used[pick] = true
 	for uid in px:   # 다가가면 먼저 한마디(30초에 한 번)
 		var e: Dictionary = px[uid]
 		if body.global_position.distance_to((e["node"] as Node3D).global_position) < 2.2 and now - float(e["said"]) > 30.0:
@@ -230,6 +314,26 @@ func _enter_room(i: int) -> void:
 		var dr: Dictionary = doors[i]
 		var t := String(shops[int(dr["shop_id"])]["type"]).capitalize() if dr.has("shop_id") else (String(dr["civic"]).replace("_", " ").capitalize() if dr.has("civic") else "")
 		if t != "": say_toast(t))
+
+## 계단으로 오르내리기 — 문처럼 잠깐 어둡게. 내려오면 계단 앞(아래)에 선다
+func _floor_move(i: int, up: bool) -> void:
+	var to := _room(i + UP) if up else _room(i)
+	_clear_proxies()
+	set_meta("stair_lock", true)
+	_fade_move(func() -> void:
+		inside = to
+		if up: body.global_position = to["entry"]; player.face(0.0)
+		else:
+			var r: Rect2 = to["stair"]; var o: Vector3 = to["o"]
+			body.global_position = o + Vector3(r.position.x + r.size.x / 2.0, 0.05, r.position.y + r.size.y + 0.7); player.face(0.0)
+		body.velocity = Vector3.ZERO
+		cam.global_position = body.global_position + Vector3(0, 8.5, 7.5) * float(get("zoom"))
+		say_toast("Upstairs" if up else "Downstairs")
+		get_tree().create_timer(0.8).timeout.connect(func() -> void: set_meta("stair_lock", false)))
+
+func _clear_proxies() -> void:
+	for uid in inside.get("proxies", {}): (inside["proxies"][uid]["node"] as Node3D).queue_free()
+	inside["proxies"] = {}
 
 func _leave_room() -> void:
 	var dr: Dictionary = doors[inside["door"]]
@@ -264,6 +368,8 @@ func _unpaid_check() -> void:
 func inner_use(now: float) -> bool:
 	if not is_inside(): return false
 	var p := body.global_position
+	for it in items:   # 손 닿는 곳에 물건이 있으면 줍기가 먼저(town_player) — 전엔 탁자 옆 의자에 앉아 버렸다
+		if is_instance_valid(it) and _reach(p, it.global_position) < 0.8: return false
 	for uid in inside.get("proxies", {}):   # 집에 있는 주민에게 인사
 		var e: Dictionary = inside["proxies"][uid]
 		var g: Node3D = e["node"]

@@ -128,7 +128,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	var knob := MeshInstance3D.new(); var ks := SphereMesh.new(); ks.radius = 0.035; ks.height = 0.07; knob.mesh = ks
 	knob.material_override = _mat(Color("e8c766")); knob.position = Vector3(door_w * 0.38, 0.0, 0.06); leaf.add_child(knob)
 	var door_pos := hinge.position + Vector3(door_w / 2.0, 0, 0)
-	doors.append({ "hinge": hinge, "open": false, "pos": door_pos, "hw": hw, "hd": hd })
+	doors.append({ "hinge": hinge, "open": false, "pos": door_pos, "hw": hw, "hd": hd, "storeys": storeys })   # 층수 — 2층집은 방 안에도 2층이 있다(town_interior)
 	spots.append({ "pos": door_pos + Vector3(0, 0, 0.9), "kind": "door", "yaw": PI })
 	# 현관 차양 + 계단 + 화단/우체통
 	if rng.randf() < 0.6:

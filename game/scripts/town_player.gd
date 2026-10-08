@@ -306,7 +306,7 @@ func _interact_check(now: float) -> void:
 		# 들고 있어도 손 닿는 곳에 다른 물건이 있으면 그것부터 줍는다(셋까지); 없으면 맨 위 것을 앞에 내려놓는다
 		var near_it: Node3D = null; var nd := 0.8
 		for it in items:
-			var d0 := p.distance_to(it.global_position)
+			var d0 := _reach(p, it.global_position)
 			if d0 < nd: near_it = it; nd = d0
 		if near_it and player.pocket.size() < 2 and near_it != last_dropped:   # 방금 내려놓은 건 다시 안 집는다(리뷰 버그: 두 개를 한 자리에 못 놓았다)
 			items.erase(near_it); player.hold(near_it)
@@ -318,7 +318,7 @@ func _interact_check(now: float) -> void:
 		return
 	var best: Dictionary = {}; var best_d := 9.0
 	for it in items:
-		var d := p.distance_to(it.global_position)
+		var d := _reach(p, it.global_position)
 		if d < 0.8 and d < best_d: best = { "kind": "item", "node": it }; best_d = d
 	var item_near := not best.is_empty()   # 손 닿는 곳에 물건이 있으면 줍기가 먼저 — 풀밭·벤치·침대 위 물건을 두고 눕지 않는다(운영자 2026-09-28)
 	for dr in doors:
