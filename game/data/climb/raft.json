@@ -1,0 +1,33 @@
+{
+  "_": "Climb content pack 'Cloud rafts' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_raft.gd reads this file: plan(n, plats) works only on the `themes` floors, looks at every gap between two consecutive still hops (the piece's `on` kinds) that is min_gap..max_gap wide and at most max_dy apart in height, drops the floor's longest one or two (the piece's `skip` — the bridge, the ghost slab or the two mushrooms own those) and floats one cotton cloud in the next longest: a puffy slab `w_frac` of the gap wide (w_min..w_max), its top at the mean of the two hop heights, drifting sideways inside the gap on the loader's clock — a full there-and-back every drift_s, never closer than `margin` px to either hop's edge, the same for everyone. A body standing on it presses it down (sink_max px over sink_s seconds, eased like cotton) and it rises back over rise_s once the body is gone, so the longer you stand the farther the upper hop is; it never drops you, never shoves you, never vanishes. build(root, planned) draws it; land(x, y, ny, z) is the pure landing test the loader runs after its own comes up empty (the returned dict's x/w are the raft's span now and y its top now); stand(on, x, dt, fig, walk) every tick while standing returns the body's x carried by the drift, the raft's top under the feet and `off` when the body walked past an edge, and writes the pose metas. `pose` is the Stick3D pose_request while standing (stick3d_wade.gd). tools/probe_raft.gd checks the plan, the drift, the landing, the sink and rise, the visuals, the puff and the pose.",
+  "id": "raft",
+  "name": "Cloud rafts",
+  "pose": "wade",
+  "themes": ["Cloud sea"],
+  "kinds": {
+    "raft": {
+      "_": "drift_s: one full drift there and back (the raft is at the gap's middle at phase 0, at its +x end a quarter later). margin: px the raft keeps from either hop's edge at the ends of its drift. w_frac: the raft's width as a fraction of the gap, clamped to w_min..w_max (px); a gap too narrow for that width plus two margins gets none. min_amp: a drift shorter than this (px) is dropped and the raft floats still. thick: the cotton's height under its top (px). sink_max: how far a standing body presses the raft down (px); sink_s: seconds of standing until it is all the way down; rise_s: seconds to float back up once empty; settle_s: how long after the last stand tick the raft still counts as loaded (one physics tick plus slack). min_gap/max_gap: the gap a raft may float in (px, edge to edge); max_dy: how far apart in height the two hops may be. skip_longest: how many of the floor's longest gaps are left to the other packs when a piece does not say (`skip`). puffs: cotton balls along the top row.",
+      "drift_s": 6.0,
+      "margin": 10,
+      "w_frac": 0.45,
+      "w_min": 50,
+      "w_max": 110,
+      "min_amp": 4,
+      "thick": 22,
+      "sink_max": 36,
+      "sink_s": 1.5,
+      "rise_s": 2.0,
+      "settle_s": 0.12,
+      "min_gap": 90,
+      "max_gap": 220,
+      "max_dy": 150,
+      "skip_longest": 2,
+      "puffs": 5
+    }
+  },
+  "pieces": [
+    { "_": "Cloud sea floors are 25..29, 60..64, 95..99 …; the vent floors ((n − 3) % 4 == 0: 27, 63 …) stay without a raft — the vents already own the hop tops there and no gap pack lives on those floors. On the other Cloud sea floors one raft floats in a gap of 90..220 px between two hops that stand still (std, ice, spring or crumble — never a moving hop, its gap changes) whose hops differ at most 150 px in height, after the floor's longest gap or two are left to the pack that owns them: the bridge floors (n % 4 == 0: 28, 60, 64 …) and the ghost-slab floors ((n − 2) % 4 == 0: 26, 62 …) give up one, the mushroom floors ((n − 1) % 4 == 0: 25, 29, 61 …) give up two. A gap whose drift box (the raft's whole sweep, sunk, plus a standing body) another platform cuts is skipped.", "kind": "raft", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 4, "every": 4 }, "skip": 1, "phase": 0.0 },
+    { "kind": "raft", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 2, "every": 4 }, "skip": 1, "phase": 0.0 },
+    { "kind": "raft", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 1, "every": 4 }, "skip": 2, "phase": 0.0 }
+  ]
+}
