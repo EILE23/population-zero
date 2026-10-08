@@ -1,0 +1,29 @@
+{
+  "_": "Climb content pack 'Windmill blades' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_windmill.gd reads this file: plan(n, plats) picks the longest std-to-std gap of band n inside min_gap..max_gap whose hops differ dy_min..dy_max in height and hangs a hub in the middle of the gap, halfway up, with `blades` paper sails turning so the side of the lower hop rises; each sail ends in a level paper cup (a pinwheel's folded tip) and the cups are the platforms — the sail length is chosen so a cup passes the lower hop's edge exactly at its height (clear px off it) and, half a turn later, the upper hop's edge at its height; build(root, wheels) draws it (axle from the cliff, a wooden hub, paper sails with an ink spar, cups with two lips); land(x, y, ny, z) is the pure landing check the loader runs after its own comes up empty (a body falling onto a cup, or stepping down onto it from a hop within `catch` px); ride(on, x, dt, fig) is called every tick while standing on a `windmill` kind and returns the body's new x and y (it keeps its place in the cup while the cup goes round) and `off` once the body has walked out of the cup; sweep(x, y, z) is the shove for an airborne body a sail's edge meets; `pose` is the Stick3D pose_request while in a cup (stick3d_ride.gd). tools/probe_windmill.gd checks the plan, the cup path, the landing, the ride, the walk-off, the shove, the visuals and the pose.",
+  "id": "windmill",
+  "name": "Windmill blades",
+  "pose": "ride",
+  "kinds": {
+    "wheel": {
+      "_": "rev_s: revolutions per second (0.2 = one turn in 5 s, owner's number — the half turn from the lower hop to the upper one takes 2.5 s). blades: paper sails on the hub, evenly spaced, a cup at each tip. cup_w: the cup floor's width (px; a body is 20 wide). clear: px between a hop's edge and the cup's outer edge at the moment the cup is level with that hop (the stepping gap). hub_r: hub radius (px). thick: cup floor and sail thickness (px). catch: px a descending body may be above a cup and still be set in it (a step down from a hop). body_h: the body box height sweep tests (px). shove_vx/shove_vy: px/s a sail's edge gives an airborne body it meets (like a shove from another climber — sideways the way the sail moves, and up, never down). min_gap/max_gap: the span a wheel may fill (px, edge to edge — the tower's hops stand at most ~130 px apart, since band() keeps every gap inside one jump's reach, so a wheel is a small pinwheel of 1.7..2.5 m sails); dy_min/dy_max: how far apart in height the two hops may be. clack_hz: the pitch of the wooden clack when a cup rises past the lower hop's level — the 'step on now' cue.",
+      "rev_s": 0.2,
+      "blades": 3,
+      "cup_w": 24,
+      "clear": 8,
+      "hub_r": 10,
+      "thick": 6,
+      "catch": 14,
+      "body_h": 40,
+      "shove_vx": 220,
+      "shove_vy": 240,
+      "min_gap": 90,
+      "max_gap": 200,
+      "dy_min": 60,
+      "dy_max": 150,
+      "clack_hz": 180
+    }
+  },
+  "pieces": [
+    { "_": "From band 7, every 4th band (the vent floors 3, 7, 11 … — all four slots are taken since the bridge, and the vents sit on hop tops while the wheel fills a gap, so they never meet; floor 3 is left plain): the longest gap between two consecutive hops that are both std and 90..200 px apart edge to edge, differing 60..150 px in height, gets one wheel — hub in the middle of the gap at the mean height, sail length from the geometry (the cup meets each hop's edge at its height), turning so the lower hop's side rises (clockwise when the upper hop is on the right); a gap whose disc another platform (a shortcut slab, a hold-side hop) would cut is skipped so a sail never sweeps through a platform.", "kind": "wheel", "from": 7, "every": 4, "on": ["std"], "max": 1, "phase": 0.0 }
+  ]
+}
