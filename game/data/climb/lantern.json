@@ -1,0 +1,38 @@
+{
+  "_": "Climb content pack 'Star lantern' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_lantern.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every gap between two consecutive still hops (the piece's `on` kinds) that is min_gap..max_gap wide with the far hop at most max_dy higher — one lantern pole per floor, in the widest gap: a tall pole stands on a stone foot plate `foot_in` px inside the lower hop's gap edge, pinned at its foot, with a brass rung `hook` px up (the grab), ink grip bands and a paper star lantern on a short arm at the tip. The pole's length is geometry: the clinging hands end up `hang` px above the feet, and the feet must come down `set_in` px inside the far hop's edge and `lift` px above its top, so r = sqrt(D² + H²) with D the pivot→landing distance and H = dy + lift, the tilt amax = atan2(D, H) (at most max_tilt), the hands' climb height h = r + hang, the pole h + tip. Jump beside the pole and press Up with the hands within reach_x/reach_y of the rung to cling; the body shins up the pole at shin_v px/s (pose `cling` with meta cling_v 1), and when the hands reach h the pole tips over the gap under the weight — a one-way swing_s arc (smoothstep, cling_v 0, meta cling_a = the tilt) that ends with the feet over the far hop; after settle_s the pack sets the body down (done — that tick's y is the far hop's top, the loader's own landing test takes over). SPACE or Down lets go with the pole's velocity (let_go). The empty pole swings back upright over back_s (creak while it moves, a clack when it seats at home and at the end of the tilt) and cannot be grabbed while returning. `taken` is other packs' planned pieces on the same floor (the icicles): a gap whose swept box meets one is skipped. Nothing shoves, refuses or costs — the plain jump across the gap is untouched. tools/probe_lantern.gd checks the plan with and without taken pieces, the geometry, the grab and its refusals, the shin, the tilt, the let-go velocity, the landing, the return, the visuals, the sounds and the pose.",
+  "id": "lantern",
+  "name": "Star lantern",
+  "pose": "cling",
+  "themes": ["Starlit"],
+  "kinds": {
+    "lantern": {
+      "_": "hang: px from the hands to the feet (the holds use 58 too). hook: the rung's height above the lower hop's top (hands at feet + 58, so a 12 px hop reaches it). foot_in: the pivot this far inside the lower hop's gap edge. set_in/lift: where the feet end over the far hop (px inside its edge, px above its top). shin_v: px/s the hands climb the pole. swing_s: the one-way tilt; settle_s: clinging at the end before the body is set down; back_s: the empty pole's return. tip: pole above the climbing hands (the lantern arm is there); cord: the lantern's cord; star: the lantern's radius. reach_x/reach_y: how far the hands may be from the rung for Up to catch it. min_gap/max_gap: the gap (px, edge to edge); max_dy: how much higher the far hop may be; max_tilt: the largest tilt worth building (rad); min_r/max_r: the feet's distance from the pivot at the top of the climb (px). creak_hz: the pivot while the pole moves (loops); clack_hz: the pole seating at the end of the tilt and at home. glow_hz: the lantern's slow flicker.",
+      "hang": 58,
+      "hook": 70,
+      "foot_in": 8,
+      "set_in": 16,
+      "lift": 10,
+      "shin_v": 90,
+      "swing_s": 1.8,
+      "settle_s": 0.2,
+      "back_s": 2.0,
+      "tip": 40,
+      "cord": 18,
+      "star": 11,
+      "reach_x": 26,
+      "reach_y": 22,
+      "min_gap": 60,
+      "max_gap": 170,
+      "max_dy": 150,
+      "max_tilt": 1.0,
+      "min_r": 60,
+      "max_r": 300,
+      "creak_hz": 55,
+      "clack_hz": 90,
+      "glow_hz": 0.7
+    }
+  },
+  "pieces": [
+    { "_": "Starlit floors are 30..34, 65..69, 100..104 …; the icicles (icicle.json) hang from hop lips on the same floors, so the loader passes their plan as `taken` and a pole whose sweep meets one is not built. One pole per floor, in the widest eligible gap; gaps wider than 170 px would need a tilt past 1 rad and stay plain jumps.", "kind": "lantern", "on": ["std", "ice", "spring", "crumble"], "max": 1 }
+  ]
+}
