@@ -1,0 +1,32 @@
+{
+  "_": "Climb content pack 'Rolling ladder' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_ladder.gd reads this file: plan(n, plats) works only on the `themes` floors, looks at every gap between two consecutive still hops (the piece's `on` kinds) that is min_gap..max_gap wide and at most max_dy apart in height, drops the floor's longest one or two (the piece's `skip` — the bridge, the ghost slab or the two mushrooms own those) and puts one bookshelf wall with a brass rail across the next longest: the rail runs rail_above px over the upper hop, a wooden rolling ladder hangs from it with its wheels on a floor track at the lower hop's height, parked margin px off the lower hop's edge. C on either hop within reach_x of the parked ladder mounts it (mount_s to step on); from the lower hop the body climbs the rungs at climb_v px/s up to the upper hop's height, then the ladder rolls along the rail at roll_v px/s (eased) and the body steps off onto the upper hop; from the upper hop the ladder rolls first and the body climbs down. C when the ladder is parked at the far end calls it over empty. Down drops off mid-ride (the ladder finishes its roll empty), SPACE jumps off like a hold with the ladder's speed added. build(root, planned) draws it; grab(on, x, z) is the C test; ride_on(riding, fig) every riding tick returns the body's x/y and `done` at the far hop; let_go(riding) returns the ladder's velocity. `pose` is the Stick3D pose_request while riding (stick3d_rail.gd). tools/probe_ladder.gd checks the plan, the call, the mount, the climb, the roll, the arrival, the drop, the visuals, the clunk and the pose.",
+  "id": "ladder",
+  "name": "Rolling ladder",
+  "pose": "rail",
+  "themes": ["Library"],
+  "kinds": {
+    "ladder": {
+      "_": "rail_above: the rail's height over the upper hop (px — a standing body's hand at head height). ladder_w: stile to stile (px). rung_every: px between rungs (one rung sits exactly at the upper hop's height). margin: px the near stile keeps from a hop's edge when parked. reach_x: how far from the parked ladder's centre a standing body may press C (px). mount_s: seconds to step from the hop onto the ladder. climb_v: rung climbing speed (px/s, the walls' CLIMB_UP is 75). roll_v: rolling speed along the rail at mid-roll of the eased run (px/s, under walking's 260). min_gap/max_gap: the gap a ladder may span (px, edge to edge); max_dy: how far apart in height the two hops may be. skip_longest: how many of the floor's longest gaps are left to the other packs when a piece does not say (`skip`). shelf_h: wall height over the rail (px). wheel_r: the foot wheels (px). clunk_hz: the wheel-stop tone.",
+      "rail_above": 56,
+      "ladder_w": 24,
+      "rung_every": 22,
+      "margin": 8,
+      "reach_x": 40,
+      "mount_s": 0.25,
+      "climb_v": 110,
+      "roll_v": 150,
+      "min_gap": 90,
+      "max_gap": 240,
+      "max_dy": 150,
+      "skip_longest": 2,
+      "shelf_h": 40,
+      "wheel_r": 5,
+      "clunk_hz": 180
+    }
+  },
+  "pieces": [
+    { "_": "Library floors are 10..14, 45..49, 80..84 …; the vent floors ((n − 3) % 4 == 0: 11, 47 …) stay without a ladder — the vents already own the hop tops there and no gap pack lives on those floors. On the other Library floors one ladder spans a gap of 90..240 px between two hops that stand still (std, ice, spring or crumble — never a moving hop, its gap changes) whose hops differ at most 150 px in height, after the floor's longest gap or two are left to the pack that owns them: the bridge floors (n % 4 == 0: 12, 48 …) and the ghost-slab floors ((n − 2) % 4 == 0: 10, 14, 46 …) give up one, the mushroom floors ((n − 1) % 4 == 0: 13, 45, 49 …) give up two. A gap whose shelf box (the ladder's whole run plus a body, floor track to shelf top) another platform cuts is skipped.", "kind": "ladder", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 4, "every": 4 }, "skip": 1 },
+    { "kind": "ladder", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 2, "every": 4 }, "skip": 1 },
+    { "kind": "ladder", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 1, "every": 4 }, "skip": 2 }
+  ]
+}
