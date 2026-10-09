@@ -1,0 +1,43 @@
+{
+  "_": "Climb content pack 'Kite line' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_kite.gd reads this file: plan(n, plats, wind) works only on the `themes` floors and looks at every pair of consecutive still hops (the piece's `on` kinds, hop i−1 and hop i in the climbing order) whose x spans leave a gap of min_gap..max_gap px between them with the upper hop at most max_dy higher; where the floor has wind (climb.gd's wind_of, non-zero from floor 40) the upper hop must lie downwind, where it has none the cliff's own gust blows toward the upper hop. One kite per floor, over the widest gap: a peg and reel on the lower hop's edge, a tether to a diamond kite pinned in the wind `over` of the way across the gap, string_len px over its hanging toggle, the toggle hang px over where a hanging body's feet are, which is lift px over the upper hop's top (so from the lower hop it takes a real jump to catch — dy + lift − reach_y px). Airborne with Up, hands (feet + hang) within reach_x/reach_y of the toggle catch it (snap); the body's weight pulls the kite down dip px and the wind drags it along at drag_v + wind_k × |wind| (eased over ease_s, at most max_v) — level over the gap, then once the body is over the upper hop by set_in px the kite sets it down over land_s (the drift halves) and lets go at the hop's top (done). Down or SPACE lets go with the kite's speed (flap); if the reel's tether (gap × (1 − over) + the upper hop's width + 30) ever runs out the line goes slack (lost). A free kite returns to its spot over return_s and cannot be caught until it is home; home it bobs (bob px at bob_hz) and sways (sway px at sway_hz), the tail waving. build(root, planned) draws it; grab(x, y, z) is the Up test; hang_on(riding, fig) every hanging tick returns the body's x/y and done/lost; let_go(riding) returns the kite's speed. `pose` is the Stick3D pose_request while hanging (stick3d_kite.gd). tools/probe_kite.gd checks the plan with and against the wind, the reach, the drag, the set-down, the let-go, the return, the visuals, the sounds and the pose.",
+  "id": "kite",
+  "name": "Kite line",
+  "pose": "kite",
+  "themes": ["Wind cliffs"],
+  "kinds": {
+    "kite": {
+      "_": "min_gap/max_gap: the gap between the two hops (px). max_dy: how much higher the far hop may be (px; consecutive hops are 92..138 apart, a full jump is 154). over: where across the gap, from the lower hop's edge, the toggle hangs (0..1). lift: a hanging body's feet over the far hop's top (px). hang: hands over feet (px, like the holds). string_len: kite centre to toggle (px). reach_x/reach_y: how far the hands may be from the toggle to catch it (px). drag_v: px/s of the drift with no floor wind; wind_k × |wind| is added, max_v caps it. ease_s: seconds the drift takes to reach full speed (linear). dip: px the kite sinks under a body, over dip_s seconds. set_in: px into the far hop before the set-down starts; land_s: seconds the set-down takes. return_s: seconds a freed kite takes back to its spot (eased). bob/bob_hz, sway/sway_hz: the home hover (px, Hz), fading in over fade_s after a return. kite_w/kite_h: the diamond's diagonals (px); tail: the tail's length (px). snap_hz: the line going taut on a catch and a set-down; flap_hz: the sail flapping free on a let-go.",
+      "min_gap": 60,
+      "max_gap": 200,
+      "max_dy": 150,
+      "over": 0.4,
+      "lift": 20,
+      "hang": 58,
+      "string_len": 120,
+      "reach_x": 26,
+      "reach_y": 22,
+      "drag_v": 150,
+      "wind_k": 0.5,
+      "max_v": 260,
+      "ease_s": 0.25,
+      "dip": 12,
+      "dip_s": 0.4,
+      "set_in": 20,
+      "land_s": 0.3,
+      "return_s": 2.0,
+      "bob": 6,
+      "bob_hz": 0.5,
+      "sway": 8,
+      "sway_hz": 0.25,
+      "fade_s": 1.0,
+      "kite_w": 40,
+      "kite_h": 48,
+      "tail": 70,
+      "snap_hz": 180,
+      "flap_hz": 900
+    }
+  },
+  "pieces": [
+    { "_": "Wind cliffs floors are 20..24, 55..59, 90..94 …; below floor 40 the tower has no wind, so there the kite flies the cliff's own gust toward the upper hop and every consecutive still pair with a 60..200 px gap qualifies; from floor 55 the floor's wind (wind_of) decides the direction and only pairs whose upper hop lies downwind qualify — a floor whose zigzag runs against its wind gets no kite. The icicles (run 123) hang over hop lips, not gaps, so the two packs share a floor without touching.", "kind": "kite", "on": ["std", "ice"], "max": 1 }
+  ]
+}
