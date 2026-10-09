@@ -1,0 +1,29 @@
+{
+  "_": "Climb content pack 'Sliding bookcase' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_bookcase.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still hop (the piece's `on` kinds) at least min_w wide whose next hop in the climbing order is higher and lies clear to one side — one bookcase per floor, on the hop whose jump up is the tallest (widest hop on a tie): a brass track along the hop's top, a tall shelf unit of case_w × case_h px on casters parked `behind` px from the hop's end away from the next hop (room for a body to stand behind it), the track running toward the next hop and stopping `stop` px short of that edge (the ladder's boarding spot stays free). `taken` is the other Library packs' planned pieces (ladder, dumbwaiter): a hop whose track box meets one of them is skipped. Standing on the hop behind the case, holding C and pushing toward it (hands within reach px of its back) shoves it along the track — the case takes ease_s to get rolling and push_s for the full track, the body walks with it (pose `shunt`, meta shunt_v = speed 0..1); at the stop the body strains against it (shunt_v 0). Let go (C up, no push, a jump) and after rest_s the case rolls home over roll_s (eased, rumble, thud at the end). The case top is a step: a falling body lands on it (land) and rides it as it rolls (stand). Nothing blocks a walk along the hop — the body passes through the case. build(root, planned) draws it. `pose` is the Stick3D pose_request while pushing (stick3d_shunt.gd). tools/probe_bookcase.gd checks the plan with and without taken pieces, the reach, the push, the stop, the rest and the roll home, the landing on the top and the ride, the visuals, the sounds and the pose.",
+  "id": "bookcase",
+  "name": "Sliding bookcase",
+  "pose": "shunt",
+  "themes": ["Library"],
+  "kinds": {
+    "bookcase": {
+      "_": "min_w: the hop must be this wide (px). case_w/case_h: the shelf unit (px; 40 × 72 = 1.1 × 2 m). behind: the case's back face this far from the hop's end away from the next hop (room for the body: 2 × HW + reach). stop: the case's front face stops this far from the hop's edge toward the next hop (the ladder's boarding spot is 16 px in). reach: how far the pushing hand (x + dir × HW) may be from the case's back face (px). push_s: seconds the full track takes at full speed; ease_s: seconds the case takes to reach full speed (linear). rest_s: seconds after the hands leave before it rolls home; roll_s: seconds the roll home takes (eased). rumble_hz: the casters on the brass (loops while moving); thud_hz: the end stops. shelves/books: rows and books per row.",
+      "min_w": 150,
+      "case_w": 40,
+      "case_h": 72,
+      "behind": 26,
+      "stop": 30,
+      "reach": 18,
+      "push_s": 1.2,
+      "ease_s": 0.3,
+      "rest_s": 4.0,
+      "roll_s": 2.0,
+      "rumble_hz": 70,
+      "thud_hz": 110,
+      "shelves": 3,
+      "books": 5
+    }
+  },
+  "pieces": [
+    { "_": "Library floors are 10..14, 45..49, 80..84 …; hops are 200 − stretch × 70 − 0..40 px wide, so from the second Library lap (45..49, hops 103..148) almost no hop reaches min_w and the bookcases are a first-lap piece — the ladder (gaps) and the dumbwaiter (overlapping columns) carry the higher laps. The loader passes their plans as `taken` so the three never share a spot.", "kind": "bookcase", "on": ["std", "ice"], "max": 1 }
+  ]
+}
