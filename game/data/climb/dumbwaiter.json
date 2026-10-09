@@ -1,0 +1,35 @@
+{
+  "_": "Climb content pack 'Dumbwaiter' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_dumbwaiter.gd reads this file: plan(n, plats) works only on the `themes` floors (the pieces' `only` rules leave the vent floors out), looks at every pair of still hops two apart in the climbing order (the piece's `on` kinds — hop i and hop i+2, which the band generator tends to stack over each other) whose x spans overlap at least min_overlap px and whose tops are min_dy..max_dy apart, whose shaft column (the overlap plus a body, lower top to beam) no other platform cuts, and puts one dumbwaiter in the widest overlap: two guide rails on the cliff, a beam from the cliff beam_above px over the upper hop with a double pulley, a crate on a rope and a counterweight on the other fall behind it. C on either hop within reach_x of the crate steps in (mount_s); from the lower hop each further C press is one heave hand over hand — the crate rises pull px over heave_s, the pawl holds it for hold_s, then it slips back at slip_v px/s until the next heave (never below the bottom); at the upper hop's height the pawl locks (clack) and the body steps off. From the upper hop the loaded crate goes down by itself, braked, at down_v (eased) and the body steps off at the bottom. C when the crate is parked at the far end calls it over empty (call_v, eased). Down drops out mid-ride (the empty crate glides to the nearer end at call_v), SPACE jumps off like a hold with the crate's vertical speed added. build(root, planned) draws it; grab(on, x, z) is the C test; heave(riding) is the C press while riding; ride_on(riding, fig) every riding tick returns the body's x/y and `done` at the far hop; let_go(riding) returns the crate's vertical speed. `pose` is the Stick3D pose_request while riding (stick3d_heave.gd). tools/probe_dumbwaiter.gd checks the plan, the call, the mount, the heaves, the slip, the arrival, the descent, the drop, the visuals, the click and clack and the pose.",
+  "id": "dumbwaiter",
+  "name": "Dumbwaiter",
+  "pose": "heave",
+  "themes": ["Library"],
+  "kinds": {
+    "dumbwaiter": {
+      "_": "beam_above: the pulley beam's height over the upper hop's top (px — a body in the crate at the top still has its hands on the rope under the pulley). crate_w/crate_h/crate_d: the crate's width, wall height and depth (px). margin: px the crate keeps from either hop's edge; min_overlap = crate_w + 2 × margin is the least x overlap the two hops need. min_dy/max_dy: how far apart in height the two hops may be (px). reach_x: how far from the crate's centre a standing body may press C (px). mount_s: seconds to step from the hop into the crate. pull: px one heave lifts the crate; heave_s: seconds the lift takes (eased); hold_s: seconds the pawl holds after a heave; slip_v: px/s the loaded crate creeps back down after that until the next heave. down_v: px/s of the braked descent at mid-run (eased, like the ladder's roll). call_v: px/s of the empty crate when called or abandoned (eased). bail_h: px the rope's bail rises over the crate floor. click_hz/clack_hz: the pawl's click on a heave and the clack when the crate parks.",
+      "beam_above": 96,
+      "crate_w": 44,
+      "crate_h": 26,
+      "crate_d": 40,
+      "margin": 30,
+      "min_dy": 160,
+      "max_dy": 330,
+      "reach_x": 40,
+      "mount_s": 0.25,
+      "pull": 36,
+      "heave_s": 0.3,
+      "hold_s": 0.4,
+      "slip_v": 30,
+      "down_v": 120,
+      "call_v": 160,
+      "bail_h": 54,
+      "click_hz": 700,
+      "clack_hz": 240
+    }
+  },
+  "pieces": [
+    { "_": "Library floors are 10..14, 45..49, 80..84 …; the vent floors ((n − 3) % 4 == 0: 11, 47 …) stay without a dumbwaiter — the vents own the hop tops there. On the other Library floors one dumbwaiter stands in the widest overlap of two still hops two apart (std or ice — never a moving hop, a crumbling one or a spring) that are 160..330 px apart in height, after a 30 px margin from every edge so the rolling ladder's bookshelf wall (24 px onto a hop) and the plain landing on the edges stay clear. A shaft another platform cuts (the shortcut slab, a stacked hop) is skipped.", "kind": "dumbwaiter", "on": ["std", "ice"], "max": 1, "only": { "from": 4, "every": 4 } },
+    { "kind": "dumbwaiter", "on": ["std", "ice"], "max": 1, "only": { "from": 1, "every": 4 } },
+    { "kind": "dumbwaiter", "on": ["std", "ice"], "max": 1, "only": { "from": 2, "every": 4 } }
+  ]
+}
