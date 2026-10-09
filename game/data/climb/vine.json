@@ -1,0 +1,33 @@
+{
+  "_": "Climb content pack 'Vine curtain' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_vine.gd reads this file: plan(n, plats) works only on the `themes` floors minus the vent floors, looks at every still wide hop (the piece's `on` kinds, at least min_w wide) whose column from its top up to `rise` above it no other platform cuts, and hangs one curtain over the widest: a trellis bar on a beam from the cliff `rise` px over the hop's top, `strands` vines hanging from it to `hem` px above the hop, `width` px wide and centred on the hop. A body on the hop that walks into the curtain parts it (the two halves swing out over part_s) and is slowed to `slow` of its speed while inside; the pose is `pose` (stick3d_part.gd) with the depth meta. A body falling into the curtain from above (inside its column, faster than catch_vy px/s downward) is caught: the vines give `sag` px over sag_s, hold the body still for catch_s, then let it slide down at slide_v px/s to the hop's top where it stands — a soft landing, never a splat. While caught SPACE jumps off like a hold (0.9) and Down drops with the slide speed kept; a curtain just let go of does not catch for grace_s. build(root, planned) draws it; part(x, y, z, fig) is the per-tick test and slow factor; catch(x, y, ny, z, vy) the pure test the loader runs after its own landing test comes up empty; cling(on, fig) every caught tick returns the body's x and y and writes the pose metas; let_go(on) is the vines' vertical speed at that moment. tools/probe_vine.gd checks the plan, the parting, the catch, the cling path, the let-go speed, the visuals, the rustle and the pose.",
+  "id": "vine",
+  "name": "Vine curtain",
+  "pose": "part",
+  "themes": ["Hanging garden"],
+  "kinds": {
+    "curtain": {
+      "_": "rise: px the trellis bar sits above the hop's top. hem: px the vine tips hang above the hop (shins push through, feet are free). width: px the curtain spans, centred on the hop. strands: vines drawn (alternating halves). body: px a standing body is tall for the inside test. slow: factor on a walking body's vx while inside. part_s: seconds the halves take to swing out or back; part_a: radians they swing. catch_vy: a body falling faster than this (px/s, negative) inside the column is caught; sag: px the vines give under the weight over sag_s; catch_s: seconds the vines hold the body still (sag included); slide_v: px/s the body slides down to the hop after that. grace_s: no catch for this long after a body let go of that curtain. min_w: a hop must be this wide (px). vine_hz: the rustle's noise colour (lower is softer).",
+      "rise": 150,
+      "hem": 12,
+      "width": 56,
+      "strands": 7,
+      "body": 44,
+      "slow": 0.45,
+      "part_s": 0.25,
+      "part_a": 0.55,
+      "catch_vy": -140,
+      "sag": 10,
+      "sag_s": 0.2,
+      "catch_s": 0.5,
+      "slide_v": 90,
+      "grace_s": 0.4,
+      "min_w": 140,
+      "vine_hz": 900
+    }
+  },
+  "pieces": [
+    { "_": "Hanging garden floors are 5..9, 40..44, 75..79 …; the vent/windmill floors ((n − 3) % 4 == 0: 7, 43, 79 …) stay without a curtain — the vents own the hop tops there. On the other Hanging garden floors one curtain hangs over the widest still hop (std or ice — never a moving hop, a crumbling one or a spring) at least 140 px wide whose column up to the trellis no other platform cuts (the shortcut slab, a stacked hop). The curtain is 56 px of a hop at least 140 px wide, so both edges stay clear for the plain landing and the plain jump off.", "kind": "curtain", "on": ["std", "ice"], "max": 1, "only": { "from": 4, "every": 4 } },
+    { "kind": "curtain", "on": ["std", "ice"], "max": 1, "only": { "from": 5, "every": 4 } },
+    { "kind": "curtain", "on": ["std", "ice"], "max": 1, "only": { "from": 6, "every": 4 } }
+  ]
+}
