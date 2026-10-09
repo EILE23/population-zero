@@ -1,0 +1,40 @@
+{
+  "_": "Climb content pack 'Bell rope' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_bell.gd reads this file: plan(n, plats) works only on the `themes` floors minus the vent floors, looks at every gap between two consecutive still hops (the piece's `on` kinds) that is min_gap..max_gap wide and whose upper hop is min_dy..max_dy higher, drops the floor's longest one or two (the piece's `skip` — the bridge, the ghost slab or the two mushrooms own those) and hangs one bell rope in the next longest: a beam from the cliff `rise` px above the upper hop carries a headstock, a bronze bell and its wheel; a hemp rope comes down off the wheel to a woolly sally whose grip point rests `hang` + `lift_in` px above the lower hop (a short jump from its edge, hands within reach_x/reach_y, Up catches it like a hold). A caught rope runs one cycle on the loader's clock: the body's weight pulls it `sag` px down over sag_s (the bell swings up), the bell strikes — one dong — and the wheel hoists the rope at hoist_v up to `hang` + `lift_out` above the upper hop, holds there hold_s, then pays back down at drop_v to rest; the body hangs from the grip point the whole way (feet `hang` below it) until it jumps off (SPACE, like a hold, the rope's upward speed added) or drops (Down, or out of stamina — the rope's downward speed kept). An empty rope finishes its cycle on its own; a rope mid-cycle cannot be caught, and the one you just let go of not within grace_s. build(root, planned) draws it; grab(x, y, z) is the pure test the loader runs for an airborne body pressing Up after its own holds come up empty; hang_on(on, fig) every tick while hanging returns the body's x and y under the grip and writes the pose metas; let_go(on) is the rope's vertical speed in px/s at that moment. `pose` is the Stick3D pose_request while hanging (stick3d_haul.gd). tools/probe_bell.gd checks the plan, the rope's path, the grab, the hang, the let-go speed, the visuals, the dong and the pose.",
+  "id": "bell",
+  "name": "Bell rope",
+  "pose": "haul",
+  "themes": ["Old hall"],
+  "kinds": {
+    "rope": {
+      "_": "rise: px the beam and the wheel's axle sit above the upper hop's top. hang: px from the grip point to a hanging body's feet (the holds use 58 too). lift_in: px the grip point rests above the lower hop's feet height plus hang — a half-charged jump from the edge reaches it. lift_out: px the grip point stops above the upper hop plus hang at the top of the hoist — the body's feet clear the hop by this much for the sideways jump. sag: px the rope gives under the body's weight before the bell strikes; sag_s: seconds of that give. hoist_v: px/s the wheel hoists (the walls' CLIMB_UP is 75 — the rope is faster, it is doing the work). hold_s: seconds the rope rests at the top before paying back down. drop_v: px/s the rope pays back down. reach_x/reach_y: how far the hands (feet + hang) may be from the grip point for Up to catch it. grace_s: no catch for this long after a body let go of that rope. min_gap/max_gap: the gap a rope may hang in (px, edge to edge); min_dy/max_dy: how much higher the upper hop must be and may be. skip_longest: how many of the floor's longest gaps are left to the other packs when a piece does not say (`skip`). bell_r: the bell's lip radius (px); wheel_r: the rope wheel's radius (px); sally_w/sally_h: the woolly grip's width and height (px). amax: radians the bell and wheel turn at the top of the hoist. dong_hz: the bell's prime pitch.",
+      "rise": 150,
+      "hang": 58,
+      "lift_in": 50,
+      "lift_out": 30,
+      "sag": 14,
+      "sag_s": 0.3,
+      "hoist_v": 160,
+      "hold_s": 0.6,
+      "drop_v": 90,
+      "reach_x": 26,
+      "reach_y": 22,
+      "grace_s": 0.4,
+      "min_gap": 80,
+      "max_gap": 200,
+      "min_dy": 60,
+      "max_dy": 150,
+      "skip_longest": 2,
+      "bell_r": 14,
+      "wheel_r": 16,
+      "sally_w": 10,
+      "sally_h": 30,
+      "amax": 1.1,
+      "dong_hz": 220
+    }
+  },
+  "pieces": [
+    { "_": "Old hall floors are 1..4, 35..39, 70..74 …; the vent/windmill floors ((n − 3) % 4 == 0: 3, 35, 39, 71 …) stay without a rope — the vents already own the hop tops there. On the other Old hall floors one rope hangs in a gap of 80..200 px between two hops that stand still (std, ice, spring or crumble — never a moving hop, its gap changes) whose upper hop is 60..150 px higher, after the floor's longest gap or two are left to the pack that owns them: the bridge floors (n % 4 == 0: 4, 36, 72 …) and the ghost-slab floors ((n − 2) % 4 == 0: 2, 38, 70, 74 …) give up one, the mushroom floors ((n − 1) % 4 == 0: 1, 37, 73 …) give up two. A gap whose rope column (the sally's width plus the body, from the lower hop up to the beam) another platform cuts is skipped.", "kind": "rope", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 4, "every": 4 }, "skip": 1 },
+    { "kind": "rope", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 2, "every": 4 }, "skip": 1 },
+    { "kind": "rope", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 1, "every": 4 }, "skip": 2 }
+  ]
+}
