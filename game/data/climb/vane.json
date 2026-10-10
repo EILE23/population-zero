@@ -1,0 +1,35 @@
+{
+  "_": "Climb content pack 'Weathervane' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_vane.gd reads this file: plan(n, plats, wind, taken) works only on the `themes` floors (the `only` rules), looks at every pair of consecutive hops in the climbing order that are both still (the piece's `on` kinds), at most max_dy apart in height and min_gap..max_gap apart sideways — on a windy floor (climb.gd wind_of, from floor 40) only pairs whose far hop lies downwind, below that every pair — whose sweep box (the gap plus `over` px over each hop, from the lower hop's top up past the arrow) no other platform cuts and no `taken` piece of another pack (the kite — the loader passes its plan) meets, and plants one vane at the widest such gap: a bracket out of the cliff in the gap's middle, an iron post `post_h` tall on it, a fixed N/E/S/W cross under the top and a brass arrow on a rusty spindle whose fin at rest points back over the lower hop, half the gap plus `over` from the spindle (the head points the other way, as far). A short ribbon hangs `pennant` px from the fin's tip; its end is the hand point. Up in the air with the hands (feet + hang) within reach_x/reach_y of the ribbon's end catches it: the spindle takes the weight for take_s (the ribbon stretches `dip` px, the collar creaks), then the gust on the fin shoves the arrow half a turn about the post over turn_s (shorter the stronger the floor's wind: turn_s / (1 + wind_k × |wind| / 120)) — the fin swings out in front of the cliff and round, carrying the body `2 × arm` px sideways to over the far hop, where the arrow hits its stop (clack) and the body is set down over land_s (feet to the hop's top → done; the loader's own landing test takes the next tick). SPACE mid-turn adds the fin's sideways speed to the 0.9 hold jump, Down drops with it; stamina drains like a hold. Let go of, the vane winds back empty to its rest over return_s (the heavy head pulls it home) and takes nobody until it is home; empty and home it quivers in the floor's wind (quiver_a rad at a 120 px/s wind, a third of that in still air so it is never dead). Nothing shoves, refuses or costs — the plain jump across the gap is untouched; the vane only matters to a body that reaches up for it. build(root, planned) draws it. tools/probe_vane.gd checks the plan with and without the kite's gap, the wind rule, the grab and its refusals, the take, the half-turn, the set-down, the mid-turn let-go speed, the return and its grace, the quiver, the visuals, the sounds and the pose.",
+  "id": "vane",
+  "name": "Weathervane",
+  "pose": "trail",
+  "themes": ["Wind cliffs"],
+  "kinds": {
+    "vane": {
+      "_": "min_gap/max_gap: the gap between the two hops' facing edges (px). max_dy: the two hops may differ in height by this much (px). over: px the fin's tip reaches past each hop's gap edge (the body is set down this far into the far hop; arm = gap / 2 + over). lift: px the hanging body's feet sit above the higher hop's top at rest (the set-down lowers them). post_h: the post's height above its bracket (px). hang: px from the hands to the feet (the holds use 58 too). pennant: the ribbon's length from the fin's tip to the hands (px). dip: px the ribbon stretches while the spindle takes the weight. reach_x/reach_y: how far the hands may be from the ribbon's end for Up to catch it. take_s: seconds the spindle takes the weight before it turns. turn_s: seconds the half-turn takes in still air; wind_k: how much a 120 px/s wind shortens it (turn_s / (1 + wind_k × |wind| / 120), |wind| capped at 180). land_s: seconds the set-down takes over the far hop. return_s: seconds the empty vane takes to wind back (no catch meanwhile). quiver_s/quiver_a: the empty vane's shiver — one cycle and its amplitude (rad) at a 120 px/s wind. creak_hz: the collar taking the weight; clack_hz: the arrow on its stop.",
+      "min_gap": 70,
+      "max_gap": 170,
+      "max_dy": 140,
+      "over": 26,
+      "lift": 12,
+      "post_h": 96,
+      "hang": 58,
+      "pennant": 14,
+      "dip": 6,
+      "reach_x": 26,
+      "reach_y": 22,
+      "take_s": 0.25,
+      "turn_s": 1.6,
+      "wind_k": 0.5,
+      "land_s": 0.3,
+      "return_s": 1.5,
+      "quiver_s": 1.1,
+      "quiver_a": 0.06,
+      "creak_hz": 95,
+      "clack_hz": 260
+    }
+  },
+  "pieces": [
+    { "_": "Wind cliffs floors are 20..24, 55..59, 90..94 …; below floor 40 the tower has no wind, so there the cliff's own gust turns the vane toward the far hop and every consecutive still pair with a 70..170 px gap qualifies; from floor 55 the floor's wind (wind_of) decides and only pairs whose far hop lies downwind qualify — a floor whose zigzag runs against its wind gets no vane. The kite (run 131) takes the floor's widest downwind gap — the loader passes its plan as `taken` and that gap is skipped, so the vane takes the widest free one; the icicles (run 123) hang over hop lips, not gaps, so they never meet. One vane per floor.", "kind": "vane", "on": ["std", "ice"], "max": 1 }
+  ]
+}
