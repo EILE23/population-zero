@@ -1,0 +1,38 @@
+{
+  "_": "Climb content pack 'Hammock net' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_hammock.gd reads this file: plan(n, plats, wind, taken) works only on the `themes` floors minus the vent floors (the `only` rules), looks at every pair of consecutive hops in the climbing order that are both still (the piece's `on` kinds), at most max_dy apart in height and min_gap..max_gap apart sideways, whose net box (the gap, from sag_max under the line up to the higher hop's top) no other platform cuts and no `taken` piece of another pack (the rope bridge, the ghost slab, the mushroom — the loader passes their plans) meets — and slings one net under the widest such gap: a wooden peg on each hop's top at the gap edge, a lead rope over each lip down the face to a ring `hang` px under the lower hop's top, and between the rings a rope net that droops `dip` px empty (ropes lengthwise, rungs across, a pillow at one end). A body falling through the gap faster than catch_vy that crosses the net's rest line (y_low − hang − dip) inside the span is caught: the net sags with it over sag_s to a depth that grows with the landing speed (|vy| × sag_k, clamped to sag_min..sag_max) while the body rolls to the middle, then the sag relaxes toward rest_sag over rest_s — a body that lies there keeps the shallow rest sag. The body lies in pose `pose` (stick3d_loll.gd: on its back, one arm behind the head, one over the edge, a foot bobbing) and rocks with the net's sway. SPACE flings the body up by the sag's depth: the throw height is the current sag × throw (px), vy = sqrt(2 G h) — a quick SPACE after a deep fall throws higher than a jump, a late one gives a hop; Down lets the body roll out and drop through. A net just let go of catches nothing for grace_s. Empty, the net swings with the floor's wind (climb.gd wind_of; sway_a rad at a 120 px/s wind, a third of that in still air so it is never dead). Nothing shoves, refuses or costs — the plain landing on either hop and the plain jump across are untouched; the net only matters to a body that would otherwise have fallen past the floor. build(root, planned) draws it. tools/probe_hammock.gd checks the plan with and without taken pieces, the catch and its refusals, the sag, the roll, the relax, the throw at the deep sag and at rest, the drop, the grace, the visuals, the sounds and the pose.",
+  "id": "hammock",
+  "name": "Hammock net",
+  "pose": "loll",
+  "themes": ["Hanging garden"],
+  "kinds": {
+    "net": {
+      "_": "min_gap/max_gap: the gap between the two hops' facing edges (px). max_dy: the two hops may differ in height by this much (px; a consecutive pair is at most ~140 apart). hang: px the net's rings sit under the lower hop's top (the net must lie below the lower lip so a body stepping off it still falls into the net). dip: px the empty net droops under the rings at the middle. d: the net's width across (px, 30 = 0.83 m). catch_vy: a body falling faster than this (px/s, negative) across the rest line is caught. sag_k × |vy| = the sag a landing body makes (px), clamped to sag_min..sag_max; sag_s: seconds the sag takes (the body rolls to the middle in the same time); rest_sag: the sag a lying body settles to; rest_s: seconds the deep sag takes to relax to it. throw: the throw height is the current sag × this (px). grace_s: no catch for this long after a body let go. sway_s: seconds of one swing; sway_a: its amplitude (rad) at a 120 px/s wind. ropes: lengthwise ropes; rungs: cross ropes. creak_hz: the rings taking the weight; snap_hz: the net throwing.",
+      "min_gap": 70,
+      "max_gap": 200,
+      "max_dy": 130,
+      "hang": 16,
+      "dip": 10,
+      "d": 30,
+      "catch_vy": -120,
+      "sag_k": 0.07,
+      "sag_min": 16,
+      "sag_max": 56,
+      "sag_s": 0.4,
+      "rest_sag": 20,
+      "rest_s": 3.0,
+      "throw": 4.0,
+      "grace_s": 0.4,
+      "sway_s": 2.6,
+      "sway_a": 0.12,
+      "ropes": 5,
+      "rungs": 7,
+      "creak_hz": 140,
+      "snap_hz": 230
+    }
+  },
+  "pieces": [
+    { "_": "Hanging garden floors are 5..9, 40..44, 75..79 …; the vent/windmill floors ((n − 3) % 4 == 0: 7, 43, 79 …) stay without a net — the wheels own the gaps there. The older packs live in residue classes of four across every theme: the mushroom (1 mod 4: floors 5, 9, 41 …) roots under a gap, the ghost slab (2 mod 4: 6, 42 …) floats in one, the rope bridge (0 mod 4: 8, 40, 44 …) spans one — the loader passes their plans as `taken` and a gap one of them uses is skipped, so the net takes the widest free gap. One net per floor, under the widest gap of 70..200 px between two consecutive still hops at most 130 px apart in height.", "kind": "net", "on": ["std", "ice"], "max": 1, "only": { "from": 4, "every": 4 } },
+    { "kind": "net", "on": ["std", "ice"], "max": 1, "only": { "from": 5, "every": 4 } },
+    { "kind": "net", "on": ["std", "ice"], "max": 1, "only": { "from": 6, "every": 4 } }
+  ]
+}
