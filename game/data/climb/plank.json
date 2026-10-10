@@ -1,0 +1,36 @@
+{
+  "_": "Climb content pack 'Diving plank' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_plank.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (the `only` rules), looks at every pair of consecutive hops in the climbing order whose lower hop is still and clampable (the piece's `on` kinds) and whose far hop stands still (std, ice, spring, crumble — never a moving hop), at most max_dy apart in height and min_gap..max_gap apart sideways, whose plank box (the hop's gap edge out to `length` + 20 px, from `sag` + 24 px under the hop's top up to a standing body) no other platform cuts and no `taken` piece of another pack (the raft, the mushrooms — the loader passes their plans) meets, and clamps one plank at the widest such gap: an iron clamp on the lower hop's gap edge, a coil spring under the board's root, and a sprung ash board `length` px long out over the gap, its top flush with the hop's top, three ink stripes and a mauve grip strip at the tip. The board is a floor: walking out on it is the loader's own walk (land(x, y, ny, z) catches a falling body like a hop; stand(on, x, dt, fig, dir) gives the surface under the feet each tick — the tip bends `sag` px under a body standing at the very end, as the square of how far out it stands, easing over bend_s) and a body walking past the tip falls (`off`). In the last `tip_zone` px the body is poised (pose `bound`, the diver's stance: arms forward, knees soft, bobbing with the board) and SPACE there is the plank's, not the loader's charge jump: each tap presses the tip down and it springs back past level (a creak), taps must come within gap_s of each other or the board settles and the count starts over, and the tap after `loads` — the fourth — flings the body up at fling_vy px/s and across at fling_vx px/s toward the far hop (a twang), the empty board snapping up `snap` px and quivering out over quiver_s. The flight is the `bound` pose too: a stretch with the arms overhead, a pike past the apex, a deep knee brace on landing; the loader clears the pose when BoundPoses.done(fig). Nothing shoves, refuses or costs — the plain jump across the gap from the hop is untouched, and from the board's root SPACE is still the plain charge jump; the plank only matters to a body that walks out to its tip. build(root, planned) draws it. tools/probe_plank.gd checks the plan with and without the raft's gap, the clear rule, the landing and its refusals, the surface under a body walking out, the poise zone, the taps, the settle, the fling and its arc, the quiver, the visuals, the sounds and the pose.",
+  "id": "plank",
+  "name": "Diving plank",
+  "pose": "bound",
+  "themes": ["Cloud sea"],
+  "kinds": {
+    "plank": {
+      "_": "min_gap/max_gap: the gap between the two hops' facing edges (px) — a fling from the tip at fling_vy/fling_vx reaches 177 px out at 160 px up and 245 px out level, so a 240 px gap leaves 170 px from the tip. max_dy: the two hops may differ in height by this much (px). length: the board from the clamp to its tip (px). thick: the board's thickness (px). sag: px the tip bends under a body standing at the very end (as the square of how far out it stands). bend_s: seconds the bend takes to follow the body. tip_zone: px from the tip in which the body is poised and SPACE is the plank's. loads: taps that load the board; the next tap flings. tap_s: one tap's press-and-springback. gap_s: the longest pause between taps before the board settles and the count starts over. fling_vy/fling_vx: the fling's speed up and toward the far hop (px/s). snap: px the empty board snaps up at the fling; quiver_hz/quiver_s: its shiver and how long it lasts. settle_s: how long after the last stand tick the board still carries the body (one physics tick plus slack). creak_hz: a tap; twang_hz: the fling.",
+      "min_gap": 90,
+      "max_gap": 240,
+      "max_dy": 160,
+      "length": 70,
+      "thick": 6,
+      "sag": 18,
+      "bend_s": 0.25,
+      "tip_zone": 24,
+      "loads": 3,
+      "tap_s": 0.35,
+      "gap_s": 0.6,
+      "fling_vy": 980,
+      "fling_vx": 300,
+      "snap": 12,
+      "quiver_hz": 6,
+      "quiver_s": 1.0,
+      "settle_s": 0.12,
+      "creak_hz": 140,
+      "twang_hz": 520
+    }
+  },
+  "pieces": [
+    { "_": "Cloud sea floors are 25..29, 60..64, 95..99 …; the vent floors ((n − 3) % 4 == 0: 27, 63 …) stay without a plank — the vents own the hop tops there. On the other Cloud sea floors one plank is clamped to the lower hop of the widest 90..240 px gap whose box is free: the raft (run 126) floats in a gap of its own and the mushrooms (run 119) grow in the two longest gaps — the loader passes both plans as `taken` and a gap they touch is skipped. The lower hop must be std or ice (a spring hop launches on its own, a crumble hop is no base for a clamp); the far hop may be any still kind. One plank per floor — three pieces whose `only` rules cover the bridge floors (n % 4 == 0), the ghost floors ((n − 2) % 4 == 0) and the mushroom floors ((n − 1) % 4 == 0), like the raft.", "kind": "plank", "on": ["std", "ice"], "far": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 4, "every": 4 } },
+    { "kind": "plank", "on": ["std", "ice"], "far": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 2, "every": 4 } },
+    { "kind": "plank", "on": ["std", "ice"], "far": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 1, "every": 4 } }
+  ]
+}
