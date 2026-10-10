@@ -1,0 +1,26 @@
+{
+  "_": "Climb content pack 'Revolving door' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_door.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still hop (the piece's `on` kinds) at least min_w wide — one door per floor, on the widest such hop (the lower one on a tie): a round floor plate of radius r px in the middle of the hop, a brass axle with `leaves` paper-and-ink leaves (each with a brass push bar at chest height), a glass front wall in three panes, and a canopy disk h px up with a rolled lip. The drum's back is the cliff itself. `taken` is the other Old hall pack's planned pieces (the bell): a hop whose drum box meets one is skipped, and so is a hop another slab cuts above the drum. Walking into the door holding C (the hand x + dir × HW within reach px of the drum's near edge) steps the body in and the door turns with it: the leaves take ease_s to reach full speed and a half turn (π) takes turn_s at full speed; the body walks a flat arc behind the axle — x = hx − dir × (r − HW − 2) × cos(a), z = PLAYER_Z − swing_z × sin(a) — in pose `turn` (meta turn_v = the leaves' speed 0..1) and is set down on the far side when a reaches π (done). Letting go of C or walking the other way stops the door where it is and the body walks out — the leaves never block a walk, with or without C. After the body leaves, the door keeps turning on its own: the angular speed falls linearly to 0 over spin_s (so it coasts half of speed × spin_s further), the whirr looping while it moves; the clack is the leaf taking the push. The canopy is a step: a falling body lands on it (land, kind `canopy`, a still platform the loader's own leave test handles), so the next hop up is h px closer from the middle of this one. Nothing shoves, refuses or costs — the plain walk and the plain jump are untouched. build(root, planned) draws it. `pose` is the Stick3D pose_request while riding (stick3d_turn.gd). tools/probe_door.gd checks the plan with and without taken pieces and the slab, the reach, the ride and its half turn, the stop, the coasting, the re-entry while coasting, the let-go, the canopy landing, the visuals, the sounds and the pose.",
+  "id": "door",
+  "name": "Revolving door",
+  "pose": "turn",
+  "themes": ["Old hall"],
+  "kinds": {
+    "door": {
+      "_": "min_w: the hop must be this wide (px; the drum needs r + HW each side of the middle with room to walk up to it). r: the drum's radius (px; 28 = a 1.56 m door). h: the canopy's height above the hop (px; the step a landing body gets). reach: how far the entering hand (x + dir × HW) may be from the drum's near edge (px). turn_s: seconds a half turn takes at full speed; ease_s: seconds the leaves take to reach full speed (linear). spin_s: seconds the empty door coasts after the body leaves (speed falling linearly to 0). swing_z: how far behind the lane the body's arc goes at the axle (px, toward the cliff). leaves: how many. whirr_hz: the axle while the leaves turn (loops); clack_hz: a leaf taking the push.",
+      "min_w": 120,
+      "r": 28,
+      "h": 70,
+      "reach": 18,
+      "turn_s": 0.9,
+      "ease_s": 0.15,
+      "spin_s": 2.0,
+      "swing_z": 12,
+      "leaves": 4,
+      "whirr_hz": 60,
+      "clack_hz": 95
+    }
+  },
+  "pieces": [
+    { "_": "Old hall floors are 1..4, 35..39, 70..74 …; hops are 200 − stretch × 70 − 0..40 px wide, so the first lap always has a wide hop, the second (114..159) usually and the third (90..130) sometimes. The bell (bell.json) hangs in the gaps on the same floors; the loader passes its plan as `taken` and a drum it meets is not built.", "kind": "door", "on": ["std", "ice"], "max": 1 }
+  ]
+}
