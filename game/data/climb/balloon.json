@@ -1,0 +1,40 @@
+{
+  "_": "Climb content pack 'Hot-air balloon' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_balloon.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (the `only` rules), looks at every pair of consecutive hops in the climbing order whose lower hop is still and stakeable (the piece's `on` kinds) and whose far hop stands still (std, ice, spring, crumble — never a moving hop) and is higher by min_dy..max_dy (a balloon only goes up), min_gap..max_gap apart sideways, whose basket can be carried across in whole tugs (ceil(dy / lift) tugs, each drifting at most `drift` px — a wider gap is one the breeze cannot cover before the basket is level) and whose path (five positions along the diagonal from the mooring to the far hop, each widened by the envelope's radius, from 10 px under the basket floor to the envelope's crown) no other platform cuts and no `taken` piece of another pack (the raft, the mushrooms, the plank — the loader passes their plans) meets, and moors one balloon at the tallest such climb: a stake on the lower hop's gap edge with a mooring line to the basket, a wicker basket hanging in the gap against the hop's edge with its floor flush with the hop's top, four cords up to a burner, a flame tongue, a paper envelope with a mauve band and a cord with a toggle hanging at head height inside. C on the lower hop beside the basket steps in (mount_s one step; grab returns the loader's new ride dict; from the far hop or while the balloon is up or sinking back it returns empty). Each C in the basket is a tug on the burner cord (a whoosh, the flame tongue grows): the balloon rises `lift` px over tug_s, eased, while the breeze carries it dx / tugs px toward the far hop (at most `drift`), holds hold_s, then cools and sinks at cool_v px/s until the next tug (never below the mooring). When the basket floor reaches the far hop's top the rider steps out onto it (ride_on returns done with x on the far hop) and the empty balloon sinks back to its mooring over sink_s × (how high it got) (a thud when it settles). SPACE released in the basket is the loader's 0.9 hold jump plus the balloon's rising speed; Down steps out where it is. The ride is the `tug` pose: one hand on the rim, the other reaching up to the toggle, a sharp yank down to the shoulder with the knees dipping and the head tipping back to watch the flame, the hand riding back up; between tugs the body looks out over the rim and leans back a little while rising. Nothing shoves, refuses or costs — the plain jump across the gap from the hop is untouched; the balloon only matters to a body that steps into the basket. build(root, planned) draws it. tools/probe_balloon.gd checks the plan with the plank's gap taken and with a raft in the balloon's own gap, the clear rule, the grab and its refusals, the step in, the tugs and the rise, the hold and the cooling, the step out, the sinking, the let-go speed, the visuals, the sounds and the pose.",
+  "id": "balloon",
+  "name": "Hot-air balloon",
+  "pose": "tug",
+  "themes": ["Cloud sea"],
+  "kinds": {
+    "balloon": {
+      "_": "basket_w/basket_h/basket_d: the wicker basket (px). moor: px between the hop's gap edge and the basket wall at the mooring and at the far hop. env_r: the paper envelope's radius (px); env_bottom: px above the basket floor where the envelope's skirt ends. min_gap/max_gap: the gap between the two hops' facing edges (px). min_dy/max_dy: how much higher the far hop may be (px) — the balloon only goes up. lift: px the balloon rises per tug; tug_s: seconds one tug's rise takes (eased); hold_s: seconds the lift holds before the air cools; cool_v: px/s the balloon sinks between tugs; drift: the most px the breeze carries the basket toward the far hop per tug (the plan refuses a gap that needs more). sink_s: seconds the empty balloon takes from the far hop's level back to its mooring. mount_s: the step from the hop into the basket. yank_s: the cord yank the pose follows (the hand down and back up). reach_x: px from the basket's centre within which C steps in. step_out: px past the far hop's edge the rider stands when stepping out. creak_hz: the wicker when a body steps in or out; thud_hz: the basket settling back on its mooring; whoosh_s: the burner.",
+      "basket_w": 44,
+      "basket_h": 26,
+      "basket_d": 40,
+      "moor": 6,
+      "env_r": 32,
+      "env_bottom": 88,
+      "min_gap": 64,
+      "max_gap": 200,
+      "min_dy": 60,
+      "max_dy": 160,
+      "lift": 50,
+      "tug_s": 0.8,
+      "hold_s": 0.6,
+      "cool_v": 10,
+      "drift": 40,
+      "sink_s": 4.0,
+      "mount_s": 0.25,
+      "yank_s": 0.45,
+      "reach_x": 40,
+      "step_out": 16,
+      "creak_hz": 140,
+      "thud_hz": 180,
+      "whoosh_s": 0.5
+    }
+  },
+  "pieces": [
+    { "_": "Cloud sea floors are 25..29, 60..64, 95..99 …; the vent floors ((n − 3) % 4 == 0: 27, 63 …) stay without a balloon — the vents own the hop tops there. On the other Cloud sea floors one balloon is moored at the lower hop of the tallest 60..160 px climb across a 64..200 px gap the breeze can cover, whose sweep is free: the raft (run 126), the mushrooms (run 119) and the plank (run 137) each take a gap of their own — the loader passes all three plans as `taken` and a gap they touch is skipped. The lower hop must be std or ice (a spring hop launches on its own, a crumble hop is no base for a stake); the far hop may be any still kind. One balloon per floor — three pieces whose `only` rules cover the bridge floors (n % 4 == 0), the ghost floors ((n − 2) % 4 == 0) and the mushroom floors ((n − 1) % 4 == 0), like the raft and the plank.", "kind": "balloon", "on": ["std", "ice"], "far": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 4, "every": 4 } },
+    { "kind": "balloon", "on": ["std", "ice"], "far": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 2, "every": 4 } },
+    { "kind": "balloon", "on": ["std", "ice"], "far": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 1, "every": 4 } }
+  ]
+}
