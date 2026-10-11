@@ -1,0 +1,32 @@
+{
+  "_": "Climb content pack 'Paternoster' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_paternoster.gd reads this file: plan(n, plats, taken) works only on the `themes` floors; the chain stands at the band's wall side — the left wall on even floors, the right wall on odd floors, so two neighbouring Library floors (whose hops interleave at the band seam) never put a chain in the same place. Among the floor's still hops of the piece's `on` kinds the plan finds the facing edge nearest that wall, sets the lane's inner edge `step` px outside it (never closer to the wall than wall_in plus two cabins), and every such hop whose facing edge lies within `reach` px of the lane serves the chain — two or more, or there is no chain. The loop runs from `below` px under the lowest serving hop's top to `head` px over the highest, rounded up so that `cabins` (at least min_cabins) sit exactly `pitch` px apart along the whole loop (up lane, top crossing, down lane, bottom crossing), moving one pitch every `period` s; the lane box (both lanes plus 4 px, 10 px under the loop's bottom to the cabin roof over its top) no other platform may cut (a moving hop counts with its whole sweep, a ledge with the rock wall under it) and no `taken` piece of another pack (the rolling ladder, the dumbwaiter, the sliding bookcase — the loader passes their plans) may touch. The cabin floor is a surface the pack owns like the diving plank: walking off a serving hop into the lane is the loader's own walk — land(x, y, ny, z) catches a body falling through a floor, and a floor rising through a body's feet in the same tick, like a hop; stand(on, x, dt, fig) carries the body with the cabin each tick (sideways across the top and bottom crossings), gives the floor under its feet, and reports `off` once the body walks `over` px past the floor's edge — out onto a higher serving hop, or into a fall the next cabin below catches. Nothing stops the ride: a body that does not step out rides round the top, down the far lane, round the bottom and up again; missing the step costs nothing but that lap. SPACE in a cabin is the loader's plain charge jump. The ride is the `board` pose (stick3d_board.gd): the step in — one hand reaching to the back rail while the near knee lifts over the sill and the body dips — then the hold with the hand on the rail, the knees taking the rise and the fall, the free arm flung out on the crossings and the head following the direction, and the step off — the hand lets go and the lead leg reaches out as the body passes the sill. Nothing shoves, refuses or costs — the hops' own jumps are untouched; the chain only matters to a body that walks into a cabin. build(root, planned) draws it. tools/probe_paternoster.gd checks the plan and its refusals, the loop's numbers, the landing and its refusals, the floor rising through a body, the carry across the crossings, the step off, the lost cabin, the clank at the top, the visuals and the pose.",
+  "id": "paternoster",
+  "name": "Paternoster",
+  "pose": "board",
+  "themes": ["Library"],
+  "kinds": {
+    "paternoster": {
+      "_": "cab_w/cab_h/cab_d: one open cabin (px) — floor width, floor-to-roof, depth. pitch: px between consecutive cabin floors along the loop. period: seconds a cabin takes to move one pitch (the speed is pitch / period = 80 px/s). min_cabins: the shortest chain; longer loops get as many as the pitch needs. lane_gap: px between the up lane's and the down lane's cabins. wall_in: px between the tower wall and the outer lane's outer edge. step: px between the nearest serving hop's facing edge and the lane's inner edge. reach: the most px a serving hop's facing edge may lie from the lane's inner edge. below: px the loop's bottom lies under the lowest serving hop's top — more than a pitch, so a cabin floor is always within a pitch under a hop and a step off the hop is caught. head: px the loop's top lies at least over the highest serving hop's top. over: px past the floor's edge a body's centre may be before it is off (and within which a falling body is caught). sill: px inside the floor's edge where the step-off sheet begins (the pose's board_out runs from there to over). rail_h: px up the back wall where the grab rail runs. creak_hz: a body stepping in or out; clank_hz: a cabin passing the top sprocket.",
+      "cab_w": 48,
+      "cab_h": 76,
+      "cab_d": 40,
+      "pitch": 160,
+      "period": 2.0,
+      "min_cabins": 4,
+      "lane_gap": 8,
+      "wall_in": 10,
+      "step": 8,
+      "reach": 40,
+      "below": 170,
+      "head": 10,
+      "over": 6,
+      "sill": 14,
+      "rail_h": 34,
+      "creak_hz": 140,
+      "clank_hz": 260
+    }
+  },
+  "pieces": [
+    { "_": "Library floors are 10..14, 45..49, 80..84 …; every one may hold a chain (the rolling ladder and the dumbwaiter skip (n − 3) % 4 floors, the bookcase takes every floor — all three sit on or between the hops, the chain at the wall, and the loader passes their plans as `taken` so a lane they reach is skipped). The serving hops must be std or ice (a spring hop launches on its own, a crumble hop is gone before a second step, a moving hop never keeps its distance). One chain per floor.", "kind": "paternoster", "on": ["std", "ice"], "max": 1 }
+  ]
+}
