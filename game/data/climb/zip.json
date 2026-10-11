@@ -1,0 +1,39 @@
+{
+  "_": "Climb content pack 'Zip line' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_zip.gd reads this file: plan(n, plats, taken) works only on the `themes` floors minus the vent floors (the `only` rules), looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose cable box (from the lower hop's top up to the upper post's cap, between the two posts plus a body's width) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the hammock net, the rope bridge, the ghost slab, the mushroom — the loader passes their plans) meets; one zip line per floor over the widest such gap: a post `inset` px inside the upper hop's gap edge rising post_h px over its top, a post inset px inside the lower hop's gap edge rising low_h px, a cable between their caps, a trolley (two wheels, a hanger, a bar DROP = 8 px under the cable) parked at the top, a rubber bumper `stop` px before the lower post, and a haul line from the trolley to a winch on the upper post. Airborne with Up, hands (feet + hang) within reach_x/reach_y of the parked bar catch it (zing); the trolley rolls down the cable from rest at G × sin(slope) × roll px/s², at most max_v, the cable sagging `sag` px under the body at the middle; over the last `brake` px before the bumper the speed eases to v_end; at the bumper (clunk) the body is set down over land_s to the lower hop's top and let go (done — that tick's y is the hop's top so the loader's own landing takes over). Down or SPACE lets go with the trolley's velocity split along the slope (vx = dir × v × cos, vy = −v × sin). The first pack that goes down on purpose: a fast way back to a hop you missed, or off a hop the plain jump from which goes nowhere. A freed trolley is hauled back up its line over return_s (the winch clicks every click_s) and cannot be caught until it is parked. build(root, planned) draws it; grab(x, y, z) is the Up test; ride(riding, dt, fig) every hanging tick returns the body's x/y, done/lost and the velocity; let_go(riding) returns the velocity. `pose` is the Stick3D pose_request while hanging (stick3d_zip.gd). tools/probe_zip.gd checks the plan and its refusals, the geometry, the reach, the roll, the brake, the set-down, the let-go, the return, the visuals, the sounds and the pose.",
+  "id": "zip",
+  "name": "Zip line",
+  "pose": "zip",
+  "themes": ["Hanging garden"],
+  "kinds": {
+    "zip": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px). min_dy/max_dy: how much higher the upper hop is (px; consecutive hops are 92..138 apart). inset: px each post stands inside its hop's gap edge. post_h: the upper post's cap over its hop's top (px) — the cable's top end; the parked bar hangs DROP (8) under it, so a hanging body's feet are post_h − 8 − hang = lift px over the upper hop. low_h: the lower post's cap over its hop's top (px). hang: hands over feet (px, like the holds). reach_x/reach_y: how far the hands may be from the parked bar to catch it (px). roll: the share of G × sin(slope) the trolley rolls with (the rest is the bearings). max_v: the fastest the trolley rolls (px/s). stop: px before the lower post where the bumper sits. brake: px before the bumper over which the speed eases to v_end (px/s). sag: px the cable gives under a body at the middle of the run. land_s: seconds the set-down at the bumper takes. return_s: seconds the winch takes to haul a freed trolley back to the top (eased); click_s: seconds between its clicks. zing_hz: the cable singing when the bar is caught or let go; clunk_hz: the trolley meeting the bumper; click_hz: the winch's ratchet.",
+      "min_gap": 60,
+      "max_gap": 200,
+      "min_dy": 60,
+      "max_dy": 150,
+      "inset": 24,
+      "post_h": 96,
+      "low_h": 70,
+      "hang": 58,
+      "reach_x": 26,
+      "reach_y": 22,
+      "roll": 0.35,
+      "max_v": 420,
+      "stop": 24,
+      "brake": 48,
+      "v_end": 60,
+      "sag": 10,
+      "land_s": 0.25,
+      "return_s": 3.0,
+      "click_s": 0.25,
+      "zing_hz": 520,
+      "clunk_hz": 110,
+      "click_hz": 700
+    }
+  },
+  "pieces": [
+    { "_": "Hanging garden floors are 5..9, 40..44, 75..79 …; the vent/windmill floors ((n − 3) % 4 == 0: 7, 43, 79 …) stay without a zip line — the wheels own the gaps there. The hammock net (run 135) takes the widest free gap on the same floors and is passed as `taken`, so the zip line spans the widest gap the net does not sling under; the vine curtain hangs over a hop's middle, 42 px or more from its edges, so a post at inset 24 never stands in it. One zip line per floor, over the widest gap of 60..200 px between two consecutive still hops 60..150 px apart in height.", "kind": "zip", "on": ["std", "ice"], "max": 1, "only": { "from": 4, "every": 4 } },
+    { "kind": "zip", "on": ["std", "ice"], "max": 1, "only": { "from": 5, "every": 4 } },
+    { "kind": "zip", "on": ["std", "ice"], "max": 1, "only": { "from": 6, "every": 4 } }
+  ]
+}
