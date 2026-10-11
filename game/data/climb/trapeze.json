@@ -1,0 +1,33 @@
+{
+  "_": "Climb content pack 'Trapeze' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_trapeze.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every gap between two consecutive still hops (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that is min_gap..max_gap wide with the hops at most max_dy apart in height, whose swept wedge (the ropes above the bar, the bar and a hanging body below it, from the hanging feet up to the beam) no other platform cuts and no `taken` piece of another pack (the icicles, the star lantern's pole — the loader passes their plans) meets; one trapeze per floor, in the widest such gap: a wooden beam out of the cliff `rise` px above the upper hop, two iron rings, two ropes down to a bar the width of the shoulders that hangs plumb and still over the middle of the gap; a hanging body's feet are level with the mean of the two hop heights at the bottom of the swing (the pendulum's rule), and the swing's amplitude is the geometry's: the bar's ends stop `clear` px short of each hop's edge. Airborne with Up, hands (feet + hang) within reach_x/reach_y of the still bar catch it (twang): the ropes keep catch_k of the body's horizontal speed as angular speed — the rest is the jerk of the ropes going taut. From then on the timing is the player's, not the floor's: the bar swings as a pendulum with period_s (nothing else in the tower has a beat the body sets), pressing the direction it is moving pumps it (pump rad/s², legs beating together) up to the amplitude, letting it swing costs nothing, and the bar creaks at each end. SPACE at the far end lets go with the bar's velocity under the hold jump, into a tuck (the pose's own 0.45 s; the loader clears it when it is done or the body lands); Down drops with the bar's velocity. The empty bar swings on with empty_damp and cannot be caught until its amplitude is under settle_a (then it hangs plumb again). Nothing shoves, refuses or costs — the plain jump across the gap is untouched. build(root, planned) draws it; grab(x, y, z, vx) is the Up test; swing(riding, dt, dir, fig) every hanging tick returns the body's x/y, the face and the velocity; let_go(riding, fig) returns the velocity. `pose` is the Stick3D pose_request while hanging and tucking (stick3d_fly.gd). tools/probe_trapeze.gd checks the plan and its refusals, the geometry, the reach, the catch, the pump and its cap, the creak, the let-go, the empty swing's settling, the visuals, the sounds and the pose.",
+  "id": "trapeze",
+  "name": "Trapeze",
+  "pose": "fly",
+  "themes": ["Starlit"],
+  "kinds": {
+    "trapeze": {
+      "_": "period_s: the swing's beat — one full swing there and back (a half swing from one end to the other takes half of it). rise: px the beam sits above the upper hop's top. hang: px from the bar to a hanging body's feet (the holds use 58 too). clear: px between a hop's edge and the bar's end at the end of the swing. bar_w: the bar's width (px; the ropes hang this far apart). reach_x/reach_y: how far the hands (feet + hang) may be from the still bar for Up to catch it. catch_k: the share of the body's horizontal speed the ropes keep at the catch (as angular speed v / len), capped at the amplitude. pump: rad/s² added while the pressed direction is the swing's (or the bar is still). damp: /s on the swing while a body hangs (almost none — the player decides). empty_damp: /s on the empty bar after a let-go; settle_a: rad under which the empty bar counts as still and may be caught again. min_gap/max_gap: the gap a trapeze may hang in (px, edge to edge); max_dy: how far apart in height the two hops may be; min_reach: the shortest half-swing worth building (px). twang_hz: the ropes going taut at the catch and the let-go; creak_hz: the rings at each end of the swing.",
+      "period_s": 3.0,
+      "rise": 170,
+      "hang": 58,
+      "clear": 8,
+      "bar_w": 28,
+      "reach_x": 26,
+      "reach_y": 22,
+      "catch_k": 0.3,
+      "pump": 0.9,
+      "damp": 0.05,
+      "empty_damp": 1.0,
+      "settle_a": 0.03,
+      "min_gap": 80,
+      "max_gap": 200,
+      "max_dy": 150,
+      "min_reach": 14,
+      "twang_hz": 480,
+      "creak_hz": 70
+    }
+  },
+  "pieces": [
+    { "_": "Starlit floors are 30..34, 65..69, 100..104 …; the icicles (icicle.json) hang from hop lips and the star lantern (lantern.json) stands in the widest gap on the same floors, so the loader passes both plans as `taken` and the trapeze hangs in the widest gap neither reaches. One trapeze per floor, in a gap of 80..200 px between two hops that stand still (std, ice, spring or crumble — never a moving hop, its gap changes) whose hops differ at most 150 px in height; a gap whose wedge another platform cuts is skipped.", "kind": "trapeze", "on": ["std", "ice", "spring", "crumble"], "max": 1 }
+  ]
+}
