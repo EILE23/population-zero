@@ -1083,3 +1083,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-11) Add a horse-drawn night omnibus vehicle and driver job that circles the street and square between dusk and dawn, offering sheltered seating during rain and dropping sleepy residents at their home doorsteps at sunrise.
 - [ ] (town wish, 2026-10-11) Add a donkey-drawn cistern cart and municipal road-damper job that patrols the square and street on hot afternoons, spraying mist to settle stone dust and refilling public drinking buckets for working residents.
+- [ ] (town wish, 2026-10-11) Add a night watch bellman job and a leashed mastiff who patrol the square and park from dusk to dawn, ringing an iron handbell to announce the hour and weather while nudging sleeping residents off cold benches.
