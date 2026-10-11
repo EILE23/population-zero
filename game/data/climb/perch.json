@@ -1,0 +1,38 @@
+{
+  "_": "Climb content pack 'Cuckoo perch' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_perch.gd reads this file: plan(n, plats, taken) works only on the `themes` floors minus the `not` floors (the vent/windmill floors) and looks at every gap between two consecutive still hops (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) whose hops are at least min_dy apart in height (a tall jump) and min_gap..max_gap apart edge to edge, whose house box (house_w wide, house_h + roof_h tall above the perch) no other platform and no `taken` piece of another pack (the pendulum, the ghost slab, the bridge, the mushrooms — the loader passes their plans) meets; one hatch per floor, beside the tallest such gap: a cuckoo-clock house set into the cliff over the middle of the gap with its floor at the mean of the two hop heights — halfway up the tall jump — whose two doors open on the gears' beat (every `beat` s, the belts' run + stall) and slide a plank `reach` px out of the doorway over out_s, hold it hold_s, and draw it back over in_s; the perch is a platform only while it is out (the loader's own z test: the body stands 22 px in front of the cliff, so the plank counts once it is 14 px deep). build(root, hatches) draws it (house, pitched roof, two door leaves on hinges, the plank with a small cuckoo riding its tip, a brass gear on the house wall that turns with the beat, the two-note call when the doors open). land(x, y, ny, z) is the landing test the loader runs after its own comes up empty; stand(on, dt, fig) is called every tick while standing on a `perch` kind — it keeps the body on the plank through the loader's z test, says whether the body has ridden the perch in (`inside`: the doors are shut in front of it) and clamps x to the house walls while inside, and writes the pose's metas; knock(on) opens the doors early for knock_hold_s when SPACE is pressed inside (the jump itself stays the plain charge jump). `pose` is the Stick3D pose_request while on the perch (stick3d_perch.gd). tools/probe_perch.gd checks the plan, the beat, the landing window, the ride-in, the knock, the visuals and the pose.",
+  "id": "perch",
+  "name": "Cuckoo perch",
+  "pose": "perch",
+  "themes": ["Clockwork"],
+  "kinds": {
+    "hatch": {
+      "_": "beat: seconds between openings — gears.json's run_s + stall_s (5.0 + 0.6), so the doors open each time the belts start again (their clank). out_s/hold_s/in_s: seconds the plank takes to slide out, stays out, takes to draw back (2 s out, as the backlog asked). reach: px the plank reaches out from the cliff when fully out (the body stands 22 px out; the loader's z test accepts the plank once reach × extension > 14 px). shut_k: extension under which a body on the plank counts as inside (the doors shut in front of it, x held between the house walls). knock_hold_s: seconds the doors stay open after a knock from inside. call_s: seconds the cuckoo bob (meta perch_call) lasts after the doors open. plank_w/plank_th: the plank's width and thickness (px). house_w/house_h/house_d: the house box — width, height of the doorway wall above the perch, depth it stands out of the cliff (the door plane; the body stands 8 px behind it, in the doorway, and ducks under the lintel at door_h). door_w/door_h: the doorway. roof_h: the pitched roof above the house. door_open: rad each leaf swings outward when the plank is out. gear_r: the brass gear on the house wall. min_dy: the two hops must differ at least this much in height (a tall jump worth a halfway step). min_gap/max_gap: the gap between them edge to edge (the house must fit between the hops with clear px to spare: house_w + 2·clear). clear: px kept between the house and each hop. call_hz: the first note of the cuckoo (the second is a minor third under it).",
+      "beat": 5.6,
+      "out_s": 0.4,
+      "hold_s": 2.0,
+      "in_s": 0.4,
+      "reach": 60,
+      "shut_k": 0.25,
+      "knock_hold_s": 0.8,
+      "call_s": 0.5,
+      "plank_w": 48,
+      "plank_th": 5,
+      "house_w": 72,
+      "house_h": 64,
+      "house_d": 30,
+      "door_w": 56,
+      "door_h": 52,
+      "roof_h": 22,
+      "door_open": 1.3,
+      "gear_r": 9,
+      "min_dy": 110,
+      "min_gap": 84,
+      "max_gap": 260,
+      "clear": 6,
+      "call_hz": 740
+    }
+  },
+  "pieces": [
+    { "_": "Clockwork floors are 15..19, 50..54, 85..89 …; the vent/windmill floors ((n − 3) % 4 == 0: 15, 19, 51 …) get no hatch — the wheel and the vents already own those floors' gaps and a lift under a perch would carry a body into the lintel. On the other Clockwork floors one hatch sits beside the tallest gap (hops at least 110 px apart in height, 84..260 px apart edge to edge) between two hops that stand still (std, ice, spring or crumble — never a moving hop, its gap changes) whose house box no other platform and no pendulum, ghost slab, bridge or mushroom (passed as `taken`) meets; ties go to the wider gap. Phase 0: every hatch opens on the same tick of the tower clock.", "kind": "hatch", "on": ["std", "ice", "spring", "crumble"], "max": 1, "not": { "from": 3, "every": 4 }, "phase": 0.0 }
+  ]
+}
