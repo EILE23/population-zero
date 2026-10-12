@@ -1151,3 +1151,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-12) Add a foot-treadle grindstone barrow on the street where an assigned sharpener resident pumps their foot and grinds dull blades brought by locals, throwing off brief spark flecks.
 - [ ] (town wish, 2026-10-12) Add an umbrella mender's trestle on the street where an assigned tinker resident clamps bent ribs, straightens them with a wooden spoke lever, and triggers a crisp snap sound as each fixed canopy pops open.
+- [ ] (town wish, 2026-10-12) Add a cobbler's pegging trestle on the street where an assigned repairer resident pulls a boot over an iron last, taps brass sprigs into the heel with a flat hammer, and pares the welt flush with an oiled drawknife.
