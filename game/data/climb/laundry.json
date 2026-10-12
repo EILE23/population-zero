@@ -1,0 +1,41 @@
+{
+  "_": "Climb content pack 'Laundry line' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_laundry.gd reads this file: plan(n, plats, taken) works only on the `themes` floors minus the vent floors (the `only` rules), looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose line box (between the two posts plus a body's width, from the lower hop's top to the upper post's cap) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the bell rope, the revolving door — the loader passes their plans) meets; one line per floor over the widest such gap: a post `inset` px inside the lower hop's gap edge rising post_lo px over its top, a post inset px inside the upper hop's gap edge rising post_hi px over its top, a rope between their caps (it climbs toward the upper hop by dy + post_hi − post_lo), and `sheets` sheets pegged along it at even fractions of the run, each sheet_w wide and sheet_h long, flapping on their own at flap_hz. Airborne with Up, hands (feet + hang) within reach_y of the rope anywhere between the posts catch it (creak); the body hangs `hang` under the rope, the rope dipping `sag` px under it (most at the middle, none at the posts), and goes hand over hand with ← → at `pace` px/s — one hand every `stride` px — halved (× sheet_k) while the body is under a sheet, which then flaps into the face (flap). A body that hangs under one sheet longer than peg_s pops its peg (pop): the sheet drops over the head and stays there — on the line the hands keep going but the head is under the cloth; after the landing the loader keeps a `blind` walk for hood_s (the pose tugs the cloth off, the walk is half speed), then the sheet drops in a heap at the lower post's foot and is pegged back on the line after repeg_s. Nothing refuses, pushes or costs: the plain jump across the gap is untouched (the sheets are cloth, the rope is only caught with Up), and from either post the body drops onto its hop. build(root, planned) draws it; grab(x, y, z) is the Up test; ride(riding, dt, dir, fig) every hanging tick returns the body's x/y, lost, hooded and which post the hands are at; let_go(riding) frees the line; blind(landed) is the hood's walk. `pose` is the Stick3D pose_request while hanging and while hooded (stick3d_shimmy.gd). tools/probe_laundry.gd checks the plan and its refusals, the geometry, the reach, the pace, the sheets' halving, the pop, the hood and the blind walk, the heap and the re-peg, the visuals, the sounds and the pose.",
+  "id": "laundry",
+  "name": "Laundry line",
+  "pose": "shimmy",
+  "themes": ["Old hall"],
+  "kinds": {
+    "line": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px). min_dy/max_dy: how much higher the upper hop is (px; consecutive hops are 92..138 apart — the line stays under 30° so the sheets hang clear of each other). inset: px each post stands inside its hop's gap edge. post_lo: the lower post's cap over its hop's top (px) — a hanging body's feet are post_lo − hang = 78 px over the lower hop, so a 0.15 s charge reaches the rope. post_hi: the upper post's cap over its hop's top (px) — the feet hang 22 px over the upper hop there, and the line box ends 90 px over the upper hop, under the next hop's lowest 92. hang: hands over feet (px, like the holds). reach_y: how far the hands may be above or below the rope to catch it (px); sideways the rope is caught anywhere between the posts. pace: hand-over-hand speed (px/s). sheet_k: the pace under a sheet. stride: px per hand (the pose's hand phase). sheets: how many sheets; sheet_w/sheet_h: each sheet (px). sag: px the rope dips under the body at the middle of the run. peg_s: seconds under one sheet before its peg pops. hood_s: seconds of blind walk after the landing with a sheet over the head. repeg_s: seconds a dropped sheet lies in a heap before it is back on the line. flap_hz/flap_amp: the sheets' own flapping (Hz, rad). creak_hz: the rope taking a body or losing one; flap_hz_snd: a sheet meeting a face; pop_hz: a peg popping.",
+      "min_gap": 90,
+      "max_gap": 220,
+      "min_dy": 60,
+      "max_dy": 120,
+      "inset": 24,
+      "post_lo": 136,
+      "post_hi": 80,
+      "hang": 58,
+      "reach_y": 22,
+      "pace": 110,
+      "sheet_k": 0.5,
+      "stride": 24,
+      "sheets": 3,
+      "sheet_w": 30,
+      "sheet_h": 48,
+      "sag": 8,
+      "peg_s": 1.5,
+      "hood_s": 1.0,
+      "repeg_s": 8.0,
+      "flap_hz": 0.7,
+      "flap_amp": 0.35,
+      "creak_hz": 140,
+      "flap_hz_snd": 180,
+      "pop_hz": 900
+    }
+  },
+  "pieces": [
+    { "_": "Old hall floors are 1..4, 35..39, 70..74 …; the vent floors ((n − 3) % 4 == 0: 3, 35, 39, 71 …) stay without a line — the wheels own the gaps there. The bell rope (run 128) takes a gap on the same floors and the revolving door (run 134) the widest hop's middle; both are passed as `taken`, so the line spans the widest gap neither of them uses. One line per floor, over the widest gap of 90..220 px between two consecutive still hops 60..120 px apart in height.", "kind": "line", "on": ["std", "ice"], "max": 1, "only": { "from": 1, "every": 4 } },
+    { "kind": "line", "on": ["std", "ice"], "max": 1, "only": { "from": 2, "every": 4 } },
+    { "kind": "line", "on": ["std", "ice"], "max": 1, "only": { "from": 4, "every": 4 } }
+  ]
+}
