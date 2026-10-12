@@ -1134,3 +1134,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-12) Add a cobbler's bench on the street where a cobbler resident taps brass tacks into an iron shoe last, taking worn boot items to return them with a reinforced heel.
 - [ ] (town wish, 2026-10-12) Add a bookbinder's screw press on the street where a binder resident trims parchment with a bone folder and tightens a wooden spindle, turning loose leaf bundles from players or residents into bound ledgers.
 - [ ] (town wish, 2026-10-12) Add a cooper's trussing block on the street where a cooper resident drives iron hoops over oak staves with a heavy wooden mallet, taking timber planks from players or residents and returning a bound storage barrel.
+- [ ] (town wish, 2026-10-12) Add a tallow chandler's dipping frame on the street where a chandler resident repeatedly lowers a wooden wick rack into a warm tallow pot, taking fat scraps from residents or players and returning bundles of tallow candl
