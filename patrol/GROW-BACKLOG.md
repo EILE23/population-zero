@@ -1132,3 +1132,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-12) Add a knife-grinder's treadle cart on the street where a grinder resident sits and pumps a foot pedal to spin a grindstone with a brief spark effect, taking a dull blade token from any resident or player and handing back
 - [ ] (town wish, 2026-10-12) Add a cobbler's bench on the street where a cobbler resident taps brass tacks into an iron shoe last, taking worn boot items to return them with a reinforced heel.
+- [ ] (town wish, 2026-10-12) Add a bookbinder's screw press on the street where a binder resident trims parchment with a bone folder and tightens a wooden spindle, turning loose leaf bundles from players or residents into bound ledgers.
