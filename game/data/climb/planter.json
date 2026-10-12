@@ -1,0 +1,76 @@
+{
+  "_": "Climb content pack 'Seesaw planter' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_planter.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (the pieces' `only` rules skip the vent/windmill floors), looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with b at most max_dy higher, whose box (from `overlap` px onto hop a to `clear` px short of hop b's edge, from a's top to the raised end plus the hanging pot and a standing body) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack meets (the vine curtain, the hammock net, the zip line and the rope bridge — the loader passes their plans; a piece's own top, rail_y/beam_y/y_top, is honoured when it is higher than the default band); one trough per floor on the widest such gap: a long soil trough with a row of flowers along its back, balanced on a centre pivot — a bracket out of the cliff at the gap's middle, `slope` × half the gap above hop a's top, so that either end down is a `slope` ramp (1 = 45°) and the raised end stands slope × gap above hop a — about hop b's height, since the tower's hops rise ~110 px per ~100 px of gap. The near end rests on hop a's top at its edge (the gardener's rest: soil is heavy on that side), so a body walks up onto it from hop a. Above the far end a planter pot hangs from a vine hook on the cliff: C while standing anywhere on the trough snaps the vine (`snap`), the pot falls fall_s onto the far end (`thud`) and, heavier than a body, tips the trough the other way over tip_s — the far end sinks into the gap, the near end with the body on it rises to slope × gap above hop a (`clunk` at the stop): from there hop b is a level jump away. The pot stays hold_s, then slides off the lowered end and falls away over slide_s; the vine sets a new pot regrow_s later. Without the pot the trough tips toward whichever end a body stands on over tip_s (a body still at the middle, within mid_w px of the pivot, holds it level; the whole swing from one end down to the other takes tip_s), and with nobody on it settles back to the near end down. Nothing refuses, pushes or costs: the plain jump across the gap is untouched (the deck is only a floor under it), the trough never covers a hop. build(root, planned) draws it; drop(on, pressed) is the C test every grounded tick (true the tick the vine snaps); land(x, y, ny, z) is the landing test the loader runs after its own comes up empty and vy ≤ 0 (a body crossing the deck this tick, one stepping down onto it within catch px, or one walking up into a deck at most catch px above its feet — the ramp); stand(on, x, dt, fig) is called every tick while standing on a `planter` kind and returns the deck height at that x and `off` when the body has walked past the deck; sync(_t) every tick. `pose` is the Stick3D pose_request while standing on the trough (stick3d_balance.gd: arms out, knees soft, the torso leaning uphill by the deck's slope ahead — meta balance_k −1..1, positive when the deck rises ahead of the body — and small corrective steps while the trough is tipping — meta balance_v 0..1). The flowers nod with every tip (their stems lean against the tilt's speed). tools/probe_planter.gd checks the plan and its refusals, the geometry, the vine, the pot's fall and the lift and its clock, the slide-off and the return, the regrowth, the level hold and the weight rule, the landing cases, the walk-off, the visuals, the sounds and the pose.",
+  "id": "planter",
+  "name": "Seesaw planter",
+  "pose": "balance",
+  "themes": [
+    "Hanging garden"
+  ],
+  "kinds": {
+    "trough": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px; the trough is gap + overlap − clear long). max_dy: how much higher hop b may be (px). overlap: px the near end reaches over hop a's edge. clear: px the far end stops short of under hop b's edge. slope: the deck's rise per px when an end is down (1 = 45°); the pivot stands slope × half the gap above hop a, the raised end slope × gap. tip_s: seconds the whole swing takes (one end down to the other end down). mid_w: px either side of the pivot where a standing body holds the trough level. hang: px the hanging pot's bottom sits above the raised far end. fall_s: seconds the pot falls from the vine to the deck. hold_s: seconds the pot sits on the lowered end before it slides off. slide_s: seconds the pot takes to slide off and fall away. regrow_s: seconds until the vine sets a new pot. catch: px below (a step down) or above (the ramp) the feet within which land() takes the deck. deck_d: the deck's depth front to back (px; the body stands on its front half, the flowers and the pot sit on the back half). th: the trough's depth under the deck (px). lip: the trough walls above the soil (px). pot_r: the pot's radius (px). nod: the flowers' lean against the tilt at full speed (rad). snap_hz: the vine letting go; thud_hz: the pot meeting the deck; clunk_hz: an end reaching the pivot's stop; creak_hz: the pivot's groan as a swing begins.",
+      "min_gap": 80,
+      "max_gap": 200,
+      "max_dy": 150,
+      "overlap": 16,
+      "clear": 4,
+      "slope": 1.0,
+      "tip_s": 0.6,
+      "mid_w": 24,
+      "hang": 30,
+      "fall_s": 0.25,
+      "hold_s": 2.0,
+      "slide_s": 0.6,
+      "regrow_s": 8.0,
+      "catch": 16,
+      "deck_d": 28,
+      "th": 10,
+      "lip": 5,
+      "pot_r": 9,
+      "nod": 0.35,
+      "snap_hz": 1200,
+      "thud_hz": 90,
+      "clunk_hz": 160,
+      "creak_hz": 140
+    }
+  },
+  "pieces": [
+    {
+      "_": "Hanging garden floors are 5..9, 40..44, 75..79 …; the vent/windmill floors ((n − 3) % 4 == 0: 7, 43, 79 …) stay without a trough — the vents own the gaps there. Every other garden floor gets at most one trough. The vine curtain (run 129), the hammock net (run 135), the zip line (run 140) and the rope bridge (run 121) are passed as `taken`, so the trough bridges the widest gap none of them uses. One trough per floor, on the widest gap of 80..200 px between two consecutive still hops with the upper at most 150 px higher.",
+      "kind": "trough",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1,
+      "only": {
+        "from": 5,
+        "every": 4
+      }
+    },
+    {
+      "kind": "trough",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1,
+      "only": {
+        "from": 6,
+        "every": 4
+      }
+    },
+    {
+      "kind": "trough",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1,
+      "only": {
+        "from": 8,
+        "every": 4
+      }
+    }
+  ]
+}
