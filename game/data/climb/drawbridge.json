@@ -1,0 +1,37 @@
+{
+  "_": "Climb content pack 'Drawbridge' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_drawbridge.gd reads this file: plan(n, plats, taken) works only on the `themes` floors minus the vent floors (the `only` rules), looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose span box (from the windlass behind the lower hop's gap edge to under the upper hop's edge, from the lower hop's top to the upright plank's tip plus a standing body) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the laundry line, the bell rope, the revolving door — the loader passes their plans) meets; one drawbridge per floor over the widest such gap: a plank hinged at the lower hop's gap edge, standing upright against the sky, chained from its tip to a windlass post `inset` px inside that edge (a drum, a handle, a stone counterweight hanging on the post's back). Standing on the lower hop at the windlass and holding C (the body within reach px of the post) cranks the drum: the plank lowers across the gap over lower_s (a ratchet click every half turn, `turns` turns in all; pose `crank`, meta crank_ph = the handle's angle 0..1 per turn), lands flat with a thud (its top flush with the hop, its tip `clear` px short of under the upper hop's edge) and lies there hold_s as a walkable deck — from the tip the jump to the upper hop has no gap left, only the height; then the counterweight raises it again over raise_s. A body still on the deck as it rises slides back down the tilting plank to the hop (the plain outcome: the slide is `slide` px/s times the sine of the tilt, the pose's slide mode — no hurt, no fall; a body that walks off the tip or the hinge drops onto what is under it as on any hop edge). Let go of C before the plank is flat and the counterweight takes it back up from where it is. Nothing refuses, pushes or costs: the plain jump across the gap is untouched, the windlass post stands behind the walking line and blocks nothing, the plank is a platform only while it lies flat. build(root, planned) draws it; crank(on, x, z, dir, held, dt, fig) is the C test every grounded tick; land(x, y, ny, z) is the landing test the loader runs after its own comes up empty; stand(on, x, dt, fig) is called every tick while standing on a `drawbridge` kind. `pose` is the Stick3D pose_request while cranking and while sliding (stick3d_crank.gd). tools/probe_drawbridge.gd checks the plan and its refusals, the reach, the crank and its clicks, the thud, the deck as a platform, the hold, the raise and the slide, the early release, the visuals, the sounds and the pose.",
+  "id": "drawbridge",
+  "name": "Drawbridge",
+  "pose": "crank",
+  "themes": ["Old hall"],
+  "kinds": {
+    "span": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px; the plank is gap − clear long). min_dy/max_dy: how much higher the upper hop is (px; consecutive hops are 92..138 apart — the deck ends under the upper hop, the jump left is the height alone). inset: px the windlass post stands inside the lower hop's gap edge. reach: how far the body's centre may be from the post, beyond its half width, to crank (px). clear: px the flat plank's tip stops short of under the upper hop's edge. plank_th: the plank's thickness (px; its top lies flush with the hop). deck_d: the deck's depth front to back (px; the body stands on its middle). lower_s: seconds of cranking to lower the plank from upright to flat. hold_s: seconds it lies flat. raise_s: seconds the counterweight takes to raise it from flat to upright (from a part-lowered plank, that fraction of it). turns: handle turns over the full lowering (the ratchet clicks twice a turn, the pose's hands go round once a turn). slide: px/s a body slides down the rising plank at full tilt (times the sine of the tilt — slow at first, fast near upright; over the 2 s raise this is 382 px, more than any plank, so every body is back on the hop before the plank stands). post_h: the windlass post (px). drum_r: the drum's radius (px). weight: the counterweight's side (px). click_hz: the ratchet; thud_hz: the plank meeting the ground; creak_hz: the chain taking the weight when C is let go early.",
+      "min_gap": 70,
+      "max_gap": 220,
+      "min_dy": 60,
+      "max_dy": 150,
+      "inset": 24,
+      "reach": 18,
+      "clear": 8,
+      "plank_th": 6,
+      "deck_d": 24,
+      "lower_s": 1.5,
+      "hold_s": 6.0,
+      "raise_s": 2.0,
+      "turns": 3,
+      "slide": 300,
+      "post_h": 40,
+      "drum_r": 7,
+      "weight": 14,
+      "click_hz": 320,
+      "thud_hz": 110,
+      "creak_hz": 140
+    }
+  },
+  "pieces": [
+    { "_": "Old hall floors are 1..4, 35..39, 70..74 …; the vent floors ((n − 3) % 4 == 0: 3, 35, 39, 71 …) stay without a drawbridge — the wheels own the gaps there. The laundry line (run 143) takes the widest gap of 90..220 px on the same floors, the bell rope (run 128) a gap and the revolving door (run 134) the widest hop's middle; all three are passed as `taken`, so the drawbridge spans the widest gap none of them uses. One drawbridge per floor, over the widest gap of 70..220 px between two consecutive still hops 60..150 px apart in height.", "kind": "span", "on": ["std", "ice"], "max": 1, "only": { "from": 1, "every": 4 } },
+    { "kind": "span", "on": ["std", "ice"], "max": 1, "only": { "from": 2, "every": 4 } },
+    { "kind": "span", "on": ["std", "ice"], "max": 1, "only": { "from": 4, "every": 4 } }
+  ]
+}
