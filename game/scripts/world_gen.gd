@@ -86,7 +86,10 @@ func _far_peak(pk: Dictionary) -> void:
 	for j in n + 1:
 		for i in n + 1:
 			var x := c.x - r + i * step; var z := c.z - r + j * step
-			var h := height(x, z) - 0.6
+			var h := height(x, z)
+			for d in [Vector2(-0.6, 0), Vector2(0.6, 0), Vector2(0, -0.6), Vector2(0, 0.6), Vector2(-0.6, -0.6), Vector2(0.6, 0.6), Vector2(-0.6, 0.6), Vector2(0.6, -0.6)]:
+				h = minf(h, height(x + d.x * step, z + d.y * step))   # 둘레 낮은 쪽으로 — 거친 격자의 삼각형이 깎인 블록(마을) 위로 1m 떠서 집이 묻혀 보였다(운영자 2026-10-12)
+			h -= 0.6
 			verts.append(Vector3(x, h, z))
 			cols.append(Color(0.42, 0.56, 0.38).lerp(Color(0.62, 0.64, 0.6), smoothstep(40.0, 70.0, h)))
 	for j in n:
@@ -95,9 +98,15 @@ func _far_peak(pk: Dictionary) -> void:
 			idx.append_array([a, a + 1, a + n + 1, a + 1, a + n + 2, a + n + 1])
 	var arr := []; arr.resize(Mesh.ARRAY_MAX); arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_INDEX] = idx
 	var st := SurfaceTool.new(); st.create_from_arrays(arr); st.generate_normals()
+	var old := get_node_or_null("Far_" + String(pk["name"]))
+	if old: old.name = "Far_old"; old.queue_free()
 	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.name = "Far_" + String(pk["name"])
 	var m := StandardMaterial3D.new(); m.vertex_color_use_as_albedo = true; mi.material_override = m
 	add_child(mi)
+
+## 깎인 블록이 바뀌면(마을이 넓어짐) 먼 산도 다시 — 처음 것은 성장 상태를 읽기 전(깎기 없음)에 지어져 새 블록 위를 덮었다
+func _refresh_far() -> void:
+	for pk in PEAKS: _far_peak(pk)
 
 # ── 땅 ──
 ## 0 = 평지로 깎인 곳(허브·큰길·강), 1 = 자연 지형
@@ -522,12 +531,14 @@ func _model_src(id: String) -> Dictionary:
 
 ## 새 공사장이 산 위면 그 둘레 칸을 지워 다시 짓는다(이번엔 깎인 땅으로) — town_growth._open_sites
 func reflat(c: Vector2) -> void:
+	_refresh_far()
 	for key in chunks.keys():
 		var o := Vector2(key.x * CHUNK + CHUNK / 2.0, key.y * CHUNK + CHUNK / 2.0)
 		if o.distance_to(c) < 80.0:
 			(chunks[key] as Node3D).queue_free(); chunks.erase(key)
 
 func rebuild_all(p: Vector3) -> void:
+	_refresh_far()
 	for key in chunks.keys(): (chunks[key] as Node3D).queue_free()
 	chunks.clear(); _later.clear()
 	fill(p)
