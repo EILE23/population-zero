@@ -2,15 +2,15 @@ class_name TownTraffic
 extends TownCabin
 ## 차로 다니는 주민(운영자 2026-10-08: "차 운전하는 주민도 많아져야지, 지금 차량 보면 왔다 갔다밖에 안 하잖아") —
 ## 집이 북쪽 블록에 있는 주민 몇에게 자기 차(집 앞 길에 세워 둔다). 낮이면 가끔 볼일을 정한다: 가게·시청·학교·남의 집·탑·호숫가·오두막.
-## 차까지 걸어가 타고(주민의 "car" 자리 — 이미 있는 길) → 골목을 따라 가까운 큰길 들목(x 16·96·−104 …, 옛 마을은 지나지 않는다)으로 → 큰길 차선 → 목적지 쪽 들목 → 목적지 길 →
-## 세우고 내려 그 문으로 들어간다. 한참 뒤엔 다시 차로 집에 와 세운다. 사람이 그 차를 빼앗으면(차는 사람 것) 그 볼일은 끝
-## 큰길만 오가는 택시·배달차(town3d)는 그대로 둔다
+## 차까지 걸어가 타고(주민의 "car" 자리 — 이미 있는 길) → 골목 격자를 차선 주행(car_rail — 오른쪽 차선·둥근 모퉁이·앞차 간격·교차로 양보) →
+## 목적지 길섶에 대고 내려 그 문으로 들어간다. 한참 뒤엔 다시 차로 집에 와 세운다. 사람이 그 차를 빼앗으면(차는 사람 것) 그 볼일은 끝
 
 const COMMUTERS := 12
 const KINDS := ["sedan", "hatchback", "suv", "truck", "sedan", "hatchback"]
 const LINKS := [16.0, 96.0, -104.0, 136.0, -144.0, 176.0, -184.0]   # 큰길에서 북쪽 마을로 드는 남북 길(옛 마을 |x|<72 밖이거나 Tower Road)
 const EAST_Z := 2.9
 const WEST_Z := 1.1
+const VERGE := 3.0                # 길섶에 세우는 차의 가운데 — 길 가운데에서. 2.5 면 차선 차와 차체가 맞닿아 걸렸다
 
 var commuters: Array = []   # [{r, car, home: Vector3, phase, dest, until}]
 var cruisers: Array = []    # [{r, car, slow}] — 늘 도는 차(GTA 처럼 길에 차가 끊이지 않게): 닿으면 곧장 다음 목적지
@@ -35,7 +35,7 @@ func _traffic_init() -> void:
 	for i in picks.size():
 		var r: Resident = picks[i]
 		var dp: Vector3 = r.home_door["pos"]
-		var park := park_at(dp)
+		var park := _free_park(park_at(dp), null)
 		var c := _car(KINDS[i % KINDS.size()], park, PI / 2.0)
 		r.own_car = c
 		commuters.append({ "r": r, "car": c, "home": park, "phase": "home", "dest": {}, "until": Time.get_ticks_msec() / 1000.0 + randf_range(20.0, 120.0) })
@@ -45,7 +45,6 @@ func _traffic_init() -> void:
 		var at := Vector3(-150.0 + i * 40.0, 0, EAST_Z if i % 2 == 0 else WEST_Z)
 		var c := _car(["taxi", "sedan", "delivery", "hatchback", "suv", "sedan", "truck", "hatchback"][i % 8], at, -PI / 2.0 if i % 2 == 0 else PI / 2.0)
 		r.drive(c); c.ai = true; c.cruise = 8.0; c.reach = 5.0
-		c.route = _road_route(at, _any_street(r)); c._ri = 0
 		cruisers.append({ "r": r, "car": c, "slow": 0.0 })
 
 ## 매 틱(town_social) — 2초마다 볼일 진행
@@ -55,9 +54,9 @@ func _traffic_tick(now: float) -> void:
 	for e in cruisers:   # 늘 도는 차 — 다 왔으면 다음 목적지, 오래 막혔으면 다음 경유지로
 		var c: Car3D = e["car"]; var r: Resident = e["r"]
 		if not is_instance_valid(c) or driving == c or passenger == c or not (is_instance_valid(r) and r.car_seat == c): continue
-		_unstick(e, c)
-		if c._ri >= c.route.size() - 1 and c.global_position.distance_to(c.route[c.route.size() - 1]) < 6.0:
-			c.route = _road_route(c.global_position, _any_street(r)); c._ri = 0
+		if c.rail != null and not c.rail.done: continue
+		var d := _pick_dest(r)   # 다 왔거나(밀려나 길을 잃었거나) — 다음 목적지
+		_go(c, d.get("park", Vector3(randf_range(-140.0, 140.0), 0, EAST_Z)), d)
 	for e in commuters:
 		var r: Resident = e["r"]; var c: Car3D = e["car"]
 		if not is_instance_valid(r) or not is_instance_valid(c): continue
@@ -73,16 +72,19 @@ func _traffic_tick(now: float) -> void:
 				r.route = via_bridge(r.global_position, [{ "pos": c.exit_pos(), "act": "" }]); r.target = r.route[0]["pos"]; r.state = "walk"
 			"to_car":
 				if r.state == "drive" and r.car_seat == c:
-					c.route = _road_route(c.global_position, dest_park(e)); c._ri = 0; c.ai = true; c.cruise = 7.0; c.reach = 5.0
+					if not e["dest"].has("via"): e["dest"]["park"] = _free_park(dest_park(e), c)   # 빈 자리 — 같은 가게에 차가 겹쳐 서던 것
+					c.ai = true; c.cruise = 7.0; c.reach = 5.0; _go(c, dest_park(e), e["dest"])
 					e["phase"] = "driving"; e["until"] = now + 120.0
 					r.say(["Errands.", "Back in a bit.", "Off to " + String(e["dest"].get("name", "town")) + "."][randi() % 3], 1.6)
 				elif now > float(e["until"]):   # 차까지 못 갔다 — 다음에
 					e["phase"] = "there" if e["dest"].get("name", "") == "home" else "home"; e["until"] = now + 40.0
 			"driving":
-				_unstick(e, c)
 				var goal := dest_park(e)
-				if c.global_position.distance_to(goal) < 4.5 or now > float(e["until"]):
-					c.ai = false; c.route = []; c.input = { "throttle": 0.0, "steer": 0.0, "brake": true }
+				if c.rail == null or c.rail.lost: _go(c, goal, e["dest"])   # 밀려나 길을 잃었다 — 그 자리에서 다시
+				var stop := now > float(e["until"]) or c.rail == null   # 길이 없다·너무 오래 — 여기 세운다
+				if stop or c.rail.done:
+					_pull_over(c, goal if c.global_position.distance_to(goal) < 8.0 else Vector3.INF)
+					c.ai = false; c.route = []; c.rail = null; c.input = { "throttle": 0.0, "steer": 0.0, "brake": true }
 					r.leave_car(); r.job = ""
 					var dr: Dictionary = e["dest"].get("door", {})
 					if not dr.is_empty():
@@ -92,24 +94,58 @@ func _traffic_tick(now: float) -> void:
 					e["phase"] = "home" if back else "there"
 					e["until"] = now + (randf_range(120.0, 300.0) if back else randf_range(60.0, 150.0))
 
-## 문 앞 길에 세울 자리 — 동서 길은 모두 z = OZ + 20k(블록 경계 골목과 블록 가운데 뒷골목), 문 남쪽의 그 줄 한가운데에서 0.9m 비켜(차선)
-## 전엔 앞마당 끝(문 앞 3m)에 세워 울타리·나무·가로등 줄을 따라가다 막혔다
+## 차선 주행으로 보낸다(car_rail) — 장소면 큰길의 그 장소 길 입구까지 가서 그 길로 꺾는다
+func _go(c: Car3D, park: Vector3, dest: Dictionary = {}) -> void:
+	var via: Variant = dest.get("via", null)
+	var rl: CarRail = null
+	if via is Vector3: rl = CarRail.plan(self, c, Vector3((via as Vector3).x, 0, WorldGen.ROAD_Z), [park])
+	else: rl = CarRail.plan(self, c, Vector3(park.x, 0, park.z - VERGE), [], park)
+	c.rail = rl; c.route = []   # 길이 없으면(그 목적지로 이어진 깎인 길이 아직 없다) 서서 다음 틱에 다른 데로
+	if rl: rl.cruise = c.cruise
+
+## 길섶에 댄다 — 세울 자리(가까우면)나 지금 길의 길섶으로 1초에 걸쳐 미끄러져 길과 나란히. 차선 위에 세운 차는 뒤차를 영영 세웠다
+func _pull_over(c: Car3D, at: Vector3) -> void:
+	var p := c.global_position
+	var ax := absf(sin(c.rotation.y)) > 0.7   # 동서로 서 있다
+	var ns := false
+	if at == Vector3.INF:
+		var s: Array = CarRail._seg_of(p)
+		ns = (s[0] as Vector2i).y != (s[1] as Vector2i).y
+		var mid: Vector3 = s[2]
+		at = Vector3(p.x, p.y, mid.z + (VERGE if p.z >= mid.z else -VERGE)) if (s[0] as Vector2i).y == (s[1] as Vector2i).y else Vector3(mid.x + (VERGE if p.x >= mid.x else -VERGE), p.y, p.z)
+	at = _free_park(at, c, ns); at.y = p.y
+	var yaw := (PI / 2.0 if sin(c.rotation.y) > 0.0 else -PI / 2.0) if ax else (0.0 if cos(c.rotation.y) > 0.0 else PI)
+	var tw := c.create_tween(); tw.set_parallel(true)
+	tw.tween_property(c, "global_position", at, 1.0); tw.tween_property(c, "rotation:y", c.rotation.y + wrapf(yaw - c.rotation.y, -PI, PI), 1.0)
+
+## 문 앞 길에 세울 자리 — 동서 길은 모두 z = OZ + 20k(블록 경계 골목과 블록 가운데 뒷골목), 문 남쪽 그 줄의 길섶
 static func park_at(door_pos: Vector3) -> Vector3:
 	var sz := TownPlan.OZ + ceilf((door_pos.z - TownPlan.OZ + 0.5) / 20.0) * 20.0
-	return Vector3(door_pos.x + 2.2, 0, sz + 0.9)
+	var x := door_pos.x + 2.2
+	var gx := TownPlan.OX + roundf((x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH
+	if absf(x - gx) < 4.5: x = gx + 4.5 * (1.0 if x >= gx else -1.0)   # 남북 길 들목은 비운다 — 거기 세우면 남북 차선을 막았다
+	return Vector3(x, 0, sz + VERGE)   # 길섶(골목 반폭 1.6 밖, 차 반폭 0.7 + 틈) — 차선(±0.8)을 막지 않게(car_rail 차가 세운 차 뒤에서 영영 섰다)
 
-## 4초 넘게 거의 서 있으면(차는 그사이 저절로 뒤로 빼 본다) 다음 경유지로 — 같은 모퉁이에 영영 걸려 있지 않게
-func _unstick(e: Dictionary, c: Car3D) -> void:
-	var t := float(e.get("slow", 0.0))
-	if absf(c.v) < 0.6: t += 2.0
-	else: t = 0.0
-	if t >= 4.0 and c._ri < c.route.size() - 1: c._ri += 1; t = 0.0
-	e["slow"] = t
-
-## 아무 데나 — 지은 집 문 앞 길(옛 마을 밖) 또는 장소 앞
-func _any_street(r: Resident) -> Vector3:
-	var d := _pick_dest(r)
-	return d.get("park", Vector3(randf_range(-140.0, 140.0), 0, EAST_Z)) if not d.is_empty() else Vector3(randf_range(-140.0, 140.0), 0, EAST_Z)
+## 길섶 빈 자리 — 그 자리부터 길 따라 6m 씩 양쪽으로, 다른 차(서 있거나 그리로 가는) 5.5m 안이 아니고 남북 길 들목이 아닌 곳.
+## 전엔 3.4m 간격으로 붙여 세워 가운데 차가 앞차에 막혀 못 빠져나왔다
+func _free_park(at: Vector3, me: Car3D, ns := false) -> Vector3:
+	for k in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]:
+		var p := at + (Vector3(0, 0, k * 6.0) if ns else Vector3(k * 6.0, 0, 0))   # 남북 길섶이면 z 로
+		if ns:
+			var gz := TownPlan.OZ + roundf((p.z - TownPlan.OZ) / 20.0) * 20.0
+			if absf(p.z - gz) < 4.5: continue
+		else:
+			var gx := TownPlan.OX + roundf((p.x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH
+			if absf(p.x - gx) < 4.5: continue
+		var free := true
+		for c in cars:
+			if c == me: continue
+			if (c as Node3D).global_position.distance_to(p) < 5.5: free = false; break
+		if free:
+			for e in commuters:
+				if e["car"] != me and String(e["phase"]) == "driving" and (e["dest"].get("park", Vector3.INF) as Vector3).distance_to(p) < 5.5: free = false; break
+		if free: return p
+	return at
 
 func dest_park(e: Dictionary) -> Vector3:
 	return e["dest"].get("park", e["home"])
@@ -125,44 +161,8 @@ func _pick_dest(r: Resident) -> Dictionary:
 		opts.append({ "park": park_at(p), "door": dr, "name": name })
 	for s in WorldGen.SITES:
 		var c: Vector3 = s["c"]
-		opts.append({ "park": c + (Vector3(s["from"].x - c.x, 0, s["from"].z - c.z).normalized() * (float(s["r"]) + 3.0)), "door": {}, "name": String(s["name"]), "via": s["from"] })
+		var fr: Vector3 = s["from"]
+		if absf(fr.x) < WorldGen.HUB_X + 2.0:   # 옛 마을 안에서 드는 길(탑·산) — 큰길 길섶에 세우고 걸어간다
+			opts.append({ "park": Vector3(fr.x + 3.0, 0, WorldGen.ROAD_Z + VERGE), "door": {}, "name": String(s["name"]) })
+		else: opts.append({ "park": c + (Vector3(fr.x - c.x, 0, fr.z - c.z).normalized() * (float(s["r"]) + 3.0)), "door": {}, "name": String(s["name"]), "via": fr })
 	return opts[randi() % opts.size()] if not opts.is_empty() else {}
-
-## 길 — 지금 자리 → 가까운 들목 길로 → 큰길 차선 → 목적지 쪽 들목 → 목적지. 북쪽 마을의 골목(동서)은 지금 자리의 z 를 그대로 탄다
-func _road_route(from: Vector3, to: Vector3) -> Array[Vector3]:
-	var la := _link_near(from.x, from.z); var lb := _link_near(to.x, to.z)
-	var via: Variant = _via_of(to)
-	if via is Vector3: lb = (via as Vector3).x   # 장소(탑·호숫가·오두막·산 들머리)는 그 장소로 난 길로 — 그 길은 깎여 있다
-	var east := lb > la
-	var lane := EAST_Z if east else WEST_Z
-	var pts: Array[Vector3] = []
-	if absf(from.z - 2.0) > 20.0: pts.append(Vector3(la, 0, from.z))
-	pts.append(Vector3(la, 0, lane))
-	if absf(lb - la) > 1.0: pts.append(Vector3(lb, 0, lane))
-	if via is Vector3: pass
-	elif absf(to.z - 2.0) > 20.0: pts.append(Vector3(lb, 0, to.z))
-	pts.append(to)
-	return pts
-
-## 가까운 들목 — 큰길에서 그 z 까지 땅이 깎여 있는(차가 달릴 수 있는) 남북 길만. 남쪽은 Tower Road(x 16)가 없다(옛 마을 남쪽은 강·공원)
-## 전엔 깎이지 않은 언덕 위 들목(x −104)으로 들어가 칸이 없는 데서 서 버렸다(2026-10-08)
-func _link_near(x: float, z: float) -> float:
-	var best := 1e9
-	for l in LINKS:
-		if z > 0.0 and absf(float(l)) < 72.0: continue
-		if not _link_ok(float(l), z): continue
-		if absf(float(l) - x) < absf(best - x): best = l
-	return best if best < 1e8 else 16.0
-
-func _link_ok(x: float, z: float) -> bool:
-	for k in 7:
-		var zz := lerpf(2.0, z, k / 6.0)
-		if gen.wild_k(x, zz) > 0.05: return false
-	return true
-
-## 장소로 가는 길(WorldGen.SITES from) — 목적지가 장소면 그 길 입구
-func _via_of(to: Vector3) -> Variant:
-	for s in WorldGen.SITES:
-		var c: Vector3 = s["c"]
-		if Vector2(to.x - c.x, to.z - c.z).length() < float(s["r"]) + 6.0: return s["from"]
-	return null

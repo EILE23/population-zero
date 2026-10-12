@@ -61,6 +61,8 @@ var stop_until := -9.0             # 손님이 내리겠다고 하면 이 시각
 var route: Array[Vector3] = []
 var cruise := 8.0                  # 경유지 사이 바라는 속도 — 마을 길은 8, 레이싱 주민은 더(race.gd)
 var _ri := 0
+var rail: CarRail = null           # 차선 주행(car_rail) — 있으면 route·더듬이 대신 이것으로 몬다
+var _far_n := 0
 var reach := 3.0                  # 경유지에 닿았다고 치는 거리 — 볼일 차(town_traffic)는 넉넉히(회전 반경 안의 점을 빙빙 돌았다)
 var _wk: Array = []               # 지난 더듬이 결과 — 화면 밖·멀리 있는 주민 차는 네 틱에 한 번만 새로 쏜다(2026-10-01 성능 패스)
 var _wk_n := 0
@@ -205,6 +207,13 @@ func _physics_process(delta: float) -> void:
 	if "gen" in town and not (town.gen as WorldGen).car_ground(global_position): return
 	# 세워 둔 채 가만한 차는 물리를 쉰다 — 마을 차 열 대 중 여덟이 늘 이렇다. 누가 타거나, 다른 차가 밀거나(v·side), 누가 옮겨 놓으면(위에 얹기·집 안) 다시 돈다
 	if driver == null and absf(v) < 0.05 and absf(side) < 0.05 and absf(yaw_rate) < 0.01 and absf(_roll) + absf(_pitch) < 0.002 and global_position == _rest_at: return
+	# 멀리 있는 주민 차는 네 틱에 한 번(주민과 같은 LOD) — 차가 서른 대로 늘자 프레임이 41까지 떨어졌다(2026-10-08). 한 번에 네 틱만큼 간다
+	if ai and driver is Resident and town.get("body") and global_position.distance_squared_to(town.body.global_position) > 4900.0:
+		_far_n = (_far_n + 1) % 4
+		if _far_n != 0: return
+		delta *= 4.0
+	if ai and rail != null and driver is Resident and (driver as Resident).state == "drive":
+		rail.step(self, delta); return
 	if ai and driver is Resident:
 		if (driver as Resident).state == "drive": _drive_ai()
 		else: driver = null; input = { "throttle": 0.0, "steer": 0.0, "brake": false }   # 운전사가 내렸으면(어떤 이유로든) 차는 선다 — 빈 차가 혼자 달리던 것
@@ -365,7 +374,7 @@ static func _flatten(n: Node3D) -> void:
 
 ## 벤치·울타리 토막을 들이받으면 부서져 조각이 날아간다 — 수리공이 나중에 다시 세운다
 func _smash_props(fwd: Vector3) -> void:
-	for w in town.wreckables.duplicate():
+	for w in (town.call("wreck_near", global_position) if town.has_method("wreck_near") else town.wreckables.duplicate()):   # 둘레 칸만(town_city) — 전엔 차마다 매 프레임 소품 수백 개를 복사해 다 훑었다
 		var to: Vector3 = (w["at"] as Vector3) - global_position; to.y = 0.0
 		var ahead := to.dot(fwd * signf(v)); var lat := absf(to.dot(global_transform.basis.x))
 		if ahead > 0.0 and ahead < 1.25 + float(w["r"]) + absf(v) * 0.05 and lat < 0.72 + float(w["r"]):   # 차체 앞 상자에 닿은 것만 — 전엔 1.7m 부채꼴이라 길가 가로등·벤치 옆을 지나기만 해도 부쉈다

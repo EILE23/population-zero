@@ -10,7 +10,7 @@ static func merge(parent: Node3D, nodes: Array, exclude: Array) -> int:
 	var stack: Array = nodes.duplicate()
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
-		if not is_instance_valid(n) or n in exclude or n.has_meta("flatpack") or n.has_meta("kind"): continue
+		if not is_instance_valid(n) or n in exclude or n.has_meta("flatpack") or n.has_meta("kind") or n.has_meta("nomerge"): continue
 		for ch in n.get_children(): stack.append(ch)
 		if not (n is MeshInstance3D): continue
 		var mi := n as MeshInstance3D

@@ -434,6 +434,7 @@ func _town_clear(x: float, z: float, r: float) -> bool:
 		if Vector2(x - sc.x, z - sc.z).length() < float(s["r"]) + 1.0: return false
 		if _seg_dist(Vector2(x, z), Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 3.5: return false
 	var b := CityMap.block_of(Vector2(x, z))
+	if flat_limit > 0 and TownPlan.block_order(b) < flat_limit: return false   # 지은 블록 안은 들풀을 안 띄운다 — 마당·공용지(town_city)가 채운다. 갈대·들꽃이 가게 옆에 무성했다(운영자 2026-10-08)
 	if CityMap.whole_block(b) and Vector2(x, z).distance_to(Vector2(CityMap.block_center(b).x, CityMap.block_center(b).z)) < 19.0: return false   # 관공서·공원 블록
 	for l in _lots_near(b):
 		if Vector2(x, z).distance_to(l["c"]) < 3.6 + r * 0.5: return false   # 집 둘레만(필지 간격 7.4m)

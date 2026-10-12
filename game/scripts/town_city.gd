@@ -30,6 +30,27 @@ func _city_init() -> void:
 		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
 
+## 블록 공용지(block_commons) — 블록마다 뒤뜰 사이 빈 띠 둘(북쪽 골목 옆, 가운데 뒷골목 남쪽)을 반씩 네 칸, 칸마다 놀이·운동·텃밭·장터… 하나. 블록의 첫 필지가 설 때 한 번
+var _commons_done := {}
+func _block_commons(b: Vector2i) -> void:
+	var zone := CityMap.zone_at(Vector2(TownPlan.OX + (b.x + 0.5) * TownPlan.PITCH, TownPlan.OZ + (b.y + 0.5) * TownPlan.PITCH))
+	if _commons_done.has(b) or CityMap.whole_block(b) or zone == "workshop": return
+	_commons_done[b] = true
+	var x0 := TownPlan.OX + b.x * TownPlan.PITCH + TownPlan.PATH_W / 2.0; var z0 := TownPlan.OZ + b.y * TownPlan.PITCH + TownPlan.PATH_W / 2.0
+	var inner := TownPlan.PITCH - TownPlan.PATH_W; var lane := z0 + inner * 0.5
+	var cx := x0 + inner / 2.0
+	var h := absi(hash("%d,%d" % [b.x, b.y]))
+	var kinds := BlockCommons.kinds_for(zone)
+	var keep := _build_parent
+	for cell in 4:
+		var at := Vector3(cx + (-9.0 if cell % 2 == 0 else 9.0), 0, (z0 + 5.0) if cell < 2 else (lane + 5.0))
+		if absf(at.x) < WorldGen.HUB_X + 4.0 and absf(at.z) < WorldGen.HUB_Z + 4.0: continue
+		_build_parent = _root_for(at)
+		var mark := _merge_mark()
+		BlockCommons.build(self, at, String(kinds[(h + cell * 3) % kinds.size()]), h + cell)
+		_merge_done(mark)
+	_build_parent = keep
+
 ## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무,
 ## 뒤뜰 텃밭(흙 이랑 + 채소), 빨랫줄, 마당 의자. 길 쪽 가운데(문길)는 비운다. 모양만(충돌 없음 — 주민 길을 막지 않게), 다 합쳐 그리기 몇 번
 func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
@@ -73,6 +94,22 @@ func _merge_done(mark: Array) -> void:
 	MeshMerge.merge(par, nodes, ex)
 	for k in range(int(mark[3]), houses.size()): houses[k]["merged"] = true
 
+## 부술 수 있는 소품의 8m 칸 색인 — 차(car3d _smash_props)가 둘레 아홉 칸만 본다. 소품 수가 바뀌면 다시 짓는다(부서지고 다시 서는 것 포함)
+var _wk_grid := {}
+var _wk_count := -1
+func wreck_near(p: Vector3) -> Array:
+	if wreckables.size() != _wk_count:
+		_wk_count = wreckables.size(); _wk_grid.clear()
+		for w in wreckables:
+			var k := Vector2i(floori((w["at"] as Vector3).x / 8.0), floori((w["at"] as Vector3).z / 8.0))
+			if not _wk_grid.has(k): _wk_grid[k] = []
+			_wk_grid[k].append(w)
+	var out: Array = []
+	var c := Vector2i(floori(p.x / 8.0), floori(p.z / 8.0))
+	for dx in [-1, 0, 1]:
+		for dz in [-1, 0, 1]: out.append_array(_wk_grid.get(c + Vector2i(dx, dz), []))
+	return out
+
 ## 위층(town_plots)이 정한다 — 사람이 고른 모양, 내 집인가
 func _style_for(_l: Dictionary) -> String: return ""
 func _is_mine(_k: int) -> bool: return false
@@ -96,6 +133,7 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		_done[hk] = true
 		if not live: built = maxi(built, hk + 1)
 		_pave(l)
+		_block_commons(l["b"])
 		var hsp := TownPlan.house_spec(l); var nd := doors.size()
 		var hkeep := _build_parent; _build_parent = _root_for(c)
 		var mark := _merge_mark()
@@ -113,6 +151,7 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 	_done[k] = true
 	if not live: built = maxi(built, k + 1)
 	_pave(l)
+	_block_commons(l["b"])
 	var keep := _build_parent; _build_parent = _root_for(c)
 	var mark := _merge_mark()
 	match kind:

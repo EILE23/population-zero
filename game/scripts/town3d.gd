@@ -32,11 +32,7 @@ func _ready() -> void:
 	_car("sedan", Vector3(19.5, 0, 4.6), PI / 2.0)      # 시장 앞 큰길가에 세단(운영자 2026-09-29: 차·운전)
 	_car("hatchback", Vector3(-19.5, 0, 4.6), -PI / 2.0)   # 공원 앞에 해치백
 	_car("race", Vector3(12.5, 0, 4.6), PI / 2.0); _car("suv", Vector3(-12.5, 0, 4.6), PI / 2.0); _car("truck", Vector3(26, 0, -9.5), 0.0); _car("tractor", Vector3(-6, 0, 18.5), 0.0)
-	# 교통: 주민이 모는 차 둘이 큰길을 오간다(동쪽 차선 z 2.6, 서쪽 차선 z 1.4, 끝에서 유턴)
-	for k in [["taxi", -30.0], ["delivery", 20.0]]:
-		var tc := _car(k[0], Vector3(k[1], 0, 2.9), -PI / 2.0)
-		tc.ai = true; tc.driver = tc
-		tc.route = [Vector3(84, 0, 2.9), Vector3(89, 0, 4.3), Vector3(89.5, 0, 6.4), Vector3(84, 0, 5.8), Vector3(80, 0, 1.1), Vector3(-80, 0, 1.1), Vector3(-85, 0, -0.5), Vector3(-89.5, 0, 1.6), Vector3(-88, 0, 4.8), Vector3(-83, 0, 5.4), Vector3(-78, 0, 2.9)]   # 유턴은 마을 밖 넓은 길에서(열린 세계) — 공원·동쪽 마을 소품 사이 S자에서 끼던 것   # 차선 간격 1.7m(차 폭 1.5) — 1.2m 일 땐 마주 오는 차끼리 서로 막았다   # 동쪽 마을까지, 끝에선 남쪽 풀밭으로 크게 돌아 유턴
+	# 큰길 교통은 차선 주행 주민 차(town_traffic 늘 도는 차, car_rail) — 전엔 운전사 없는 택시·배달차 둘이 동쪽 차선 한가운데 서 있어 길을 막았다
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "iron", false, 1)
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
 	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다

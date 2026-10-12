@@ -25,7 +25,7 @@ func _swing(at: Vector3) -> void:
 	var iron := _mat(Color("4a4a52")); var wood := _mat(Color("b48a5a"))
 	_box(Vector3(0.08, 2.2, 0.08), at + Vector3(-1.0, 0, 0), iron); _box(Vector3(0.08, 2.2, 0.08), at + Vector3(1.0, 0, 0), iron)
 	_box(Vector3(2.2, 0.08, 0.08), at + Vector3(0, 2.2, 0), iron, false)
-	var pivot := Node3D.new(); pivot.position = at + Vector3(0, 2.2, 0); _add(pivot)
+	var pivot := Node3D.new(); pivot.position = at + Vector3(0, 2.2, 0); pivot.set_meta("nomerge", true); _add(pivot)
 	var L := 1.55
 	for rx in [-0.25, 0.25]:
 		var rope := MeshInstance3D.new(); var rm := BoxMesh.new(); rm.size = Vector3(0.02, L, 0.02); rope.mesh = rm; rope.material_override = iron
