@@ -1,0 +1,36 @@
+{
+  "_": "Climb content pack 'Scroll rack' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_scroll.gd reads this file: plan(n, plats, taken) works only on the `themes` floors, looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose box (from the body behind the rack to the chart's far end, from the lower hop's top to a standing body) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the ladder, the dumbwaiter, the bookcase, the paternoster — the loader passes their plans; a piece's own top, rail_y/beam_y/y_top, is honoured when it is higher than the default band) meets; one rack per floor beside the widest such gap: a tall rack of rolled charts standing against the cliff `inset` px inside the lower hop's gap edge, the top scroll lying across it. Standing on the lower hop at the rack (the body within reach px of it) and pressing C pulls the top scroll: the chart unrolls across the gap over unroll_s as a paper deck (pose `unroll`, meta unroll_k = the paper's progress 0..1 — the arms sweep out as far as the paper has gone and the body steps `step` px back from the rack), flops flat (its top flush with the hop, its far end `clear` px short of under the upper hop's edge) and lies there as a walkable deck — from the far end the jump to the upper hop has no gap left, only the height. Paper is paper: it holds a standing body hold_s seconds in all (the time adds up across visits), then tears at tear_at of its length from the rack — a rip, the far piece drops away and the body is simply no longer standing on anything (the loader's plain fall: no push, no hurt from the pack, no pose — what is under it catches it as after any edge); the rest rolls itself back over roll_s and the rack is ready to pull again. A chart nobody stands on rolls itself back idle_s after it lay flat (no rip). Nothing refuses, pushes or costs: the plain jump across the gap is untouched, the rack stands behind the walking line and blocks nothing, the chart is a platform only while it lies flat. build(root, planned) draws it; pull(on, x, z, pressed, fig) is the C test every grounded tick (pressed is the loader's just-pressed C; while the chart unrolls it keeps answering `pulling` and the body's x, so the body stays at the rack for the sweep — a tick missed for 0.35 s frees the body, the paper keeps going); land(x, y, ny, z) is the landing test the loader runs after its own comes up empty; stand(on, x, dt, fig) is called every tick while standing on a `scroll` kind. `pose` is the Stick3D pose_request while pulling (stick3d_unroll.gd). tools/probe_scroll.gd checks the plan and its refusals, the reach, the pull and its clock, the flop, the deck as a platform, the tear after hold_s of standing, the idle roll-back, the let-go, the visuals, the sounds and the pose.",
+  "id": "scroll",
+  "name": "Scroll rack",
+  "pose": "unroll",
+  "themes": ["Library"],
+  "kinds": {
+    "chart": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px; the chart is gap − clear long). min_dy/max_dy: how much higher the upper hop is (px; the deck ends under the upper hop, the jump left is the height alone). inset: px the rack stands inside the lower hop's gap edge. reach: how far the body's centre may be from the rack, beyond its half width, to pull (px). clear: px the chart's far end stops short of under the upper hop's edge. sheet_th: the paper's thickness (px; its top lies flush with the hop). deck_d: the deck's depth front to back (px; the body stands on its middle). unroll_s: seconds the chart takes to unroll from the pull to flat. hold_s: seconds of standing the paper bears in all before it tears. tear_at: fraction of the chart's length (from the rack) where it tears — the deck beyond it drops away. idle_s: seconds a flat chart nobody stands on lies before it rolls itself back. roll_s: seconds the chart takes to roll back from flat (a torn one, from its tear_at). step: px the body steps back from the rack over the pull. rack_h: the rack (px). roll_r: the scroll's radius (px). pull_hz: the paper sliding off the rack; flop_hz: the chart meeting the ground; rip_hz: the tear; wind_hz: the chart rolling itself back.",
+      "min_gap": 70,
+      "max_gap": 220,
+      "min_dy": 40,
+      "max_dy": 150,
+      "inset": 24,
+      "reach": 18,
+      "clear": 8,
+      "sheet_th": 2,
+      "deck_d": 24,
+      "unroll_s": 0.8,
+      "hold_s": 2.0,
+      "tear_at": 0.6,
+      "idle_s": 8.0,
+      "roll_s": 4.0,
+      "step": 12,
+      "rack_h": 48,
+      "roll_r": 5,
+      "pull_hz": 900,
+      "flop_hz": 160,
+      "rip_hz": 240,
+      "wind_hz": 520
+    }
+  },
+  "pieces": [
+    { "_": "Library floors are 10..14, 45..49, 80..84 …; every one gets at most one rack. The ladder (run 127), the dumbwaiter (run 130), the bookcase (run 132) and the paternoster (run 139) are passed as `taken`, so the rack stands beside the widest gap none of them uses. One rack per floor, beside the widest gap of 70..220 px between two consecutive still hops 40..150 px apart in height.", "kind": "chart", "on": ["std", "ice"], "max": 1 }
+  ]
+}
