@@ -1,0 +1,45 @@
+{
+  "_": "Climb content pack 'Candle stair' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_candle.gd reads this file: plan(n, plats, taken) works only on the `themes` floors, looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with b at most max_dy higher, whose box (the stair's `steps` × `tread` px out from hop a's gap edge, from a's top to the tallest candle's flame plus a standing body) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack meets (the star lantern and the icicles — the loader passes their plans; a piece's own top, rail_y/beam_y/y_top, or its `len`, is honoured when it is higher than the default band); one stair per floor on the widest such gap: a brass bracket out of the cliff at hop a's top, and on it three thick wax candles side by side, each `tread` px wide, rising toward hop b — the candles' tops step up by min_h..max_h px each (the three rises add up to b's height less `top_short`, split unevenly: base − 4, base + 4, base, rounded to whole px), so each candle is a tap jump up from the one before and hop b a tap jump from the last. A standing body softens the wax: the candle under it sinks `sag_v` px/s up to `max_sag` px (its flame is snuffed under the foot), keeps its dent `hold_s` seconds after the body leaves, then the wax sets back over `set_s` seconds and the flame relights — so the stair is lower, and the last jump to hop b higher, the third time up it within a minute. Walking into a taller neighbour stops the body at its wax wall; stepping off a candle's edge drops the body onto the lower one or the hop. Nothing refuses, pushes or costs: the plain jump across the gap is untouched (the candles sit under its arc and are only a floor beneath it), the stair never covers a hop. build(root, planned) draws it; land(x, y, ny, z) is the landing test the loader runs after its own comes up empty and vy ≤ 0 (a body crossing a candle's top this tick, one stepping down onto it within catch px, or one walking up into a top at most catch px above its feet — a sunk first candle); stand(on, x, dt, fig) is called every tick while standing on a `candle` kind and returns the body's x (stopped at a taller neighbour's wall), the top height, and `off` when the body has walked past the stair or off its candle's edge; sync(_t) every tick. `pose` is the Stick3D pose_request while standing on a candle (stick3d_sink.gd: knees softening with the dent — meta sink_k 0..1 — arms lifting for balance and the torso catching itself on a beat while the wax gives — meta sink_v 0/1 — with a small recovering hop of the free foot; careful narrow steps when walking). tools/probe_candle.gd checks the plan and its refusals, the heights, the sag clock and its cap, the hold, the set-back and the relight, the wax wall, the step-off, the landing cases, the visuals, the sounds and the pose.",
+  "id": "candle",
+  "name": "Candle stair",
+  "pose": "sink",
+  "themes": [
+    "Starlit"
+  ],
+  "kinds": {
+    "candle": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px; the stair is steps × tread long and starts at hop a's gap edge). max_dy: how much higher hop b may be (px). steps: candles. tread: each candle's width (px). min_h/max_h: each rise from one candle's top to the next (px; the first rise is from hop a's top). top_short: px the last candle's top stays under hop b's top. sag_v: px/s a stood candle sinks. max_sag: the deepest dent (px; must stay under min_h so the candles keep their order). hold_s: seconds a dent is kept after the body leaves. set_s: seconds the wax takes to set back from the deepest dent. catch: px below (a step down) or above (a sunk candle walked up onto) the feet within which land() takes a candle. deck_d: the candles' depth front to back (px). wick: the wick above the wax (px). flame: the flame's height (px). squish_hz: a body landing on wax; hiss_hz: the flame snuffed under the foot; pop_hz: the wick relighting. glow_hz: the flames' slow flicker.",
+      "min_gap": 100,
+      "max_gap": 200,
+      "max_dy": 150,
+      "steps": 3,
+      "tread": 28,
+      "min_h": 24,
+      "max_h": 40,
+      "top_short": 20,
+      "sag_v": 6.0,
+      "max_sag": 16.0,
+      "hold_s": 20.0,
+      "set_s": 3.0,
+      "catch": 16,
+      "deck_d": 28,
+      "wick": 6,
+      "flame": 10,
+      "squish_hz": 70,
+      "hiss_hz": 2400,
+      "pop_hz": 600,
+      "glow_hz": 0.9
+    }
+  },
+  "pieces": [
+    {
+      "_": "Starlit floors are 30..34, 65..69, 100..104 …; the star lantern (lantern.json) takes the widest 60..170 px gap on the same floors and the icicles (icicle.json) hang from hop lips there, so the loader passes both plans as `taken` and the stair takes the widest 100..200 px gap neither uses. One stair per floor.",
+      "kind": "candle",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1
+    }
+  ]
+}
