@@ -73,6 +73,12 @@ func _social_tick(now: float, dir: Vector3) -> void:
 		elif dance:
 			player.action_t = fmod((now - _emote_t0) / float(LOOPS[emote]), 1.0)
 	if not typing and not driving and Input.is_action_just_pressed("hit"): _shove_near()
+	if not driving and body.is_on_floor() and body.global_position.y > 0.4:   # 트램펄린(back_yards) — 판 위에 내려서면 튄다, 점프를 누르고 있으면 더 높이
+		var bp := body.global_position
+		for tp in trampolines:
+			if Vector2(bp.x - tp.x, bp.z - tp.z).length() < 1.15:
+				body.velocity.y = 10.5 if Input.is_action_pressed("jump") else 7.5
+				break
 
 ## 밀치기 — 앞 1.3m 안의 사람. 내 주먹은 평소대로 나가고, 그 사람에겐 hitp 가 간다
 func _shove_near() -> void:

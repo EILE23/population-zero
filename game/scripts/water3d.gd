@@ -48,8 +48,9 @@ func disc(c: Vector3, r: float) -> void:
 	_mesh(rm, _flat(Color("bfb6b0")), Vector3(c.x, 0.015, c.z))
 	var body := { "kind": "disc", "c": c, "r": r, "flow": 0.0 }
 	bodies.append(body)
-	for i in 6:
-		var a := i * TAU / 6.0 + 0.4
+	var nf := 6 if r >= 2.0 else 2   # 뒤뜰 물놀이 풀(back_yards)은 작다 — 물결 조각 여섯이면 풀마다 그리기 여섯
+	for i in nf:
+		var a := i * TAU / nf + 0.4
 		_fleck(body, c + Vector3(cos(a) * r * 0.55, SURFACE_Y + 0.005, sin(a) * r * 0.55), 0.35)
 
 func _fleck(body: Dictionary, at: Vector3, len: float) -> void:

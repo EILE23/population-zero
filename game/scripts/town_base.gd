@@ -222,6 +222,7 @@ var last_dropped: Node3D = null  # 방금 내려놓은 것 — 다음 C 가 도�
 var cars: Array[Car3D] = []       # 마을의 차들
 
 var seesaws: Array[Seesaw3D] = []
+var trampolines: Array[Vector3] = []   # 뒤뜰 트램펄린 가운데(back_yards) — 올라서면 튄다(town_social)
 var seesaw_ride: Seesaw3D = null   # 내가 탄 시소
 
 var cracks: Array = []            # 벽의 금 {node, house, at, out, by} — 수리공이 고친다. 부서진 벤치·울타리도 여기 들어간다(kind "wreck")

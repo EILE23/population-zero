@@ -30,11 +30,11 @@ func _city_init() -> void:
 		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
 
-## 블록 공용지(block_commons) — 블록마다 뒤뜰 사이 빈 띠 둘(북쪽 골목 옆, 가운데 뒷골목 남쪽)을 반씩 네 칸, 칸마다 놀이·운동·텃밭·장터… 하나. 블록의 첫 필지가 설 때 한 번
+## 번화가 공용지(block_commons) — 가게 블록의 가게 뒤 빈 띠 둘을 반씩 네 칸: 장터·노천 카페·피크닉·연못·꽃밭. 주택가 띠는 집마다의 뒤뜰(back_yards)이 채운다
 var _commons_done := {}
 func _block_commons(b: Vector2i) -> void:
 	var zone := CityMap.zone_at(Vector2(TownPlan.OX + (b.x + 0.5) * TownPlan.PITCH, TownPlan.OZ + (b.y + 0.5) * TownPlan.PITCH))
-	if _commons_done.has(b) or CityMap.whole_block(b) or zone == "workshop": return
+	if _commons_done.has(b) or CityMap.whole_block(b) or zone != "high_street": return
 	_commons_done[b] = true
 	var x0 := TownPlan.OX + b.x * TownPlan.PITCH + TownPlan.PATH_W / 2.0; var z0 := TownPlan.OZ + b.y * TownPlan.PITCH + TownPlan.PATH_W / 2.0
 	var inner := TownPlan.PITCH - TownPlan.PATH_W; var lane := z0 + inner * 0.5
@@ -51,12 +51,13 @@ func _block_commons(b: Vector2i) -> void:
 		_merge_done(mark)
 	_build_parent = keep
 
-## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무,
-## 뒤뜰 텃밭(흙 이랑 + 채소), 빨랫줄, 마당 의자. 길 쪽 가운데(문길)는 비운다. 모양만(충돌 없음 — 주민 길을 막지 않게), 다 합쳐 그리기 몇 번
+## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무, 빨랫줄.
+## 뒤 울타리는 띠 끝(골목 앞)까지 — 그 안은 그 집 사람 뒤뜰(back_yards). 길 쪽 가운데(문길)는 비운다. 울타리는 모양만(충돌 없음 — 주민 길을 막지 않게)
 func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash("yard/" + String(l["id"]))
 	var half := TownPlan.LOT / 2.0 + 0.1
-	var front := c.z + hs.z / 2.0 + 1.9; var back := c.z - hs.z / 2.0 - 3.2
+	var front := c.z + hs.z / 2.0 + 1.9
+	var back := back_line(l)
 	var kind: int = rng.randi() % 4
 	var col: Color = [Color("f7f4ef"), Color("5f8a3e"), Color("a8a29a"), Color.WHITE][kind]
 	var hgt: float = [0.55, 0.8, 0.5, 0.0][kind]
@@ -66,20 +67,19 @@ func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
 			_box(Vector3(half - 0.9, hgt, thick), Vector3(c.x + side * (half + 0.9) / 2.0, 0, front), _mat(col), false)   # 앞(문길 빼고)
 			_box(Vector3(thick, hgt, front - back), Vector3(c.x + side * half, 0, (front + back) / 2.0), _mat(col), false)   # 옆
 		_box(Vector3(half * 2.0, hgt, thick), Vector3(c.x, 0, back), _mat(col), false)   # 뒤
-	for k in 1 + rng.randi() % 2:   # 마당 나무
-		_tree(Vector3(c.x + rng.randf_range(-half + 0.8, half - 0.8), 0, back + rng.randf_range(0.6, 1.4)), rng.randf_range(0.75, 1.0))
-	if rng.randf() < 0.6:   # 뒤뜰 텃밭 — 흙 이랑 셋과 채소
-		var gx := c.x + rng.randf_range(-1.0, 1.0); var gz := c.z - hs.z / 2.0 - 1.4
-		for r in 3:
-			_box(Vector3(1.8, 0.08, 0.35), Vector3(gx, 0, gz - r * 0.5), _mat(Color("7a5a3a")), false)
-			for q in 4: _scatter(["Bush_Common", "Plant_1", "Fern_1", "Clover_2"][(r + q) % 4], Vector3(gx - 0.7 + q * 0.47, 0.08, gz - r * 0.5), 0.32)
+	_tree(Vector3(c.x + (half - 0.8) * (1.0 if rng.randf() < 0.5 else -1.0), 0, back + 0.9), rng.randf_range(0.8, 1.0))   # 뒤 모서리 나무
 	if rng.randf() < 0.45:   # 빨랫줄
 		var lx := c.x + (hs.x / 2.0 + 0.9) * (1.0 if rng.randf() < 0.5 else -1.0)
 		for e in [-1.2, 1.2]: _box(Vector3(0.05, 1.6, 0.05), Vector3(lx, 0, c.z + e), _mat(Color("8a6a4a")), false)
 		_box(Vector3(0.02, 0.02, 2.4), Vector3(lx, 1.55, c.z), _mat(Color("efe9e2")), false)
 		for q in 3: _box(Vector3(0.03, 0.4, 0.35), Vector3(lx, 1.15, c.z - 0.6 + q * 0.55), _mat([Color("ad7096"), Color("7a90b0"), Color("f2c84b"), Color("f7f4ef")][(q + rng.randi()) % 4]), false)
-	if rng.randf() < 0.35:   # 마당 의자
-		_box(Vector3(0.45, 0.45, 0.45), Vector3(c.x + rng.randf_range(-2.0, 2.0), 0, back + 1.2), _mat(Color("8a6a4a")), false)
+	var who: String = String(owner_row(int(l["order"])).get("handle", "")) if not _is_mine(int(l["order"])) else ""
+	BackYards.build(self, c, back + 0.4, c.z - hs.z / 2.0 - 0.3, TownPlan.LOT, who, hash("back/" + String(l["id"])))
+
+## 뒤뜰 끝 — 블록 안 집 뒤의 빈 띠가 끝나는 골목 앞(앞줄은 블록 북쪽 골목, 뒷줄은 가운데 뒷골목)
+static func back_line(l: Dictionary) -> float:
+	var z0: float = TownPlan.OZ + l["b"].y * TownPlan.PITCH + TownPlan.PATH_W / 2.0
+	return z0 + 0.6 if int(l["row"]) == 0 else z0 + (TownPlan.PITCH - TownPlan.PATH_W) * 0.5 + TownPlan.PATH_W / 2.0 + 0.6
 
 ## 합치기(mesh_merge) — 지은 것의 움직이지 않는 메시를 재질 생김새끼리 한 덩이로. 문짝은 빼고
 func _merge_mark() -> Array:
@@ -133,7 +133,6 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		_done[hk] = true
 		if not live: built = maxi(built, hk + 1)
 		_pave(l)
-		_block_commons(l["b"])
 		var hsp := TownPlan.house_spec(l); var nd := doors.size()
 		var hkeep := _build_parent; _build_parent = _root_for(c)
 		var mark := _merge_mark()
@@ -179,6 +178,7 @@ func _shop_lot(l: Dictionary, c: Vector3) -> void:
 	lb.position = c + Vector3(0, 2.7, hd + 0.08); _add(lb)
 	var cx := -s.x / 2.0 + 0.8
 	HouseStyles.shop_front(self, c, s, String(shop["type"]), String(shop["item"]))   # 가게 앞 — 카페 테라스·빵 바구니·과일 상자·책 수레…
+	BackYards.service(self, c, back_line(l), c.z - s.z / 2.0 - 0.3, int(l["order"]))   # 가게 뒤 짐 마당
 	var id := shops.size()
 	var sh := { "kind": "shop", "pos": c + Vector3(cx, 0, hd + 1.75), "yaw": PI, "item": String(shop["item"]), "type": String(shop["type"]), "id": id,
 		"keeper": { "kind": "keeper", "pos": c + Vector3(0, 0, hd + 1.0), "yaw": 0.0, "shop_id": id } }   # 주인은 문 앞까지 걸어와 안(방의 계산대 뒤, inner)으로 들어간다

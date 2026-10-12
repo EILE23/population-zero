@@ -8,7 +8,7 @@ extends RefCounted
 const HOUSE := ["playground", "gym", "orchard", "picnic", "pond", "allotment", "flowers"]
 const SHOP := ["market", "terrace", "picnic", "pond", "flowers"]
 
-static func kinds_for(zone: String) -> Array: return SHOP if zone == "shop" else HOUSE
+static func kinds_for(zone: String) -> Array: return SHOP if zone == "high_street" else HOUSE
 
 ## 한 칸(가운데 at, 폭 ~16m 깊이 ~6m)
 static func build(t, at: Vector3, kind: String, seed: int) -> void:
@@ -67,9 +67,9 @@ static func build(t, at: Vector3, kind: String, seed: int) -> void:
 			for q in [-1.0, 1.0]:
 				var fc := at + Vector3(q * 4.0, 0, 0)
 				var bed := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 1.7; cm.bottom_radius = 1.8; cm.height = 0.2; bed.mesh = cm; bed.material_override = t._mat(Color("6a4a32")); bed.position = fc + Vector3(0, 0.1, 0); t._add(bed)
-				for f in 9:
-					var a := f * TAU / 9.0 + rng.randf() * 0.3
-					t._flower(fc + Vector3(cos(a) * rng.randf_range(0.3, 1.4), 0.2, sin(a) * rng.randf_range(0.3, 1.4)), Color.WHITE, seed + f)
+				for f in 16:   # 빽빽하게 — 작은 꽃 아홉 송이는 흙바닥만 보였다
+					var a := f * TAU / 16.0 + rng.randf() * 0.3; var rr := 0.35 + (f % 3) * 0.5
+					t._scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers", "Flower_3_Group"][f % 4], fc + Vector3(cos(a) * rr, 0.2, sin(a) * rr), rng.randf_range(0.32, 0.45))
 			t._box(Vector3(15.0, 0.6, 0.45), at + Vector3(0, 0, -3.0), t._mat(Color("5f8a3e")), false)   # 생울타리
 			t._bench(at + Vector3(-1.0, 0, 2.3)); t._bench(at + Vector3(1.0, 0, 2.3))
 			t._lamp(at + Vector3(0, 0, -1.8))
