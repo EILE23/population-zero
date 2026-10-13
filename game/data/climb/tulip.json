@@ -1,0 +1,95 @@
+{
+  "_": "Climb content pack 'Tulip lift' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_tulip.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and the pieces' `only` floors, looks at every pair of consecutive hops in the climbing order (hop i−1 is the lower hop a, of the piece's `on` kinds — still, it is stood on; hop i the upper hop b, of its `to` kinds — it is only jumped to, so it may crumble or spring) that leave a sideways gap of min_gap..max_gap px with b at most max_dy higher, whose box (bud_w + leaf_w px out from hop a's gap edge, from root_d under a's top to the lifted bud's top plus a standing body) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack meets (the vine curtain, the rope bridge, the hammock net, the zip line and the seesaw planter — the loader passes their plans); one tulip per floor on the widest such gap: a clay pot on a cliff bracket root_d px under hop a's top, a thick stem up out of it and, flush with hop a's gap edge, a giant closed tulip bud bud_w px wide and bud_h tall whose floor is at hop a's height; its petals stand ajar. C on hop a within `reach` px of the gap edge steps the body in: the petals close round it over fold_s (the body folds knees-to-chest — `pose` curl), the stem stretches by lift = dy − top_short clamped to min_lift..max_lift over rise_s, the petals open over bloom_s at the top and the body unfolds; it now stands on the open bud's floor and on the leaf-ledge leaf_w px out of the stem toward hop b, lift px above hop a — hop b is a tap jump up and across from the leaf's end. The flower wilts back over wilt_s once the body has been off it hold_s seconds, or stay_s seconds after it opened whoever stands there (the floor rides down under their feet, never a push), and cannot be used while wilting; when the stem is back the petals close over close_s and the bud is ready again, waiting open (`spent`) while someone still stands on it. Nothing refuses, pushes or costs: the plain jump across the gap is untouched (the bud stands under its arc beside the stem). build(root, planned) draws it; enter(on, x, z, pressed) is the C test the loader runs on the grounded walk tick (returns the on-dict for the bud or {}); land(x, y, ny, z) is the landing test the loader runs after its own comes up empty and vy ≤ 0 (the open floor at its current height: a body crossing it this tick, one stepping down onto it within catch px, or one walking up into it at most catch px above its feet); stand(on, x, dt, fig) is called every tick while standing on a `tulip` kind and returns the body's x (pinned to the bud's centre while folded), the floor height, `curl` while the body is inside the petals and `off` when it has walked past either end; sync(_t) every tick. `pose` is the Stick3D pose_request while curled (stick3d_curl.gd: knees to the chest, arms wrapped round them, head tucked — meta curl_k 0..1 as the petals close and open — with a squeeze beat while the stem stretches — meta curl_v 0/1). tools/probe_tulip.gd checks the plan and its refusals, the entry and its refusals, the fold/rise/bloom/open/wilt/close clock, the spent wait, the floor and the leaf, the landing cases, the visuals, the sounds and the pose.",
+  "id": "tulip",
+  "name": "Tulip lift",
+  "pose": "curl",
+  "themes": [
+    "Hanging garden"
+  ],
+  "kinds": {
+    "tulip": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px; must hold bud_w + leaf_w with room). The piece's `on` kinds are the lower hop's (stood on — still only), `to` the upper hop's (jumped to — may crumble or spring). max_dy: how much higher hop b may be (px). bud_w: the bud's floor width (px) — it sits flush with hop a's gap edge. bud_h: the closed bud's height (px). leaf_w: the leaf-ledge out of the stem toward hop b (px). min_lift/max_lift: how far the stem stretches (px); top_short: px the lifted floor stays under hop b's top (lift = dy − top_short clamped). root_d: the pot under hop a's top (px). reach: px from hop a's gap edge within which C steps in. fold_s: the petals closing round the body; rise_s: the stretch; bloom_s: the petals opening at the top; stay_s: seconds the open flower stands before wilting whoever is on it; hold_s: seconds after the body leaves before it wilts; wilt_s: the stem shrinking back; close_s: the petals closing to ajar. catch: px below (a step down) or above (a walk up into the floor) the feet within which land() takes the floor. deck_d: the floor's depth front to back (px). rustle_hz: the petals closing/landing; creak_hz: the stem stretching; pop_hz: the petals opening; sigh_hz: the wilt beginning.",
+      "min_gap": 84,
+      "max_gap": 200,
+      "max_dy": 150,
+      "bud_w": 40,
+      "bud_h": 44,
+      "leaf_w": 36,
+      "min_lift": 60,
+      "max_lift": 90,
+      "top_short": 40,
+      "root_d": 40,
+      "reach": 24,
+      "fold_s": 0.4,
+      "rise_s": 1.2,
+      "bloom_s": 0.3,
+      "stay_s": 5.0,
+      "hold_s": 1.5,
+      "wilt_s": 6.0,
+      "close_s": 0.4,
+      "catch": 16,
+      "deck_d": 28,
+      "rustle_hz": 900,
+      "creak_hz": 120,
+      "pop_hz": 700,
+      "sigh_hz": 300
+    }
+  },
+  "pieces": [
+    {
+      "_": "Hanging garden floors are 5..9, 40..44, 75..79 …; the vent/windmill floors ((n − 3) % 4 == 0: 7, 43, 79 …) stay without a tulip — the vents own the gaps there. The vine curtain (run 129), the rope bridge (run 121), the hammock net (run 135), the zip line (run 140) and the seesaw planter (run 146) are passed as `taken`, so the tulip stands at the widest gap none of them uses. One tulip per floor, on the widest gap of 84..200 px between two consecutive hops with the upper at most 150 px higher — the lower hop still (`on`), the upper one may also be a crumble or spring hop (`to`): only the lower one is stood on.",
+      "kind": "tulip",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "to": [
+        "std",
+        "ice",
+        "crumble",
+        "spring"
+      ],
+      "max": 1,
+      "only": {
+        "from": 5,
+        "every": 4
+      }
+    },
+    {
+      "kind": "tulip",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "to": [
+        "std",
+        "ice",
+        "crumble",
+        "spring"
+      ],
+      "max": 1,
+      "only": {
+        "from": 6,
+        "every": 4
+      }
+    },
+    {
+      "kind": "tulip",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "to": [
+        "std",
+        "ice",
+        "crumble",
+        "spring"
+      ],
+      "max": 1,
+      "only": {
+        "from": 8,
+        "every": 4
+      }
+    }
+  ]
+}
