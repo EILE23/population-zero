@@ -167,7 +167,7 @@ static func build_chunk(gen: WorldGen, n: Node3D, o: Vector3, size: float) -> vo
 	_mm(n, prism, _vcol_mat, xs_roof, cs_roof)
 	# 나무 — 열린 세계와 같은 MegaKit 모델(MultiMesh)
 	if not trees.is_empty():
-		var src: Dictionary = gen._model_src("CommonTree_" + str(1 + absi(int(o.x + o.z)) % 5))
+		var src: Dictionary = gen._model_src(WorldGen.FOREST[absi(int(o.x + o.z)) % WorldGen.FOREST.size()])
 		var sc := 4.6 / maxf(float(src["h"]), 0.3)
 		for part in src["parts"]:
 			var xs: Array = []; var cs: Array = []

@@ -20,11 +20,28 @@ static func _aabb_of(path: String, n: Node3D) -> AABB:
 	_box[path] = ab
 	return ab
 
+## 팩 재질 손보기(한 경로에 한 번 — 재질은 그 모델의 모든 복제가 같이 쓴다): Nature Kit 은 금속 1 이라 하늘을 비춰 거무스름했고,
+## 잎이 청록(70e6d6)이라 마을 풀빛과 따로 놀았다 → 금속 0, 청록·하늘빛 잎은 풀빛 쪽으로 돌린다
+static var _toned := {}
+static func tone(path: String, root: Node) -> void:
+	if _toned.has(path): return
+	_toned[path] = true
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh: Mesh = (mi as MeshInstance3D).mesh
+		if mesh == null: continue
+		for si in mesh.get_surface_count():
+			var mat := mesh.surface_get_material(si) as StandardMaterial3D
+			if mat == null: continue
+			mat.metallic = 0.0; mat.roughness = 1.0
+			var c := mat.albedo_color
+			if c.h > 0.38 and c.h < 0.58 and c.s > 0.25: mat.albedo_color = Color.from_hsv(0.27 + (c.h - 0.38) * 0.2, minf(c.s * 1.1, 0.75), c.v * 0.8, c.a)
+
 ## 놓기 — at 은 바닥 가운데, yaw 는 y 회전, sc 배율. solid 면 키 0.3m 넘을 때 충돌 상자(가로세로 0.9배)
 static func put(t, path: String, at: Vector3, yaw := 0.0, sc := 1.0, solid := true) -> Node3D:
 	var ps: PackedScene = load(path)
 	if ps == null: return null
 	var m: Node3D = ps.instantiate()
+	tone(path, m)
 	var ab := _aabb_of(path, m)
 	var pivot := Node3D.new(); pivot.position = at; pivot.rotation.y = yaw
 	m.scale = Vector3.ONE * sc

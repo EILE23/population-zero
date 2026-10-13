@@ -50,14 +50,17 @@ var build_us_max := 0          # 한 프레임 칸 일(땅 또는 자연)의 최
 var build_us_sum := 0
 var _later: Array = []         # 땅만 지어 둔 칸의 자연 [노드, 칸, 원점] — 다음 프레임에 짓는다
 
-const FOREST := ["CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "CommonTree_5", "TwistedTree_1", "TwistedTree_3"]
-const HIGH := ["Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5"]
-const ROCKS := ["Rock_Medium_1", "Rock_Medium_2", "Rock_Medium_3"]
-const PEBBLES := ["Pebble_Round_1", "Pebble_Round_2", "Pebble_Round_3", "Pebble_Round_4", "Pebble_Round_5"]
-const GRASS := ["Grass_Common_Short", "Grass_Common_Tall", "Grass_Wispy_Short", "Grass_Wispy_Tall"]
-const FLOWERS := ["Flower_3_Group", "Flower_4_Group", "Flower_3_Single", "Flower_4_Single", "Clover_1", "Clover_2"]
-const UNDER := ["Fern_1", "Plant_1", "Plant_7", "Mushroom_Common", "Mushroom_Laetiporus", "Bush_Common"]
-const BUSHES := ["Bush_Common", "Bush_Common_Flowers", "Plant_1_Big", "Plant_7_Big"]
+## 자연(개편 2026-10-13: 운영자 "지형 지물들도 별로") — Kenney Nature Kit(CC0, assets/models/kenney/nature). 찻길·소품과 같은 팩이라 한 그림으로 보인다.
+## 이름 앞 "k:" = Kenney(배율 K 를 구워 넣는다 — 팩이 1/2 크기), 없으면 옛 Quaternius
+const K := 2.2
+const FOREST := ["k:tree_default", "k:tree_oak", "k:tree_fat", "k:tree_detailed", "k:tree_simple", "k:tree_tall", "k:tree_default_dark", "k:tree_oak_dark"]
+const HIGH := ["k:tree_pineTallA", "k:tree_pineTallB", "k:tree_pineTallC", "k:tree_pineTallD", "k:tree_pineRoundA", "k:tree_pineRoundC"]
+const ROCKS := ["k:rock_largeA", "k:rock_largeB", "k:rock_largeC", "k:rock_largeD", "k:rock_tallA", "k:rock_tallC"]
+const PEBBLES := ["k:rock_smallA", "k:rock_smallB", "k:rock_smallC", "k:rock_smallD", "k:stone_smallFlatA"]
+const GRASS := ["k:grass", "k:grass_large", "k:grass_leafs", "k:grass_leafsLarge"]
+const FLOWERS := ["k:flower_redA", "k:flower_redB", "k:flower_yellowA", "k:flower_yellowB", "k:flower_purpleA", "k:flower_purpleB", "k:flower_yellowC", "k:flower_redC"]
+const UNDER := ["k:plant_flatShort", "k:plant_flatTall", "k:mushroom_redGroup", "k:mushroom_tanGroup", "k:plant_bushSmall"]
+const BUSHES := ["k:plant_bush", "k:plant_bushDetailed", "k:plant_bushLarge", "k:plant_bushTriangle", "k:plant_bushLargeTriangle"]
 
 func setup(t: TownBase) -> void:
 	town = t
@@ -357,12 +360,12 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 	if pkk > 0.03: biome = "mountain"   # 산: 빽빽한 숲 — 아래는 활엽, 위로 갈수록 솔(그 자리 높이로 고른다)
 	match biome:
 		"mountain": plan = [["MOUNTAIN", int(18 + 22 * minf(1.0, pkk * 2.5)), 5.2, 0.28], [UNDER, 16, 0.7, 0.0], [BUSHES, 6, 1.0, 0.0], [ROCKS, 5, 1.3, 0.55], [GRASS, 14, 0.9, 0.0], [PEBBLES, 6, 0.8, 0.0]]
-		"forest": plan = [[FOREST, 16, 4.2, 0.28], [UNDER, 14, 0.6, 0.0], [BUSHES, 5, 1.0, 0.0], [GRASS, 18, 0.9, 0.0], [ROCKS, 1, 1.0, 0.5]]
+		"forest": plan = [[FOREST, 22, 4.6, 0.28], [UNDER, 24, 0.9, 0.0], [BUSHES, 10, 1.1, 0.0], [GRASS, 40, 1.1, 0.0], [ROCKS, 2, 1.0, 0.5]]
 		"high": plan = [[HIGH, 9, 5.0, 0.25], [ROCKS, 4, 1.2, 0.55], [PEBBLES, 8, 0.8, 0.0], [GRASS, 12, 0.8, 0.0]]
 		"dry": plan = [[ROCKS, 3, 1.0, 0.5], [PEBBLES, 10, 0.9, 0.0], [GRASS, 22, 0.9, 0.0], [FOREST, 1, 3.8, 0.28]]
-		_: plan = [[FLOWERS, 34, 1.1, 0.0], [GRASS, 60, 1.25, 0.0], [BUSHES, 9, 1.15, 0.0], [FOREST, 4, 4.2, 0.28], [PEBBLES, 4, 0.8, 0.0], [ROCKS, 1, 1.0, 0.5], [UNDER, 4, 0.7, 0.0]]
+		_: plan = [[FLOWERS, 60, 1.2, 0.0], [GRASS, 120, 1.3, 0.0], [BUSHES, 16, 1.2, 0.0], [FOREST, 6, 4.6, 0.28], [PEBBLES, 6, 0.9, 0.0], [ROCKS, 2, 1.0, 0.5], [UNDER, 8, 0.9, 0.0]]   # Kenney 풀은 작아 두 배쯤
 	var flat := wild_k(c.x, c.z) < 0.05 and wild_k(o.x, o.z) < 0.05 and wild_k(o.x + CHUNK, o.z + CHUNK) < 0.05
-	if flat: plan = [[GRASS, 46, 1.1, 0.0], [FLOWERS, 22, 1.0, 0.0], [BUSHES, 7, 1.05, 0.0], [FOREST, 3, 4.0, 0.28], [PEBBLES, 3, 0.8, 0.0]]   # 마을 가의 평지 — 빈 잔디로 두지 않는다
+	if flat: plan = [[GRASS, 90, 1.2, 0.0], [FLOWERS, 40, 1.1, 0.0], [BUSHES, 12, 1.1, 0.0], [FOREST, 4, 4.4, 0.28], [PEBBLES, 4, 0.9, 0.0]]   # 마을 가의 평지 — 빈 잔디로 두지 않는다
 	var clusters: Array = []   # 꽃·덤불은 무리로(고르게 흩으면 멀리선 안 보였다)
 	for q in 4: clusters.append(Vector2(o.x + rng.randf() * CHUNK, o.z + rng.randf() * CHUNK))
 	for row in plan:
@@ -517,12 +520,15 @@ func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator, body: Sta
 ## 모델 하나를 한 번만 읽어 메시 조각과 그 변환(뿌리 기준), 높이를 기억한다 — MultiMesh 재료
 func _model_src(id: String) -> Dictionary:
 	if _src.has(id): return _src[id]
-	var root: Node3D = town._model("nature/quaternius/" + id)
+	var kenney := id.begins_with("k:")
+	var root: Node3D = town._model("kenney/nature/" + id.substr(2) if kenney else "nature/quaternius/" + id)
+	if kenney: KitProps.tone("res://assets/models/kenney/nature/" + id.substr(2) + ".glb", root)
 	var parts: Array = []; var hi := 0.0
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var xf := Transform3D.IDENTITY; var nd: Node = mi
 		while nd != root and nd is Node3D:
 			xf = (nd as Node3D).transform * xf; nd = nd.get_parent()
+		if kenney: xf = Transform3D(Basis().scaled(Vector3.ONE * K), Vector3.ZERO) * xf
 		parts.append([(mi as MeshInstance3D).mesh, xf])
 		var b: AABB = xf * (mi as MeshInstance3D).get_aabb()
 		hi = maxf(hi, b.position.y + b.size.y)

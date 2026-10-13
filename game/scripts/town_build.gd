@@ -331,13 +331,13 @@ func _animal(kind: String, at: Vector3, data: Dictionary) -> void:
 
 ## 나무 — Quaternius Stylized Nature MegaKit(CC0, 텍스처·잎 포함) 모델. 시드로 종류를 고르고 2.8~3.8m 로 맞춘다(사람 1m). 운영자 2026-09-29: "나무들도 진짜 나무같아야".
 ## 루트(충돌체)는 고정하고 모델을 담은 자식(sway)만 바람에 기울인다 — 뿌리째 흔들리고 콜라이더까지 기울던 리뷰 버그
-const TREE_KINDS := ["CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "CommonTree_5", "CommonTree_2", "Pine_1", "Pine_3"]
+const TREE_KINDS := ["tree_default", "tree_oak", "tree_fat", "tree_detailed", "tree_oak", "tree_default_dark", "tree_pineRoundA", "tree_pineTallB"]   # Kenney Nature Kit(개편 2026-10-13 — 찻길·소품과 같은 팩)
 func _tree(at: Vector3, k: float) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = int(at.x * 13.0 + at.z * 7.0) + 5
 	var which: String = TREE_KINDS[rng.randi() % TREE_KINDS.size()]
-	var model := _model("nature/quaternius/" + which)
+	var model := _model("kenney/nature/" + which); KitProps.tone("res://assets/models/kenney/nature/" + which + ".glb", model)
 	var h := _model_height(model)
-	var sc := (2.8 + 1.2 * (k - 0.9)) / maxf(h, 0.5)
+	var sc := (3.6 + 1.4 * (k - 0.9)) / maxf(h, 0.5)   # Kenney 나무는 키가 작게 나와 3.6m 쯤으로
 	var base := Node3D.new(); base.position = at; base.rotation.y = rng.randf_range(0.0, TAU); _add(base)
 	var sway := Node3D.new(); base.add_child(sway)
 	model.scale = Vector3.ONE * sc; sway.add_child(model)
@@ -345,7 +345,7 @@ func _tree(at: Vector3, k: float) -> void:
 	spots.append({ "pos": at, "kind": "tree", "yaw": 0.0 })
 	var fruit: Array = []
 	var top := h * sc
-	if not which.begins_with("Pine"):
+	if not which.begins_with("tree_pine"):
 		for i in 3:
 			var f := MeshInstance3D.new(); var fs := SphereMesh.new(); fs.radius = 0.08; fs.height = 0.16; f.mesh = fs; f.material_override = _mat(Color("ff2d55"))
 			f.position = Vector3(cos(i * 2.1) * 0.9, top * (0.5 + (i % 2) * 0.12), sin(i * 2.1) * 0.9)
