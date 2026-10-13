@@ -26,6 +26,7 @@ func _city_init() -> void:
 			var mark := _merge_mark()
 			PocketLots.build(self, { "id": "civic/%d,%d,%d" % [b.x, b.y, int(cl[1])], "street_z": at.z + 10.0, "order": int(cl[1]) + absi(b.x * 7 + b.y) * 36 }, at)
 			_merge_done(mark)
+	_hub_road()
 	for s in WorldGen.SITES: _dress_road(s)
 	_dress_loop()
 	_green_belt()
@@ -307,6 +308,20 @@ func _draw_site(k: int) -> void:
 		if is_instance_valid(_temp_lots[k]): (_temp_lots[k] as Node3D).queue_free()
 		_temp_lots.erase(k)
 	super(k)
+
+## 옛 마을 안 큰길도 아스팔트로(개편 2026-10-13) — 자갈 판(3.6m) 위에 5.4m 찻길 판, 다리(x 0)·Tower Road(x 16) 앞엔 건널목. 길가 가게·벤치는 그대로 둔다
+func _hub_road() -> void:
+	var keep := _build_parent
+	var x := -WorldGen.HUB_X - 4.0; var step := 8.0
+	while x < WorldGen.HUB_X + 4.0:
+		var at := Vector3(x + step / 2.0, 0, WorldGen.ROAD_Z)
+		_build_parent = _root_for(at)
+		var cross := absf(at.x - 0.0) < step / 2.0 or absf(at.x - 16.0) < step / 2.0
+		var n: Node3D = (load(RoadTiles.DIR + ("road-crossing" if cross else "road-straight") + ".glb") as PackedScene).instantiate()
+		n.position = at + Vector3(0, RoadTiles.LIFT, 0); n.scale = Vector3(step, 1, 5.4); _build_parent.add_child(n)
+		MeshMerge.merge(_build_parent, [n], [])
+		x += step
+	_build_parent = keep
 
 func _retile(nd: Vector2i) -> void:
 	if RoadTiles.in_hub(RoadTiles.npos(nd)): return
