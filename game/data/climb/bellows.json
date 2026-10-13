@@ -1,0 +1,58 @@
+{
+  "_": "Climb content pack 'Bellows lift' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_bellows.gd reads this file: plan(n, plats, taken) works only on the `themes` floors minus the pieces' `not` floors (the vent/windmill floors), looks at every pair of consecutive hops in the climbing order (hop i−1 is the lower hop a, of the piece's `on` kinds — still, it is stood on; hop i the upper hop b, of its `to` kinds — it is only jumped to, so it may crumble or spring) that leave a sideways gap of min_gap..max_gap px with b min_dy..max_dy higher, whose box (from hop a's gap edge out to the piston's far edge, from the cylinder's base under the sunk piston up to the raised piston plus a standing body) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack meets (the conveyor gears and the cuckoo perch — the loader passes their plans); one bellows per floor on the widest such gap: a leather bellows set into hop a's gap edge whose top board (board_w px, flush with the hop, at its height) is a platform, a brass pipe from under it down and across the gap to a brass cylinder, and in the cylinder a piston whose plate (piston_w px, centred at the gap's middle or step px past the board if that is farther) rests rest_d px under hop a's top. SPACE while standing on the board stamps (`pose` stomp: one knee high, the foot driving down, the arms swinging up, the body rocking back as the board gives `give` px over press_s and comes back over back_s): each stamp pushes air down the pipe and the piston rises stamp_px, up to max_lift = dy + rest_d − top_short (its plate then top_short px under hop b's top — clank); hold_s after the last stamp the valve lets go and the piston sinks sink_v px/s (sigh when it is back at the bottom), so a steady stamp walks it up and a slow one loses ground; the raised plate is a platform at the gap's middle — a tap jump across from the board's end and a tap jump up to hop b from it — that sinks under whoever stands on it the same way. Nothing refuses, pushes or costs: the plain jump across the gap is untouched (the sunk piston lies under its arc, the board extends the hop). build(root, planned) draws it; poised(on, x) says whether the body stands on the board — there SPACE is the bellows' (stamp(on, fig) → {took, lift, count, top}), elsewhere the loader's charge jump; land(x, y, ny, z) is the landing test the loader runs after its own comes up empty and vy ≤ 0 (the board at hop a's height less its give, or the plate at its current height: a body crossing it this tick, one stepping down onto it within catch px, or one walking up into it at most catch px above its feet — `part` says which); stand(on, x, dt, fig) is called every tick while standing on a `bellows` kind and returns the floor height under the body, `poised` on the board and `off` when it has walked past either end of its part; sync(_t) every tick. `pose` is the Stick3D pose_request while on the board (stick3d_stomp.gd: a ready stance over the pedal, the stamp as a beat — meta stomp_s seconds since the last stamp, stomp_f which foot, stomp_k the piston's height 0..1, stomp_dip the board's give 0..1 — never a still frame). tools/probe_bellows.gd checks the plan and its refusals, the stamp and its refusals, the lift/hold/sink clock, the board's give, the landing cases, the plate under a standing body, the visuals, the sounds and the pose.",
+  "id": "bellows",
+  "name": "Bellows lift",
+  "pose": "stomp",
+  "themes": [
+    "Clockwork"
+  ],
+  "kinds": {
+    "bellows": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px; must hold board_w + step + piston_w with room for the last hop). The piece's `on` kinds are the lower hop's (stood on — still only), `to` the upper hop's (jumped to — may crumble or spring). min_dy/max_dy: how much higher hop b must and may be (px). board_w: the bellows' top board, flush with hop a's gap edge (px). piston_w: the piston plate (px). step: air between the board's end and the plate's near edge when the gap is narrow (px) — the plate centre is the farther of the gap's middle and board_w + step + piston_w / 2. rest_d: the sunk plate under hop a's top (px). top_short: px the raised plate stays under hop b's top. stamp_px: px the piston rises per stamp. hold_s: seconds after the last stamp before the valve lets go; sink_v: px/s the piston sinks after that. give: px the board dips under a stamp; press_s/back_s: the dip going down and coming back. bellows_h: the bellows' closed-leather height under the board (px) — it squeezes to half on a stamp. cyl_h: the brass cylinder's wall above its base under the sunk plate (px); base_d: the base under the sunk plate (px). catch: px below (a step down) or above (a walk up into the floor) the feet within which land() takes a part. deck_d: the parts' depth front to back (px). wheeze_hz: the stamp; clank_hz: the piston reaching the top; sigh_hz: the piston back at the bottom.",
+      "min_gap": 100,
+      "max_gap": 220,
+      "min_dy": 40,
+      "max_dy": 140,
+      "board_w": 32,
+      "piston_w": 36,
+      "step": 16,
+      "rest_d": 60,
+      "top_short": 24,
+      "stamp_px": 24,
+      "hold_s": 0.6,
+      "sink_v": 10,
+      "give": 6,
+      "press_s": 0.12,
+      "back_s": 0.25,
+      "bellows_h": 30,
+      "cyl_h": 50,
+      "base_d": 70,
+      "catch": 16,
+      "deck_d": 28,
+      "wheeze_hz": 90,
+      "clank_hz": 520,
+      "sigh_hz": 200
+    }
+  },
+  "pieces": [
+    {
+      "_": "Clockwork floors are 15..19, 50..54, 85..89 …; the vent/windmill floors ((n − 3) % 4 == 0: 15, 19, 51 …) get no bellows — the wheel and the vents own those floors' gaps and an updraft under a piston would carry a body into the plate. The conveyor gears (run 124) and the cuckoo perch (run 142) are passed as `taken`, so the bellows stands at the widest gap neither uses (a belted hop is never the lower hop — the belt would walk the body off the pedal). One bellows per floor, on the widest gap of 100..220 px between two consecutive hops with the upper 40..140 px higher (the tower's Clockwork hops stand 83..125 px apart and rise 98..135 px — the first numbers, 120 and 120, found only floor 16) — the lower hop still (`on`), the upper one may also be a crumble or spring hop (`to`): only the lower one is stood on.",
+      "kind": "bellows",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "to": [
+        "std",
+        "ice",
+        "crumble",
+        "spring"
+      ],
+      "max": 1,
+      "not": {
+        "from": 3,
+        "every": 4
+      }
+    }
+  ]
+}
