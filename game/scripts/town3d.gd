@@ -112,6 +112,7 @@ func _process(delta: float) -> void:
 		if cam_kick > 0.0:
 			cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * cam_kick; cam_kick = maxf(0.0, cam_kick - delta * 0.3)
 		cam.look_at(Vector3(cam.position.x, cam.position.y - 7.9 * zoom, cam.position.z - 7.5 * zoom), Vector3.UP)
+	_board_cam(delta)   # 게시판을 보는 중이면 판 앞으로(town_social)
 	_cabin_cam(delta)   # 차 안 시점(V — 뒤따라가기·운전석 1인칭, town_cabin)이면 덮어쓴다
 
 ## 줌 — 마우스 휠 또는 -/= (1 = 기본, 30 = 도시를 내려다본다)

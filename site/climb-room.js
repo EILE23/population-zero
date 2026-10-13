@@ -21,6 +21,9 @@ const EV_PER_SEC = 10;         // 세계 이벤트 초당 상한 (연결당)
 const CHAT_BURST = 5, CHAT_WINDOW = 10000; // 채팅: 10초에 5줄까지(도배만 막는다). 전엔 깨어 있는 동안 60줄 누적 상한이라 게임 채팅엔 빡빡했다(2026-10-06)
 const LOOSE_MAX = 200;         // 바닥에 놓인 물건 상한 — 넘치면 가장 오래된 것부터
 const SAVE_MS = 5000, FALLBACK_MS = 30000;
+const BOARD_MAX = 24;          // 게시판 하나에 남는 글 — 넘치면 가장 오래된 것부터(POZ 마을 게시판, 2026-10-13)
+const BOARD_BODY = 200;        // 글 한 개 글자 수
+const PLOT_WORK = 20;          // 사람이 산 필지가 집이 되는 일 단위(게임 town_growth STAGE_WORK × 5)
 
 export class ClimbRoom extends DurableObject {
   constructor(ctx, env) {
@@ -38,6 +41,8 @@ export class ClimbRoom extends DurableObject {
   async loadWorld() {
     if (this.world) return this.world;
     this.world = (await this.ctx.storage.get('world')) ?? { loose: {}, broken: {}, npc: {} };
+    this.world.board ??= {};   // { 판 이름: [{id, uid, handle, body, at, edited}] } — 사람이 쓰고 고치고 지우는 게시판(남는다)
+    this.world.plots ??= {};   // { 필지 순번: {uid, handle, style, work, at} } — 사람이 사서 짓는 집(모두에게 같은 집)
     return this.world;
   }
   /** 낡은 것 정리 — 부서진 소품은 2분, 주민 이탈은 until 지나면, 바닥 물건은 1시간, 그리고 개수 상한 */
@@ -146,6 +151,46 @@ export class ClimbRoom extends DurableObject {
     if (k === 'npcpos' && ev.who !== undefined) return { k, who: num(ev.who, 0, 1e6), x: num(ev.x, -1e6, 1e6), d: num(ev.d, -1e6, 1e6), m: String(ev.m ?? '').slice(0, 20) };
     if (k === 'fix' && ev.key) return { k, key: String(ev.key).slice(0, 40) };
     if (k === 'hitp') return { k, who: num(ev.who, 0, 1e9), dx: num(ev.dx, -100, 100), dy: num(ev.dy, -100, 100) };
+    const board = String(ev.b ?? '').replace(/[^a-z0-9_-]/gi, '').slice(0, 20);
+    const body = String(ev.body ?? '').replace(CONTROL, '').replace(/\s+/g, ' ').trim().slice(0, BOARD_BODY);
+    if (k === 'post' && board && body) return { k, b: board, body };
+    if (k === 'edit' && board && body && ev.id) return { k, b: board, id: String(ev.id).slice(0, 40), body };
+    if (k === 'unpost' && board && ev.id) return { k, b: board, id: String(ev.id).slice(0, 40) };
+    if (k === 'plot' && ev.lot !== undefined) return { k, lot: num(ev.lot, 0, 1e6), style: String(ev.style ?? '').replace(/[^a-z]/g, '').slice(0, 12) };
+    if (k === 'work' && ev.lot !== undefined) return { k, lot: num(ev.lot, 0, 1e6) };
+    return null;
+  }
+
+  /** 게시판·내 집 — 글은 쓴 사람만 고치고 지운다, 필지는 먼저 산 사람 것, 일은 그 필지 주인이든 남이든 거든다(집이 다 되면 더 안 쌓인다) */
+  shared(w, ev, att, now) {
+    const k = ev.k;
+    if (k === 'post') {
+      const list = (w.board[ev.b] ??= []);
+      const item = { id: `${now.toString(36)}-${att.uid}`, uid: att.uid, handle: att.handle, body: ev.body, at: now, edited: false };
+      list.push(item);
+      if (list.length > BOARD_MAX) list.splice(0, list.length - BOARD_MAX);
+      return { k, b: ev.b, post: item };
+    }
+    if (k === 'edit' || k === 'unpost') {
+      const list = w.board[ev.b] ?? [];
+      const i = list.findIndex((p) => p.id === ev.id);
+      if (i < 0 || list[i].uid !== att.uid) return null;
+      if (k === 'unpost') { list.splice(i, 1); return { k, b: ev.b, id: ev.id }; }
+      list[i].body = ev.body; list[i].edited = true; list[i].at_edit = now;
+      return { k, b: ev.b, post: list[i] };
+    }
+    if (k === 'plot') {
+      const key = String(ev.lot);
+      if (w.plots[key]) return { k, lot: ev.lot, plot: w.plots[key] }; // 이미 누가 샀다 — 지금 상태를 알려 준다
+      w.plots[key] = { uid: att.uid, handle: att.handle, style: ev.style, work: 0, at: now };
+      return { k, lot: ev.lot, plot: w.plots[key] };
+    }
+    if (k === 'work') {
+      const p = w.plots[String(ev.lot)];
+      if (!p || p.work >= PLOT_WORK) return null;
+      p.work += 1;
+      return { k, lot: ev.lot, plot: p };
+    }
     return null;
   }
 
@@ -192,6 +237,14 @@ export class ClimbRoom extends DurableObject {
       else if (k === 'npc') { if (ev.mode === 'routine') delete w.npc[ev.who]; else w.npc[ev.who] = { mode: ev.mode, until: ev.until, x: ev.x, d: ev.d, item: ev.item, by: att.uid, at: now }; }
       else if (k === 'npcpos') { const o = w.npc[ev.who]; if (o) { o.x = ev.x; o.d = ev.d; o.m = ev.m; } }
       else if (k === 'fix') delete w.broken[ev.key];
+      else if (k === 'post' || k === 'edit' || k === 'unpost' || k === 'plot' || k === 'work') {
+        // 남는 공유 상태 — 서버가 정한 값(글 id·주인·일 단위)을 보낸 사람까지 모두에게 다시 보내고 바로 저장한다
+        const out = this.shared(w, ev, att, now);
+        if (!out) return;
+        this.broadcast({ t: 'ev', ev: out, by: att.uid });
+        this.worldSavedAt = now; await this.ctx.storage.put('world', w);
+        return;
+      }
       /* hitp: 사람끼리 타격 — 상태는 없고 중계만 */
       this.tidy(w, now);
       this.broadcast({ t: 'ev', ev, by: att.uid }, ws);

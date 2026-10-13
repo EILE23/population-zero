@@ -21,12 +21,20 @@ func _mine() -> Dictionary:
 	return records["my_plots"]
 
 func _claimed(k: int) -> bool:
-	return _mine().has(str(k)) or k in _pending_extra
+	return _mine().has(str(k)) or k in _pending_extra or net_plots.has(str(k))
 
+## 사람(나든 남이든)이 산 필지 — 주민이 들어오지 않는다
 func _is_mine(k: int) -> bool:
+	return _mine().has(str(k)) or net_plots.has(str(k))
+
+## 내가 산 필지(방에 연결돼 있으면 방의 주인 기록으로)
+func _is_me(k: int) -> bool:
+	if net_plots.has(str(k)): return net != null and int(net_plots[str(k)].get("uid", -1)) == net.me
 	return _mine().has(str(k))
 
 func _style_for(l: Dictionary) -> String:
+	var np: Variant = net_plots.get(str(int(l["order"])))
+	if np is Dictionary and String(np.get("style", "")) != "": return String(np["style"])
 	var e: Variant = _mine().get(str(int(l["order"])))
 	if e is Dictionary: return String(e["style"])
 	return style_for_person(String(owner_row(int(l["order"])).get("handle", "")))   # 들어올 사람의 취향(운영자 2026-10-06: 주민이 직접)
@@ -66,12 +74,14 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 	super(l, live)
 	if was: return
 	spots = spots.filter(func(sp: Dictionary) -> bool: return not (sp["kind"] == "build" and int(sp.get("lot", -1)) == k))   # 다 지은 공사장 자리
-	if _is_mine(k):
-		(_mine()[str(k)] as Dictionary)["done"] = true
+	if _is_me(k):
+		if _mine().has(str(k)): (_mine()[str(k)] as Dictionary)["done"] = true
 		var dr: Dictionary = doors[doors.size() - 1]
-		var net: Variant = get_tree().root.get_node_or_null("PozNet")
 		dr["owner"] = String(net.handle) if net and not net.guest else "you"; dr["mine"] = true; dr["lot"] = k   # lot: 가구 기록을 찾는 열쇠(town_furnish)
 		if live: say_toast("Your house is finished. The door is yours.")
+	elif net_plots.has(str(k)):   # 같은 마을 다른 사람의 집 — 문패에 그 사람
+		doors[doors.size() - 1]["owner"] = String(net_plots[str(k)].get("handle", "someone"))
+		if live: say_toast("%s finished a house." % String(net_plots[str(k)].get("handle", "Someone")))
 	if k >= built:
 		var ex: Array = records.get("done_extra", [])
 		if not k in ex: ex.append(k); records["done_extra"] = ex
@@ -145,8 +155,9 @@ func _buy(k: int, style: String) -> void:
 	var price := plot_price()
 	if coins < price: say_toast("That's %d coins. Sell things, or win in a game." % price); return
 	_set_coins(coins - price)
-	_mine()[str(k)] = { "style": style, "done": false }
+	_mine()[str(k)] = { "style": style, "done": false, "paid": price }
 	_save_records()
+	if has_method("board_shared") and call("board_shared"): net.send_ev({ "k": "plot", "lot": k, "style": style })   # 같은 마을 모두에게 — 먼저 산 사람 것(climb-room)
 	_open_my_site(k)
 	_refresh_sale()
 	say_toast("Bought. Now build it — hammer at the site.")
@@ -163,11 +174,11 @@ func _open_my_site(k: int) -> void:
 func _draw_site(k: int) -> void:
 	super(k)
 	if not _site_nodes.has(k): return
-	var who := "Your house" if _is_mine(k) else "Building for %s" % String(owner_row(k).get("handle", "someone"))   # 누구 집인지 — 그 사람 취향으로 짓는다
+	var who := "Your house" if _is_me(k) else "Building for %s" % (String(net_plots[str(k)].get("handle", "someone")) if net_plots.has(str(k)) else String(owner_row(k).get("handle", "someone")))   # 누구 집인지 — 그 사람 취향으로 짓는다
 	for ch in (_site_nodes[k] as Node3D).get_children():
 		if ch is Label3D:
 			(ch as Label3D).text = "%s — %d%%" % [who, int(100.0 * float(site_work.get(k, 0.0)) / (STAGE_WORK * 5.0))]
-			if _is_mine(k): (ch as Label3D).modulate = Color("ad7096")
+			if _is_me(k): (ch as Label3D).modulate = Color("ad7096")
 	var sp: Dictionary = build_spot_of(k)   # 어느 공사장이든 사람도 거들 수 있다
 	if not spots.has(sp): spots.append(sp)
 
@@ -205,6 +216,40 @@ func build_spot_of(k: int) -> Dictionary:
 func site_use(sp: Dictionary, now: float) -> void:
 	if not _site_nodes.has(int(sp["lot"])): return
 	player.face(float(sp["yaw"])); player.pose_request = "hammer"; use_until = now + 2.5; action_until = now + 2.5
-	var by: Variant = null if _is_mine(int(sp["lot"])) else "player"
+	var by: Variant = null if _is_me(int(sp["lot"])) else "player"
+	var shared: bool = has_method("board_shared") and call("board_shared") and net_plots.has(str(int(sp["lot"])))
 	get_tree().create_timer(2.4).timeout.connect(func() -> void:
-		if player.pose_request == "hammer": build_work(sp, by))
+		if player.pose_request != "hammer": return
+		if shared:   # 사람이 산 집은 방이 일을 센다 — 누가 망치질하든 모두의 화면에서 같은 공사(_net_plot 이 받는다)
+			net.send_ev({ "k": "work", "lot": int(sp["lot"]) })
+			if by != null and has_method("wage"): call("wage", by, "build")
+		else: build_work(sp, by))
+
+# ── 같은 마을 사람들이 산 필지(방 world.plots — 멀티플레이: 누가 사든 모두에게 같은 집, 누가 망치질하든 같은 공사) ──
+var net_plots := {}   # "순번" -> {uid, handle, style, work}
+
+func _net_plots_init(plots: Variant) -> void:
+	if not (plots is Dictionary): return
+	for key in plots: _net_plot({ "k": "plot", "lot": int(key), "plot": plots[key] })
+
+func _net_plot(ev: Dictionary) -> void:
+	var k := int(ev.get("lot", -1)); var p: Variant = ev.get("plot")
+	if k < 0 or not (p is Dictionary) or k >= TownPlan.lots().size(): return
+	var key := str(k)
+	if _mine().has(key) and int(p.get("uid", -1)) != (net.me if net else -1):   # 같은 필지를 남이 먼저 샀다 — 내 산 기록은 무르고 돈은 돌려준다
+		var paid := int((_mine()[key] as Dictionary).get("paid", 0))
+		_mine().erase(key); _set_coins(coins + paid); _save_records()
+		say_toast("%s bought that plot first. Your %d coins are back." % [String(p.get("handle", "Someone")), paid])
+	net_plots[key] = p
+	if _done.has(k): return
+	var work := float(p.get("work", 0))
+	if work >= STAGE_WORK * 5.0:
+		if _site_nodes.has(k): (_site_nodes[k] as Node3D).queue_free(); _site_nodes.erase(k)
+		site_work.erase(k)
+		_finish_lot(TownPlan.lots()[k], ev.get("k", "") == "work")
+		_refresh_sale()
+		return
+	if not _site_nodes.has(k): _open_my_site(k)
+	site_work[k] = work
+	_draw_site(k)
+	_refresh_sale()

@@ -392,7 +392,8 @@ func _interact_check(now: float) -> void:
 		"ledger":
 			ledger_use(now)   # 외상 장부(run 112): 제 줄을 읽고 외상이 있으면 한숨 뒤 그릇에 한 닢 — 주민과 같은 scan·sigh·stoop(town_ledger)
 		"notice":
-			notice_use(now)   # 광장 게시판(run 100): 빈손이면 가장 새 쪽지를 뗀다 — 주민과 같은 pin 자세(town_letters)
+			if pinnable(player.carrying): notice_use(now)   # 종이를 들었으면 꽂는다(run 100) — 아니면 게시판을 본다: 시점이 판 앞으로, 글 읽기·쓰기·고치기(town_social open_board)
+			else: open_board("square", "Town notice board", notice["at"], float(notice["yaw"]))
 		"jobs":
 			jobs_use(now)   # 심부름판(run 115): 빈손이면 맨 위 카드를 떼어 종이로 — 주민과 같은 pin 자세, 같은 일에 같은 동전(town_jobs)
 		"rack":

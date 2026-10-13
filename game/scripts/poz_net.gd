@@ -22,6 +22,7 @@ var guest := true
 var town: Node = null                 # TownBase — 저장할 기록·동전
 var room := ""
 var ws: WebSocketPeer = null
+var world := {}                       # 방의 남는 공유 상태(init) — board(게시판 글)·plots(사람이 산 필지) …(climb-room.js)
 var others := {}                      # uid -> {handle, x, y, z, pose, face, s, m, node}
 var ghost_parent: Node3D = null       # 지금 방의 졸라맨을 세울 곳(마을 또는 게임)
 var ghost_place: Callable             # func(o: Dictionary) -> Transform3D — 방 좌표를 3D 로
@@ -157,6 +158,7 @@ func _on_packet(raw: String) -> void:
 	match String(m.get("t", "")):
 		"init":
 			me = int(m.get("me", 0))
+			world = m.get("world", {}) if m.get("world", {}) is Dictionary else {}
 			for u in m.get("users", []): if int(u.get("uid", 0)) != me and String(u.get("status", "")) == "active": _upsert(u)
 		"user":
 			var u: Dictionary = m.get("u", {})

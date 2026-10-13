@@ -16,7 +16,7 @@ var emote_until := 0.0
 var _emote_t0 := 0.0
 var menu: GameMenu
 var typing: bool:
-	get: return (chat != null and chat.busy()) or (menu != null and menu.open) or bool(get_meta("menu_open", false))   # 집 모양 고르기(town_plots)도
+	get: return (chat != null and chat.busy()) or (menu != null and menu.open) or bool(get_meta("menu_open", false)) or board_view != null   # 집 모양 고르기(town_plots)도
 
 var _who: Label   # 오른쪽 위 한 줄 — 버전 · 계정(또는 S 안내·연결 코드) · 업데이트
 
@@ -88,13 +88,106 @@ func _shove_near() -> void:
 
 ## 내가 밀렸다 — 민 쪽 방향으로 튕기고 움찔. 차 안·미니게임 중엔 무시
 func _on_room(m: Dictionary) -> void:
-	if String(m.get("t", "")) != "ev" or net == null or game_node != null or driving: return
+	if String(m.get("t", "")) == "init":
+		_board_labels()
+		if has_method("_net_plots_init"): call("_net_plots_init", (m.get("world", {}) as Dictionary).get("plots", {}))
+		return
+	if String(m.get("t", "")) != "ev" or net == null: return
+	var ev0: Dictionary = m.get("ev", {})
+	match String(ev0.get("k", "")):
+		"post", "edit", "unpost": _board_apply(ev0); return
+		"plot", "work":
+			if has_method("_net_plot"): call("_net_plot", ev0)
+			return
+	if game_node != null or driving: return
 	var ev: Dictionary = m.get("ev", {})
 	if String(ev.get("k", "")) != "hitp" or int(ev.get("who", 0)) != net.me: return
 	body.velocity += Vector3(clampf(float(ev.get("dx", 0.0)), -1.0, 1.0) * 5.0, 3.0, clampf(float(ev.get("dy", 0.0)), -1.0, 1.0) * 5.0)
 	player.action = "flinch"; player.action_t = 0.0; action_until = Time.get_ticks_msec() / 1000.0 + FightPoses.FLINCH_T
 	var by: Dictionary = net.others.get(int(m.get("uid", m.get("by", 0))), {})
 	say_toast("%s shoved you." % String(by.get("handle", "Someone")))
+
+# ── 게시판(board_view) — 글은 방에 남는다(같은 마을 모두가 본다). 연결이 없으면 이 컴퓨터에만(records["board_local"]) ──
+var board_view: BoardView
+var _board_cam_tf := Transform3D()
+
+func board_shared() -> bool:
+	return net != null and net.ws != null and net.ws.get_ready_state() == WebSocketPeer.STATE_OPEN and net.room == "town"
+
+func board_me() -> int: return net.me if board_shared() else 0
+func board_can_write() -> bool: return (board_shared() and not net.guest) or not board_shared()
+
+func board_posts(b: String) -> Array:
+	if board_shared(): return ((net.world.get("board", {}) as Dictionary).get(b, []) as Array)
+	return ((records.get("board_local", {}) as Dictionary).get(b, []) as Array)
+
+func board_post(b: String, body: String) -> void:
+	if board_shared(): net.send_ev({ "k": "post", "b": b, "body": body }); return
+	var all: Dictionary = records.get("board_local", {}); var list: Array = all.get(b, [])
+	list.append({ "id": str(Time.get_ticks_usec()), "uid": 0, "handle": "you", "body": body, "at": Time.get_unix_time_from_system() * 1000.0 })
+	all[b] = list.slice(maxi(0, list.size() - 24)); records["board_local"] = all; _save_records(); _board_changed()
+
+func board_edit(b: String, id: String, body: String) -> void:
+	if board_shared(): net.send_ev({ "k": "edit", "b": b, "id": id, "body": body }); return
+	for p in board_posts(b): if String(p["id"]) == id: p["body"] = body; p["edited"] = true
+	_save_records(); _board_changed()
+
+func board_remove(b: String, id: String) -> void:
+	if board_shared(): net.send_ev({ "k": "unpost", "b": b, "id": id }); return
+	var all: Dictionary = records.get("board_local", {})
+	all[b] = (all.get(b, []) as Array).filter(func(p: Dictionary) -> bool: return String(p["id"]) != id)
+	records["board_local"] = all; _save_records(); _board_changed()
+
+## 방에서 온 글 — 서버가 정한 글(id·주인)로 바꾼다
+func _board_apply(ev: Dictionary) -> void:
+	var bd: Dictionary = net.world.get("board", {}); net.world["board"] = bd
+	var b := String(ev.get("b", "")); var list: Array = bd.get(b, []); bd[b] = list
+	match String(ev["k"]):
+		"post": list.append(ev.get("post", {})); if list.size() > 24: list.pop_front()
+		"edit":
+			for i in list.size(): if String(list[i].get("id", "")) == String((ev.get("post", {}) as Dictionary).get("id", "")): list[i] = ev["post"]
+		"unpost": bd[b] = list.filter(func(p: Dictionary) -> bool: return String(p.get("id", "")) != String(ev.get("id", "")))
+	if String(ev["k"]) == "post" and int((ev.get("post", {}) as Dictionary).get("uid", -1)) != net.me: say_toast("%s pinned a note on the board." % String(ev["post"].get("handle", "Someone")))
+	_board_changed()
+
+func _board_changed() -> void:
+	if board_view: board_view.refresh()
+	_board_labels()
+
+## 판 위의 쪽지 글씨 — 새 글 넷까지 앞 몇 글자(멀리서도 글이 붙어 있는 게 보인다)
+var _board_lbls: Array = []
+func _board_labels() -> void:
+	if notice.is_empty(): return
+	for l in _board_lbls: if is_instance_valid(l): l.queue_free()
+	_board_lbls.clear()
+	var posts := board_posts("square")
+	var at: Vector3 = notice["at"]
+	for i in mini(4, posts.size()):
+		var pst: Dictionary = posts[posts.size() - 1 - i]
+		var lb := Label3D.new(); var s := String(pst.get("body", ""))
+		lb.text = (s.substr(0, 18) + "…") if s.length() > 18 else s
+		lb.font_size = 16; lb.pixel_size = 0.0016; lb.modulate = Color("1b0c15"); lb.outline_size = 0; lb.width = 250.0; lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lb.position = at + Vector3(-0.32 + 0.64 * (i % 2), 0.95 - 0.28 * (i / 2), 0.04)
+		add_child(lb); _board_lbls.append(lb)
+		var card := _box(Vector3(0.52, 0.11, 0.006), lb.position, _mat(Color("fbf3d8")), false); remove_child(card); lb.add_child(card); card.position = Vector3(0, 0, -0.008)   # 글 쪽지(종이)
+
+## 판 보기 — 카메라가 판 앞 1.9m 로 다가가 판을 본다, 창이 뜬다. 닫으면 원래 시점으로
+func open_board(key: String, name: String, at: Vector3, yaw: float) -> void:
+	if board_view: return
+	var front: Vector3 = ((notice["pos"] as Vector3) - at).normalized() if key == "square" else Vector3(sin(yaw + PI), 0, cos(yaw + PI))   # 판 앞(사람이 서는 쪽)
+	var side := Vector3(-front.z, 0, front.x)
+	var eye: Vector3 = at + Vector3(0, 1.25, 0) + front * 2.4 - side * 0.4   # 판이 화면 왼쪽에 — 오른쪽은 글 창
+	_board_cam_tf = Transform3D(Basis(), eye).looking_at(at + Vector3(0, 0.95, 0) - side * 0.4, Vector3.UP)
+	body.visible = false   # 내 몸이 판을 가렸다
+	player.face(yaw); _board_cur = cam.global_transform
+	board_view = BoardView.new(); add_child(board_view); board_view.open(self, key, name)
+	board_view.closed.connect(func() -> void: board_view = null; body.visible = true)
+
+var _board_cur := Transform3D()
+func _board_cam(delta: float) -> void:
+	if board_view == null: return
+	_board_cur = _board_cur.interpolate_with(_board_cam_tf, minf(1.0, delta * 5.0))   # 제 변환을 따로 들고 간다 — 3/4 시점이 매 프레임 되돌렸다
+	cam.global_transform = _board_cur
 
 func _who_line() -> String:
 	var parts: Array[String] = ["v" + PozUpdate.version()]
