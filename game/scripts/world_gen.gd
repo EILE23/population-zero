@@ -135,7 +135,7 @@ func wild_k(x: float, z: float) -> float:
 	var cd := _civic_dist(x, z)   # 관공서·공원 블록도 평지 — 필지가 없어 빠졌고, 시청·학교·도서관이 언덕에 묻혔다(운영자 2026-10-08)
 	if cd < 26.0:
 		if lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
-		var keep_lake := lake == 1 and (cd >= 0.5 or String(CityMap.block(CityMap.block_of(Vector2(x, z))).get("zone", "")) == "park")   # 공원 블록 안·비탈의 호수는 그대로(호숫가가 블록 사각형에서 잘렸다)
+		var keep_lake := lake == 1 and cd >= 0.5   # 비탈의 호수는 그대로(호숫가가 블록 사각형에서 잘렸다). 공원 블록 안은 깎는다 — 찻길에 둘린 네모 연못이 됐다
 		if not keep_lake: k = minf(k, smoothstep(0.0, 26.0, cd))
 	for s in SITES:
 		var c: Vector3 = s["c"]; var r: float = s["r"]
@@ -230,6 +230,22 @@ func loop_at(x: float, z: float) -> bool:
 	var v := Vector2(x, z) - LOOP_C
 	if absf(v.length() - loop_r(v.angle())) > 1.25 or peak_k(x, z) > 0.4: return false
 	return wild_k(x, z) > 0.3 or _town_clear(x, z, 0.0)
+
+## 깔린 찻길(town_city _segs) 위인가 — 판 폭 + 0.8m
+func _on_road(x: float, z: float) -> bool:
+	var segs: Variant = town.get("_segs")
+	if not (segs is Dictionary) or (segs as Dictionary).is_empty(): return false
+	var fx := (x - TownPlan.OX) / TownPlan.PITCH; var fz := (z - TownPlan.OZ) / 20.0
+	var hw := TownPlan.ROAD_W / 2.0 + 0.8
+	var j := roundi(fz)
+	if absf(z - (TownPlan.OZ + j * 20.0)) < hw:
+		var i0 := floori(fx)
+		if (segs as Dictionary).has(RoadTiles.seg_key(Vector2i(i0, j), Vector2i(i0 + 1, j))): return true
+	var i := roundi(fx)
+	if absf(x - (TownPlan.OX + i * TownPlan.PITCH)) < hw:
+		var j0 := floori(fz)
+		if (segs as Dictionary).has(RoadTiles.seg_key(Vector2i(i, j0), Vector2i(i, j0 + 1))): return true
+	return false
 
 func on_trail(x: float, z: float) -> bool:
 	if dirt_at(x, z): return true
@@ -422,7 +438,7 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 			if grouped and rng.randf() < 0.75:
 				var cc: Vector2 = clusters[rng.randi() % clusters.size()]
 				x = clampf(cc.x + rng.randfn(0.0, 2.2), o.x, o.x + CHUNK); z = clampf(cc.y + rng.randfn(0.0, 2.2), o.z, o.z + CHUNK)
-			if on_trail(x, z): continue   # 계단 길은 비운다
+			if on_trail(x, z) or _on_road(x, z): continue   # 계단 길·찻길은 비운다(찻길 위에 나무가 섰다, 운영자 2026-10-13)
 			if mountain: ids = HIGH if height(x, z) > 24.0 + 8.0 * rng.randf() else FOREST
 			var k := wild_k(x, z)
 			var h := k * raw(x, z)   # = _h — 한 번만 잰다
@@ -621,8 +637,8 @@ func _model_src(id: String) -> Dictionary:
 	return _src[id]
 
 ## 새 공사장이 산 위면 그 둘레 칸을 지워 다시 짓는다(이번엔 깎인 땅으로) — town_growth._open_sites
-func reflat(c: Vector2) -> void:
-	_refresh_far()
+func reflat(c: Vector2, far := true) -> void:
+	if far: _refresh_far()
 	for key in chunks.keys():
 		var o := Vector2(key.x * CHUNK + CHUNK / 2.0, key.y * CHUNK + CHUNK / 2.0)
 		if o.distance_to(c) < 80.0:

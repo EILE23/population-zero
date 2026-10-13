@@ -47,6 +47,8 @@ func _city_init() -> void:
 	for i in doors.size():   # 가게 방은 처음에 다 — 주인이 창구 뒤에 서야 하니까
 		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
+	_grow_streets(body.global_position, 150.0, 99, false)   # 둘레 계획 블록도 찻길·임시 마당으로(운영자 2026-10-13: "녹지 다 채우라니까")
+	gen.rebuild_all(body.global_position)   # 깔린 찻길·새 평지에 맞춰 칸을 다시(찻길 위 나무를 걷는다)
 
 ## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무, 빨랫줄.
 ## 뒤 울타리는 띠 끝(골목 앞)까지 — 그 안은 그 집 사람 뒤뜰(back_yards). 길 쪽 가운데(문길)는 비운다. 울타리는 모양만(충돌 없음 — 주민 길을 막지 않게)
@@ -333,6 +335,33 @@ func _pave(l: Dictionary) -> void:
 		for nd in [na, nb]: _retile(nd)
 	_build_parent = keep
 
+## 아직 안 지은 계획 블록도 미리 찻길을 깔고 자리마다 임시 마당을 채운다(운영자 2026-10-13: "녹지 다 채우라니까", 동물의 숲 사진처럼 빽빽하게) —
+## 블록을 평지로(TownPlan.extra_flat) 깎고, 집이 설 자리엔 텃밭·장터·공방·정원… 이 놓였다가 공사가 시작되면 걷힌다. 걸어가면 둘레 150m 가 1초에 한 블록씩 채워진다
+var _far_due := false
+func _grow_streets(p: Vector3, radius: float, max_n: int, live := true) -> int:
+	var c := CityMap.block_of(Vector2(p.x, p.z))
+	var r := int(radius / TownPlan.PITCH) + 1
+	var cand: Array = []
+	for dx in range(-r, r + 1):
+		for dz in range(-r, r + 1):
+			var b := c + Vector2i(dx, dz)
+			if _paved.has(b) or CityMap.whole_block(b) or gen._lots_near(b).is_empty(): continue
+			var d := Vector2(p.x, p.z).distance_to(Vector2(CityMap.block_center(b).x, CityMap.block_center(b).z))
+			if d < radius: cand.append([d, b])
+	cand.sort_custom(func(a, b2): return float(a[0]) < float(b2[0]))
+	var n := 0
+	for e in cand.slice(0, max_n):
+		var b: Vector2i = e[1]
+		TownPlan.extra_flat[b] = true
+		if live: gen.reflat(Vector2(CityMap.block_center(b).x, CityMap.block_center(b).z), false); _far_due = true
+		_pave({ "b": b })
+		n += 1
+	return n
+
+func _streets_tick() -> void:
+	if _grow_streets(body.global_position, 150.0, 1) == 0 and _far_due:
+		_far_due = false; gen._refresh_far()
+
 ## 빈 자리 채우기(운영자 2026-10-13: "녹지가 너무 많네") — 찻길이 깔린 블록의 여덟 자리 중 필지가 아닌 자리(강·장소 둘레에 걸려 계획에서 빠진)는 늘 있는 쌈지 마당으로,
 ## 아직 안 지은 필지는 지을 때까지 동네 텃밭으로(공사가 시작되면 걷는다 — _draw_site)
 var _temp_lots := {}   # 필지 순번 -> Node3D(텃밭)
@@ -357,7 +386,14 @@ func _fill_block(b: Vector2i) -> void:
 			_merge_done(mark)
 		elif not _done.has(int(l["order"])) and not _site_nodes.has(int(l["order"])):
 			var holder := Node3D.new(); _root_for(c).add_child(holder); _build_parent = holder
-			Allotment.build(self, l, c)
+			var hv := absi(hash("temp/" + String(l["id"])))
+			if hv % 10 < 1: Allotment.build(self, l, c)   # 텃밭 하나, 나머지는 쌈지 마당 여덟 가지 중 하나(넓은 자리는 둘)
+			else:
+				var lw: float = float(l.get("w", 7.75))
+				var parts := 2 if lw > 12.0 else 1
+				for q in parts:
+					var pc := c + Vector3((q - (parts - 1) / 2.0) * lw / parts, 0, 0)
+					PocketLots.build(self, { "id": "temp/%s/%d" % [String(l["id"]), q], "street_z": float(l["street_z"]), "order": ((absi(hash("v/%d,%d" % [b.x, b.y])) + int(String(l["id"]).get_slice(",", 2)) * 3 + q * 5) % 8) * 9 }, pc)   # 블록 안 자리마다 다른 마당(같은 놀이터가 넷 줄지어 섰다)
 			MeshMerge.merge(holder, holder.get_children(), [])
 			_temp_lots[int(l["order"])] = holder
 		_build_parent = keep

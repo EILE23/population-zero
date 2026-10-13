@@ -115,13 +115,14 @@ static func block_order(b: Vector2i) -> int:
 			_blocks_upto[k] = mini(int(_blocks_upto.get(k, 1 << 30)), int(l["order"]))
 	return int(_blocks_upto.get(b, 1 << 30))
 
+static var extra_flat := {}   # 아직 안 지었지만 찻길을 깔고 채운 블록(town_city _grow_streets) — 이 블록도 평지
 static func flat_dist(x: float, z: float, limit: int) -> float:
 	var bx := floori((x - OX) / PITCH); var bz := floori((z - OZ) / PITCH)
 	var best := 1e9
 	for dx in range(-1, 2):
 		for dz in range(-1, 2):
 			var b := Vector2i(bx + dx, bz + dz)
-			if block_order(b) >= limit: continue
+			if block_order(b) >= limit and not extra_flat.has(b): continue
 			var r := Rect2(OX + b.x * PITCH - 2.0, OZ + b.y * PITCH - 2.0, PITCH + 4.0, PITCH + 4.0)
 			var ddx := maxf(maxf(r.position.x - x, x - r.end.x), 0.0); var ddz := maxf(maxf(r.position.y - z, z - r.end.y), 0.0)
 			best = minf(best, Vector2(ddx, ddz).length())

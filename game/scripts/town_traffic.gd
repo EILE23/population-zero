@@ -52,6 +52,7 @@ func _traffic_tick(now: float) -> void:
 	if now < _traffic_at: return
 	_traffic_at = now + 1.0
 	if has_method("_signal_tick"): call("_signal_tick")
+	if has_method("_streets_tick"): call("_streets_tick")
 	for e in cruisers:   # 늘 도는 차 — 다 왔으면 다음 목적지, 오래 막혔으면 다음 경유지로
 		var c: Car3D = e["car"]; var r: Resident = e["r"]
 		if not is_instance_valid(c) or driving == c or passenger == c or not (is_instance_valid(r) and r.car_seat == c): continue
