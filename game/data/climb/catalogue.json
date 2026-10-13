@@ -1,0 +1,49 @@
+{
+  "_": "Climb content pack 'Catalogue cabinet' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_catalogue.gd reads this file: plan(n, plats, taken) works only on the `themes` floors, looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose box (the cabinet's width plus a hand each side, from the lower hop's top to a body on the top drawer) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the ladder, the dumbwaiter, the bookcase, the paternoster, the scroll rack — the loader passes their plans; a piece's own top, rail_y/beam_y/y_top, is honoured when it is higher than the default band) meets; one cabinet per floor at the widest such gap: a tall card catalogue set into the cliff `near` px past the lower hop's gap edge, cab_w wide, with drawer fronts at `step` px steps from the lower hop's top up to top_clear px under the upper hop's top (at most `drawers`; the tower's hop heights give three or four). Standing on the lower hop within reach px of the cabinet's near face, or on an open drawer, and pressing C yanks the next drawer up out of the cliff: it slides out draw_out px over pull_s (pose `yank`, meta yank_side = which arm side the cliff is on — a two-handed pull from the chest, the weight dropping onto the back foot, a release and a half step back, a recovery) and its top is a platform while it is out; hold_s after it is fully open the drawer slides home over slide_s and clacks shut, carrying a standing body back toward the cliff until the body's back is at the cliff face, then on under its feet until the front passes it and the body is simply no longer standing on anything — it falls onto the drawer below if that one is still out, or onto the lower hop. Two yanks within card_s shake a catalogue card loose: it flutters down from the pulled drawer's near edge at card_v px/s onto the lower hop beside the cabinet and lies there card_lie_s; C beside it picks it up and reads it (the loader shows `text`, drawn from `cards` by floor and drawer). Nothing refuses, shoves or costs: the plain jump across the gap is untouched while the drawers are shut (they are flush with the cliff and never solid), and an open drawer under a short jump only catches it.",
+  "id": "catalogue",
+  "name": "Catalogue cabinet",
+  "pose": "yank",
+  "themes": ["Library"],
+  "kinds": {
+    "cabinet": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px). min_dy/max_dy: how much higher the upper hop is (px). near: px the cabinet's near face stands past the lower hop's gap edge (a body on the edge reaches it). cab_w: the cabinet's width along x (px). step: px between drawer tops (= the climb per drawer; the loader's smallest jump clears 38). top_clear: the top drawer stays this far under the upper hop's top (px). drawers: the most drawers a cabinet gets. draw_h: a drawer front's height (px). draw_out: px an open drawer stands out of the cliff (its top is a platform that deep; the walk line PLAYER_Z lies on it). reach: how far the body's centre may be from the near face, beyond its half width, to yank (px). pull_s: seconds a drawer takes to slide out. hold_s: seconds a fully open drawer stays out. slide_s: seconds it takes to slide home. card_s: two yanks on one cabinet within this many seconds shake a card loose. card_v: px/s the card flutters down. card_lie_s: seconds a card lies on the hop before it is reshelved. yank_hz: the runners as a drawer comes out; clack_hz: the drawer meeting its stop at home; flutter_hz: the card leaving its drawer.",
+      "min_gap": 70,
+      "max_gap": 220,
+      "min_dy": 40,
+      "max_dy": 150,
+      "near": 12,
+      "cab_w": 48,
+      "step": 24,
+      "top_clear": 20,
+      "drawers": 6,
+      "draw_h": 18,
+      "draw_out": 40,
+      "reach": 18,
+      "pull_s": 0.3,
+      "hold_s": 3.0,
+      "slide_s": 0.5,
+      "card_s": 1.0,
+      "card_v": 60,
+      "card_lie_s": 12.0,
+      "yank_hz": 420,
+      "clack_hz": 150,
+      "flutter_hz": 1400
+    }
+  },
+  "cards": [
+    "Maps, lost — see drawer below.",
+    "Ledgers, unpaid — do not lend.",
+    "Weather, promised — pending.",
+    "Residents, former — no forwarding address.",
+    "Stairs, missing — this cabinet.",
+    "Minutes, unread — all of them."
+  ],
+  "pieces": [
+    {
+      "_": "Library floors are 10..14, 45..49, 80..84 …; every one gets at most one cabinet. The ladder (run 127), the dumbwaiter (run 130), the bookcase (run 132), the paternoster (run 139) and the scroll rack (run 145) are passed as `taken`, so the cabinet stands at the widest gap none of them uses. One cabinet per floor, at the widest gap of 70..220 px between two consecutive still hops 40..150 px apart in height.",
+      "kind": "cabinet",
+      "on": ["std", "ice"],
+      "max": 1
+    }
+  ]
+}
