@@ -67,6 +67,7 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 	mi.position = (a + b) / 2.0 + Vector3(0, 0.01, 0)
 	mi.rotation.y = -atan2(d.z, d.x)
 	add_child(mi)
+	paths.append([Vector2(a.x, a.z), Vector2(b.x, b.z), w])   # 빈 칸 메우기(infill)가 피한다
 
 ## 집 — 시드로 정하는 사양(진짜 집처럼, 운영자 2026-09-28): 층수 1~2, 박공/평지붕, 벽 재질(널빤지·벽돌·회벽·색벽), 트림 색, 창 배치와 덧문·창턱,
 ## 처마·홈통·굴뚝·현관 지붕·계단·화단·우체통. 속은 비어 있고(벽 네 장) 경첩 문으로 들어간다. 들어가면 지붕·앞벽·천장이 사라져 안이 보인다(컷어웨이).

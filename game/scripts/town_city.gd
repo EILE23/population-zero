@@ -49,6 +49,9 @@ func _city_init() -> void:
 	_hire_shopkeepers()
 	_grow_streets(body.global_position, 150.0, 99, false)   # 둘레 계획 블록도 찻길·임시 마당으로(운영자 2026-10-13: "녹지 다 채우라니까")
 	gen.rebuild_all(body.global_position)   # 깔린 찻길·새 평지에 맞춰 칸을 다시(찻길 위 나무를 걷는다)
+	get_tree().create_timer(0.4).timeout.connect(func() -> void:   # 몸들이 물리 공간에 들어간 뒤 — 옛 마을과 깔린 블록의 빈 잔디를 메운다
+		Infill.run(self, Rect2(-WorldGen.HUB_X - 4.0, -WorldGen.HUB_Z - 4.0, WorldGen.HUB_X * 2.0 + 8.0, WorldGen.HUB_Z * 2.0 + 8.0))
+		for b in _paved.keys(): _infill_block(b))
 
 ## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무, 빨랫줄.
 ## 뒤 울타리는 띠 끝(골목 앞)까지 — 그 안은 그 집 사람 뒤뜰(back_yards). 길 쪽 가운데(문길)는 비운다. 울타리는 모양만(충돌 없음 — 주민 길을 막지 않게)
@@ -135,9 +138,7 @@ func _root_for(at: Vector3) -> Node3D:
 
 # ── 필지 ──
 func _finish_lot(l: Dictionary, live: bool) -> void:
-	if _temp_lots.has(int(l["order"])):   # 텃밭이던 자리 — 걷고 짓는다
-		if is_instance_valid(_temp_lots[int(l["order"])]): (_temp_lots[int(l["order"])] as Node3D).queue_free()
-		_temp_lots.erase(int(l["order"]))
+	_clear_temp(int(l["order"]))   # 임시 마당이던 자리 — 걷고 짓는다
 	var kind := CityMap.lot_kind(l)
 	var c := TownPlan.spot_of(l)
 	if kind == "house":   # 집 — 모양은 house_styles(오두막·타운하우스·방갈로·차고·날개채·탑·옥상 정원), 문·실내·입주는 같은 길
@@ -320,6 +321,7 @@ func _pave(l: Dictionary) -> void:
 	if _paved.has(b): return
 	_paved[b] = true
 	call_deferred("_fill_block", b)   # 이 블록의 필지 표시(_done·공사장)가 다 선 뒤에
+	if is_inside_tree() and _infilled.size() > 0: get_tree().create_timer(0.5).timeout.connect(_infill_block.bind(b))   # 처음 이후에 깐 블록
 	var keep := _build_parent
 	for sg in RoadTiles.block_segs(b):
 		var na: Vector2i = sg[0]; var nb: Vector2i = sg[1]
@@ -358,13 +360,40 @@ func _grow_streets(p: Vector3, radius: float, max_n: int, live := true) -> int:
 		n += 1
 	return n
 
+var _sale_at := 0.0
 func _streets_tick() -> void:
 	if _grow_streets(body.global_position, 150.0, 1) == 0 and _far_due:
 		_far_due = false; gen._refresh_far()
+	var now := Time.get_ticks_msec() / 1000.0
+	if now > _sale_at and has_method("_refresh_sale"):   # 팔 필지 표지판 — 걸어간 둘레로(town_plots)
+		_sale_at = now + 6.0; call("_refresh_sale")
 
 ## 빈 자리 채우기(운영자 2026-10-13: "녹지가 너무 많네") — 찻길이 깔린 블록의 여덟 자리 중 필지가 아닌 자리(강·장소 둘레에 걸려 계획에서 빠진)는 늘 있는 쌈지 마당으로,
 ## 아직 안 지은 필지는 지을 때까지 동네 텃밭으로(공사가 시작되면 걷는다 — _draw_site)
-var _temp_lots := {}   # 필지 순번 -> Node3D(텃밭)
+var _temp_lots := {}   # 필지 순번 -> Node3D(임시 마당)
+
+## 임시 마당이 늘린 목록(자리·그네·시소·벤치·불·부술 것·나무 잎) — 걷을 때 같이 지운다(안 지우면 사라진 그네를 흔들다 멈췄다)
+const _ARRS := ["spots", "swings", "seesaws", "benches", "lamps", "wreckables", "crowns"]
+func _arr_mark() -> Dictionary:
+	var m := {}
+	for a in _ARRS: m[a] = (get(a) as Array).size()
+	return m
+
+func _arr_since(m: Dictionary) -> Dictionary:
+	var out := {}
+	for a in _ARRS: out[a] = (get(a) as Array).slice(int(m[a]))
+	return out
+
+func _clear_temp(k: int) -> void:
+	if not _temp_lots.has(k): return
+	var holder: Node3D = _temp_lots[k]
+	_temp_lots.erase(k)
+	if not is_instance_valid(holder): return
+	var added: Dictionary = holder.get_meta("added", {})
+	for a in added:
+		var arr: Array = get(a)
+		for e in added[a]: arr.erase(e)
+	holder.queue_free()
 func _fill_block(b: Vector2i) -> void:
 	var zn := TownPlan.OZ + b.y * TownPlan.PITCH
 	if zn < RIVER_Z and zn + TownPlan.PITCH > RIVER_Z: _riverbank(b)
@@ -386,6 +415,7 @@ func _fill_block(b: Vector2i) -> void:
 			_merge_done(mark)
 		elif not _done.has(int(l["order"])) and not _site_nodes.has(int(l["order"])):
 			var holder := Node3D.new(); _root_for(c).add_child(holder); _build_parent = holder
+			var mark0 := _arr_mark()
 			var hv := absi(hash("temp/" + String(l["id"])))
 			if hv % 10 < 1: Allotment.build(self, l, c)   # 텃밭 하나, 나머지는 쌈지 마당 여덟 가지 중 하나(넓은 자리는 둘)
 			else:
@@ -396,6 +426,7 @@ func _fill_block(b: Vector2i) -> void:
 					PocketLots.build(self, { "id": "temp/%s/%d" % [String(l["id"]), q], "street_z": float(l["street_z"]), "order": ((absi(hash("v/%d,%d" % [b.x, b.y])) + int(String(l["id"]).get_slice(",", 2)) * 3 + q * 5) % 8) * 9 }, pc)   # 블록 안 자리마다 다른 마당(같은 놀이터가 넷 줄지어 섰다)
 			MeshMerge.merge(holder, holder.get_children(), [])
 			_temp_lots[int(l["order"])] = holder
+			holder.set_meta("added", _arr_since(mark0))
 		_build_parent = keep
 
 ## 강둑(운영자 2026-10-13: "지형 지물 디테일 다 연결", "녹지가 너무 많네") — 마을 블록이 강을 끼면 그 폭만큼 강둑을 꾸민다.
@@ -435,6 +466,13 @@ func _riverbank(b: Vector2i) -> void:
 ## 물(호수)이 아닌 땅인가
 func _dry(p: Vector3) -> bool: return gen.height(p.x, p.z) >= -0.005
 
+## 블록 하나의 빈 잔디 메우기(infill) — 찻길·마당이 다 선 뒤(새로 깐 블록은 0.5초 뒤)
+var _infilled := {}
+func _infill_block(b: Variant) -> void:
+	if not (b is Vector2i) or _infilled.has(b): return
+	_infilled[b] = true
+	Infill.run(self, Rect2(TownPlan.OX + b.x * TownPlan.PITCH, TownPlan.OZ + b.y * TownPlan.PITCH, TownPlan.PITCH, TownPlan.PITCH))
+
 ## 빈 자리에 마당을 놓아도 되나 — 강·옛 마을·장소(탑·호숫가·오두막·산 들머리)와 그리 가는 길 위가 아니면
 func _filler_ok(c: Vector2) -> bool:
 	if absf(c.y - RIVER_Z) < RIVER_HW + 3.5: return false
@@ -447,9 +485,7 @@ func _filler_ok(c: Vector2) -> bool:
 	return gen.wild_k(c.x, c.y) < 0.05
 
 func _draw_site(k: int) -> void:
-	if _temp_lots.has(k):
-		if is_instance_valid(_temp_lots[k]): (_temp_lots[k] as Node3D).queue_free()
-		_temp_lots.erase(k)
+	_clear_temp(k)
 	super(k)
 
 ## 옛 마을 안 큰길도 아스팔트로(개편 2026-10-13) — 자갈 판(3.6m) 위에 5.4m 찻길 판, 다리(x 0)·Tower Road(x 16) 앞엔 건널목. 길가 가게·벤치는 그대로 둔다

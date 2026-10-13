@@ -85,6 +85,16 @@ func _refresh_sale() -> void:
 	while want.size() < FOR_SALE and k < lots.size():
 		if not _done.has(k) and not _claimed(k) and not _site_nodes.has(k) and CityMap.lot_kind(lots[k]) == "house": want.append(k)
 		k += 1
+	# 찻길이 깔린 블록의 안 지은 필지는 다 판다(운영자 2026-10-13: "집 지을 수 있어야 하는데 집 못 짓잖아") — 내 둘레 가까운 것부터 40
+	var near: Array = []
+	var me := Vector2(body.global_position.x, body.global_position.z) if body else Vector2.ZERO
+	for b in _paved.keys():
+		for l in gen._lots_near(b):
+			var lk := int(l["order"])
+			if lk < built or _done.has(lk) or _claimed(lk) or _site_nodes.has(lk) or want.has(lk) or CityMap.lot_kind(l) != "house": continue
+			near.append([me.distance_to(l["c"]), lk])
+	near.sort_custom(func(a, b2): return float(a[0]) < float(b2[0]))
+	for e in near.slice(0, 40): want.append(int(e[1]))
 	for old in _sale_nodes.keys():
 		if not old in want:
 			(_sale_nodes[old] as Node3D).queue_free(); _sale_nodes.erase(old)
@@ -96,11 +106,14 @@ func _refresh_sale() -> void:
 		var keep := _build_parent; var n := Node3D.new(); _root_for(at).add_child(n); _build_parent = n
 		_box(Vector3(0.08, 1.2, 0.08), at, _mat(Color("6b4a35")), false)
 		_box(Vector3(0.9, 0.5, 0.05), at + Vector3(0, 0.95, 0), _mat(Color("f7f4ef")), false)
-		var lb := Label3D.new(); lb.text = "PLOT FOR SALE\n%d coins" % PLOT_PRICE; lb.font_size = 40; lb.pixel_size = 0.004; lb.modulate = Color("ad7096"); lb.outline_size = 0
+		var lb := Label3D.new(); lb.text = "PLOT FOR SALE\n%s" % ("free — your first house" if plot_price() == 0 else "%d coins" % plot_price()); lb.font_size = 40; lb.pixel_size = 0.004; lb.modulate = Color("ad7096"); lb.outline_size = 0
 		lb.position = at + Vector3(0, 1.2, 0.04); _add(lb)
 		_build_parent = keep
 		_sale_nodes[nk] = n
 		spots.append({ "pos": at + Vector3(0, 0, 0.7), "kind": "sale", "yaw": PI, "lot": nk })
+
+## 첫 집은 값이 없다 — 동전이 없어도 집은 지을 수 있어야(운영자 2026-10-13). 둘째부터 PLOT_PRICE
+func plot_price() -> int: return 0 if _mine().is_empty() else PLOT_PRICE
 
 func sale_use(sp: Dictionary, now: float) -> void:
 	player.face(float(sp["yaw"])); action_until = now + 0.3
@@ -115,10 +128,10 @@ func _open_menu(k: int) -> void:
 	var p := PanelContainer.new(); var sb := StyleBoxFlat.new(); sb.bg_color = Color("f7f4ef"); sb.border_color = Color("7b526c"); sb.set_border_width_all(2); sb.set_corner_radius_all(10); sb.set_content_margin_all(18)
 	p.add_theme_stylebox_override("panel", sb); center.add_child(p)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 6); p.add_child(v)
-	var t := Label.new(); t.text = "Build a house here — %d coins (you have %d)" % [PLOT_PRICE, coins]; t.add_theme_font_size_override("font_size", 20); t.add_theme_color_override("font_color", Color("1b0c15")); v.add_child(t)
+	var t := Label.new(); t.text = ("Build your first house here — free" if plot_price() == 0 else "Build a house here — %d coins (you have %d)" % [plot_price(), coins]); t.add_theme_font_size_override("font_size", 20); t.add_theme_color_override("font_color", Color("1b0c15")); v.add_child(t)
 	var hint := Label.new(); hint.text = "You build it yourself: hammer at the site with %s. Builders come and help." % GameMenu.key_of("act"); hint.add_theme_font_size_override("font_size", 13); hint.add_theme_color_override("font_color", Color("7b526c")); v.add_child(hint)
 	for st in STYLE_NAMES:
-		var b := Button.new(); b.text = STYLE_NAMES[st]; b.custom_minimum_size = Vector2(360, 34); b.disabled = coins < PLOT_PRICE
+		var b := Button.new(); b.text = STYLE_NAMES[st]; b.custom_minimum_size = Vector2(360, 34); b.disabled = coins < plot_price()
 		b.pressed.connect(func() -> void: _buy(k, String(st))); v.add_child(b)
 	var close := Button.new(); close.text = "Not now"; close.pressed.connect(_close_menu); v.add_child(close)
 	set_meta("menu_open", true)
@@ -129,8 +142,9 @@ func _close_menu() -> void:
 
 func _buy(k: int, style: String) -> void:
 	_close_menu()
-	if coins < PLOT_PRICE: say_toast("That's %d coins. Sell things, or win in a game." % PLOT_PRICE); return
-	_set_coins(coins - PLOT_PRICE)
+	var price := plot_price()
+	if coins < price: say_toast("That's %d coins. Sell things, or win in a game." % price); return
+	_set_coins(coins - price)
 	_mine()[str(k)] = { "style": style, "done": false }
 	_save_records()
 	_open_my_site(k)

@@ -144,6 +144,7 @@ func _district(name: String, center: Vector3, builder: Callable) -> void:
 	_build_parent = null
 	districts.append({ "node": n, "center": center, "on": true })
 
+var paths: Array = []   # 돌길 [a, b, 폭] — 빈 칸 메우기(infill)가 피한다
 var lamps: Array = []   # 저녁에 켜지는 불 {light, bulb}
 
 var clock := 0.3        # 0..1 하루 — 0.3 = 아침에서 시작

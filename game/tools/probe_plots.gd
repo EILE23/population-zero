@@ -6,7 +6,7 @@ func _init() -> void:
 	var sales: Array = town.spots.filter(func(s): return s["kind"] == "sale")
 	var builders: Array = town.residents.filter(func(r): return r.job == "builder")
 	print("SALE signs=%d builders=%d sites=%s built=%d" % [sales.size(), builders.size(), str(town._site_nodes.keys()), town.built])
-	town.coins = 100
+	town.coins = 0; town.records["my_plots"] = {}
 	var k: int = int(sales[0]["lot"])
 	town.sale_use(sales[0], 0.0)
 	print("MENU open=%s typing=%s" % [town.get_meta("menu_open", false), town.typing])
