@@ -5,7 +5,7 @@ func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 10: await process_frame
 	print("LOAD %d ms built=%d shops=%d keepers=%d residents=%d districts=%d" % [Time.get_ticks_msec() - t0, town.built, town.shops.size(), town.residents.filter(func(r): return r.job == "shopkeep").size(), town.residents.size(), town.districts.size()])
-	var shots := [["w1", Vector3(-160, 0.05, 90), 4.0], ["w2", Vector3(200, 0.05, 60), 4.0], ["w3", Vector3(-40, 0.05, -60), 2.5], ["w4", Vector3(30, 0.05, 50), 2.5]]
+	var shots := [["t1", Vector3(-160, 0.05, 90), 4.0], ["t2", Vector3(-30, 0.05, 50), 3.0]]
 	for s in shots:
 		var p: Vector3 = s[1]
 		p.y = town.gen.height(p.x, p.z) + 0.3

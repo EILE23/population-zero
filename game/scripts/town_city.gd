@@ -406,8 +406,8 @@ func _filler_ok(c: Vector2) -> bool:
 	if CityMap.whole_block(CityMap.block_of(c)): return false
 	for s in WorldGen.SITES:
 		var sc: Vector3 = s["c"]
-		if c.distance_to(Vector2(sc.x, sc.z)) < float(s["r"]) + 6.0: return false
-		if TownPlan._seg(c, Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 5.0: return false
+		if c.distance_to(Vector2(sc.x, sc.z)) < float(s["r"]) + 2.0: return false   # 장소 바로 둘레만 비운다(탑 길가 블록이 반쯤 비었다)
+		if TownPlan._seg(c, Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 4.2: return false
 	return gen.wild_k(c.x, c.y) < 0.05
 
 func _draw_site(k: int) -> void:

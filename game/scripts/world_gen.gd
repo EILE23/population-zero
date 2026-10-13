@@ -53,8 +53,8 @@ var _later: Array = []         # 땅만 지어 둔 칸의 자연 [노드, 칸, �
 ## 자연(개편 2026-10-13: 운영자 "지형 지물들도 별로") — Kenney Nature Kit(CC0, assets/models/kenney/nature). 찻길·소품과 같은 팩이라 한 그림으로 보인다.
 ## 이름 앞 "k:" = Kenney(배율 K 를 구워 넣는다 — 팩이 1/2 크기), 없으면 옛 Quaternius
 const K := 2.2
-const FOREST := ["k:tree_default", "k:tree_oak", "k:tree_fat", "k:tree_detailed", "k:tree_simple", "k:tree_tall", "k:tree_default_dark", "k:tree_oak_dark"]
-const HIGH := ["k:tree_pineTallA", "k:tree_pineTallB", "k:tree_pineTallC", "k:tree_pineTallD", "k:tree_pineRoundA", "k:tree_pineRoundC"]
+const FOREST := ["CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "CommonTree_5", "TwistedTree_1", "TwistedTree_3"]   # 나무는 Quaternius 그대로 — Kenney 나무(각진 덩어리)는 운영자가 빼자고 했다(2026-10-13)
+const HIGH := ["Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5"]
 const ROCKS := ["k:rock_largeA", "k:rock_largeB", "k:rock_largeC", "k:rock_largeD", "k:rock_tallA", "k:rock_tallC"]
 const PEBBLES := ["k:rock_smallA", "k:rock_smallB", "k:rock_smallC", "k:rock_smallD", "k:stone_smallFlatA"]
 const GRASS := ["k:grass", "k:grass_large", "k:grass_leafs", "k:grass_leafsLarge"]

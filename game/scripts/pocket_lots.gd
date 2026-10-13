@@ -57,7 +57,7 @@ static func build(t, l: Dictionary, c: Vector3) -> void:
 			KitProps.k(t, "survival", "bucket", mid + Vector3(2.4, 0, -1.4), 0.0)
 			t.spots.append({ "pos": mid + Vector3(0.8, 0, 1.6), "kind": "lookout", "yaw": PI })
 		7:   # 과수원 가판 — 나무 넷, 짐수레(호박·사과), 궤짝, 팻말
-			for q in 4: KitProps.k(t, "urban", "tree-park-large", mid + Vector3(-1.8 + (q % 2) * 3.6, 0, -2.6 + (q / 2) * 2.6), rng.randf() * TAU, 1.3)
+			for q in 4: t._tree(mid + Vector3(-1.8 + (q % 2) * 3.6, 0, -2.6 + (q / 2) * 2.6), 0.9)
 			KitProps.k(t, "fantasy", "cart", mid + Vector3(0, 0, 2.2), PI / 2.0, 0.9)
 			for q in 3: KitProps.k(t, "food", ["pumpkin", "apple", "pear"][q], mid + Vector3(-0.4 + q * 0.4, 0.95, 2.2), 0.0, 1.4, false)
 			KitProps.k(t, "survival", "signpost-single", mid + Vector3(-2.6, 0, 3.4), 0.0)
