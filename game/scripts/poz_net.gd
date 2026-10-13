@@ -22,6 +22,7 @@ var guest := true
 var town: Node = null                 # TownBase — 저장할 기록·동전
 var room := ""
 var ws: WebSocketPeer = null
+var clock_dt := 0.0                    # 서버 시각 − 내 시계(초)
 var world := {}                       # 방의 남는 공유 상태(init) — board(게시판 글)·plots(사람이 산 필지) …(climb-room.js)
 var others := {}                      # uid -> {handle, x, y, z, pose, face, s, m, node}
 var ghost_parent: Node3D = null       # 지금 방의 졸라맨을 세울 곳(마을 또는 게임)
@@ -159,6 +160,7 @@ func _on_packet(raw: String) -> void:
 		"init":
 			me = int(m.get("me", 0))
 			world = m.get("world", {}) if m.get("world", {}) is Dictionary else {}
+			if m.has("now"): clock_dt = float(m["now"]) / 1000.0 - Time.get_unix_time_from_system()   # 서버 시계와의 차 — 마을 성장(town_growth world_time)이 모두 같은 시각으로
 			for u in m.get("users", []): if int(u.get("uid", 0)) != me and String(u.get("status", "")) == "active": _upsert(u)
 		"user":
 			var u: Dictionary = m.get("u", {})

@@ -4,14 +4,17 @@ extends TownLedger
 ## 도시계획(town_plan.gd)의 필지를 순서대로 — 건축가 주민(job "builder", 노란 모자) 둘이 공사장에 출근해 망치질한다(hammer 자세, 한 번에 25초 = 일 한 단위).
 ## 단계: 0 말뚝·끈·판자 더미 → 1 바닥 → 2 기둥·보 → 3 벽 → 4 지붕 틀 → 완성: 마을의 다른 집과 같은 진짜 집(_house: 문, 실내, 계단·컷어웨이)이 서고
 ## 명부의 다음 주민이 입주한다(그 문이 집, 밤엔 거기서 잔다). 필지 앞 골목은 공사가 시작될 때 깔리고, 땅이 산이면 블록째 평평하게 깎인다(WorldGen).
-## 진행은 user://growth.json — 꺼 둔 동안 흐른 시간만큼도 자라 있다(한 번에 최대 OFFLINE_MAX 채). 공사장 곁엔 구경 자리가 있어 지나가던 주민이 멈춰 본다
+## 멀티플레이(운영자 2026-10-13: "멀티플레이어블 게임이란 거 잊지마") — 성장은 모두에게 같은 시계: 필지 순번 k 는 EPOCH + (k − founded + 1)·HOUSE_S 에 완공된다.
+## 그 전 SITES_AT_ONCE·HOUSE_S 동안은 공사장(진행 = 흐른 시간). 서버 시각(poz_net clock_dt)을 쓰니 같은 마을의 누구에게나 같은 집이 같은 때 선다. 건축가의 망치질은 보이는 일(품삯)이고
+## 진행을 바꾸지 않는다. 사람이 산 필지(town_plots)는 순번에서 건너뛰고 따로(방 world.plots). 먼 블록의 집은 다가가면 지어진다(시작이 집 수만큼 느려지지 않게)
 
 const GROWTH := "user://growth.json"
 const SITES_AT_ONCE := 8       # (2026-10-13 4→8: 운영자 "집도 계속 지어야지") 동시에 짓는 공사장 수(건축가 공사장 — 사람이 산 필지는 따로, town_plots)
 const STAGE_WORK := 4          # 한 단계에 필요한 일 단위(건축가 한 명 25초)
 const WORK_T := 25.0
-const OFFLINE_HOUSE_S := 120.0 # (2026-10-13 240→120) 꺼 둔 동안 이만큼마다 한 채
-const OFFLINE_MAX := 30
+const EPOCH := 1791866000.0   # 성장 시계의 0 — 이때 founded + 0.5 채쯤(2026-10-13 KST 15시)
+const HOUSE_S := 900.0          # 15분에 한 채(하루 96채) — 모두에게 같다
+const NEAR := 170.0             # 이 안의 지어진 필지는 바로 짓고, 밖은 다가가면
 const RES_MAX := 90            # 몸이 있는 주민 상한 — 넘으면 입주는 하되 집에 불만 켜진다(성능)
 
 var built := 0                 # 지은 필지 수(순번 0..built-1)
@@ -26,24 +29,69 @@ func _growth_init() -> void:
 	var f := FileAccess.open("res://data/residents.json", FileAccess.READ)
 	if f: _roster = (JSON.parse_string(f.get_as_text()) as Dictionary).get("residents", [])
 	_built_root = Node3D.new(); _built_root.name = "Built"; add_child(_built_root)
-	var g := FileAccess.open(GROWTH, FileAccess.READ)
-	var saved_t := 0.0
+	var g := FileAccess.open(GROWTH, FileAccess.READ)   # 내가 산 필지의 쌓인 일만(나머지는 시계)
+	var saved_built := 0
 	if g:
 		var d: Variant = JSON.parse_string(g.get_as_text())
 		if d is Dictionary:
-			built = int(d.get("built", 0)); saved_t = float(d.get("t", 0.0))
+			saved_built = int(d.get("built", 0))
 			for k in (d.get("work", {}) as Dictionary): site_work[int(k)] = float(d["work"][k])
-	built = maxi(built, CityMap.founded())   # 기본 마을 — 처음부터 이만큼은 지어져 있다(운영자 2026-10-06: 탑 가는 길에 아무것도 없다, data/map/town.json)
-	if saved_t > 0.0 and not _tool_run():   # 꺼 둔 동안
-		var gained := mini(OFFLINE_MAX, int((Time.get_unix_time_from_system() - saved_t) / OFFLINE_HOUSE_S))
-		built += gained
-		if gained > 0: get_tree().create_timer(2.0).timeout.connect(func() -> void: say_toast("While you were away the builders finished %d house%s." % [gained, "" if gained == 1 else "s"]))
+	built = target_built()
+	if saved_built > 0 and built > saved_built and not _tool_run():
+		var gained := built - saved_built
+		get_tree().create_timer(2.0).timeout.connect(func() -> void: say_toast("While you were away the builders finished %d house%s." % [gained, "" if gained == 1 else "s"]))
 	gen.flat_limit = built + SITES_AT_ONCE
 	if built > 0: gen.rebuild_all(body.global_position)   # 지은 집 블록이 평지가 되게 칸을 다시(처음 칸은 성장 상태를 읽기 전에 지어졌다)
 	var lots := TownPlan.lots()
-	for k in mini(built, lots.size()): _finish_lot(lots[k], false)
+	var me := Vector2(body.global_position.x, body.global_position.z)
+	for k in mini(built, lots.size()):
+		if me.distance_to(lots[k]["c"]) < NEAR or k < CityMap.founded(): _finish_lot(lots[k], false)
+		else: _due[k] = true
 	_hire_builders()
 	_open_sites()
+
+## 모두에게 같은 시각(서버 시계) — 연결이 없으면 내 시계
+func world_time() -> float:
+	return Time.get_unix_time_from_system() + (net.clock_dt if net else 0.0)
+
+func target_built(t := -1.0) -> int:
+	if t < 0.0: t = world_time()
+	return clampi(CityMap.founded() + int(floor((t - EPOCH) / HOUSE_S)), CityMap.founded(), TownPlan.lots().size())
+
+## 순번 k 공사장의 진행(0..1) — 완공 SITES_AT_ONCE·HOUSE_S 전부터 시간만큼
+func site_progress(k: int, t: float) -> float:
+	var done_at := EPOCH + float(k - CityMap.founded() + 1) * HOUSE_S
+	return clampf(1.0 - (done_at - t) / (SITES_AT_ONCE * HOUSE_S), 0.0, 0.99)
+
+var _due := {}   # 지어졌지만 아직 안 세운(멀어서) 필지
+var _grow_at := 0.0
+## 2초마다(town_city _streets_tick) — 시계가 넘긴 필지를 완공(가까우면 보는 앞에서), 다가간 먼 필지를 세운다, 공사장 단계를 시계에 맞춘다
+func _growth_tick() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _grow_at: return
+	_grow_at = now + 2.0
+	var t := world_time(); var lots := TownPlan.lots()
+	var me := Vector2(body.global_position.x, body.global_position.z)
+	var tb := target_built(t)
+	var changed := false
+	while built < tb:
+		var k := built; built += 1; changed = true
+		if _done.has(k) or (has_method("_claimed") and call("_claimed", k)): continue
+		if _site_nodes.has(k): (_site_nodes[k] as Node3D).queue_free(); _site_nodes.erase(k); site_work.erase(k)
+		if me.distance_to(lots[k]["c"]) < NEAR: _finish_lot(lots[k], true)
+		else: _due[k] = true
+	var n := 0
+	for k in _due.keys():
+		if n >= 3: break
+		if me.distance_to(lots[k]["c"]) < NEAR:
+			_due.erase(k)
+			if not _done.has(k): _finish_lot(lots[k], false); n += 1
+	if changed: gen.flat_limit = maxi(gen.flat_limit, built + SITES_AT_ONCE); _open_sites(); _save_growth()
+	for k in _site_nodes.keys():
+		if has_method("_claimed") and call("_claimed", k): continue   # 사람이 산 집은 망치질로
+		var w := site_progress(k, t) * STAGE_WORK * 5.0
+		if int(w / STAGE_WORK) != int(float(site_work.get(k, 0.0)) / STAGE_WORK) or absf(w - float(site_work.get(k, 0.0))) > 1.0:
+			site_work[k] = w; _draw_site(k)
 
 func _tool_run() -> bool:
 	return DisplayServer.get_name() == "headless" or "-s" in OS.get_cmdline_args() or "--script" in OS.get_cmdline_args() or "--sheet" in OS.get_cmdline_user_args()
@@ -124,6 +172,7 @@ func build_work(sp: Dictionary, by: Variant = null) -> void:
 	var k: int = sp["lot"]
 	if not _site_nodes.has(k): return
 	if by != null and has_method("wage"): call("wage", by, "build")
+	if not (has_method("_claimed") and call("_claimed", k)): return   # 마을 공사장은 시계가 짓는다(모두에게 같게) — 망치질은 품삯만
 	var before := int(float(site_work.get(k, 0.0)) / STAGE_WORK)
 	site_work[k] = float(site_work.get(k, 0.0)) + 1.0
 	var after := int(float(site_work[k]) / STAGE_WORK)

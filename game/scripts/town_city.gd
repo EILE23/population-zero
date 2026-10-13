@@ -362,6 +362,7 @@ func _grow_streets(p: Vector3, radius: float, max_n: int, live := true) -> int:
 
 var _sale_at := 0.0
 func _streets_tick() -> void:
+	_growth_tick()   # 모두에게 같은 시계로 자란다(town_growth)
 	if _grow_streets(body.global_position, 150.0, 1) == 0 and _far_due:
 		_far_due = false; gen._refresh_far()
 	var now := Time.get_ticks_msec() / 1000.0
