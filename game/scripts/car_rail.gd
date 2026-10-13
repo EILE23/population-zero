@@ -36,6 +36,8 @@ var _slow_since := -1.0
 var _merge_since := -1.0
 var _back_until := -9.0
 var _end_wait := -1.0
+var _stopped_at: Variant = null    # 멈춤 표지에서 이미 한 번 선 노드
+var _stop_t := 0.0
 var _backs := 0
 var why := ""                      # 점검(probe_rail) — 지금 무엇 때문에 느린가, 왜 길을 잃었나
 
@@ -205,6 +207,7 @@ func step(car: Car3D, delta: float) -> void:
 	if li >= lane.size() - 2: lim = minf(lim, 0.6 + p.distance_to(lane[lane.size() - 1]) * 0.6)   # 다 와 간다 — 세울 자리에 맞춰
 	# 앞차. 길섶에서 막 나오는 중(첫 토막)이면 둘레 12m 에 달리는 차가 있는 동안 기다린다(8초까지) — 비스듬히 끼어들다 마주 오는 차와 박았다
 	var merging := li <= 1 and car.v < 3.0
+	if li <= 1: lim = minf(lim, 2.4)   # 빠져나오는 동안은 천천히
 	if merging and _merge_since < 0.0: _merge_since = now
 	for c in car.town.cars:
 		if c == car: continue
@@ -239,11 +242,27 @@ func step(car: Car3D, delta: float) -> void:
 		lim = minf(lim, 0.0 if now - _people_since < 4.0 else 0.8)   # 섰다가, 오래 안 비키면 살살(밀며) 간다
 		if now - _people_since > 2.0 and fmod(now, 3.0) < delta and car.driver is Resident: (car.driver as Resident).say(["Excuse me.", "Coming through.", "Mind the car."][int(now) % 3], 1.4)
 	else: _people_since = -1.0
+	var hold_back := false   # 빨간불·멈춤 전 — 교차로 칸을 잡지 않는다(잡고 서 있으면 초록불 쪽이 칸을 못 얻었다)
+	# 신호·멈춤 표지(town_city junction_rule) — 빨간불이면 정지선(노드에서 6m)에 서고, 멈춤 표지면 한 번 완전히 섰다(0.8초) 간다. 이미 들어선 차는 그대로
+	if ni < centers.size() and nodes[ni] != null and _held != nodes[ni] and car.town.has_method("junction_rule"):
+		var nd2: Vector2i = nodes[ni]
+		var dn2 := p.distance_to(centers[ni])
+		var back := centers[ni - 1] - centers[ni]
+		var from := Vector2i(signi(roundi(back.x)) if absf(back.x) > absf(back.z) else 0, signi(roundi(back.z)) if absf(back.z) >= absf(back.x) else 0)
+		var rule: int = car.town.call("junction_rule", nd2, from)
+		if dn2 > 4.8 and dn2 < 20.0:
+			if rule == 1: lim = minf(lim, maxf(0.0, (dn2 - 6.2) * 1.3)); why = "red"; hold_back = true
+			elif rule == 2 and _stopped_at != nd2:
+				hold_back = true
+				lim = minf(lim, maxf(0.0, (dn2 - 6.2) * 1.3)); why = "stop"
+				if dn2 < 8.0 and car.v < 0.3:
+					_stop_t += delta
+					if _stop_t > 0.8: _stopped_at = nd2; _stop_t = 0.0
 	# 교차로 칸
 	if ni < centers.size() and nodes[ni] != null:
 		var nd: Vector2i = nodes[ni]
 		var dn := p.distance_to(centers[ni])
-		if dn < 9.0 and _held != nd:
+		if dn < 9.0 and _held != nd and not hold_back:
 			if _take(car, nd): _wait_since = -1.0
 			else:
 				if _wait_since < 0.0: _wait_since = now
@@ -254,7 +273,7 @@ func step(car: Car3D, delta: float) -> void:
 	if absf(diff) > 1.2: lim = minf(lim, 2.0)   # 겨냥이 옆·뒤 — 천천히 크게 돈다(출발 때 돌아서기, 길 끝 유턴)
 	var want := lim
 	car.v = move_toward(car.v, want, (5.0 if want > car.v else 9.0) * delta)
-	var turn := 2.6 * clampf(absf(car.v) / 2.0, 0.15, 1.0) * delta
+	var turn := 2.6 * clampf(absf(car.v) / 2.0, 0.15 if li > 1 else 0.6, 1.0) * delta   # 길섶에서 빠져나올 땐 느려도 핸들을 크게(앞차 꽁무니로 곧장 들이받고 뒤로 빼기를 되풀이했다)
 	car.rotation.y += clampf(diff, -turn, turn)
 	car.steer = clampf(diff * 2.0, -1.0, 1.0)
 	var nf := -car.global_transform.basis.z

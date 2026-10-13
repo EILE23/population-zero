@@ -29,9 +29,9 @@ func _ready() -> void:
 	_district("meadow", Vector3(0, 0, 18), _meadow)          # 텃밭·벤치(CI run 70) — 나무·풀밭 자리·물가는 _river 가 만든다
 	_district("terrace", TERR_AT, _terrace)                  # 전망 언덕(CI run 73) — 풀밭 동쪽 끝의 풀 선반, 돌계단으로 오른다
 	_hill(Vector3(31, 0, 18.5), 6.5, 2.6); _hill(Vector3(-27, 0, 18.5), 6.5, 2.0); _hill(Vector3(40.5, 0, 21), 4.5, 1.6)   # 언덕 — 차로 넘으면 뜬다(강·텃밭·전망 언덕과 안 겹치게)   # 언덕 — 차로 넘으면 뜬다
-	_car("sedan", Vector3(19.5, 0, 4.6), PI / 2.0)      # 시장 앞 큰길가에 세단(운영자 2026-09-29: 차·운전)
-	_car("hatchback", Vector3(-19.5, 0, 4.6), -PI / 2.0)   # 공원 앞에 해치백
-	_car("race", Vector3(12.5, 0, 4.6), PI / 2.0); _car("suv", Vector3(-12.5, 0, 4.6), PI / 2.0); _car("truck", Vector3(26, 0, -9.5), 0.0); _car("tractor", Vector3(-6, 0, 18.5), 0.0)
+	_car("sedan", Vector3(19.5, 0, 5.3), PI / 2.0)      # 시장 앞 큰길가에 세단(운영자 2026-09-29: 차·운전)
+	_car("hatchback", Vector3(-19.5, 0, 5.3), -PI / 2.0)   # 공원 앞에 해치백
+	_car("race", Vector3(12.5, 0, 5.3), PI / 2.0); _car("suv", Vector3(-12.5, 0, 5.3), PI / 2.0); _car("truck", Vector3(26, 0, -9.5), 0.0); _car("tractor", Vector3(-6, 0, 18.5), 0.0)
 	# 큰길 교통은 차선 주행 주민 차(town_traffic 늘 도는 차, car_rail) — 전엔 운전사 없는 택시·배달차 둘이 동쪽 차선 한가운데 서 있어 길을 막았다
 	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "iron", false, 1)
 	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)

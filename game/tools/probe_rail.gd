@@ -44,6 +44,10 @@ func _init() -> void:
 	worst.sort_custom(func(a, b): return float(still[a]) > float(still[b]))
 	for k in mini(5, worst.size()):
 		var cc: Car3D = worst[k]
+		var hitn := "-"
+		if cc.get_slide_collision_count() > 0 and cc.get_slide_collision(0).get_collider() is Node:
+			var hn: Node = cc.get_slide_collision(0).get_collider(); hitn = "%s<%s<%s@%s" % [hn.name, hn.get_parent().name, hn.get_parent().get_parent().name if hn.get_parent().get_parent() else "", str((hn as Node3D).global_position.snapped(Vector3.ONE * 0.1)) if hn is Node3D else ""]
+		print("    hit=%s backs=%d drv=%s ai=%s" % [hitn, cc.rail._backs if cc.rail else -1, str(cc.driver.get("state") if cc.driver else "none"), str(cc.ai)])
 		print("    still %.0fs %s at %s held=%s why=%s li=%d/%d" % [float(still[cc]), cc.kind, str(cc.global_position.snapped(Vector3.ONE * 0.1)), str(cc.rail._held if cc.rail else "-"), cc.rail.why if cc.rail else "-", cc.rail.li if cc.rail else -1, cc.rail.lane.size() if cc.rail else 0])
 	print("RAIL dev_avg=%.2f dev_max=%.2f arrivals=%d lost=%d max_no_plan=%d" % [dev_sum / maxf(1.0, dev_n), dev_max, arrivals, lost, noplan])
 	quit()

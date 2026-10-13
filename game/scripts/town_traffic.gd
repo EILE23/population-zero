@@ -50,7 +50,8 @@ func _traffic_init() -> void:
 ## 매 틱(town_social) — 2초마다 볼일 진행
 func _traffic_tick(now: float) -> void:
 	if now < _traffic_at: return
-	_traffic_at = now + 2.0
+	_traffic_at = now + 1.0
+	if has_method("_signal_tick"): call("_signal_tick")
 	for e in cruisers:   # 늘 도는 차 — 다 왔으면 다음 목적지, 오래 막혔으면 다음 경유지로
 		var c: Car3D = e["car"]; var r: Resident = e["r"]
 		if not is_instance_valid(c) or driving == c or passenger == c or not (is_instance_valid(r) and r.car_seat == c): continue

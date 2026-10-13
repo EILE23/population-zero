@@ -427,6 +427,42 @@ func _hub_road() -> void:
 		x += step
 	_build_parent = keep
 
+## 갈림길 규칙(car_rail) — 0 가도 된다, 1 빨간불, 2 멈춤 표지. from = 차가 들어오는 쪽(노드에서 본 방향)
+## 큰길 사거리(신호등): 9초씩 동서·남북 번갈아 초록, 바뀌기 전 2초는 모두 빨강. 삼거리: 곁가지(없는 팔의 맞은편)에서 들어오면 멈춤
+const SIGNAL_T := 9.0
+func junction_rule(nd: Vector2i, from: Vector2i) -> int:
+	if not _node_tiles.has(nd): return 0
+	var arms := _arms_of(nd)
+	if arms.size() == 4 and nd.y % 2 == 0:
+		var t := Time.get_ticks_msec() / 1000.0
+		var phase := int(t / SIGNAL_T) % 2   # 0 동서 초록, 1 남북 초록
+		if fmod(t, SIGNAL_T) > SIGNAL_T - 2.0: return 1
+		return 0 if (from.y == 0) == (phase == 0) else 1
+	if arms.size() == 3:
+		var dirs := { "W": Vector2i(-1, 0), "E": Vector2i(1, 0), "N": Vector2i(0, -1), "S": Vector2i(0, 1) }
+		for k in dirs:
+			if not k in arms: return 2 if from == -(dirs[k] as Vector2i) else 0
+	return 0
+
+func _arms_of(nd: Vector2i) -> Array:
+	var arms: Array = []
+	var dirs := { "W": Vector2i(-1, 0), "E": Vector2i(1, 0), "N": Vector2i(0, -1), "S": Vector2i(0, 1) }
+	for k in dirs:
+		if _segs.has(RoadTiles.seg_key(nd, nd + (dirs[k] as Vector2i))): arms.append(k)
+	return arms
+
+## 신호등 불빛 — 신호등마다 공 하나(첫째는 남북, 둘째는 동서 차를 위한 불), 2초마다 빛깔을 맞춘다(town_traffic)
+var _signal_lamps: Array = []   # [{mat, axis}]
+func _signal_tick() -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var phase := int(t / SIGNAL_T) % 2; var amber := fmod(t, SIGNAL_T) > SIGNAL_T - 2.0
+	_signal_lamps = _signal_lamps.filter(func(e: Dictionary) -> bool: return is_instance_valid(e["node"]))   # 다시 고른 노드 판의 옛 불은 버린다
+	for s in _signal_lamps:
+		var m: StandardMaterial3D = s["mat"]
+		var green := int(s["axis"]) == phase
+		m.albedo_color = Color("f2c84b") if (amber and green) else (Color("5fd35f") if green else Color("e05050"))
+		m.emission = m.albedo_color
+
 func _retile(nd: Vector2i) -> void:
 	if RoadTiles.in_hub(RoadTiles.npos(nd)): return
 	var arms: Array = []
@@ -442,8 +478,14 @@ func _retile(nd: Vector2i) -> void:
 		var holder := Node3D.new(); _root_for(p).add_child(holder); _node_props[nd] = holder
 		var keep := _build_parent; _build_parent = holder
 		if arms.size() == 4 and nd.y % 2 == 0:
-			KitProps.put(self, RoadTiles.DIR + "traffic-light.glb", Vector3(p.x + r, 0, p.z + r), 0.0, 9.0)
-			KitProps.put(self, RoadTiles.DIR + "traffic-light.glb", Vector3(p.x - r, 0, p.z - r), PI, 9.0)
+			for q in 2:
+				var lp := Vector3(p.x + r, 0, p.z + r) if q == 0 else Vector3(p.x - r, 0, p.z - r)
+				KitProps.put(self, RoadTiles.DIR + "traffic-light.glb", lp, 0.0 if q == 0 else PI, 9.0)
+				var bulb := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 0.16; sm.height = 0.32; bulb.mesh = sm
+				var mat := StandardMaterial3D.new(); mat.emission_enabled = true; mat.emission_energy_multiplier = 1.5; bulb.material_override = mat
+				bulb.position = lp + Vector3(0, 4.9, 0); holder.add_child(bulb)
+				_signal_lamps.append({ "mat": mat, "axis": 1 - q, "node": bulb })   # 첫째 공 = 남북 차, 둘째 = 동서 차
+			_signal_tick()
 		else:
 			KitProps.put(self, RoadTiles.DIR + "road-sign-stop.glb", Vector3(p.x + r, 0, p.z + r), 0.0, 6.0)
 		_build_parent = keep
