@@ -333,6 +333,8 @@ func _pave(l: Dictionary) -> void:
 ## 아직 안 지은 필지는 지을 때까지 동네 텃밭으로(공사가 시작되면 걷는다 — _draw_site)
 var _temp_lots := {}   # 필지 순번 -> Node3D(텃밭)
 func _fill_block(b: Vector2i) -> void:
+	var zn := TownPlan.OZ + b.y * TownPlan.PITCH
+	if zn < RIVER_Z and zn + TownPlan.PITCH > RIVER_Z: _riverbank(b)
 	if TownPlan.no_lane(b) and not CityMap.whole_block(b):
 		var keep0 := _build_parent; _build_parent = _root_for(CityMap.block_center(b))
 		var mark0 := _merge_mark(); Courtyard.build(self, b); _merge_done(mark0)
@@ -355,6 +357,39 @@ func _fill_block(b: Vector2i) -> void:
 			MeshMerge.merge(holder, holder.get_children(), [])
 			_temp_lots[int(l["order"])] = holder
 		_build_parent = keep
+
+## 강둑(운영자 2026-10-13: "지형 지물 디테일 다 연결", "녹지가 너무 많네") — 마을 블록이 강을 끼면 그 폭만큼 강둑을 꾸민다.
+## 북쪽 둑(큰길 인도와 강 사이 3m): 가로수·강을 보는 벤치·가로등. 남쪽 둑(강과 다음 찻길 사이): 갈대·바위·꽃, 낚시 자리(낚아 판다), 가끔 작은 나무 부두, 피크닉 탁자
+func _riverbank(b: Vector2i) -> void:
+	var x0 := TownPlan.OX + b.x * TownPlan.PITCH + TownPlan.ROAD_W / 2.0; var x1 := x0 + TownPlan.PITCH - TownPlan.ROAD_W
+	if absf((x0 + x1) / 2.0) < WorldGen.HUB_X + 6.0: return   # 옛 마을 강가는 이미 꾸며져 있다
+	var rng := RandomNumberGenerator.new(); rng.seed = hash("bank/%d,%d" % [b.x, b.y])
+	var keep := _build_parent; _build_parent = _root_for(Vector3((x0 + x1) / 2.0, 0, RIVER_Z))
+	var mark := _merge_mark()
+	var nz := RIVER_Z - RIVER_HW - 1.4; var sz := RIVER_Z + RIVER_HW + 0.8
+	for k in 4:
+		var x := lerpf(x0 + 3.0, x1 - 3.0, k / 3.0)
+		_tree(Vector3(x, 0, nz - 0.6), 0.9)
+		if k < 3: _bench(Vector3(x + 4.0, 0, nz - 0.3))
+	_lamp(Vector3((x0 + x1) / 2.0, 0, nz - 0.9))
+	var reeds := ["grass_leafsLarge", "grass_large", "plant_flatTall", "grass_leafs"]
+	for k in 22:
+		var x := rng.randf_range(x0, x1); var z := sz + rng.randf_range(0.0, 3.0)
+		if rng.randf() < 0.75: KitProps.n(self, reeds[rng.randi() % reeds.size()], Vector3(x, 0, z), rng.randf() * TAU, rng.randf_range(2.0, 2.8), false)
+		else: KitProps.n(self, KitProps.FLOWERS[rng.randi() % KitProps.FLOWERS.size()], Vector3(x, 0, z + 1.0), 0.0, 1.8, false)
+	for k in 3: KitProps.n(self, ["rock_largeA", "rock_largeC", "stone_largeB"][k], Vector3(rng.randf_range(x0, x1), 0, sz + rng.randf_range(0.2, 1.0)), rng.randf() * TAU, 1.3)
+	for k in 2:
+		var fx := lerpf(x0 + 6.0, x1 - 6.0, k)
+		spots.append({ "pos": Vector3(fx, 0.02, sz - 0.2), "kind": "bank", "yaw": PI, "fish": true })
+	if rng.randf() < 0.5:   # 작은 나무 부두 — 둑에서 물 위로
+		var jx := rng.randf_range(x0 + 4.0, x1 - 4.0)
+		_box(Vector3(1.4, 0.1, 2.4), Vector3(jx, 0.0, RIVER_Z + RIVER_HW - 0.6), _mat(Color("8a6a4a")))
+		for px in [-0.6, 0.6]: _box(Vector3(0.12, 0.5, 0.12), Vector3(jx + px, -0.3, RIVER_Z + 0.2), _mat(Color("6b4a35")), false)
+		spots.append({ "pos": Vector3(jx, 0.1, RIVER_Z + 0.3), "kind": "bank", "yaw": PI, "fish": true })
+	else:
+		KitProps.f(self, "tableCloth", Vector3(rng.randf_range(x0 + 4.0, x1 - 4.0), 0, sz + 2.2), 0.0)
+	_merge_done(mark)
+	_build_parent = keep
 
 ## 빈 자리에 마당을 놓아도 되나 — 강·옛 마을·장소(탑·호숫가·오두막·산 들머리)와 그리 가는 길 위가 아니면
 func _filler_ok(c: Vector2) -> bool:
@@ -428,7 +463,9 @@ func _kerb(na: Vector2i, nb: Vector2i) -> void:
 			KitProps.f(self, "bench", Vector3(mx, 0, pa.z - walk), 0.0)
 			KitProps.f(self, "trashcan", Vector3(mx + 1.4, 0, pa.z - walk), 0.0)
 	else:
-		_street_light(Vector3(pa.x + walk, 0, (pa.z + pb.z) / 2.0), -PI / 2.0)
+		var lz := (pa.z + pb.z) / 2.0
+		if absf(lz - RIVER_Z) < RIVER_HW + 2.0: lz = minf(pa.z, pb.z) + TownPlan.ROAD_W / 2.0 + 1.0   # 강을 건너는 토막 — 다리 위가 아니라 둑에
+		_street_light(Vector3(pa.x + walk, 0, lz), -PI / 2.0)
 
 ## 가로등(Kenney light-curved, 9배 = 6m) — 기둥 충돌, 밤엔 켜진다(lamps), 차가 받으면 넘어간다(wreckables)
 func _street_light(at: Vector3, yaw: float) -> void:
