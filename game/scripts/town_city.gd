@@ -72,6 +72,15 @@ func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
 		for e in [-1.2, 1.2]: _box(Vector3(0.05, 1.6, 0.05), Vector3(lx, 0, c.z + e), _mat(Color("8a6a4a")), false)
 		_box(Vector3(0.02, 0.02, 2.4), Vector3(lx, 1.55, c.z), _mat(Color("efe9e2")), false)
 		for q in 3: _box(Vector3(0.03, 0.4, 0.35), Vector3(lx, 1.15, c.z - 0.6 + q * 0.55), _mat([Color("ad7096"), Color("7a90b0"), Color("f2c84b"), Color("f7f4ef")][(q + rng.randi()) % 4]), false)
+	if not doors.is_empty():   # 현관 — 문 양옆 화분, 발판, 문간 옆 우편함과 쓰레기통
+		var dp: Vector3 = doors[doors.size() - 1]["pos"]
+		if absf(dp.x - c.x) < 4.0 and absf(dp.z - (c.z + hs.z / 2.0)) < 1.5:
+			for sx in [-0.85, 0.85]: KitProps.f(self, "pottedPlant", Vector3(dp.x + sx, 0, dp.z + 0.35), 0.0, false)
+			KitProps.f(self, "rugDoormat", Vector3(dp.x, 0.01, dp.z + 0.45), 0.0, false)
+		var gx := c.x + 1.3
+		_box(Vector3(0.08, 1.0, 0.08), Vector3(gx, 0, front - 0.25), _mat(Color("4a4a52")), false)
+		_box(Vector3(0.3, 0.25, 0.45), Vector3(gx, 1.0, front - 0.25), _mat([Color("b56a5a"), Color("4a6a8a"), Color("3f6b2f"), Color("1b0c15")][rng.randi() % 4]))
+		KitProps.f(self, "trashcan", Vector3(c.x - 1.5, 0, front - 0.4), 0.0)
 	var who: String = String(owner_row(int(l["order"])).get("handle", "")) if not _is_mine(int(l["order"])) else ""
 	BackYards.build(self, c, back + 0.4, c.z - hs.z / 2.0 - 0.3, lw, who, hash("back/" + String(l["id"])))
 
@@ -299,6 +308,7 @@ func _park_block(c: Vector3, name: String) -> void:
 ## 인도엔 가로등(Kenney 꺾인 등, 팔이 찻길 쪽)·가로수. 옛 마을 안의 큰길은 옛 판 그대로
 var _segs := {}          # 토막 열쇠 -> true
 var _node_tiles := {}    # Vector2i -> Node3D
+var _node_props := {}    # Vector2i -> Node3D(신호등·표지)
 func _pave(l: Dictionary) -> void:
 	var b: Vector2i = l["b"]
 	if _paved.has(b): return
@@ -383,6 +393,18 @@ func _retile(nd: Vector2i) -> void:
 		if _segs.has(RoadTiles.seg_key(nd, nd + (dirs[k] as Vector2i))): arms.append(k)
 	if _node_tiles.has(nd) and is_instance_valid(_node_tiles[nd]): (_node_tiles[nd] as Node3D).queue_free()
 	_node_tiles[nd] = RoadTiles.node(self, nd, arms, _root_for(RoadTiles.npos(nd)))
+	if _node_props.has(nd) and is_instance_valid(_node_props[nd]): (_node_props[nd] as Node3D).queue_free()
+	_node_props.erase(nd)
+	if _node_tiles[nd] and arms.size() >= 3:   # 모퉁이 — 큰길 사거리엔 신호등 둘, 나머지 갈림길엔 멈춤 표지 하나(노드 판과 같이 다시 고른다)
+		var p := RoadTiles.npos(nd); var r := TownPlan.ROAD_W / 2.0 - 0.4
+		var holder := Node3D.new(); _root_for(p).add_child(holder); _node_props[nd] = holder
+		var keep := _build_parent; _build_parent = holder
+		if arms.size() == 4 and nd.y % 2 == 0:
+			KitProps.put(self, RoadTiles.DIR + "traffic-light.glb", Vector3(p.x + r, 0, p.z + r), 0.0, 9.0)
+			KitProps.put(self, RoadTiles.DIR + "traffic-light.glb", Vector3(p.x - r, 0, p.z - r), PI, 9.0)
+		else:
+			KitProps.put(self, RoadTiles.DIR + "road-sign-stop.glb", Vector3(p.x + r, 0, p.z + r), 0.0, 6.0)
+		_build_parent = keep
 
 ## 인도 — 동서 토막엔 가로등 둘(남·북 번갈아)과 가로수 둘, 남북 토막엔 가로등 하나
 func _kerb(na: Vector2i, nb: Vector2i) -> void:
@@ -393,6 +415,18 @@ func _kerb(na: Vector2i, nb: Vector2i) -> void:
 			var x := lerpf(pa.x, pb.x, 0.3 if k == 0 else 0.7); var side := -1.0 if (k + na.x) % 2 == 0 else 1.0
 			_street_light(Vector3(x, 0, pa.z + side * walk), 0.0 if side > 0.0 else PI)
 			_tree(Vector3(lerpf(pa.x, pb.x, 0.5 + (k - 0.5) * 0.9 * 0.5), 0, pa.z - side * walk), 0.85)
+		var mx := (pa.x + pb.x) / 2.0
+		if absi(na.x * 3 + na.y) % 3 == 0 and na.y % 2 == 0:   # 버스 정류장(블록 경계 찻길, 세 토막에 하나) — 지붕·유리 판·벤치·표지
+			var bz := pa.z + walk * 1.02
+			_box(Vector3(3.0, 0.08, 1.1), Vector3(mx, 2.3, bz), _mat(Color("4a4a52")), false)
+			for ex in [-1.45, 1.45]: _box(Vector3(0.08, 2.3, 0.08), Vector3(mx + ex, 0, bz - 0.45), _mat(Color("4a4a52")))
+			var gl := MeshInstance3D.new(); var gm := BoxMesh.new(); gm.size = Vector3(2.9, 1.6, 0.04); gl.mesh = gm; var glass := StandardMaterial3D.new(); glass.albedo_color = Color(0.8, 0.92, 0.95, 0.4); glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; gl.material_override = glass; gl.position = Vector3(mx, 1.4, bz - 0.5); _add(gl)
+			KitProps.f(self, "benchCushion", Vector3(mx, 0, bz - 0.15), PI)
+			spots.append({ "pos": Vector3(mx, 0, bz - 0.6), "kind": "bench", "yaw": 0.0 })
+			KitProps.put(self, RoadTiles.DIR + "road-sign-street.glb", Vector3(mx + 2.0, 0, bz), 0.0, 6.0)
+		else:   # 인도 벤치·휴지통
+			KitProps.f(self, "bench", Vector3(mx, 0, pa.z - walk), 0.0)
+			KitProps.f(self, "trashcan", Vector3(mx + 1.4, 0, pa.z - walk), 0.0)
 	else:
 		_street_light(Vector3(pa.x + walk, 0, (pa.z + pb.z) / 2.0), -PI / 2.0)
 
