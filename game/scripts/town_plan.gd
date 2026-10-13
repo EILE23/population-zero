@@ -22,13 +22,11 @@ static func lots() -> Array:
 	var n := int(REACH / PITCH)
 	for bx in range(-n, n):
 		for bz in range(-n, n):
-			var x0 := OX + bx * PITCH + ROAD_W / 2.0
-			var inner := PITCH - ROAD_W
 			var zn := OZ + bz * PITCH; var lane := zn + PITCH / 2.0; var zs := zn + PITCH   # 블록 북쪽 길·가운데 길·남쪽 길(셋 다 같은 찻길 — 집은 다 남쪽 길을 본다)
 			for row in 2:
 				for i in PER_ROW:
 					var sz := lane if row == 0 else zs
-					var c := Vector2(x0 + inner / (PER_ROW * 2.0) * (1 + 2 * i), sz - FRONT)
+					var c := slot_center(bx, bz, row, i)
 					if not _ok(c): continue
 					_lots.append({ "id": "%d,%d,%d" % [bx, bz, row * PER_ROW + i], "c": c, "b": Vector2i(bx, bz), "row": row, "street_z": sz })
 	# 블록 단위로 — 가까운 블록부터 그 블록을 다 채우고 다음 블록(운영자 2026-10-08: 섹션마다 빼곡해야). 전엔 필지마다 거리순이라 블록들이 반쯤 빈 채 흩어졌다
@@ -39,6 +37,18 @@ static func lots() -> Array:
 		return String(a["id"]) < String(b["id"]))
 	for k in _lots.size(): _lots[k]["order"] = k
 	return _lots
+
+## 블록 (bx, bz) 의 row 줄 i 번째 자리 가운데 — 필지가 아니어도(강·장소 둘레) 같은 자리(town_city 빈 자리 채우기)
+static func slot_center(bx: int, bz: int, row: int, i: int) -> Vector2:
+	var x0 := OX + bx * PITCH + ROAD_W / 2.0; var inner := PITCH - ROAD_W
+	var sz := OZ + bz * PITCH + (PITCH / 2.0 if row == 0 else PITCH)
+	return Vector2(x0 + inner / (PER_ROW * 2.0) * (1 + 2 * i), sz - FRONT)
+
+static var _by_id := {}
+static func lot_by_id(id: String) -> Dictionary:
+	if _by_id.is_empty():
+		for l in lots(): _by_id[String(l["id"])] = l
+	return _by_id.get(id, {})
 
 ## 필지가 될 수 있는 자리 — 허브 밖, 장소·강·큰길에서 떨어져, 계획 반경 안
 static func _ok(c: Vector2) -> bool:

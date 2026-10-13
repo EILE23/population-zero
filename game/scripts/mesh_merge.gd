@@ -14,17 +14,23 @@ static func merge(parent: Node3D, nodes: Array, exclude: Array) -> int:
 		for ch in n.get_children(): stack.append(ch)
 		if not (n is MeshInstance3D): continue
 		var mi := n as MeshInstance3D
-		if mi.mesh == null or mi.mesh.get_surface_count() != 1 or not mi.visible: continue
+		if mi.mesh == null or mi.mesh.get_surface_count() == 0 or not mi.visible: continue
 		if _has_live_child(mi): continue
-		var mat: Material = mi.material_override if mi.material_override else mi.mesh.surface_get_material(0)
-		if not (mat is StandardMaterial3D): continue
-		var sm := mat as StandardMaterial3D
-		if sm.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED: continue
-		var key := "%s|%s|%s|%s|%s|%s" % [sm.albedo_color.to_html(), str(sm.albedo_texture.resource_path if sm.albedo_texture else ""), str(sm.uv1_scale), sm.uv1_triplanar, sm.uv1_world_triplanar, sm.vertex_color_use_as_albedo]
-		if not groups.has(key):
-			var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-			groups[key] = [st, sm]
-		(groups[key][0] as SurfaceTool).append_from(mi.mesh, 0, parent.global_transform.affine_inverse() * mi.global_transform)
+		var mats: Array = []   # 면마다 — 팩 모델(Kenney)은 한 메시에 잎·줄기처럼 재질 여럿이다. 하나라도 못 합치면 통째로 둔다
+		var ok := true
+		for si in mi.mesh.get_surface_count():
+			var mat: Material = mi.material_override if mi.material_override else (mi.get_surface_override_material(si) if mi.get_surface_override_material(si) else mi.mesh.surface_get_material(si))
+			if not (mat is StandardMaterial3D) or (mat as StandardMaterial3D).transparency != BaseMaterial3D.TRANSPARENCY_DISABLED: ok = false; break
+			mats.append(mat)
+		if not ok: continue
+		var xf := parent.global_transform.affine_inverse() * mi.global_transform
+		for si in mats.size():
+			var sm := mats[si] as StandardMaterial3D
+			var key := "%s|%s|%s|%s|%s|%s" % [sm.albedo_color.to_html(), str(sm.albedo_texture.resource_path if sm.albedo_texture else ""), str(sm.uv1_scale), sm.uv1_triplanar, sm.uv1_world_triplanar, sm.vertex_color_use_as_albedo]
+			if not groups.has(key):
+				var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+				groups[key] = [st, sm]
+			(groups[key][0] as SurfaceTool).append_from(mi.mesh, si, xf)
 		mi.visible = false; hidden += 1
 	for key in groups:
 		var st: SurfaceTool = groups[key][0]

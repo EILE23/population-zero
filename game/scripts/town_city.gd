@@ -103,6 +103,9 @@ func _root_for(at: Vector3) -> Node3D:
 
 # ── 필지 ──
 func _finish_lot(l: Dictionary, live: bool) -> void:
+	if _temp_lots.has(int(l["order"])):   # 텃밭이던 자리 — 걷고 짓는다
+		if is_instance_valid(_temp_lots[int(l["order"])]): (_temp_lots[int(l["order"])] as Node3D).queue_free()
+		_temp_lots.erase(int(l["order"]))
 	var kind := CityMap.lot_kind(l)
 	var c := TownPlan.spot_of(l)
 	if kind == "house":   # 집 — 모양은 house_styles(오두막·타운하우스·방갈로·차고·날개채·탑·옥상 정원), 문·실내·입주는 같은 길
@@ -180,12 +183,9 @@ func _workshop_lot(l: Dictionary, c: Vector3) -> void:
 		t.position = c + Vector3(-3.3, 0.1 + i * 0.16, 0.6); _add(t)
 	if int(l["order"]) % 2 == 0: _car(["truck", "suv", "hatchback", "sedan"][int(l["order"]) % 4], c + Vector3(0.5, 0, 4.6), PI / 2.0)
 
-## 쌈지공원 — 나무 셋, 벤치 둘, 화단, 그네(진짜로 탄다)
+## 쌈지 마당 — 장터·화원·놀이·정원 중 하나(pocket_lots)
 func _green_lot(l: Dictionary, c: Vector3) -> void:
-	for p in [Vector3(-4, 0, -3), Vector3(4, 0, -3.5), Vector3(-3.5, 0, 3.5)]: _tree(c + p, 1.1)
-	_bench(c + Vector3(-1.2, 0, 2.6)); _bench(c + Vector3(2.2, 0, 2.6))
-	_swing(c + Vector3(2.0, 0, -1.0))
-	for i in 10: _scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers", "Clover_1", "Grass_Wispy_Tall"][i % 5], c + Vector3(-5.0 + i * 1.1, 0, 5.0), 0.6)
+	PocketLots.build(self, l, c)
 
 # ── 블록 전체 ──
 ## 관공서 — 큰 건물(들어간다), 기둥 넷, 앞 광장(자갈)·분수·벤치·가로등·깃대, 이름판
@@ -240,6 +240,7 @@ func _pave(l: Dictionary) -> void:
 	var b: Vector2i = l["b"]
 	if _paved.has(b): return
 	_paved[b] = true
+	call_deferred("_fill_block", b)   # 이 블록의 필지 표시(_done·공사장)가 다 선 뒤에
 	var keep := _build_parent
 	for sg in RoadTiles.block_segs(b):
 		var na: Vector2i = sg[0]; var nb: Vector2i = sg[1]
@@ -254,6 +255,46 @@ func _pave(l: Dictionary) -> void:
 		_build_parent = keep
 		for nd in [na, nb]: _retile(nd)
 	_build_parent = keep
+
+## 빈 자리 채우기(운영자 2026-10-13: "녹지가 너무 많네") — 찻길이 깔린 블록의 여덟 자리 중 필지가 아닌 자리(강·장소 둘레에 걸려 계획에서 빠진)는 늘 있는 쌈지 마당으로,
+## 아직 안 지은 필지는 지을 때까지 동네 텃밭으로(공사가 시작되면 걷는다 — _draw_site)
+var _temp_lots := {}   # 필지 순번 -> Node3D(텃밭)
+func _fill_block(b: Vector2i) -> void:
+	for row in 2:
+		for i in TownPlan.PER_ROW:
+			var c2 := TownPlan.slot_center(b.x, b.y, row, i)
+			var c := Vector3(c2.x, 0, c2.y)
+			var l := TownPlan.lot_by_id("%d,%d,%d" % [b.x, b.y, row * TownPlan.PER_ROW + i])
+			var keep := _build_parent
+			if l.is_empty():
+				if not _filler_ok(c2): continue
+				_build_parent = _root_for(c)
+				var mark := _merge_mark()
+				PocketLots.build(self, { "id": "slot/%d,%d,%d,%d" % [b.x, b.y, row, i], "street_z": c2.y + TownPlan.FRONT, "order": absi(hash("%d,%d,%d,%d" % [b.x, b.y, row, i])) % 36 * 9 }, c)
+				_merge_done(mark)
+			elif not _done.has(int(l["order"])) and not _site_nodes.has(int(l["order"])):
+				var holder := Node3D.new(); _root_for(c).add_child(holder); _build_parent = holder
+				Allotment.build(self, l, c)
+				MeshMerge.merge(holder, holder.get_children(), [])
+				_temp_lots[int(l["order"])] = holder
+			_build_parent = keep
+
+## 빈 자리에 마당을 놓아도 되나 — 강·옛 마을·장소(탑·호숫가·오두막·산 들머리)와 그리 가는 길 위가 아니면
+func _filler_ok(c: Vector2) -> bool:
+	if absf(c.y - RIVER_Z) < RIVER_HW + 3.5: return false
+	if absf(c.x) < WorldGen.HUB_X + 6.0 and absf(c.y) < WorldGen.HUB_Z + 6.0: return false
+	if CityMap.whole_block(CityMap.block_of(c)): return false
+	for s in WorldGen.SITES:
+		var sc: Vector3 = s["c"]
+		if c.distance_to(Vector2(sc.x, sc.z)) < float(s["r"]) + 6.0: return false
+		if TownPlan._seg(c, Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 5.0: return false
+	return gen.wild_k(c.x, c.y) < 0.05
+
+func _draw_site(k: int) -> void:
+	if _temp_lots.has(k):
+		if is_instance_valid(_temp_lots[k]): (_temp_lots[k] as Node3D).queue_free()
+		_temp_lots.erase(k)
+	super(k)
 
 func _retile(nd: Vector2i) -> void:
 	if RoadTiles.in_hub(RoadTiles.npos(nd)): return

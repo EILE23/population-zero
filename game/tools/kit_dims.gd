@@ -1,7 +1,7 @@
 extends SceneTree
 ## 팩 모델 치수(AABB) — 이름 크기 원점
 func _init() -> void:
-	for dir in ["roads", "suburban", "commercial"]:
+	for dir in (OS.get_cmdline_user_args() if not OS.get_cmdline_user_args().is_empty() else ["roads", "suburban", "commercial"]):
 		var d := DirAccess.open("res://assets/models/kenney/" + dir)
 		for f in d.get_files():
 			if not f.ends_with(".glb"): continue

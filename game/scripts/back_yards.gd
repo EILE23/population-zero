@@ -1,92 +1,101 @@
 class_name BackYards
 extends RefCounted
-## 뒤뜰(운영자 2026-10-12: "여전히 녹지가 많고", "상호작용 자꾸 복붙할래?") — 블록 안 집 뒤의 빈 띠(9m)를 공용 놀이터 도장 대신 집마다의 뒤뜰로.
-## 뒤 울타리를 띠 끝(골목 바로 앞)까지 물리고, 그 안을 세 자리(집 쪽·가운데·끝)로 나눠 그 집 사람 성미대로 고른다:
-##   사교적 → 바비큐·피크닉 / 물놀이 풀(헤엄) · 대담 → 그네 / 작업대 · 게으름 → 해먹(눕는다) / 볕 드는 데크
-##   호기심 → 온실 / 꽃밭 · 성미 → 창고와 장작더미 / 작업대 · 누구나 → 텃밭, 그네 한 틀
-## 같은 성미라도 이름으로 조금 흔들어 이웃끼리 같은 뒤뜰이 안 나온다. 놀이는 이미 있는 규칙(벤치·그네·눕기·헤엄·전망). 트램펄린·농구 골대는 뺐다(운영자 2026-10-13: "뜬금없다")
-## 번화가 가게 뒤는 짐 마당(service) — 상자·팔레트·쓰레기통·직원 의자
+## 뒤뜰(운영자 2026-10-13: 동물의 숲 사진 — "녹지 블록 하나마다 이런 식으로 가득 차 있는 형태", "부딪히면 막혀야") — 집 뒤 5m 를 한 장면으로 빽빽하게.
+## 팩 소품(kit_props: Kenney Furniture·Nature, 키 30cm 넘으면 충돌): 뒤 울타리·옆 울타리 따라 덤불·꽃 띠, 가운데엔 그 집 사람 성미대로 한 장면 —
+##   사교적 → 다과 탁자(식탁보·방석 의자 넷·화분) / 물놀이 풀 · 게으름 → 선베드 둘과 협탁·화분, 해먹 · 호기심 → 화분 작업대(화분·모종·상자)
+##   성미 → 장작 마당(장작더미·그루터기·창고) · 대담 → 마당 캠핑(작은 텐트·모닥불·통나무 의자) · 누구나 → 텃밭(이랑·당근·호박·옥수수), 그네
+## 같은 성미라도 이름으로 조금 흔들어 이웃끼리 같은 뒤뜰이 안 나온다. 앉는 데는 bench, 눕는 데는 bed, 보는 데는 lookout(주민도 쓴다)
+## 번화가 가게 뒤는 짐 마당(service) — 상자 더미·쓰레기통·직원 의자·화분
 
 const BY_TRAIT := {
-	"social": ["bbq", "pool"], "brave": ["swingset", "bench_work"], "lazy": ["hammock", "deck"],
-	"curious": ["greenhouse", "flowers"], "temper": ["shed", "bench_work"],
+	"social": ["tea", "pool"], "lazy": ["lounge", "hammock"], "curious": ["potting", "tea"],
+	"temper": ["woodyard", "potting"], "brave": ["camp", "swingset"],
 }
-const ANY := ["garden", "swingset", "flowers", "garden"]
+const ANY := ["veggie", "veggie", "swingset"]
 
-## 이 집 뒤뜰 — 띠 [back_z, house_back] 사이, 가운데 x = c.x, 폭 w
+## 이 집 뒤뜰 — z 는 [back_z, house_back], x 는 c.x ± w/2
 static func build(t, c: Vector3, back_z: float, house_back: float, w: float, handle: String, seed: int) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var tr := ResidentMind.traits_of(handle) if handle != "" else { "social": rng.randf(), "temper": rng.randf(), "curious": rng.randf(), "lazy": rng.randf(), "brave": rng.randf() }
 	var score := {}
 	for k in BY_TRAIT:
 		for f in BY_TRAIT[k]: score[f] = maxf(float(score.get(f, 0.0)), float(tr[k]) + rng.randf() * 0.45)
-	for f in ANY: score[f] = maxf(float(score.get(f, 0.0)), 0.35 + rng.randf() * 0.45)
+	for f in ANY: score[f] = maxf(float(score.get(f, 0.0)), 0.3 + rng.randf() * 0.5)
 	var picks: Array = score.keys()
 	picks.sort_custom(func(a, b): return float(score[a]) > float(score[b]))
-	var depth := house_back - back_z
-	var slots := 3 if depth > 7.5 else 2
-	var used := {}
-	var n := 0
-	for f in picks:
-		if n >= slots: break
-		var z := house_back - 1.6 - n * (depth - 1.0) / slots
-		_feature(t, f, Vector3(c.x, 0, z), w, rng, n == 0)
-		used[f] = true; n += 1
+	var hw := w / 2.0 - 0.45
+	KitProps.border(t, Vector3(c.x - hw, 0, back_z + 0.3), Vector3(c.x + hw, 0, back_z + 0.3), rng)   # 뒤 울타리 덤불·꽃
+	for s in [-1.0, 1.0]: KitProps.border(t, Vector3(c.x + s * hw, 0, back_z + 0.9), Vector3(c.x + s * hw, 0, house_back - 0.6), rng, 0.8)
+	var mid := Vector3(c.x, 0, (back_z + 0.8 + house_back) / 2.0)
+	_scene(t, String(picks[0]), mid, w - 2.0, house_back - back_z - 1.2, rng)
 
-static func _feature(t, f: String, at: Vector3, w: float, rng: RandomNumberGenerator, near_house: bool) -> void:
-	var wood: Material = t._mat(Color("8a6a4a")); var iron: Material = t._mat(Color("4a4a52"))
-	var sx := rng.randf_range(-0.6, 0.6)   # 자리 안에서 조금씩 비켜
+static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNumberGenerator) -> void:
+	var sx := rng.randf_range(-0.4, 0.4)
 	match f:
-		"bbq":
-			t._box(Vector3(0.6, 0.85, 0.5), at + Vector3(-2.0 + sx, 0, 0), t._mat(Color("2a2a30")))
-			t._box(Vector3(0.7, 0.04, 0.6), at + Vector3(-2.0 + sx, 0.85, 0), iron, false)
-			t.spots.append({ "pos": at + Vector3(-2.0 + sx, 0, 0.7), "kind": "lookout", "yaw": PI })
-			t._box(Vector3(1.6, 0.75, 0.8), at + Vector3(1.0 + sx, 0, 0), wood)
-			t._bench(at + Vector3(1.0 + sx, 0, 0.9))
-		"pool":   # 물놀이 풀 — 진짜 물(헤엄 규칙 그대로)
-			t.water.disc(at + Vector3(sx, 0, 0), 1.25)
-			t._box(Vector3(0.5, 0.45, 0.5), at + Vector3(2.4, 0, 0.4), t._mat(Color("f2c84b")), false)   # 튜브 상자
+		"tea":   # 다과 탁자 — 식탁보 탁자, 방석 의자 넷, 화분 둘, 바구니(상자)
+			var tc := at + Vector3(sx, 0, 0)
+			KitProps.f(t, "tableCloth", tc, 0.0)
+			for q in 4:
+				var a := q * PI / 2.0
+				var off := Vector3(sin(a) * (1.25 if q % 2 == 1 else 0.85), 0, cos(a) * (1.25 if q % 2 == 1 else 0.85))
+				KitProps.f(t, "chairCushion", tc + off, a + PI)
+			t.spots.append({ "pos": tc + Vector3(0, 0, 1.3), "kind": "bench", "yaw": PI })
+			KitProps.f(t, "pottedPlant", tc + Vector3(-w / 2.0 + 0.3, 0, -d / 2.0 + 0.3)); KitProps.f(t, "pottedPlant", tc + Vector3(w / 2.0 - 0.3, 0, d / 2.0 - 0.3))
+			KitProps.f(t, "cardboardBoxOpen", tc + Vector3(w / 2.0 - 0.4, 0, -d / 2.0 + 0.4), rng.randf())
+		"pool":   # 물놀이 풀 — 진짜 물(헤엄 규칙 그대로), 둘레 화분
+			t.water.disc(at + Vector3(sx, 0, 0), 1.2)
+			KitProps.f(t, "loungeChairRelax", at + Vector3(sx + 2.0, 0, 0.2), -PI / 2.0)
+			KitProps.n(t, "pot_large", at + Vector3(sx - 2.0, 0, -0.6), 0.0, 2.4)
+		"lounge":   # 선베드 둘, 협탁, 화분, 깔개
+			KitProps.f(t, "rugRound", at, 0.0, false)
+			for s in [-1.0, 1.0]: KitProps.f(t, "loungeChair", at + Vector3(s * 1.1 + sx, 0, 0), PI)
+			KitProps.f(t, "sideTable", at + Vector3(sx, 0, -0.2))
+			t.spots.append({ "pos": at + Vector3(1.1 + sx, 0.35, 0), "kind": "bed", "yaw": PI })
+			KitProps.f(t, "pottedPlant", at + Vector3(-w / 2.0 + 0.3, 0, -d / 2.0 + 0.3))
 		"hammock":   # 해먹 — 기둥 둘 사이, 누워 쉰다(침대와 같은 bed 자리)
+			var wood: Material = t._mat(Color("8a6a4a"))
 			for s in [-1.3, 1.3]: t._box(Vector3(0.12, 1.4, 0.12), at + Vector3(s + sx, 0, 0), wood)
 			t._box(Vector3(2.2, 0.06, 0.8), at + Vector3(sx, 0.55, 0), t._mat([Color("ad7096"), Color("e6d3a5"), Color("7a90b0")][rng.randi() % 3]), false)
 			t.spots.append({ "pos": at + Vector3(sx, 0.62, 0), "kind": "bed", "yaw": PI / 2.0 })
-		"deck":   # 볕 드는 데크 — 나무 판, 의자 둘(벤치), 화분
-			t._box(Vector3(w - 1.2, 0.12, 2.2), at, wood, false)
-			t._bench(at + Vector3(-1.2, 0.12, 0.2)); t._bench(at + Vector3(1.2, 0.12, 0.2))
-			for s in [-1.0, 1.0]: t._scatter("Bush_Common_Flowers", at + Vector3(s * (w / 2.0 - 1.0), 0.12, -0.7), 0.5)
-		"greenhouse":
-			var gp := at + Vector3(sx, 0, 0)
-			var glass := StandardMaterial3D.new(); glass.albedo_color = Color(0.82, 0.92, 0.9, 0.45); glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			var gh := MeshInstance3D.new(); var gm := BoxMesh.new(); gm.size = Vector3(3.0, 2.0, 2.0); gh.mesh = gm; gh.material_override = glass; gh.position = gp + Vector3(0, 1.0, 0); t._add(gh)
-			for q in 4: t._box(Vector3(0.05, 2.0, 0.05), gp + Vector3(-1.5 + (q % 2) * 3.0, 0, -1.0 + (q / 2) * 2.0), t._mat(Color("f7f4ef")), false)
-			for q in 5: t._scatter(["Plant_1", "Fern_1", "Plant_7", "Bush_Common", "Flower_3_Group"][q], gp + Vector3(-1.1 + q * 0.55, 0, 0.3), 0.45)
-		"flowers":
-			t._box(Vector3(w - 1.6, 0.18, 1.0), at, t._mat(Color("6a4a32")), false)
-			for q in 8: t._scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers"][q % 3], at + Vector3(-(w - 2.2) / 2.0 + q * (w - 2.2) / 7.0, 0.18, rng.randf_range(-0.25, 0.25)), rng.randf_range(0.3, 0.42))
-			t._bench(at + Vector3(0, 0, 1.1))
-		"shed":
-			t._box(Vector3(2.0, 2.0, 1.6), at + Vector3(-1.8, 0, -0.2), t._mat([Color("6f8a5a"), Color("b56a5a"), Color("7a90b0")][rng.randi() % 3]))
-			t._box(Vector3(2.3, 0.08, 1.9), at + Vector3(-1.8, 2.0, -0.2), t._mat(Color("3a3a42")), false)
-			for q in 6:   # 장작더미
-				var lg := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.12; cm.bottom_radius = 0.12; cm.height = 1.0; lg.mesh = cm; lg.material_override = t._mat(Color("8a6a4a"))
-				lg.rotation.z = PI / 2.0; lg.position = at + Vector3(1.4, 0.12 + (q / 3) * 0.22, -0.4 + (q % 3) * 0.25); t._add(lg)
-		"bench_work":   # 작업대 — 판·바이스·공구
-			t._box(Vector3(1.8, 0.85, 0.7), at + Vector3(sx, 0, 0), wood)
-			t._box(Vector3(0.25, 0.2, 0.2), at + Vector3(sx - 0.6, 0.85, 0), iron, false)
-			t.spots.append({ "pos": at + Vector3(sx, 0, 0.75), "kind": "lookout", "yaw": PI })
+			KitProps.f(t, "pottedPlant", at + Vector3(-w / 2.0 + 0.3, 0, d / 2.0 - 0.3))
+		"potting":   # 화분 작업대 — 탁자 위 작은 화분·모종, 큰 화분, 상자 더미
+			var tb := at + Vector3(sx, 0, -0.3)
+			KitProps.f(t, "table", tb, 0.0)
+			for q in 3: KitProps.n(t, "pot_small", tb + Vector3(-0.6 + q * 0.6, 0.73, 0), rng.randf() * TAU, 2.0, false)
+			KitProps.f(t, "plantSmall%d" % (1 + rng.randi() % 3), tb + Vector3(0.3, 0.73, 0.15), 0.0, false)
+			for q in 2: KitProps.n(t, "pot_large", at + Vector3(-w / 2.0 + 0.5 + q * 0.9, 0, d / 2.0 - 0.4), 0.0, 2.2)
+			for q in 3: KitProps.f(t, "cardboardBoxClosed", at + Vector3(w / 2.0 - 0.4, q * 0.62, d / 2.0 - 0.4 - (q % 2) * 0.1), rng.randf() * 0.4)
+			t.spots.append({ "pos": tb + Vector3(0, 0, 0.8), "kind": "lookout", "yaw": PI })
+		"woodyard":   # 장작 마당 — 창고, 장작더미 둘, 그루터기(도끼질 자리)
+			t._box(Vector3(2.0, 2.0, 1.5), at + Vector3(-w / 2.0 + 1.1, 0, -0.2), t._mat([Color("6f8a5a"), Color("b56a5a"), Color("7a90b0")][rng.randi() % 3]))
+			t._box(Vector3(2.3, 0.08, 1.8), at + Vector3(-w / 2.0 + 1.1, 2.0, -0.2), t._mat(Color("3a3a42")), false)
+			KitProps.n(t, "log_stack", at + Vector3(0.6 + sx, 0, -0.4), PI / 2.0, 3.0)
+			KitProps.n(t, "log_stackLarge", at + Vector3(w / 2.0 - 0.6, 0, 0.1), 0.0, 2.6)
+			KitProps.n(t, "stump_round", at + Vector3(0.4 + sx, 0, 0.8), 0.0, 2.6)
+			t.spots.append({ "pos": at + Vector3(0.4 + sx, 0, 1.4), "kind": "lookout", "yaw": PI })
+		"camp":   # 마당 캠핑 — 작은 텐트, 모닥불, 통나무 의자 둘
+			KitProps.n(t, "tent_smallOpen", at + Vector3(-w / 2.0 + 1.0, 0, -0.2), 0.3, 3.4)
+			KitProps.n(t, "campfire_stones", at + Vector3(0.8 + sx, 0, 0.1), 0.0, 2.6, false)
+			for s in [-1.0, 1.0]: KitProps.n(t, "log", at + Vector3(0.8 + sx + s * 1.0, 0, 0.1), PI / 2.0, 2.4)
+			t.spots.append({ "pos": at + Vector3(0.8 + sx, 0, 1.0), "kind": "lookout", "yaw": PI })
 		"swingset":
 			t._swing(at + Vector3(sx, 0, 0))
-		_:   # garden — 흙 이랑 셋과 채소
+			KitProps.f(t, "benchCushionLow", at + Vector3(w / 2.0 - 0.6, 0, 0.3), -PI / 2.0)
+		_:   # veggie — 흙 이랑 셋, 당근·순무·호박·옥수수
+			var crops := ["crop_carrot", "crop_turnip", "crop_pumpkin", "crops_leafsStageB", "crops_cornStageC"]
 			for r in 3:
-				t._box(Vector3(w - 2.0, 0.08, 0.4), at + Vector3(0, 0, -0.6 + r * 0.6), t._mat(Color("7a5a3a")), false)
-				for q in 5: t._scatter(["Bush_Common", "Plant_1", "Fern_1", "Clover_2"][(r + q) % 4], at + Vector3(-(w - 2.5) / 2.0 + q * (w - 2.5) / 4.0, 0.08, -0.6 + r * 0.6), 0.34)
+				var rz := at.z - d / 2.0 + 0.5 + r * (d - 1.0) / 2.0
+				for hx in [-w / 4.0, w / 4.0]: KitProps.n(t, "crops_dirtRow", Vector3(at.x + hx, 0, rz), PI / 2.0, 3.0, false)
+				var kind: String = crops[(r + rng.randi()) % crops.size()]
+				for q in 5: KitProps.n(t, kind, Vector3(at.x - w / 2.0 + 0.5 + q * (w - 1.0) / 4.0, 0.05, rz), rng.randf() * TAU, 1.3 if kind.begins_with("crops_corn") else 1.1, kind.begins_with("crops_corn"))
 
-## 가게 뒤 짐 마당 — 상자 더미·팔레트·쓰레기통·직원 의자
+## 가게 뒤 짐 마당 — 상자 더미·쓰레기통·직원 의자·화분·덤불 띠
 static func service(t, c: Vector3, back_z: float, house_back: float, seed: int) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
-	var wood: Material = t._mat(Color("8a6a4a"))
+	KitProps.border(t, Vector3(c.x - 3.0, 0, back_z + 0.3), Vector3(c.x + 3.0, 0, back_z + 0.3), rng)
 	var mid := (back_z + house_back) / 2.0
-	for q in 2 + rng.randi() % 3: t._box(Vector3(0.6, 0.45, 0.45), Vector3(c.x - 2.0 + (q % 2) * 0.65, q / 2 * 0.45, house_back - 1.2), wood)
-	t._box(Vector3(1.2, 0.14, 1.0), Vector3(c.x + 1.5, 0, house_back - 1.4), t._mat(Color("b48a5a")), false)   # 팔레트
+	for q in 3 + rng.randi() % 3: KitProps.f(t, "cardboardBoxClosed", Vector3(c.x - 2.2 + (q % 3) * 0.55, (q / 3) * 0.62, house_back - 0.8), rng.randf() * 0.5)
 	t._bin(Vector3(c.x + 2.6, 0, mid)); t._bin(Vector3(c.x + 2.0, 0, mid + 0.6))
-	t._bench(Vector3(c.x - 1.0, 0, mid))
+	KitProps.f(t, "benchCushion", Vector3(c.x - 0.6, 0, mid), 0.0)
+	t.spots.append({ "pos": Vector3(c.x - 0.6, 0, mid + 0.5), "kind": "bench", "yaw": PI })
+	KitProps.f(t, "pottedPlant", Vector3(c.x + 0.8, 0, mid - 0.5))
