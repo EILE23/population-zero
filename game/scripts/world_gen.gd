@@ -314,9 +314,17 @@ func _build(key: Vector2i, defer := false) -> void:
 		for i in RES:
 			var a := j * w + i
 			idx.append_array([a, a + 1, a + w, a + 1, a + w + 1, a + w])
-			# 물가 칸까지(네 모서리 중 하나라도 물) 수면을 깔면 더 높은 땅이 수면을 가려 물가선이 지형을 따라 매끈해진다 — 칸 단위로 자르면 2m 계단이 졌다
 			var q := (j + 1) * pw + i + 1
-			if minf(minf(raws[q], raws[q + 1]), minf(raws[q + pw], raws[q + pw + 1])) < -0.05:
+			# 물가선 = 땅(깎은 높이)이 수면(0.04)을 넘는 곳 — 꼭짓점 하나라도 수면 아래면 그 칸에 수면을 깔고, 땅이 그 위로 솟는 데서 저절로 가려진다(전엔 −0.05 기준이라
+			# 칸 경계에서 끊겨 물가가 계단처럼 졌다, 운영자 2026-10-13 "지형 지물"). 깎인 마을 땅(높이 0)엔 안 깐다 — 둘레에 진짜 물(−0.05 아래)이 있어야
+			var lo := minf(minf(raws[q], raws[q + 1]), minf(raws[q + pw], raws[q + pw + 1]))
+			var wet := false
+			if lo < Water3D.SURFACE_Y + 0.02 and ks[q] > 0.05:
+				for vj in range(j, j + 4):
+					for vi in range(i, i + 4):
+						if raws[vj * pw + vi] < -0.05: wet = true; break
+					if wet: break
+			if wet:
 				lake_idx.append_array([a, a + 1, a + w, a + 1, a + w + 1, a + w])
 	var arr := []; arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = norms; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_TEX_UV] = uvs; arr[Mesh.ARRAY_INDEX] = idx
