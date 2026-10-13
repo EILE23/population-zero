@@ -45,7 +45,16 @@ var _t := 0.0
 var _yaw := 0.0
 var _yaw_target := 0.0
 
+var _lod_acc := 0.0
+var _lod_n := 0
 func _process(delta: float) -> void:
+	if not is_visible_in_tree(): return
+	var cam := get_viewport().get_camera_3d()   # 멀거나 화면 밖이면 세 프레임에 한 번(쌓인 시간만큼) — 마을이 빽빽해져 주민 90명 자세 계산이 프레임을 먹었다(2026-10-13)
+	if cam and (global_position.distance_squared_to(cam.global_position) > 4900.0 or not cam.is_position_in_frustum(global_position)):
+		_lod_acc += delta; _lod_n = (_lod_n + 1) % 3
+		if _lod_n != 0: return
+		delta = _lod_acc
+	_lod_acc = 0.0
 	_t += delta
 	if pose_request != _pose_prev:
 		if _pose_prev == "water": StickPoses.drops(self, false)   # 붓다 말고 자세가 풀리면 물방울도 끈다

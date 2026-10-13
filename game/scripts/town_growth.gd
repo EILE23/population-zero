@@ -7,11 +7,11 @@ extends TownLedger
 ## 진행은 user://growth.json — 꺼 둔 동안 흐른 시간만큼도 자라 있다(한 번에 최대 OFFLINE_MAX 채). 공사장 곁엔 구경 자리가 있어 지나가던 주민이 멈춰 본다
 
 const GROWTH := "user://growth.json"
-const SITES_AT_ONCE := 4       # 동시에 짓는 공사장 수(건축가 공사장 — 사람이 산 필지는 따로, town_plots)
+const SITES_AT_ONCE := 8       # (2026-10-13 4→8: 운영자 "집도 계속 지어야지") 동시에 짓는 공사장 수(건축가 공사장 — 사람이 산 필지는 따로, town_plots)
 const STAGE_WORK := 4          # 한 단계에 필요한 일 단위(건축가 한 명 25초)
 const WORK_T := 25.0
-const OFFLINE_HOUSE_S := 240.0 # 꺼 둔 동안 이만큼마다 한 채
-const OFFLINE_MAX := 12
+const OFFLINE_HOUSE_S := 120.0 # (2026-10-13 240→120) 꺼 둔 동안 이만큼마다 한 채
+const OFFLINE_MAX := 30
 const RES_MAX := 90            # 몸이 있는 주민 상한 — 넘으면 입주는 하되 집에 불만 켜진다(성능)
 
 var built := 0                 # 지은 필지 수(순번 0..built-1)
@@ -59,7 +59,7 @@ func _save_growth() -> void:
 func _hire_builders() -> void:
 	var have := residents.filter(func(r: Resident) -> bool: return r.job == "builder").size()
 	for r in residents:
-		if have >= maxi(2, residents.size() / 9): break   # 주민 아홉에 하나(운영자 2026-10-06: "주민들이 모두 활동하며 발전시켜") — 전엔 늘 둘
+		if have >= maxi(4, residents.size() / 6): break   # 주민 여섯에 하나(2026-10-13, 전엔 아홉에 하나)(운영자 2026-10-06: "주민들이 모두 활동하며 발전시켜") — 전엔 늘 둘
 		if r.job != "" or r is ResidentKid or r.state == "drive": continue
 		r.job = "builder"; r.fig.wear(Wear.make("cap", Color("f2c84b"))); have += 1
 
