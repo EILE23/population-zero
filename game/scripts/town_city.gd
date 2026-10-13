@@ -23,6 +23,7 @@ func _city_init() -> void:
 		var cells: Array = [[Vector3(-8, 0, 8), 0], [Vector3(8, 0, 8), 9]] if bl["zone"] == "park" else [[Vector3(-12.5, 0, -7), 27], [Vector3(12.5, 0, -7), 9], [Vector3(-12.5, 0, 7), 0], [Vector3(12.5, 0, 7), 18]]
 		for cl in cells:   # 관공서 양옆·공원 남쪽의 빈 잔디 — 쌈지 마당 한 칸씩(운영자 2026-10-13: "녹지가 너무 많네")
 			var at: Vector3 = bc + (cl[0] as Vector3)
+			if not (_dry(at) and _dry(at + Vector3(3, 0, 4)) and _dry(at - Vector3(3, 0, 4))): continue
 			var mark := _merge_mark()
 			PocketLots.build(self, { "id": "civic/%d,%d,%d" % [b.x, b.y, int(cl[1])], "street_z": at.z + 10.0, "order": int(cl[1]) + absi(b.x * 7 + b.y) * 36 }, at)
 			_merge_done(mark)
@@ -291,16 +292,19 @@ func _civic(c: Vector3, kind: String, name: String) -> void:
 ## 공원 블록 — 연못, 둘레 나무, 십자 산책로, 벤치 넷, 가로등, 그네, 꽃
 func _park_block(c: Vector3, name: String) -> void:
 	_path(c + Vector3(-17, 0, 0), c + Vector3(17, 0, 0), 2.2); _path(c + Vector3(0, 0, -17), c + Vector3(0, 0, 17), 2.2)
-	water.disc(c + Vector3(-8.0, 0, -8.0), 4.5)
+	if _dry(c + Vector3(-8.0, 0, -8.0)): water.disc(c + Vector3(-8.0, 0, -8.0), 4.5)   # 공원이 호수를 끼면(world_gen 이 공원 안 호수는 안 깎는다) 물 위엔 아무것도 놓지 않는다
 	for i in 14:
 		var a := i * TAU / 14.0
-		_tree(c + Vector3(cos(a) * 15.5, 0, sin(a) * 15.5), 1.0 + fmod(i * 0.37, 0.5))
-	for p in [Vector3(3.5, 0, 2.2), Vector3(-3.5, 0, 2.2), Vector3(2.2, 0, -6.0), Vector3(8.0, 0, 2.2)]: _bench(c + p)
-	_lamp(c + Vector3(2.0, 0, 1.8)); _lamp(c + Vector3(-2.0, 0, -1.8))
-	_swing(c + Vector3(8.0, 0, -8.0))
+		if _dry(c + Vector3(cos(a) * 15.5, 0, sin(a) * 15.5)): _tree(c + Vector3(cos(a) * 15.5, 0, sin(a) * 15.5), 1.0 + fmod(i * 0.37, 0.5))
+	for p in [Vector3(3.5, 0, 2.2), Vector3(-3.5, 0, 2.2), Vector3(2.2, 0, -6.0), Vector3(8.0, 0, 2.2)]:
+		if _dry(c + p): _bench(c + p)
+	for p in [Vector3(2.0, 0, 1.8), Vector3(-2.0, 0, -1.8)]:
+		if _dry(c + p): _lamp(c + p)
+	if _dry(c + Vector3(8.0, 0, -8.0)): _swing(c + Vector3(8.0, 0, -8.0))
 	for i in 24:
 		var a := i * 2.399; var d := 4.0 + fmod(i * 1.7, 9.0)
-		_scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers", "Clover_1"][i % 4], c + Vector3(cos(a) * d + 8.0, 0, sin(a) * d + 8.0), 0.6)
+		var fp := c + Vector3(cos(a) * d + 8.0, 0, sin(a) * d + 8.0)
+		if _dry(fp): _scatter(["Flower_3_Group", "Flower_4_Group", "Bush_Common_Flowers", "Clover_1"][i % 4], fp, 0.6)
 	_signpost(c + Vector3(-2.5, 0, 16.0), name.to_upper())
 
 # ── 거리 ──
@@ -390,6 +394,9 @@ func _riverbank(b: Vector2i) -> void:
 		KitProps.f(self, "tableCloth", Vector3(rng.randf_range(x0 + 4.0, x1 - 4.0), 0, sz + 2.2), 0.0)
 	_merge_done(mark)
 	_build_parent = keep
+
+## 물(호수)이 아닌 땅인가
+func _dry(p: Vector3) -> bool: return gen.height(p.x, p.z) >= -0.005
 
 ## 빈 자리에 마당을 놓아도 되나 — 강·옛 마을·장소(탑·호숫가·오두막·산 들머리)와 그리 가는 길 위가 아니면
 func _filler_ok(c: Vector2) -> bool:

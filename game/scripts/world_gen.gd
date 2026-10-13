@@ -114,17 +114,44 @@ func _refresh_far() -> void:
 # ── 땅 ──
 ## 0 = 평지로 깎인 곳(허브·큰길·강), 1 = 자연 지형
 func wild_k(x: float, z: float) -> float:
+	# 호수(깎기 전 높이 < 0)는 깎는 둘레(허브·큰길·강·블록의 비탈)에선 깎지 않는다 — 깎으면 물이 얕아져 호숫가가 그 둘레를 따라 직선으로 잘렸다(2026-10-13).
+	# 깎아야 하는 한가운데(허브·큰길 판·강·블록 안)는 그대로. 깎기 전 높이는 비탈 안에서만 한 번 잰다
+	var lake := 0   # 0 모름, 1 호수, -1 아님
 	var dh := Vector2(maxf(absf(x) - HUB_X, 0.0), maxf(absf(z) - HUB_Z, 0.0)).length()
-	var k := smoothstep(0.0, 30.0, dh)
-	k = minf(k, smoothstep(4.0, 16.0, absf(z - ROAD_Z)))
+	var k := 1.0
+	if dh < 30.0:
+		if dh > 3.0: lake = 1 if raw(x, z) < 0.0 else -1
+		if lake != 1: k = smoothstep(0.0, 30.0, dh)
+	var dr := absf(z - ROAD_Z)
+	if dr < 16.0:
+		if dr > 7.0 and lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
+		if not (dr > 7.0 and lake == 1): k = minf(k, smoothstep(4.0, 16.0, dr))
 	k = minf(k, smoothstep(town.RIVER_HW + 2.0, town.RIVER_HW + 14.0, absf(z - town.RIVER_Z)))
-	if flat_limit > 0: k = minf(k, smoothstep(0.0, 26.0, TownPlan.flat_dist(x, z, flat_limit)))   # 지은·짓는 집 블록은 평지 — 둘레 26m 에 걸쳐 산으로
-	k = minf(k, smoothstep(0.0, 26.0, _civic_dist(x, z)))   # 관공서·공원 블록도 평지 — 필지가 없어 빠졌고, 시청·학교·도서관이 언덕에 묻혔다(운영자 2026-10-08)
+	if flat_limit > 0:   # 지은·짓는 집 블록은 평지 — 둘레 26m 에 걸쳐 산으로
+		var fd := TownPlan.flat_dist(x, z, flat_limit)
+		if fd < 26.0:
+			if lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
+			if lake != 1 or (fd < 0.5 and _built_spot(x, z)): k = minf(k, smoothstep(0.0, 26.0, fd))
+	var cd := _civic_dist(x, z)   # 관공서·공원 블록도 평지 — 필지가 없어 빠졌고, 시청·학교·도서관이 언덕에 묻혔다(운영자 2026-10-08)
+	if cd < 26.0:
+		if lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
+		var keep_lake := lake == 1 and (cd >= 0.5 or String(CityMap.block(CityMap.block_of(Vector2(x, z))).get("zone", "")) == "park")   # 공원 블록 안·비탈의 호수는 그대로(호숫가가 블록 사각형에서 잘렸다)
+		if not keep_lake: k = minf(k, smoothstep(0.0, 26.0, cd))
 	for s in SITES:
 		var c: Vector3 = s["c"]; var r: float = s["r"]
 		k = minf(k, smoothstep(r, r + 22.0, Vector2(x - c.x, z - c.z).length()))
 		k = minf(k, smoothstep(3.0, 13.0, _seg_dist(Vector2(x, z), Vector2(s["from"].x, s["from"].z), Vector2(c.x, c.z))))   # 장소로 가는 길
 	return k
+
+## 블록 안에서 꼭 깎아야 하는 자리 — 찻길(9m 판과 인도) 위거나 필지(집·마당) 안. 그 밖의 블록 안 호수는 그대로 둔다(블록 사각형에서 호숫가가 직선으로 잘렸다)
+func _built_spot(x: float, z: float) -> bool:
+	var gx := fposmod(x - TownPlan.OX, TownPlan.PITCH); var gz := fposmod(z - TownPlan.OZ, TownPlan.PITCH / 2.0)
+	var rw := TownPlan.ROAD_W / 2.0 + 1.0
+	if gx < rw or gx > TownPlan.PITCH - rw or gz < rw or gz > TownPlan.PITCH / 2.0 - rw: return true
+	for l in _lots_near(CityMap.block_of(Vector2(x, z))):
+		var c: Vector2 = l["c"]
+		if absf(x - c.x) < float(l.get("w", 7.75)) / 2.0 + 1.0 and absf(z - c.y) < 9.0: return true
+	return false
 
 ## 관공서·공원 블록(data/map/town.json)까지 거리 — 블록 사각형 밖이면 그 거리, 안이면 0
 static var _civic_rects: Array = []
