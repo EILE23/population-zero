@@ -335,7 +335,7 @@ const TREE_KINDS := ["tree_default", "tree_oak", "tree_fat", "tree_detailed", "t
 func _tree(at: Vector3, k: float) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = int(at.x * 13.0 + at.z * 7.0) + 5
 	var which: String = TREE_KINDS[rng.randi() % TREE_KINDS.size()]
-	var model := _model("kenney/nature/" + which); KitProps.tone("res://assets/models/kenney/nature/" + which + ".glb", model)
+	var model := KitProps.mesh_node("res://assets/models/kenney/nature/" + which + ".glb")   # 메시만(장면 instantiate 는 느리다)
 	var h := _model_height(model)
 	var sc := (3.6 + 1.4 * (k - 0.9)) / maxf(h, 0.5)   # Kenney 나무는 키가 작게 나와 3.6m 쯤으로
 	var base := Node3D.new(); base.position = at; base.rotation.y = rng.randf_range(0.0, TAU); _add(base)

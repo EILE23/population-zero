@@ -26,14 +26,15 @@ static func block_segs(b: Vector2i) -> Array:
 
 static var _toned := {}
 static func _piece(t, file: String, at: Vector3, yaw: float, sc: Vector3, parent: Node3D) -> Node3D:
-	var n: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
+	var path := DIR + file + ".glb"
 	if not _toned.has(file):   # 팩 빛깔이 하늘빛 회색이라 찻길이 하얗게 떴다 — 한 번만(재질은 판마다 같은 것) 어둡게
 		_toned[file] = true
-		for mi in n.find_children("*", "MeshInstance3D", true, false):
-			var mesh: Mesh = (mi as MeshInstance3D).mesh
+		for pt in KitProps.src(path).get("parts", []):
+			var mesh: Mesh = pt[0]
 			for si in mesh.get_surface_count():
 				var mat := mesh.surface_get_material(si) as StandardMaterial3D
 				if mat: mat.albedo_color = Color(0.64, 0.64, 0.68)
+	var n := KitProps.mesh_node(path)
 	n.position = at + Vector3(0, LIFT, 0); n.rotation.y = yaw; n.scale = sc
 	parent.add_child(n)
 	return n

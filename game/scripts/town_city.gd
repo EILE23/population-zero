@@ -317,9 +317,7 @@ func _hub_road() -> void:
 		var at := Vector3(x + step / 2.0, 0, WorldGen.ROAD_Z)
 		_build_parent = _root_for(at)
 		var cross := absf(at.x - 0.0) < step / 2.0 or absf(at.x - 16.0) < step / 2.0
-		var n: Node3D = (load(RoadTiles.DIR + ("road-crossing" if cross else "road-straight") + ".glb") as PackedScene).instantiate()
-		n.position = at + Vector3(0, RoadTiles.LIFT, 0); n.scale = Vector3(step, 1, 5.4); _build_parent.add_child(n)
-		MeshMerge.merge(_build_parent, [n], [])
+		MeshMerge.merge(_build_parent, [RoadTiles._piece(self, "road-crossing" if cross else "road-straight", at, 0.0, Vector3(step, 1, 5.4), _build_parent)], [])
 		x += step
 	_build_parent = keep
 
@@ -347,7 +345,7 @@ func _kerb(na: Vector2i, nb: Vector2i) -> void:
 ## 가로등(Kenney light-curved, 9배 = 6m) — 기둥 충돌, 밤엔 켜진다(lamps), 차가 받으면 넘어간다(wreckables)
 func _street_light(at: Vector3, yaw: float) -> void:
 	var g := Node3D.new(); g.set_meta("nomerge", true); _add(g)
-	var m: Node3D = (load(RoadTiles.DIR + "light-curved.glb") as PackedScene).instantiate(); m.position = at; m.rotation.y = yaw; m.scale = Vector3.ONE * 9.0; g.add_child(m)
+	var m := KitProps.mesh_node(RoadTiles.DIR + "light-curved.glb"); m.position = at; m.rotation.y = yaw; m.scale = Vector3.ONE * 9.0; g.add_child(m)
 	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 0.15; cy.height = 2.0; cs.shape = cy; cs.position = at + Vector3(0, 1.0, 0); sb.add_child(cs); g.add_child(sb)
 	var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.8; l.omni_range = 7.0
 	l.position = at + Vector3(sin(yaw), 0, cos(yaw)) * -1.6 + Vector3(0, 5.6, 0); g.add_child(l); lamps.append(l)

@@ -7,18 +7,32 @@ const F := "res://assets/models/kenney/furniture/"
 const N := "res://assets/models/kenney/nature/"
 const SF := 2.2          # 가구 팩 → m(의자 0.47 → 1m, 탁자 0.33 → 0.73m)
 
-static var _box := {}    # 경로 -> AABB(배율 1)
-
-static func _aabb_of(path: String, n: Node3D) -> AABB:
-	if _box.has(path): return _box[path]
-	var ab := AABB(); var first := true
+static var _src := {}    # 경로 -> { parts: [[메시, 변환]], ab: AABB(배율 1) } — 모델 장면을 한 번만 펼쳐 두고, 놓을 땐 메시만 붙인다
+## (장면을 놓을 때마다 instantiate 하면 판 하나에 6ms — 블록 찻길·소품 수천 개로 시작이 17초였다, 2026-10-13)
+static func src(path: String) -> Dictionary:
+	if _src.has(path): return _src[path]
+	var ps: PackedScene = load(path)
+	if ps == null: _src[path] = {}; return {}
+	var n: Node3D = ps.instantiate()
+	tone(path, n)
+	var parts: Array = []; var ab := AABB(); var first := true
 	for m in n.find_children("*", "MeshInstance3D", true, false):
 		var xf := Transform3D(); var p: Node = m
 		while p != n and p != null: xf = (p as Node3D).transform * xf; p = p.get_parent()
+		parts.append([(m as MeshInstance3D).mesh, xf])
 		var a: AABB = xf * (m as MeshInstance3D).get_aabb()
 		ab = a if first else ab.merge(a); first = false
-	_box[path] = ab
-	return ab
+	n.free()
+	_src[path] = { "parts": parts, "ab": ab }
+	return _src[path]
+
+## 모델 하나를 메시만으로 — 장면 대신(빠르다). 원점·회전·배율은 부르는 쪽이
+static func mesh_node(path: String) -> Node3D:
+	var d := src(path)
+	var g := Node3D.new()
+	for pt in d.get("parts", []):
+		var mi := MeshInstance3D.new(); mi.mesh = pt[0]; mi.transform = pt[1]; g.add_child(mi)
+	return g
 
 ## 팩 재질 손보기(한 경로에 한 번 — 재질은 그 모델의 모든 복제가 같이 쓴다): Nature Kit 은 금속 1 이라 하늘을 비춰 거무스름했고,
 ## 잎이 청록(70e6d6)이라 마을 풀빛과 따로 놀았다 → 금속 0, 청록·하늘빛 잎은 풀빛 쪽으로 돌린다
@@ -38,11 +52,10 @@ static func tone(path: String, root: Node) -> void:
 
 ## 놓기 — at 은 바닥 가운데, yaw 는 y 회전, sc 배율. solid 면 키 0.3m 넘을 때 충돌 상자(가로세로 0.9배)
 static func put(t, path: String, at: Vector3, yaw := 0.0, sc := 1.0, solid := true) -> Node3D:
-	var ps: PackedScene = load(path)
-	if ps == null: return null
-	var m: Node3D = ps.instantiate()
-	tone(path, m)
-	var ab := _aabb_of(path, m)
+	var d := src(path)
+	if d.is_empty(): return null
+	var m := mesh_node(path)
+	var ab: AABB = d["ab"]
 	var pivot := Node3D.new(); pivot.position = at; pivot.rotation.y = yaw
 	m.scale = Vector3.ONE * sc
 	m.position = Vector3(-(ab.position.x + ab.size.x / 2.0) * sc, -ab.position.y * sc, -(ab.position.z + ab.size.z / 2.0) * sc)
