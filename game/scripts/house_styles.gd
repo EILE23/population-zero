@@ -124,3 +124,39 @@ static func shop_front(t: Node, c: Vector3, s: Vector3, type: String, item: Stri
 			for k in 3: disp.call("can", c + Vector3(1.6 + k * 0.2, 1.1, hd + 0.9))
 		"UMBRELLAS":
 			var bk := MeshInstance3D.new(); var bc := CylinderMesh.new(); bc.top_radius = 0.25; bc.bottom_radius = 0.2; bc.height = 0.5; bk.mesh = bc; bk.material_override = m.call(Color("4a4a52")); bk.position = c + Vector3(1.8, 0.25, hd + 0.9); t.call("_add", bk)
+	_pack_front(t, c, s, type)
+
+## 가게 앞 팩 소품(운영자 2026-10-13: "애셋들은 다양한 거 더 많이") — 가게 종류마다 다르게, 벽 쪽 양옆(문길은 비운다)
+static func _pack_front(t: Node, c: Vector3, s: Vector3, type: String) -> void:
+	var z := c.z + s.z / 2.0 + 0.6
+	var lx := c.x - s.x / 2.0 + 0.6; var rx := c.x + s.x / 2.0 - 0.6
+	match type:
+		"GROCER":
+			KitProps.k(t, "market", "display-fruit", Vector3(lx, 0, z), 0.0)
+			KitProps.k(t, "food", "watermelon", Vector3(rx, 0, z), 0.3, 1.6)
+			KitProps.k(t, "food", "pumpkin", Vector3(rx - 0.6, 0, z), 0.0, 1.6)
+		"BAKERY":
+			KitProps.k(t, "market", "display-bread", Vector3(lx, 0, z), 0.0)
+			KitProps.k(t, "food", "loaf-baguette", Vector3(lx, 0.98, z), 0.6, 1.0, false)
+		"CAFE":
+			KitProps.k(t, "holiday", "lights-colored", Vector3(c.x, 2.3, z + 1.4), 0.0, 4.0, false)
+			for x in [c.x - 1.4, c.x + 1.4]: KitProps.k(t, "food", ["cupcake", "cake", "cup-tea"][absi(int(x * 7.0)) % 3], Vector3(x - 0.15, 0.76, z + 1.4), 0.0, 1.0, false)
+			KitProps.f(t, "pottedPlant", Vector3(lx, 0, z - 0.1))
+		"BOOKSHOP":
+			KitProps.k(t, "fantasy", "cart", Vector3(lx + 0.3, 0, z + 0.4), PI / 2.0, 0.8)
+			KitProps.k(t, "fantasy", "lantern", Vector3(rx, 0, z), 0.0, 0.7)
+		"FISHMONGER":
+			for q in 2: KitProps.k(t, "survival", "barrel", Vector3(lx + q * 0.8, 0, z), 0.0)
+			KitProps.k(t, "survival", "bucket", Vector3(rx, 0, z), 0.0)
+			KitProps.k(t, "survival", "fish-large", Vector3(lx + 0.4, 1.02, z), 0.4, 1.0, false)
+		"CORNER SHOP":
+			KitProps.k(t, "market", "freezer", Vector3(lx + 0.3, 0, z), 0.0)
+			KitProps.k(t, "market", "shopping-cart", Vector3(rx, 0, z + 0.3), 0.4)
+		"UMBRELLAS":
+			KitProps.k(t, "holiday", "lantern", Vector3(lx, 0, z), 0.0, 1.0)
+			KitProps.k(t, "urban", "detail-bench", Vector3(rx - 0.4, 0, z), PI)
+		_:   # GENERAL STORE 등 — 통·궤짝·연장
+			KitProps.k(t, "survival", "barrel", Vector3(lx, 0, z), 0.0)
+			KitProps.k(t, "survival", "chest", Vector3(lx + 0.8, 0, z), 0.2)
+			KitProps.k(t, "survival", "tool-shovel", Vector3(rx, 0, z - 0.2), 0.0, 1.0, false)
+			KitProps.k(t, "platformer", "crate", Vector3(rx - 0.7, 0, z), 0.3)

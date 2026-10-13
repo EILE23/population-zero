@@ -48,7 +48,8 @@ static func tone(path: String, root: Node) -> void:
 			if mat == null: continue
 			mat.metallic = 0.0; mat.roughness = 1.0
 			var c := mat.albedo_color
-			if c.h > 0.38 and c.h < 0.58 and c.s > 0.25: mat.albedo_color = Color.from_hsv(0.27 + (c.h - 0.38) * 0.2, minf(c.s * 1.1, 0.75), c.v * 0.8, c.a)
+			var leafy := "/nature/" in path or "tree" in path.get_file() or "hedge" in path.get_file() or "grass" in path.get_file()   # 잎만 — 배·유리 같은 하늘빛은 그대로
+			if leafy and c.h > 0.38 and c.h < 0.58 and c.s > 0.25: mat.albedo_color = Color.from_hsv(0.27 + (c.h - 0.38) * 0.2, minf(c.s * 1.1, 0.75), c.v * 0.8, c.a)
 
 ## 놓기 — at 은 바닥 가운데, yaw 는 y 회전, sc 배율. solid 면 키 0.3m 넘을 때 충돌 상자(가로세로 0.9배)
 static func put(t, path: String, at: Vector3, yaw := 0.0, sc := 1.0, solid := true) -> Node3D:
@@ -69,6 +70,11 @@ static func put(t, path: String, at: Vector3, yaw := 0.0, sc := 1.0, solid := tr
 	return pivot
 
 static func f(t, name: String, at: Vector3, yaw := 0.0, solid := true) -> Node3D: return put(t, F + name + ".glb", at, yaw, SF, solid)
+
+## 팩마다 m 로 맞추는 배율(운영자 2026-10-13: "애셋들은 다양한 거 더 많이") — Kenney Survival·Fantasy Town·Retro Urban·Mini Market·Holiday·Food·Watercraft·Industrial·Platformer
+const PACK := { "survival": 3.0, "fantasy": 2.4, "urban": 2.4, "market": 1.9, "holiday": 1.2, "food": 0.5, "watercraft": 0.55, "industrial": 2.0, "platformer": 1.5, "furniture": SF, "nature": 3.0, "roads": 9.0 }
+static func k(t, pack: String, name: String, at: Vector3, yaw := 0.0, mul := 1.0, solid := true) -> Node3D:
+	return put(t, "res://assets/models/kenney/%s/%s.glb" % [pack, name], at, yaw, float(PACK[pack]) * mul, solid)
 static func n(t, name: String, at: Vector3, yaw := 0.0, sc := 3.0, solid := true) -> Node3D: return put(t, N + name + ".glb", at, yaw, sc, solid)
 
 const FLOWERS := ["flower_redA", "flower_redB", "flower_yellowA", "flower_yellowB", "flower_purpleA", "flower_purpleB", "flower_redC", "flower_yellowC"]

@@ -364,6 +364,15 @@ func _build(key: Vector2i, defer := false) -> void:
 		var la := []; la.resize(Mesh.ARRAY_MAX); la[Mesh.ARRAY_VERTEX] = lv; la[Mesh.ARRAY_NORMAL] = ln; la[Mesh.ARRAY_INDEX] = lake_idx
 		var lm := ArrayMesh.new(); lm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, la)
 		var lmi := MeshInstance3D.new(); lmi.mesh = lm; lmi.material_override = _lake; lmi.position = o; n.add_child(lmi)
+		var brng := RandomNumberGenerator.new(); brng.seed = hash(Vector3i(key.x, key.y, SEED + 7))
+		if brng.randf() < 0.3:   # 호수에 배 한 척(Kenney Watercraft — 노 젓는 배·낚싯배·돛배)
+			for tries in 12:
+				var vi := brng.randi_range(2, RES - 2); var vj := brng.randi_range(2, RES - 2)
+				if raws[(vj + 1) * pw + vi + 1] < -1.2:
+					var bp := Vector3(o.x + vi * step, Water3D.SURFACE_Y - 0.12, o.z + vj * step)
+					var bm := KitProps.mesh_node("res://assets/models/kenney/watercraft/%s.glb" % ["boat-row-small", "boat-row-large", "boat-fishing-small", "boat-sail-a"][brng.randi() % 4])
+					bm.position = bp; bm.rotation.y = brng.randf() * TAU; bm.scale = Vector3.ONE * 0.55; n.add_child(bm)
+					break
 	# 충돌: 높이맵(허브 평지는 이미 바닥이 있으니 자연이 섞인 칸만)
 	if wild > 0.01:
 		var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var hm := HeightMapShape3D.new()
@@ -433,7 +442,7 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 			if float(row[3]) > 0.0:
 				var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = float(row[3]) * (1.0 if tall else sc); cy.height = 1.6
 				cs.shape = cy; cs.position = Vector3(x, h + 0.8, z); body.add_child(cs)
-	if not flat and biome in ["meadow", "forest", "dry"] and rng.randf() < 0.22: _feature(put, o, rng, body)
+	if not flat and biome in ["meadow", "forest", "dry"] and rng.randf() < 0.32: _feature(put, o, rng, body)
 	if not flat and biome in ["meadow", "dry"] and Vector2(c.x, c.z).length() < 300.0 and rng.randf() < 0.45: _farm(n, put, o, rng)
 	_dirt_patches(n, o)
 	for id in put:
@@ -513,9 +522,9 @@ func _farm(n: Node3D, put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -
 			var p := c + ax * ((q - cols / 2.0) * 0.9) + ay * ((r - rows / 2.0) * 1.3)
 			if absf(height(p.x, p.y) - height(c.x, c.y)) > 2.5: continue   # 가파르면 그 칸은 비운다
 			match kind:
-				0: add.call(["Bush_Common", "Plant_1"][(r + q) % 2], p, 0.3)   # 채소
-				1: add.call("Grass_Common_Tall", p, 1.3); add.call("Grass_Wispy_Tall", p + ax * 0.4, 1.2)   # 밀
-				2: add.call(["Flower_3_Group", "Flower_4_Group"][r % 2], p, 1.2)   # 꽃밭
+				0: add.call(["k:crop_carrot", "k:crop_turnip", "k:crop_pumpkin", "k:crops_leafsStageB"][(r + q) % 4], p, 0.42)   # 채소
+				1: add.call("k:crops_wheatStageB", p, 0.55); add.call("k:crops_wheatStageA", p + ax * 0.45, 0.55)   # 밀
+				2: add.call(FLOWERS[(r * 3 + q) % FLOWERS.size()], p, 0.9)   # 꽃밭
 				_: if q % 3 == 0 and r % 2 == 0: add.call(FOREST[(r + q) % 3], p, 0.55)   # 과수원(낮은 나무 줄)
 			if kind != 3 and q % 2 == 0:
 				var h := height(p.x, p.y)
@@ -527,7 +536,29 @@ func _farm(n: Node3D, put: Dictionary, o: Vector3, rng: RandomNumberGenerator) -
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = _soil_mesh; mm.instance_count = soil.size()
 	for k in soil.size(): mm.set_instance_transform(k, soil[k])
 	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(mmi)
+	# 밭 가 — 울타리 한 줄, 짐수레나 허수아비 대신 팻말, 밭 넷에 하나는 풍차(Kenney Fantasy Town)
+	var corner := c - ax * (cols / 2.0 * 0.9 + 1.4) - ay * (rows / 2.0 * 1.3 + 0.6)
+	for q in 6: _solid(n, "fantasy/fence", Vector2(corner.x, corner.y) + ax * (q * 2.4 + 1.2), -ang + PI / 2.0, 2.4, false)
+	if rng.randf() < 0.5: _solid(n, "fantasy/cart", c + ay * (rows / 2.0 * 1.3 + 2.0), -ang, 2.2)
+	else: _solid(n, "survival/signpost", c + ay * (rows / 2.0 * 1.3 + 1.6), -ang, 3.0)
+	if rng.randf() < 0.25: _solid(n, "fantasy/windmill", c + ax * (cols / 2.0 * 0.9 + 4.0), -ang + PI / 2.0, 2.6)
 static var _soil_mesh: BoxMesh
+
+## 팩 모델 하나를 칸에(칸이 지워지면 같이) — 메시만(KitProps 캐시) + 상자 충돌(키 30cm 넘으면). p 는 땅 위 xz
+func _solid(n: Node3D, pack_name: String, p: Vector2, yaw: float, sc: float, collide := true) -> void:
+	var path := "res://assets/models/kenney/%s.glb" % pack_name
+	var d := KitProps.src(path)
+	if d.is_empty(): return
+	var ab: AABB = d["ab"]
+	var pivot := Node3D.new(); pivot.position = Vector3(p.x, height(p.x, p.y) - 0.03, p.y); pivot.rotation.y = yaw
+	var m := KitProps.mesh_node(path); m.scale = Vector3.ONE * sc
+	m.position = Vector3(-(ab.position.x + ab.size.x / 2.0) * sc, -ab.position.y * sc, -(ab.position.z + ab.size.z / 2.0) * sc)
+	pivot.add_child(m)
+	if collide and ab.size.y * sc > 0.3:
+		var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bs := BoxShape3D.new()
+		bs.size = Vector3(maxf(ab.size.x * sc * 0.85, 0.2), ab.size.y * sc, maxf(ab.size.z * sc * 0.85, 0.2)); cs.shape = bs; cs.position.y = ab.size.y * sc / 2.0
+		sb.add_child(cs); pivot.add_child(sb)
+	n.add_child(pivot)
 
 ## 들판의 볼거리 — 들 칸 다섯에 하나: 버섯 고리·바윗들·고사리 숲·꽃밭(모양만, MultiMesh 에 같이 넣는다)
 func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator, body: StaticBody3D = null) -> void:
@@ -537,9 +568,9 @@ func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator, body: Sta
 		var h := height(p.x, p.y)
 		if not put.has(id): put[id] = []
 		put[id].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * sc), Vector3(p.x, h - 0.03, p.y)))
-	match rng.randi() % 4:
+	match rng.randi() % 7:
 		0:
-			for i in 11: add.call(["Mushroom_Common", "Mushroom_Laetiporus"][i % 2], c + Vector2.from_angle(i * TAU / 11.0) * 2.4, 1.1)
+			for i in 11: add.call(["k:mushroom_redGroup", "k:mushroom_tanGroup", "k:mushroom_redTall"][i % 3], c + Vector2.from_angle(i * TAU / 11.0) * 2.4, 1.1)
 		1:
 			for i in 7:
 				var rp := c + Vector2(rng.randfn(0, 3.0), rng.randfn(0, 3.0)); var rs := rng.randf_range(1.2, 2.4)
@@ -548,9 +579,27 @@ func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator, body: Sta
 					var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 0.5 * rs; cy.height = 1.2 * rs
 					cs.shape = cy; cs.position = Vector3(rp.x, height(rp.x, rp.y) + 0.6 * rs, rp.y); body.add_child(cs)
 		2:
-			for i in 16: add.call(["Fern_1", "Plant_7_Big", "Plant_1_Big"][i % 3], c + Vector2(rng.randfn(0, 2.5), rng.randfn(0, 2.5)), rng.randf_range(0.9, 1.5))
-		_:
+			for i in 16: add.call(["k:plant_flatTall", "k:plant_bushLarge", "k:grass_leafsLarge"][i % 3], c + Vector2(rng.randfn(0, 2.5), rng.randfn(0, 2.5)), rng.randf_range(0.9, 1.5))
+		3:
 			for i in 40: add.call(FLOWERS[i % FLOWERS.size()], c + Vector2(rng.randfn(0, 3.2), rng.randfn(0, 3.2)), rng.randf_range(0.9, 1.4))
+		4:   # 들 야영지 — 텐트, 모닥불, 통나무, 장작(Kenney Survival)
+			if body:
+				var n := body.get_parent() as Node3D
+				_solid(n, "survival/tent", c, rng.randf() * TAU, 3.0)
+				_solid(n, "survival/campfire-pit", c + Vector2(2.6, 0.8), 0.0, 3.0, false)
+				_solid(n, "nature/log", c + Vector2(2.6, 2.2), 0.0, 2.6)
+				_solid(n, "survival/resource-wood", c + Vector2(-1.8, 2.0), rng.randf(), 3.0, false)
+		5:   # 전망 자리 — 벤치 둘, 팻말, 등(Kenney Holiday·Survival)
+			if body:
+				var n := body.get_parent() as Node3D
+				for k in 2: _solid(n, "holiday/bench", c + Vector2(k * 2.0 - 1.0, 0), PI, 1.2)
+				_solid(n, "survival/signpost-single", c + Vector2(2.4, -0.6), 0.0, 3.0)
+				_solid(n, "fantasy/lantern", c + Vector2(-2.4, -0.6), 0.0, 1.8)
+		_:   # 버려진 짐수레와 통·궤짝(Kenney Fantasy·Survival)
+			if body:
+				var n := body.get_parent() as Node3D
+				_solid(n, "fantasy/cart-high", c, rng.randf() * TAU, 2.2)
+				for k in 3: _solid(n, ["survival/barrel", "survival/box-large", "survival/chest"][k], c + Vector2.from_angle(k * 2.1) * 2.0, rng.randf(), 3.0)
 
 ## 모델 하나를 한 번만 읽어 메시 조각과 그 변환(뿌리 기준), 높이를 기억한다 — MultiMesh 재료
 func _model_src(id: String) -> Dictionary:

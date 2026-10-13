@@ -390,6 +390,7 @@ func _riverbank(b: Vector2i) -> void:
 		_box(Vector3(1.4, 0.1, 2.4), Vector3(jx, 0.0, RIVER_Z + RIVER_HW - 0.6), _mat(Color("8a6a4a")))
 		for px in [-0.6, 0.6]: _box(Vector3(0.12, 0.5, 0.12), Vector3(jx + px, -0.3, RIVER_Z + 0.2), _mat(Color("6b4a35")), false)
 		spots.append({ "pos": Vector3(jx, 0.1, RIVER_Z + 0.3), "kind": "bank", "yaw": PI, "fish": true })
+		var boat := KitProps.mesh_node("res://assets/models/kenney/watercraft/boat-row-small.glb"); boat.position = Vector3(jx + 1.8, Water3D.SURFACE_Y - 0.12, RIVER_Z); boat.rotation.y = PI / 2.0; boat.scale = Vector3.ONE * 0.5; _add(boat)   # 부두에 맨 거룻배
 	else:
 		KitProps.f(self, "tableCloth", Vector3(rng.randf_range(x0 + 4.0, x1 - 4.0), 0, sz + 2.2), 0.0)
 	_merge_done(mark)

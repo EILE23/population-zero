@@ -42,6 +42,7 @@ static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNum
 			t.spots.append({ "pos": tc + Vector3(0, 0, 1.3), "kind": "bench", "yaw": PI })
 			KitProps.f(t, "pottedPlant", tc + Vector3(-w / 2.0 + 0.3, 0, -d / 2.0 + 0.3)); KitProps.f(t, "pottedPlant", tc + Vector3(w / 2.0 - 0.3, 0, d / 2.0 - 0.3))
 			KitProps.f(t, "cardboardBoxOpen", tc + Vector3(w / 2.0 - 0.4, 0, -d / 2.0 + 0.4), rng.randf())
+			for q in 2: KitProps.k(t, "food", ["cake", "cup-tea", "cupcake", "pie", "mug"][(q + rng.randi()) % 5], tc + Vector3(-0.3 + q * 0.6, 0.73, 0), rng.randf(), 1.0, false)   # 상 위 다과
 		"pool":   # 물놀이 풀 — 진짜 물(헤엄 규칙 그대로), 둘레 화분
 			t.water.disc(at + Vector3(sx, 0, 0), 1.2)
 			KitProps.f(t, "loungeChairRelax", at + Vector3(sx + 2.0, 0, 0.2), -PI / 2.0)
@@ -52,6 +53,8 @@ static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNum
 			KitProps.f(t, "sideTable", at + Vector3(sx, 0, -0.2))
 			t.spots.append({ "pos": at + Vector3(1.1 + sx, 0.35, 0), "kind": "bed", "yaw": PI })
 			KitProps.f(t, "pottedPlant", at + Vector3(-w / 2.0 + 0.3, 0, -d / 2.0 + 0.3))
+			KitProps.k(t, "food", "cocktail", at + Vector3(sx, 0.6, -0.2), 0.0, 1.0, false)
+			KitProps.k(t, "holiday", "lantern", at + Vector3(w / 2.0 - 0.3, 0, -d / 2.0 + 0.3), 0.0, 0.8)
 		"hammock":   # 해먹 — 기둥 둘 사이, 누워 쉰다(침대와 같은 bed 자리)
 			var wood: Material = t._mat(Color("8a6a4a"))
 			for s in [-1.3, 1.3]: t._box(Vector3(0.12, 1.4, 0.12), at + Vector3(s + sx, 0, 0), wood)
@@ -72,9 +75,12 @@ static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNum
 			KitProps.n(t, "log_stack", at + Vector3(0.6 + sx, 0, -0.4), PI / 2.0, 3.0)
 			KitProps.n(t, "log_stackLarge", at + Vector3(w / 2.0 - 0.6, 0, 0.1), 0.0, 2.6)
 			KitProps.n(t, "stump_round", at + Vector3(0.4 + sx, 0, 0.8), 0.0, 2.6)
+			KitProps.k(t, "survival", "tool-axe", at + Vector3(0.4 + sx, 0.55, 0.8), 0.3, 1.0, false)
+			KitProps.k(t, "survival", "workbench", at + Vector3(w / 2.0 - 0.6, 0, -d / 2.0 + 0.5), 0.0)
 			t.spots.append({ "pos": at + Vector3(0.4 + sx, 0, 1.4), "kind": "lookout", "yaw": PI })
 		"camp":   # 마당 캠핑 — 작은 텐트, 모닥불, 통나무 의자 둘
-			KitProps.n(t, "tent_smallOpen", at + Vector3(-w / 2.0 + 1.0, 0, -0.2), 0.3, 3.4)
+			KitProps.k(t, "survival", "tent-canvas", at + Vector3(-w / 2.0 + 1.1, 0, -0.2), 0.3)
+			KitProps.k(t, "survival", "bedroll", at + Vector3(-w / 2.0 + 1.0, 0, 1.0), 0.0, 1.0, false)
 			KitProps.n(t, "campfire_stones", at + Vector3(0.8 + sx, 0, 0.1), 0.0, 2.6, false)
 			for s in [-1.0, 1.0]: KitProps.n(t, "log", at + Vector3(0.8 + sx + s * 1.0, 0, 0.1), PI / 2.0, 2.4)
 			t.spots.append({ "pos": at + Vector3(0.8 + sx, 0, 1.0), "kind": "lookout", "yaw": PI })
@@ -88,6 +94,8 @@ static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNum
 				for hx in [-w / 4.0, w / 4.0]: KitProps.n(t, "crops_dirtRow", Vector3(at.x + hx, 0, rz), PI / 2.0, 3.0, false)
 				var kind: String = crops[(r + rng.randi()) % crops.size()]
 				for q in 5: KitProps.n(t, kind, Vector3(at.x - w / 2.0 + 0.5 + q * (w - 1.0) / 4.0, 0.05, rz), rng.randf() * TAU, 1.3 if kind.begins_with("crops_corn") else 1.1, kind.begins_with("crops_corn"))
+			KitProps.k(t, "survival", "bucket", at + Vector3(w / 2.0 - 0.3, 0, d / 2.0 - 0.2), 0.0)   # 물통·괭이
+			KitProps.k(t, "survival", "tool-hoe", at + Vector3(w / 2.0 - 0.7, 0, d / 2.0 - 0.2), 0.4, 1.0, false)
 
 ## 가게 뒤 짐 마당 — 상자 더미·쓰레기통·직원 의자·화분·덤불 띠
 static func service(t, c: Vector3, back_z: float, house_back: float, seed: int) -> void:
