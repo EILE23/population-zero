@@ -22,13 +22,10 @@ static func lots() -> Array:
 	var n := int(REACH / PITCH)
 	for bx in range(-n, n):
 		for bz in range(-n, n):
-			var zn := OZ + bz * PITCH; var lane := zn + PITCH / 2.0; var zs := zn + PITCH   # 블록 북쪽 길·가운데 길·남쪽 길(셋 다 같은 찻길 — 집은 다 남쪽 길을 본다)
-			for row in 2:
-				for i in PER_ROW:
-					var sz := lane if row == 0 else zs
-					var c := slot_center(bx, bz, row, i)
-					if not _ok(c): continue
-					_lots.append({ "id": "%d,%d,%d" % [bx, bz, row * PER_ROW + i], "c": c, "b": Vector2i(bx, bz), "row": row, "street_z": sz })
+			for sl in block_slots(bx, bz):
+				if not _ok(sl["c"]): continue
+				var l: Dictionary = sl.duplicate(); l["b"] = Vector2i(bx, bz)
+				_lots.append(l)
 	# 블록 단위로 — 가까운 블록부터 그 블록을 다 채우고 다음 블록(운영자 2026-10-08: 섹션마다 빼곡해야). 전엔 필지마다 거리순이라 블록들이 반쯤 빈 채 흩어졌다
 	var bd := func(l: Dictionary) -> float: return Vector2(OX + (l["b"].x + 0.5) * PITCH, OZ + (l["b"].y + 0.5) * PITCH).length()
 	_lots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -38,11 +35,44 @@ static func lots() -> Array:
 	for k in _lots.size(): _lots[k]["order"] = k
 	return _lots
 
-## 블록 (bx, bz) 의 row 줄 i 번째 자리 가운데 — 필지가 아니어도(강·장소 둘레) 같은 자리(town_city 빈 자리 채우기)
-static func slot_center(bx: int, bz: int, row: int, i: int) -> Vector2:
-	var x0 := OX + bx * PITCH + ROAD_W / 2.0; var inner := PITCH - ROAD_W
-	var sz := OZ + bz * PITCH + (PITCH / 2.0 if row == 0 else PITCH)
-	return Vector2(x0 + inner / (PER_ROW * 2.0) * (1 + 2 * i), sz - FRONT)
+## 블록 모양(운영자 2026-10-13: "블록마다 형태가 다양해져야") — 블록마다 늘 같은 하나(블록 좌표로 고른다). 한 줄 = 폭 31m 를 나눈 자리들:
+##   rows 넷·넷 / villas 큰 집 둘(15.5m)·넷 / terrace 넷·붙은 집 다섯(6.2m) / apartment 연립 하나와 주차장·넷 / courtyard 넷·넷(가운데 찻길 없이 안마당) / mixed 큰 집 하나와 둘·붙은 집 다섯
+##   번화가: rows 가게 넷·넷 / square 가게·광장(15.5m)·가게 / wide 큰 가게 셋. 공방가는 rows
+const R4 := [[7.75, ""], [7.75, ""], [7.75, ""], [7.75, ""]]
+const FORMS := {
+	"rows": [R4, R4], "villas": [[[15.5, "villa"], [15.5, "villa"]], R4], "terrace": [R4, [[6.2, "terrace"], [6.2, "terrace"], [6.2, "terrace"], [6.2, "terrace"], [6.2, "terrace"]]],
+	"apartment": [[[15.5, "apartment"], [15.5, "parking"]], R4], "courtyard": [R4, R4],
+	"mixed": [[[15.5, "villa"], [7.75, ""], [7.75, ""]], [[6.2, "terrace"], [6.2, "terrace"], [6.2, "terrace"], [6.2, "terrace"], [6.2, "terrace"]]],
+	"square": [[[7.75, ""], [15.5, "plaza"], [7.75, ""]], R4], "wide": [[[10.33, "wide"], [10.33, "wide"], [10.33, "wide"]], R4],
+}
+static func form_of(bx: int, bz: int) -> String:
+	var zone := CityMap.zone_at(Vector2(OX + (bx + 0.5) * PITCH, OZ + (bz + 0.5) * PITCH))
+	var h := absi(hash("form/%d,%d" % [bx, bz])) % 100
+	if zone == "high_street": return "rows" if h < 45 else ("square" if h < 75 else "wide")
+	if zone == "workshop": return "rows"
+	if h < 24: return "rows"
+	if h < 40: return "villas"
+	if h < 56: return "terrace"
+	if h < 70: return "apartment"
+	if h < 88: return "courtyard"
+	return "mixed"
+
+## 블록의 자리들 — [{id, c, row, street_z, w, form}] (필지가 아니어도 — 강·장소 둘레에 걸린 자리도 town_city 가 채운다)
+static func block_slots(bx: int, bz: int) -> Array:
+	var out: Array = []
+	var f: Array = FORMS[form_of(bx, bz)]
+	for row in 2:
+		var sz := OZ + bz * PITCH + (PITCH / 2.0 if row == 0 else PITCH)
+		var x := OX + bx * PITCH + ROAD_W / 2.0
+		var i := 0
+		for cell in f[row]:
+			var w: float = cell[0]
+			out.append({ "id": "%d,%d,%d" % [bx, bz, row * 10 + i], "c": Vector2(x + w / 2.0, sz - FRONT), "row": row, "street_z": sz, "w": w, "form": String(cell[1]) })
+			x += w; i += 1
+	return out
+
+## 가운데 찻길이 없는 블록(안마당) — road_tiles·town_traffic 이 본다
+static func no_lane(b: Vector2i) -> bool: return form_of(b.x, b.y) == "courtyard"
 
 static var _by_id := {}
 static func lot_by_id(id: String) -> Dictionary:
@@ -67,6 +97,7 @@ static func _ok(c: Vector2) -> bool:
 
 ## 집이 실제로 서는 자리 — 필지 가운데에서 조금씩 앞뒤·좌우로(운영자 2026-10-06: "너무 규칙적이니까 별로") — 필지 순번마다 늘 같다
 static func spot_of(l: Dictionary) -> Vector3:
+	if String(l.get("form", "")) != "": return Vector3(l["c"].x, 0, l["c"].y)   # 붙은 집·큰 집·연립·광장은 줄을 맞춘다
 	var rng := RandomNumberGenerator.new(); rng.seed = hash("at/" + String(l["id"]))
 	return Vector3(l["c"].x + rng.randf_range(-0.45, 0.45), 0, l["c"].y + rng.randf_range(-0.7, 0.5))
 

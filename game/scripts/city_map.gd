@@ -32,10 +32,12 @@ static func block_center(b: Vector2i) -> Vector3:
 
 ## 필지가 무엇이 되나 — house | shop | workshop | green
 static func lot_kind(l: Dictionary) -> String:
+	var form := String(l.get("form", ""))
+	if form in ["parking", "plaza"]: return form   # 블록 모양(TownPlan.FORMS)이 정한 빈 자리 — 주차장·광장
 	match zone_at(l["c"]):
 		"high_street": return "shop"
 		"workshop": return "workshop"
-		_: return "green" if int(l["order"]) % 9 == 4 else "house"
+		_: return "green" if int(l["order"]) % 9 == 4 and form == "" else "house"
 
 ## 가게 종류 — 필지 순번으로 돌린다(같은 거리에 같은 가게가 붙지 않게)
 static func shop_of(l: Dictionary) -> Dictionary:

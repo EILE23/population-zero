@@ -14,10 +14,37 @@ static func style_of(l: Dictionary) -> String:
 ## 집 하나 — 크기는 모양이 정하고 나머지(벽 빛깔·지붕·시드)는 사양(TownPlan.house_spec)
 static func build(t: Node, c: Vector3, l: Dictionary, sp: Dictionary, style := "") -> Vector3:
 	if style == "": style = style_of(l)
+	var form := String(l.get("form", ""))
+	if form in ["villa", "terrace", "apartment"]: style = form   # 블록 모양이 정한 집(TownPlan.FORMS) — 큰 집·붙은 집·연립
 	var rng := RandomNumberGenerator.new(); rng.seed = int(sp["seed"]) * 31 + 7
 	var s: Vector3 = sp["size"]; var wall: Color = sp["wall"]; var roof: String = sp["roof"]; var seed: int = sp["seed"]
 	var m := func(col: Color) -> Material: return t.call("_mat", col)
 	match style:
+		"villa":   # 큰 집 — 2층, 넓은 앞 베란다(기둥·지붕), 옆 차고, 굴뚝 둘
+			s = Vector3(7.4, 2.8, 5.0); var vc := c - Vector3(1.2, 0, 0)
+			t.call("_house", vc, s, wall, roof, false, seed, "", 2)
+			var pz := vc.z + s.z / 2.0 + 0.9
+			t.call("_box", Vector3(s.x + 0.4, 0.16, 1.8), Vector3(vc.x, 0, pz), m.call(Color("b48a5a")))
+			for px in [-s.x / 2.0, -s.x / 6.0, s.x / 6.0, s.x / 2.0]: t.call("_box", Vector3(0.16, 2.5, 0.16), Vector3(vc.x + px, 0.16, pz + 0.75), m.call(Color("f7f4ef")))
+			var vr: MeshInstance3D = t.call("_box", Vector3(s.x + 0.7, 0.1, 2.1), Vector3(vc.x, 2.66, pz + 0.1), m.call(Color("5a4a52")), false); vr.rotation.x = 0.1
+			var gx := vc.x + s.x / 2.0 + 1.6
+			t.call("_box", Vector3(3.0, 2.5, s.z - 0.4), Vector3(gx, 0, vc.z - 0.2), m.call(wall.darkened(0.08)))
+			t.call("_box", Vector3(2.5, 2.0, 0.05), Vector3(gx, 0, vc.z + s.z / 2.0 - 0.37), m.call(Color("cfc7c2")), false)
+			t.call("_box", Vector3(3.2, 0.12, s.z - 0.2), Vector3(gx, 2.5, vc.z - 0.2), m.call(Color("5a4a52")), false)
+			s.x += 3.2
+		"terrace":   # 붙은 집 — 줄의 이웃과 벽이 닿는 2층 좁은 집, 집마다 빛깔·문 위 차양·창 화분
+			s = Vector3(6.0, 2.6, 4.4); t.call("_house", c, s, wall, roof, false, seed, "", 2)
+			t.call("_box", Vector3(1.4, 0.08, 0.7), c + Vector3(0, 2.0, s.z / 2.0 + 0.35), m.call([Color("7b526c"), Color("3f6b2f"), Color("1b0c15"), Color("b56a5a")][rng.randi() % 4]), false)
+			for wx in [-1.6, 1.6]: t.call("_box", Vector3(0.9, 0.18, 0.25), c + Vector3(wx, 3.2, s.z / 2.0 + 0.12), m.call(Color("8a6a4a")), false)
+		"apartment":   # 연립 — 2층 긴 건물, 납작 지붕 위 실외기·물탱크, 층마다 발코니, 현관 차양
+			s = Vector3(13.0, 3.0, 7.0); t.call("_house", c, s, wall, roof, true, seed, "", 2)
+			var top := s.y * 1.7
+			for bx in [-4.5, -1.5, 1.5, 4.5]:
+				t.call("_box", Vector3(1.8, 0.12, 0.9), c + Vector3(bx, top * 0.5 + 0.05, s.z / 2.0 + 0.45), m.call(Color("cfc7c2")), false)
+				t.call("_box", Vector3(1.8, 0.7, 0.05), c + Vector3(bx, top * 0.5 + 0.17, s.z / 2.0 + 0.88), m.call(Color("4a4a52")), false)
+			t.call("_box", Vector3(2.4, 0.1, 1.4), c + Vector3(0, 2.3, s.z / 2.0 + 0.7), m.call(Color("5a4a52")), false)
+			for q in 3: t.call("_box", Vector3(0.9, 0.7, 0.6), c + Vector3(-4.0 + q * 2.2, top + 0.1, -1.5), m.call(Color("b8b0aa")), false)
+			var tank := MeshInstance3D.new(); var tm := CylinderMesh.new(); tm.top_radius = 0.8; tm.bottom_radius = 0.8; tm.height = 1.4; tank.mesh = tm; tank.material_override = m.call(Color("8fb8cc")); tank.position = c + Vector3(4.2, top + 0.8, -1.0); t.call("_add", tank)
 		"townhouse":
 			s = Vector3(3.5, 2.7, 3.6); t.call("_house", c, s, wall, roof, false, seed, "", 2)
 			for wx in [-0.9, 0.9]: t.call("_box", Vector3(0.8, 0.18, 0.25), c + Vector3(wx, 3.1, s.z / 2.0 + 0.12), m.call(Color("8a6a4a")), false)   # 2층 창 화분

@@ -121,6 +121,7 @@ func _pull_over(c: Car3D, at: Vector3) -> void:
 ## 문 앞 길에 세울 자리 — 동서 길은 모두 z = OZ + 20k(블록 경계 골목과 블록 가운데 뒷골목), 문 남쪽 그 줄의 길섶
 static func park_at(door_pos: Vector3) -> Vector3:
 	var sz := TownPlan.OZ + ceilf((door_pos.z - TownPlan.OZ + 0.5) / 20.0) * 20.0
+	if TownPlan.no_lane(CityMap.block_of(Vector2(door_pos.x, door_pos.z))) and fposmod(sz - TownPlan.OZ, TownPlan.PITCH) > 1.0: sz += 20.0   # 안마당 블록 — 가운데 찻길이 없어 남쪽 찻길에
 	var x := door_pos.x + 2.2
 	var gx := TownPlan.OX + roundf((x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH
 	if absf(x - gx) < 7.0: x = gx + 7.0 * (1.0 if x >= gx else -1.0)   # 남북 길 들목은 비운다 — 거기 세우면 남북 차선을 막았다
