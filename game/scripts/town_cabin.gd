@@ -14,7 +14,7 @@ const STATIONS := [
 	{ "name": "Municipal Jazz", "notes": [62, 65, 69, 72, 71, 67, 64, 60], "beat": 0.26 },
 ]
 
-var car_view := 0
+var car_view := 1   # 타면 뒤따라가는 시점부터(운영자 2026-10-13: "차를 타면 V 를 한 번 누른 뷰로") — V: 뒤따라 → 운전석 → 마을
 var _double: Stick3D = null      # 차 안의 내 졸라맨
 var _dash: Node3D = null         # 운전대·계기판(차에 붙는다)
 var _steer: Node3D = null
@@ -111,7 +111,7 @@ func _leave_cabin() -> void:
 	_dash = null; _steer = null; _speedo = null
 	if _car_hud: _car_hud.queue_free(); _car_hud = null
 	if c is Car3D and is_instance_valid(c): _set_lights(c, false)
-	_tune(0); car_view = 0
+	_tune(0); car_view = 1
 
 ## 시점 — town3d 가 3/4 카메라를 놓은 뒤에 덮어쓴다
 func _cabin_cam(delta: float) -> void:
