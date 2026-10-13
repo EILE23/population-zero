@@ -1,0 +1,57 @@
+{
+  "_": "Climb content pack 'Dandelion clock' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_dandelion.gd reads this file: plan(n, plats, wind, taken) works only on the `themes` floors and looks at every pair of consecutive hops in the climbing order (hop i−1 the lower hop a, of the piece's `on` kinds — still, it is stood on; hop i the upper hop b, of its `to` kinds — only jumped to, so it may crumble or spring) that leave a sideways gap of min_gap..max_gap px with b 0..max_dy higher; where the floor has wind (climb.gd's wind_of, non-zero from floor 40) b must lie downwind, where it has none the cliff's own gust blows toward b; the box from a's gap edge to b's gap edge, from the stalk's root to the tufts' flight over the higher hop, no other platform cuts (a moving hop with its whole sweep) and no `taken` piece meets (the kite line and the weathervane — the loader passes their plans; they own the widest gaps, the dandelion takes the widest left). One dandelion per floor: a giant seed head on a stalk rooted in the cliff stalk_off px into the gap beside hop a, the head's centre head_up px over a's top, `seeds` tufts head_r px long round it. C while standing on hop a within `reach` px of its gap edge blows (`pose` puff: a deep breath in with the chest rising and the shoulders lifting and the head leaning in, the blow with the head pushing forward and the arms dropping, a recovering straightening — never a still frame) and the seeds lift off one by one from blow_at s after the C, one every stagger s, each a tuft px tuft drifting at the floor's wind (|wind| × wind_k, at most max_v) or the gust gust_v toward b plus rise_v px/s upward for life_s s, then it pops. An airborne body at the top of its arc or falling (vy ≤ catch_vy) whose hands (feet + hang) come within catch_r px of a live tuft catches it (snap) and hangs under it (the `kite` pose — two hands on one thing overhead, the legs trailing in the wind): the tuft carries it at its own speed for carry_s s (rise_v × carry_s = 30 px higher than its own arc) or until its life ends, then pops and lets the body go with the tuft's speed; Down lets go early with the same speed. A blown head regrows over regrow_s s after the last seed leaves and cannot be blown bare again until it has. Nothing refuses, pushes or costs: the plain jump across the gap is untouched (the stalk is thin, nothing on it is solid, the seeds only catch a body that is already at its apex or falling). build(root, planned) draws it; poised(on, x) says whether the body stands at the stalk — there C is the dandelion's (blow(on, x, fig) → {took, seeds, bare}); catch(x, y, z, vy) is the airborne test; ride(riding, fig) every riding tick returns the body's x/y and done; let_go(riding) returns the tuft's speed; sync(_t) every tick. stick3d_puff.gd holds the pose (meta puff_t freezes its clock for probes and residents). tools/probe_dandelion.gd checks the plan and its refusals, the blow and its refusals, the seeds' clock, the catch and its refusals, the ride, the pop, the let-go, the regrowth, the visuals, the sounds and the pose.",
+  "id": "dandelion",
+  "name": "Dandelion clock",
+  "pose": "puff",
+  "themes": [
+    "Wind cliffs"
+  ],
+  "kinds": {
+    "dandelion": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px; Wind cliffs hops stand 83..220 px apart). max_dy: how much higher hop b may be (px; consecutive hops rise 92..138). stalk_off: the stalk's x from hop a's gap edge, into the gap (px). head_up: the head's centre over a's top (px) — chest height of a standing body. head_r: a tuft's length from the centre (px). seeds: tufts on the head. root_d: the stalk's root under a's top (px) — it grows out of the cliff. reach: px back from a's gap edge within which a standing body is at the stalk. blow_at: seconds after the C before the first seed leaves (the breath in); stagger: seconds between seeds. rise_v: px/s the tufts climb; gust_v: px/s they drift toward b on a floor without wind; wind_k × |wind| is the drift where the floor has wind, max_v caps it. life_s: a tuft's life (s). hang: hands over feet (px, like the holds). catch_r: how far the hands may be from a tuft to catch it (px). catch_vy: a body rising faster than this (px/s) passes through — the tuft only ever adds. carry_s: seconds a caught tuft carries a body before it pops (× rise_v = the gain over the arc). regrow_s: seconds the head takes to regrow after its last seed left. tuft: a tuft's size (px). deck_d: the head's depth front to back (px). puff_hz: the blow; pop_hz: a tuft popping; snap_hz: a body catching one.",
+      "min_gap": 70,
+      "max_gap": 240,
+      "max_dy": 160,
+      "stalk_off": 20,
+      "head_up": 24,
+      "head_r": 22,
+      "seeds": 8,
+      "root_d": 30,
+      "reach": 44,
+      "blow_at": 0.5,
+      "stagger": 0.2,
+      "rise_v": 20,
+      "gust_v": 120,
+      "wind_k": 1.0,
+      "max_v": 240,
+      "life_s": 3.0,
+      "hang": 58,
+      "catch_r": 26,
+      "catch_vy": 60,
+      "carry_s": 1.5,
+      "regrow_s": 12.0,
+      "tuft": 10,
+      "deck_d": 28,
+      "puff_hz": 120,
+      "pop_hz": 700,
+      "snap_hz": 180
+    }
+  },
+  "pieces": [
+    {
+      "_": "Wind cliffs floors are 20..24, 55..59, 90..94 …; below floor 40 the tower has no wind, so there the gust blows toward the upper hop and every consecutive pair with a 70..240 px gap qualifies; from floor 55 the floor's wind (wind_of) decides the direction and only pairs whose upper hop lies downwind qualify — a floor whose zigzag runs against its wind gets no dandelion. The kite line (run 131) and the weathervane (run 136) are passed as `taken`, so the dandelion stands at the widest gap neither uses; the icicles (run 123) hang over hop lips, not gaps, and the vents (run 118) stand on hop tops, so neither touches it. One dandelion per floor — the lower hop still (`on`), the upper one may also be a crumble or spring hop (`to`): only the lower one is stood on.",
+      "kind": "dandelion",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "to": [
+        "std",
+        "ice",
+        "crumble",
+        "spring"
+      ],
+      "max": 1
+    }
+  ]
+}
