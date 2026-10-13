@@ -17,8 +17,15 @@ func _city_init() -> void:
 		var bl := CityMap.block(b)
 		if not CityMap.whole_block(b): continue
 		_build_parent = _root_for(CityMap.block_center(b))
-		if bl["zone"] == "park": _park_block(CityMap.block_center(b), String(bl.get("name", "Park")))
-		else: _civic(CityMap.block_center(b), String(bl.get("building", "")), String(bl.get("name", "")))
+		var bc := CityMap.block_center(b)
+		if bl["zone"] == "park": _park_block(bc, String(bl.get("name", "Park")))
+		else: _civic(bc, String(bl.get("building", "")), String(bl.get("name", "")))
+		var cells: Array = [[Vector3(-8, 0, 8), 0], [Vector3(8, 0, 8), 9]] if bl["zone"] == "park" else [[Vector3(-12.5, 0, -7), 27], [Vector3(12.5, 0, -7), 9], [Vector3(-12.5, 0, 7), 0], [Vector3(12.5, 0, 7), 18]]
+		for cl in cells:   # 관공서 양옆·공원 남쪽의 빈 잔디 — 쌈지 마당 한 칸씩(운영자 2026-10-13: "녹지가 너무 많네")
+			var at: Vector3 = bc + (cl[0] as Vector3)
+			var mark := _merge_mark()
+			PocketLots.build(self, { "id": "civic/%d,%d,%d" % [b.x, b.y, int(cl[1])], "street_z": at.z + 10.0, "order": int(cl[1]) + absi(b.x * 7 + b.y) * 36 }, at)
+			_merge_done(mark)
 	for s in WorldGen.SITES: _dress_road(s)
 	_dress_loop()
 	_green_belt()
@@ -182,6 +189,11 @@ func _workshop_lot(l: Dictionary, c: Vector3) -> void:
 		var t := MeshInstance3D.new(); var tm := TorusMesh.new(); tm.inner_radius = 0.18; tm.outer_radius = 0.34; t.mesh = tm; t.material_override = _mat(Color("2a2a30"))
 		t.position = c + Vector3(-3.3, 0.1 + i * 0.16, 0.6); _add(t)
 	if int(l["order"]) % 2 == 0: _car(["truck", "suv", "hatchback", "sedan"][int(l["order"]) % 4], c + Vector3(0.5, 0, 4.6), PI / 2.0)
+	var rd := "res://assets/models/kenney/roads/"   # 공방 마당 — 큰 쓰레기통, 고깔, 공사 울타리, 상자 더미(Kenney, 부딪힌다)
+	KitProps.put(self, rd + "dumpster.glb", c + Vector3(-2.6, 0, -3.6), 0.0, 4.5)
+	for i in 3: KitProps.put(self, rd + "construction-cone.glb", c + Vector3(2.0 + i * 0.6, 0, 2.6), 0.0, 4.5, false)
+	KitProps.put(self, rd + "construction-barrier.glb", c + Vector3(2.6, 0, -3.4), 0.0, 4.5)
+	BackYards.service(self, c, back_line(l), c.z - 2.4, int(l["order"]) * 3)
 
 ## 쌈지 마당 — 장터·화원·놀이·정원 중 하나(pocket_lots)
 func _green_lot(l: Dictionary, c: Vector3) -> void:
