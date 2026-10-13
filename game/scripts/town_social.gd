@@ -172,9 +172,10 @@ func _board_labels() -> void:
 		var card := _box(Vector3(0.52, 0.11, 0.006), lb.position, _mat(Color("fbf3d8")), false); remove_child(card); lb.add_child(card); card.position = Vector3(0, 0, -0.008)   # 글 쪽지(종이)
 
 ## 판 보기 — 카메라가 판 앞 1.9m 로 다가가 판을 본다, 창이 뜬다. 닫으면 원래 시점으로
-func open_board(key: String, name: String, at: Vector3, yaw: float) -> void:
+func open_board(key: String, name: String, at: Vector3, yaw: float, from := Vector3.INF) -> void:
 	if board_view: return
-	var front: Vector3 = ((notice["pos"] as Vector3) - at).normalized() if key == "square" else Vector3(sin(yaw + PI), 0, cos(yaw + PI))   # 판 앞(사람이 서는 쪽)
+	if from == Vector3.INF: from = notice["pos"]
+	var front: Vector3 = (from - at); front.y = 0.0; front = front.normalized()   # 판 앞(사람이 서는 쪽)
 	var side := Vector3(-front.z, 0, front.x)
 	var eye: Vector3 = at + Vector3(0, 1.25, 0) + front * 2.4 - side * 0.4   # 판이 화면 왼쪽에 — 오른쪽은 글 창
 	_board_cam_tf = Transform3D(Basis(), eye).looking_at(at + Vector3(0, 0.95, 0) - side * 0.4, Vector3.UP)

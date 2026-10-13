@@ -21,5 +21,6 @@ static func build(t, l: Dictionary, c: Vector3) -> void:
 	t._box(Vector3(1.9, 0.08, 1.6), Vector3(c.x + hw - 1.0, 1.9, front - 1.0), t._mat(Color("3a3a42")), false)
 	KitProps.n(t, "pot_large", Vector3(c.x - hw + 0.8, 0, front - 0.8), 0.0, 2.0)
 	var sg := KitProps.n(t, "sign", Vector3(c.x - 1.4, 0, front - 0.2), 0.0, 2.2)
+	t._msgboard(Vector3(c.x - 1.4, 0, front - 0.2), Vector3(c.x - 1.4, 0, front + 0.6), "a%d" % int(l["order"]), "Community plot — who grows what")
 	var lb := Label3D.new(); lb.text = "Community plot"; lb.font_size = 32; lb.pixel_size = 0.004; lb.modulate = Color("1b0c15"); lb.position = Vector3(c.x - 1.4, 1.05, front - 0.1); t._add(lb)
 	t.spots.append({ "pos": Vector3(c.x, 0, front - 0.6), "kind": "lookout", "yaw": PI })

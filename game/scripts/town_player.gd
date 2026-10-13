@@ -342,7 +342,7 @@ func _interact_check(now: float) -> void:
 		var d7: float = p.distance_to((a["node"] as Node3D).global_position)
 		if d7 < 1.1 and d7 < best_d: best = { "kind": "dog", "animal": a }; best_d = d7
 	for sp in spots:
-		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop", "swap", "letters", "notice", "cot", "rocker", "stage", "ledger", "jobs", "gym", "sale", "build"] or sp.has("fish")): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
+		if not (sp["kind"] in ["hatstand", "counter", "oven", "lookout", "rack", "boat", "cobbler", "stool", "wheel", "whet", "stitch", "fitting", "gate", "chop", "swap", "letters", "notice", "cot", "rocker", "stage", "ledger", "jobs", "gym", "sale", "build", "msgboard"] or sp.has("fish")): continue   # 빈손으로 쓰는 것들 — 모자 집기, 창구, 화덕(반죽), 전망 자리(손차양), 우산꽂이(빌리기), 부두(거룻배 타기), 구두장이 작업대·걸상(run 80), 숫돌·손님 자리(run 81)
 		var d8: float = p.distance_to(sp["pos"])
 		if d8 < 1.1 and d8 < best_d and not player.carrying and carrying_big.is_empty(): best = { "kind": "fish" if sp.has("fish") else sp["kind"], "spot": sp }; best_d = d8   # 부두 끝 bank 는 빈손이면 낚시 자리(run 91)
 	var pl := near_plot(p)
@@ -411,6 +411,7 @@ func _interact_check(now: float) -> void:
 		"boat": boat_use(now)   # 부두(run 78): 거룻배에 탄다 — 주민이 같은 자리에서 하는 것과 같은 board(town_boat)
 		"car": _enter_car(best["car"], now)
 		"sale": sale_use(best["spot"], now)   # 팔 필지 표지판(town_plots) — 모양 고르고 사서 내가 짓는다
+		"msgboard": open_board(String(best["spot"]["key"]), String(best["spot"]["title"]), best["spot"]["at"], float(best["spot"]["yaw"]), best["spot"]["pos"])   # 우편함·정류장·가게·관공서·텃밭 게시판(town_city _msgboard)
 		"build": site_use(best["spot"], now)   # 공사장 앞 망치질 한 번 = 일 한 단위(건축가와 같다, town_plots)
 		"seesaw":
 			var ss: Seesaw3D = best["ss"]

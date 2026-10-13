@@ -24,7 +24,7 @@ func open(t: Node, key: String, name: String) -> void:
 	var sb := StyleBoxFlat.new(); sb.bg_color = Color(0.97, 0.955, 0.937, 0.97); sb.border_color = Color("7b526c"); sb.set_border_width_all(2); sb.set_corner_radius_all(10); sb.set_content_margin_all(14)
 	p.add_theme_stylebox_override("panel", sb); root.add_child(p)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 8); p.add_child(v)
-	var h := Label.new(); h.text = title.to_upper(); h.add_theme_font_size_override("font_size", 20); h.add_theme_color_override("font_color", Color("1b0c15")); v.add_child(h)
+	var h := Label.new(); h.text = title.to_upper(); h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; h.custom_minimum_size.x = 200.0; h.add_theme_font_size_override("font_size", 18); h.add_theme_color_override("font_color", Color("1b0c15")); v.add_child(h)
 	_hint = Label.new(); _hint.add_theme_font_size_override("font_size", 12); _hint.add_theme_color_override("font_color", Color("7b526c")); _hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(_hint)
 	var sc := ScrollContainer.new(); sc.size_flags_vertical = Control.SIZE_EXPAND_FILL; sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; v.add_child(sc)
 	_list = VBoxContainer.new(); _list.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _list.add_theme_constant_override("separation", 6); sc.add_child(_list)

@@ -86,6 +86,8 @@ func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
 		var gx := c.x + 1.3
 		_box(Vector3(0.08, 1.0, 0.08), Vector3(gx, 0, front - 0.25), _mat(Color("4a4a52")), false)
 		_box(Vector3(0.3, 0.25, 0.45), Vector3(gx, 1.0, front - 0.25), _mat([Color("b56a5a"), Color("4a6a8a"), Color("3f6b2f"), Color("1b0c15")][rng.randi() % 4]))
+		var dw: String = String(doors[doors.size() - 1].get("owner", owner_row(int(l["order"])).get("handle", ""))) if not doors.is_empty() else ""
+		_msgboard(Vector3(gx, 0, front - 0.25), Vector3(gx, 0, front + 0.55), "h%d" % int(l["order"]), "Mailbox — notes for %s" % (dw if dw != "" else "this house"))
 		KitProps.f(self, "trashcan", Vector3(c.x - 1.5, 0, front - 0.4), 0.0)
 	var who: String = String(owner_row(int(l["order"])).get("handle", "")) if not _is_mine(int(l["order"])) else ""
 	BackYards.build(self, c, back + 0.4, c.z - hs.z / 2.0 - 0.3, lw, who, hash("back/" + String(l["id"])))
@@ -197,6 +199,9 @@ func _shop_lot(l: Dictionary, c: Vector3) -> void:
 	var cx := -s.x / 2.0 + 0.8
 	HouseStyles.shop_front(self, c, s, String(shop["type"]), String(shop["item"]))   # 가게 앞 — 카페 테라스·빵 바구니·과일 상자·책 수레…
 	BackYards.service(self, c, back_line(l), c.z - s.z / 2.0 - 0.3, int(l["order"]))   # 가게 뒤 짐 마당
+	var stand := c + Vector3(s.x / 2.0 + 0.7, 0, hd + 1.3)   # 가게 앞 칠판 — 손님 한 줄 평·주문
+	var chalk := _box(Vector3(0.6, 0.9, 0.06), stand, _mat(Color("2f3a2f")), false); chalk.rotation.x = -0.15
+	_msgboard(stand, stand + Vector3(0, 0, 0.8), "p%d" % int(l["order"]), "%s — reviews & requests" % String(shop["type"]).capitalize())
 	var id := shops.size()
 	var sh := { "kind": "shop", "pos": c + Vector3(cx, 0, hd + 1.75), "yaw": PI, "item": String(shop["item"]), "type": String(shop["type"]), "id": id,
 		"keeper": { "kind": "keeper", "pos": c + Vector3(0, 0, hd + 1.0), "yaw": 0.0, "shop_id": id } }   # 주인은 문 앞까지 걸어와 안(방의 계산대 뒤, inner)으로 들어간다
@@ -283,6 +288,10 @@ func _civic(c: Vector3, kind: String, name: String) -> void:
 		_bench(front + Vector3(s * 5.6, 0, 6.5)); _lamp(front + Vector3(s * 4.6, 0, 11.0))
 		_tree(front + Vector3(s * 9.5, 0, 4.0), 1.2); _tree(front + Vector3(s * 9.5, 0, 11.0), 1.1)
 	var pole := _box(Vector3(0.08, 5.0, 0.08), front + Vector3(size.x / 2.0 + 1.5, 0, 1.5), _mat(Color("4a4a52")), false)
+	var nb := front + Vector3(-size.x / 2.0 - 1.2, 0, 1.4)   # 관공서 알림판 — 기둥 둘·판
+	for sx in [-0.5, 0.5]: _box(Vector3(0.07, 1.4, 0.07), nb + Vector3(sx, 0, 0), _mat(Color("4a4a52")))
+	_box(Vector3(1.15, 0.7, 0.05), nb + Vector3(0, 0.7, 0), _mat(Color("2f3a2f")), false)
+	_msgboard(nb, nb + Vector3(0, 0, 0.8), "c%s" % kind.substr(0, 10), "%s — notices" % name)
 	_box(Vector3(1.0, 0.6, 0.03), front + Vector3(size.x / 2.0 + 2.05, 4.3, 1.5), _mat(Color("ad7096")), false)
 	spots.append({ "pos": front + Vector3(-2.0, 0, 3.0), "kind": "lookout", "yaw": PI })   # 건물을 올려다본다
 	match kind:
@@ -474,6 +483,12 @@ func _infill_block(b: Variant) -> void:
 	_infilled[b] = true
 	Infill.run(self, Rect2(TownPlan.OX + b.x * TownPlan.PITCH, TownPlan.OZ + b.y * TownPlan.PITCH, TownPlan.PITCH, TownPlan.PITCH))
 
+## 글을 남기는 판(운영자 2026-10-13: "게시판 같은 형태의 동작이 훨씬 많아져야") — 우편함·정류장·가게 칠판·관공서 알림판·텃밭 팻말.
+## C 로 보면 시점이 판 앞으로, 글 쓰기·고치기·지우기(town_social open_board). 글은 방에 남아 같은 마을 모두가 본다(키마다 따로)
+func _msgboard(at: Vector3, stand: Vector3, key: String, title: String) -> void:
+	var d := at - stand; d.y = 0.0
+	spots.append({ "pos": stand, "kind": "msgboard", "yaw": atan2(d.x, d.z), "at": at, "key": key.replace(",", "_").replace("-", "m").substr(0, 20), "title": title })
+
 ## 빈 자리에 마당을 놓아도 되나 — 강·옛 마을·장소(탑·호숫가·오두막·산 들머리)와 그리 가는 길 위가 아니면
 func _filler_ok(c: Vector2) -> bool:
 	if absf(c.y - RIVER_Z) < RIVER_HW + 3.5: return false
@@ -582,6 +597,7 @@ func _kerb(na: Vector2i, nb: Vector2i) -> void:
 			KitProps.f(self, "benchCushion", Vector3(mx, 0, bz - 0.15), PI)
 			spots.append({ "pos": Vector3(mx, 0, bz - 0.6), "kind": "bench", "yaw": 0.0 })
 			KitProps.put(self, RoadTiles.DIR + "road-sign-street.glb", Vector3(mx + 2.0, 0, bz), 0.0, 6.0)
+			_msgboard(Vector3(mx + 2.0, 0, bz), Vector3(mx + 2.0, 0, bz - 0.8), "s%d_%d" % [na.x, na.y], "Bus stop — timetable & notes")
 		else:   # 인도 벤치·휴지통
 			KitProps.f(self, "bench", Vector3(mx, 0, pa.z - walk), 0.0)
 			KitProps.f(self, "trashcan", Vector3(mx + 1.4, 0, pa.z - walk), 0.0)
