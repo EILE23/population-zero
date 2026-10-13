@@ -436,8 +436,9 @@ func _town_clear(x: float, z: float, r: float) -> bool:
 	if absf(x) < HUB_X + 2.0 and absf(z) < HUB_Z + 2.0: return false
 	if absf(z - ROAD_Z) < 3.4 + r * 0.3: return false
 	if absf(z - town.RIVER_Z) < town.RIVER_HW + 1.5: return false
-	var gx := fposmod(x - TownPlan.OX, TownPlan.PITCH); var gz := fposmod(z - TownPlan.OZ, TownPlan.PITCH)
-	if gx < 2.4 or gx > TownPlan.PITCH - 2.4 or gz < 2.4 or gz > TownPlan.PITCH - 2.4: return false   # 골목
+	var gx := fposmod(x - TownPlan.OX, TownPlan.PITCH); var gz := fposmod(z - TownPlan.OZ, TownPlan.PITCH / 2.0)
+	var rw := TownPlan.ROAD_W / 2.0 + 0.4
+	if gx < rw or gx > TownPlan.PITCH - rw or gz < rw or gz > TownPlan.PITCH / 2.0 - rw: return false   # 찻길(남북 40m, 동서 20m 마다)
 	for s in SITES:
 		var sc: Vector3 = s["c"]
 		if Vector2(x - sc.x, z - sc.z).length() < float(s["r"]) + 1.0: return false

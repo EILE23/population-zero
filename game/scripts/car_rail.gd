@@ -10,8 +10,8 @@ extends RefCounted
 ##   교차로: 칸마다 한 대씩 들어간다(같은 축으로 곧장 가는 차끼리는 같이). 6초 넘게 못 들어가면 그냥 간다(막힘 방지)
 ## 사람이 박아 차선에서 4m 넘게 밀려나거나 3초 넘게 못 가면 그 자리에서 길을 다시 찾는다
 
-const W := 1.0                 # 골목 차선 — 0.8 이면 마주 오는 두 차(폭 1.4) 사이가 0.2m 라 스쳐 박혔다
-const W_MAIN := 1.0
+const W := 1.2                 # 차선 — 찻길 9m(아스팔트 6.7m)의 가운데에서 1.2m. 0.8 이면 마주 오는 두 차(폭 1.4) 사이가 0.2m 라 스쳐 박혔다
+const W_MAIN := 1.0           # 옛 마을 안 큰길(3.6m 판)
 const R := 4.0
 const NI := 6           # 격자 반경(노드) — x −224..216
 const NJ := 10          # z −198..202
@@ -45,7 +45,8 @@ static func npos(n: Vector2i) -> Vector3: return Vector3(TownPlan.OX + n.x * Tow
 static func _ok(t, a: Vector2i, b: Vector2i) -> bool:
 	if absi(b.x) > NI or absi(b.y) > NJ: return false
 	var gen: WorldGen = t.gen
-	if gen.flat_limit != _edge_at: _edge.clear(); _edge_at = gen.flat_limit   # 마을이 넓어지면 다시 잰다
+	var stamp: int = gen.flat_limit * 100000 + (t._segs as Dictionary).size()
+	if stamp != _edge_at: _edge.clear(); _edge_at = stamp   # 마을이 넓어지면(깎기·찻길) 다시 잰다
 	var key := "%d,%d|%d,%d" % ([a.x, a.y, b.x, b.y] if (a.x < b.x or (a.x == b.x and a.y < b.y)) else [b.x, b.y, a.x, a.y])
 	if _edge.has(key): return _edge[key]
 	var pa := npos(a); var pb := npos(b)
@@ -54,6 +55,7 @@ static func _ok(t, a: Vector2i, b: Vector2i) -> bool:
 	var ns := a.x == b.x
 	if ns and mini(a.y, b.y) == 0 and maxi(a.y, b.y) == 1:   # 강을 건너는 토막 — 다리(town_traffic LINKS, |x| > 72)만
 		ok = absf(pa.x) > 72.0 and float(pa.x) in TownTraffic.LINKS
+	if ok and not main and not (t._segs as Dictionary).has(RoadTiles.seg_key(a, b)): ok = false   # 깔린 찻길만(road_tiles) — 풀밭 위 격자 줄을 달리지 않게
 	if ok and not main:
 		for k in 7:
 			var p := pa.lerp(pb, k / 6.0)
@@ -128,7 +130,7 @@ static func plan(t, car: Node3D, goal: Vector3, tail: Array = [], pull := Vector
 
 func _right(d: Vector3) -> Vector3: return Vector3(-d.z, 0, d.x)
 
-func _w(a: Vector3, b: Vector3) -> float: return W_MAIN if absf(a.z - TownPlan.OZ) < 0.5 and absf(b.z - TownPlan.OZ) < 0.5 else W
+func _w(a: Vector3, b: Vector3) -> float: return W_MAIN if RoadTiles.in_hub(a) and RoadTiles.in_hub(b) else W
 
 func _build_lane() -> void:
 	var n := centers.size()

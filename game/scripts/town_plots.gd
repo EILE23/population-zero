@@ -92,7 +92,7 @@ func _refresh_sale() -> void:
 	for nk in want:
 		if _sale_nodes.has(nk): continue
 		var l: Dictionary = lots[nk]
-		var at := Vector3(l["c"].x + 1.6, 0, float(l["street_z"]) - TownPlan.PATH_W / 2.0 - 0.6)
+		var at := Vector3(l["c"].x + 1.6, 0, float(l["street_z"]) - TownPlan.ROAD_W / 2.0 - 0.6)
 		var keep := _build_parent; var n := Node3D.new(); _root_for(at).add_child(n); _build_parent = n
 		_box(Vector3(0.08, 1.2, 0.08), at, _mat(Color("6b4a35")), false)
 		_box(Vector3(0.9, 0.5, 0.05), at + Vector3(0, 0.95, 0), _mat(Color("f7f4ef")), false)

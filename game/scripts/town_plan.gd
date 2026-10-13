@@ -2,16 +2,18 @@ class_name TownPlan
 extends RefCounted
 ## 마을 도시계획(운영자 2026-10-06: "동물의 숲 느낌인데 마을이 엄청 커졌을 때 저 정도 규모(SimCity 스크린샷)가 되었으면", "빌딩을 실제로 짓는 건축가들").
 ## 한 번에 깔지 않는다 — 계획은 격자 필지 목록일 뿐이고, 건축가 주민이 허브에서 가까운 필지부터 하나씩 짓는다(town_growth.gd). 지어진 만큼만 마을이다.
-## 격자: 남북 골목 x = OX + k·PITCH(탑 길 x 16 과 같은 줄), 동서 골목 z = OZ + j·PITCH(큰길 z 2 와 같은 줄). 블록 안에 남북 두 줄 × 셋 = 필지 여섯(12m 사방, 마당 있는 집).
+## 격자: 남북 찻길 x = OX + k·PITCH(탑 길 x 16 과 같은 줄), 동서 찻길 z = OZ + j·20(큰길 z 2 와 같은 줄, 블록 가운데에도 하나). 찻길은 다 9m(ROAD_W).
+## 블록 안에 동서 두 줄 × 넷 = 필지 여덟, 집은 다 남쪽 찻길을 보고 뒤뜰(5m)이 북쪽 찻길 인도까지 간다 — 빈 띠가 없다
 ## 허브(이미 있는 마을)·장소(탑·호숫가·오두막) 둘레·강 둘레엔 필지가 없다. 순서는 허브 가운데에서의 거리 — 마을이 둥글게 번진다
 
 const PITCH := 40.0
-const PATH_W := 3.2          # 동물의 숲 같은 흙·돌 골목(차도가 아니다)
+const ROAD_W := 9.0          # 찻길(운영자 2026-10-13: "도로도 조금 현대화") — 아스팔트 두 차선 + 갓길 주차 + 양쪽 인도(Kenney City Kit 도로 판, road_tiles). 전엔 3.2m 흙·돌 골목
 const OX := 16.0
 const OZ := 2.0
 const REACH := 640.0         # 계획이 닿는 반경(m) — 그 안 필지 수천 개, 다 지으려면 오래 걸린다(끝없는 성장)
-const LOT := 7.0
-const PER_ROW := 5           # 한 줄 다섯 채(7.4m 간격) — 전엔 셋(12m)이라 집 사이가 휑했다
+const LOT := 7.2
+const PER_ROW := 4           # 한 줄 네 채(7.75m 간격) — 찻길이 넓어져 다섯이면 차고집·방갈로가 옆집에 닿았다
+const FRONT := 7.8           # 길 가운데에서 집 가운데까지(인도 4.5 + 앞마당 1.5 + 집 반 깊이 1.8)
 
 static var _lots: Array = []   # [{id, c: Vector2, b: Vector2i, i, street_z}] — 순서 = 지을 순서
 
@@ -20,14 +22,15 @@ static func lots() -> Array:
 	var n := int(REACH / PITCH)
 	for bx in range(-n, n):
 		for bz in range(-n, n):
-			var x0 := OX + bx * PITCH + PATH_W / 2.0; var z0 := OZ + bz * PITCH + PATH_W / 2.0
-			var inner := PITCH - PATH_W
-			var lane := z0 + inner * 0.5   # 블록 한가운데 뒷골목 — 두 줄 다 길을 본다(운영자 2026-10-06: "집들 간격도 좁히고")
+			var x0 := OX + bx * PITCH + ROAD_W / 2.0
+			var inner := PITCH - ROAD_W
+			var zn := OZ + bz * PITCH; var lane := zn + PITCH / 2.0; var zs := zn + PITCH   # 블록 북쪽 길·가운데 길·남쪽 길(셋 다 같은 찻길 — 집은 다 남쪽 길을 본다)
 			for row in 2:
 				for i in PER_ROW:
-					var c := Vector2(x0 + inner / (PER_ROW * 2.0) * (1 + 2 * i), lane - 4.8 if row == 0 else z0 + inner - 4.6)
+					var sz := lane if row == 0 else zs
+					var c := Vector2(x0 + inner / (PER_ROW * 2.0) * (1 + 2 * i), sz - FRONT)
 					if not _ok(c): continue
-					_lots.append({ "id": "%d,%d,%d" % [bx, bz, row * PER_ROW + i], "c": c, "b": Vector2i(bx, bz), "row": row, "street_z": lane if row == 0 else z0 + inner + PATH_W / 2.0 })
+					_lots.append({ "id": "%d,%d,%d" % [bx, bz, row * PER_ROW + i], "c": c, "b": Vector2i(bx, bz), "row": row, "street_z": sz })
 	# 블록 단위로 — 가까운 블록부터 그 블록을 다 채우고 다음 블록(운영자 2026-10-08: 섹션마다 빼곡해야). 전엔 필지마다 거리순이라 블록들이 반쯤 빈 채 흩어졌다
 	var bd := func(l: Dictionary) -> float: return Vector2(OX + (l["b"].x + 0.5) * PITCH, OZ + (l["b"].y + 0.5) * PITCH).length()
 	_lots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:

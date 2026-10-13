@@ -10,7 +10,7 @@ const KINDS := ["sedan", "hatchback", "suv", "truck", "sedan", "hatchback"]
 const LINKS := [16.0, 96.0, -104.0, 136.0, -144.0, 176.0, -184.0]   # 큰길에서 북쪽 마을로 드는 남북 길(옛 마을 |x|<72 밖이거나 Tower Road)
 const EAST_Z := 2.9
 const WEST_Z := 1.1
-const VERGE := 3.0                # 길섶에 세우는 차의 가운데 — 길 가운데에서. 2.5 면 차선 차와 차체가 맞닿아 걸렸다
+const VERGE := 2.6                # 갓길 주차 — 길 가운데에서(아스팔트 끝 3.35 안, 차선 차와 0.6m 틈)
 
 var commuters: Array = []   # [{r, car, home: Vector3, phase, dest, until}]
 var cruisers: Array = []    # [{r, car, slow}] — 늘 도는 차(GTA 처럼 길에 차가 끊이지 않게): 닿으면 곧장 다음 목적지
@@ -123,7 +123,7 @@ static func park_at(door_pos: Vector3) -> Vector3:
 	var sz := TownPlan.OZ + ceilf((door_pos.z - TownPlan.OZ + 0.5) / 20.0) * 20.0
 	var x := door_pos.x + 2.2
 	var gx := TownPlan.OX + roundf((x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH
-	if absf(x - gx) < 4.5: x = gx + 4.5 * (1.0 if x >= gx else -1.0)   # 남북 길 들목은 비운다 — 거기 세우면 남북 차선을 막았다
+	if absf(x - gx) < 7.0: x = gx + 7.0 * (1.0 if x >= gx else -1.0)   # 남북 길 들목은 비운다 — 거기 세우면 남북 차선을 막았다
 	return Vector3(x, 0, sz + VERGE)   # 길섶(골목 반폭 1.6 밖, 차 반폭 0.7 + 틈) — 차선(±0.8)을 막지 않게(car_rail 차가 세운 차 뒤에서 영영 섰다)
 
 ## 길섶 빈 자리 — 그 자리부터 길 따라 6m 씩 양쪽으로, 다른 차(서 있거나 그리로 가는) 5.5m 안이 아니고 남북 길 들목이 아닌 곳.
@@ -133,10 +133,10 @@ func _free_park(at: Vector3, me: Car3D, ns := false) -> Vector3:
 		var p := at + (Vector3(0, 0, k * 6.0) if ns else Vector3(k * 6.0, 0, 0))   # 남북 길섶이면 z 로
 		if ns:
 			var gz := TownPlan.OZ + roundf((p.z - TownPlan.OZ) / 20.0) * 20.0
-			if absf(p.z - gz) < 4.5: continue
+			if absf(p.z - gz) < 7.0: continue
 		else:
 			var gx := TownPlan.OX + roundf((p.x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH
-			if absf(p.x - gx) < 4.5: continue
+			if absf(p.x - gx) < 7.0: continue
 		var free := true
 		for c in cars:
 			if c == me: continue

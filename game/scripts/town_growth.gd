@@ -180,22 +180,8 @@ func _move_in(door: Dictionary, live: bool, want: Dictionary = {}) -> void:
 	residents.append(r)
 	if live: get_tree().create_timer(1.5).timeout.connect(func() -> void: if is_instance_valid(r): r.say(["Moved in.", "Home.", "It's lovely."][r.uid % 3], 2.4))
 
-## 골목 — 필지 앞(문 쪽) 동서 골목 한 토막(블록 폭), 처음 공사가 시작될 때 깔린다
-func _pave(l: Dictionary) -> void:
-	var b: Vector2i = l["b"]
-	var key := "%d,%d,%d" % [b.x, b.y, int(l["row"])]
-	if _paved.has(key): return
-	_paved[key] = true
-	var z: float = l["street_z"]
-	var x0 := TownPlan.OX + b.x * TownPlan.PITCH; var x1 := x0 + TownPlan.PITCH
-	var keep := _build_parent; _build_parent = _built_root
-	_path(Vector3(x0, 0, z), Vector3(x1, 0, z), TownPlan.PATH_W)
-	for xv in [x0, x1]:   # 남북 골목도 그 블록만큼
-		var vk := "v%d,%d" % [int(xv), b.y]
-		if not _paved.has(vk):
-			_paved[vk] = true
-			_path(Vector3(xv, 0, TownPlan.OZ + b.y * TownPlan.PITCH), Vector3(xv, 0, TownPlan.OZ + (b.y + 1) * TownPlan.PITCH), TownPlan.PATH_W)
-	_build_parent = keep
+## 찻길 — 처음 공사가 시작될 때 그 블록을 두르는 길을 깐다(그리기는 town_city: road_tiles)
+func _pave(_l: Dictionary) -> void: pass
 
 # ── 화폐(운영자 2026-10-06: "진짜 화폐로 키우자") — 값(data/prices.json), 사기·팔기·상금, 지갑 저장. 버는 길이 늘 곁에 있어야 막는 값이 있다 ──
 var prices := {}

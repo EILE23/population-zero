@@ -30,27 +30,6 @@ func _city_init() -> void:
 		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
 
-## 번화가 공용지(block_commons) — 가게 블록의 가게 뒤 빈 띠 둘을 반씩 네 칸: 장터·노천 카페·피크닉·연못·꽃밭. 주택가 띠는 집마다의 뒤뜰(back_yards)이 채운다
-var _commons_done := {}
-func _block_commons(b: Vector2i) -> void:
-	var zone := CityMap.zone_at(Vector2(TownPlan.OX + (b.x + 0.5) * TownPlan.PITCH, TownPlan.OZ + (b.y + 0.5) * TownPlan.PITCH))
-	if _commons_done.has(b) or CityMap.whole_block(b) or zone != "high_street": return
-	_commons_done[b] = true
-	var x0 := TownPlan.OX + b.x * TownPlan.PITCH + TownPlan.PATH_W / 2.0; var z0 := TownPlan.OZ + b.y * TownPlan.PITCH + TownPlan.PATH_W / 2.0
-	var inner := TownPlan.PITCH - TownPlan.PATH_W; var lane := z0 + inner * 0.5
-	var cx := x0 + inner / 2.0
-	var h := absi(hash("%d,%d" % [b.x, b.y]))
-	var kinds := BlockCommons.kinds_for(zone)
-	var keep := _build_parent
-	for cell in 4:
-		var at := Vector3(cx + (-9.0 if cell % 2 == 0 else 9.0), 0, (z0 + 5.0) if cell < 2 else (lane + 5.0))
-		if absf(at.x) < WorldGen.HUB_X + 4.0 and absf(at.z) < WorldGen.HUB_Z + 4.0: continue
-		_build_parent = _root_for(at)
-		var mark := _merge_mark()
-		BlockCommons.build(self, at, String(kinds[(h + cell * 3) % kinds.size()]), h + cell)
-		_merge_done(mark)
-	_build_parent = keep
-
 ## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무, 빨랫줄.
 ## 뒤 울타리는 띠 끝(골목 앞)까지 — 그 안은 그 집 사람 뒤뜰(back_yards). 길 쪽 가운데(문길)는 비운다. 울타리는 모양만(충돌 없음 — 주민 길을 막지 않게)
 func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
@@ -76,10 +55,9 @@ func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
 	var who: String = String(owner_row(int(l["order"])).get("handle", "")) if not _is_mine(int(l["order"])) else ""
 	BackYards.build(self, c, back + 0.4, c.z - hs.z / 2.0 - 0.3, TownPlan.LOT, who, hash("back/" + String(l["id"])))
 
-## 뒤뜰 끝 — 블록 안 집 뒤의 빈 띠가 끝나는 골목 앞(앞줄은 블록 북쪽 골목, 뒷줄은 가운데 뒷골목)
+## 뒤뜰 끝 — 집 뒤 찻길의 인도 앞(앞줄은 블록 북쪽 찻길, 뒷줄은 가운데 찻길)
 static func back_line(l: Dictionary) -> float:
-	var z0: float = TownPlan.OZ + l["b"].y * TownPlan.PITCH + TownPlan.PATH_W / 2.0
-	return z0 + 0.6 if int(l["row"]) == 0 else z0 + (TownPlan.PITCH - TownPlan.PATH_W) * 0.5 + TownPlan.PATH_W / 2.0 + 0.6
+	return float(l["street_z"]) - TownPlan.PITCH / 2.0 + TownPlan.ROAD_W / 2.0 + 0.3   # 뒤 찻길(20m 북쪽)의 인도 끝
 
 ## 합치기(mesh_merge) — 지은 것의 움직이지 않는 메시를 재질 생김새끼리 한 덩이로. 문짝은 빼고
 func _merge_mark() -> Array:
@@ -150,7 +128,6 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 	_done[k] = true
 	if not live: built = maxi(built, k + 1)
 	_pave(l)
-	_block_commons(l["b"])
 	var keep := _build_parent; _build_parent = _root_for(c)
 	var mark := _merge_mark()
 	match kind:
@@ -255,20 +232,60 @@ func _park_block(c: Vector3, name: String) -> void:
 	_signpost(c + Vector3(-2.5, 0, 16.0), name.to_upper())
 
 # ── 거리 ──
-## 골목이 깔리면(_pave, 처음 공사 시작 때) 그 토막에 가로등 하나·가로수 둘 — 집 앞 문길(필지 가운데)은 비운다
+## 찻길(road_tiles) — 블록에 첫 필지가 서면 그 블록을 두르는 찻길을 다 깐다(동서 셋·남북 넷). 토막은 합치고(그리기 한 번), 노드 판은 이어진 팔에 맞춰 다시 고른다.
+## 인도엔 가로등(Kenney 꺾인 등, 팔이 찻길 쪽)·가로수. 옛 마을 안의 큰길은 옛 판 그대로
+var _segs := {}          # 토막 열쇠 -> true
+var _node_tiles := {}    # Vector2i -> Node3D
 func _pave(l: Dictionary) -> void:
 	var b: Vector2i = l["b"]
-	var fresh := not _paved.has("%d,%d,%d" % [b.x, b.y, int(l["row"])])
-	super(l)
-	if not fresh: return
-	var z: float = l["street_z"]; var x0 := TownPlan.OX + b.x * TownPlan.PITCH + TownPlan.PATH_W / 2.0
-	var s := -1.0   # 두 줄 다 길의 북쪽에 선다(앞이 남쪽)
-	var vz := z + s * (TownPlan.PATH_W / 2.0 + 0.9)
-	var keep := _build_parent; _build_parent = _root_for(Vector3(x0 + 20.0, 0, vz))
-	var gap := (TownPlan.PITCH - TownPlan.PATH_W) / TownPlan.PER_ROW   # 집과 집 사이 틈에 — 문길(필지 가운데)은 비운다
-	_lamp(Vector3(x0 + gap * 2.0, 0, vz))
-	_tree(Vector3(x0 + gap * 4.0, 0, vz + s * 0.3), 0.9); _tree(Vector3(x0 + 0.3, 0, vz + s * 0.3), 0.85)
+	if _paved.has(b): return
+	_paved[b] = true
+	var keep := _build_parent
+	for sg in RoadTiles.block_segs(b):
+		var na: Vector2i = sg[0]; var nb: Vector2i = sg[1]
+		var key := RoadTiles.seg_key(na, nb)
+		if _segs.has(key) or RoadTiles.in_hub(RoadTiles.npos(na)) or RoadTiles.in_hub(RoadTiles.npos(nb)): continue
+		_segs[key] = true
+		var mid := (RoadTiles.npos(na) + RoadTiles.npos(nb)) / 2.0
+		var par := _root_for(mid)
+		MeshMerge.merge(par, RoadTiles.seg(self, na, nb, par), [])
+		_build_parent = par
+		var mark := _merge_mark(); _kerb(na, nb); _merge_done(mark)   # 가로수는 합친다(가로등은 nomerge — 넘어가야 하니까)
+		_build_parent = keep
+		for nd in [na, nb]: _retile(nd)
 	_build_parent = keep
+
+func _retile(nd: Vector2i) -> void:
+	if RoadTiles.in_hub(RoadTiles.npos(nd)): return
+	var arms: Array = []
+	var dirs := { "W": Vector2i(-1, 0), "E": Vector2i(1, 0), "N": Vector2i(0, -1), "S": Vector2i(0, 1) }
+	for k in dirs:
+		if _segs.has(RoadTiles.seg_key(nd, nd + (dirs[k] as Vector2i))): arms.append(k)
+	if _node_tiles.has(nd) and is_instance_valid(_node_tiles[nd]): (_node_tiles[nd] as Node3D).queue_free()
+	_node_tiles[nd] = RoadTiles.node(self, nd, arms, _root_for(RoadTiles.npos(nd)))
+
+## 인도 — 동서 토막엔 가로등 둘(남·북 번갈아)과 가로수 둘, 남북 토막엔 가로등 하나
+func _kerb(na: Vector2i, nb: Vector2i) -> void:
+	var pa := RoadTiles.npos(na); var pb := RoadTiles.npos(nb)
+	var walk := TownPlan.ROAD_W / 2.0 - 0.55   # 인도 가운데
+	if na.y == nb.y:
+		for k in 2:
+			var x := lerpf(pa.x, pb.x, 0.3 if k == 0 else 0.7); var side := -1.0 if (k + na.x) % 2 == 0 else 1.0
+			_street_light(Vector3(x, 0, pa.z + side * walk), 0.0 if side > 0.0 else PI)
+			_tree(Vector3(lerpf(pa.x, pb.x, 0.5 + (k - 0.5) * 0.9 * 0.5), 0, pa.z - side * walk), 0.85)
+	else:
+		_street_light(Vector3(pa.x + walk, 0, (pa.z + pb.z) / 2.0), -PI / 2.0)
+
+## 가로등(Kenney light-curved, 9배 = 6m) — 기둥 충돌, 밤엔 켜진다(lamps), 차가 받으면 넘어간다(wreckables)
+func _street_light(at: Vector3, yaw: float) -> void:
+	var g := Node3D.new(); g.set_meta("nomerge", true); _add(g)
+	var m: Node3D = (load(RoadTiles.DIR + "light-curved.glb") as PackedScene).instantiate(); m.position = at; m.rotation.y = yaw; m.scale = Vector3.ONE * 9.0; g.add_child(m)
+	var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 0.15; cy.height = 2.0; cs.shape = cy; cs.position = at + Vector3(0, 1.0, 0); sb.add_child(cs); g.add_child(sb)
+	var l := OmniLight3D.new(); l.light_color = Color("e8c766"); l.light_energy = 0.8; l.omni_range = 7.0
+	l.position = at + Vector3(sin(yaw), 0, cos(yaw)) * -1.6 + Vector3(0, 5.6, 0); g.add_child(l); lamps.append(l)
+	var sp := { "pos": at + Vector3(0.3, 0, 0), "kind": "lamp", "yaw": -PI / 2.0 }
+	spots.append(sp)
+	wreckables.append({ "node": g, "at": at, "r": 0.25, "out": Vector3(0, 0, 1), "spot": sp, "light": l, "whole": true, "rebuild": _street_light.bind(at, yaw) })
 
 ## 문 앞 흙길 — 문에서 앞으로 나와 골목까지, 집마다 조금씩 다르게 꺾인다(반듯한 자갈 골목 사이의 비포장 오솔길)
 func _footpath(l: Dictionary, c: Vector3) -> void:
@@ -279,7 +296,7 @@ func _footpath(l: Dictionary, c: Vector3) -> void:
 	var keep := _build_parent; _build_parent = _root_for(c)
 	var dirt := _mat(Color("b59a74"))
 	var pts: Array[Vector3] = [a]
-	var z1: float = float(l["street_z"]) - TownPlan.PATH_W / 2.0   # 앞(남쪽) 길 — 앞 골목이거나 블록 가운데 뒷골목
+	var z1: float = float(l["street_z"]) - TownPlan.ROAD_W / 2.0   # 앞(남쪽) 찻길의 인도
 	if z1 - a.z > 0.6:
 		pts.append(a + Vector3(rng.randf_range(-0.5, 0.5), 0, (z1 - a.z) * 0.5))
 		pts.append(Vector3(a.x + rng.randf_range(-0.9, 0.9), 0, z1))
