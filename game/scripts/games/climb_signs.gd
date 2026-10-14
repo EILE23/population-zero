@@ -8,6 +8,7 @@ var game: Node3D = null
 var signs: Array = []          # {x, y(px), text, tag: Label3D}
 var reading := false
 var _closed_at := -1.0
+var notes: Array = []          # Callable(n: int) -> String — 팩이 판에 붙이는 한 줄(허들 줄 run 155: 오늘 넘은 가로대 수); 빈 문자열이면 안 붙는다
 var _panel: PanelContainer
 var _text: Label
 
@@ -39,7 +40,7 @@ func place(node: Node3D, n: int, w: float, rest: Dictionary, gear_band: int, eve
 	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED; tag.no_depth_test = true; tag.position = at + Vector3(0, 1.9, 0.1); tag.visible = false; node.add_child(tag)
 	var px := float(rest.get("x", 0.0)) + float(rest.get("w", 0.0)) / 2.0 + at.x * 36.0   # 발판 x 는 왼쪽 끝(px), 1m = 36px
 	signs = signs.filter(func(s: Dictionary) -> bool: return is_instance_valid(s["tag"]))   # 지운 층의 판은 뺀다
-	signs.append({ "x": px, "y": float(rest.get("y", 0.0)), "text": text, "tag": tag })
+	signs.append({ "x": px, "y": float(rest.get("y", 0.0)), "text": text, "tag": tag, "n": n })
 
 func _text_for(n: int, gear_band: int, every: int) -> String:
 	var k := func(a: String) -> String: return GameMenu.key_of(a)
@@ -58,10 +59,13 @@ func tick(px: float, py: float, c_pressed: bool) -> bool:
 		(s["tag"] as Label3D).visible = ok and not reading
 		if ok: near = s
 	if c_pressed and not reading and not near.is_empty():
-		_open(String(near["text"])); return true
+		_open(String(near["text"]), int(near.get("n", -1))); return true
 	return false
 
-func _open(text: String) -> void:
+func _open(text: String, n: int = -1) -> void:
+	for cv in notes:   # 팩의 줄 — 판을 여는 순간 세니 늘 오늘 것
+		var extra := String((cv as Callable).call(n))
+		if extra != "": text += "\n\n" + extra
 	reading = true; _text.text = text; _panel.visible = true
 
 func _close() -> void:

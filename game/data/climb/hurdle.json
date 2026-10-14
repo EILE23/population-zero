@@ -1,0 +1,39 @@
+{
+  "_": "Climb content pack 'Hurdle row' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_hurdle.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still hop of the piece's `on` kinds; a hop takes a row when it is at least margin × 2 + spacing × (count − 1) px wide (count falls back to min_count on the narrower upper floors — the tower's hops shrink with height), when no other platform cuts the row's box (a moving hop with its whole sweep) and when no `taken` piece of another pack (the icicles over the lips, the kite line at the gap, the vents on the hop tops — the loader passes their plans) sits in the row's x span within its height band (20 px under the hop's top to 60 px over it — run 152's band rule); one row per floor on the widest such hop: `count` low rail hurdles `h` px high and `spacing` px apart, centred on the hop, each a rail `rail_d` px deep from the cliff side so a lane past them stays open at the front. Walking into a rail at `vault_v` px/s or more (0.6 of RUN) vaults it (`pose` hurdle: the lead leg thrust straight, the trail leg folded flat to the side, the arms opposite, the pelvis lifting over the rail, a landing stride — driven by the body's own x across the rail, never a still frame; the next rail flows out of the last landing); walking into one slower is the existing `teeter` for bump_s s and a step back of step_back px, nothing falls. Each rail vaulted counts once a tower-day (day_s s of the loader's clock) and the camp sign boards read the count from the pack (`note(n)` — climb_signs.gd appends it when a board is opened); it is never a prize gate. Nothing costs anything; the plain jump over the whole row is untouched.",
+  "id": "hurdle",
+  "name": "Hurdle row",
+  "pose": "hurdle",
+  "themes": [
+    "Wind cliffs"
+  ],
+  "kinds": {
+    "hurdle": {
+      "_": "h: a rail's height over the hop (px — hip height of a 44 px body, like a real low hurdle). spacing: px between rails. count: rails in a row when the hop is wide enough; min_count: rails on a narrower hop (upper Wind cliffs hops are 96..136 px wide). margin: px from the hop's ends to the outer rails (the approach and the landing stride). rail_d: the rail's depth from the cliff side (px) — the lane in front of it stays open. post: a post's thickness (px). vault_v: px/s the body must move to vault (0.6 × RUN 300). bump_s: seconds of teeter after walking into a rail. step_back: px the body is set back from the rail it walked into. day_s: seconds of tower time in a tower-day — a rail counts once per day. wobble_s: seconds a bumped rail rocks. thud_hz: the bump; tick_hz: a trailing foot clipping the rail on a vault.",
+      "h": 20,
+      "spacing": 60,
+      "count": 3,
+      "min_count": 2,
+      "margin": 24,
+      "rail_d": 30,
+      "post": 3,
+      "vault_v": 180,
+      "bump_s": 0.4,
+      "step_back": 12,
+      "day_s": 600,
+      "wobble_s": 0.5,
+      "thud_hz": 90,
+      "tick_hz": 900
+    }
+  },
+  "pieces": [
+    {
+      "_": "Wind cliffs floors are 20..24, 55..59, 90..94 …; floors 20..24 have hops 137..177 px wide, so three rails (168 px) fit on about a third of the hops and two (108 px) on all; from floor 55 the hops are 96..136 px wide and the row is two rails. The vent floors (23, 59 …) keep their rows, but a rail never stands under a vent: the vents (run 118) stand at hop centres and are passed as `taken`, so a vent hop is skipped and the row goes to the next widest. The icicles (run 123) hang over hop lips and the kite line (run 131) stands at a gap — both are passed as `taken` too. The dandelion (run 150) and the weathervane (run 136) stand at gaps, not on hop tops, so neither meets a row.",
+      "kind": "hurdle",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1
+    }
+  ]
+}
