@@ -1,0 +1,43 @@
+{
+  "_": "Climb content pack 'Tapestry' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_tapestry.gd reads this file: plan(n, plats, taken, wind) works only on the `themes` floors (and only the pieces' `only` floors — the vent floors stay bare like the laundry line and the drawbridge), looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose box (from a body on the lower hop's gap edge to a hand past the upper hop's edge, lower hop's top to a hand over the rail) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the bell rope, the revolving door, the laundry line, the drawbridge — the loader passes their plans) sits in: a piece whose x overlaps the box and whose height (y up to rail_y/beam_y/y_top when it has one) lies from 20 px under the lower hop's top to 20 px under the upper hop's top belongs to this gap (the tower zigzags, so every gap of a floor shares one x column — run 152's band rule); one tapestry per floor at the widest such gap: a brass ring rail bracketed off the cliff hang + lift px over the upper hop's top, running from just past the lower hop's gap edge to a body short of the upper hop's edge, and a long cloth (tap_w wide) hung from ring_n rings whose hem is hem px over the lower hop's top. The cloth starts at the lower hop's end of the rail. Standing on the lower hop within reach of its gap edge, C grips the cloth (`scale` pose: hand over hand up a hanging cloth, the knees drawing up and the feet pushing against the fabric — a reach, a pull, a re-grip, never a still frame): the body climbs climb_v px/s until its hands reach the rail (feet lift px over the upper hop's top) while the rings slide along the rail at drift_v px/s toward the upper hop; when both are done the body steps across in settle_s (feet to the upper hop's top, inset px inside its edge) and the loader's landing takes it. ↓ lets go (the rings' drift comes along as vx), SPACE jumps with the drift added. An empty tapestry slides back to its start at back_v and cannot be gripped until it is there (and not within grace_s of being let go). The cloth sways `sway` px at the hem with the floor's wind (a third of that in still air), the body hanging on it sways with it. Nothing here is solid: the plain jump across the gap is untouched at 100% — the cloth is passed through, the rail is never a platform.",
+  "id": "tapestry",
+  "name": "Tapestry",
+  "pose": "scale",
+  "themes": ["Old hall"],
+  "kinds": {
+    "tapestry": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px). min_dy/max_dy: how much higher the upper hop is (px). tap_w: the cloth's width (px). hem: the hem's height over the lower hop's top (px). hang: the hands' height over the feet (px, the bell rope's number). lift: the feet's height over the upper hop's top when the hands are at the rail (px) — so the rail is hang + lift over the upper hop. inset: how far inside the upper hop's edge the body steps down (px). reach: how far the body's centre may be from the lower hop's gap edge, beyond its half width, to grip the hem (px). climb_v: px/s the body climbs. drift_v: px/s the rings slide toward the upper hop while someone hangs. back_v: px/s the empty cloth slides back. settle_s: seconds the step across takes. grace_s: seconds after letting go before the cloth can be gripped again. sway: the hem's sway amplitude in a full wind (px); still air sways a third of it. sway_hz: sway cycles per second. ring_n: rings along the cloth's top. rustle_hz/click_hz: the cloth's rustle on a grip and the rings' click when the step across begins.",
+      "min_gap": 90,
+      "max_gap": 220,
+      "min_dy": 40,
+      "max_dy": 150,
+      "tap_w": 36,
+      "hem": 20,
+      "hang": 58,
+      "lift": 12,
+      "inset": 14,
+      "reach": 18,
+      "climb_v": 40,
+      "drift_v": 30,
+      "back_v": 30,
+      "settle_s": 0.35,
+      "grace_s": 0.4,
+      "sway": 6,
+      "sway_hz": 0.35,
+      "ring_n": 5,
+      "rustle_hz": 180,
+      "click_hz": 1320
+    }
+  },
+  "pieces": [
+    {
+      "_": "Old hall floors are 1..4, 35..39, 70..74 …; the vent floors ((n − 3) % 4 == 0: 3, 35, 39 …) stay without a tapestry — the vents own the hop tops there and no gap pack lives on those floors (the laundry line and the drawbridge keep the same rule). On the other Old hall floors one tapestry hangs at the widest gap of 90..220 px between two consecutive still hops 40..150 px apart in height that the bell rope (run 128), the revolving door (run 134), the laundry line (run 143) and the drawbridge (run 144) have not taken — the loader passes their plans as `taken`.",
+      "kind": "tapestry",
+      "on": ["std", "ice"],
+      "max": 1,
+      "only": { "from": 4, "every": 4 }
+    },
+    { "kind": "tapestry", "on": ["std", "ice"], "max": 1, "only": { "from": 2, "every": 4 } },
+    { "kind": "tapestry", "on": ["std", "ice"], "max": 1, "only": { "from": 1, "every": 4 } }
+  ]
+}
