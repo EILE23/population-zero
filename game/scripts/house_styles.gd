@@ -27,6 +27,7 @@ static func build(t: Node, c: Vector3, l: Dictionary, sp: Dictionary, style := "
 			t.call("_box", Vector3(s.x + 0.4, 0.16, 1.8), Vector3(vc.x, 0, pz), m.call(Color("b48a5a")))
 			for px in [-s.x / 2.0, -s.x / 6.0, s.x / 6.0, s.x / 2.0]: t.call("_box", Vector3(0.16, 2.5, 0.16), Vector3(vc.x + px, 0.16, pz + 0.75), m.call(Color("f7f4ef")))
 			var vr: MeshInstance3D = t.call("_box", Vector3(s.x + 0.7, 0.1, 2.1), Vector3(vc.x, 2.66, pz + 0.1), m.call(Color("5a4a52")), false); vr.rotation.x = 0.1
+			_use_terrace(t, Vector3(vc.x - s.x / 3.0, 0.16, pz))   # 베란다 — 탁자와 의자, 앉는다
 			var gx := vc.x + s.x / 2.0 + 1.6
 			t.call("_box", Vector3(3.0, 2.5, s.z - 0.4), Vector3(gx, 0, vc.z - 0.2), m.call(wall.darkened(0.08)))
 			t.call("_box", Vector3(2.5, 2.0, 0.05), Vector3(gx, 0, vc.z + s.z / 2.0 - 0.37), m.call(Color("cfc7c2")), false)
@@ -54,6 +55,7 @@ static func build(t: Node, c: Vector3, l: Dictionary, sp: Dictionary, style := "
 			t.call("_box", Vector3(s.x + 0.2, 0.14, 1.3), deck + Vector3(0, 0, 0.15), m.call(Color("b48a5a")))
 			for px in [-s.x / 2.0, s.x / 2.0]: t.call("_box", Vector3(0.12, 2.2, 0.12), deck + Vector3(px, 0.14, 0.7), m.call(Color("efe9e2")))
 			var vr: MeshInstance3D = t.call("_box", Vector3(s.x + 0.5, 0.08, 1.6), deck + Vector3(0, 2.32, 0.2), m.call(Color("6b4a35")), false); vr.rotation.x = 0.12
+			_use_terrace(t, deck + Vector3(-s.x / 3.0, 0.14, 0.15))   # 데크
 		"garage":
 			s = Vector3(3.9, 2.6, 3.6); var hc := c - Vector3(0.9, 0, 0)
 			t.call("_house", hc, s, wall, roof, false, seed, "", 1)
@@ -81,6 +83,7 @@ static func build(t: Node, c: Vector3, l: Dictionary, sp: Dictionary, style := "
 		"terrace":
 			t.call("_house", c, Vector3(s.x, 2.6, s.z), wall, roof, true, seed, "", 1)
 			for k in 4: t.call("_scatter", ["Bush_Common_Flowers", "Plant_1", "Flower_3_Group", "Bush_Common"][k], c + Vector3(-s.x / 2.0 + 0.6 + k * (s.x - 1.2) / 3.0, 2.78, -s.z / 2.0 + 0.6), 0.55)
+			_use_terrace(t, c + Vector3(-0.3, 2.76, 0.3))   # 옥상 테라스 — 옆 계단으로 오른다(_house 평지붕), 앉는다(운영자 2026-10-14: "테라스도 이용 가능해야")
 		_:   # cottage
 			t.call("_house", c, s, wall, roof, false, seed, "", 1)
 			var fz := c.z + s.z / 2.0 + 1.9
@@ -160,3 +163,13 @@ static func _pack_front(t: Node, c: Vector3, s: Vector3, type: String) -> void:
 			KitProps.k(t, "survival", "chest", Vector3(lx + 0.8, 0, z), 0.2)
 			KitProps.k(t, "survival", "tool-shovel", Vector3(rx, 0, z - 0.2), 0.0, 1.0, false)
 			KitProps.k(t, "platformer", "crate", Vector3(rx - 0.7, 0, z), 0.3)
+
+## 테라스·베란다·데크에 앉을 곳 — 둥근 탁자, 의자 둘, 화분. 의자 자리는 bench(사람은 C 로 앉고, 주민도 쓴다)
+static func _use_terrace(t: Node, at: Vector3) -> void:
+	KitProps.f(t, "tableRound", at, 0.0)
+	for sx in [-0.85, 0.85]:
+		KitProps.f(t, "chairCushion", at + Vector3(sx, 0, 0), -signf(sx) * PI / 2.0)
+		var b := { "pos": at + Vector3(sx, 0, 0), "yaw": -signf(sx) * PI / 2.0 }
+		t.benches.append(b); t.spots.append({ "pos": b["pos"], "kind": "bench", "yaw": b["yaw"] })
+	KitProps.f(t, "pottedPlant", at + Vector3(1.6, 0, -0.3), 0.0, false)
+	KitProps.k(t, "food", "cup-tea", at + Vector3(0, 0.8, 0), 0.0, 1.0, false)

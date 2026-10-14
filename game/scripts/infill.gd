@@ -23,7 +23,7 @@ static func run(t, rect: Rect2) -> int:
 		var z := rect.position.y + CELL / 2.0
 		while z < rect.end.y:
 			var p := Vector3(x, 0, z)
-			if _free(t, p, spot_grid, space, q):
+			if false and _free(t, p, spot_grid, space, q):   # 아무 장면이나 흩뿌리던 것은 뺐다(운영자 2026-10-14: "누가 이렇게 어질러놓으랬어") — 빈 땅은 집으로 채운다
 				var root: Node3D = t._root_for(p)
 				var keep: Node3D = t._build_parent; t._build_parent = root
 				if not by_root.has(root): by_root[root] = t._merge_mark()
@@ -72,13 +72,13 @@ static func _tufts(t, rect: Rect2, space: PhysicsDirectSpaceState3D, by_root: Di
 	var ps: Array = t.paths.filter(func(pa: Array) -> bool: return big.intersects(Rect2(pa[0], Vector2.ZERO).expand(pa[1]).grow(float(pa[2]))))
 	var q := PhysicsShapeQueryParameters3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(TUFT * 0.8, 0.8, TUFT * 0.8); q.shape = bx; q.collision_mask = 1
 	var put := {}   # root -> {종류 -> [Transform3D]} — 풀 포기는 MultiMesh 한 장씩(노드 수천 개를 만들면 시작이 5초 늘었다)
-	var kinds := ["grass", "grass_large", "grass_leafs", "grass_leafsLarge", "flower_redA", "flower_yellowA", "flower_purpleA", "plant_flatShort", "flower_redB", "flower_yellowB", "mushroom_tanGroup", "rock_smallFlatA"]
+	var kinds := ["grass", "grass_large", "grass_leafs", "grass"]   # 풀 포기만(꽃·버섯·돌은 어질러 보였다)
 	var x := rect.position.x + TUFT / 2.0
 	while x < rect.end.x:
 		var z := rect.position.y + TUFT / 2.0
 		while z < rect.end.y:
 			var h := absi(hash("tuft/%d,%d" % [int(x * 10.0), int(z * 10.0)]))
-			if h % 3 != 0:   # 셋에 둘 칸
+			if h % 3 == 0:   # 셋에 한 칸
 				var p := Vector3(x + float(h % 7) * 0.15 - 0.45, 0, z + float(h % 5) * 0.18 - 0.36)
 				if _tuft_ok(t, gen, p, hs, ds, ps):
 					q.transform = Transform3D(Basis(), p + Vector3(0, 0.5, 0))

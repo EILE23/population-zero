@@ -47,7 +47,7 @@ func _city_init() -> void:
 	for i in doors.size():   # 가게 방은 처음에 다 — 주인이 창구 뒤에 서야 하니까
 		if doors[i].has("shop_id"): call("_room", i)
 	_hire_shopkeepers()
-	_grow_streets(body.global_position, 150.0, 99, false)   # 둘레 계획 블록도 찻길·임시 마당으로(운영자 2026-10-13: "녹지 다 채우라니까")
+	#_grow_streets(...) — 안 지은 블록을 미리 깔고 임시 마당을 흩던 것은 뺐다(2026-10-14) — 블록은 집으로 채워지며 깔린다   # 둘레 계획 블록도 찻길·임시 마당으로(운영자 2026-10-13: "녹지 다 채우라니까")
 	gen.rebuild_all(body.global_position)   # 깔린 찻길·새 평지에 맞춰 칸을 다시(찻길 위 나무를 걷는다)
 	get_tree().create_timer(0.4).timeout.connect(func() -> void:   # 몸들이 물리 공간에 들어간 뒤 — 옛 마을과 깔린 블록의 빈 잔디를 메운다
 		for hx in 4:   # 옛 마을 — 넷으로 나눠 프레임마다
@@ -377,7 +377,7 @@ func _grow_streets(p: Vector3, radius: float, max_n: int, live := true) -> int:
 var _sale_at := 0.0
 func _streets_tick() -> void:
 	_growth_tick()   # 모두에게 같은 시계로 자란다(town_growth)
-	if _grow_streets(body.global_position, 150.0, 1) == 0 and _far_due:
+	if _far_due:
 		_far_due = false; gen._refresh_far()
 	var now := Time.get_ticks_msec() / 1000.0
 	if now > _sale_at and has_method("_refresh_sale"):   # 팔 필지 표지판 — 걸어간 둘레로(town_plots)
@@ -426,19 +426,12 @@ func _fill_block(b: Vector2i) -> void:
 			_build_parent = _root_for(c)
 			var mark := _merge_mark()
 			var fill: Dictionary = sl.duplicate(); fill["id"] = "slot/" + String(sl["id"]); fill["order"] = absi(hash(String(sl["id"]))) % 36 * 9
-			PocketLots.build(self, fill, c)
+			_vacant(fill, c)
 			_merge_done(mark)
 		elif not _done.has(int(l["order"])) and not _site_nodes.has(int(l["order"])):
 			var holder := Node3D.new(); _root_for(c).add_child(holder); _build_parent = holder
 			var mark0 := _arr_mark()
-			var hv := absi(hash("temp/" + String(l["id"])))
-			if hv % 10 < 1: Allotment.build(self, l, c)   # 텃밭 하나, 나머지는 쌈지 마당 여덟 가지 중 하나(넓은 자리는 둘)
-			else:
-				var lw: float = float(l.get("w", 7.75))
-				var parts := 2 if lw > 12.0 else 1
-				for q in parts:
-					var pc := c + Vector3((q - (parts - 1) / 2.0) * lw / parts, 0, 0)
-					PocketLots.build(self, { "id": "temp/%s/%d" % [String(l["id"]), q], "street_z": float(l["street_z"]), "order": ((absi(hash("v/%d,%d" % [b.x, b.y])) + int(String(l["id"]).get_slice(",", 2)) * 3 + q * 5) % 8) * 9 }, pc)   # 블록 안 자리마다 다른 마당(같은 놀이터가 넷 줄지어 섰다)
+			_vacant(l, c)   # 아직 안 지은 필지는 깔끔한 빈 터(낮은 생울타리·나무 하나) — 곧 집이 선다. 임시 마당을 흩던 것은 뺐다(운영자 2026-10-14)
 			MeshMerge.merge(holder, holder.get_children(), [])
 			_temp_lots[int(l["order"])] = holder
 			holder.set_meta("added", _arr_since(mark0))
@@ -477,6 +470,14 @@ func _riverbank(b: Vector2i) -> void:
 		KitProps.f(self, "tableCloth", Vector3(rng.randf_range(x0 + 4.0, x1 - 4.0), 0, sz + 2.2), 0.0)
 	_merge_done(mark)
 	_build_parent = keep
+
+## 빈 터 — 앞뒤 낮은 생울타리, 뒤 모서리 나무 하나. 장면을 흩지 않는다(곧 집이 설 자리)
+func _vacant(l: Dictionary, c: Vector3) -> void:
+	var w: float = float(l.get("w", 7.75)) - 0.8
+	var front := float(l["street_z"]) - TownPlan.ROAD_W / 2.0 - 0.3
+	_box(Vector3(w, 0.45, 0.3), Vector3(c.x, 0, front), _mat(Color("5f8a3e")), false)
+	_box(Vector3(w, 0.45, 0.3), Vector3(c.x, 0, back_line(l) + 0.4), _mat(Color("5f8a3e")), false)
+	_tree(Vector3(c.x + w / 2.0 - 0.8, 0, back_line(l) + 1.4), 0.9)
 
 ## 물(호수)이 아닌 땅인가
 func _dry(p: Vector3) -> bool: return gen.height(p.x, p.z) >= -0.005

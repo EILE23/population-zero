@@ -162,6 +162,8 @@ func _box(size: Vector3, at: Vector3, mat: Material, solid := true, parent: Node
 	if parent == self:
 		_add(mi)
 		if solid: _shared_shape(mi.get_parent(), size, mi.transform)
+		elif size.y < 0.3 and size.x * size.z > 3.0:   # 바닥 판(주차장·광장·데크·고무 바닥) — 풀 덮개(infill)가 그 위에 안 나게
+			paths.append([Vector2(at.x - size.x / 2.0, at.z), Vector2(at.x + size.x / 2.0, at.z), size.z])
 	else:
 		parent.add_child(mi)
 	return mi

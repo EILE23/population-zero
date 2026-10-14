@@ -84,7 +84,7 @@ func _trail(pk: Dictionary) -> void:
 	mm.instance_count = xs.size()
 	for k in xs.size():
 		mm.set_instance_transform(k, xs[k])
-		mm.set_instance_color(k, Color(0.78, 0.74, 0.7) if k % 2 == 0 else Color(0.66, 0.62, 0.6))   # 단마다 번갈아 — 흰 판 한 장으로 읽혔다
+		mm.set_instance_color(k, Color(0.6, 0.52, 0.42) if k % 2 == 0 else Color(0.52, 0.45, 0.37))   # 흙돌 빛 — 밝은 회색이라 멀리서 산을 가르는 흰 줄로 보였다(운영자 2026-10-14)
 	var sm := _mat(Color.WHITE, _tex("ground/cobble"), Vector3(1.3, 1.3, 1.3)); sm.uv1_triplanar = true; sm.uv1_world_triplanar = true; sm.vertex_color_use_as_albedo = true
 	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.material_override = sm; sb.add_child(mmi)
 
