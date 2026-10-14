@@ -9,6 +9,8 @@ extends Node3D
 ## 로더가 할 일(climb.gd, 운영자 세션): `var ch := ClimbHurdle.new(); add_child(ch); signs.notes.append(ch.note)`; 층을 지을 때 `ch.build(root, ch.plan(n, plats, cu.plan(n, plats) + ci.plan(n, plats) + ck.plan(n, plats, wind_of(n))))` (통풍구·고드름·연의 계획을 taken 으로 — 가로대는 통풍구 아래에 서지 않고 고드름 턱·연 자리를 비켜 간다); 매 틱 `ch.sync(_t)`;
 ## 발판에 선 가지의 끝(x 를 옮긴 뒤, _wall_push 뒤)에서 `var r := ch.stride(on, x, z, vx, fig); x = r["x"]; if r["bump"]: vx = 0.0; fig.pose_request = "teeter"; _scene_until = now + ch.bump_s(); _scene_dx = 0.0` (teeter 는 _scene_until 이 지나면 비운다);
 ## `if r["in_row"]: fig.pose_request = "hurdle"` (팩이 meta hurdle_k 를 적는다), `elif fig.pose_request == "hurdle": fig.pose_request = ""` (줄을 벗어나거나 멈추면 — 팩이 메타를 지운다). 공중(on 이 빈)·매달림·붙잡음에선 부르지 않는다.
+## 주민 반쪽(run 156): 줄마다 허들러 하나(climb_hurdler.gd — 줄의 노드 아래 Stick3D)가 집 쪽 끝에 서서 탑의 1분마다, 그리고 플레이어가 이 줄을 넘은 뒤 0.8 s 뒤에 같은 WALK·같은 stride(제 상태 st, 세지 않음)·같은 hurdle 자세로 줄을 뛰고 끝에서 wheel 로 돌아서 앞길로 걸어 돌아온다; 얼음에선 선 채 출발해 플레이어처럼 첫 가로대에 부딪힌다(teeter). 로더가 더 할 일은 없다 — build 가 세우고 _process 가 몬다.
+## stride 의 st: 비우면 플레이어(팩의 _me — 판에 센다), 다른 몸은 제 사전 {px, on_id, count} 을 준다.
 ## 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_hurdle.gd
 
 const PACK := "res://data/climb/hurdle.json"
@@ -21,8 +23,7 @@ var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.hurdle
 var rows: Array = []            # 지은 줄 {id, kind "hurdle", n, hop_id, x, w, y, y_top, z, d, count, rails [x…], days [int…], hits [float…], node, bars [Node3D…], thud, tick}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
-var _px := 0.0                  # 앞 틱의 몸 x — 가로대를 사이에 뒀는지 본다
-var _on_id := ""                # 앞 틱의 발판 — 바뀌면 _px 를 새로 잡는다
+var _me := { "px": 0.0, "on_id": "", "count": true }   # 플레이어의 stride 상태 — px: 앞 틱의 몸 x(가로대를 사이에 뒀는지 본다), on_id: 앞 틱의 발판(바뀌면 px 를 새로 잡는다), count: 판에 센다
 
 func _ready() -> void:
 	var f := FileAccess.open(PACK, FileAccess.READ)
@@ -93,12 +94,12 @@ func plan(n: int, plats: Array, taken: Array = []) -> Array:
 			if not _free(taken, x0, x1, float(p["y"]) - BAND_LO, float(p["y"]) + BAND_HI): continue
 			var rails: Array = []
 			for i in k: rails.append(cx + spacing() * (float(i) - float(k - 1) / 2.0))
-			found.append({ "w": float(p["w"]), "hop_id": String(p["id"]), "y": float(p["y"]), "cx": cx, "count": k, "rails": rails, "hz": float(p.get("z", C.WALL_Z + C.DEPTH_HALF)), "hd": float(p.get("d", C.DEPTH_HALF * 2.0)) })
+			found.append({ "w": float(p["w"]), "hop_id": String(p["id"]), "hop_kind": String(p["kind"]), "y": float(p["y"]), "cx": cx, "count": k, "rails": rails, "hz": float(p.get("z", C.WALL_Z + C.DEPTH_HALF)), "hd": float(p.get("d", C.DEPTH_HALF * 2.0)) })
 		found.sort_custom(func(p: Dictionary, q: Dictionary) -> bool: return float(p["w"]) > float(q["w"]) if float(p["w"]) != float(q["w"]) else float(p["y"]) < float(q["y"]))
 		for i in range(0, mini(int(piece.get("max", 1)), found.size())):
 			var g: Dictionary = found[i]
 			var s: Dictionary = g.duplicate(true)
-			s["id"] = "%d.H%d" % [n, i]; s["kind"] = "hurdle"; s["n"] = n
+			s["id"] = "%d.H%d" % [n, i]; s["kind"] = "hurdle"; s["n"] = n; s["hop_w"] = float(g["w"])   # 발판 폭 — 허들러의 집·먼 끝
 			s["x"] = float((g["rails"] as Array)[0]) - C.HW; s["w"] = float((g["rails"] as Array)[int(g["count"]) - 1]) - float((g["rails"] as Array)[0]) + 2.0 * C.HW
 			s["y_top"] = float(g["y"]) + h()   # 가로대 윗면 — 다른 팩의 _free 가 읽는 키
 			s["z"] = C.WALL_Z + rail_d() / 2.0; s["d"] = rail_d()   # 가로대의 깊이 — 절벽에서 rail_d 까지
@@ -136,28 +137,32 @@ func row_on(on: Dictionary) -> Dictionary:
 	return {}
 
 ## 선 몸의 매 틱 — {x, bump, vault, in_row, k, rail}: 앞 틱의 x 와 지금 x 사이에 가로대가 있으면 |vx| ≥ vault_v 에 넘고(vault, 오늘 처음이면 센다) 아니면 부딪혀 물러선다(bump, x 가 바뀐다);
-## 줄 안(첫 가로대 − spacing/2 .. 마지막 + spacing/2)에서 속도가 있으면 in_row 와 자리 k(가까운 가로대 위가 0.5)를 돌려주고 fig 의 meta hurdle_k 에 적는다; 벗어나거나 멈추면 메타를 지운다
-func stride(on: Dictionary, x: float, z: float, vx: float, fig: Stick3D = null) -> Dictionary:
+## 줄 안(첫 가로대 − spacing/2 .. 마지막 + spacing/2)에서 속도가 있으면 in_row 와 자리 k(가까운 가로대 위가 0.5)를 돌려주고 fig 의 meta hurdle_k 에 적는다; 벗어나거나 멈추면 메타를 지운다.
+## st 는 몸마다의 상태(허들러가 제 것을 준다) — 비우면 플레이어의 _me
+func stride(on: Dictionary, x: float, z: float, vx: float, fig: Stick3D = null, st: Dictionary = {}) -> Dictionary:
 	var none := { "x": x, "bump": false, "vault": false, "in_row": false, "k": 0.0, "rail": -1 }
+	var who := _me if st.is_empty() else st
 	var oid := String(on.get("id", ""))
-	if oid != _on_id: _on_id = oid; _px = x   # 막 내려선 발판 — 앞 틱의 자리는 지금 자리
+	if oid != String(who["on_id"]): who["on_id"] = oid; who["px"] = x   # 막 내려선 발판 — 앞 틱의 자리는 지금 자리
+	var px := float(who["px"])
 	var r := row_on(on)
 	if r.is_empty() or absf(z - float(r["z"])) >= rail_d() / 2.0 + C.HZ:
-		_px = x; _leave(fig); return none
-	var rails: Array = r["rails"]; var dir := signf(x - _px)
+		who["px"] = x; _leave(fig); return none
+	var rails: Array = r["rails"]; var dir := signf(x - px)
 	for i in rails.size():
 		var rx := float(rails[i])
-		if dir == 0.0 or (_px - rx) * (x - rx) > 0.0: continue   # 가로대를 사이에 두지 않았다
+		if dir == 0.0 or (px - rx) * (x - rx) > 0.0: continue   # 가로대를 사이에 두지 않았다
 		if absf(vx) >= vault_v():
-			_count(r, i); _play(r["tick"] as AudioStreamPlayer3D)
+			if bool(who.get("count", true)): _count(r, i)
+			_play(r["tick"] as AudioStreamPlayer3D)
 			none["vault"] = true; none["rail"] = i
 		else:
 			(r["hits"] as Array)[i] = t; _play(r["thud"] as AudioStreamPlayer3D)
 			x = rx - dir * (C.HW + 2.0 + step_back())
-			_px = x; _leave(fig)
+			who["px"] = x; _leave(fig)
 			return { "x": x, "bump": true, "vault": false, "in_row": false, "k": 0.0, "rail": i }
 		break
-	_px = x
+	who["px"] = x
 	var lo := float(rails[0]) - spacing() / 2.0; var hi := float(rails[rails.size() - 1]) + spacing() / 2.0
 	if absf(vx) < vault_v() or x < lo or x > hi:
 		_leave(fig); none["x"] = x; return none
@@ -174,10 +179,11 @@ func stride(on: Dictionary, x: float, z: float, vx: float, fig: Stick3D = null) 
 func _leave(fig: Stick3D) -> void:
 	if fig and fig.has_meta("hurdle_k"): fig.remove_meta("hurdle_k")
 
-## 가로대 i 를 오늘 처음 넘었으면 센다
+## 플레이어가 가로대 i 를 넘었다 — 오늘 처음이면 세고, 허들러를 깨운다(poke — 2 s 안에 따라 뛴다)
 func _count(r: Dictionary, i: int) -> void:
 	var days: Array = r["days"]
 	if int(days[i]) != day(): days[i] = day()
+	r["poke"] = t
 
 ## n0..n1 층의 지은 줄에서 오늘 넘은 가로대 수와 전체 — {done, total}
 func vaulted_today(n0: int, n1: int) -> Dictionary:
@@ -208,6 +214,7 @@ func _process(delta: float) -> void:
 	rows = rows.filter(func(r: Dictionary) -> bool: return is_instance_valid(r["node"]))   # 지운 층의 것은 뺀다(climb_telescope 와 같은 식)
 	for rv in rows:
 		_place(rv)
+		if rv.has("runner"): (rv["runner"] as ClimbHurdler).step(delta)   # 허들러의 틱
 
 ## 줄을 짓는다 — root 는 그 층의 노드. 노드 원점은 (발판 가운데, 발판 윗면, 절벽); 가로대마다 두 기둥(절벽 쪽·앞쪽)·발판 둘·가로대(강조색 — 가는 선만)·소리 둘
 func build(root: Node3D, planned: Array) -> void:
@@ -226,6 +233,7 @@ func build(root: Node3D, planned: Array) -> void:
 			bars.append(piv); days.append(-1); hits.append(-99.0)
 		s["node"] = node; s["bars"] = bars; s["days"] = days; s["hits"] = hits
 		s["thud"] = _snd(node, float(kind.get("thud_hz", 90)), 0.12, -14.0); s["tick"] = _snd(node, float(kind.get("tick_hz", 900)), 0.04, -18.0)
+		s["poke"] = -99.0; s["runner"] = ClimbHurdler.new(self, s, node, String(s.get("hop_kind", "std")))   # 주민 반쪽 — 집 쪽 끝에 선 허들러
 		rows.append(s)
 		_place(s)
 

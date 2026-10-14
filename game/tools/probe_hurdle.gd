@@ -1,7 +1,8 @@
 extends SceneTree
 ## 허들 줄 팩 점검(헤드리스): 자료가 읽히나, 바람 절벽 층의 가장 넓은 still 발판에만 줄이 서나(세 개가 안 들어가면 둘, 통풍구가 선 발판·고드름이 턱에 걸린 발판·진폭째 상자에 드는 움직이는 발판은 비켜 가고, 위 발판 높이의 조각은 위 발판의 것, 다른 테마 층은 아니다),
 ## 걷다 가로대를 사이에 둔 틱에 속도가 있으면 넘고(vault — 같은 날 두 번은 한 번으로, 다음 날은 다시) 느리면 부딪혀 물러서나(bump — 가로대가 흔들리다 선다), 줄 안에서만 in_row 와 자리 k 가 나오고 메타에 적히나, 다른 발판·앞쪽 깊이·막 내려선 발판은 아니다,
-## 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세나, 가로대마다 기둥 둘·발 둘·가로대 하나가 그려지나, hurdle 자세가 디디고 뛰고 내려서나, 진짜 탑의 1..70층에서 plan 이 바람 절벽 층에만 줄을 찾나
+## 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세나, 가로대마다 기둥 둘·발 둘·가로대 하나가 그려지나, hurdle 자세가 디디고 뛰고 내려서나, 진짜 탑의 1..70층에서 plan 이 바람 절벽 층에만 줄을 찾나,
+## 허들러(run 156)가 집 쪽 끝에 서서 플레이어의 vault 뒤 0.8 s 에 같은 자세로 줄을 뛰고(세지 않고) 끝에서 wheel 로 돌아서 앞길로 돌아오나, 얼음에선 플레이어처럼 첫 가로대에 부딪히고 집으로 가나, wheel 자세가 디디고 휘돌고 끝나나
 const C = preload("res://scripts/games/climb.gd")
 
 func _init() -> void:
@@ -76,6 +77,49 @@ func _init() -> void:
 	for i in 90: await process_frame
 	var l_rhip: float = (fig.hips[1.0] as Node3D).rotation.x; var l_rknee: float = (fig.knees[1.0] as Node3D).rotation.x; var l_lhip: float = (fig.hips[-1.0] as Node3D).rotation.x; var l_lknee: float = (fig.knees[-1.0] as Node3D).rotation.x; var l_pel := fig.pelvis.position.y
 	print("POSE crouch: R hip=%.3f knee=%.3f L hip=%.3f knee=%.3f pelvis=%.3f (want −0.250 0.550 −0.100 0.450 0.360) | drive: R hip=%.3f knee=%.3f el=%.3f sh=%.2f L hip=%.3f z=%.3f knee=%.3f el=%.3f sh=%.2f pelvis=%.3f done=%s (want −1.350 0.120 −0.500 0.95±0.06 −0.550 1.150 1.650 −0.700 −1.40±0.06 0.720 false) | land: R hip=%.3f knee=%.3f L hip=%.3f knee=%.3f pelvis=%.3f (want 0.237 1.006 −0.626 0.427 0.354)" % [c_rhip, c_rknee, c_lhip, c_lknee, c_pel, d_rhip, d_rknee, d_rel, d_rsh, d_lhip, d_lhz, d_lknee, d_lel, d_lsh, d_pel, d_done, l_rhip, l_rknee, l_lhip, l_lknee, l_pel])
+	# 허들러(run 156, 주민 반쪽): 줄마다 집 쪽 끝(476 − 14 = 462, 가로대 z −55)에 선 주민 — 세워 두고(next_at 먼 뒤) 플레이어가 이 줄을 넘으면 0.8 s 뒤 뛴다(run): 148 px 를 260 px/s 로, 줄 안에선 hurdle, 제 vault 는 세지 않는다(그날의 수 그대로);
+	# 먼 끝(300 + 14 = 314)에서 wheel 0.5 s 로 돌아서며 앞길(z = −70 + 82 − 8 − 2 = 2)로 옮겨 서고, back 으로 집까지 걸어(띠 밖 — stride 는 아무것도 아니다), wheel2 로 돌아서 z −55 로 돌아와 idle, next_at = t + 60. 다 해서 0.8 + 0.57 + 0.5 + 0.57 + 0.5 ≈ 2.9 s
+	var ru: ClimbHurdler = r["runner"]
+	ru._rest(); ru.next_at = 9.0e9
+	ch.sync(1300.0)   # 셋째 날
+	var h0 := "%s x=%.0f z=%.0f lane=%.0f home=%.0f far=%.0f pos=%.4f %.4f %.4f" % [ru.phase, ru.x, ru.z, ru.lane_z, ru.home_x, ru.far_x, ru.fig.position.x, ru.fig.position.y, ru.fig.position.z]
+	ch.stride(on, 470.0, -20.0, 0.0, fig); ch.stride(on, 440.0, C.PLAYER_Z, -260.0, fig)   # 플레이어가 앞길에서 470 으로 와 448 을 넘는다 → poke 1300, 오늘 1/3
+	var poke: float = r["poke"]; var before := ch.vaulted_today(22, 22)
+	var tt := 1300.0; var seen: Array = []; var at: Dictionary = {}; var hurdled := false; var wheeled := false; var lane_ok := false; var low := 9.0e9; var steps := 0
+	while steps < 600:
+		tt += 1.0 / 60.0; ch.sync(tt); ru.step(1.0 / 60.0); steps += 1
+		if seen.is_empty() or String(seen[seen.size() - 1]) != ru.phase: seen.append(ru.phase); at[ru.phase] = tt - 1300.0
+		hurdled = hurdled or (ru.phase == "run" and ru.fig.pose_request == "hurdle" and ru.fig.has_meta("hurdle_k"))
+		wheeled = wheeled or (ru.phase == "wheel" and ru.fig.pose_request == "wheel")
+		lane_ok = lane_ok or (ru.phase == "back" and absf(ru.z - ru.lane_z) < 1.0 and ru.fig.pose_request == "")
+		if ru.phase == "run": low = minf(low, ru.x)
+		if seen.size() > 1 and ru.phase == "idle": break
+	var after := ch.vaulted_today(22, 22)
+	print("RUNNER start: ", h0, " (want idle 462 −55 2 462 314 2.0556 0.0000 0.4167) poke=%.0f (want 1300) phases=%s (want [idle, run, wheel, back, wheel2, idle]) run@%.2f wheel@%.2f back@%.2f wheel2@%.2f idle@%.2f (want ≈0.82 1.40 1.92 2.50 3.02) hurdled=%s wheeled=%s lane=%s (want true ×3) low=%.0f (want ≤ 316 — the last run tick before the turn) today %d/%d → %d/%d (want 1/3 → 1/3: the hurdler's vaults do not count) end x=%.0f z=%.0f pose=\"%s\" next=+%.0f (want 462 −55 \"\" 60)" % [poke, str(seen), float(at.get("run", -1.0)), float(at.get("wheel", -1.0)), float(at.get("back", -1.0)), float(at.get("wheel2", -1.0)), float(at.get("idle", -1.0)), hurdled, wheeled, lane_ok, low, int(before["done"]), int(before["total"]), int(after["done"]), int(after["total"]), ru.x, ru.z, ru.fig.pose_request, ru.next_at - tt])
+	# 얼음(22.2: x 180 w 160, 가로대 230·290, 집 326): 선 채 출발해 climb.gd 의 가속으로 — 36 px 앞의 290 에 0.47 s 쯤 137 px/s 로 닿는다 → 부딪힌다(teeter 0.4 s, x 314, 가로대 1 이 흔들린다) → 집으로(home) → wheel2 → idle; 혼자 뛰는 때(next_at)로도 시작한다
+	var ice_root := Node3D.new(); root.add_child(ice_root)
+	ch.build(ice_root, iced)
+	var r2: Dictionary = ch.rows[1]; var ru2: ClimbHurdler = r2["runner"]
+	ru2.next_at = tt + 1.0; var before2 := ch.vaulted_today(22, 22)
+	var seen2: Array = []; var at2: Dictionary = {}; var bump_x := 0.0; var bump_v := 0.0; var steps2 := 0; var t_ice := tt
+	while steps2 < 600:
+		tt += 1.0 / 60.0; ch.sync(tt); ru2.step(1.0 / 60.0); steps2 += 1
+		if seen2.is_empty() or String(seen2[seen2.size() - 1]) != ru2.phase:
+			seen2.append(ru2.phase); at2[ru2.phase] = tt - t_ice
+			if ru2.phase == "teeter": bump_x = ru2.x
+		if ru2.phase == "run": bump_v = absf(ru2.vx)
+		if seen2.size() > 1 and ru2.phase == "idle": break
+	print("ICE kind=%s home=%.0f phases=%s (want ice 326 [idle, run, teeter, home, wheel2, idle]) run@%.2f teeter@%.2f (want 1.02 ≈1.50 — within 0.7 s of the start) last v=%.0f (want < 180) bump x=%.0f (want 314) rail1 hit=%s (want true) today %d/%d → %d/%d (want 1/5 → 1/5: two rails more in the total, nothing counted by the runner) end x=%.0f pose=\"%s\"" % [ru2.hop_kind, ru2.home_x, str(seen2), float(at2.get("run", -1.0)), float(at2.get("teeter", -1.0)), bump_v, bump_x, float((r2["hits"] as Array)[1]) > 0.0, int(before2["done"]), int(before2["total"]), int(ch.vaulted_today(22, 22)["done"]), int(ch.vaulted_today(22, 22)["total"]), ru2.x, ru2.fig.pose_request])
+	# wheel 자세(헤드리스의 프레임은 60 fps 가 아니라 pose_t 로 기다린다; Stick3D 가 앞 각도와 섞으니 값은 목표보다 작다): 0.12 s(디딤) 에 두 팔이 옆으로 벌어지고(어깨 z 가 −s 쪽) 골반이 내려앉는다, 0.27 s(휘돌기) 에 왼다리가 앞으로(왼 엉덩이 x < 0) 고개가 돈다(look_yaw < 0), 0.5 s 에 done
+	fig.pose_request = ""; fig.set_meta("hurdle_k", 0.0); fig.remove_meta("hurdle_k")
+	for i in 3: await process_frame
+	fig.pose_request = "wheel"
+	while fig.pose_t < 0.12: await process_frame
+	var w_pt := fig.pose_t; var w_ph := WheelPoses.phases(fig); var w_rshz: float = (fig.shoulders[1.0] as Node3D).rotation.z; var w_lshz: float = (fig.shoulders[-1.0] as Node3D).rotation.z; var w_pel := fig.pelvis.position.y
+	while fig.pose_t < 0.27: await process_frame
+	var s_pt := fig.pose_t; var s_ph := WheelPoses.phases(fig); var s_lhip: float = (fig.hips[-1.0] as Node3D).rotation.x; var s_look := fig.look_yaw; var s_lsh: float = (fig.shoulders[-1.0] as Node3D).rotation.x; var s_rsh: float = (fig.shoulders[1.0] as Node3D).rotation.x
+	while fig.pose_t < 0.5: await process_frame
+	print("WHEEL plant@%.2f plant=%.2f (want > 0.5) R sh z=%.2f L sh z=%.2f (want < −0.3, > 0.3) pelvis=%.3f (want < 0.42) | swing@%.2f swing=%.2f (want > 0.3) L hip=%.2f (want < −0.1) look=%.2f (want < −0.1) L sh x=%.2f R sh x=%.2f (want < 0, > 0) | done=%s at %.2f (want true ≥ 0.5)" % [w_pt, float(w_ph[0]), w_rshz, w_lshz, w_pel, s_pt, float(s_ph[1]), s_lhip, s_look, s_lsh, s_rsh, WheelPoses.done(fig), fig.pose_t])
 	# 진짜 탑: 1..70층에 plan 이 찾는 줄 — 바람 절벽 층 20..24, 55..59 중 통풍구·고드름·연(taken)이 비켜 가고 남는 발판이 있는 층만
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
