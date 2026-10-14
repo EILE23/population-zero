@@ -7,42 +7,22 @@ func _ready() -> void:
 	_ground()
 	_solid_floor()
 	water = Water3D.new(); add_child(water)   # 물 애셋 — 공원(연못)과 강이 여기에 붓는다
-	_path(Vector3(-OPEN, 0, 2), Vector3(OPEN, 0, 2), 3.6)   # 두 차선(1.8m씩) — 2.4 일 땐 차 둘이 못 지나가 길가 소품을 쳤다  # 큰길: 공원 ↔ 마을 ↔ 시장, 그리고 세계 끝까지(열린 세계)
-	_district("park", Vector3(-31, 0, -2), _park)
-	_district("market", Vector3(31, 0, -2), _market)
-	_district("east", Vector3(59, 0, -1), _east)   # 동쪽 마을(2026-09-30)
-	_district("shops", Vector3(31, 0, -2), _shops)   # 화덕(run 72)과 우산꽂이(run 76) — 시장과 같은 중심이라 같이 켜고 꺼진다
-	_district("trades", Vector3(59, 0, -1), func(c: Vector3) -> void: _cobbler(c + Vector3(-5.2, 0, -3.0)); _stitchhouse(c + Vector3(5.2, 0, -3.0)))   # 구두장이 작업대(run 80)는 동쪽 광장 서쪽 끝, 바느질 탁자(run 82)는 맞은편 동쪽 끝 — 동쪽 마을과 같이 켜고 꺼진다
+	# 옛 마을(허브: 공원·시장·동쪽 마을·골목·초원·전망 언덕·옛 집 넷)은 폐기했다(운영자 2026-10-14) — 산골 도시(valley)가 가운데까지 채운다.
+	# 남긴 것: 가운데 광장(Valley.SQUARE)의 게시판·심부름판·전당포·악사 무대, 편지방·이야기방, 강·돌다리·디딤돌·부두
 	_sun = get_node_or_null("Sun")
-	_path(Vector3(0, 0, 0.8), Vector3(0, 0, -3.6), 2.0)    # 큰길 가장자리에서 가운데 집 현관까지(도로와 겹치면 이음새; 전엔 집 밑을 지나 -10 까지 갔다)
-	_path(Vector3(3.35, 0, 0.8), Vector3(3.35, 0, -13), 2.0)  # 가운데 집과 계단집 사이 틈(x 2.2..4.5)으로 북쪽 골목까지
-	_district("lane", Vector3(0, 0, -15), _lane)
-	_district("letters", ROOM_AT, _letter_room)   # 편지방(run 99, town_letters) — 골목 동쪽 끝의 새 집, 시장 쪽 오솔길
-	_district("sunroom", SUN_AT, _sunroom)   # 이야기방(run 103, town_sunroom) — 골목 서쪽(공원) 끝의 새 집, 골목 길이 문 앞까지
-	_noticeboard(NOTICE_AT)   # 광장 게시판(run 100, town_letters) — 가운데 집 뒤, 구역 밖이라 늘 서 있다(쪽지가 시간 따라 바뀐다)
-	_jobsboard(JOBS_AT)   # 심부름판(run 115, town_jobs) — 게시판 서쪽 3m, 넷째 집 동쪽 벽에서 1m; 동전이 붙은 카드가 꽂히고 떼인다
-	_pawn_post(PAWN_AT)   # 전당포 부스(run 116, town_pawn) — 계단집 뒤 광장 동쪽, 골목길 앞; 10–16시 주인이 서면 셔터가 오른다
-	_busk_stage(NOTICE_AT + Vector3(4.0, 0, -1.2))   # 악사의 상자 무대와 모자(run 111, town_busk) — 게시판 동쪽 4m, 가운데 집 뒷벽(z −7.6)에서 1.6m, 골목 가로등(−3.5, −11.6)과 2.2m
-	_river()   # 남쪽 강·돌다리·초원(비전 2단계)
-	_stones()   # 디딤돌(CI run 84) — 시장 서쪽 끝 x 23 의 둘째 건널목
-	_jetty()   # 부두와 거룻배(CI run 78) — 다리 동쪽 북쪽 둑, 강 위를 다닌다
-	_district("meadow", Vector3(0, 0, 18), _meadow)          # 텃밭·벤치(CI run 70) — 나무·풀밭 자리·물가는 _river 가 만든다
-	_district("terrace", TERR_AT, _terrace)                  # 전망 언덕(CI run 73) — 풀밭 동쪽 끝의 풀 선반, 돌계단으로 오른다
-	_hill(Vector3(31, 0, 18.5), 6.5, 2.6); _hill(Vector3(-27, 0, 18.5), 6.5, 2.0); _hill(Vector3(40.5, 0, 21), 4.5, 1.6)   # 언덕 — 차로 넘으면 뜬다(강·텃밭·전망 언덕과 안 겹치게)   # 언덕 — 차로 넘으면 뜬다
-	_car("sedan", Vector3(19.5, 0, 5.3), PI / 2.0)      # 시장 앞 큰길가에 세단(운영자 2026-09-29: 차·운전)
-	_car("hatchback", Vector3(-19.5, 0, 5.3), -PI / 2.0)   # 공원 앞에 해치백
-	_car("race", Vector3(12.5, 0, 5.3), PI / 2.0); _car("suv", Vector3(-12.5, 0, 5.3), PI / 2.0); _car("truck", Vector3(26, 0, -9.5), 0.0); _car("tractor", Vector3(-6, 0, 18.5), 0.0)
-	# 큰길 교통은 차선 주행 주민 차(town_traffic 늘 도는 차, car_rail) — 전엔 운전사 없는 택시·배달차 둘이 동쪽 차선 한가운데 서 있어 길을 막았다
-	_house(Vector3(-7, 0, -4), Vector3(4.0, 2.6, 3.4), Color("dfe6ea"), "iron", false, 1)
-	_house(Vector3(0.5, 0, -6), Vector3(3.4, 3.1, 3.2), Color("f7f4ef"), "brick", false, 2)
-	_house(Vector3(7, 0, -4), Vector3(5.0, 2.4, 3.8), Color("e6d3a5"), "iron", true, 3)  # 계단집 — 옥상까지 걸어 올라간다
-	_house(Vector3(-12, 0, -8), Vector3(3.6, 2.8, 3.2), Color("b56a5a"), "wood", false, 4)
-	for p in [Vector3(-11, 0, -1), Vector3(-3.5, 0, -1.5), Vector3(5.6, 0, -0.8), Vector3(11, 0, -1.5), Vector3(-9, 0, 5), Vector3(9, 0, 5.5), Vector3(13, 0, -7)]:   # (4,-1) 나무는 골목길 틈에서 비켜 났다
-		_tree(p, 1.0 + fmod(absf(p.x) * 0.37, 0.5))
-	_bench(Vector3(-4, 0, 4.2)); _bench(Vector3(4, 0, 4.2))
-	_lamp(Vector3(-1.6, 0, 4.0)); _lamp(Vector3(1.6, 0, 4.0)); _lamp(Vector3(-8, 0, -0.4)); _lamp(Vector3(8, 0, -0.4))   # 차선 밖으로(동쪽 차선 가장자리 3.6, 서쪽 0.4)
-	_fence(Vector3(-13, 0, 7), 6.0); _fence(Vector3(9, 0, 7.5), 5.0)
-	_item("apple", Vector3(-2.2, 0, 3.0)); _item("cup", Vector3(3.2, 0, 2.6)); _item("paper", Vector3(-5.5, 0, 1.2)); _item("apple", Vector3(6.4, 0, 3.4))
+	_district("letters", ROOM_AT, _letter_room)   # 편지방(run 99, town_letters)
+	_district("sunroom", SUN_AT, _sunroom)   # 이야기방(run 103, town_sunroom)
+	_noticeboard(NOTICE_AT)   # 광장 게시판(run 100, town_letters)
+	_jobsboard(JOBS_AT)   # 심부름판(run 115, town_jobs)
+	_pawn_post(PAWN_AT)   # 전당포 부스(run 116, town_pawn)
+	_busk_stage(NOTICE_AT + Vector3(4.0, 0, -1.2))   # 악사의 상자 무대와 모자(run 111, town_busk)
+	_path(Vector3(-24, 0, -11.5), Vector3(24, 0, -11.5), 16.0)   # 광장 돌바닥
+	_river()   # 강·돌다리
+	_stones()   # 디딤돌(CI run 84)
+	_jetty()   # 부두와 거룻배(CI run 78)
+	for p in [Vector3(-22, 0, -4.5), Vector3(22, 0, -4.5), Vector3(-22, 0, -18.5), Vector3(22, 0, -18.5)]: _tree(p, 1.15)
+	for x in [-14.0, -2.0, 12.0]: _bench(Vector3(x, 0, -4.8))
+	_lamp(Vector3(-12, 0, -4.2)); _lamp(Vector3(12, 0, -4.2))
 	# 플레이어 = 충돌체(캡슐) + 그 안의 입체 졸라맨
 	body = CharacterBody3D.new()
 	body.position = Vector3(0, 0.02, 4)
@@ -72,17 +52,9 @@ func _ready() -> void:
 	if "--sheet" in OS.get_cmdline_user_args():
 		add_child(load("res://tools/motion_sheet.gd").new())   # 개발용 동작 시트(연속 프레임) — `-- --sheet` 로만 켜진다
 
-## 시장 가게 앞의 것들 — places·trades 층의 빌더라 _market(build 층)에선 못 부른다: 빵집 화덕은 문 오른쪽 바깥(창구·문·화덕이 한 줄), 우산꽂이는 카페 창구 오른쪽, 숫돌은 광장 동쪽 끝
-func _shops(c: Vector3) -> void:
-	var bc: Dictionary = spots.filter(func(sp): return sp["kind"] == "counter" and sp.has("stock"))[0]   # 빵집 창구 — 재고가 있는 유일한 창구
-	_oven(c + Vector3(-4.3, 0, -5.9), bc)
-	_rack(c + Vector3(8.3, 0, -6.0))
-	_bookbox(c + Vector3(-9.5, 0, -6.0))   # 책 상자(run 98, swap 층) — 빵집 서쪽 옆, 큰길(z −0.1..4.1)에서 멀다
-	_grindstone(c + Vector3(11.2, 0, -3.4))   # 칼갈이 숫돌(run 81, trades 층) — 넷째 노점 옆, 자갈 광장 동쪽 가장자리
-	_ledger(c + Vector3(-9.7, 0, -8.6))   # 외상 장부 탁자(run 112, ledger 층) — 빵집 서쪽 벽(x 22.5) 옆, 책 상자(z −8) 뒤 1.9m, 편지방(z ≤ −14.6)과 큰길에서 멀다
-
 func _process(delta: float) -> void:
 	_hud(Time.get_ticks_msec() / 1000.0)
+	Signals.tick()   # 신호등 불빛(재질 셋 — 바뀔 때만 쓴다)
 	var fp := focus_pos()
 	var px := clampf(fp.x, -OPEN + 6.0, OPEN - 6.0)
 	if view_25d:
@@ -114,6 +86,7 @@ func _process(delta: float) -> void:
 		cam.look_at(Vector3(cam.position.x, cam.position.y - 7.9 * zoom, cam.position.z - 7.5 * zoom), Vector3.UP)
 	_board_cam(delta)   # 게시판을 보는 중이면 판 앞으로(town_social)
 	_cabin_cam(delta)   # 차 안 시점(V — 뒤따라가기·운전석 1인칭, town_cabin)이면 덮어쓴다
+
 
 ## 줌 — 마우스 휠 또는 -/= (1 = 기본, 30 = 도시를 내려다본다)
 var zoom := 1.0

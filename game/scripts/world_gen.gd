@@ -330,7 +330,9 @@ func has_ground(p: Vector3) -> bool:
 ## 차가 달려도 되나 — 지은 칸이거나, 마을 260m 안의 깎인 평지(아직 칸이 없어도 밑에 바닥 판이 있다: setup).
 ## 전엔 먼 칸이 안 지어져 있으면 차가 칸 경계에서 서서 기다렸다 — 볼일 보는 차가 x −96(칸 경계)에 줄지어 섰다(2026-10-08)
 func car_ground(p: Vector3) -> bool:
-	return has_ground(p) or (Vector2(p.x, p.z).length() < 260.0 and wild_k(p.x, p.z) < 0.05)
+	if has_ground(p): return true
+	# 산골 도시 — 골짜기 바닥(높이 0: 칸이 없어도 밑에 바닥 판이 있다)이면 달린다. 전엔 먼 바닥 칸이 안 지어져 있어 늘 도는 차가 큰길 끝에서 얼어 있었다
+	return absf(p.x) < Valley.END_X + 20.0 and Valley.base_h(p.x, p.z) < 0.05
 
 func lake_at(p: Vector3) -> bool:
 	if p.x > TownInterior.ZONE.x - 60.0 and p.z > TownInterior.ZONE.y - 60.0: return false   # 방 구역(town_interior) — 그 자리 땅 높이가 물 아래라 방 안에서 헤엄쳤다
@@ -628,6 +630,7 @@ static var _soil_mesh: BoxMesh
 
 ## 팩 모델 하나를 칸에(칸이 지워지면 같이) — 메시만(KitProps 캐시) + 상자 충돌(키 30cm 넘으면). p 는 땅 위 xz
 func _solid(n: Node3D, pack_name: String, p: Vector2, yaw: float, sc: float, collide := true) -> void:
+	if float(Valley.near(p, 1)[0]) < 2.5: return   # 길 위·길가엔 들 소품을 놓지 않는다(길 위 짐수레에 차가 박혔다)
 	var path := "res://assets/models/kenney/%s.glb" % pack_name
 	var d := KitProps.src(path)
 	if d.is_empty(): return
@@ -645,7 +648,7 @@ func _solid(n: Node3D, pack_name: String, p: Vector2, yaw: float, sc: float, col
 ## 들판의 볼거리 — 들 칸 다섯에 하나: 버섯 고리·바윗들·고사리 숲·꽃밭(모양만, MultiMesh 에 같이 넣는다)
 func _feature(put: Dictionary, o: Vector3, rng: RandomNumberGenerator, body: StaticBody3D = null) -> void:
 	var c := Vector2(o.x + 8.0 + rng.randf() * (CHUNK - 16.0), o.z + 8.0 + rng.randf() * (CHUNK - 16.0))
-	if wild_k(c.x, c.y) < 0.6 or on_trail(c.x, c.y): return
+	if wild_k(c.x, c.y) < 0.6 or on_trail(c.x, c.y) or float(Valley.near(c, 1)[0]) < 9.0: return   # 길에서 떨어져
 	var add := func(id: String, p: Vector2, sc: float) -> void:
 		var h := height(p.x, p.y)
 		if not put.has(id): put[id] = []

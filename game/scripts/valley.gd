@@ -43,15 +43,18 @@ static func base_h(x: float, z: float) -> float:
 
 # ── 길 그물 ──
 ## roads: [{pts: PackedVector2Array, w, ys: PackedFloat32Array}] — 0 번이 큰길. junctions: [{road, i, pos}]
-static var _roads: Array = []
+static var _roads: Array = []   # 짓는 동안만
+static var _built := false
 
 static func main_z(x: float) -> float:
 	var ax := absf(x)
-	if ax < 78.0: return 2.0
-	return 2.0 - 9.0 * sin((ax - 78.0) / 70.0) * smoothstep(78.0, 120.0, ax) - 6.0 * smoothstep(250.0, 420.0, ax)
+	if ax < 34.0: return 2.0
+	return 2.0 - 9.0 * sin((ax - 34.0) / 70.0) * smoothstep(34.0, 80.0, ax) - 6.0 * smoothstep(250.0, 420.0, ax)
 
+## 골짜기의 처음 길 — 한 번 지어 RoadNet 에 넣는다. 그 뒤로 길은 RoadNet(사람·주민이 놓은 길도)
 static func roads() -> Array:
-	if not _roads.is_empty(): return _roads
+	if not RoadNet.roads.is_empty() or _built: return RoadNet.roads
+	_built = true
 	var rng := RandomNumberGenerator.new(); rng.seed = 20261014
 	var main := PackedVector2Array()
 	var x := -END_X
@@ -90,16 +93,11 @@ static func roads() -> Array:
 			_roads.append({ "pts": br, "w": LANE_W, "bridge": true })
 			var lane := _climb(q, 1.0, rng)
 			if lane.size() > 3: _roads.append({ "pts": lane, "w": LANE_W })
+	var h := func(x: float, z: float) -> float: return base_h(x, z)
 	for r in _roads:
-		r["pts"] = _smooth(r["pts"])
-		var ys := PackedFloat32Array()
-		for p in r["pts"]: ys.append(maxf(base_h(p.x, p.y), 0.0))
-		for pass_ in 3:   # 높이를 길 따라 고른다(턱 없이)
-			var ys2 := ys.duplicate()
-			for i in range(1, ys.size() - 1): ys2[i] = (ys[i - 1] + ys[i] * 2.0 + ys[i + 1]) / 4.0
-			ys = ys2
-		r["ys"] = ys
-	return _roads
+		RoadNet.add(_smooth(r["pts"]), float(r["w"]), "main" if r.get("main", false) else ("bridge" if r.get("bridge", false) else "lane"), PackedFloat32Array(), h, "valley")
+	_roads.clear()
+	return RoadNet.roads
 
 ## 마디 둘을 굽은 골목으로(가운데가 옆으로 ±5m 휜다)
 static func _link(a: Vector2, b: Vector2, rng: RandomNumberGenerator) -> void:
@@ -110,12 +108,16 @@ static func _link(a: Vector2, b: Vector2, rng: RandomNumberGenerator) -> void:
 	var n := maxi(3, int(d.length() / 6.0))
 	for t in n + 1:
 		var f := float(t) / n
-		pts.append(a.lerp(mid, f).lerp(mid.lerp(b, f), f))
+		var q := a.lerp(mid, f).lerp(mid.lerp(b, f), f)
+		if SQUARE.grow(3.0).has_point(q): return   # 광장을 가로지르지 않는다
+		pts.append(q)
 	_roads.append({ "pts": pts, "w": LANE_W })
 
 ## 마디를 놓을 수 없는 곳 — 옛 마을(허브), 장소 둘레와 그리 가는 길, 강
+## 가운데 광장(옛 마을 폐기 뒤 남긴 게시판·심부름판·전당포·악사·편지방·이야기방 자리)
+const SQUARE := Rect2(-30.0, -24.0, 60.0, 21.0)
 static func _blocked(q: Vector2) -> bool:
-	if absf(q.x) < 84.0 and q.y > -36.0 and q.y < 30.0: return true
+	if SQUARE.grow(6.0).has_point(q): return true
 	for cv in CIVIC: if q.distance_to(cv[2]) < 17.0: return true
 	if absf(q.y - RIVER_Z) < 9.0: return true
 	for s in WorldGen.SITES:
@@ -158,38 +160,10 @@ static func _smooth(pts: PackedVector2Array) -> PackedVector2Array:
 	out.append(pts[pts.size() - 1])
 	return out
 
-## 가장 가까운 길 — [거리, 점, 방향, 높이, 길 번호, 점 번호]
-static var _grid := {}
-static func _index() -> void:
-	if not _grid.is_empty(): return
-	var rs := roads()
-	for ri in rs.size():
-		var pts: PackedVector2Array = rs[ri]["pts"]
-		for i in pts.size() - 1:
-			var a := pts[i]; var b := pts[i + 1]
-			for f in [0.0, 0.5, 1.0]:
-				var q := a.lerp(b, f)
-				var k := Vector2i(floori(q.x / 12.0), floori(q.y / 12.0))
-				if not _grid.has(k): _grid[k] = []
-				if not (_grid[k] as Array).has(Vector2i(ri, i)): _grid[k].append(Vector2i(ri, i))
-
+## 가장 가까운 길(RoadNet) — [거리, 점, 방향, 높이, 길 번호, 점 번호]
 static func near(p: Vector2, reach := 1) -> Array:
-	_index()
-	var rs := roads()
-	var best: Array = [1e9, p, Vector2.RIGHT, 0.0, -1, -1]
-	var c := Vector2i(floori(p.x / 12.0), floori(p.y / 12.0))
-	for dx in range(-reach, reach + 1):
-		for dz in range(-reach, reach + 1):
-			for e in _grid.get(c + Vector2i(dx, dz), []):
-				var pts: PackedVector2Array = rs[e.x]["pts"]; var ys: PackedFloat32Array = rs[e.x]["ys"]
-				var a := pts[e.y]; var b := pts[e.y + 1]
-				var ab := b - a
-				var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-				var q := a + ab * t; var d := p.distance_to(q)
-				var de := d - float(rs[e.x]["w"]) / 2.0   # 길 가장자리까지
-				if de < float(best[0]):
-					best = [de, q, ab.normalized(), lerpf(ys[e.y], ys[e.y + 1], t), e.x, e.y]
-	return best
+	roads()
+	return RoadNet.near(p, reach)
 
 # ── 필지 ──
 static var _lots: Array = []
@@ -257,7 +231,7 @@ static func lots() -> Array:
 	return _lots
 
 static func _lot_ok(c: Vector2, taken: Array, cell: Dictionary) -> bool:
-	if absf(c.x) < 80.0 and absf(c.y) < 32.0: return false   # 옛 마을(허브)
+	if SQUARE.grow(5.0).has_point(c): return false   # 가운데 광장
 	if absf(c.x) > END_X + 10.0: return false
 	if absf(c.y - RIVER_Z) < 8.0: return false
 	for cv in CIVIC: if c.distance_to(cv[2]) < 17.0: return false
@@ -270,6 +244,9 @@ static func _lot_ok(c: Vector2, taken: Array, cell: Dictionary) -> bool:
 		if c.distance_to(Vector2(sc.x, sc.z)) < float(s["r"]) + 10.0: return false
 		if _seg(c, Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 6.0: return false
 	if float(near(c, 2)[0]) < 4.2: return false   # 다른 길 위
+	for ox in [-4.6, -1.5, 1.5, 4.6]:   # 마당(앞 4m·뒤 10m) 어디도 길에 걸치지 않게(뒤뜰 나무·벤치가 길 위에 섰다)
+		for oz in [4.2, 1.0, -2.5, -6.0, -10.0]:
+			if float(near(c + Vector2(ox, oz), 2)[0]) < 0.4: return false
 	var k := Vector2i(floori(c.x / 16.0), floori(c.y / 16.0))
 	for dx in [-1, 0, 1]:
 		for dz in [-1, 0, 1]:
@@ -282,52 +259,8 @@ static func _seg(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
 	return p.distance_to(a + ab * t)
 
-# ── 차 길 그래프(car_rail) — 마디 = 길 끝과 다른 길이 닿는 점(2.5m 안은 한 마디), 가지 = 마디 사이 길 조각 ──
-static var _g_nodes: Array = []   # Vector2
-static var _g_edges: Array = []   # {a, b, pts: PackedVector2Array, w, road, i0, i1}
-static var _g_adj: Array = []     # 마디 -> [가지 번호]
-static var _g_of := {}            # Vector2i(길, 점) -> 가지 번호
-static func graph() -> void:
-	if not _g_nodes.is_empty(): return
-	var rs := roads()
-	var node_of := func(p: Vector2) -> int:
-		for i in _g_nodes.size():
-			if (_g_nodes[i] as Vector2).distance_to(p) < 2.5: return i
-		_g_nodes.append(p); return _g_nodes.size() - 1
-	var cuts := {}   # 길 -> {점 번호: 마디}
-	for ri in rs.size():
-		var pts: PackedVector2Array = rs[ri]["pts"]
-		for end in [0, pts.size() - 1]:
-			var p := pts[end]
-			var nd: int = node_of.call(p)
-			if not cuts.has(ri): cuts[ri] = {}
-			cuts[ri][end] = nd
-			for rj in rs.size():   # 이 끝이 다른 길 가운데에 닿으면 그 길을 여기서 자른다
-				if rj == ri: continue
-				var q: PackedVector2Array = rs[rj]["pts"]
-				var bi := -1; var bd := 3.2
-				for k in q.size():
-					var dd := q[k].distance_to(p)
-					if dd < bd: bd = dd; bi = k
-				if bi >= 0:
-					if not cuts.has(rj): cuts[rj] = {}
-					cuts[rj][bi] = nd
-	for ri in cuts:
-		var ks: Array = (cuts[ri] as Dictionary).keys(); ks.sort()
-		var pts: PackedVector2Array = rs[ri]["pts"]
-		for m in ks.size() - 1:
-			var i0: int = ks[m]; var i1: int = ks[m + 1]
-			if i1 <= i0: continue
-			var seg := pts.slice(i0, i1 + 1)
-			var e := { "a": cuts[ri][i0], "b": cuts[ri][i1], "pts": seg, "w": rs[ri]["w"], "road": ri, "i0": i0, "i1": i1 }
-			_g_edges.append(e)
-			for k in range(i0, i1): _g_of[Vector2i(ri, k)] = _g_edges.size() - 1
-	_g_adj.resize(_g_nodes.size())
-	for i in _g_adj.size(): _g_adj[i] = []
-	for ei in _g_edges.size():
-		_g_adj[_g_edges[ei]["a"]].append(ei); _g_adj[_g_edges[ei]["b"]].append(ei)
-
-static func g_nodes() -> Array: graph(); return _g_nodes
-static func g_edges() -> Array: graph(); return _g_edges
-static func g_adj() -> Array: graph(); return _g_adj
-static func edge_of(road: int, i: int) -> int: graph(); return int(_g_of.get(Vector2i(road, i), -1))
+# ── 차 그래프 — RoadNet 이 맡는다 ──
+static func g_nodes() -> Array: roads(); return RoadNet.nodes()
+static func g_edges() -> Array: roads(); return RoadNet.edges()
+static func g_adj() -> Array: roads(); return RoadNet.adj()
+static func edge_of(road: int, i: int) -> int: roads(); return RoadNet.edge_of(road, i)

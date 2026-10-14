@@ -183,6 +183,9 @@ func crossings(from: Vector3, to: Vector3) -> Array:
 	var out := (_gate_steps(from, false) if yard else []) + (_terr_steps(from, false) if lvl else [])
 	var inn := (_terr_steps(to, true) if lvl else []) + (_gate_steps(to, true) if yard else [])
 	var mid := (RIVER_N + RIVER_S) / 2.0
+	var xw: Array = Signals.walk_steps(from, to)   # 큰길은 횡단보도로(신호를 기다린다) — 강을 건너면 큰길(강 북쪽)을 먼저·나중에
+	if from.z < mid: out = out + xw
+	else: inn = xw + inn
 	if (from.z < mid) == (to.z < mid): return out + inn
 	var fr: Array = call("ferry", from, to)   # 나루(run 94, town_boat) — 배가 제 쪽 부두에 비어 있고 가까우면 열에 셋은 배로
 	if not fr.is_empty(): return out + fr + inn
@@ -371,7 +374,7 @@ func umbrella_use(now: float) -> void:
 ## 주차장(선 그은 아스팔트, 세워 둔 차 둘), 벤치·가로등·나무. 주민 일과가 자리를 쓰니 사람들이 걸어서, 차로 온다
 func _east(at: Vector3) -> void:
 	var plaza := MeshInstance3D.new(); var pm := BoxMesh.new(); pm.size = Vector3(14, 0.02, 10); plaza.mesh = pm
-	plaza.material_override = _mat(Color("d8d2cc"), _tex("ground/cobble"), Vector3(14 / 0.8, 10 / 0.8, 1)); plaza.position = at + Vector3(0, 0.01, -3.5); _add(plaza)
+	plaza.material_override = _mat(Color("aaa194")); plaza.position = at + Vector3(0, 0.01, -3.5); _add(plaza)
 	# 분수: 물 원(헤엄 판정도 된다 — 발 담그기) + 돌 테두리는 물 애셋이, 가운데 돌 기둥과 솟는 물줄기
 	water.disc(at + Vector3(0, 0, -3.5), 1.8)
 	_box(Vector3(0.5, 0.9, 0.5), at + Vector3(0, 0, -3.5), _mat(Color("bfb6b0")))

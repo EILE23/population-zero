@@ -63,7 +63,7 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 	var along := d.length()
 	bm.size = Vector3(along, 0.02, w)   # 0.04 는 옆면이 보여 단처럼 읽혔다
 	mi.mesh = bm
-	mi.material_override = _mat(Color("d8d2cc"), _tex("ground/cobble"), Vector3(along / 0.8, w / 0.8, 1))   # 돌 한 개 ≈ 19cm(1.6 이면 40cm)
+	mi.material_override = _mat(Color("aaa194"))   # 민무늬 돌바닥 — 자갈 무늬는 위에서 보면 흰 줄무늬였다(운영자 2026-10-14)
 	mi.position = (a + b) / 2.0 + Vector3(0, 0.01, 0)
 	mi.rotation.y = -atan2(d.z, d.x)
 	add_child(mi)
@@ -289,7 +289,7 @@ func _park(at: Vector3) -> void:
 ## 동쪽 시장 거리 — 노점(기둥+차양+판매대+물건), 상점 정면 둘(빵집·카페: 집 생성기에 간판 색만 다르게), 쓰레기통, 가로등, 자갈 광장
 func _market(at: Vector3) -> void:
 	var sq := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(22, 0.04, 12); sq.mesh = bm
-	sq.material_override = _mat(Color("d8d2cc"), _tex("ground/cobble"), Vector3(22 / 0.8, 12 / 0.8, 1)); sq.position = at + Vector3(0, 0.02, 1); _add(sq)
+	sq.material_override = _mat(Color("aaa194")); sq.position = at + Vector3(0, 0.02, 1); _add(sq)
 	for i in 4:
 		_stall(at + Vector3(-7.5 + i * 5.0, 0, -1.5), [Color("ad7096"), Color("7a9b4e"), Color("e8c766"), Color("8fb8cc")][i])
 	_house(at + Vector3(-6, 0, -8), Vector3(5.0, 2.8, 3.6), Color("e6d3a5"), "wood", false, 11)  # 빵집(집 생성기) — 지붕에 브랜드 분홍은 대면적 금지
@@ -377,7 +377,7 @@ func _river() -> void:
 		_box(Vector3(BRIDGE_HW * 2.0 + 0.3, 0.14, 0.5), Vector3(0, 0, RIVER_Z + zs * (bspan / 2.0 + 0.2)), dark)   # 교대(발치)
 	_path(Vector3(0, 0, 3.2), Vector3(0, 0, RIVER_Z - bspan / 2.0 - 0.4), 2.0)
 	_path(Vector3(0, 0, RIVER_Z + bspan / 2.0 + 0.4), Vector3(0, 0, RIVER_Z + bspan / 2.0 + 4.0), 2.0)
-	_tree(Vector3(-9, 0, 17.5), 1.25); _tree(Vector3(10, 0, 18.5), 1.1); _tree(Vector3(3, 0, 21), 0.95)
+	pass   # 옛 초원 나무는 뺐다(옛 마을 폐기 — 산골 도시가 강 남쪽까지 채운다)
 	# 풀밭: 자리가 아니라 구역(반지름 r) — 그 안 아무 데서나 눕는다(운영자: 가운데로 걸어가 눕는 게 어색). 들꽃이 흩어져 있어 눈에 띈다
 	var frng := RandomNumberGenerator.new(); frng.seed = 3
 	for g in [Vector3(-3.5, 0, 16.5), Vector3(4.5, 0, 17.5), Vector3(-0.5, 0, 19.5)]:
@@ -391,7 +391,7 @@ func _river() -> void:
 	for i in 3: _scatter("Mushroom_Common", Vector3(srng.randf_range(-12, 12), 0, srng.randf_range(15, 21)), 0.25)
 	spots.append({ "pos": Vector3(-5, 0, RIVER_Z + RIVER_HW + 0.6), "kind": "bank", "yaw": PI })
 	spots.append({ "pos": Vector3(6, 0, RIVER_Z - RIVER_HW - 0.6), "kind": "bank", "yaw": 0.0 })
-	_fence(Vector3(-16, 0, 24.5), 32.0)   # 뒤 울타리 — 텃밭(z 19.6..23.4) 뒤로
+	pass
 
 ## 언덕(운영자 2026-09-29: 오르막 내리막) — 코사인 봉우리 높이장. 메시와 HeightMapShape3D 충돌체가 같은 격자라 보이는 대로 딛고 달린다
 func _hill(c: Vector3, r: float, h: float) -> void:

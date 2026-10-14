@@ -5,7 +5,11 @@ func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 10: await process_frame
 	print("LOAD %d ms built=%d shops=%d keepers=%d residents=%d districts=%d" % [Time.get_ticks_msec() - t0, town.built, town.shops.size(), town.residents.filter(func(r): return r.job == "shopkeep").size(), town.residents.size(), town.districts.size()])
-	var shots := [["x1", Vector3(0, 0.05, 30), 30.0], ["x2", Vector3(-170, 0.05, -20), 8.0], ["x3", Vector3(200, 0.05, 40), 8.0], ["x4", Vector3(-140, 0.05, -70), 3.0]]
+	var shots := [["s1", Vector3(4, 0.05, 0), 3.0]]
+	for i in [4]:
+		var sp: Vector2 = Signals.list[i]["p"]
+		shots.append(["sig%d" % i, Vector3(sp.x, 0.05, sp.y + 4.0), 2.0])
+		print("SIG %d at %s" % [i, str(sp)])
 	while not town._due.is_empty(): await process_frame
 	for s in shots:
 		var p: Vector3 = s[1]
@@ -14,6 +18,7 @@ func _init() -> void:
 		town.gen.fill(p)
 		town.zoom_want = s[2]; town.zoom = s[2]
 		for i in 150: await process_frame
+		print("SHOT %s driving=%s passenger=%s inside=%s cam=%s" % [s[0], str(town.driving), str(town.passenger), str(town.call("is_inside")), str(town.cam.global_position.snapped(Vector3.ONE))])
 		root.get_texture().get_image().save_png("user://shots/bur-%s.png" % s[0])
 	town.body.global_position = Vector3(0, 0.05, -40)
 	for i in 10: await process_frame

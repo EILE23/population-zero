@@ -20,7 +20,6 @@ func _city_init() -> void:
 		_civic(at, String(cv[0]), String(cv[1]))
 		_merge_done(mark)
 	for s in WorldGen.SITES: _dress_road(s)
-	_green_belt()
 	_build_parent = keep
 	for i in doors.size():   # 가게 방은 처음에 다 — 주인이 창구 뒤에 서야 하니까
 		if doors[i].has("shop_id"): call("_room", i)
@@ -32,7 +31,7 @@ func _city_init() -> void:
 func _roads_init() -> void:
 	var rs := Valley.roads()
 	var asphalt := _mat(Color(0.42, 0.42, 0.45))
-	var cobble := _mat(Color("c9bfb2"), _tex("ground/cobble"), Vector3(1.0, 1.0, 1.0)); cobble.uv1_triplanar = true; cobble.uv1_world_triplanar = true
+	var cobble := _mat(Color("a59d94"))   # 골목 — 민무늬 돌빛(자갈 무늬는 위에서 보면 흰 줄무늬였다, 운영자 2026-10-14)
 	var line := _mat(Color("efe9e2"))
 	for ri in rs.size():
 		var r: Dictionary = rs[ri]
@@ -45,9 +44,10 @@ func _roads_init() -> void:
 			var acc := 0.0
 			while j < pts.size() - 1 and acc < 40.0: acc += pts[j].distance_to(pts[j + 1]); j += 1
 			var mid := pts[(i + j) / 2]
-			if not (main and absf(mid.x) < 80.0):   # 옛 마을 안 큰길은 옛 판
+			if true:
 				_build_parent = _root_for(Vector3(mid.x, 0, mid.y))
-				_ribbon(pts, ys, i, j, w, asphalt if main else cobble, 0.05)
+				if main: _ribbon(pts, ys, i, j, w, asphalt, 0.05)
+				else: _lane_ribbon(pts, ys, i, j, w, cobble)
 				if main:   # 가운데 점선
 					var t := i
 					while t < j:
@@ -59,6 +59,49 @@ func _roads_init() -> void:
 			i = j
 		if r.get("bridge", false): _bridge(pts, w)
 	_street_furniture()
+	Signals.draw(self)
+
+## 골목 띠 — 큰길 아스팔트 위로는 깔지 않는다(자갈 줄무늬가 큰길을 가로질렀다, 운영자 2026-10-14). 큰길 안쪽 0.6m 까지만, 아스팔트보다 낮게
+func _lane_ribbon(pts: PackedVector2Array, ys: PackedFloat32Array, i: int, j: int, w: float, mat: Material) -> void:
+	var lim := Valley.MAIN_W / 2.0 - 0.6
+	var off := func(q: Vector2) -> bool: return absf(q.y - Valley.main_z(q.x)) > lim or absf(q.x) > Valley.END_X + 4.0
+	var run := PackedVector2Array(); var ry := PackedFloat32Array()
+	for k in range(i, j + 1):
+		if off.call(pts[k]):
+			if run.is_empty() and k > i and not off.call(pts[k - 1]):   # 큰길에서 나오는 끝 — 가장자리에서 시작
+				var f := _edge_f(pts[k - 1], pts[k], lim); run.append(pts[k - 1].lerp(pts[k], f)); ry.append(lerpf(ys[k - 1], ys[k], f))
+			run.append(pts[k]); ry.append(ys[k])
+		else:
+			if not run.is_empty():
+				var f := _edge_f(pts[k], pts[k - 1], lim); run.append(pts[k].lerp(pts[k - 1], f)); ry.append(lerpf(ys[k], ys[k - 1], f))
+				if run.size() > 1: _ribbon(run, ry, 0, run.size() - 1, w, mat, 0.04)
+			run = PackedVector2Array(); ry = PackedFloat32Array()
+	if run.size() > 1: _ribbon(run, ry, 0, run.size() - 1, w, mat, 0.04)
+
+## a(큰길 안)→b(밖) 토막에서 큰길 가장자리 lim 에 닿는 비율
+func _edge_f(a: Vector2, b: Vector2, lim: float) -> float:
+	var da := absf(a.y - Valley.main_z(a.x)); var db := absf(b.y - Valley.main_z(b.x))
+	return clampf((lim - da) / maxf(db - da, 0.01), 0.0, 1.0)
+
+## 길 놓기(사람·주민이 짓는 길 — 운영자 2026-10-14: "도로도 나중에 유저나 AI 주민들이 건설할 텐데") — RoadNet 에 넣고(차 그래프는 다음 길 짜기 때 저절로 다시),
+## 그리고(띠·등), 그 둘레 칸을 다시 지어 땅을 길 높이로 고른다. 방(멀티)에 실어 보내는 건 부르는 쪽이 한다. 길 번호를 돌려준다
+func build_road(pts: PackedVector2Array, w := Valley.LANE_W, by := "") -> int:
+	var hf := func(x: float, z: float) -> float: return Valley.base_h(x, z)
+	var ri := RoadNet.add(pts, w, "built", PackedFloat32Array(), hf, by)
+	if ri < 0: return -1
+	var r: Dictionary = RoadNet.roads[ri]
+	var rp: PackedVector2Array = r["pts"]; var ys: PackedFloat32Array = r["ys"]
+	var keep := _build_parent
+	var cobble := _mat(Color("a59d94"))   # 골목 — 민무늬 돌빛(자갈 무늬는 위에서 보면 흰 줄무늬였다, 운영자 2026-10-14)
+	var i := 0
+	while i < rp.size() - 1:
+		var j := mini(i + 13, rp.size() - 1)
+		_build_parent = _root_for(Vector3(rp[(i + j) / 2].x, 0, rp[(i + j) / 2].y))
+		_ribbon(rp, ys, i, j, w, cobble, 0.05)
+		i = j
+	_build_parent = keep
+	for k in range(0, rp.size(), 8): gen.reflat(rp[k], false)
+	return ri
 
 ## 띠 한 조각 — 점 i..j, 폭 w, 땅 위 lift. 이음새는 다음 조각과 같은 점이라 끊기지 않는다
 func _ribbon(pts: PackedVector2Array, ys: PackedFloat32Array, i: int, j: int, w: float, mat: Material, lift: float) -> void:
@@ -68,7 +111,7 @@ func _ribbon(pts: PackedVector2Array, ys: PackedFloat32Array, i: int, j: int, w:
 		var a := pts[maxi(k - 1, 0)]; var b := pts[mini(k + 1, pts.size() - 1)]
 		var d := (b - a).normalized(); var n := Vector2(-d.y, d.x) * (w / 2.0)
 		var y := ys[k] + lift
-		if absf(pts[k].y - RIVER_Z) < RIVER_HW + 2.5: y = maxf(y, 0.32)   # 다리 위
+		if absf(pts[k].y - RIVER_Z) < RIVER_HW + 2.5: y = maxf(y, 0.08)   # 다리 위
 		verts.append(Vector3(pts[k].x + n.x, y, pts[k].y + n.y)); verts.append(Vector3(pts[k].x - n.x, y, pts[k].y - n.y))
 		if k > i: along += pts[k].distance_to(pts[k - 1])
 		uvs.append(Vector2(0, along / 2.0)); uvs.append(Vector2(w / 2.0, along / 2.0))
@@ -85,8 +128,10 @@ func _bridge(pts: PackedVector2Array, w: float) -> void:
 	var x := pts[0].x
 	var at := Vector3(x, 0, RIVER_Z)
 	_build_parent = _root_for(at)
-	_box(Vector3(w + 0.6, 0.3, RIVER_HW * 2.0 + 4.0), at + Vector3(0, 0.02, 0), _mat(Color("a8a29a")))
-	for sx in [-1.0, 1.0]: _box(Vector3(0.18, 0.75, RIVER_HW * 2.0 + 4.0), at + Vector3(sx * (w / 2.0 + 0.2), 0.32, 0), _mat(Color("8a7f86")))
+	_box(Vector3(w + 0.6, 0.06, RIVER_HW * 2.0 + 4.0), at, _mat(Color("a8a29a")), false)   # 얇은 판(충돌 없음 — 끝 턱에 차가 걸렸다, 밑은 바닥 판) — 차가 턱 없이 넘는다(0.3 이면 끝에 걸렸다)
+	for sx in [-1.0, 1.0]: _box(Vector3(0.18, 0.75, RIVER_HW * 2.0 + 4.0), at + Vector3(sx * (w / 2.0 + 0.2), 0.06, 0), _mat(Color("8a7f86")))
+
+static func SQ_NEAR(q: Vector2) -> bool: return Valley.SQUARE.grow(1.0).has_point(q)
 
 ## 길가 — 큰길은 30m 마다 가로등(양쪽 번갈아), 다섯에 하나는 버스 정류장. 골목은 45m 마다 낮은 등
 func _street_furniture() -> void:
@@ -106,7 +151,7 @@ func _street_furniture() -> void:
 				var side := 1.0 if n % 2 == 0 else -1.0
 				var q := p + nr * side * (float(r["w"]) / 2.0 + 0.6)
 				var y := lerpf(ys[k], ys[k + 1], f)
-				var ok := not (main and absf(p.x) < 80.0) and absf(q.y - RIVER_Z) > RIVER_HW + 2.0 and float(Valley.near(q)[0]) > 0.3
+				var ok := not SQ_NEAR(q) and absf(q.y - RIVER_Z) > RIVER_HW + 2.0 and float(Valley.near(q)[0]) > 0.3
 				if ok:
 					var at := Vector3(q.x, y, q.y)
 					_build_parent = _root_for(at)
@@ -372,8 +417,8 @@ func _streets_tick() -> void:
 	if now > _sale_at and has_method("_refresh_sale"):
 		_sale_at = now + 6.0; call("_refresh_sale")
 
-func junction_rule(_nd: Variant, _from: Variant) -> int: return 0   # 산골 길엔 신호가 없다
-func _signal_tick() -> void: pass
+func junction_rule(nd: Variant, from: Variant) -> int: return Signals.rule(nd, from)   # 큰길 신호등·골목 멈춤(signals.gd)
+func _signal_tick() -> void: Signals.tick()
 
 ## 글을 남기는 판 — C 로 보면 시점이 판 앞으로(town_social open_board). 키마다 방에 남는다
 func _msgboard(at: Vector3, stand: Vector3, key: String, title: String) -> void:
@@ -406,28 +451,6 @@ func _dress_road(s: Dictionary) -> void:
 			_tree(p + dir * 8.0 + side * (off + 1.4) * (-1.0 if i % 2 == 0 else 1.0), 1.0)
 		_build_parent = keep
 		t += 16.0; i += 1
-
-## 옛 마을(허브) 둘레 띠 — 7m 마다 나무, 21m 마다 벤치(장소 길·길은 비운다), Tower Road 양옆 가로수
-func _green_belt() -> void:
-	var keep := _build_parent
-	for z in [-31.5, 34.0]:
-		var i := 0
-		for xi in range(-70, 71, 7):
-			var x := float(xi); i += 1
-			var skip := false
-			for s in WorldGen.SITES:
-				if absf(x - float(s["from"].x)) < 4.0 and absf(z - float(s["from"].z)) < 40.0: skip = true
-			if skip or float(Valley.near(Vector2(x, z))[0]) < 2.0: continue
-			var at := Vector3(x, 0, z)
-			_build_parent = _root_for(at)
-			_tree(at, 0.95 + fmod(absf(x) * 0.13, 0.35))
-			if i % 3 == 0: _bench(at + Vector3(3.5, 0, 0.9 if z < 0.0 else -0.9))
-	for zi in range(-20, -70, -6):
-		for side in [-1.0, 1.0]:
-			var at := Vector3(15.5 + side * 3.6, 0, float(zi))
-			_build_parent = _root_for(at)
-			_tree(at, 0.9)
-	_build_parent = keep
 
 ## 이정표 — 기둥과 판, 양면 글씨
 func _signpost(at: Vector3, text: String) -> void:

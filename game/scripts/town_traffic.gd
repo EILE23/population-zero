@@ -125,7 +125,7 @@ static func park_at(door_pos: Vector3) -> Vector3:
 	var n := Vector2(-d.y, d.x)
 	if (p - q).dot(n) < 0.0: n = -n
 	var w: float = Valley.roads()[int(nr[4])]["w"]
-	var v := q + n * (w / 2.0 + 1.3)
+	var v := q + n * (w / 2.0 + 0.5)   # 길 가장자리에 반쯤 걸쳐(길섶 마당·소품에 박지 않게)
 	return Vector3(v.x, 0, v.y)
 
 ## 길섶 빈 자리 — 그 자리부터 길 따라 6m 씩 양쪽으로, 다른 차(서 있거나 그리로 가는) 5.5m 안이 아닌 곳
@@ -133,7 +133,10 @@ func _free_park(at: Vector3, me: Car3D, _ns := false) -> Vector3:
 	var d: Vector2 = Valley.near(Vector2(at.x, at.z), 2)[2]
 	for k in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
 		var p: Vector3 = at + Vector3(d.x, 0, d.y) * (float(k) * 6.0)
-		if float(Valley.near(Vector2(p.x, p.z), 2)[0]) < 0.4: continue   # 다른 길 위(갈림목)
+		if float(Valley.near(Vector2(p.x, p.z), 2)[0]) < -0.6: continue   # 다른 길 한가운데(갈림목)
+		var q := PhysicsShapeQueryParameters3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(1.8, 1.0, 1.8); q.shape = bx; q.collision_mask = 1
+		q.transform = Transform3D(Basis(), p + Vector3(0, 0.8, 0))
+		if not get_world_3d().direct_space_state.intersect_shape(q, 1).is_empty(): continue   # 그 자리에 무엇이 있다(벤치·나무·담)
 		var free := true
 		for c in cars:
 			if c == me: continue

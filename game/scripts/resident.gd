@@ -53,6 +53,8 @@ func _physics_process(delta: float) -> void:
 				if step.get("act", "") == "open": town.set_door(door_ref, true); _door_wait = now + 0.5   # 문짝이 다 열릴 때까지 기다린다 — 안 그러면 도는 문짝에 막혀 우회하다 벽에 갇혔다
 				elif step.get("act", "") == "close": town.set_door(door_ref, false)
 				elif step.get("act", "") == "board": _ferry_board()   # 나루(run 94) — resident_life
+				elif step.get("act", "") == "xwalk" and not Signals.walk_ok():   # 횡단보도 앞 — 파란불까지 선다(signals.gd)
+					route.push_front(step); _door_wait = now + 0.4; return
 				detours = 0; stuck_since = -1.0   # 경유지가 바뀌면 막힘 판정도 새로 — 다음 경유지가 더 멀면 '못 다가갔다'로 읽혀 헛우회했다
 				if route.is_empty():
 					if step.get("act", "") == "close":

@@ -8,6 +8,8 @@ func _init() -> void:
 	var dev_sum := 0.0; var dev_n := 0; var dev_max := 0.0
 	var still := {}; var arrivals := 0; var lost := 0; var noplan := 0
 	var last_done := {}
+	var whys := {}; var xw := 0
+	print("SIG signals=%d yield=%d" % [Signals.list.size(), Signals._yield.size()])
 	for f in 60 * 150:
 		await physics_frame
 		if f % 30 != 0: continue
@@ -27,9 +29,10 @@ func _init() -> void:
 			last_done[cc] = false
 			if rl.li == 0 or rl.li >= rl.lane.size(): continue
 			var p := cc.global_position; p.y = 0.0
-			var d := CarRail._seg_d(p, rl.lane[rl.li - 1], rl.lane[rl.li])
+			var d := 1e9
+			for q in range(maxi(rl.li - 5, 1), mini(rl.li + 2, rl.lane.size())): d = minf(d, CarRail._seg_d(p, rl.lane[q - 1], rl.lane[q]))
 			dev_sum += d; dev_n += 1; dev_max = maxf(dev_max, d)
-			if absf(cc.v) < 0.3: still[cc] = float(still.get(cc, 0.0)) + 0.5
+			if absf(cc.v) < 0.3: still[cc] = float(still.get(cc, 0.0)) + 0.5; whys[rl.why] = int(whys.get(rl.why, 0)) + 1
 		if f % 1200 == 0:
 			var on := 0; var nul := 0
 			for e in town.cruisers + town.commuters:
@@ -39,6 +42,10 @@ func _init() -> void:
 			noplan = maxi(noplan, nul)
 			var ph := {}
 			for e in town.commuters: ph[e["phase"]] = int(ph.get(e["phase"], 0)) + 1
+			xw = 0
+			for r in town.residents:
+				if not (r.route as Array).is_empty() and String((r.route as Array)[0].get("act", "")) == "xwalk": xw += 1
+			print("  whys=%s at_crosswalk_route=%d" % [str(whys), xw])
 			print("  t=%ds on_rail=%d no_plan=%d phases=%s dev_avg=%.2f dev_max=%.2f arrivals=%d lost=%d" % [f / 60, on, nul, str(ph), dev_sum / maxf(1.0, dev_n), dev_max, arrivals, lost])
 	var worst: Array = still.keys()
 	worst.sort_custom(func(a, b): return float(still[a]) > float(still[b]))
