@@ -93,7 +93,7 @@ func _refresh_sale() -> void:
 	var want: Array = []
 	var k := built
 	while want.size() < FOR_SALE and k < lots.size():
-		if not _done.has(k) and not _claimed(k) and not _site_nodes.has(k) and CityMap.lot_kind(lots[k]) == "house": want.append(k)
+		if not _done.has(k) and not _claimed(k) and not _site_nodes.has(k) and CityMap.lot_kind(lots[k]) == "house" and not lots[k].get("hill", false): want.append(k)
 		k += 1
 	# 찻길이 깔린 블록의 안 지은 필지는 다 판다(운영자 2026-10-13: "집 지을 수 있어야 하는데 집 못 짓잖아") — 내 둘레 가까운 것부터 40
 	var near: Array = []

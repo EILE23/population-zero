@@ -160,11 +160,12 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		var mark := _merge_mark()
 		var hs := HouseStyles.build(self, c, l, hsp, _style_for(l))
 		_flower_bed(c + Vector3(-hs.x / 2.0 - 0.6, 0, hs.z / 2.0 + 0.4))
-		_house_yard(l, c, hs)
+		if l.get("hill", false): _hill_yard(l, c, hs)
+		else: _house_yard(l, c, hs)
 		_merge_done(mark)
 		_build_parent = hkeep
 		if doors.size() > nd and not _is_mine(hk): _move_in(doors[nd], live, owner_row(hk))   # 내가 산 필지면 주민이 들어오지 않는다(내 집)
-		_footpath(l, c)
+		if not l.get("hill", false): _footpath(l, c)
 		if live: _dust(c + Vector3(0, 0.5, 0)); say_toast("A new house is finished.")
 		return
 	var k := int(l["order"])
@@ -410,6 +411,7 @@ func _clear_temp(k: int) -> void:
 		for e in added[a]: arr.erase(e)
 	holder.queue_free()
 func _fill_block(b: Vector2i) -> void:
+	if TownPlan.is_hill(b): return   # 산 블록은 빈 터를 두지 않는다 — 비탈 그대로(풀·숲)
 	var zn := TownPlan.OZ + b.y * TownPlan.PITCH
 	if zn < RIVER_Z and zn + TownPlan.PITCH > RIVER_Z: _riverbank(b)
 	if TownPlan.no_lane(b) and not CityMap.whole_block(b):
@@ -470,6 +472,22 @@ func _riverbank(b: Vector2i) -> void:
 		KitProps.f(self, "tableCloth", Vector3(rng.randf_range(x0 + 4.0, x1 - 4.0), 0, sz + 2.2), 0.0)
 	_merge_done(mark)
 	_build_parent = keep
+
+## 산 집 마당(운영자 2026-10-14 알프스 마을 사진) — 터 가장자리 돌 축대, 나무 울타리 한쪽, 장작더미, 꽃, 문 앞 돌계단 두 단, 벤치 하나
+func _hill_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = hash("hy/" + String(l["id"]))
+	var stone := _mat(Color("a8a29a"))
+	for a in 10:   # 터 둘레 축대(낮은 쪽이 드러난다)
+		var ang := a * TAU / 10.0
+		var p := c + Vector3(cos(ang), 0, sin(ang)) * (WorldGen.PAD_IN - 0.4)
+		var gy: float = gen.height(p.x, p.z)
+		if gy < c.y - 0.4: _box(Vector3(2.0, c.y - gy + 0.3, 0.5), Vector3(p.x, gy - 0.2, p.z), stone, true)
+	var fz := c.z + hs.z / 2.0 + 1.9
+	for k in 3: KitProps.n(self, "fence_simple", Vector3(c.x - 2.2 - k * 1.0, c.y, fz), 0.0, 1.0, false)
+	KitProps.n(self, "log_stack", Vector3(c.x + hs.x / 2.0 + 0.8, c.y, c.z - 0.6), PI / 2.0, 2.6)
+	for k in 5: KitProps.n(self, KitProps.FLOWERS[(k + rng.randi()) % KitProps.FLOWERS.size()], Vector3(c.x - hs.x / 2.0 + 0.4 + k * 0.5, c.y, c.z + hs.z / 2.0 + 0.5), 0.0, 1.8, false)
+	_bench(Vector3(c.x + 2.2, c.y, fz - 0.4))
+	if rng.randf() < 0.5: _tree(Vector3(c.x - hs.x / 2.0 - 1.6, c.y, c.z - 1.6), 0.9)
 
 ## 빈 터 — 앞뒤 낮은 생울타리, 뒤 모서리 나무 하나. 장면을 흩지 않는다(곧 집이 설 자리)
 func _vacant(l: Dictionary, c: Vector3) -> void:

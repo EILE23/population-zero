@@ -59,6 +59,7 @@ static func form_of(bx: int, bz: int) -> String:
 
 ## 블록의 자리들 — [{id, c, row, street_z, w, form}] (필지가 아니어도 — 강·장소 둘레에 걸린 자리도 town_city 가 채운다)
 static func block_slots(bx: int, bz: int) -> Array:
+	if is_hill(Vector2i(bx, bz)): return hill_slots(bx, bz)
 	var out: Array = []
 	var f: Array = FORMS[form_of(bx, bz)]
 	for row in 2:
@@ -70,6 +71,33 @@ static func block_slots(bx: int, bz: int) -> Array:
 			out.append({ "id": "%d,%d,%d" % [bx, bz, row * 10 + i], "c": Vector2(x + w / 2.0, sz - FRONT), "row": row, "street_z": sz, "w": w, "form": String(cell[1]) })
 			x += w; i += 1
 	return out
+
+## 산 블록 — 블록 가운데가 산 자락 안(꼭대기 둘레는 빼고). 찻길 격자 대신 비탈에 집이 흩어져 서고(PAD 터), 흙길로 이어진다
+static func is_hill(b: Vector2i) -> bool:
+	var c := Vector2(OX + (b.x + 0.5) * PITCH, OZ + (b.y + 0.5) * PITCH)
+	return WorldGen.peak_k_s(c.x, c.y) > 0.03
+
+## 산 블록의 집 자리 — 일곱까지, 서로 10.5m 넘게(시드로 늘 같은 곳). 꼭대기 둘레·계단 길 둘레는 뺀다
+static func hill_slots(bx: int, bz: int) -> Array:
+	var rng := RandomNumberGenerator.new(); rng.seed = hash("hill/%d,%d" % [bx, bz])
+	var out: Array = []
+	for tries in 26:
+		if out.size() >= 7: break
+		var c := Vector2(OX + bx * PITCH + rng.randf_range(5.0, PITCH - 5.0), OZ + bz * PITCH + rng.randf_range(5.0, PITCH - 5.0))
+		if WorldGen.peak_k_s(c.x, c.y) > 0.72 or _near_trail(c): continue
+		if out.any(func(o: Dictionary) -> bool: return (o["c"] as Vector2).distance_to(c) < 10.5): continue
+		out.append({ "id": "%d,%d,h%d" % [bx, bz, out.size()], "c": c, "row": 0, "street_z": c.y + FRONT, "w": 9.0, "form": "hill", "hill": true })
+	return out
+
+static var _trail_grid := {}
+static func _near_trail(c: Vector2) -> bool:
+	if _trail_grid.is_empty():
+		for pk in WorldGen.PEAKS:
+			for p in WorldGen.trail_xz(pk): _trail_grid[Vector2i(floori(p.x / 6.0), floori(p.y / 6.0))] = true
+	for dx in [-1, 0, 1]:
+		for dz in [-1, 0, 1]:
+			if _trail_grid.has(Vector2i(floori(c.x / 6.0) + dx, floori(c.y / 6.0) + dz)): return true
+	return false
 
 ## 가운데 찻길이 없는 블록(안마당) — road_tiles·town_traffic 이 본다
 static func no_lane(b: Vector2i) -> bool: return form_of(b.x, b.y) == "courtyard"
@@ -91,12 +119,11 @@ static func _ok(c: Vector2) -> bool:
 		if c.distance_to(Vector2(sc.x, sc.z)) < float(s["r"]) + 12.0: return false
 		if _seg(c, Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 7.0: return false   # 장소 가는 길 위
 	if CityMap.whole_block(CityMap.block_of(c)): return false   # 관공서·공원 블록은 통째로(data/map/town.json)
-	for pk in WorldGen.PEAKS:   # 산엔 필지가 없다 — 깎으면 산에 구덩이가 난다(지은 집 순번 0..40 은 70m 안이라 그대로)
-		if c.distance_to(Vector2(pk["c"].x, pk["c"].z)) < float(pk["r"]) * 0.9: return false
 	return true
 
 ## 집이 실제로 서는 자리 — 필지 가운데에서 조금씩 앞뒤·좌우로(운영자 2026-10-06: "너무 규칙적이니까 별로") — 필지 순번마다 늘 같다
 static func spot_of(l: Dictionary) -> Vector3:
+	if l.get("hill", false): return Vector3(l["c"].x, float(l.get("y", 0.0)), l["c"].y)   # 산 집 — 제 터 높이(WorldGen _hill_setup)
 	if String(l.get("form", "")) != "": return Vector3(l["c"].x, 0, l["c"].y)   # 붙은 집·큰 집·연립·광장은 줄을 맞춘다
 	var rng := RandomNumberGenerator.new(); rng.seed = hash("at/" + String(l["id"]))
 	return Vector3(l["c"].x + rng.randf_range(-0.45, 0.45), 0, l["c"].y + rng.randf_range(-0.7, 0.5))
@@ -122,7 +149,7 @@ static func flat_dist(x: float, z: float, limit: int) -> float:
 	for dx in range(-1, 2):
 		for dz in range(-1, 2):
 			var b := Vector2i(bx + dx, bz + dz)
-			if block_order(b) >= limit and not extra_flat.has(b): continue
+			if (block_order(b) >= limit and not extra_flat.has(b)) or is_hill(b): continue   # 산 블록은 깎지 않는다(집마다 제 터)
 			var r := Rect2(OX + b.x * PITCH - 2.0, OZ + b.y * PITCH - 2.0, PITCH + 4.0, PITCH + 4.0)
 			var ddx := maxf(maxf(r.position.x - x, x - r.end.x), 0.0); var ddz := maxf(maxf(r.position.y - z, z - r.end.y), 0.0)
 			best = minf(best, Vector2(ddx, ddz).length())

@@ -24,14 +24,14 @@ static func build(t: Node, c: Vector3, l: Dictionary, sp: Dictionary, style := "
 			s = Vector3(7.4, 2.8, 5.0); var vc := c - Vector3(1.2, 0, 0)
 			t.call("_house", vc, s, wall, roof, false, seed, "", 2)
 			var pz := vc.z + s.z / 2.0 + 0.9
-			t.call("_box", Vector3(s.x + 0.4, 0.16, 1.8), Vector3(vc.x, 0, pz), m.call(Color("b48a5a")))
+			t.call("_box", Vector3(s.x + 0.4, 0.16, 1.8), Vector3(vc.x, c.y, pz), m.call(Color("b48a5a")))
 			for px in [-s.x / 2.0, -s.x / 6.0, s.x / 6.0, s.x / 2.0]: t.call("_box", Vector3(0.16, 2.5, 0.16), Vector3(vc.x + px, 0.16, pz + 0.75), m.call(Color("f7f4ef")))
-			var vr: MeshInstance3D = t.call("_box", Vector3(s.x + 0.7, 0.1, 2.1), Vector3(vc.x, 2.66, pz + 0.1), m.call(Color("5a4a52")), false); vr.rotation.x = 0.1
+			var vr: MeshInstance3D = t.call("_box", Vector3(s.x + 0.7, 0.1, 2.1), Vector3(vc.x, c.y + 2.66, pz + 0.1), m.call(Color("5a4a52")), false); vr.rotation.x = 0.1
 			_use_terrace(t, Vector3(vc.x - s.x / 3.0, 0.16, pz))   # 베란다 — 탁자와 의자, 앉는다
 			var gx := vc.x + s.x / 2.0 + 1.6
-			t.call("_box", Vector3(3.0, 2.5, s.z - 0.4), Vector3(gx, 0, vc.z - 0.2), m.call(wall.darkened(0.08)))
-			t.call("_box", Vector3(2.5, 2.0, 0.05), Vector3(gx, 0, vc.z + s.z / 2.0 - 0.37), m.call(Color("cfc7c2")), false)
-			t.call("_box", Vector3(3.2, 0.12, s.z - 0.2), Vector3(gx, 2.5, vc.z - 0.2), m.call(Color("5a4a52")), false)
+			t.call("_box", Vector3(3.0, 2.5, s.z - 0.4), Vector3(gx, c.y, vc.z - 0.2), m.call(wall.darkened(0.08)))
+			t.call("_box", Vector3(2.5, 2.0, 0.05), Vector3(gx, c.y, vc.z + s.z / 2.0 - 0.37), m.call(Color("cfc7c2")), false)
+			t.call("_box", Vector3(3.2, 0.12, s.z - 0.2), Vector3(gx, c.y + 2.5, vc.z - 0.2), m.call(Color("5a4a52")), false)
 			s.x += 3.2
 		"terrace":   # 붙은 집 — 줄의 이웃과 벽이 닿는 2층 좁은 집, 집마다 빛깔·문 위 차양·창 화분
 			s = Vector3(6.0, 2.6, 4.4); t.call("_house", c, s, wall, roof, false, seed, "", 2)
@@ -60,16 +60,16 @@ static func build(t: Node, c: Vector3, l: Dictionary, sp: Dictionary, style := "
 			s = Vector3(3.9, 2.6, 3.6); var hc := c - Vector3(0.9, 0, 0)
 			t.call("_house", hc, s, wall, roof, false, seed, "", 1)
 			var gx := hc.x + s.x / 2.0 + 1.15
-			t.call("_box", Vector3(2.2, 2.3, s.z), Vector3(gx, 0, hc.z), m.call(wall.darkened(0.08)))
-			t.call("_box", Vector3(1.8, 1.8, 0.05), Vector3(gx, 0, hc.z + s.z / 2.0 + 0.03), m.call(Color("cfc7c2")), false)   # 셔터
-			for k in 6: t.call("_box", Vector3(1.8, 0.02, 0.06), Vector3(gx, 0.3 * k + 0.15, hc.z + s.z / 2.0 + 0.06), m.call(Color("8a8a92")), false)
-			t.call("_box", Vector3(2.3, 0.12, s.z + 0.1), Vector3(gx, 2.3, hc.z), m.call(Color("5a4a52")), false)
+			t.call("_box", Vector3(2.2, 2.3, s.z), Vector3(gx, c.y, hc.z), m.call(wall.darkened(0.08)))
+			t.call("_box", Vector3(1.8, 1.8, 0.05), Vector3(gx, c.y, hc.z + s.z / 2.0 + 0.03), m.call(Color("cfc7c2")), false)   # 셔터
+			for k in 6: t.call("_box", Vector3(1.8, 0.02, 0.06), Vector3(gx, c.y + 0.3 * k + 0.15, hc.z + s.z / 2.0 + 0.06), m.call(Color("8a8a92")), false)
+			t.call("_box", Vector3(2.3, 0.12, s.z + 0.1), Vector3(gx, c.y + 2.3, hc.z), m.call(Color("5a4a52")), false)
 			s.x += 2.2
 		"wing":
 			t.call("_house", c, s, wall, roof, false, seed, "", 1)
 			var wz := c.z - s.z / 2.0 - 1.4; var wx := c.x + (1.0 if rng.randf() < 0.5 else -1.0) * s.x * 0.22
-			t.call("_box", Vector3(s.x * 0.55, 2.2, 2.8), Vector3(wx, 0, wz), m.call(wall))
-			t.call("_box", Vector3(s.x * 0.55 + 0.2, 0.12, 3.0), Vector3(wx, 2.2, wz), m.call(Color("5a4a52")), false)
+			t.call("_box", Vector3(s.x * 0.55, 2.2, 2.8), Vector3(wx, c.y, wz), m.call(wall))
+			t.call("_box", Vector3(s.x * 0.55 + 0.2, 0.12, 3.0), Vector3(wx, c.y + 2.2, wz), m.call(Color("5a4a52")), false)
 			t.call("_box", Vector3(0.05, 0.8, 0.9), Vector3(wx + s.x * 0.275 + 0.01, 1.0, wz), m.call(Color("bfe3f2")), false)
 		"turret":
 			t.call("_house", c, s, wall, roof, false, seed, "", 1)
@@ -88,8 +88,8 @@ static func build(t: Node, c: Vector3, l: Dictionary, sp: Dictionary, style := "
 			t.call("_house", c, s, wall, roof, false, seed, "", 1)
 			var fz := c.z + s.z / 2.0 + 1.9
 			for side in [-1.0, 1.0]:
-				for k in 5: t.call("_box", Vector3(0.06, 0.6, 0.06), Vector3(c.x + side * (0.9 + k * 0.42), 0, fz), m.call(Color("f7f4ef")), false)   # 울타리(문길은 비운다)
-				t.call("_box", Vector3(1.8, 0.05, 0.04), Vector3(c.x + side * 1.75, 0.45, fz), m.call(Color("f7f4ef")), false)
+				for k in 5: t.call("_box", Vector3(0.06, 0.6, 0.06), Vector3(c.x + side * (0.9 + k * 0.42), c.y, fz), m.call(Color("f7f4ef")), false)   # 울타리(문길은 비운다)
+				t.call("_box", Vector3(1.8, 0.05, 0.04), Vector3(c.x + side * 1.75, c.y + 0.45, fz), m.call(Color("f7f4ef")), false)
 	return s
 
 ## 가게 앞 — 종류마다(가게 방 안은 town_interior)

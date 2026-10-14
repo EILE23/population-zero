@@ -24,7 +24,7 @@ func _traffic_init() -> void:
 		if picks.size() >= COMMUTERS: break
 		if r is ResidentKid or r.job != "" or r.home_door.is_empty() or r.own_car != null: continue
 		var dp: Vector3 = r.home_door["pos"]
-		if absf(dp.z - 2.0) < 30.0 or absf(dp.x) > 200.0 or dp.x > 1000.0: continue   # 옛 마을 밖 블록(남쪽은 다리로 강을 건넌다)
+		if absf(dp.z - 2.0) < 30.0 or absf(dp.x) > 200.0 or dp.x > 1000.0 or dp.y > 0.5: continue   # 산 집(찻길이 없다)은 빼고   # 옛 마을 밖 블록(남쪽은 다리로 강을 건넌다)
 		picks.append(r)
 	for x in LINKS:   # 들목마다 강 위 다리(낮은 판 + 난간 — 차는 그대로 건넌다)
 		if absf(float(x)) < 72.0: continue
@@ -159,7 +159,7 @@ func _pick_dest(r: Resident) -> Dictionary:
 	for i in doors.size():
 		var dr: Dictionary = doors[i]
 		var p: Vector3 = dr["pos"]
-		if absf(p.z - 2.0) < 30.0 or p.x > 1000.0 or absf(p.x) > 200.0 or dr == r.home_door: continue
+		if absf(p.z - 2.0) < 30.0 or p.x > 1000.0 or absf(p.x) > 200.0 or dr == r.home_door or p.y > 0.5: continue
 		var name := "the shops" if dr.has("shop_id") else ("the town hall" if dr.has("civic") else "a friend's")
 		opts.append({ "park": park_at(p), "door": dr, "name": name })
 	for s in WorldGen.SITES:

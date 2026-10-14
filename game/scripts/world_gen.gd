@@ -21,8 +21,8 @@ const SITES := [
 	{ "name": "cabin", "c": Vector3(-150, 0, -38), "r": 15.0, "from": Vector3(-150, 0, 3.8) },
 	{ "name": "lakeside", "c": Vector3(135, 0, -50), "r": 24.0, "from": Vector3(135, 0, 0.2) },
 	{ "name": "tower", "c": Vector3(16, 0, -82), "r": 18.0, "from": Vector3(15.5, 0, -13.0) },
-	{ "name": "pell", "c": Vector3(-58, 0, -80), "r": 8.0, "from": Vector3(-58, 0, -13.0) },     # 산 들머리(PEAKS head) — 표지판·볼라드·벤치(town_mountain)
-	{ "name": "gorse", "c": Vector3(104, 0, -108), "r": 8.0, "from": Vector3(104, 0, 0.2) },
+	{ "name": "pell", "c": Vector3(-186, 0, -180), "r": 8.0, "from": Vector3(-180, 0, -174) },     # 산 들머리(PEAKS head) — 표지판·볼라드·벤치(town_mountain). 산은 마을 바깥(2026-10-14 재구성)
+	{ "name": "gorse", "c": Vector3(242, 0, -191), "r": 8.0, "from": Vector3(236, 0, -186) },
 ]
 
 ## 산(운영자 2026-10-06: "언덕 같은 곳에 나무가 엄청 많이 생기면서 실제 산이 돼야", "차로는 도저히 못 올라갈 길… 사람만 올라갈 수 있게", "산스장도") —
@@ -30,8 +30,9 @@ const SITES := [
 ## 꼭대기로 가는 건 나선 돌계단 하나(한 단 28cm, 경사판 없음 — 사람은 턱 오르기 42cm 로 오르고 차 바퀴는 못 넘는다). 들머리엔 볼라드(차 폭보다 좁다)
 ## head = 들머리(마을 쪽 자락), top = 꼭대기 마당 반지름, turns = 계단이 산을 몇 바퀴 감는지. 짓는 건 town_mountain.gd
 const PEAKS := [
-	{ "name": "pell", "title": "MT. PELL", "c": Vector3(-80, 0, -210), "r": 135.0, "h": 64.0, "top": 13.0, "head": Vector3(-58, 0, -80), "turns": 1.15, "gym": true },
-	{ "name": "gorse", "title": "GORSE HILL", "c": Vector3(125, 0, -195), "r": 95.0, "h": 40.0, "top": 9.0, "head": Vector3(104, 0, -108), "turns": 0.9, "gym": false },
+	# 산은 마을 바깥 자락(운영자 2026-10-14: "도시 한가운데 오르막", "외곽의 집들은 산 위에 — 산과 마을이 어우러지게") — 마을이 자라 닿으면 비탈에 집이 흩어져 선다(TownPlan 산 블록)
+	{ "name": "pell", "title": "MT. PELL", "c": Vector3(-300, 0, -290), "r": 170.0, "h": 70.0, "top": 13.0, "head": Vector3(-186, 0, -180), "turns": 1.15, "gym": true },
+	{ "name": "gorse", "title": "GORSE HILL", "c": Vector3(330, 0, -260), "r": 120.0, "h": 44.0, "top": 9.0, "head": Vector3(242, 0, -191), "turns": 0.9, "gym": false },
 ]
 const TREAD := 0.6             # 계단 한 칸 길이(m)
 const RISE := 0.28             # 한 단 높이 — town_base STEP(0.42) 보다 낮고 차의 바닥 붙기(0.25)보다 높다
@@ -68,6 +69,7 @@ func setup(t: TownBase) -> void:
 	_mid.seed = SEED + 1; _mid.frequency = 0.022; _mid.fractal_octaves = 2
 	_moist.seed = SEED + 2; _moist.frequency = 0.006; _moist.fractal_octaves = 2
 	_paths.seed = SEED + 3; _paths.frequency = 0.0035; _paths.fractal_octaves = 2
+	_hill_setup()   # 산 마을 터·흙길(TownPlan 산 블록)
 	_ground = t._mat(Color.WHITE, t._tex("ground/grass"))
 	_ground.vertex_color_use_as_albedo = true
 	_lake = Water3D.surface(); _lake.set_shader_parameter("flow", 0.05)
@@ -197,12 +199,63 @@ func summit_y(pk: Dictionary) -> float:
 	return height(c.x, c.z)
 
 ## 산의 0..1(자락 바깥 0) — 숲 밀도
-func peak_k(x: float, z: float) -> float:
+func peak_k(x: float, z: float) -> float: return peak_k_s(x, z)
+static func peak_k_s(x: float, z: float) -> float:
 	var k := 0.0
 	for pk in PEAKS:
 		var c: Vector3 = pk["c"]
 		k = maxf(k, 1.0 - Vector2(x - c.x, z - c.z).length() / float(pk["r"]))
 	return k
+
+# ── 산 마을(TownPlan 산 블록) — 비탈의 집마다 제 높이의 평평한 터(PAD_IN 안은 그 높이, PAD_OUT 까지 비탈로 이어진다), 집 사이 흙길 ──
+const PAD_IN := 5.5
+const PAD_OUT := 10.0
+var _pads := {}    # 8m 칸 -> [[x, z, y]]
+var _lanes := {}   # 4m 칸 -> [[a: Vector2, b: Vector2]]
+func _hill_setup() -> void:
+	var hill: Array = TownPlan.lots().filter(func(l: Dictionary) -> bool: return l.get("hill", false))
+	for l in hill:
+		var c: Vector2 = l["c"]
+		var y := maxf(raw(c.x, c.y), 0.9)   # 호숫가면 작은 둔덕 위에
+		l["y"] = y
+		for dx in [-1, 0, 1]:
+			for dz in [-1, 0, 1]:
+				var k := Vector2i(floori(c.x / 8.0) + dx, floori(c.y / 8.0) + dz)
+				if not _pads.has(k): _pads[k] = []
+				_pads[k].append([c.x, c.y, y])
+	for l in hill:   # 흙길 — 가까운 산 집 둘과, 블록마다 가장 이른 집은 마을 쪽 찻길까지
+		var c: Vector2 = l["c"]
+		var near: Array = hill.filter(func(o: Dictionary) -> bool: return o != l and (o["c"] as Vector2).distance_to(c) < 26.0)
+		near.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return (a["c"] as Vector2).distance_to(c) < (b["c"] as Vector2).distance_to(c))
+		for o in near.slice(0, 2): _add_lane(c + Vector2(0, 2.6), (o["c"] as Vector2) + Vector2(0, 2.6))
+		if int(l["order"]) == TownPlan.block_order(l["b"]):
+			var to := Vector2(TownPlan.OX + roundf((c.x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH, c.y) if absf(fposmod(c.x - TownPlan.OX, TownPlan.PITCH) - 20.0) > 8.0 else Vector2(c.x, TownPlan.OZ + roundf((c.y - TownPlan.OZ) / 20.0) * 20.0)
+			_add_lane(c + Vector2(0, 2.6), to)
+
+func _add_lane(a: Vector2, b: Vector2) -> void:
+	var n := int(a.distance_to(b) / 2.0) + 1
+	for i in n + 1:
+		var p := a.lerp(b, float(i) / n)
+		var k := Vector2i(floori(p.x / 4.0), floori(p.y / 4.0))
+		if not _lanes.has(k): _lanes[k] = []
+		if not (_lanes[k] as Array).has([a, b]): _lanes[k].append([a, b])
+
+func lane_at(x: float, z: float) -> bool:
+	if _lanes.is_empty(): return false
+	for s in _lanes.get(Vector2i(floori(x / 4.0), floori(z / 4.0)), []):
+		if _seg_dist(Vector2(x, z), s[0], s[1]) < 0.9: return true
+	return false
+
+## 산 집 터의 무게(0..1)와 높이 — 터 안이면 1
+func pad_at(x: float, z: float) -> Vector2:
+	if _pads.is_empty(): return Vector2.ZERO
+	var best := Vector2.ZERO
+	for p in _pads.get(Vector2i(floori(x / 8.0), floori(z / 8.0)), []):
+		var d := Vector2(x - p[0], z - p[1]).length()
+		if d >= PAD_OUT: continue
+		var w := 1.0 - smoothstep(PAD_IN, PAD_OUT, d)
+		if w > best.x: best = Vector2(w, p[2])
+	return best
 
 ## 계단 길(나선) — 들머리에서 꼭대기 마당 안까지 TREAD 간격의 점(x, z). 높이는 짓는 쪽이 정한다(town_mountain)
 static func trail_xz(pk: Dictionary) -> PackedVector2Array:
@@ -220,7 +273,7 @@ static func trail_xz(pk: Dictionary) -> PackedVector2Array:
 var _trail_cells := {}   # 3m 칸 → 계단 길이 지나간다(나무를 안 심는다)
 ## 들판 흙길 위인가(잡음 등고선 ±폭) — 깎인 마을 안·산·호수엔 없다
 func dirt_at(x: float, z: float) -> bool:
-	return (absf(_paths.get_noise_2d(x, z)) < 0.018 and peak_k(x, z) < 0.05 and _h(x, z) > 0.2) or loop_at(x, z)
+	return (absf(_paths.get_noise_2d(x, z)) < 0.018 and peak_k(x, z) < 0.05 and _h(x, z) > 0.2) or loop_at(x, z) or lane_at(x, z)
 
 ## 둘레길(운영자 2026-10-06: "둘레길도 존재해야") — 마을을 한 바퀴 도는 흙길. 반지름이 출렁이고(산 자락·호숫가를 스친다), 깎인 마을 땅에선 마을 것을 피한다
 const LOOP_C := Vector2(20.0, -10.0)
@@ -255,7 +308,15 @@ func on_trail(x: float, z: float) -> bool:
 	return false
 
 func _h(x: float, z: float) -> float:
-	return wild_k(x, z) * raw(x, z)
+	return _shaped(x, z, wild_k(x, z))
+
+## 깎은 높이 — 깎기(k) 뒤에 산 집 터를 편다
+func _shaped(x: float, z: float, k: float) -> float:
+	var h := k * raw(x, z)
+	if not _pads.is_empty() and peak_k_s(x, z) > 0.0:
+		var pd := pad_at(x, z)
+		if pd.x > 0.0: h = lerpf(h, pd.y, pd.x)
+	return h
 
 ## 땅 높이(호수 바닥은 수면 바로 아래 -0.02 — 강과 같은 얕은 물이라 같은 헤엄 규칙)
 func height(x: float, z: float) -> float:
@@ -335,7 +396,7 @@ func _build(key: Vector2i, defer := false) -> void:
 	for j in pw:
 		for i in pw:
 			var x := o.x + (i - 1) * step; var z := o.z + (j - 1) * step
-			var k := wild_k(x, z); ks[j * pw + i] = k; raws[j * pw + i] = k * raw(x, z)
+			var k := wild_k(x, z); ks[j * pw + i] = k; raws[j * pw + i] = _shaped(x, z, k)
 	var hs := PackedFloat32Array(); hs.resize(w * w)
 	var wild := 0.0
 	for j in w:
@@ -439,6 +500,7 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 				var cc: Vector2 = clusters[rng.randi() % clusters.size()]
 				x = clampf(cc.x + rng.randfn(0.0, 2.2), o.x, o.x + CHUNK); z = clampf(cc.y + rng.randfn(0.0, 2.2), o.z, o.z + CHUNK)
 			if on_trail(x, z) or _on_road(x, z): continue   # 계단 길·찻길은 비운다(찻길 위에 나무가 섰다, 운영자 2026-10-13)
+			if not _pads.is_empty() and pad_at(x, z).x > 0.55: continue   # 산 집 터는 비운다(잔디 마당)
 			if mountain: ids = HIGH if height(x, z) > 24.0 + 8.0 * rng.randf() else FOREST
 			var k := wild_k(x, z)
 			var h := k * raw(x, z)   # = _h — 한 번만 잰다

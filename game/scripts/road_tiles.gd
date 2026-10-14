@@ -19,6 +19,7 @@ static func seg_key(a: Vector2i, b: Vector2i) -> String:
 ## 한 블록을 두르는 토막(북·가운데·남 동서 셋, 서·동 남북 넷) — 블록에 첫 필지가 설 때 다 깐다
 static func block_segs(b: Vector2i) -> Array:
 	var out: Array = []
+	if TownPlan.is_hill(b): return out   # 산 블록엔 찻길이 없다 — 흙길(WorldGen lane)
 	for dj in 3:
 		if dj == 1 and TownPlan.no_lane(b): continue   # 안마당 블록은 가운데 찻길이 없다
 		out.append([Vector2i(b.x, b.y * 2 + dj), Vector2i(b.x + 1, b.y * 2 + dj)])
