@@ -35,7 +35,7 @@ static func run(t, rect: Rect2) -> int:
 				placed += 1
 			z += CELL
 		x += CELL
-	_tufts(t, rect, space, by_root)
+	pass   # 풀 덮개도 뺐다(2026-10-14: "녹지가 너무 더럽다") — 잔디는 깨끗하게
 	for r in by_root: t._merge_done(by_root[r])
 	return placed
 

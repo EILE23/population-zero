@@ -158,6 +158,7 @@ static func flat_dist(x: float, z: float, limit: int) -> float:
 ## 필지의 집 사양 — 같은 필지는 언제나 같은 집(벽 색·지붕·크기·시드)
 static func house_spec(l: Dictionary) -> Dictionary:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash(String(l["id"]))
-	var walls := [Color("e6d3a5"), Color("dfe6ea"), Color("efe9e2"), Color("b56a5a"), Color("8fb8cc"), Color("b5c9a8"), Color("e8bfa4"), Color("c4b0d0")]
+	var th := District.of_block(l["b"])   # 동네 빛깔 묶음(district)
+	var walls: Array = (th["walls"] as Array).map(func(h: String) -> Color: return Color(h))
 	var roofs := ["wood", "brick", "shingle", "iron"]
 	return { "size": Vector3(rng.randf_range(3.6, 4.8), rng.randf_range(2.5, 3.0), rng.randf_range(3.2, 3.8)), "wall": walls[rng.randi() % walls.size()], "roof": roofs[rng.randi() % roofs.size()], "seed": 100 + int(l["order"]) }

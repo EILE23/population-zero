@@ -67,8 +67,8 @@ func _house_yard(l: Dictionary, c: Vector3, hs: Vector3) -> void:
 	var terrace := String(l.get("form", "")) == "terrace"
 	var front := float(l["street_z"]) - TownPlan.ROAD_W / 2.0 - 0.15   # 인도 끝
 	var back := back_line(l)
-	var kind: int = rng.randi() % 4
-	var col: Color = [Color("f7f4ef"), Color("5f8a3e"), Color("a8a29a"), Color.WHITE][kind]
+	var kind: int = int(District.of_block(l["b"])["fence"])   # 동네 울타리 한 가지(흰 말뚝·생울타리·돌담)
+	var col: Color = [Color("f7f4ef"), Color(String(District.of_block(l["b"])["hedge"])), Color("a8a29a"), Color.WHITE][kind]
 	var hgt: float = [0.55, 0.8, 0.5, 0.0][kind]
 	if terrace: kind = 1; col = Color("5f8a3e"); hgt = 0.6   # 붙은 집 줄은 앞뒤 생울타리만(옆은 이웃 벽)
 	if hgt > 0.0:
@@ -158,10 +158,14 @@ func _finish_lot(l: Dictionary, live: bool) -> void:
 		var hsp := TownPlan.house_spec(l); var nd := doors.size()
 		var hkeep := _build_parent; _build_parent = _root_for(c)
 		var mark := _merge_mark()
-		var hs := HouseStyles.build(self, c, l, hsp, _style_for(l))
+		var th := District.of_block(l["b"])
+		house_hint = { "mat": th["mat"], "roof": th["roof"] }; tree_hint = String(th["tree"])
+		var want := _style_for(l)
+		var hs := HouseStyles.build(self, c, l, hsp, want if (has_method("_is_me") and call("_is_me", hk)) else District.style_in(th, want, String(l["id"])))
 		_flower_bed(c + Vector3(-hs.x / 2.0 - 0.6, 0, hs.z / 2.0 + 0.4))
 		if l.get("hill", false): _hill_yard(l, c, hs)
 		else: _house_yard(l, c, hs)
+		house_hint = {}; tree_hint = ""
 		_merge_done(mark)
 		_build_parent = hkeep
 		if doors.size() > nd and not _is_mine(hk): _move_in(doors[nd], live, owner_row(hk))   # 내가 산 필지면 주민이 들어오지 않는다(내 집)
@@ -347,7 +351,7 @@ func _pave(l: Dictionary) -> void:
 		var par := _root_for(mid)
 		MeshMerge.merge(par, RoadTiles.seg(self, na, nb, par), [])
 		_build_parent = par
-		var mark := _merge_mark(); _kerb(na, nb); _merge_done(mark)   # 가로수는 합친다(가로등은 nomerge — 넘어가야 하니까)
+		var mark := _merge_mark(); _kerb(na, nb); tree_hint = ""; _merge_done(mark)   # 가로수는 합친다(가로등은 nomerge — 넘어가야 하니까)
 		_build_parent = keep
 		for nd in [na, nb]: _retile(nd)
 	_build_parent = keep
@@ -621,6 +625,7 @@ func _retile(nd: Vector2i) -> void:
 ## 인도 — 동서 토막엔 가로등 둘(남·북 번갈아)과 가로수 둘, 남북 토막엔 가로등 하나
 func _kerb(na: Vector2i, nb: Vector2i) -> void:
 	var pa := RoadTiles.npos(na); var pb := RoadTiles.npos(nb)
+	tree_hint = String(District.at((pa + pb) / 2.0)["tree"])   # 가로수도 동네 한 가지
 	var walk := TownPlan.ROAD_W / 2.0 - 0.55   # 인도 가운데
 	if na.y == nb.y:
 		for k in 2:
@@ -644,6 +649,7 @@ func _kerb(na: Vector2i, nb: Vector2i) -> void:
 		var lz := (pa.z + pb.z) / 2.0
 		if absf(lz - RIVER_Z) < RIVER_HW + 2.0: lz = minf(pa.z, pb.z) + TownPlan.ROAD_W / 2.0 + 1.0   # 강을 건너는 토막 — 다리 위가 아니라 둑에
 		_street_light(Vector3(pa.x + walk, 0, lz), -PI / 2.0)
+	tree_hint = ""
 
 ## 가로등(Kenney light-curved, 9배 = 6m) — 기둥 충돌, 밤엔 켜진다(lamps), 차가 받으면 넘어간다(wreckables)
 func _street_light(at: Vector3, yaw: float) -> void:

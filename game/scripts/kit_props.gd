@@ -86,9 +86,13 @@ const FLOWERS := ["flower_redA", "flower_redB", "flower_yellowA", "flower_yellow
 const BUSHES := ["plant_bush", "plant_bushDetailed", "plant_bushSmall", "plant_bushLarge", "plant_bushTriangle"]
 
 ## 꽃·덤불 띠 — a 에서 b 까지 빽빽하게(덤불은 막는다, 꽃은 지나간다)
-static func border(t, a: Vector3, b: Vector3, rng: RandomNumberGenerator, step := 0.55) -> void:
-	var d := b - a; var n_ := maxi(1, int(d.length() / step))
-	for k in n_ + 1:
-		var p := a + d * (float(k) / n_) + Vector3(rng.randf_range(-0.12, 0.12), 0, rng.randf_range(-0.12, 0.12))
-		if rng.randf() < 0.45: n(t, BUSHES[rng.randi() % BUSHES.size()], p, rng.randf() * TAU, rng.randf_range(2.4, 3.2))
-		else: n(t, FLOWERS[rng.randi() % FLOWERS.size()], p, rng.randf() * TAU, rng.randf_range(1.6, 2.1), false)
+## 띠 — 깎은 생울타리 한 줄(동네 빛), 앞에 동네 꽃 한 가지를 고르게(운영자 2026-10-14: 흩뿌린 덤불·꽃이 "더럽다" — 정리된 마당으로)
+static func border(t, a: Vector3, b: Vector3, _rng: RandomNumberGenerator, _step := 0.55) -> void:
+	var d := b - a; var len := d.length()
+	if len < 0.3: return
+	var th := District.at((a + b) / 2.0)
+	var hedge: MeshInstance3D = t._box(Vector3(len + 0.3, 0.55, 0.42), (a + b) / 2.0, t._mat(Color(String(th["hedge"]))))
+	hedge.rotation.y = -atan2(d.z, d.x)
+	var side := Vector3(-d.z, 0, d.x).normalized() * 0.42
+	var nf := int(len / 0.9)
+	for k in nf: n(t, String(th["flower"]), a + d * ((k + 0.5) / nf) + side, 0.0, 1.8, false)

@@ -71,6 +71,8 @@ func _path(a: Vector3, b: Vector3, w: float) -> void:
 
 ## 집 — 시드로 정하는 사양(진짜 집처럼, 운영자 2026-09-28): 층수 1~2, 박공/평지붕, 벽 재질(널빤지·벽돌·회벽·색벽), 트림 색, 창 배치와 덧문·창턱,
 ## 처마·홈통·굴뚝·현관 지붕·계단·화단·우체통. 속은 비어 있고(벽 네 장) 경첩 문으로 들어간다. 들어가면 지붕·앞벽·천장이 사라져 안이 보인다(컷어웨이).
+var house_hint := {}   # 지을 때 동네가 정한 것(town_city — district): mat·roof
+var tree_hint := ""    # 이 순간 심는 나무 종류(district)
 func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := false, seed := 0, inside := "", force_storeys := 0) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 1000 + seed + int(at.x * 7.0 + at.z * 13.0)
 	var storeys := 2 if (rng.randf() < 0.35 and not flat_roof) else 1
@@ -78,6 +80,7 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 	size.y = size.y * (1.7 if storeys == 2 else 1.0)
 	var mats := ["plank", "brick", "stucco", "colour"]
 	var material: String = mats[rng.randi() % mats.size()]
+	if house_hint.has("mat") and rng.randf() < 0.8: material = String(house_hint["mat"])   # 동네 벽 재질(district) — 열에 여덟
 	var trim_c: Color = [Color("efe9e2"), Color("f7f4ef"), Color("cfc7c2")][rng.randi() % 3]
 	var wm: StandardMaterial3D
 	match material:
@@ -159,7 +162,8 @@ func _house(at: Vector3, size: Vector3, wall: Color, roof: String, flat_roof := 
 		var r := MeshInstance3D.new()
 		var pr := PrismMesh.new(); pr.size = Vector3(size.z + 0.7, size.y * (0.42 if storeys == 1 else 0.28), size.x + 0.7)
 		var roof_tex := "faces/roof-%s" % roof if rng.randf() < 0.6 else "faces/roof-shingle"
-		var tint: Color = [Color.WHITE, Color("e0875a"), Color("c45a4a"), Color("7a90b0"), Color("7c9a62"), Color("6a6470"), Color("e0b880"), Color("d06a50")][rng.randi() % 8]   # 지붕 빛깔 — 붉은 기와·주황·청기와·초록·먹색(운영자 사진: 마을은 지붕 색이 저마다)
+		var tint: Color = [Color.WHITE, Color("e0875a"), Color("c45a4a"), Color("7a90b0"), Color("7c9a62"), Color("6a6470"), Color("e0b880"), Color("d06a50")][rng.randi() % 8]
+		if house_hint.has("roof"): tint = Color(String((house_hint["roof"] as Array)[rng.randi() % (house_hint["roof"] as Array).size()]))   # 동네 지붕 빛(district)   # 지붕 빛깔 — 붉은 기와·주황·청기와·초록·먹색(운영자 사진: 마을은 지붕 색이 저마다)
 		r.mesh = pr; r.material_override = _mat(tint, _tex(roof_tex), Vector3(3.2, 2.4, 1))   # (2.0, 1.5) 는 벽지처럼 보였다
 		r.material_override.uv1_triplanar = true
 		r.position = at + Vector3(0, size.y + pr.size.y / 2.0, 0)
@@ -336,6 +340,7 @@ const TREE_KINDS := ["CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree
 func _tree(at: Vector3, k: float) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = int(at.x * 13.0 + at.z * 7.0) + 5
 	var which: String = TREE_KINDS[rng.randi() % TREE_KINDS.size()]
+	if tree_hint != "": which = tree_hint   # 동네 나무 한 가지(district)
 	var model := KitProps.mesh_node("res://assets/models/nature/quaternius/" + which + ".gltf")   # 메시만(장면 instantiate 는 느리다)
 	var h := _model_height(model)
 	var sc := (2.8 + 1.2 * (k - 0.9)) / maxf(h, 0.5)
