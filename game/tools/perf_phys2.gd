@@ -2,7 +2,10 @@ extends SceneTree
 ## 물리 스크립트 비용을 스크립트별로 — 같은 스크립트의 _physics_process 를 다 끄고 줄어든 만큼
 func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
-	for i in 120: await process_frame
+	for i in 60: await process_frame
+	while not town._infill_q.is_empty(): await process_frame
+	for i in 60: await process_frame
+	print("PH spots=%d crowns=%d wreck=%d" % [town.spots.size(), town.crowns.size(), town.wreckables.size()])
 	var m := func() -> float:
 		var s := 0.0; var steps := 0
 		for i in 120:

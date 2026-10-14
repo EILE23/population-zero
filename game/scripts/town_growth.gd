@@ -14,7 +14,7 @@ const STAGE_WORK := 4          # 한 단계에 필요한 일 단위(건축가 �
 const WORK_T := 25.0
 const EPOCH := 1791866000.0   # 성장 시계의 0 — 이때 founded + 0.5 채쯤(2026-10-13 KST 15시)
 const HOUSE_S := 900.0          # 15분에 한 채(하루 96채) — 모두에게 같다
-const NEAR := 170.0             # 이 안의 지어진 필지는 바로 짓고, 밖은 다가가면
+const NEAR := 100.0             # 이 안의 지어진 필지는 바로 짓고, 밖은 다가가면
 const RES_MAX := 90            # 몸이 있는 주민 상한 — 넘으면 입주는 하되 집에 불만 켜진다(성능)
 
 var built := 0                 # 지은 필지 수(순번 0..built-1)

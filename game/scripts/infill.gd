@@ -4,7 +4,8 @@ extends RefCounted
 ## 아무것도 없는 칸(물·찻길·돌길·집·문 앞 길목·자리(spots) 둘레·충돌체가 없는)마다 작은 장면 하나: 나무와 덤불, 벤치와 등, 둥근 탁자와 의자,
 ## 바위 정원, 생울타리와 조각, 작은 노점, 작은 분수, 채소 이랑, 수레와 통, 피크닉 깔개, 꽃 무더기. 칸마다 시드로 늘 같은 것. 구역마다 합친다
 
-const CELL := 5.0
+const CELL := 4.0
+const TUFT := 1.6   # 풀·꽃 덮개 칸 — 장면이 안 들어간 잔디에도 풀 포기·꽃(부딪히지 않는다)
 
 static func run(t, rect: Rect2) -> int:
 	var space: PhysicsDirectSpaceState3D = t.get_world_3d().direct_space_state
@@ -34,6 +35,7 @@ static func run(t, rect: Rect2) -> int:
 				placed += 1
 			z += CELL
 		x += CELL
+	_tufts(t, rect, space, by_root)
 	for r in by_root: t._merge_done(by_root[r])
 	return placed
 
@@ -49,7 +51,7 @@ static func _free(t, p: Vector3, spot_grid: Dictionary, space: PhysicsDirectSpac
 	for dx in [-1, 0, 1]:
 		for dz in [-1, 0, 1]:
 			for sp_p in spot_grid.get(k + Vector2i(dx, dz), []):
-				if Vector2((sp_p as Vector3).x - p.x, (sp_p as Vector3).z - p.z).length() < 2.2: return false
+				if Vector2((sp_p as Vector3).x - p.x, (sp_p as Vector3).z - p.z).length() < 1.7: return false
 	for h in t.houses:
 		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
 		if p.x > mn.x - 2.4 and p.x < mx.x + 2.4 and p.z > mn.z - 2.4 and p.z < mx.z + 2.4: return false
@@ -60,6 +62,62 @@ static func _free(t, p: Vector3, spot_grid: Dictionary, space: PhysicsDirectSpac
 		if _seg_d(Vector2(p.x, p.z), pa[0], pa[1]) < float(pa[2]) / 2.0 + 1.8: return false
 	q.transform = Transform3D(Basis(), p + Vector3(0, 0.85, 0))
 	return space.intersect_shape(q, 1).is_empty()
+
+## 풀·꽃 덮개 — 깎인 잔디의 1.6m 칸마다 무엇도 없으면(충돌체·돌길·찻길·물·집이 아니면) 풀 포기나 꽃 한두 송이. 맨 잔디가 넓게 비어 보였다(운영자 2026-10-14)
+static func _tufts(t, rect: Rect2, space: PhysicsDirectSpaceState3D, by_root: Dictionary) -> void:
+	var gen: WorldGen = t.gen
+	var big := rect.grow(10.0)   # 이 칸 둘레의 집·문·돌길만 본다(전부 훑으면 시작이 느렸다)
+	var hs: Array = t.houses.filter(func(h: Dictionary) -> bool: return big.has_point(Vector2((h["min"] as Vector3).x, (h["min"] as Vector3).z)) or big.has_point(Vector2((h["max"] as Vector3).x, (h["max"] as Vector3).z)))
+	var ds: Array = t.doors.filter(func(d: Dictionary) -> bool: return big.has_point(Vector2((d["pos"] as Vector3).x, (d["pos"] as Vector3).z)))
+	var ps: Array = t.paths.filter(func(pa: Array) -> bool: return big.intersects(Rect2(pa[0], Vector2.ZERO).expand(pa[1]).grow(float(pa[2]))))
+	var q := PhysicsShapeQueryParameters3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(TUFT * 0.8, 0.8, TUFT * 0.8); q.shape = bx; q.collision_mask = 1
+	var put := {}   # root -> {종류 -> [Transform3D]} — 풀 포기는 MultiMesh 한 장씩(노드 수천 개를 만들면 시작이 5초 늘었다)
+	var kinds := ["grass", "grass_large", "grass_leafs", "grass_leafsLarge", "flower_redA", "flower_yellowA", "flower_purpleA", "plant_flatShort", "flower_redB", "flower_yellowB", "mushroom_tanGroup", "rock_smallFlatA"]
+	var x := rect.position.x + TUFT / 2.0
+	while x < rect.end.x:
+		var z := rect.position.y + TUFT / 2.0
+		while z < rect.end.y:
+			var h := absi(hash("tuft/%d,%d" % [int(x * 10.0), int(z * 10.0)]))
+			if h % 3 != 0:   # 셋에 둘 칸
+				var p := Vector3(x + float(h % 7) * 0.15 - 0.45, 0, z + float(h % 5) * 0.18 - 0.36)
+				if _tuft_ok(t, gen, p, hs, ds, ps):
+					q.transform = Transform3D(Basis(), p + Vector3(0, 0.5, 0))
+					if space.intersect_shape(q, 1).is_empty():
+						var root: Node3D = t._root_for(p)
+						if not put.has(root): put[root] = {}
+						var kind: String = kinds[h % kinds.size()]
+						if not (put[root] as Dictionary).has(kind): put[root][kind] = []
+						var sc := 1.6 + float(h % 9) * 0.12
+						(put[root][kind] as Array).append(Transform3D(Basis(Vector3.UP, float(h % 360) * 0.0174).scaled(Vector3.ONE * sc), p))
+			z += TUFT
+		x += TUFT
+	for root in put:
+		for kind in put[root]:
+			var d := KitProps.src(KitProps.N + String(kind) + ".glb")
+			if d.is_empty(): continue
+			var ab: AABB = d["ab"]
+			var base := Transform3D(Basis(), Vector3(-(ab.position.x + ab.size.x / 2.0), -ab.position.y, -(ab.position.z + ab.size.z / 2.0)))
+			var xs: Array = put[root][kind]
+			for pt in d["parts"]:
+				var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = pt[0]; mm.instance_count = xs.size()
+				for i in xs.size(): mm.set_instance_transform(i, (xs[i] as Transform3D) * base * (pt[1] as Transform3D))
+				var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; mmi.visibility_range_end = 90.0
+				(root as Node3D).add_child(mmi)
+
+static func _tuft_ok(t, gen: WorldGen, p: Vector3, hs: Array, ds: Array, ps: Array) -> bool:
+	if gen.wild_k(p.x, p.z) > 0.05: return false
+	var hh := gen.height(p.x, p.z)
+	if hh < -0.005 or hh > 0.3 or gen._on_road(p.x, p.z): return false
+	if absf(p.z - WorldGen.ROAD_Z) < 3.0 or absf(p.z - t.RIVER_Z) < t.RIVER_HW + 0.8: return false
+	for h in hs:
+		var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
+		if p.x > mn.x - 0.4 and p.x < mx.x + 0.4 and p.z > mn.z - 0.4 and p.z < mx.z + 1.2: return false
+	for dr in ds:
+		var dp: Vector3 = dr["pos"]
+		if absf(p.x - dp.x) < 1.2 and p.z > dp.z - 0.5 and p.z < dp.z + 7.0: return false   # 문 앞 길
+	for pa in ps:
+		if _seg_d(Vector2(p.x, p.z), pa[0], pa[1]) < float(pa[2]) / 2.0 + 0.3: return false
+	return true
 
 static func _seg_d(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab := b - a

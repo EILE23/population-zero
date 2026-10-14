@@ -1,7 +1,7 @@
 extends SceneTree
 func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
-	for i in 200: await physics_frame
+	for i in 900: await physics_frame
 	var s := 0.0; var f := 0.0
 	for i in 300:
 		await physics_frame

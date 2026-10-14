@@ -131,7 +131,7 @@ func wild_k(x: float, z: float) -> float:
 		var fd := TownPlan.flat_dist(x, z, flat_limit)
 		if fd < 26.0:
 			if lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
-			if lake != 1 or (fd < 0.5 and _built_spot(x, z)): k = minf(k, smoothstep(0.0, 26.0, fd))
+			if lake != 1 or fd < 0.5: k = minf(k, smoothstep(0.0, 26.0, fd))   # 블록 안은 다 땅으로(찻길에 둘린 네모 호수가 됐다) — 블록 밖 비탈의 호수는 그대로
 	var cd := _civic_dist(x, z)   # 관공서·공원 블록도 평지 — 필지가 없어 빠졌고, 시청·학교·도서관이 언덕에 묻혔다(운영자 2026-10-08)
 	if cd < 26.0:
 		if lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
@@ -229,7 +229,7 @@ static func loop_r(a: float) -> float:
 func loop_at(x: float, z: float) -> bool:
 	var v := Vector2(x, z) - LOOP_C
 	if absf(v.length() - loop_r(v.angle())) > 1.25 or peak_k(x, z) > 0.4: return false
-	return wild_k(x, z) > 0.3 or _town_clear(x, z, 0.0)
+	return wild_k(x, z) > 0.3   # 마을(깎인 땅)은 지나지 않는다 — 마을이 넓어지자 흙길이 블록·찻길을 비스듬히 가로질렀다(운영자 2026-10-14)
 
 ## 깔린 찻길(town_city _segs) 위인가 — 판 폭 + 0.8m
 func _on_road(x: float, z: float) -> bool:

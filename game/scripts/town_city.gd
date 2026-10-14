@@ -50,8 +50,13 @@ func _city_init() -> void:
 	_grow_streets(body.global_position, 150.0, 99, false)   # 둘레 계획 블록도 찻길·임시 마당으로(운영자 2026-10-13: "녹지 다 채우라니까")
 	gen.rebuild_all(body.global_position)   # 깔린 찻길·새 평지에 맞춰 칸을 다시(찻길 위 나무를 걷는다)
 	get_tree().create_timer(0.4).timeout.connect(func() -> void:   # 몸들이 물리 공간에 들어간 뒤 — 옛 마을과 깔린 블록의 빈 잔디를 메운다
-		Infill.run(self, Rect2(-WorldGen.HUB_X - 4.0, -WorldGen.HUB_Z - 4.0, WorldGen.HUB_X * 2.0 + 8.0, WorldGen.HUB_Z * 2.0 + 8.0))
-		for b in _paved.keys(): _infill_block(b))
+		for hx in 4:   # 옛 마을 — 넷으로 나눠 프레임마다
+			_infill_rect(Rect2(-WorldGen.HUB_X - 4.0 + hx * 38.0, -WorldGen.HUB_Z - 4.0, 38.0, WorldGen.HUB_Z * 2.0 + 8.0))
+		for b in _paved.keys(): _infill_block(b)
+		for key in (CityMap.data()["blocks"] as Dictionary):   # 관공서·공원 블록의 넓은 잔디도
+			var pp := String(key).split(","); _infill_block(Vector2i(int(pp[0]), int(pp[1])))
+		for dx in range(-5, 6):   # 둘레의 깎인 블록(강을 낀 블록 등 필지가 없어 찻길이 안 깔린 곳)도
+			for dz in range(-5, 6): _infill_block(CityMap.block_of(Vector2(body.global_position.x, body.global_position.z)) + Vector2i(dx, dz)))
 
 ## 마당(운영자 2026-10-08 사진: "섹션마다 풍부한데 우린 뭐가 없잖아") — 집마다 다르게: 울타리(흰 말뚝·생울타리·돌담·없음), 마당 나무, 빨랫줄.
 ## 뒤 울타리는 띠 끝(골목 앞)까지 — 그 안은 그 집 사람 뒤뜰(back_yards). 길 쪽 가운데(문길)는 비운다. 울타리는 모양만(충돌 없음 — 주민 길을 막지 않게)
@@ -478,10 +483,25 @@ func _dry(p: Vector3) -> bool: return gen.height(p.x, p.z) >= -0.005
 
 ## 블록 하나의 빈 잔디 메우기(infill) — 찻길·마당이 다 선 뒤(새로 깐 블록은 0.5초 뒤)
 var _infilled := {}
+var _infill_q: Array = []   # 메울 사각형 — 한 프레임에 하나, 가까운 것부터(한 번에 다 하면 몇 초 멈췄다)
 func _infill_block(b: Variant) -> void:
 	if not (b is Vector2i) or _infilled.has(b): return
 	_infilled[b] = true
-	Infill.run(self, Rect2(TownPlan.OX + b.x * TownPlan.PITCH, TownPlan.OZ + b.y * TownPlan.PITCH, TownPlan.PITCH, TownPlan.PITCH))
+	_infill_rect(Rect2(TownPlan.OX + b.x * TownPlan.PITCH, TownPlan.OZ + b.y * TownPlan.PITCH, TownPlan.PITCH, TownPlan.PITCH))
+
+func _infill_rect(r: Rect2) -> void:
+	_infill_q.append(r)
+	if not get_tree().process_frame.is_connected(_infill_pump): get_tree().process_frame.connect(_infill_pump)
+
+func _infill_pump() -> void:
+	if _infill_q.is_empty():
+		get_tree().process_frame.disconnect(_infill_pump); return
+	var me := Vector2(body.global_position.x, body.global_position.z)
+	var bi := 0
+	for i in _infill_q.size():
+		if (_infill_q[i] as Rect2).get_center().distance_to(me) < (_infill_q[bi] as Rect2).get_center().distance_to(me): bi = i
+	var r: Rect2 = _infill_q[bi]; _infill_q.remove_at(bi)
+	Infill.run(self, r)
 
 ## 글을 남기는 판(운영자 2026-10-13: "게시판 같은 형태의 동작이 훨씬 많아져야") — 우편함·정류장·가게 칠판·관공서 알림판·텃밭 팻말.
 ## C 로 보면 시점이 판 앞으로, 글 쓰기·고치기·지우기(town_social open_board). 글은 방에 남아 같은 마을 모두가 본다(키마다 따로)

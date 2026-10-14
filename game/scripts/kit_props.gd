@@ -62,11 +62,16 @@ static func put(t, path: String, at: Vector3, yaw := 0.0, sc := 1.0, solid := tr
 	m.position = Vector3(-(ab.position.x + ab.size.x / 2.0) * sc, -ab.position.y * sc, -(ab.position.z + ab.size.z / 2.0) * sc)
 	pivot.add_child(m)
 	var size := ab.size * sc
-	if solid and size.y > 0.3:
-		var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bs := BoxShape3D.new()
-		bs.size = Vector3(maxf(size.x * 0.9, 0.2), size.y, maxf(size.z * 0.9, 0.2)); cs.shape = bs; cs.position.y = size.y / 2.0
-		sb.add_child(cs); pivot.add_child(sb)
 	t._add(pivot)
+	if solid and size.y > 0.3:   # 부모(구역·임시 마당)마다 정적 몸 하나에 모양만 늘린다 — 소품마다 몸 하나면 1만 개가 넘어 물리 한 걸음이 16ms 였다(2026-10-14)
+		var par: Node = pivot.get_parent()
+		var sb: StaticBody3D = par.get_meta("kitbody") if par.has_meta("kitbody") and is_instance_valid(par.get_meta("kitbody")) and (par.get_meta("kitbody") as Node).get_child_count() < 24 else null   # 몸 하나에 모양 24까지 — 더 붙이면 붙일 때마다 몸을 다시 지어 느려졌다
+		if sb == null:
+			sb = StaticBody3D.new(); sb.name = "KitBody"; par.add_child(sb); par.set_meta("kitbody", sb)
+		var cs := CollisionShape3D.new(); var bs := BoxShape3D.new()
+		bs.size = Vector3(maxf(size.x * 0.9, 0.2), size.y, maxf(size.z * 0.9, 0.2)); cs.shape = bs
+		cs.transform = pivot.transform * Transform3D(Basis(), Vector3(0, size.y / 2.0, 0))
+		sb.add_child(cs)
 	return pivot
 
 static func f(t, name: String, at: Vector3, yaw := 0.0, solid := true) -> Node3D: return put(t, F + name + ".glb", at, yaw, SF, solid)

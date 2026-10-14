@@ -155,15 +155,24 @@ func _box(size: Vector3, at: Vector3, mat: Material, solid := true, parent: Node
 	var bm := BoxMesh.new(); bm.size = size
 	mi.mesh = bm; mi.material_override = mat
 	mi.position = at + Vector3(0, size.y / 2.0, 0)
-	if solid:
+	if solid and parent != self:   # 움직이는 부모(문짝·가구·부서지는 소품 덩어리) — 메시를 따라가는 제 몸
 		var sb := StaticBody3D.new()
 		var cs := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = size; cs.shape = bs
 		sb.add_child(cs); mi.add_child(sb)
 	if parent == self:
 		_add(mi)
+		if solid: _shared_shape(mi.get_parent(), size, mi.transform)
 	else:
 		parent.add_child(mi)
 	return mi
+
+## 움직이지 않는 상자의 충돌 — 부모(구역·방·마을)마다 정적 몸 하나에 모양만(상자마다 몸 하나면 1만 개가 넘어 물리가 무거웠다, 2026-10-14)
+func _shared_shape(par: Node, size: Vector3, xf: Transform3D) -> void:
+	var sb: StaticBody3D = par.get_meta("kitbody") if par.has_meta("kitbody") and is_instance_valid(par.get_meta("kitbody")) and (par.get_meta("kitbody") as Node).get_child_count() < 24 else null   # 몸 하나에 모양 24까지 — 더 붙이면 붙일 때마다 몸을 다시 지어 느려졌다
+	if sb == null:
+		sb = StaticBody3D.new(); sb.name = "KitBody"; par.add_child(sb); par.set_meta("kitbody", sb)
+	var cs := CollisionShape3D.new(); var bs := BoxShape3D.new(); bs.size = size; cs.shape = bs; cs.transform = xf
+	sb.add_child(cs)
 
 ## 지을 때의 부모 — 구역 안이면 구역 노드, 아니면 마을
 func _add(n: Node) -> void:
