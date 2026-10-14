@@ -1,0 +1,48 @@
+{
+  "_": "Climb content pack 'Lighthouse lens' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_lens.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (and only the pieces' `only` floors — the vent floors stay bare like the raft, the plank and the balloon), looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose box (the gap's width from the tower's foot to a body on the top puff) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the raft, the mushrooms, the plank, the balloon — the loader passes their plans) sits in: a piece whose x overlaps the gap and whose height (y up to rail_y/beam_y/y_top when it has one) lies from 20 px under the lower hop's top to 20 px under the upper hop's top belongs to this gap — the tower zigzags, so every gap of a floor shares one x column and a band 220 px tall like the catalogue's would let one raft block every gap above it; one lens per floor at the widest such gap: a short stone tower (tower_w wide — a quarter of the gap when that is less — and tower_h tall) set into the cliff at the gap's middle with its top level with the lower hop's top, a brass lens drum on it, and three cloud puffs (a quarter of the gap less a hand wide, puff_w_min..puff_w, puff_h thick) hung over the gap at a quarter, a half and three quarters of the way from the lower hop's gap edge, each `rise` px higher than the last toward the upper hop (rise is clamped to a quarter of the hops' height difference so the third puff never tops the upper hop). The lens turns once every turn_s on the loader's clock, the same for everyone: for the first half of a turn its beam sweeps the gap side from the lower hop up over the puffs to the upper hop (a puff is lit while the beam's centre is within lit_s/2 of it — the beam reaches puff k at k/4 of the half-turn — and keeps the light glow_s after the beam has passed, so the three solid windows follow one another with no dark gap between them: puff 1 from 1.1 s to 2.6 s of the half-turn, puff 2 to 4.1 s, puff 3 to 5.6 s at the plain speed); for the second half the beam sweeps the cliff and nothing is lit. A puff is a platform only while it is lit — like the ghost slabs on their beat — so the crossing is three timed hops; fade_s before a puff goes dark a standing body gets the existing teeter warning, a body still on it when it goes dark falls with the existing lurch, and a puff hardens back in appear_s with a chime. Standing on the lower hop within reach px of its gap edge (beyond the body's half width) and pressing C spins the lens's hand-wheel (pose `spin` — one hand on a hip-height wheel turning in circles, the elbow leading and the shoulder dipping on each turn, the other arm out for balance; a wind-up, four turns, a slowing release): the lens turns fast_rate times faster for the next fast_s seconds, so the sweep comes around twice as often and every window is half as long; a second C while it is already fast does nothing (plain, no refusal line). Nothing refuses, shoves or costs: the plain jump across the gap is untouched at 100% — the puffs hang above the straight line and an unlit puff is passed through, the tower stands below the lower hop's top and never meets a jumping body.",
+  "id": "lens",
+  "name": "Lighthouse lens",
+  "pose": "teeter",
+  "pose_drop": "lurch",
+  "pose_spin": "spin",
+  "themes": ["Cloud sea"],
+  "kinds": {
+    "lens": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px). min_dy/max_dy: how much higher the upper hop is (px). tower_w/tower_h: the stone tower under the lens (px; its top is the lower hop's top, it hangs into the gap; the width shrinks to a quarter of a narrow gap). drum_r: the brass lens drum's radius (px). beam_len: how far the drawn beam reaches (px). puff_w/puff_h: a cloud puff's width and thickness (px) — the width is a quarter of the gap less a hand, clamped to puff_w_min..puff_w, so the three puffs never touch (the tower's Cloud sea gaps are 93..124 px, so most puffs are 19..27 px). rise: px each puff is higher than the last (clamped to dy / 4). turn_s: seconds for one full turn of the lens at the plain speed (the gap side is the first half). lit_s: seconds the beam's centre dwells on a puff (the puff is solid from lit_s/2 before the centre reaches it). glow_s: seconds a puff keeps the light after the beam has passed. fade_s: seconds of teeter warning before a puff goes dark. appear_s: seconds a puff takes to harden back. reach: how far the body's centre may be from the lower hop's gap edge, beyond its half width, to spin the wheel (px). fast_rate: how many times faster the lens turns after a spin. fast_s: seconds the fast turn lasts (real seconds). spin_hz: the wheel's ratchet; chime_hz: a puff hardening; puffs: cotton balls along a puff's top row.",
+      "min_gap": 90,
+      "max_gap": 220,
+      "min_dy": 40,
+      "max_dy": 150,
+      "tower_w": 36,
+      "tower_h": 60,
+      "drum_r": 9,
+      "beam_len": 120,
+      "puff_w": 34,
+      "puff_w_min": 18,
+      "puff_h": 16,
+      "rise": 30,
+      "turn_s": 12.0,
+      "lit_s": 0.8,
+      "glow_s": 0.7,
+      "fade_s": 0.4,
+      "appear_s": 0.15,
+      "reach": 18,
+      "fast_rate": 2.0,
+      "fast_s": 12.0,
+      "spin_hz": 520,
+      "chime_hz": 880,
+      "puffs": 4
+    }
+  },
+  "pieces": [
+    {
+      "_": "Cloud sea floors are 25..29, 60..64, 95..99 …; the vent floors ((n − 3) % 4 == 0: 27, 63 …) stay without a lens — the vents own the hop tops there and no gap pack lives on those floors (the raft, the plank and the balloon keep the same rule). On the other Cloud sea floors one lens stands at the widest gap of 90..220 px between two consecutive still hops 40..150 px apart in height that the raft (run 126), the mushrooms (run 119), the plank (run 137) and the balloon (run 138) have not taken — the loader passes their plans as `taken`.",
+      "kind": "lens",
+      "on": ["std", "ice"],
+      "max": 1,
+      "only": { "from": 4, "every": 4 }
+    },
+    { "kind": "lens", "on": ["std", "ice"], "max": 1, "only": { "from": 2, "every": 4 } },
+    { "kind": "lens", "on": ["std", "ice"], "max": 1, "only": { "from": 1, "every": 4 } }
+  ]
+}
