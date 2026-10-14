@@ -23,10 +23,11 @@ static func build(t, c: Vector3, back_z: float, house_back: float, w: float, han
 	for f in ANY: score[f] = maxf(float(score.get(f, 0.0)), 0.3 + rng.randf() * 0.5)
 	var picks: Array = score.keys()
 	picks.sort_custom(func(a, b): return float(score[a]) > float(score[b]))
+	if c.y > 0.3: picks.erase("pool")   # 비탈 터엔 물놀이 풀이 없다(수면은 높이 0)
 	var hw := w / 2.0 - 0.45
-	KitProps.border(t, Vector3(c.x - hw, 0, back_z + 0.3), Vector3(c.x + hw, 0, back_z + 0.3), rng)   # 뒤 울타리 덤불·꽃
-	for s in [-1.0, 1.0]: KitProps.border(t, Vector3(c.x + s * hw, 0, back_z + 0.9), Vector3(c.x + s * hw, 0, house_back - 0.6), rng, 0.8)
-	var mid := Vector3(c.x, 0, (back_z + 0.8 + house_back) / 2.0)
+	KitProps.border(t, Vector3(c.x - hw, c.y, back_z + 0.3), Vector3(c.x + hw, c.y, back_z + 0.3), rng)   # 뒤 울타리 덤불·꽃
+	for s in [-1.0, 1.0]: KitProps.border(t, Vector3(c.x + s * hw, c.y, back_z + 0.9), Vector3(c.x + s * hw, c.y, house_back - 0.6), rng, 0.8)
+	var mid := Vector3(c.x, c.y, (back_z + 0.8 + house_back) / 2.0)
 	_scene(t, String(picks[0]), mid, w - 2.0, house_back - back_z - 1.2, rng)
 
 static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNumberGenerator) -> void:
@@ -91,7 +92,7 @@ static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNum
 			var crops := ["crop_carrot", "crop_turnip", "crop_pumpkin", "crops_leafsStageB", "crops_cornStageC"]
 			for r in 3:
 				var rz := at.z - d / 2.0 + 0.5 + r * (d - 1.0) / 2.0
-				for hx in [-w / 4.0, w / 4.0]: KitProps.n(t, "crops_dirtRow", Vector3(at.x + hx, 0, rz), PI / 2.0, 3.0, false)
+				for hx in [-w / 4.0, w / 4.0]: KitProps.n(t, "crops_dirtRow", Vector3(at.x + hx, at.y, rz), PI / 2.0, 3.0, false)
 				var kind: String = crops[(r + rng.randi()) % crops.size()]
 				for q in 5: KitProps.n(t, kind, Vector3(at.x - w / 2.0 + 0.5 + q * (w - 1.0) / 4.0, 0.05, rz), rng.randf() * TAU, 1.3 if kind.begins_with("crops_corn") else 1.1, kind.begins_with("crops_corn"))
 			KitProps.k(t, "survival", "bucket", at + Vector3(w / 2.0 - 0.3, 0, d / 2.0 - 0.2), 0.0)   # 물통·괭이
@@ -100,10 +101,10 @@ static func _scene(t, f: String, at: Vector3, w: float, d: float, rng: RandomNum
 ## 가게 뒤 짐 마당 — 상자 더미·쓰레기통·직원 의자·화분·덤불 띠
 static func service(t, c: Vector3, back_z: float, house_back: float, seed: int) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
-	KitProps.border(t, Vector3(c.x - 3.0, 0, back_z + 0.3), Vector3(c.x + 3.0, 0, back_z + 0.3), rng)
+	KitProps.border(t, Vector3(c.x - 3.0, c.y, back_z + 0.3), Vector3(c.x + 3.0, c.y, back_z + 0.3), rng)
 	var mid := (back_z + house_back) / 2.0
-	for q in 3 + rng.randi() % 3: KitProps.f(t, "cardboardBoxClosed", Vector3(c.x - 2.2 + (q % 3) * 0.55, (q / 3) * 0.62, house_back - 0.8), rng.randf() * 0.5)
-	t._bin(Vector3(c.x + 2.6, 0, mid)); t._bin(Vector3(c.x + 2.0, 0, mid + 0.6))
-	KitProps.f(t, "benchCushion", Vector3(c.x - 0.6, 0, mid), 0.0)
-	t.spots.append({ "pos": Vector3(c.x - 0.6, 0, mid + 0.5), "kind": "bench", "yaw": PI })
-	KitProps.f(t, "pottedPlant", Vector3(c.x + 0.8, 0, mid - 0.5))
+	for q in 3 + rng.randi() % 3: KitProps.f(t, "cardboardBoxClosed", Vector3(c.x - 2.2 + (q % 3) * 0.55, c.y + (q / 3) * 0.62, house_back - 0.8), rng.randf() * 0.5)
+	t._bin(Vector3(c.x + 2.6, c.y, mid)); t._bin(Vector3(c.x + 2.0, c.y, mid + 0.6))
+	KitProps.f(t, "benchCushion", Vector3(c.x - 0.6, c.y, mid), 0.0)
+	t.spots.append({ "pos": Vector3(c.x - 0.6, c.y, mid + 0.5), "kind": "bench", "yaw": PI })
+	KitProps.f(t, "pottedPlant", Vector3(c.x + 0.8, c.y, mid - 0.5))

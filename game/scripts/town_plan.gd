@@ -18,6 +18,9 @@ const FRONT := 7.8           # 길 가운데에서 집 가운데까지(인도 4.
 static var _lots: Array = []   # [{id, c: Vector2, b: Vector2i, i, street_z}] — 순서 = 지을 순서
 
 static func lots() -> Array:
+	return Valley.lots()   # 산골 도시(valley.gd, 2026-10-14) — 아래 격자는 옛 것(쓰지 않는다)
+
+static func _grid_lots() -> Array:
 	if not _lots.is_empty(): return _lots
 	var n := int(REACH / PITCH)
 	for bx in range(-n, n):
@@ -73,7 +76,8 @@ static func block_slots(bx: int, bz: int) -> Array:
 	return out
 
 ## 산 블록 — 블록 가운데가 산 자락 안(꼭대기 둘레는 빼고). 찻길 격자 대신 비탈에 집이 흩어져 서고(PAD 터), 흙길로 이어진다
-static func is_hill(b: Vector2i) -> bool:
+static func is_hill(_b: Vector2i) -> bool: return false   # 산골 도시는 블록이 없다
+static func _is_hill_old(b: Vector2i) -> bool:
 	var c := Vector2(OX + (b.x + 0.5) * PITCH, OZ + (b.y + 0.5) * PITCH)
 	return WorldGen.peak_k_s(c.x, c.y) > 0.03
 
@@ -93,6 +97,7 @@ static var _trail_grid := {}
 static func _near_trail(c: Vector2) -> bool:
 	if _trail_grid.is_empty():
 		for pk in WorldGen.PEAKS:
+			if not pk.get("trail", true): continue
 			for p in WorldGen.trail_xz(pk): _trail_grid[Vector2i(floori(p.x / 6.0), floori(p.y / 6.0))] = true
 	for dx in [-1, 0, 1]:
 		for dz in [-1, 0, 1]:
@@ -123,6 +128,7 @@ static func _ok(c: Vector2) -> bool:
 
 ## 집이 실제로 서는 자리 — 필지 가운데에서 조금씩 앞뒤·좌우로(운영자 2026-10-06: "너무 규칙적이니까 별로") — 필지 순번마다 늘 같다
 static func spot_of(l: Dictionary) -> Vector3:
+	if l.has("road_pt"): return Vector3(l["c"].x, float(l.get("y", 0.0)), l["c"].y)   # 산골 도시 필지(valley) — 제 터 높이
 	if l.get("hill", false): return Vector3(l["c"].x, float(l.get("y", 0.0)), l["c"].y)   # 산 집 — 제 터 높이(WorldGen _hill_setup)
 	if String(l.get("form", "")) != "": return Vector3(l["c"].x, 0, l["c"].y)   # 붙은 집·큰 집·연립·광장은 줄을 맞춘다
 	var rng := RandomNumberGenerator.new(); rng.seed = hash("at/" + String(l["id"]))
@@ -143,7 +149,8 @@ static func block_order(b: Vector2i) -> int:
 	return int(_blocks_upto.get(b, 1 << 30))
 
 static var extra_flat := {}   # 아직 안 지었지만 찻길을 깔고 채운 블록(town_city _grow_streets) — 이 블록도 평지
-static func flat_dist(x: float, z: float, limit: int) -> float:
+static func flat_dist(_x: float, _z: float, _limit: int) -> float: return 1e9   # 블록을 깎지 않는다(바닥은 평평, 비탈 집은 제 터)
+static func _flat_dist_old(x: float, z: float, limit: int) -> float:
 	var bx := floori((x - OX) / PITCH); var bz := floori((z - OZ) / PITCH)
 	var best := 1e9
 	for dx in range(-1, 2):

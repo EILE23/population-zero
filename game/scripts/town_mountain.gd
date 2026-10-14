@@ -14,6 +14,7 @@ const GYM_LINES := {
 
 func _mountains() -> void:
 	for pk in WorldGen.PEAKS:
+		if not pk.get("trail", true): continue   # 큰 봉우리(horn)는 배경 — 계단·꼭대기 마당이 없다
 		_trail(pk)
 		var c: Vector3 = pk["c"]
 		var top := Vector3(c.x, gen.summit_y(pk), c.z)
@@ -86,7 +87,7 @@ func _trail(pk: Dictionary) -> void:
 		mm.set_instance_transform(k, xs[k])
 		mm.set_instance_color(k, Color(0.6, 0.52, 0.42) if k % 2 == 0 else Color(0.52, 0.45, 0.37))   # 흙돌 빛 — 밝은 회색이라 멀리서 산을 가르는 흰 줄로 보였다(운영자 2026-10-14)
 	var sm := _mat(Color.WHITE, _tex("ground/cobble"), Vector3(1.3, 1.3, 1.3)); sm.uv1_triplanar = true; sm.uv1_world_triplanar = true; sm.vertex_color_use_as_albedo = true
-	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.material_override = sm; sb.add_child(mmi)
+	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.material_override = sm; mmi.visibility_range_end = 140.0; sb.add_child(mmi)   # 멀면 안 그린다 — 먼 땅(낮은 격자) 위에 떠 보였다
 
 ## 꼭대기 마당
 func _summit(c: Vector3, pk: Dictionary) -> void:

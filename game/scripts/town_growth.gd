@@ -12,7 +12,7 @@ const GROWTH := "user://growth.json"
 const SITES_AT_ONCE := 8       # (2026-10-13 4→8: 운영자 "집도 계속 지어야지") 동시에 짓는 공사장 수(건축가 공사장 — 사람이 산 필지는 따로, town_plots)
 const STAGE_WORK := 4          # 한 단계에 필요한 일 단위(건축가 한 명 25초)
 const WORK_T := 25.0
-const EPOCH := 1791919821.0   # 2026-10-14 HOUSE_S 900→300 으로 바꾸며 그때 집 수(177)가 이어지게 옮김   # 성장 시계의 0 — 이때 founded + 0.5 채쯤(2026-10-13 KST 15시)
+const EPOCH := 1791952500.0   # 2026-10-14 산골 도시: 바닥 마을 420채(founded)에서 시작, 5분에 한 채씩 비탈로 —   # 2026-10-14 HOUSE_S 900→300 으로 바꾸며 그때 집 수(177)가 이어지게 옮김   # 성장 시계의 0 — 이때 founded + 0.5 채쯤(2026-10-13 KST 15시)
 const HOUSE_S := 300.0          # 5분에 한 채(하루 288채) — 모두에게 같다(운영자 2026-10-14: 빈 땅은 집으로)
 const NEAR := 100.0             # 이 안의 지어진 필지는 바로 짓고, 밖은 다가가면
 const RES_MAX := 90            # 몸이 있는 주민 상한 — 넘으면 입주는 하되 집에 불만 켜진다(성능)
@@ -45,8 +45,9 @@ func _growth_init() -> void:
 	var lots := TownPlan.lots()
 	var me := Vector2(body.global_position.x, body.global_position.z)
 	for k in mini(built, lots.size()):
-		if me.distance_to(lots[k]["c"]) < NEAR or k < CityMap.founded(): _finish_lot(lots[k], false)
-		else: _due[k] = true
+		if me.distance_to(lots[k]["c"]) < NEAR: _finish_lot(lots[k], false)
+		else: _due[k] = true   # 나머지는 시작한 뒤 프레임마다 둘씩, 가까운 것부터(_due_pump) — 한 번에 다 지으면 시작이 30초였다
+	if not _due.is_empty(): get_tree().process_frame.connect(_due_pump)
 	_hire_builders()
 	_open_sites()
 
@@ -80,18 +81,27 @@ func _growth_tick() -> void:
 		if _site_nodes.has(k): (_site_nodes[k] as Node3D).queue_free(); _site_nodes.erase(k); site_work.erase(k)
 		if me.distance_to(lots[k]["c"]) < NEAR: _finish_lot(lots[k], true)
 		else: _due[k] = true
-	var n := 0
-	for k in _due.keys():
-		if n >= 3: break
-		if me.distance_to(lots[k]["c"]) < NEAR:
-			_due.erase(k)
-			if not _done.has(k): _finish_lot(lots[k], false); n += 1
+	if not _due.is_empty() and not get_tree().process_frame.is_connected(_due_pump): get_tree().process_frame.connect(_due_pump)
 	if changed: gen.flat_limit = maxi(gen.flat_limit, built + SITES_AT_ONCE); _open_sites(); _save_growth()
 	for k in _site_nodes.keys():
 		if has_method("_claimed") and call("_claimed", k): continue   # 사람이 산 집은 망치질로
 		var w := site_progress(k, t) * STAGE_WORK * 5.0
 		if int(w / STAGE_WORK) != int(float(site_work.get(k, 0.0)) / STAGE_WORK) or absf(w - float(site_work.get(k, 0.0))) > 1.0:
 			site_work[k] = w; _draw_site(k)
+
+## 아직 안 세운 지어진 필지 — 프레임마다 둘, 내 둘레 가까운 것부터
+func _due_pump() -> void:
+	if _due.is_empty():
+		get_tree().process_frame.disconnect(_due_pump); return
+	var lots := TownPlan.lots(); var me := Vector2(body.global_position.x, body.global_position.z)
+	for n in 2:
+		if _due.is_empty(): break
+		var best := -1; var bd := 1e9
+		for k in _due:
+			var d: float = me.distance_to(lots[k]["c"])
+			if d < bd: bd = d; best = k
+		_due.erase(best)
+		if not _done.has(best): _finish_lot(lots[best], false)
 
 func _tool_run() -> bool:
 	return DisplayServer.get_name() == "headless" or "-s" in OS.get_cmdline_args() or "--script" in OS.get_cmdline_args() or "--sheet" in OS.get_cmdline_user_args()

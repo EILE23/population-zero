@@ -21,8 +21,8 @@ const SITES := [
 	{ "name": "cabin", "c": Vector3(-150, 0, -38), "r": 15.0, "from": Vector3(-150, 0, 3.8) },
 	{ "name": "lakeside", "c": Vector3(135, 0, -50), "r": 24.0, "from": Vector3(135, 0, 0.2) },
 	{ "name": "tower", "c": Vector3(16, 0, -82), "r": 18.0, "from": Vector3(15.5, 0, -13.0) },
-	{ "name": "pell", "c": Vector3(-186, 0, -180), "r": 8.0, "from": Vector3(-180, 0, -174) },     # 산 들머리(PEAKS head) — 표지판·볼라드·벤치(town_mountain). 산은 마을 바깥(2026-10-14 재구성)
-	{ "name": "gorse", "c": Vector3(242, 0, -191), "r": 8.0, "from": Vector3(236, 0, -186) },
+	{ "name": "pell", "c": Vector3(-168, 0, -96), "r": 8.0, "from": Vector3(-168, 0, -88) },     # 산 들머리(PEAKS head) — 골짜기 바닥 북쪽 끝(산골 도시, 2026-10-14)
+	{ "name": "gorse", "c": Vector3(228, 0, -96), "r": 8.0, "from": Vector3(228, 0, -88) },
 ]
 
 ## 산(운영자 2026-10-06: "언덕 같은 곳에 나무가 엄청 많이 생기면서 실제 산이 돼야", "차로는 도저히 못 올라갈 길… 사람만 올라갈 수 있게", "산스장도") —
@@ -31,8 +31,10 @@ const SITES := [
 ## head = 들머리(마을 쪽 자락), top = 꼭대기 마당 반지름, turns = 계단이 산을 몇 바퀴 감는지. 짓는 건 town_mountain.gd
 const PEAKS := [
 	# 산은 마을 바깥 자락(운영자 2026-10-14: "도시 한가운데 오르막", "외곽의 집들은 산 위에 — 산과 마을이 어우러지게") — 마을이 자라 닿으면 비탈에 집이 흩어져 선다(TownPlan 산 블록)
-	{ "name": "pell", "title": "MT. PELL", "c": Vector3(-300, 0, -290), "r": 170.0, "h": 70.0, "top": 13.0, "head": Vector3(-186, 0, -180), "turns": 1.15, "gym": true },
-	{ "name": "gorse", "title": "GORSE HILL", "c": Vector3(330, 0, -260), "r": 120.0, "h": 44.0, "top": 9.0, "head": Vector3(242, 0, -191), "turns": 0.9, "gym": false },
+	# 산골 도시(2026-10-14): 골짜기 북쪽 벽에 기댄 두 봉우리(계단·산스장), 동쪽 끝엔 뾰족한 큰 봉우리(마터호른처럼 — 오르지 못한다, 멀리서 보인다)
+	{ "name": "pell", "title": "MT. PELL", "c": Vector3(-170, 0, -168), "r": 75.0, "h": 46.0, "top": 13.0, "head": Vector3(-168, 0, -96), "turns": 1.15, "gym": true },
+	{ "name": "gorse", "title": "GORSE HILL", "c": Vector3(230, 0, -160), "r": 62.0, "h": 32.0, "top": 9.0, "head": Vector3(228, 0, -96), "turns": 0.9, "gym": false },
+	{ "name": "horn", "title": "THE HORN", "c": Vector3(560, 0, -190), "r": 240.0, "h": 360.0, "top": 4.0, "head": Vector3(560, 0, -190), "turns": 0.0, "gym": false, "trail": false },
 ]
 const TREAD := 0.6             # 계단 한 칸 길이(m)
 const RISE := 0.28             # 한 단 높이 — town_base STEP(0.42) 보다 낮고 차의 바닥 붙기(0.25)보다 높다
@@ -78,11 +80,13 @@ func setup(t: TownBase) -> void:
 	hz.material_override = t._mat(Color("7fa65e")); hz.position.y = -2.5; add_child(hz)
 	var floor := StaticBody3D.new(); var fcs := CollisionShape3D.new(); var wb := WorldBoundaryShape3D.new()   # 높이 0 바닥 판 — 깎인 마을 땅은 칸이 지어지기 전에도 밟힌다(차·주민이 멀리서도 떨어지지 않게)
 	wb.plane = Plane(Vector3.UP, -0.03); fcs.shape = wb; floor.add_child(fcs); add_child(floor)
+	_far_all()
 	for pk in PEAKS:
+		if not pk.get("trail", true): continue
 		for p in trail_xz(pk):
 			for dx in [-1, 0, 1]:
 				for dz in [-1, 0, 1]: _trail_cells[Vector2i(floori(p.x / 3.0) + dx, floori(p.y / 3.0) + dz)] = true
-		_far_peak(pk)
+
 
 ## 멀리서 보이는 산 — 칸(지은 땅)은 플레이어 둘레만 있어서 마을에선 산이 안 보였다. 거친 격자 한 장(충돌 없음)을 늘 두고, 가까워져 칸이 지어지면 그 밑에 묻힌다(0.6m 낮게)
 func _far_peak(pk: Dictionary) -> void:
@@ -111,7 +115,28 @@ func _far_peak(pk: Dictionary) -> void:
 
 ## 깎인 블록이 바뀌면(마을이 넓어짐) 먼 산도 다시 — 처음 것은 성장 상태를 읽기 전(깎기 없음)에 지어져 새 블록 위를 덮었다
 func _refresh_far() -> void:
-	for pk in PEAKS: _far_peak(pk)
+	pass   # 먼 땅(_far_all)은 처음 한 번 — 깎기가 없어졌다(산골 도시)
+
+## 먼 땅 한 장(산골 도시, 2026-10-14) — 골짜기와 둘러싼 산 전체를 16m 격자 한 장으로(충돌 없음, 칸 밑 0.6m). 마을에서 산·큰 봉우리가 늘 보이게. 높으면 바위빛·눈
+func _far_all() -> void:
+	var x0 := -760.0; var z0 := -560.0; var step := 16.0; var nx := 100; var nz := 62
+	var verts := PackedVector3Array(); var cols := PackedColorArray(); var idx := PackedInt32Array()
+	for j in nz + 1:
+		for i in nx + 1:
+			var x := x0 + i * step; var z := z0 + j * step
+			var h := minf(minf(raw(x, z), raw(x + 6.0, z)), minf(raw(x - 6.0, z), minf(raw(x, z + 6.0), raw(x, z - 6.0)))) * (1.0 if wild_k(x, z) > 0.5 else wild_k(x, z))
+			verts.append(Vector3(x, h - 0.6, z))
+			var c := Color(0.5, 0.66, 0.4).lerp(Color(0.32, 0.46, 0.3), smoothstep(8.0, 40.0, h)).lerp(Color(0.56, 0.56, 0.54), smoothstep(110.0, 160.0, h)).lerp(Color(0.96, 0.97, 1.0), smoothstep(165.0, 200.0, h))
+			cols.append(c)
+	for j in nz:
+		for i in nx:
+			var a := j * (nx + 1) + i
+			idx.append_array([a, a + 1, a + nx + 1, a + 1, a + nx + 2, a + nx + 1])
+	var arr := []; arr.resize(Mesh.ARRAY_MAX); arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_INDEX] = idx
+	var st := SurfaceTool.new(); st.create_from_arrays(arr); st.generate_normals()
+	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.name = "Far_all"
+	var m := StandardMaterial3D.new(); m.vertex_color_use_as_albedo = true; mi.material_override = m
+	add_child(mi)
 
 # ── 땅 ──
 ## 0 = 평지로 깎인 곳(허브·큰길·강), 1 = 자연 지형
@@ -129,16 +154,7 @@ func wild_k(x: float, z: float) -> float:
 		if dr > 7.0 and lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
 		if not (dr > 7.0 and lake == 1): k = minf(k, smoothstep(4.0, 16.0, dr))
 	k = minf(k, smoothstep(town.RIVER_HW + 2.0, town.RIVER_HW + 14.0, absf(z - town.RIVER_Z)))
-	if flat_limit > 0:   # 지은·짓는 집 블록은 평지 — 둘레 26m 에 걸쳐 산으로
-		var fd := TownPlan.flat_dist(x, z, flat_limit)
-		if fd < 26.0:
-			if lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
-			if lake != 1 or fd < 0.5: k = minf(k, smoothstep(0.0, 26.0, fd))   # 블록 안은 다 땅으로(찻길에 둘린 네모 호수가 됐다) — 블록 밖 비탈의 호수는 그대로
-	var cd := _civic_dist(x, z)   # 관공서·공원 블록도 평지 — 필지가 없어 빠졌고, 시청·학교·도서관이 언덕에 묻혔다(운영자 2026-10-08)
-	if cd < 26.0:
-		if lake == 0: lake = 1 if raw(x, z) < 0.0 else -1
-		var keep_lake := lake == 1 and cd >= 0.5   # 비탈의 호수는 그대로(호숫가가 블록 사각형에서 잘렸다). 공원 블록 안은 깎는다 — 찻길에 둘린 네모 연못이 됐다
-		if not keep_lake: k = minf(k, smoothstep(0.0, 26.0, cd))
+
 	for s in SITES:
 		var c: Vector3 = s["c"]; var r: float = s["r"]
 		k = minf(k, smoothstep(r, r + 22.0, Vector2(x - c.x, z - c.z).length()))
@@ -176,11 +192,11 @@ static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
 
 ## 깎기 전 높이 — 큰 굽이 + 작은 기복 + 산. 0 아래는 호수가 된다
 func raw(x: float, z: float) -> float:
-	var pk := peak_h(x, z)
-	return 3.4 + 13.0 * _big.get_noise_2d(x, z) + (2.4 + 3.5 * pk.y) * _mid.get_noise_2d(x, z) + pk.x
+	return Valley.base_h(x, z)   # 산골짜기 + 봉우리(valley)
 
 ## 산이 더하는 높이(x)와 거친 정도(y, 0..1 — 자락의 잔기복을 키우되 꼭대기 마당 둘레는 0 이라 평평하다)
-func peak_h(x: float, z: float) -> Vector2:
+func peak_h(x: float, z: float) -> Vector2: return peak_h_s(x, z)
+static func peak_h_s(x: float, z: float) -> Vector2:
 	var add := 0.0; var rough := 0.0
 	for pk in PEAKS:
 		var c: Vector3 = pk["c"]; var r: float = pk["r"]; var h: float = pk["h"]; var top: float = pk["top"]
@@ -212,25 +228,16 @@ const PAD_IN := 5.5
 const PAD_OUT := 10.0
 var _pads := {}    # 8m 칸 -> [[x, z, y]]
 var _lanes := {}   # 4m 칸 -> [[a: Vector2, b: Vector2]]
-func _hill_setup() -> void:
-	var hill: Array = TownPlan.lots().filter(func(l: Dictionary) -> bool: return l.get("hill", false))
-	for l in hill:
+func _hill_setup() -> void:   # 비탈 집 터(산골 도시 필지 중 y > 0.3)
+	for l in TownPlan.lots():
+		var y := float(l.get("y", 0.0))
+		if y < 0.02 and Valley.base_h((l["c"] as Vector2).x, (l["c"] as Vector2).y - 10.0) < 0.05 and Valley.base_h((l["c"] as Vector2).x, (l["c"] as Vector2).y + 6.0) < 0.05: continue   # 바닥 집은 터가 없어도 된다
 		var c: Vector2 = l["c"]
-		var y := maxf(raw(c.x, c.y), 0.9)   # 호숫가면 작은 둔덕 위에
-		l["y"] = y
 		for dx in [-1, 0, 1]:
-			for dz in [-1, 0, 1]:
+			for dz in [-2, -1, 0, 1]:
 				var k := Vector2i(floori(c.x / 8.0) + dx, floori(c.y / 8.0) + dz)
 				if not _pads.has(k): _pads[k] = []
 				_pads[k].append([c.x, c.y, y])
-	for l in hill:   # 흙길 — 가까운 산 집 둘과, 블록마다 가장 이른 집은 마을 쪽 찻길까지
-		var c: Vector2 = l["c"]
-		var near: Array = hill.filter(func(o: Dictionary) -> bool: return o != l and (o["c"] as Vector2).distance_to(c) < 26.0)
-		near.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return (a["c"] as Vector2).distance_to(c) < (b["c"] as Vector2).distance_to(c))
-		for o in near.slice(0, 2): _add_lane(c + Vector2(0, 2.6), (o["c"] as Vector2) + Vector2(0, 2.6))
-		if int(l["order"]) == TownPlan.block_order(l["b"]):
-			var to := Vector2(TownPlan.OX + roundf((c.x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH, c.y) if absf(fposmod(c.x - TownPlan.OX, TownPlan.PITCH) - 20.0) > 8.0 else Vector2(c.x, TownPlan.OZ + roundf((c.y - TownPlan.OZ) / 20.0) * 20.0)
-			_add_lane(c + Vector2(0, 2.6), to)
 
 func _add_lane(a: Vector2, b: Vector2) -> void:
 	var n := int(a.distance_to(b) / 2.0) + 1
@@ -251,9 +258,11 @@ func pad_at(x: float, z: float) -> Vector2:
 	if _pads.is_empty(): return Vector2.ZERO
 	var best := Vector2.ZERO
 	for p in _pads.get(Vector2i(floori(x / 8.0), floori(z / 8.0)), []):
-		var d := Vector2(x - p[0], z - p[1]).length()
-		if d >= PAD_OUT: continue
-		var w := 1.0 - smoothstep(PAD_IN, PAD_OUT, d)
+		var dx := maxf(absf(x - p[0]) - 4.8, 0.0)
+		var dz := maxf(maxf(p[1] - 10.5 - z, z - p[1] - 6.0), 0.0)   # 집 앞 6m·뒤뜰 10.5m 까지 평평
+		var d := Vector2(dx, dz).length()
+		if d >= PAD_OUT - PAD_IN: continue
+		var w := 1.0 - smoothstep(0.0, PAD_OUT - PAD_IN, d)
 		if w > best.x: best = Vector2(w, p[2])
 	return best
 
@@ -273,7 +282,7 @@ static func trail_xz(pk: Dictionary) -> PackedVector2Array:
 var _trail_cells := {}   # 3m 칸 → 계단 길이 지나간다(나무를 안 심는다)
 ## 들판 흙길 위인가(잡음 등고선 ±폭) — 깎인 마을 안·산·호수엔 없다
 func dirt_at(x: float, z: float) -> bool:
-	return (absf(_paths.get_noise_2d(x, z)) < 0.018 and peak_k(x, z) < 0.05 and _h(x, z) > 0.2) or loop_at(x, z) or lane_at(x, z)
+	return lane_at(x, z)   # 들판 흙길(잡음 등고선)·둘레길은 뺐다 — 산골 도시엔 진짜 길(valley)이 있다. 멀리서 떠 있는 갈색 띠로 보였다(2026-10-14)
 
 ## 둘레길(운영자 2026-10-06: "둘레길도 존재해야") — 마을을 한 바퀴 도는 흙길. 반지름이 출렁이고(산 자락·호숫가를 스친다), 깎인 마을 땅에선 마을 것을 피한다
 const LOOP_C := Vector2(20.0, -10.0)
@@ -284,21 +293,9 @@ func loop_at(x: float, z: float) -> bool:
 	if absf(v.length() - loop_r(v.angle())) > 1.25 or peak_k(x, z) > 0.4: return false
 	return wild_k(x, z) > 0.3   # 마을(깎인 땅)은 지나지 않는다 — 마을이 넓어지자 흙길이 블록·찻길을 비스듬히 가로질렀다(운영자 2026-10-14)
 
-## 깔린 찻길(town_city _segs) 위인가 — 판 폭 + 0.8m
+## 길 위인가(산골 도시 길 — Valley) — 길 가장자리 + 0.8m 안
 func _on_road(x: float, z: float) -> bool:
-	var segs: Variant = town.get("_segs")
-	if not (segs is Dictionary) or (segs as Dictionary).is_empty(): return false
-	var fx := (x - TownPlan.OX) / TownPlan.PITCH; var fz := (z - TownPlan.OZ) / 20.0
-	var hw := TownPlan.ROAD_W / 2.0 + 0.8
-	var j := roundi(fz)
-	if absf(z - (TownPlan.OZ + j * 20.0)) < hw:
-		var i0 := floori(fx)
-		if (segs as Dictionary).has(RoadTiles.seg_key(Vector2i(i0, j), Vector2i(i0 + 1, j))): return true
-	var i := roundi(fx)
-	if absf(x - (TownPlan.OX + i * TownPlan.PITCH)) < hw:
-		var j0 := floori(fz)
-		if (segs as Dictionary).has(RoadTiles.seg_key(Vector2i(i, j0), Vector2i(i, j0 + 1))): return true
-	return false
+	return float(Valley.near(Vector2(x, z))[0]) < 0.8
 
 func on_trail(x: float, z: float) -> bool:
 	if dirt_at(x, z): return true
@@ -313,9 +310,13 @@ func _h(x: float, z: float) -> float:
 ## 깎은 높이 — 깎기(k) 뒤에 산 집 터를 편다
 func _shaped(x: float, z: float, k: float) -> float:
 	var h := k * raw(x, z)
-	if not _pads.is_empty() and peak_k_s(x, z) > 0.0:
-		var pd := pad_at(x, z)
-		if pd.x > 0.0: h = lerpf(h, pd.y, pd.x)
+	if h > 0.05:   # 비탈 — 길은 제 높이로 깎고(길 따라 고른 높이, 둘레 3m 에 걸쳐), 집은 제 터
+		var nr: Array = Valley.near(Vector2(x, z))
+		var dd := float(nr[0])
+		if dd < 3.0: h = lerpf(h, float(nr[3]), 1.0 - smoothstep(-0.5, 3.0, dd))
+		if not _pads.is_empty():
+			var pd := pad_at(x, z)
+			if pd.x > 0.0: h = lerpf(h, pd.y, pd.x)
 	return h
 
 ## 땅 높이(호수 바닥은 수면 바로 아래 -0.02 — 강과 같은 얕은 물이라 같은 헤엄 규칙)
@@ -336,8 +337,10 @@ func lake_at(p: Vector3) -> bool:
 	return p.y < 0.3 and _h(p.x, p.z) < -0.05
 
 func _biome(x: float, z: float, h: float) -> String:
-	if h > 7.5: return "high"
+	if h > 165.0: return "snow"   # 산골짜기(2026-10-14): 바닥 풀밭 → 숲 비탈 → 솔 고지 → 눈
+	if h > 105.0: return "high"
 	var m := _moist.get_noise_2d(x, z)
+	if h > 6.0: return "meadow" if m < -0.25 else "mountain"   # 비탈은 숲, 군데군데 풀밭(목초지)
 	if m > 0.12: return "forest"
 	if m < -0.3: return "dry"
 	return "meadow"
@@ -345,7 +348,8 @@ func _biome(x: float, z: float, h: float) -> String:
 func _tint(x: float, z: float, h: float, k: float, slope: float, hr: float) -> Color:
 	var c := Color.WHITE
 	match _biome(x, z, h):
-		"forest": c = Color(0.74, 0.86, 0.7)
+		"snow": c = Color(1.25, 1.25, 1.28)   # 눈(풀 무늬를 하얗게 바랜다)
+		"forest", "mountain": c = Color(0.74, 0.86, 0.7)
 		"high": c = Color(0.84, 0.88, 0.8)
 		"dry": c = Color(1.0, 0.94, 0.72)
 		_: c = Color(0.97, 1.0, 0.88)
@@ -478,15 +482,16 @@ func _nature(n: Node3D, key: Vector2i, o: Vector3) -> void:
 	var biome := _biome(c.x, c.z, height(c.x, c.z))
 	var plan: Array = []   # [목록, 개수, 크기(목표 높이 m 또는 배율), 충돌 반지름]
 	var pkk := peak_k(c.x, c.z)
-	if pkk > 0.03: biome = "mountain"   # 산: 빽빽한 숲 — 아래는 활엽, 위로 갈수록 솔(그 자리 높이로 고른다)
+	if pkk > 0.03 and biome != "snow" and biome != "high": biome = "mountain"   # 산: 빽빽한 숲 — 아래는 활엽, 위로 갈수록 솔(그 자리 높이로 고른다)
 	match biome:
 		"mountain": plan = [["MOUNTAIN", int(18 + 22 * minf(1.0, pkk * 2.5)), 5.2, 0.28], [UNDER, 16, 0.7, 0.0], [BUSHES, 6, 1.0, 0.0], [ROCKS, 5, 1.3, 0.55], [GRASS, 14, 0.9, 0.0], [PEBBLES, 6, 0.8, 0.0]]
 		"forest": plan = [[FOREST, 22, 4.6, 0.28], [UNDER, 24, 0.9, 0.0], [BUSHES, 10, 1.1, 0.0], [GRASS, 40, 1.1, 0.0], [ROCKS, 2, 1.0, 0.5]]
 		"high": plan = [[HIGH, 9, 5.0, 0.25], [ROCKS, 4, 1.2, 0.55], [PEBBLES, 8, 0.8, 0.0], [GRASS, 12, 0.8, 0.0]]
+		"snow": plan = [[ROCKS, 3, 1.6, 0.6]]
 		"dry": plan = [[ROCKS, 3, 1.0, 0.5], [PEBBLES, 10, 0.9, 0.0], [GRASS, 22, 0.9, 0.0], [FOREST, 1, 3.8, 0.28]]
 		_: plan = [[FLOWERS, 60, 1.2, 0.0], [GRASS, 120, 1.3, 0.0], [BUSHES, 16, 1.2, 0.0], [FOREST, 6, 4.6, 0.28], [PEBBLES, 6, 0.9, 0.0], [ROCKS, 2, 1.0, 0.5], [UNDER, 8, 0.9, 0.0]]   # Kenney 풀은 작아 두 배쯤
 	var flat := wild_k(c.x, c.z) < 0.05 and wild_k(o.x, o.z) < 0.05 and wild_k(o.x + CHUNK, o.z + CHUNK) < 0.05
-	if flat: plan = [[GRASS, 90, 1.2, 0.0], [FLOWERS, 40, 1.1, 0.0], [BUSHES, 12, 1.1, 0.0], [FOREST, 4, 4.4, 0.28], [PEBBLES, 4, 0.9, 0.0]]   # 마을 가의 평지 — 빈 잔디로 두지 않는다
+	if flat: plan = [[GRASS, 14, 1.0, 0.0], [FOREST, 3, 4.4, 0.28]]   # 골짜기 바닥(마을) — 잔디는 깨끗하게, 나무 몇 그루만(운영자 2026-10-14: "녹지가 더럽다")   # 마을 가의 평지 — 빈 잔디로 두지 않는다
 	var clusters: Array = []   # 꽃·덤불은 무리로(고르게 흩으면 멀리선 안 보였다)
 	for q in 4: clusters.append(Vector2(o.x + rng.randf() * CHUNK, o.z + rng.randf() * CHUNK))
 	for row in plan:
@@ -561,18 +566,17 @@ func _town_clear(x: float, z: float, r: float) -> bool:
 	if absf(x) < HUB_X + 2.0 and absf(z) < HUB_Z + 2.0: return false
 	if absf(z - ROAD_Z) < 3.4 + r * 0.3: return false
 	if absf(z - town.RIVER_Z) < town.RIVER_HW + 1.5: return false
-	var gx := fposmod(x - TownPlan.OX, TownPlan.PITCH); var gz := fposmod(z - TownPlan.OZ, TownPlan.PITCH / 2.0)
-	var rw := TownPlan.ROAD_W / 2.0 + 0.4
-	if gx < rw or gx > TownPlan.PITCH - rw or gz < rw or gz > TownPlan.PITCH / 2.0 - rw: return false   # 찻길(남북 40m, 동서 20m 마다)
+	if float(Valley.near(Vector2(x, z))[0]) < 1.5 + r * 0.3: return false   # 길 위·길가
 	for s in SITES:
 		var sc: Vector3 = s["c"]
 		if Vector2(x - sc.x, z - sc.z).length() < float(s["r"]) + 1.0: return false
 		if _seg_dist(Vector2(x, z), Vector2(s["from"].x, s["from"].z), Vector2(sc.x, sc.z)) < 3.5: return false
 	var b := CityMap.block_of(Vector2(x, z))
-	if flat_limit > 0 and TownPlan.block_order(b) < flat_limit: return false   # 지은 블록 안은 들풀을 안 띄운다 — 마당·공용지(town_city)가 채운다. 갈대·들꽃이 가게 옆에 무성했다(운영자 2026-10-08)
-	if CityMap.whole_block(b) and Vector2(x, z).distance_to(Vector2(CityMap.block_center(b).x, CityMap.block_center(b).z)) < 19.0: return false   # 관공서·공원 블록
-	for l in _lots_near(b):
-		if Vector2(x, z).distance_to(l["c"]) < 3.6 + r * 0.5: return false   # 집 둘레만(필지 간격 7.4m)
+	for db in [Vector2i(0, 0), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]:
+		for l in _lots_near(b + db):   # 집과 마당(앞 7m·뒤 11m)
+			var c: Vector2 = l["c"]
+			if absf(x - c.x) < 5.5 + r * 0.4 and z > c.y - 11.0 - r * 0.4 and z < c.y + 7.0 + r * 0.4: return false
+	for cv in Valley.CIVIC: if Vector2(x, z).distance_to(cv[2]) < 16.0: return false
 	return true
 
 var _lots_by_block := {}

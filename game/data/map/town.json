@@ -1,6 +1,6 @@
 {
   "_": "POZ town map (owner 2026-10-06: the town must read like a designed map, not empty grass). Blocks are TownPlan grid cells: block bx,bz spans x = 16 + 40*bx .. +40, z = 2 + 40*bz .. +40. zone: high_street (every lot a staffed shop), residential (houses, every 9th lot a pocket green), workshop (sheds), civic (one big enterable building on the whole block, no lots), park (whole block green, no lots). Anything not listed is residential. Blocks with built lots (orders 0..13) must keep a lot zone, or saved houses move. This file is the format a future map editor writes.",
-  "founded": 90,
+  "founded": 420,
   "blocks": {
     "-1,-2": {
       "zone": "high_street",

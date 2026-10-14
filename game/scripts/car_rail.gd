@@ -12,11 +12,6 @@ extends RefCounted
 
 const W := 1.2                 # 차선 — 찻길 9m(아스팔트 6.7m)의 가운데에서 1.2m. 0.8 이면 마주 오는 두 차(폭 1.4) 사이가 0.2m 라 스쳐 박혔다
 const W_MAIN := 1.0           # 옛 마을 안 큰길(3.6m 판)
-const R := 4.0
-const NI := 6           # 격자 반경(노드) — x −224..216
-const NJ := 10          # z −198..202
-static var _edge := {}  # "i,j|i2,j2" -> bool
-static var _edge_at := -1
 static var locks := {}  # Vector2i(노드) -> [{car, axis, straight}]
 
 var centers: Array[Vector3] = []   # 가운데 줄 점(시작·노드…·목적지)
@@ -41,125 +36,132 @@ var _stop_t := 0.0
 var _backs := 0
 var why := ""                      # 점검(probe_rail) — 지금 무엇 때문에 느린가, 왜 길을 잃었나
 
-# ── 길 그물 ──
-static func npos(n: Vector2i) -> Vector3: return Vector3(TownPlan.OX + n.x * TownPlan.PITCH, 0, TownPlan.OZ + n.y * 20.0)
+# ── 길 그물(산골 도시 — Valley.graph: 마디·가지) ──
+var _ws: Array[float] = []   # centers 마다 길 폭
 
-static func _ok(t, a: Vector2i, b: Vector2i) -> bool:
-	if absi(b.x) > NI or absi(b.y) > NJ: return false
-	var gen: WorldGen = t.gen
-	var stamp: int = gen.flat_limit * 100000 + (t._segs as Dictionary).size()
-	if stamp != _edge_at: _edge.clear(); _edge_at = stamp   # 마을이 넓어지면(깎기·찻길) 다시 잰다
-	var key := "%d,%d|%d,%d" % ([a.x, a.y, b.x, b.y] if (a.x < b.x or (a.x == b.x and a.y < b.y)) else [b.x, b.y, a.x, a.y])
-	if _edge.has(key): return _edge[key]
-	var pa := npos(a); var pb := npos(b)
-	var ok := true
-	var main := a.y == 0 and b.y == 0
-	var ns := a.x == b.x
-	if ns and mini(a.y, b.y) == 0 and maxi(a.y, b.y) == 1:   # 강을 건너는 토막 — 다리(town_traffic LINKS, |x| > 72)만
-		ok = absf(pa.x) > 72.0 and float(pa.x) in TownTraffic.LINKS
-	if ok and not main and not (t._segs as Dictionary).has(RoadTiles.seg_key(a, b)): ok = false   # 깔린 찻길만(road_tiles) — 풀밭 위 격자 줄을 달리지 않게
-	if ok and not main:
-		for k in 7:
-			var p := pa.lerp(pb, k / 6.0)
-			var in_hub := absf(p.x) < WorldGen.HUB_X + 2.0 and absf(p.z) < WorldGen.HUB_Z + 2.0
-			if in_hub: ok = false; break   # 옛 마을은 큰길만(Tower Road 는 좁아 우체국에 박혔다)
-			if not in_hub and (gen.wild_k(p.x, p.z) > 0.05 or not gen.car_ground(p)): ok = false; break
-			if not ns and posmod(a.y, 2) == 1 and CityMap.whole_block(CityMap.block_of(Vector2(p.x, p.z + 1.0))): ok = false; break   # 관공서·공원 블록 안 뒷골목은 없다
-	_edge[key] = ok
-	return ok
+## 가지 e 의 투영(점 번호 k 의 토막 위 q)에서 끝 마디(to_b)까지의 점들
+static func _to_end(pts: PackedVector2Array, k: int, q: Vector2, to_b: bool) -> PackedVector2Array:
+	var out := PackedVector2Array([q])
+	if to_b:
+		for i in range(k + 1, pts.size()): out.append(pts[i])
+	else:
+		for i in range(k, -1, -1): out.append(pts[i])
+	return out
 
-static func near_node(p: Vector3) -> Vector2i:
-	return Vector2i(clampi(roundi((p.x - TownPlan.OX) / TownPlan.PITCH), -NI, NI), clampi(roundi((p.z - TownPlan.OZ) / 20.0), -NJ, NJ))
+static func _plen(p: PackedVector2Array) -> float:
+	var l := 0.0
+	for i in p.size() - 1: l += p[i].distance_to(p[i + 1])
+	return l
 
-## 이 점이 놓인 길 토막(양 끝 노드)과 그 위의 가운데 줄 점
-static func _seg_of(p: Vector3) -> Array:
-	var fx := (p.x - TownPlan.OX) / TownPlan.PITCH; var fz := (p.z - TownPlan.OZ) / 20.0
-	var dx := absf(fx - roundf(fx)) * TownPlan.PITCH; var dz := absf(fz - roundf(fz)) * 20.0
-	if dz <= dx:   # 동서 길 위
-		var j := roundi(fz); var i0 := floori(fx)
-		return [Vector2i(i0, j), Vector2i(i0 + 1, j), Vector3(p.x, 0, TownPlan.OZ + j * 20.0)]
-	var i := roundi(fx); var j0 := floori(fz)
-	return [Vector2i(i, j0), Vector2i(i, j0 + 1), Vector3(TownPlan.OX + i * TownPlan.PITCH, 0, p.z)]
-
-static func _dijkstra(t, start: Vector2i) -> Dictionary:
-	var dist := { start: 0.0 }; var prev := {}
-	var open: Array = [start]
-	while not open.is_empty():
-		var bi := 0
-		for k in open.size(): if float(dist[open[k]]) < float(dist[open[bi]]): bi = k
-		var u: Vector2i = open[bi]; open.remove_at(bi)
-		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			var w: Vector2i = u + d
-			if not _ok(t, u, w): continue
-			var nd := float(dist[u]) + npos(u).distance_to(npos(w)) * (0.85 if u.y == 0 and w.y == 0 else 1.0)   # 큰길을 조금 더 좋아한다
-			if nd < float(dist.get(w, 1e9)):
-				if not dist.has(w): open.append(w)
-				dist[w] = nd; prev[w] = u
-	return { "dist": dist, "prev": prev }
-
-## 길 짜기 — 차 자리·앞 방향에서 goal(가운데 줄 근처 점)까지. tail = 그 뒤에 붙일 가운데 줄 점(장소 가는 길). 못 찾으면 null
-static func plan(t, car: Node3D, goal: Vector3, tail: Array = [], pull := Vector3.INF) -> CarRail:
-	var p := car.global_position
-	var fwd := -car.global_transform.basis.z; fwd.y = 0.0
-	var s := _seg_of(p); var g := _seg_of(goal)
-	var a: Vector2i = s[0]; var b: Vector2i = s[1]
-	var ahead: Vector2i = b if (npos(b) - p).dot(fwd) > (npos(a) - p).dot(fwd) else a
-	var best: Variant = null; var bd := 1e9; var dj := {}
-	for first in [a, b]:   # 앞쪽 노드가 보통 — 뒤쪽은 돌아서야 하니 15m 더 친다(길 끝에서 유턴하던 것)
-		var dd := _dijkstra(t, first)
-		for n in [g[0], g[1]]:
-			if (dd["dist"] as Dictionary).has(n):
-				var d: float = float(dd["dist"][n]) + npos(n).distance_to(g[2]) + npos(first).distance_to(s[2]) + (0.0 if first == ahead else 15.0)
-				if d < bd: bd = d; best = n; dj = dd
-	if best == null: return null
-	var path: Array = []
-	var n: Variant = best
-	while n != null:
-		path.push_front(n)
-		n = (dj["prev"] as Dictionary).get(n, null)
-	var r := CarRail.new(); r.li = 1   # 첫 점(길섶에서 차선으로)은 겨냥하지 않는다 — 차선 위 앞 점을 보며 비스듬히 든다. 첫 점을 겨냥하면 느린 회전에 지나쳐 마당으로 들어갔다
-	r.centers.append(s[2]); r.nodes.append(null)
-	for q in path:
-		if r.centers.size() == 1 and npos(q).distance_to(s[2]) < 0.5: continue
-		r.centers.append(npos(q)); r.nodes.append(q)
-	if npos(path[path.size() - 1]).distance_to(g[2]) > 0.5: r.centers.append(g[2]); r.nodes.append(null)
-	for q in tail: r.centers.append(q); r.nodes.append(null)
+## 길 짜기 — 차 자리에서 goal 까지(길 그물을 따라). tail = 끝에 붙일 점(장소 가는 길), pull = 길섶에 댈 자리. 못 찾으면 null
+static func plan(_t, car: Node3D, goal: Vector3, tail: Array = [], pull := Vector3.INF) -> CarRail:
+	var edges: Array = Valley.g_edges(); var adj: Array = Valley.g_adj(); var gn: Array = Valley.g_nodes()
+	var p2 := Vector2(car.global_position.x, car.global_position.z); var g2 := Vector2(goal.x, goal.z)
+	var s: Array = Valley.near(p2, 2); var g: Array = Valley.near(g2, 3)
+	if int(s[4]) < 0 or int(g[4]) < 0: return null
+	var es := Valley.edge_of(int(s[4]), int(s[5])); var eg := Valley.edge_of(int(g[4]), int(g[5]))
+	if es < 0 or eg < 0: return null
+	var E: Dictionary = edges[es]; var G: Dictionary = edges[eg]
+	var ks := int(s[5]) - int(E["i0"]); var kg := int(g[5]) - int(G["i0"])
+	var path2 := PackedVector2Array(); var widths: Array[float] = []
+	var fwd := -car.global_transform.basis.z; var f2 := Vector2(fwd.x, fwd.z)
+	if es == eg:   # 같은 가지 — 곧장
+		var pts: PackedVector2Array = E["pts"]
+		path2 = _to_end(pts, ks, s[1], kg > ks or (kg == ks and (g2 - p2).dot(pts[mini(ks + 1, pts.size() - 1)] - pts[ks]) > 0.0))
+		var cut := PackedVector2Array()
+		for q in path2:
+			cut.append(q)
+			if q.distance_to(g[1]) < 3.5: break
+		cut.append(g[1]); path2 = cut
+		for q in path2: widths.append(float(E["w"]))
+	else:
+		# 시작: 가지의 두 끝 중 — 앞쪽은 그대로, 뒤쪽은 돌아서야 하니 15m 더
+		var dist := {}; var prev := {}; var via := {}
+		var ept: PackedVector2Array = E["pts"]
+		for to_b in [false, true]:
+			var leg := _to_end(ept, ks, s[1], to_b)
+			var nd: int = E["b"] if to_b else E["a"]
+			var ahead := leg.size() > 1 and (leg[1] - leg[0]).dot(f2) > 0.0
+			var c := _plen(leg) + (0.0 if ahead else 15.0)
+			if c < float(dist.get(nd, 1e9)): dist[nd] = c; prev[nd] = -1; via[nd] = leg
+		var open: Array = dist.keys()
+		var seen := {}
+		while not open.is_empty():
+			var bi := 0
+			for i in open.size(): if float(dist[open[i]]) < float(dist[open[bi]]): bi = i
+			var u: int = open[bi]; open.remove_at(bi)
+			if seen.has(u): continue
+			seen[u] = true
+			for ei in adj[u]:
+				var e: Dictionary = edges[ei]
+				var v: int = e["b"] if int(e["a"]) == u else e["a"]
+				var nd2 := float(dist[u]) + _plen(e["pts"]) * (0.85 if int(e["road"]) == 0 else 1.0)
+				if nd2 < float(dist.get(v, 1e9)):
+					dist[v] = nd2; prev[v] = ei
+					if not open.has(v): open.append(v)
+		var best := -1; var bd := 1e9; var last_leg := PackedVector2Array()
+		var gpt: PackedVector2Array = G["pts"]
+		for to_b in [false, true]:
+			var nd: int = G["b"] if to_b else G["a"]
+			if not dist.has(nd): continue
+			var leg := _to_end(gpt, kg, g[1], to_b)
+			var c := float(dist[nd]) + _plen(leg)
+			if c < bd: bd = c; best = nd; last_leg = leg
+		if best < 0: return null
+		var chain: Array = []   # 마디 거꾸로
+		var n := best
+		while int(prev.get(n, -1)) >= 0:
+			var e: Dictionary = edges[prev[n]]
+			var from: int = e["a"] if int(e["b"]) == n else e["b"]
+			var pts: PackedVector2Array = e["pts"]
+			var seg := pts.duplicate() if int(e["a"]) == from else _rev(pts)
+			chain.push_front([seg, float(e["w"])])
+			n = from
+		var first: PackedVector2Array = via[n]
+		for q in first: path2.append(q); widths.append(float(E["w"]))
+		for c in chain:
+			for q in (c[0] as PackedVector2Array): path2.append(q); widths.append(float(c[1]))
+		var lr := _rev(last_leg)
+		for q in lr: path2.append(q); widths.append(float(G["w"]))
+	var r := CarRail.new(); r.li = 1
+	for i in path2.size():
+		if not r.centers.is_empty() and Vector2(r.centers[r.centers.size() - 1].x, r.centers[r.centers.size() - 1].z).distance_to(path2[i]) < 0.6: continue
+		r.centers.append(Vector3(path2[i].x, 0, path2[i].y)); r.nodes.append(null); r._ws.append(widths[i])
+	for q in tail: r.centers.append(Vector3((q as Vector3).x, 0, (q as Vector3).z)); r.nodes.append(null); r._ws.append(5.0)
+	if r.centers.size() < 2: return null
 	r._build_lane()
-	if pull != Vector3.INF and r.lane.size() >= 2:   # 길섶에 댄다 — 차선 끝에서 비스듬히(차선에 세우면 뒤차가 영영 섰다)
+	if pull != Vector3.INF and r.lane.size() >= 2:   # 길섶에 댄다 — 차선 끝에서 비스듬히
 		var dl := (r.lane[r.lane.size() - 1] - r.lane[r.lane.size() - 2]).normalized()
 		r.lane.append(Vector3(pull.x, 0, pull.z) + dl * 1.0); r.cap.append(1.5)
 	return r
 
+static func _rev(p: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in range(p.size() - 1, -1, -1): out.append(p[i])
+	return out
+
 func _right(d: Vector3) -> Vector3: return Vector3(-d.z, 0, d.x)
 
-func _w(a: Vector3, b: Vector3) -> float: return W_MAIN if RoadTiles.in_hub(a) and RoadTiles.in_hub(b) else W
-
+## 차선 — 가운데 줄에서 오른쪽으로(큰길 1.6m, 골목 1.0m), 꺾이는 만큼 느리게
 func _build_lane() -> void:
 	var n := centers.size()
-	if n < 2: done = true; return
-	var d0 := (centers[1] - centers[0]).normalized()
-	lane.append(centers[0] + _right(d0) * _w(centers[0], centers[1])); cap.append(9.0); node_end.append(0)
-	for k in range(1, n - 1):
-		var d1 := (centers[k] - centers[k - 1]).normalized(); var d2 := (centers[k + 1] - centers[k]).normalized()
-		var o1 := _right(d1) * _w(centers[k - 1], centers[k]); var o2 := _right(d2) * _w(centers[k], centers[k + 1])
-		if d1.dot(d2) > 0.95:
-			lane.append(centers[k] + o1); cap.append(9.0)
-		elif d1.dot(d2) < -0.9:   # 되돌기 — 길 끝에서 돌아 나온다
-			lane.append(centers[k] + o1 + d1 * 1.5); cap.append(2.5)
-			lane.append(centers[k] + d1 * 2.5); cap.append(2.0)
-			lane.append(centers[k] + o2 + d1 * 1.5); cap.append(2.5)
-		else:
-			var corner := centers[k] + o1 + o2
-			var right_turn := d1.cross(d2).y < 0.0
-			var rr := minf(2.0 if right_turn else R, minf(centers[k].distance_to(centers[k - 1]), centers[k].distance_to(centers[k + 1])) * 0.45)   # 우회전은 안쪽 모서리를 바짝 — 크게 돌면 길섶(가로등·울타리)을 탔다
-			var pin := corner - d1 * rr; var pout := corner + d2 * rr
-			for q in 5:
-				var tt := q / 4.0
-				lane.append(pin.lerp(corner, tt).lerp(corner.lerp(pout, tt), tt)); cap.append(2.6 if right_turn else 3.6)
+	for k in n:
+		var a := centers[maxi(k - 1, 0)]; var b := centers[mini(k + 1, n - 1)]
+		var d := (b - a); d.y = 0.0; d = d.normalized()
+		var off := 1.6 if _ws[k] >= 7.0 else 1.0
+		lane.append(centers[k] + _right(d) * off)
+		var turn := 0.0
+		if k > 0 and k < n - 1:
+			var d1 := (centers[k] - centers[k - 1]).normalized(); var d2 := (centers[k + 1] - centers[k]).normalized()
+			turn = acos(clampf(d1.dot(d2), -1.0, 1.0))
+		cap.append(clampf(9.0 - turn * 10.0, 2.5, 9.0))
 		node_end.append(lane.size() - 1)
-	var dl := (centers[n - 1] - centers[n - 2]).normalized()
-	lane.append(centers[n - 1] + _right(dl) * _w(centers[n - 2], centers[n - 1])); cap.append(2.0); node_end.append(lane.size() - 1)
-	for k in lane.size(): lane[k].y = 0.0
+	cap[cap.size() - 1] = 2.0
+	done = n < 2
+
+static func _seg_of(p: Vector3) -> Array:   # 옛 이름(town_traffic _pull_over) — [가지 끝 둘 대신 쓰지 않음, 쓰지 않음, 길 가운데 점]
+	var nr: Array = Valley.near(Vector2(p.x, p.z))
+	return [Vector2i.ZERO, Vector2i.ZERO, Vector3((nr[1] as Vector2).x, 0, (nr[1] as Vector2).y)]
 
 # ── 몰기(Car3D._physics_process 가 부른다) ──
 func step(car: Car3D, delta: float) -> void:
@@ -326,7 +328,7 @@ func _take(car: Car3D, nd: Vector2i) -> bool:
 	var straight := ni + 1 < centers.size() and ((centers[ni + 1] - centers[ni]).normalized()).dot((centers[ni] - centers[ni - 1]).normalized()) > 0.95
 	var hs: Array = (locks.get(nd, []) as Array).filter(func(h: Dictionary) -> bool:
 		var hc: Variant = h["car"]
-		return is_instance_valid(hc) and hc != car and (hc as Node3D).global_position.distance_to(npos(nd)) < 12.0 and (hc as Car3D).rail != null and (hc as Car3D).rail._held == nd)
+		return is_instance_valid(hc) and hc != car and true and (hc as Car3D).rail != null and (hc as Car3D).rail._held == nd)
 	for h in hs:
 		if not (straight and bool(h["straight"]) and int(h["axis"]) == axis_in): locks[nd] = hs; return false
 	hs.append({ "car": car, "axis": axis_in, "straight": straight })

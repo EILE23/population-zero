@@ -7,7 +7,6 @@ extends TownCabin
 
 const COMMUTERS := 12
 const KINDS := ["sedan", "hatchback", "suv", "truck", "sedan", "hatchback"]
-const LINKS := [16.0, 96.0, -104.0, 136.0, -144.0, 176.0, -184.0]   # 큰길에서 북쪽 마을로 드는 남북 길(옛 마을 |x|<72 밖이거나 Tower Road)
 const EAST_Z := 2.9
 const WEST_Z := 1.1
 const VERGE := 2.6                # 갓길 주차 — 길 가운데에서(아스팔트 끝 3.35 안, 차선 차와 0.6m 틈)
@@ -24,25 +23,20 @@ func _traffic_init() -> void:
 		if picks.size() >= COMMUTERS: break
 		if r is ResidentKid or r.job != "" or r.home_door.is_empty() or r.own_car != null: continue
 		var dp: Vector3 = r.home_door["pos"]
-		if absf(dp.z - 2.0) < 30.0 or absf(dp.x) > 200.0 or dp.x > 1000.0 or dp.y > 0.5: continue   # 산 집(찻길이 없다)은 빼고   # 옛 마을 밖 블록(남쪽은 다리로 강을 건넌다)
+		if (absf(dp.x) < 80.0 and absf(dp.z) < 32.0) or dp.x > 1000.0 or float(Valley.near(Vector2(dp.x, dp.z), 2)[0]) > 25.0: continue   # 옛 마을 밖, 길에서 25m 안 집
 		picks.append(r)
-	for x in LINKS:   # 들목마다 강 위 다리(낮은 판 + 난간 — 차는 그대로 건넌다)
-		if absf(float(x)) < 72.0: continue
-		var keep := _build_parent; var at := Vector3(float(x), 0, RIVER_Z); _build_parent = _root_for(at)
-		_box(Vector3(5.0, 0.04, RIVER_HW * 2.0 + 3.0), at, _mat(Color("b8b0aa")), false)
-		for sx in [-2.6, 2.6]: _box(Vector3(0.12, 0.8, RIVER_HW * 2.0 + 3.0), at + Vector3(sx, 0, 0), _mat(Color("8a7f86")), false)
-		_build_parent = keep
 	for i in picks.size():
 		var r: Resident = picks[i]
 		var dp: Vector3 = r.home_door["pos"]
 		var park := _free_park(park_at(dp), null)
-		var c := _car(KINDS[i % KINDS.size()], park, PI / 2.0)
+		var c := _car(KINDS[i % KINDS.size()], park, _road_yaw(park))
 		r.own_car = c
 		commuters.append({ "r": r, "car": c, "home": park, "phase": "home", "dest": {}, "until": Time.get_ticks_msec() / 1000.0 + randf_range(20.0, 120.0) })
 	var drivers: Array = residents.filter(func(x: Resident) -> bool: return not (x is ResidentKid) and x.job == "" and x.own_car == null and not picks.has(x))
 	for i in mini(CRUISERS, drivers.size()):   # 큰길 위에 늘어놓고 바로 출발
 		var r: Resident = drivers[i]
-		var at := Vector3(-150.0 + i * 40.0, 0, EAST_Z if i % 2 == 0 else WEST_Z)
+		var ax := -330.0 + i * 85.0 + (20.0 if absf(-330.0 + i * 85.0) < 90.0 else 0.0)
+		var at := Vector3(ax, 0, Valley.main_z(ax) + (1.6 if i % 2 == 0 else -1.6))
 		var c := _car(["taxi", "sedan", "delivery", "hatchback", "suv", "sedan", "truck", "hatchback"][i % 8], at, -PI / 2.0 if i % 2 == 0 else PI / 2.0)
 		r.drive(c); c.ai = true; c.cruise = 8.0; c.reach = 5.0
 		cruisers.append({ "r": r, "car": c, "slow": 0.0 })
@@ -58,7 +52,7 @@ func _traffic_tick(now: float) -> void:
 		if not is_instance_valid(c) or driving == c or passenger == c or not (is_instance_valid(r) and r.car_seat == c): continue
 		if c.rail != null and not c.rail.done: continue
 		var d := _pick_dest(r)   # 다 왔거나(밀려나 길을 잃었거나) — 다음 목적지
-		_go(c, d.get("park", Vector3(randf_range(-140.0, 140.0), 0, EAST_Z)), d)
+		_go(c, d.get("park", _free_park(park_at(Vector3(randf_range(-300.0, 300.0), 0, -40.0)), c)), d)
 	for e in commuters:
 		var r: Resident = e["r"]; var c: Car3D = e["car"]
 		if not is_instance_valid(r) or not is_instance_valid(c): continue
@@ -100,46 +94,46 @@ func _traffic_tick(now: float) -> void:
 func _go(c: Car3D, park: Vector3, dest: Dictionary = {}) -> void:
 	var via: Variant = dest.get("via", null)
 	var rl: CarRail = null
-	if via is Vector3: rl = CarRail.plan(self, c, Vector3((via as Vector3).x, 0, WorldGen.ROAD_Z), [park])
-	else: rl = CarRail.plan(self, c, Vector3(park.x, 0, park.z - VERGE), [], park)
+	if via is Vector3: rl = CarRail.plan(self, c, via as Vector3, [park])
+	else:
+		var nr: Array = Valley.near(Vector2(park.x, park.z), 2)
+		rl = CarRail.plan(self, c, Vector3((nr[1] as Vector2).x, 0, (nr[1] as Vector2).y), [], park)
 	c.rail = rl; c.route = []   # 길이 없으면(그 목적지로 이어진 깎인 길이 아직 없다) 서서 다음 틱에 다른 데로
 	if rl: rl.cruise = c.cruise
 
 ## 길섶에 댄다 — 세울 자리(가까우면)나 지금 길의 길섶으로 1초에 걸쳐 미끄러져 길과 나란히. 차선 위에 세운 차는 뒤차를 영영 세웠다
 func _pull_over(c: Car3D, at: Vector3) -> void:
 	var p := c.global_position
-	var ax := absf(sin(c.rotation.y)) > 0.7   # 동서로 서 있다
-	var ns := false
-	if at == Vector3.INF:
-		var s: Array = CarRail._seg_of(p)
-		ns = (s[0] as Vector2i).y != (s[1] as Vector2i).y
-		var mid: Vector3 = s[2]
-		at = Vector3(p.x, p.y, mid.z + (VERGE if p.z >= mid.z else -VERGE)) if (s[0] as Vector2i).y == (s[1] as Vector2i).y else Vector3(mid.x + (VERGE if p.x >= mid.x else -VERGE), p.y, p.z)
-	at = _free_park(at, c, ns); at.y = p.y
-	var yaw := (PI / 2.0 if sin(c.rotation.y) > 0.0 else -PI / 2.0) if ax else (0.0 if cos(c.rotation.y) > 0.0 else PI)
+	if at == Vector3.INF: at = park_at(p)
+	at = _free_park(at, c); at.y = p.y
+	var yaw := _road_yaw(at)
+	if cos(yaw - c.rotation.y) < 0.0: yaw += PI   # 달리던 쪽으로
 	var tw := c.create_tween(); tw.set_parallel(true)
 	tw.tween_property(c, "global_position", at, 1.0); tw.tween_property(c, "rotation:y", c.rotation.y + wrapf(yaw - c.rotation.y, -PI, PI), 1.0)
 
-## 문 앞 길에 세울 자리 — 동서 길은 모두 z = OZ + 20k(블록 경계 골목과 블록 가운데 뒷골목), 문 남쪽 그 줄의 길섶
-static func park_at(door_pos: Vector3) -> Vector3:
-	var sz := TownPlan.OZ + ceilf((door_pos.z - TownPlan.OZ + 0.5) / 20.0) * 20.0
-	if TownPlan.no_lane(CityMap.block_of(Vector2(door_pos.x, door_pos.z))) and fposmod(sz - TownPlan.OZ, TownPlan.PITCH) > 1.0: sz += 20.0   # 안마당 블록 — 가운데 찻길이 없어 남쪽 찻길에
-	var x := door_pos.x + 2.2
-	var gx := TownPlan.OX + roundf((x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH
-	if absf(x - gx) < 7.0: x = gx + 7.0 * (1.0 if x >= gx else -1.0)   # 남북 길 들목은 비운다 — 거기 세우면 남북 차선을 막았다
-	return Vector3(x, 0, sz + VERGE)   # 길섶(골목 반폭 1.6 밖, 차 반폭 0.7 + 틈) — 차선(±0.8)을 막지 않게(car_rail 차가 세운 차 뒤에서 영영 섰다)
+## 길 방향(차 rotation.y — 앞이 −z) — 가까운 길 토막을 따라
+static func _road_yaw(p: Vector3) -> float:
+	var d: Vector2 = Valley.near(Vector2(p.x, p.z), 2)[2]
+	return atan2(-d.x, -d.y)
 
-## 길섶 빈 자리 — 그 자리부터 길 따라 6m 씩 양쪽으로, 다른 차(서 있거나 그리로 가는) 5.5m 안이 아니고 남북 길 들목이 아닌 곳.
-## 전엔 3.4m 간격으로 붙여 세워 가운데 차가 앞차에 막혀 못 빠져나왔다
-func _free_park(at: Vector3, me: Car3D, ns := false) -> Vector3:
-	for k in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]:
-		var p := at + (Vector3(0, 0, k * 6.0) if ns else Vector3(k * 6.0, 0, 0))   # 남북 길섶이면 z 로
-		if ns:
-			var gz := TownPlan.OZ + roundf((p.z - TownPlan.OZ) / 20.0) * 20.0
-			if absf(p.z - gz) < 7.0: continue
-		else:
-			var gx := TownPlan.OX + roundf((p.x - TownPlan.OX) / TownPlan.PITCH) * TownPlan.PITCH
-			if absf(p.x - gx) < 7.0: continue
+## 이 자리 가까운 길의 길섶 — 길 가운데에서 그 자리 쪽으로 길 폭 반 + 1.6m
+static func park_at(door_pos: Vector3) -> Vector3:
+	var p := Vector2(door_pos.x, door_pos.z)
+	var nr: Array = Valley.near(p, 3)
+	if int(nr[4]) < 0: return door_pos
+	var q: Vector2 = nr[1]; var d: Vector2 = nr[2]
+	var n := Vector2(-d.y, d.x)
+	if (p - q).dot(n) < 0.0: n = -n
+	var w: float = Valley.roads()[int(nr[4])]["w"]
+	var v := q + n * (w / 2.0 + 1.3)
+	return Vector3(v.x, 0, v.y)
+
+## 길섶 빈 자리 — 그 자리부터 길 따라 6m 씩 양쪽으로, 다른 차(서 있거나 그리로 가는) 5.5m 안이 아닌 곳
+func _free_park(at: Vector3, me: Car3D, _ns := false) -> Vector3:
+	var d: Vector2 = Valley.near(Vector2(at.x, at.z), 2)[2]
+	for k in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+		var p: Vector3 = at + Vector3(d.x, 0, d.y) * (float(k) * 6.0)
+		if float(Valley.near(Vector2(p.x, p.z), 2)[0]) < 0.4: continue   # 다른 길 위(갈림목)
 		var free := true
 		for c in cars:
 			if c == me: continue
@@ -159,13 +153,10 @@ func _pick_dest(r: Resident) -> Dictionary:
 	for i in doors.size():
 		var dr: Dictionary = doors[i]
 		var p: Vector3 = dr["pos"]
-		if absf(p.z - 2.0) < 30.0 or p.x > 1000.0 or absf(p.x) > 200.0 or dr == r.home_door or p.y > 0.5: continue
+		if (absf(p.x) < 80.0 and absf(p.z) < 32.0) or p.x > 1000.0 or dr == r.home_door: continue
+		if float(Valley.near(Vector2(p.x, p.z), 2)[0]) > 25.0: continue   # 길에서 먼 집
 		var name := "the shops" if dr.has("shop_id") else ("the town hall" if dr.has("civic") else "a friend's")
 		opts.append({ "park": park_at(p), "door": dr, "name": name })
-	for s in WorldGen.SITES:
-		var c: Vector3 = s["c"]
-		var fr: Vector3 = s["from"]
-		if absf(fr.x) < WorldGen.HUB_X + 2.0:   # 옛 마을 안에서 드는 길(탑·산) — 큰길 길섶에 세우고 걸어간다
-			opts.append({ "park": Vector3(fr.x + 3.0, 0, WorldGen.ROAD_Z + VERGE), "door": {}, "name": String(s["name"]) })
-		else: opts.append({ "park": c + (Vector3(fr.x - c.x, 0, fr.z - c.z).normalized() * (float(s["r"]) + 3.0)), "door": {}, "name": String(s["name"]), "via": fr })
+	for s in WorldGen.SITES:   # 장소 — 들머리 가까운 길섶에 세우고 걸어간다
+		opts.append({ "park": park_at(s["from"]), "door": {}, "name": String(s["name"]) })
 	return opts[randi() % opts.size()] if not opts.is_empty() else {}

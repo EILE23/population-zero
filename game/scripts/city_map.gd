@@ -32,6 +32,7 @@ static func block_center(b: Vector2i) -> Vector3:
 
 ## 필지가 무엇이 되나 — house | shop | workshop | green
 static func lot_kind(l: Dictionary) -> String:
+	if l.has("kind"): return String(l["kind"])   # 산골 도시 필지(valley)가 정한 것
 	var form := String(l.get("form", ""))
 	if form in ["parking", "plaza"]: return form   # 블록 모양(TownPlan.FORMS)이 정한 빈 자리 — 주차장·광장
 	match zone_at(l["c"]):

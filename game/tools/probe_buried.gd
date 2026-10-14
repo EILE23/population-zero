@@ -10,7 +10,7 @@ func _init() -> void:
 		var hi := 0.0
 		for p in pts: hi = maxf(hi, town.gen.height(p.x, p.y))
 		n += 1
-		if hi > 0.15:
+		if hi > mn.y + 0.15:
 			bad += 1
 			if bad <= 8: print("BURIED house at %s ground=%.2f (block %s order? flat_limit=%d)" % [str((mn + mx) / 2.0), hi, str(CityMap.block_of(Vector2((mn.x + mx.x) / 2.0, (mn.z + mx.z) / 2.0))), town.gen.flat_limit])
 	print("HOUSES %d buried %d built=%d" % [n, bad, town.built])
