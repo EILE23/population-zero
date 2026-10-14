@@ -1,0 +1,42 @@
+{
+  "_": "Climb content pack 'Telescope' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_telescope.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (and only the pieces' `only` floors — the vent floors stay bare like the lantern, the trapeze and the candle stair), looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose box (from the tripod's feet inside the lower hop's gap edge to a hand past the upper hop's edge, the lower hop's top to view_up + a quarter floor over it) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the icicles, the lantern, the trapeze, the candle stair — the loader passes their plans) sits in: a piece whose x overlaps the box and whose height (y up to rail_y/beam_y/y_top when it has one) lies from 20 px under the lower hop's top to 20 px under the upper hop's top belongs to this gap (the tower zigzags, so every gap of a floor shares one x column — run 152's band rule); one telescope per floor at the widest such gap: a brass telescope on a three-legged tripod standing inset px inside the lower hop's gap edge, at the back of the hop (z between the walking depth and the cliff), aimed up over the gap. Standing on the lower hop within reach of the tripod, C puts an eye to it (`peer` pose: the body bent at the hips to the eyepiece, one hand on the tube and the other cupped over the closed eye, a settle, a slow pan along the gap, a straightening that looks up — never a still frame) and for show_s seconds the next floor's hops are drawn on the cliff face over the gap as star outlines (a thin frame per hop with a star at each corner), the whole floor above scaled to `scale` and centred on the gap, view_up px over the lower hop's top; only hops whose scaled centre lies within the gap's width of the pan centre are shown — ← → while peering pan the view pan_v px/s (in the tower's px of the floor above) up to ±pan_max, so the player reads the layout above before climbing it. A second C while peering does nothing. Nothing here is solid or costs anything: the tripod stands behind the walking line and the plain jump beside it across the gap is untouched at 100%.",
+  "id": "telescope",
+  "name": "Telescope",
+  "pose": "peer",
+  "themes": ["Starlit"],
+  "kinds": {
+    "telescope": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px). min_dy/max_dy: how much higher the upper hop is (px). inset: how far inside the lower hop's gap edge the tripod's centre stands (px). tripod_h: the eyepiece's height over the hop (px, chest height of a 44 px body). tube_len: the brass tube (px). reach: how far the body's centre may be from the tripod's centre, beyond its half width, to peer (px). show_s: seconds the eye stays at the eyepiece and the outline shows (the `peer` pose's length). settle_s: seconds before the outline appears (the body settling to the eyepiece). fade_s: seconds the outline takes to fade at the end. scale: the floor above is drawn at this scale. view_up: the drawn floor's base over the lower hop's top (px). pan_v: px/s of the floor above the view pans while ← → is held. pan_max: the pan's limit (px of the floor above). line: the outline's line thickness (px, before scaling is NOT applied — the lines stay readable). star: a corner star's size (px). click_hz/twinkle_hz: the eyepiece click and the outline's twinkle.",
+      "min_gap": 90,
+      "max_gap": 220,
+      "min_dy": 40,
+      "max_dy": 150,
+      "inset": 22,
+      "tripod_h": 34,
+      "tube_len": 40,
+      "reach": 18,
+      "show_s": 4.0,
+      "settle_s": 0.5,
+      "fade_s": 0.6,
+      "scale": 0.25,
+      "view_up": 30,
+      "pan_v": 240,
+      "pan_max": 240,
+      "line": 1.5,
+      "star": 3,
+      "click_hz": 1320,
+      "twinkle_hz": 1760
+    }
+  },
+  "pieces": [
+    {
+      "_": "Starlit floors are 30..34, 65..69, 100..104 …; the vent floors ((n − 3) % 4 == 0: 31, 67 …) stay without a telescope — the vents own the hop tops there and no gap pack lives on those floors (the lantern, the trapeze and the candle stair keep the same rule). On the other Starlit floors one telescope stands at the widest gap of 90..220 px between two consecutive still hops 40..150 px apart in height that the icicles (run 123), the star lantern (run 133), the trapeze (run 141) and the candle stair (run 147) have not taken — the loader passes their plans as `taken`.",
+      "kind": "telescope",
+      "on": ["std", "ice"],
+      "max": 1,
+      "only": { "from": 4, "every": 4 }
+    },
+    { "kind": "telescope", "on": ["std", "ice"], "max": 1, "only": { "from": 2, "every": 4 } },
+    { "kind": "telescope", "on": ["std", "ice"], "max": 1, "only": { "from": 1, "every": 4 } }
+  ]
+}
