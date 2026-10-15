@@ -1,0 +1,39 @@
+{
+  "_": "Climb content pack 'Long-jump pit' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_pit.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still hop of the piece's `on` kinds that is at least min_w px wide (min_w_high from floor high_from — the tower's hops shrink with height), whose strip box (the hop minus `margin` at both ends, the hop's top to 50 px over it) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack (the raft, the plank at a lip, the balloon, the lens — the loader passes their plans) sits in by run 152's band rule (20 px under the hop's top to 60 px over it); one pit per floor on the widest such hop: a raked sand strip `strip_d` px deep on the walking line, set `sand_h` px into the hop, with a takeoff board `board_w` px wide at the near end — the end the body arrives from (the previous hop's side; on a floor's first hop, the cliff-centre side). A jump that leaves the board (|x − board| ≤ board_r) at full charge (charge / CHARGE ≥ full_k) is a flight; when it comes down in the sand of the same hop (`land()` on the landing tick) the body plays `plant` (heels first with the arms thrown forward, a sit-back into the sand, a rise brushing the knees — never a still frame) and the distance from the board is the mark: a peg stands at the day's best (day_s s of the loader's clock, like the hurdles and the sundial) and the camp board reads it through `note(n)` (climb_signs.notes). A short jump, a jump from anywhere else on the hop, a landing on the board or past the sand's end is the loader's plain landing squat; nothing is solid, nothing costs, nothing gates — the plain run across the hop is untouched. The resident half (the pit's jumper) is the next slice.",
+  "id": "pit",
+  "name": "Long-jump pit",
+  "pose": "plant",
+  "themes": [
+    "Cloud sea"
+  ],
+  "kinds": {
+    "pit": {
+      "_": "min_w: the hop width a strip needs (px); min_w_high / high_from: the smaller width from that floor (Cloud sea hops are 130..166 px on floors 25..29 and 90..130 from floor 60). margin: px from the hop's ends to the board and to the sand's far end. board_w: the takeoff board's width (px); board_r: px either side of the board's centre a jump may leave from. strip_d: the strip's depth (px) centred on the walking line. sand_h: px the sand stands proud of the hop (a thin strip, read from the side). rake_every: px between rake lines. full_k: the charge fraction that counts as full (CHARGE is 0.7 s; held longer it clamps, so 0.98 is 'held to the stop'). day_s: seconds of tower time in a tower-day — the peg is the day's best. peg_h: the peg's height (px). tap_hz: the board under the takeoff; thump_hz: the heels in the sand.",
+      "min_w": 150,
+      "min_w_high": 120,
+      "high_from": 55,
+      "margin": 12,
+      "board_w": 16,
+      "board_r": 12,
+      "strip_d": 30,
+      "sand_h": 2,
+      "rake_every": 14,
+      "full_k": 0.98,
+      "day_s": 600,
+      "peg_h": 14,
+      "tap_hz": 500,
+      "thump_hz": 70
+    }
+  },
+  "pieces": [
+    {
+      "_": "Cloud sea floors are 25..29, 60..64, 95..99 …; floors 25..29 have hops 130..166 px wide, so a 150 px strip fits on about a third of the hops and most floors have one; from floor 60 the hops are 90..130 px and the strip needs 120. The raft (run 126) floats in a gap, the plank (run 137) stands at a lower hop's lip, the balloon (run 138) and the lens (run 152) stand in gaps — all are passed as `taken`, so a hop whose lip carries a plank, or whose edge a raft or a puff touches, goes to the next widest. A full-charge jump with the stick held flies about 215 px, further than any hop: the mark is made with air control — leave straight up and push late, or push early and risk the end of the hop.",
+      "kind": "pit",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1
+    }
+  ]
+}
