@@ -9,6 +9,8 @@ extends Node3D
 ## 로더가 할 일(climb.gd, 운영자 세션): `var sd := ClimbSundial.new(); add_child(sd)`; 층을 지을 때 `var vn := sd.vent_floor_above(n); sd.build(root, sd.plan(n, plats, cu.plan(n, plats) + cpl.plan(n, plats) + ctu.plan(n, plats) + cv.plan(n, plats) + chm.plan(n, plats, wind_of(n)) + cz.plan(n, plats)), cu.plan(vn, band(vn)), vn)`
 ## (통풍구·시소 화분·튤립·덩굴·해먹·집라인의 계획을 taken 으로 — 한 발판을 둘이 안 나눈다; 셋째·넷째 인자는 위 통풍구 층의 계획과 층 번호 — 화살표의 원본); 매 틱 `sd.sync(_t)`;
 ## 발판에 선 가지에서 act 가 막 눌렸으면(`Input.is_action_just_pressed("act")`) `var r := sd.read(on, x, z, true, fig); if r["read"]: fig.pose_request = "squint"; _scene_until = now + SquintPoses.SQUINT_T` (읽는 동안 몸은 선 자리에 — 걷기는 잠기고), `SquintPoses.done(fig)` 면 자세를 비운다 (돌판 밖에선 C 는 로더의 것 — 판 읽기·쉼터 문).
+## 주민 반쪽(run 158): 돌판마다 다이얼 키퍼 하나(climb_keeper.gd — 돌판의 노드 아래 Stick3D)가 집 쪽 끝에 서서 탑의 한 시간(hour_s = day_s / 24)마다 정각에, 그리고 플레이어가 이 돌판을 읽은 뒤 0.8 s 뒤에 같은 WALK 로 돌판 곁에 가 같은 squint 로 읽고 머리 위에 시각을 말하고 돌아온다; 정오엔 2 s 더 머물며 소매로 그노몬을 닦는다(wipe, stick3d_wipe.gd).
+## 키퍼의 읽기는 read_t0(플레이어의 읽기 — squinting() 의 걷기 잠금)를 건드리지 않는다. 로더가 더 할 일은 없다 — build 가 세우고 _process 가 몬다.
 ## 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_sundial.gd
 
 const PACK := "res://data/climb/sundial.json"
@@ -26,7 +28,7 @@ var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.dial
 var vent_rule: Dictionary = {}  # 상승기류 팩의 첫 조각 {from, every}
 var vent_beat := 4.0
-var dials: Array = []           # 지은 해시계 {id, kind "dial", n, hop_id, cx, x, w, y, y_top, z, d, vent_n, read_t0, node, shadow, label, view, arrows [{node, shaft, head, phase}], chime, tick, shown}
+var dials: Array = []           # 지은 해시계 {id, kind "dial", n, hop_id, hop_kind, hop_w, cx, x, w, y, y_top, z, d, vent_n, read_t0, node, shadow, label, view, arrows [{node, shaft, head, phase}], chime, tick, shown, keeper}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -92,6 +94,14 @@ func time_text(at: float) -> String:
 	var m := int(day_frac(at) * 1440.0) % 1440
 	return "%02d:%02d" % [m / 60, m % 60]
 
+## 탑의 한 시간(s) — 하루의 1/24; 키퍼가 정각마다 읽는다
+func hour_s() -> float:
+	return day_s() / 24.0
+
+## at 이 든 탑의 시(0부터 세는 정수 — 하루를 넘으면 계속 는다; % 24 가 시각의 시)
+func hour_of(at: float) -> int:
+	return int(floor(at / hour_s()))
+
 ## n 층 위의 첫 통풍구 층 — 상승기류 팩의 {from, every}
 func vent_floor_above(n: int) -> int:
 	var from := int(vent_rule.get("from", 3)); var every := maxi(1, int(vent_rule.get("every", 4)))
@@ -137,13 +147,13 @@ func plan(n: int, plats: Array, taken: Array = []) -> Array:
 			var x0 := cx - size() / 2.0 - margin(); var x1 := cx + size() / 2.0 + margin()
 			if not _clear(plats, p, x0, x1, float(p["y"]) + 1.0, float(p["y"]) + BODY_UP): continue
 			if not _free(taken, x0, x1, float(p["y"]) - BAND_LO, float(p["y"]) + BAND_HI): continue
-			found.append({ "w": float(p["w"]), "hop_id": String(p["id"]), "y": float(p["y"]), "cx": cx })
+			found.append({ "w": float(p["w"]), "hop_id": String(p["id"]), "hop_kind": String(p["kind"]), "y": float(p["y"]), "cx": cx })
 		found.sort_custom(func(p: Dictionary, q: Dictionary) -> bool: return float(p["w"]) > float(q["w"]) if float(p["w"]) != float(q["w"]) else float(p["y"]) < float(q["y"]))
 		for i in range(0, mini(int(piece.get("max", 1)), found.size())):
 			var g: Dictionary = found[i]
 			var s: Dictionary = g.duplicate()
 			s["id"] = "%d.D%d" % [n, i]; s["kind"] = "dial"; s["n"] = n
-			s["x"] = float(g["cx"]) - size() / 2.0; s["w"] = size()
+			s["x"] = float(g["cx"]) - size() / 2.0; s["w"] = size(); s["hop_w"] = float(g["w"])   # hop_w: 발판의 너비 — 키퍼의 집(오른끝)이 여기서
 			s["y_top"] = float(g["y"]) + gnomon_h()   # 그노몬 끝 — 다른 팩의 _free 가 읽는 키
 			s["z"] = C.WALL_Z + inset(); s["d"] = size()   # 돌판의 깊이 — 절벽에서 inset 가운데
 			out.append(s)
@@ -205,6 +215,7 @@ func _process(delta: float) -> void:
 	dials = dials.filter(func(c: Dictionary) -> bool: return is_instance_valid(c["node"]))   # 지운 층의 것은 뺀다(climb_telescope 와 같은 식)
 	for cv in dials:
 		_place(cv)
+		if cv.has("keeper"): (cv["keeper"] as ClimbKeeper).step(delta)   # 키퍼의 틱
 
 ## 해시계를 짓는다 — root 는 그 층의 노드, vents 는 위 통풍구 층(vent_n)의 계획(화살표의 원본). 노드 원점은 (돌판 가운데, 발판 윗면, 돌판의 깊이); 돌판·열두 눈금·그노몬·그림자·시각 글자·화살표(절벽 면 앞)·소리 둘
 func build(root: Node3D, planned: Array, vents: Array = [], vent_n: int = -1) -> void:
@@ -232,6 +243,7 @@ func build(root: Node3D, planned: Array, vents: Array = [], vent_n: int = -1) ->
 		s["vent_n"] = vent_n; s["read_t0"] = -99.0; s["shown"] = false
 		s["node"] = node; s["shadow"] = shadow; s["label"] = label; s["view"] = view; s["arrows"] = arrows
 		s["chime"] = _snd(node, float(kind.get("chime_hz", 1046)), 0.25, -14.0); s["tick"] = _snd(node, float(kind.get("tick_hz", 660)), 0.08, -16.0)
+		s["keeper"] = ClimbKeeper.new(self, s, node)   # 주민 반쪽 — 집 쪽 끝에 선 다이얼 키퍼
 		dials.append(s)
 		_place(s)
 
