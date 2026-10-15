@@ -1,0 +1,40 @@
+{
+  "_": "Climb content pack 'Wind chime' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_chime.gd reads this file: plan(n, plats, taken, wind) works only on the `themes` floors, looks at every pair of consecutive still hops in the climbing order (the piece's `on` kinds — hop i−1 is the lower hop a, hop i the upper hop b) that leave a sideways gap of min_gap..max_gap px with the upper hop min_dy..max_dy higher, whose box (the upper hop's lip to `out` + the tubes' span over the gap, the lip's top to post_h + 6 over it) no other platform cuts — a moving hop with its whole sweep — and no `taken` piece of another pack sits in: a piece whose x overlaps the box and whose height (y up to rail_y/beam_y/y_top when it has one) lies from 20 px under the upper hop's top up to the bracket's top belongs to this lip (the tower zigzags, so every gap of a floor shares one x column — run 152's band rule); one chime per floor at the widest such gap: an iron bracket rising post_h from the upper hop's gap edge with an arm reaching out over the gap, and five bamboo tubes of the `tubes` lengths hung from it on short strings, pitch px apart, centred `out` px beyond the lip — on the walking line, so a body that jumps the gap passes through them. The tubes swing in the floor's wind (`wind_of(n)`, passed by the loader: breeze rad with no wind, up to breeze + wind_sw rad at 180 px/s) and ring a soft tink now and then when the wind is up — the louder the chime, the stronger that floor's wind, so the player hears a kite or vane floor coming. An airborne body whose span (body_h) crosses the tubes knocks them: the chime rings all five tubes at once, the tubes tangle for tangle_s seconds (a wild swing that dies down), and the body takes the `brush` pose (one arm up to sweep the tubes aside, the head turned away, a flinch of the shoulders, a tuck of the knees, a shake of the head on landing — never a still frame); within rehit_s of a knock the same body does not ring them again. Nothing here is solid or costs anything: the plain jump across the gap lands exactly where it did (100%) — the tubes only sound and move.",
+  "id": "chime",
+  "name": "Wind chime",
+  "pose": "brush",
+  "themes": ["Hanging garden"],
+  "kinds": {
+    "chime": {
+      "_": "min_gap/max_gap: the sideways gap between the two hops (px). min_dy/max_dy: how much higher the upper hop is (px). out: the tubes' centre beyond the upper hop's lip over the gap (px). post_h: the bracket's height over the hop top (px). string: each tube's string (px). pitch: the spacing of the five tubes (px). tubes: the five tube lengths (px, longest first — the lowest note hangs lowest). tube_r: a tube's radius (px). body_h: the body's height for the knock test (px). breeze: the swing with no wind (rad). wind_sw: the extra swing at 180 px/s of wind (rad). sway_hz: the swing's beat. tangle_s: seconds the tubes tangle after a knock. tangle_amp: the tangle's swing (rad) at the knock. rehit_s: seconds before the same body can ring them again. hz: the five tubes' notes. ring_s: the knock's ring. tink_every: seconds between wind tinks at full wind (longer in lighter wind, none under a breeze).",
+      "min_gap": 80,
+      "max_gap": 220,
+      "min_dy": 30,
+      "max_dy": 150,
+      "out": 22,
+      "post_h": 56,
+      "string": 8,
+      "pitch": 7,
+      "tubes": [28, 24, 20, 17, 14],
+      "tube_r": 1.6,
+      "body_h": 44,
+      "breeze": 0.06,
+      "wind_sw": 0.35,
+      "sway_hz": 0.45,
+      "tangle_s": 2.0,
+      "tangle_amp": 0.9,
+      "rehit_s": 0.25,
+      "hz": [523, 587, 659, 784, 880],
+      "ring_s": 1.2,
+      "tink_every": 2.4
+    }
+  },
+  "pieces": [
+    {
+      "_": "Hanging garden floors are 5..9, 40..44, 75..79 …; every one gets a chime, the vent floors (7, 43, 75, 79 …) too — the vents (run 118) stand on hop tops and the sundial (run 157) sits 30 px in from the cliff on the widest hop; both, with the seesaw planter (run 146), the tulip (run 148), the vine curtain (run 129), the hammock (run 135) and the zip line (run 140), are passed as `taken`, and the band rule of run 152 sorts out whose lip it is. Floors 5..9 have no wind (wind_of is 0 under floor 40), so there the tubes only breathe; from floor 40 the chime reads the wind.",
+      "kind": "chime",
+      "on": ["std", "ice"],
+      "max": 1
+    }
+  ]
+}
