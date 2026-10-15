@@ -1,0 +1,39 @@
+{
+  "_": "Climb content pack 'Sundial' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_sundial.gd reads this file: plan(n, plats, taken) works only on the `themes` floors, looks at every still hop of the piece's `on` kinds at least min_w wide whose dial box (the dial plus a body on either side, the hop's top to a standing body over it) no other platform cuts — a moving hop with its whole sweep — and in whose height band (BAND_LO px under the top to BAND_HI over it) no `taken` piece of another pack sits (the garden's planter, tulip, vine, hammock and zip line, and the vents of run 118 — the loader passes their plans), and sets one stone dial per floor into the widest such hop: a round slab `size` px across at the hop's centre x, `inset` px in from the cliff side so the lane in front of it stays open, with twelve hour marks, a gnomon gnomon_h px high and a shadow that turns once a tower-day (day_s seconds of the loader's clock — the same day the hurdles count by). Standing on the hop within reach of the dial, C reads it (`squint` pose: one hand flat over the brow against the light, the other pointing down at the shadow, the body leaning back from the hips with the weight shifting foot to foot while the head follows the shadow down to the dial and up to the sun, a nod, a straightening — never a still frame; read_s seconds, the body stays put) and for show_s seconds the tower time is written over the dial and the vents of the next vent floor above are drawn over it as faint rising arrows at their true x (the whole floor scaled to `scale`, centred on the dial, view_up px over the hop's top) — the arrow of the vent that is blowing at this moment is bright and rises, the other stays faint and still, so the player knows which hop top to avoid on the way up. A second C while reading does nothing. Nothing here is solid or costs anything: the slab is 3 px thick and set into the hop, the plain run across the hop is untouched at 100%.",
+  "id": "sundial",
+  "name": "Sundial",
+  "pose": "squint",
+  "themes": ["Hanging garden"],
+  "kinds": {
+    "dial": {
+      "_": "size: the slab's diameter (px). inset: the slab centre's depth in from the cliff face (px; the walking line is 22 px in, so the slab's back half is behind it). margin: free hop on either side of the slab for the reading body (px). min_w: the hop must be this wide (px — garden hops are 150..194 px on floors 5–9 and 109..153 on floors 40–44, so every garden floor gets a dial). gnomon_h: the gnomon's height (px). day_s: seconds of the loader's clock in a tower-day (the hurdles' day). reach: how far the body's centre may be from the slab's centre, beyond its radius, to read (px). read_s: seconds the body reads (the `squint` pose's length). settle_s: seconds before the time and the arrows appear (the hand coming up). show_s: seconds the time and the arrows stay. fade_s: seconds they take to fade at the end. scale: the vent floor is drawn at this scale. view_up: the arrows' base over the hop's top (px). arrow: an arrow's shaft length (px, before scaling is NOT applied — the arrows stay readable). rise_v: how fast a lit arrow rises (px/s) before it wraps. rise: how far it rises (px). line: the arrows' line thickness (px). chime_hz/tick_hz: the reading's chime and the gnomon tick.",
+      "size": 36,
+      "inset": 30,
+      "margin": 24,
+      "min_w": 100,
+      "gnomon_h": 14,
+      "day_s": 600,
+      "reach": 18,
+      "read_s": 3.2,
+      "settle_s": 0.5,
+      "show_s": 6.0,
+      "fade_s": 0.6,
+      "scale": 0.25,
+      "view_up": 40,
+      "arrow": 14,
+      "rise_v": 18,
+      "rise": 12,
+      "line": 1.5,
+      "chime_hz": 1046,
+      "tick_hz": 660
+    }
+  },
+  "pieces": [
+    {
+      "_": "Hanging garden floors are 5..9, 40..44, 75..79 …; every one gets a dial, the vent floors (7, 43, 75, 79 …) too — the vents (run 118) stand at the centres of the two widest std hops and are passed as `taken`, so there the dial goes to the next widest hop. The seesaw planter (run 146) and the tulip (run 148) stand at a hop's gap edge, the vine curtain (run 129), the hammock (run 135) and the zip line (run 140) hang in gaps — all are passed as `taken` and the band rule of run 152 sorts out whose hop it is.",
+      "kind": "dial",
+      "on": ["std", "ice"],
+      "max": 1
+    }
+  ]
+}
