@@ -1,7 +1,7 @@
 extends SceneTree
 ## 풍경 팩 점검(헤드리스): 자료가 읽히나, 공중 정원 층의 잇단 still 발판 짝(80..220 px 틈, 위 발판이 30..150 px 높다) 중 가장 넓은 틈의 위 턱에만 풍경이 서나(턱의 화분·턱까지 닿는 해먹 줄은 그 턱을 가져가고, 낮게 걸린 해먹·발판 가운데의 통풍구는 아니다, 진폭째 상자에 드는 움직이는 발판도, 다른 테마 층은 아니다, 거울 층은 반대로, 바람은 자리가 아니라 세기만),
 ## 공중의 몸이 걷는 깊이에서 통의 띠를 지날 때만 두드리나(선 몸·멀리·위·아래·앞·rehit_s 안은 아니다), 엉킴이 1 에서 tangle_s 에 걸쳐 0 으로 가나, 받침대·팔·매듭·통 다섯(줄·통·마디)·소리 둘이 그려지고 통의 각이 바람의 숨 + 엉킴인가, 바람이 있는 층만 이따금 띵 하나(없는 층은 영영 없다),
-## brush 자세가 움찔하고 쓸고 착지에 받치며 고개를 터나, 진짜 탑의 1..70층에서 plan 이 공중 정원 층에만 풍경을 찾나
+## brush 자세가 움찔하고 쓸고 착지에 받치며 고개를 터나, 점퍼(run 161)가 1분에 한 번 턱으로 달려 힘을 고른 뜀으로 통 사이를 지나 위 발판에 내리고(brush, 제 울림은 플레이어의 hits 가 아니다) 돌아서 뛰어내려 다시 울리고 듣고(hark) 집으로 오나, hark 자세가 손을 귀에 올려 박자로 감싸고 갸웃거리나, 진짜 탑의 1..70층에서 plan 이 공중 정원 층에만 풍경을 찾나(점퍼가 다 닿는 틈인가)
 const C = preload("res://scripts/games/climb.gd")
 
 func _init() -> void:
@@ -57,7 +57,7 @@ func _init() -> void:
 	cw.sync(20.0); cw.brush(518.0, 24410.0, C.PLAYER_Z, true); cw._process(0.0); var a20 := p0.rotation.z; var f20 := cw.tube_angle(c, 0, 20.0)
 	cw.sync(21.0); cw._process(0.0); var a21 := p0.rotation.z
 	cw.sync(22.5); cw._process(0.0); var a225 := p0.rotation.z
-	print("VISUAL node children=%d pivot children=%d (want 10 3) node pos=%.4f %.4f %.4f (want 1.7778 677.7778 −1.3333) pivot0 pos=%.4f %.4f tube0 y=%.4f (want −1.1111 1.5333 −0.6111) sway=%.2f (want 0.06: no wind) angle@20=%.4f fn=%.4f (want 0.7448 ×2: knocked) @21=%.4f (want −0.4913: half tangled) @22.5=%.4f (want 0.0073: the breeze alone)" % [node.get_child_count(), p0.get_child_count(), node.position.x, node.position.y, node.position.z, p0.position.x, p0.position.y, tube0.position.y, cw.sway(c), a20, f20, a21, a225])
+	print("VISUAL node children=%d pivot children=%d (want 11 3: the post, arm, knot, five pivots, two sounds and the jumper) node pos=%.4f %.4f %.4f (want 1.7778 677.7778 −1.3333) pivot0 pos=%.4f %.4f tube0 y=%.4f (want −1.1111 1.5333 −0.6111) sway=%.2f (want 0.06: no wind) angle@20=%.4f fn=%.4f (want 0.7448 ×2: knocked) @21=%.4f (want −0.4913: half tangled) @22.5=%.4f (want 0.0073: the breeze alone)" % [node.get_child_count(), p0.get_child_count(), node.position.x, node.position.y, node.position.z, p0.position.x, p0.position.y, tube0.position.y, cw.sway(c), a20, f20, a21, a225])
 	# 바람: 거울 층의 풍경을 바람 120 으로(wind_k 0.6667, 숨 0.2933, 띵 −17.33 dB): 30.0 에 지어 31.0 에 첫 띵, 다음은 31 + 2.4/0.6667 × (0.7 + 0.6 × 0.618) = 34.855; 바람 없는 첫 풍경은 100.0 에도 띵이 없다
 	var root2 := Node3D.new(); root.add_child(root2)
 	cw.sync(30.0); cw.build(root2, right, 120.0)
@@ -87,13 +87,52 @@ func _init() -> void:
 	var d_hip: float = (fig.hips[1.0] as Node3D).rotation.x; var d_knee: float = (fig.knees[1.0] as Node3D).rotation.x; var d_shx: float = (fig.shoulders[1.0] as Node3D).rotation.x; var d_shz: float = (fig.shoulders[1.0] as Node3D).rotation.z; var d_pel := fig.pelvis.position.y; var d_done := BrushPoses.done(fig)
 	fig.set_meta("brush_t", 1.0); var e_done := BrushPoses.done(fig)
 	print("POSE flinch: R sh=%.4f %.4f el=%.4f hip=%.4f knee=%.4f L sh=%.4f el=%.4f done=%s (want −1.7778 −0.1111 −1.2593 −0.3333 0.5185 −0.8148 −1.4074 false) | sweep: R sh=%.4f %.4f el=%.4f hip=%.4f knee=%.4f L sh z=%.4f pelvis=%.3f done=%s (want −1.4474 −0.9000 −0.3045 −0.2700 0.4200 −0.1500 0.420 false) | land=%.2f (want 0.65) shake: neck y=%.4f pelvis=%.4f done=%s (want 0.3059 0.3634 false) | brace: hip=%.4f knee=%.4f R sh=%.4f %.4f pelvis=%.3f done=%s (want −0.5000 1.0000 −0.6000 −0.1000 0.340 false) | done@1.0=%s (want true)" % [a_shx, a_shz, a_el, a_hip, a_knee, a_lshx, a_lel, a_done, b_shx, b_shz, b_el, b_hip, b_knee, b_lshz, b_pel, b_done, land, c_nky, c_pel, c_done, d_hip, d_knee, d_shx, d_shz, d_pel, d_done, e_done])
+	# 점퍼(run 161, 주민 반쪽): 닿는 틈(41.0 x 60 w 160 y 24700 → 41.1 x 300 w 150 y 24790: 틈 80, 턱 90 높이 — 로더의 reach 137 안)에 풍경을 지어 점퍼를 세운다: 집 120(턱 220 에서 RUNUP 100), next 200 + 20 + (41 % 5) × 8 = 228, 노드 원점(304, 24790) 기준 자리 (120 − 304)/36 = −5.1111, −90/36 = −2.5
+	# 턱에서 jump_for(82, 90): 체공 max(82/300, 1.3 × √(90/1200)) = 0.3560, vy 90/0.356 + 1200 × 0.356 + 20 = 700.0, vx 230.3 → 꼭대기가 턱 위 6 px, x 304.5 에 내려오며 통(cx 278, 띠 24810..24838)을 지난다(brush, rings 1, hits 0) → 0.3 s 서고 wheel 0.5 → 턱 300 으로 걸어
+	# drop_for(86, −90, 160): 걸어 떨어지면 260 × 0.274 = 71 px 뿐이라 가장 약한 뜀(체공 (430 + √(430² + 4800 × 90))/2400 = 0.5064, vy 430 + 20 = 450) 을 발판 가운데까지 닿게 RUN 으로 → 턱에서 바로 brush(rings 2) → x 145 에 내려 0.3 s → hark 1.5 → 집 120 으로 0.1 → wheel2 0.5 → idle, next = idle + 60
+	var root3 := Node3D.new(); root.add_child(root3)
+	var plats3: Array = [
+		{ "id": "41.0", "x": 60.0, "y": 24700.0, "w": 160.0, "kind": "std", "z": -29.0, "d": 82.0 },
+		{ "id": "41.1", "x": 300.0, "y": 24790.0, "w": 150.0, "kind": "std", "z": -29.0, "d": 82.0 },
+	]
+	var near := cw.plan(41, plats3)
+	cw.sync(200.0); cw.build(root3, near, 0.0)
+	var c3: Dictionary = cw.chimes[2]; var ju: ClimbJumper = c3["jumper"]
+	var j_up := ClimbJumper.jump_for(82.0, 90.0); var j_dn := ClimbJumper.drop_for(86.0, -90.0, 160.0)
+	var j0 := "%s x=%.0f y=%.0f home=%.0f lip=%.0f hinge=%.0f kind=%s next=%.0f pos=%.4f %.4f %.4f" % [ju.phase, ju.x, ju.y, ju.home_x, ju.a_lip, ju.hinge, ju.hop_kind, ju.next_at, ju.fig.position.x, ju.fig.position.y, ju.fig.position.z]
+	ju.next_at = 200.0   # 지금 뛴다
+	var tt3 := 200.0; var seen3: Array = ["idle"]; var at3: Dictionary = {}; var air_brush := false; var drop_brush := false; var hark_ok := false; var land_x: Array = []; var top := -1.0e9; var steps3 := 0
+	while steps3 < 900:
+		tt3 += 1.0 / 60.0; cw.sync(tt3); ju.step(1.0 / 60.0); steps3 += 1
+		if String(seen3[seen3.size() - 1]) != ju.phase:
+			seen3.append(ju.phase); at3[ju.phase if not at3.has(ju.phase) else ju.phase + "2"] = tt3 - 200.0
+			if ju.phase == "land": land_x.append(snappedf(ju.x, 0.1))
+		air_brush = air_brush or (ju.phase == "air" and ju.fig.pose_request == "brush" and ju.fig.airborne)
+		drop_brush = drop_brush or (ju.phase == "drop" and ju.fig.pose_request == "brush" and ju.fig.airborne)
+		hark_ok = hark_ok or (ju.phase == "hark" and ju.fig.pose_request == "hark" and not ju.fig.airborne and float(ju.fig.get_meta("hark_side", 0.0)) == -1.0)
+		if ju.phase == "air": top = maxf(top, ju.y)
+		if seen3.size() > 1 and ju.phase == "idle": break
+	print("JUMPER start: ", j0, " (want idle 120 24700 120 220 300 std 228 −5.1111 −2.5000 0.0000) up: t=%.4f vx=%.1f vy=%.1f ok=%s (want 0.3560 230.3 700.0 true) drop: t=%.4f vx=%.1f vy=%.1f ok=%s (want 0.5064 300.0 450.0 true) phases=%s (want [idle, run, air, land, wheel, walk, drop, land, hark, back, wheel2, idle]) run@%.2f air@%.2f land@%.2f wheel@%.2f walk@%.2f drop@%.2f land2@%.2f hark@%.2f back@%.2f wheel2@%.2f idle@%.2f (want ≈0.02 0.35 0.72 1.02 1.53 1.57 2.08 2.38 3.90 4.00 4.52) brushed air=%s drop=%s hark=%s (want true ×3) land x=%s (want ≈[304.5, 145.0]) top=%.1f (want ≈24796.3: 6 px over the lip) rings=%d hits=%d misses=%d next=%.1f (want 2 0 0 ≈264.5: the jumper's rings are not the player's record; next = idle + 60)" % [j_up["t"], j_up["vx"], j_up["vy"], j_up["ok"], j_dn["t"], j_dn["vx"], j_dn["vy"], j_dn["ok"], str(seen3), float(at3.get("run", -1.0)), float(at3.get("air", -1.0)), float(at3.get("land", -1.0)), float(at3.get("wheel", -1.0)), float(at3.get("walk", -1.0)), float(at3.get("drop", -1.0)), float(at3.get("land2", -1.0)), float(at3.get("hark", -1.0)), float(at3.get("back", -1.0)), float(at3.get("wheel2", -1.0)), float(at3.get("idle", -1.0)), air_brush, drop_brush, hark_ok, str(land_x), top, int(c3["rings"]), int(c3["hits"]), ju.misses, ju.next_at])
+	# hark 자세(hark_t 0.25, side −1: 들기 다 됨 — 오른 어깨 x −1.1 z −1.0 팔꿈치 −2.5 무릎 0.12 고개 z 0.22 look_yaw +0.7 골반 0.400 왼 팔꿈치 −1.5 | 0.4: 감쌈 0.5 − 0.5 cos(0.15 × 2π × 3.3) = 0.9995 → 팔꿈치 −2.6199, 갸웃 sin(0.15 × 2π × 0.6) = 0.5358 → 고개 z 0.2629 done false | 1.5: 손이 내려와 어깨 0 look_yaw 0 done true)
+	var hf := Stick3D.new(); root.add_child(hf)
+	hf.pose_request = "hark"; hf.set_meta("hark_side", -1.0); hf.set_meta("hark_t", 0.25)
+	for i in 90: await process_frame
+	var h_shx: float = (hf.shoulders[1.0] as Node3D).rotation.x; var h_shz: float = (hf.shoulders[1.0] as Node3D).rotation.z; var h_el: float = (hf.elbows[1.0] as Node3D).rotation.x; var h_knee: float = (hf.knees[1.0] as Node3D).rotation.x
+	var h_nz := hf.neck.rotation.z; var h_look := hf.look_yaw; var h_pel := hf.pelvis.position.y; var h_lel: float = (hf.elbows[-1.0] as Node3D).rotation.x; var h_done := HarkPoses.done(hf)
+	hf.set_meta("hark_t", 0.4)
+	for i in 90: await process_frame
+	var i_el: float = (hf.elbows[1.0] as Node3D).rotation.x; var i_nz := hf.neck.rotation.z; var i_done := HarkPoses.done(hf)
+	hf.set_meta("hark_t", 1.5)
+	for i in 90: await process_frame
+	var k_shx: float = (hf.shoulders[1.0] as Node3D).rotation.x; var k_look := hf.look_yaw; var k_done := HarkPoses.done(hf)
+	print("HARK rise: R sh=%.4f %.4f el=%.4f knee=%.4f neck z=%.4f look=%.4f pelvis=%.3f L el=%.4f done=%s (want −1.1000 −1.0000 −2.5000 0.1200 0.2200 0.7000 0.400 −1.5000 false) | listen: el=%.4f neck z=%.4f done=%s (want −2.6200 0.2629 false) | down: R sh=%.4f look=%.4f done=%s (want ±0.0000 ±0.0000 true)" % [h_shx, h_shz, h_el, h_knee, h_nz, h_look, h_pel, h_lel, h_done, i_el, i_nz, i_done, k_shx, k_look, k_done])
 	# 진짜 탑: 1..70층에 plan 이 찾는 풍경 — 공중 정원 층 5..9, 40..44 중 통풍구·화분·튤립·덩굴·해먹·집라인·해시계(taken)가 안 든 턱이 있는 층만, 층마다 하나
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
 	town.enter_game("climb")
 	for i in 90: await physics_frame
 	var gm: Node3D = town.game_node
-	var count := 0; var bands: Array = []
+	var count := 0; var fits := 0; var bands: Array = []
 	for n in range(1, 71):
 		var pl: Array = gm.band(n); var wind: float = gm.wind_of(n)
 		var vents: Array = cu.plan(n, pl)
@@ -101,5 +140,8 @@ func _init() -> void:
 		var out2 := cw.plan(n, pl, taken, wind)
 		if out2.size() > 0:
 			bands.append("%d:%s" % [n, out2.map(func(v: Dictionary) -> String: return "%s→%s dir %.0f gap %.0f wind %.2f" % [String(v["a_id"]), String(v["b_id"]), float(v["dir"]), float(v["gap"]), float(v["wind_k"])])]); count += out2.size()
-	print("TOWER floors=", bands, " chimes=", count, " (want a subset of 5, 6, 7, 8, 9, 40, 41, 42, 43, 44 — one each, never another theme; wind 0 under floor 40)")
+			for v in out2:
+				var q: Dictionary = v; var dy := float(q["b_y"]) - float(q["a_y"])
+				if bool(ClimbJumper.jump_for(float(q["gap"]) + 2.0, dy)["ok"]) and bool(ClimbJumper.drop_for(float(q["gap"]) + 6.0, -dy, float(q["a_w"]))["ok"]): fits += 1
+	print("TOWER floors=", bands, " chimes=", count, " fits=", fits, " (want a subset of 5, 6, 7, 8, 9, 40, 41, 42, 43, 44 — one each, never another theme; wind 0 under floor 40; fits = chimes: every gap the loader laid is one the jumper reaches both ways)")
 	quit()

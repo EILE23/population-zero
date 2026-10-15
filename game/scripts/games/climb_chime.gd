@@ -8,6 +8,8 @@ extends Node3D
 ## 로더가 할 일(climb.gd, 운영자 세션): `var cw := ClimbChime.new(); add_child(cw)`; 층을 지을 때 `cw.build(root, cw.plan(n, plats, cu.plan(n, plats) + cpl.plan(n, plats) + ctu.plan(n, plats) + cv.plan(n, plats) + chm.plan(n, plats, wind_of(n)) + cz.plan(n, plats) + sd.plan(n, plats, …), wind_of(n)))`
 ## (통풍구·시소 화분·튤립·덩굴·해먹·집라인·해시계의 계획을 taken 으로 — 한 턱을 둘이 안 나눈다; 넷째 인자는 그 층의 바람 — 흔들림과 띵 소리의 세기); 매 틱 `cw.sync(_t)`;
 ## 공중인 틱마다(착지 판정 뒤, on 이 비었을 때) `var r := cw.brush(x, y, z, on.is_empty()); if r["brushed"]: fig.pose_request = "brush"` — 착지 뒤 `BrushPoses.done(fig)` 면 자세를 비운다(lurch 와 같은 식; 자세가 바뀌면 착지 회수가 이어지지 않아도 그만이다).
+## 주민 반쪽(run 161): 풍경마다 점퍼 하나(climb_jumper.gd — 풍경의 노드 아래 Stick3D)가 아래 발판 먼 끝에 서서 탑의 1분마다 턱으로 달려가 플레이어처럼 힘을 고른 뜀(G·JUMP_MIN..JUMP_V·RUN 은 로더의 수)으로 통 사이를 지나 위 발판에 내리고(같은 brush() — 제 이름 "jumper" 로 제 rehit, 플레이어의 hits 는 그대로),
+## wheel 로 돌아서 턱에서 다시 통 사이로 뛰어내려 아래 발판에 내린 뒤 잦아드는 화음을 듣고(hark, stick3d_hark.gd) 집으로 돌아온다 — 1분에 두 번 울린다. 로더가 더 할 일은 없다 — build 가 세우고 _process 가 몬다.
 ## 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_chime.gd
 
 const PACK := "res://data/climb/chime.json"
@@ -19,7 +21,7 @@ const WIND_FULL := 180.0   # 이 바람(px/s)에 흔들림이 다 찬다 — win
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.chime
-var chimes: Array = []          # 지은 풍경 {id, kind "chime", n, x, w, y, y_top, dir, gap, hinge_x, cx, post_x, a_id, b_id, a_y, b_y, wind_k, phase, hit_t, hits, tangle_t0, next_tink, tinks, node, pivots, ring, tink, tones}
+var chimes: Array = []          # 지은 풍경 {id, kind "chime", n, x, w, y, y_top, dir, gap, hinge_x, cx, post_x, a_id, b_id, a_y, b_y, a_x, a_w, a_kind, b_x, b_w, wind_k, phase, hit_t, hit_j, hits, rings, tangle_t0, next_tink, tinks, node, pivots, ring, tink, tones, jumper}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -142,7 +144,8 @@ func plan(n: int, plats: Array, taken: Array = [], wind: float = 0.0) -> Array:
 			if not _clear(plats, a, b, x0, x1, float(b["y"]) + 1.0, top): continue
 			if not _free(taken, x0, x1, float(b["y"]) - BAND_IN, top): continue
 			found.append({ "gap": gap, "dir": dir, "hinge_x": hinge, "cx": cx, "post_x": hinge + dir * POST_IN, "x": x0, "w": x1 - x0,
-				"a_id": String(a["id"]), "b_id": String(b["id"]), "a_y": float(a["y"]), "b_y": float(b["y"]), "z": float(b.get("z", 0.0)), "d": float(b.get("d", C.DEPTH_HALF * 2.0)) })
+				"a_id": String(a["id"]), "b_id": String(b["id"]), "a_y": float(a["y"]), "b_y": float(b["y"]), "z": float(b.get("z", 0.0)), "d": float(b.get("d", C.DEPTH_HALF * 2.0)),
+				"a_x": ax0, "a_w": float(a["w"]), "a_kind": String(a["kind"]), "b_x": bx0, "b_w": float(b["w"]) })   # 두 발판의 자리 — 점퍼의 집·턱·착지 판정
 		found.sort_custom(func(p: Dictionary, q: Dictionary) -> bool: return float(p["gap"]) > float(q["gap"]) if float(p["gap"]) != float(q["gap"]) else float(p["b_y"]) < float(q["b_y"]))
 		for i in range(0, mini(int(piece.get("max", 1)), found.size())):
 			var g: Dictionary = found[i]
@@ -187,17 +190,20 @@ func tube_band(c: Dictionary) -> Array:
 	return [hi - float(tubes()[0]), hi]
 
 ## 공중인 틱 — 걷는 깊이에서 몸의 띠(y..y + body_h)와 통의 띠가 겹치고 x 가 통 폭 + 반폭 안이면 두드린다: {brushed, id}. 선 몸은 아니다; rehit_s 안의 같은 몸도 아니다(통 사이에 머무는 동안 매 틱 울리지 않게)
-func brush(x: float, y: float, z: float, airborne: bool) -> Dictionary:
+## who 는 몸의 이름 — 비면 플레이어(hit_t, hits — 판에 적힐 기록), "jumper" 면 점퍼(hit_j — 제 rehit; hits 는 그대로). rings 는 둘 다 센다
+func brush(x: float, y: float, z: float, airborne: bool, who := "") -> Dictionary:
 	var none := { "brushed": false, "id": "" }
 	if not airborne: return none
+	var key := "hit_t" if who == "" else "hit_j"
 	for cv in chimes:
 		var c: Dictionary = cv
 		if absf(z - TUBE_Z) >= C.HZ + 6.0: continue
 		if absf(x - float(c["cx"])) > half_span() + C.HW: continue
 		var band := tube_band(c)
 		if y >= float(band[1]) or y + body_h() <= float(band[0]): continue
-		if t - float(c["hit_t"]) < rehit_s(): return none
-		c["hit_t"] = t; c["tangle_t0"] = t; c["hits"] = int(c["hits"]) + 1
+		if t - float(c[key]) < rehit_s(): return none
+		c[key] = t; c["tangle_t0"] = t; c["rings"] = int(c["rings"]) + 1
+		if who == "": c["hits"] = int(c["hits"]) + 1
 		_play(c["ring"])
 		return { "brushed": true, "id": String(c["id"]) }
 	return none
@@ -213,8 +219,9 @@ func _process(delta: float) -> void:
 	for cv in chimes:
 		_place(cv)
 		_tink(cv)
+		if cv.has("jumper"): (cv["jumper"] as ClimbJumper).step(delta)   # 점퍼의 틱
 
-## 풍경을 짓는다 — root 는 그 층의 노드. 노드 원점은 (기둥, 위 발판 윗면, 걷는 깊이); 쇠 기둥·팔·팔 끝의 매듭(강조색만)·통 다섯(줄·대나무 통·마디)·소리 둘(두드림의 화음, 바람의 띵)
+## 풍경을 짓는다 — root 는 그 층의 노드. 노드 원점은 (기둥, 위 발판 윗면, 걷는 깊이); 쇠 기둥·팔·팔 끝의 매듭(강조색만)·통 다섯(줄·대나무 통·마디)·소리 둘(두드림의 화음, 바람의 띵)·점퍼(Stick3D)
 func build(root: Node3D, planned: Array, wind: float = 0.0) -> void:
 	var ph := post_h() * C.K; var reach := out() + POST_IN + half_span() + 2.0
 	for sv in planned:
@@ -237,7 +244,7 @@ func build(root: Node3D, planned: Array, wind: float = 0.0) -> void:
 			pivots.append(pv)
 		s["wind_k"] = wind_k(wind) if wind != 0.0 else float(s.get("wind_k", 0.0))
 		s["phase"] = float(int(s["n"])) * 0.37
-		s["hit_t"] = -99.0; s["hits"] = 0; s["tangle_t0"] = -99.0
+		s["hit_t"] = -99.0; s["hit_j"] = -99.0; s["hits"] = 0; s["rings"] = 0; s["tangle_t0"] = -99.0
 		s["next_tink"] = t + 1.0; s["tinks"] = 0
 		s["node"] = node; s["pivots"] = pivots
 		s["ring"] = _snd(node, _chord_wav(hzs(), ring_s()), -8.0)
@@ -245,6 +252,7 @@ func build(root: Node3D, planned: Array, wind: float = 0.0) -> void:
 		for hz in hzs(): tones.append(_tone_wav(float(hz), 0.5))
 		s["tones"] = tones
 		s["tink"] = _snd(node, tones[0], -28.0 + 16.0 * float(s["wind_k"]))   # 바람이 셀수록 크게 — 귀로 읽는 바람
+		s["jumper"] = ClimbJumper.new(self, s, node)   # 주민 반쪽 — 아래 발판 먼 끝에 선 점퍼
 		chimes.append(s)
 		_place(s)
 
