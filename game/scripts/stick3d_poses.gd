@@ -77,8 +77,7 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 		f.push_t += delta * absf(f.swing_k)
 		lean = 0.35 - 0.65 * row_k(f)
 		f.pelvis.position.y = 0.3
-	if p == "cast" or p == "reel":
-		lean = FishPoses.lean(f)   # 낚시(run 91) — 걸터앉는 골반 높이도 거기서(stick3d_fish.gd)
+	if p == "cast" or p == "reel": lean = FishPoses.lean(f)   # 낚시(run 91) — 걸터앉는 골반 높이도 거기서(stick3d_fish.gd)
 	if p == "bicker" or p == "makeup": lean = PairPoses.lean(f)   # 짝 다툼(run 95)·화해(run 96), stick3d_pair.gd
 	if p == "shelve": lean = ShelfPoses.lean(f)   # 책 상자에 꽂기·꺼내기(run 98, stick3d_shelf.gd)
 	if p in ["sort", "pin", "scan"]: lean = PostPoses.lean(f)   # 우편함에 꽂기·꺼내기(run 99), 게시판 꽂기·읽기(run 100) — stick3d_post.gd
@@ -86,56 +85,14 @@ static func lean(f: Stick3D, moving: bool, delta: float, base: float) -> float:
 	if p == "rock" or p == "rub": lean = NapPoses.lean(f)   # 흔들의자·깨어남(run 108) — 골반의 기울기와 높이도 거기서(stick3d_nap.gd)
 	if p == "strum": lean = BuskPoses.lean(f)   # 상자 기타 치기(run 111) — 기타를 등과 가슴 사이로 옮기는 것도 거기서(stick3d_busk.gd)
 	if p == "sigh": lean = LedgerPoses.lean(f)   # 장부 앞의 한숨(run 112, stick3d_ledger.gd)
-	if p == "glide": lean = GlidePoses.lean(f)   # 상승기류에 뜬 몸(run 118, Climb 팩 updraft — stick3d_glide.gd)
-	if p == "bounce": lean = BouncePoses.lean(f)   # 버섯 갓에 튕겨 오른 몸(run 119, Climb 팩 mushroom — stick3d_bounce.gd)
-	if p == "lurch": lean = LurchPoses.lean(f)   # 발밑이 사라진 몸(run 120, Climb 팩 ghost — stick3d_lurch.gd)
-	if p == "sway": lean = SwayPoses.lean(f)   # 흔들리는 밧줄 다리 위의 몸(run 121, Climb 팩 bridge — 골반째 기운다, stick3d_sway.gd)
-	if p == "ride": lean = RidePoses.lean(f)   # 돌아가는 바퀴의 컵에 선 몸(run 122, Climb 팩 windmill — 가는 방향의 반대로 기운다, stick3d_ride.gd)
-	if p == "duck": lean = DuckPoses.lean(f)   # 떠는 고드름 밑에 몸을 사린 몸(run 123, Climb 팩 icicle — 내려앉는 골반 높이도 거기서, stick3d_duck.gd)
-	if p == "tread": lean = TreadPoses.lean(f)   # 흐르는 띠 위에 선 몸(run 124, Climb 팩 gears — 실려 가는 쪽의 반대로 기울고 거슬러 걸으면 숙인다, stick3d_tread.gd)
-	if p == "dangle": lean = DanglePoses.lean(f)   # 흔들리는 가로대에 매달린 몸(run 125, Climb 팩 pendulum — 가는 쪽으로 기울고 발이 뒤처진다, 늘어난 골반 높이도 거기서, stick3d_dangle.gd)
-	if p == "wade": lean = WadePoses.lean(f)   # 솜구름에 발이 잠긴 몸(run 126, Climb 팩 raft — 가라앉을수록 골반이 내려가고 걸으면 앞으로 숙인다, 내려앉는 골반 높이도 거기서, stick3d_wade.gd)
-	if p == "rail": lean = RailPoses.lean(f)   # 굴러가는 서가 사다리의 몸(run 127, Climb 팩 ladder — 구를 땐 가는 쪽으로 기울고 오를 땐 걸음에 골반이 오르내린다, stick3d_rail.gd)
-	if p == "haul": lean = HaulPoses.lean(f)   # 종 줄에 매달려 끌려 오르는 몸(run 128, Climb 팩 bell — 당기면 뒤로 젖혀지고 오르면 앞으로, 내려앉는 골반 높이도 거기서, stick3d_haul.gd)
-	if p == "part": lean = PartPoses.lean(f)   # 덩굴 커튼 속의 몸(run 129, Climb 팩 vine — 젖히며 지날 땐 앞으로, 안기면 조금 뒤로, 골반 높이도 거기서, stick3d_part.gd)
-	if p == "kite": lean = KitePoses.lean(f)   # 연의 토글에 매달려 끌려가는 몸(run 131, Climb 팩 kite — 가는 쪽으로 기울고 내려놓으면 선다, 늘어난 골반 높이도 거기서, stick3d_kite.gd)
-	if p == "shunt": lean = ShuntPoses.lean(f)   # 서가를 미는 몸(run 132, Climb 팩 bookcase — 깊이 앞으로 기울고 걸음에 흔들린다, 내려앉는 골반 높이도 거기서, stick3d_shunt.gd)
-	if p == "cling": lean = ClingPoses.lean(f)   # 등롱 장대를 안고 오르다 넘어가는 몸(run 133, Climb 팩 lantern — 골반째 장대와 같이 기울고 당길 때 조금 뜬다, stick3d_cling.gd)
-	if p == "turn": lean = TurnPoses.lean(f)   # 회전문 잎을 밀며 도는 몸(run 134, Climb 팩 door — 살짝 앞으로 기울고 잰걸음에 흔들린다, 내려앉는 골반 높이도 거기서, stick3d_turn.gd)
-	if p == "loll": lean = LollPoses.lean(f)   # 해먹 그물에 받혀 누운 몸(run 135, Climb 팩 hammock — 골반째 눕고 흔들림에 구른다, 골반 높이도 거기서, stick3d_loll.gd)
-	if p == "trail": lean = TrailPoses.lean(f)   # 풍향계 꼬리 리본에 한 손으로 매달려 끌려 도는 몸(run 136, Climb 팩 vane — 가는 쪽으로 기울고 다리는 페달을 밟듯, 늘어난 골반 높이도 거기서, stick3d_trail.gd)
-	if p == "bound": lean = BoundPoses.lean(f)   # 다이빙 판 끝에 서서 젓다 던져져 뻗고 접는 몸(run 137, Climb 팩 plank — 널 위에선 눌릴수록 숙이고 골반이 내려앉으며, 뻗기엔 젖혀지고 접기엔 깊이 숙인다, stick3d_bound.gd)
-	if p == "tug": lean = TugPoses.lean(f)   # 열기구 바구니에서 버너 줄을 홱 당기는 몸(run 138, Climb 팩 balloon — 당김에 눌리고 오를 땐 뒤로 기운다, 골반 높이도 거기서, stick3d_tug.gd)
-	if p == "board": lean = BoardPoses.lean(f)   # 파터노스터 칸에 걸어 들어가 타고 나오는 몸(run 139, Climb 팩 paternoster — 들어설 때 가라앉고 실려 가는 쪽으로 기울며 나설 때 앞으로, 골반 높이도 거기서, stick3d_board.gd)
-	if p == "zip": lean = ZipPoses.lean(f)   # 집라인 트롤리 가로대에 매달려 비탈을 내려가는 몸(run 140, Climb 팩 zip — 속도만큼 뒤로 처지다 제동에 앞으로 쏠리고 내려놓으면 선다, 오른 골반 높이도 거기서, stick3d_zip.gd)
-	if p == "fly": lean = FlyPoses.lean(f)   # 공중그네 가로대에 매달려 제 박자로 흔드는 몸(run 141, Climb 팩 trapeze — 밧줄을 따라 기울고 끝에서 등이 휘며 놓으면 접힌다, 골반 높이도 거기서, stick3d_fly.gd)
-	if p == "perch": lean = PerchPoses.lean(f)   # 뻐꾸기시계 문간의 널빤지에 웅크린 몸(run 142, Climb 팩 perch — 숙이고 안에선 더 웅크리며 문이 열리면 고개를 내민다, 내려앉는 골반 높이도 거기서, stick3d_perch.gd)
-	if p == "shimmy": lean = ShimmyPoses.lean(f)   # 빨랫줄에 매달려 손을 옮겨 가는 몸(run 143, Climb 팩 laundry — 가는 쪽으로 조금 기울고 손이 바뀔 때마다 흔들리며, 덮인 채 내려서면 천 속에서 숙는다, 오른 골반 높이도 거기서, stick3d_shimmy.gd)
-	if p == "crank": lean = CrankPoses.lean(f)   # 윈치를 감아 널을 내리는 몸(run 144, Climb 팩 drawbridge — 북 쪽으로 기울고 바퀴마다 밀 때 더, 미끄러지면 널의 각만큼 뒤로 젖힌다, 골반 높이도 거기서, stick3d_crank.gd)
-	if p == "unroll": lean = UnrollPoses.lean(f)   # 선반의 지도를 당겨 펼치는 몸(run 145, Climb 팩 scroll — 쥘 땐 앞으로 기울고 종이가 나간 만큼 물러서며 뒤로 젖힌다, 골반 높이도 거기서, stick3d_unroll.gd)
-	if p == "balance": lean = BalancePoses.lean(f)   # 시소 화분 위의 몸(run 146, Climb 팩 planter — 앞 비탈의 오르막 쪽으로 기울고 기울 땐 골반이 조금 더 내려앉는다, 골반 높이도 거기서, stick3d_balance.gd)
-	if p == "sink": lean = SinkPoses.lean(f)   # 촛대 계단의 밀랍 위에 선 몸(run 147, Climb 팩 candle — 자국만큼 골반이 내려앉고 꺼지는 동안 몸통이 박자로 숙였다 다잡는다, stick3d_sink.gd)
-	if p == "curl": lean = CurlPoses.lean(f)   # 튤립 봉오리 속에 말린 몸(run 148, Climb 팩 tulip — 무릎을 가슴으로 안고 골반이 내려앉으며 줄기가 늘어나는 동안 박자로 죈다, stick3d_curl.gd)
-	if p == "stomp": lean = StompPoses.lean(f)   # 풀무 윗판을 구르는 몸(run 149, Climb 팩 bellows — 구름에 무릎이 올라올 땐 뒤로 젖혀지고 내리꽂힐 땐 앞으로, 판이 눌린 만큼 골반이 내려앉는다, stick3d_stomp.gd)
-	if p == "puff": lean = PuffPoses.lean(f)   # 민들레 홀씨를 부는 몸(run 150, Climb 팩 dandelion — 들숨에 조금, 날숨에 깊이 앞으로 숙이고 골반이 들숨에 뜨고 날숨에 내려앉는다, stick3d_puff.gd)
-	if p == "yank": lean = YankPoses.lean(f)   # 절벽의 서랍을 가슴으로 홱 당기는 몸(run 151, Climb 팩 catalogue — 뻗을 땐 앞으로 기울고 당기면 뒤발에 무게가 떨어져 뒤로 젖혀진다, 골반 높이도 거기서, stick3d_yank.gd)
-	if p == "spin": lean = SpinPoses.lean(f)   # 등대 렌즈의 손바퀴를 돌리는 몸(run 152, Climb 팩 lens — 자리를 잡으며 바퀴 쪽으로 기울고 바퀴마다 흔들리며 손이 내려가는 쪽에서 골반이 조금 더 내려앉는다, stick3d_spin.gd)
-	if p == "scale": lean = ScalePoses.lean(f)   # 태피스트리를 손 바꿔 오르는 몸(run 153, Climb 팩 tapestry — 당길 때 천에 붙고 밀 때 떨어지며 골반이 박자마다 뜨고, 천단의 흔들림에 같이 기운다, 건너갈 땐 앞으로, stick3d_scale.gd)
-	if p == "peer": lean = PeerPoses.lean(f)   # 망원경 접안렌즈에 숙여 보는 몸(run 154, Climb 팩 telescope — 자리 잡으며 깊이 숙이고 바로 서며 살짝 뒤로, 골반은 숙인 만큼 내려앉는다, stick3d_peer.gd)
-	if p == "hurdle": lean = HurdlePoses.lean(f)   # 허들 가로대를 넘는 몸(run 155, Climb 팩 hurdle — 도약에 골반이 가로대 위로 뜨고 몸통이 앞으로 숙으며 디딤·착지에 조금 내려앉는다; 시계는 몸의 x, stick3d_hurdle.gd)
-	if p == "wheel": lean = WheelPoses.lean(f)   # 허들 줄 끝에서 돌아서는 몸(run 156, 허들러 — 디딤에 골반이 내려앉고 휘돌기에 조금 앞으로, 고개가 먼저 돈다, stick3d_wheel.gd)
-	if p == "squint": lean = SquintPoses.lean(f)   # 해시계를 읽는 몸(run 157, Climb 팩 sundial — 빛을 가리며 골반에서 뒤로 젖혀지고 끄덕에 조금 앞으로, 무게가 옮겨 가는 가운데서 골반이 내려앉는다, stick3d_squint.gd)
-	if p == "wipe": lean = WipePoses.lean(f)   # 해시계 그노몬을 소매로 닦는 몸(run 158, 다이얼 키퍼 — 무릎이 굽으며 골반이 내려앉고 깊이 숙어 문지름마다 조금 더, stick3d_wipe.gd)
-	if p == "heave": lean = HeavePoses.lean(f)   # 덤웨이터 줄을 당기는 몸(run 130, Climb 팩 dumbwaiter — 당김 가운데서 골반이 내려앉고 몸통이 뒤로, 제동하면 앞으로, stick3d_heave.gd)
+	lean = ClimbPoses.lean(f, p, lean)   # 탑의 마흔한 자세(run 118~158: glide…wipe) — 제 자세가 아니면 lean 을 그대로 돌려준다(stick3d_climb.gd, run 159)
 	if p == "plonk": lean = FurnishPoses.lean(f)   # 납작 상자를 바닥에(run 117, 내 집 꾸미기 — stick3d_furnish.gd)
 	if p == "don" or p == "doff": lean = WearPoses.lean(f)   # 모자 쓰기·벗기(run 114, 잡화점 — stick3d_wear.gd)
 	if p == "stoop" or p == "palm" or p == "put": lean = CoinPoses.lean(f)   # put: 주머니에서 접시로(run 116, 전당포)   # 동전 집어 주머니에(run 107)·상판에서 쓸어 쥐기(run 110) — 굽는 무릎의 골반 높이도 거기서(stick3d_coin.gd)
 	if p == "skip": lean = KidPoses.lean(f, lean)   # 아이 걸음(run 102) — 걸음마다 뜨는 골반 높이도 거기서(stick3d_kid.gd)
 	if p == "moor": lean = DockPoses.lean(f)   # 배 매기(run 94) — 쪼그린 골반 높이도 거기서(stick3d_dock.gd)
 	if p == "stoke": lean = HearthPoses.lean(f)   # 난로에 장작 넣기(run 92) — 쪼그린 골반 높이도 거기서(stick3d_hearth.gd)
-	if p == "rest":
-		f.pelvis.rotation.x = -1.5; lean = 0.25 + sin(f._t * 1.6) * 0.02
-		f.pelvis.position.y = 0.16
+	if p == "rest": f.pelvis.rotation.x = -1.5; lean = 0.25 + sin(f._t * 1.6) * 0.02; f.pelvis.position.y = 0.16
 	return lean
 
 ## 노 젓기 진행 0..1 — 0 = 캐치(팔 뻗음·무릎 접힘·몸 앞), 1 = 피니시(손 가슴·다리 펴짐·몸 뒤). 한 번(ROW_T)에 0.5 젓고 0.7 돌아온다.
@@ -281,7 +238,7 @@ static func drops(f: Stick3D, on: bool) -> void:
 
 ## 이 자세가 오른팔을 직접 쓰는가 — 그러면 stick3d.gd 의 '들고 있으면 오른팔 앞으로' 덮어쓰기를 건너뛴다(먹기·마시기 손이 입까지 못 올라가던 것)
 static func owns_right_arm(p: String) -> bool:
-	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "sort", "pin", "stoop", "palm", "put", "strum", "sigh", "don", "doff", "plonk", "glide", "bounce", "lurch", "sway", "ride", "duck", "tread", "dangle", "wade", "rail", "haul", "part", "heave", "kite", "shunt", "cling", "turn", "tug", "board", "zip", "fly", "perch", "shimmy", "crank", "unroll", "balance", "sink", "curl", "stomp", "puff", "yank", "spin", "scale", "peer", "hurdle", "wheel", "squint", "wipe"]   # wipe: 오른 소매가 앞 아래의 그노몬을 좌우로 문지르고 털기에 올라온다(run 158)   # squint: 오른손이 이마 위에 납작하게 빛을 가린다(run 157)   # wheel: 두 팔이 옆으로 벌어졌다 오른팔 뒤·왼팔 앞으로 쓸린다(run 156)   # hurdle: 오른팔이 뒤로·왼팔이 앞으로 다리와 반대로 흔들린다(run 155)   # spin: 오른손이 앞 허리 높이의 손바퀴를 세로 원으로 돌리고 왼팔은 옆으로 벌린다(run 152)   # puff: 두 팔이 들숨에 옆으로 벌어져 오르고 날숨에 떨어진다(run 150)   # stomp: 두 팔이 앞으로 들렸다 구름에 위로 휘두른다(run 149)   # curl: 두 팔이 무릎을 안는다(run 148)   # sink: 두 팔을 옆으로 벌려 밀랍이 꺼지는 동안 더 올린다(run 147)   # balance: 두 팔을 옆으로 벌려 기울 땐 더 올린다(run 146)   # unroll: 두 손이 가슴의 두루마리를 쥐었다가 종이를 따라 밖으로 쓸어 벌린다(run 145)   # crank: 두 손이 가슴 앞의 윈치 손잡이를 모아 쥐고 돈다, 미끄러지면 옆으로 벌린다(run 144)   # shimmy: 두 손이 머리 위 빨랫줄을 번갈아 쥐고, 눈먼 걸음엔 얼굴의 천을 당긴다(run 143)   # perch: 두 손이 옆의 문틀을 짚고 안에선 무릎으로(run 142)   # fly: 두 손이 머리 위 그네 가로대를 어깨 폭으로 쥔다(run 141)   # zip: 두 손이 머리 위 트롤리 가로대를 벌려 쥔다(run 140)   # board: 오른손이 어깨 높이 뒷벽 난간을 쥔다(run 139)   # tug: 오른손이 얼굴 높이의 버너 줄 토글을 어깨까지 당긴다(run 138)   # turn: 오른손이 가슴 높이 회전문 손잡이에(run 134)   # cling: 두 손이 장대를 안는다. shunt: 두 손이 앞의 서가에(run 132)   # kite: 두 손이 머리 위 한 줄의 토글을 모아 쥔다(run 131)   # heave: 두 손이 머리 위 줄을 손 바꿔 가슴까지 당긴다(run 130)   # part: 두 손이 가슴 앞에서 덩굴을 바깥으로 젖힌다(run 129)   # haul: 두 손이 머리 위 줄을 위아래로 쥐고 당긴다(run 128)   # rail: 뒷손이 머리 위 난간을 쥐고 앞손은 앞으로, 오를 땐 두 손이 번갈아 위 가로대로(run 127)   # wade: 두 팔을 옆으로 들어 가슴 높이에, 걸으면 흔든다(run 126)   # dangle: 두 팔이 머리 위로 가로대를 잡는다(run 125)   # tread: 두 팔을 옆으로 벌리거나 펌프질한다(run 124)   # duck: 두 팔이 머리를 덮는다(run 123)   # ride: 두 팔을 옆으로 벌려 균형을 잡는다(run 122)   # sway: 두 팔을 옆으로 벌려 무게를 잡는다(run 121)   # lurch: 두 팔이 위로 튀고 풍차처럼 돈다(run 120)   # bounce: 두 팔이 정강이를 감싸고 머리 위로(run 119)   # glide: 두 팔이 옆으로 벌어진다(run 118)   # plonk: 두 손이 상자를 바닥에(run 117)   # put: 오른손이 주머니에서 접시로(run 116)   # don·doff: 두 손/오른손이 모자를 머리로·머리에서(run 114)   # sigh: 두 손이 탁자 모서리를 짚는다(run 112)   # palm: 오른손이 상판에서 주머니로(run 110)   # stoop: 오른손이 바닥에서 주머니로(run 107). pin: 오른손이 쪽지를 판에 누른다(run 100)   # sort: 오른손이 편지를 칸에 넣는다(run 99)   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
+	return p in ["eat", "drink", "water", "shade", "storm", "umbr", "grind", "wait", "sew", "share", "pass", "chop", "cast", "reel", "stoke", "moor", "bicker", "sort", "pin", "stoop", "palm", "put", "strum", "sigh", "don", "doff", "plonk"] or ClimbPoses.owns_right_arm(p)   # 탑의 자세(glide…wipe)는 stick3d_climb.gd 가 답한다(run 159)   # plonk: 두 손이 상자를 바닥에(run 117)   # put: 오른손이 주머니에서 접시로(run 116)   # don·doff: 두 손/오른손이 모자를 머리로·머리에서(run 114)   # sigh: 두 손이 탁자 모서리를 짚는다(run 112)   # palm: 오른손이 상판에서 주머니로(run 110)   # stoop: 오른손이 바닥에서 주머니로(run 107). pin: 오른손이 쪽지를 판에 누른다(run 100)   # sort: 오른손이 편지를 칸에 넣는다(run 99)   # bicker: 오른손이 따진다(run 95)   # moor: 오른손이 밧줄을 감는다(run 94)   # stoke: 오른손이 장작을 밀어 넣는다(run 92)   # cast·reel: 오른손이 낚싯대를(run 91)   # chop: 두 손이 도끼 자루를   # grind: 두 손이 날을 잡는다, wait: 팔짱   # storm: 든 것은 팔짱 안에 품는다(빵을 든 채 비를 피한 주민)
 
 ## 우산(run 76, "Weather people feel" 2조각): 오른팔만 쓴다 — 다리와 왼팔은 걷기·서기·앉기 그대로라 limbs() 의 match 에 없고, stick3d.gd 가 팔다리를 다 정한 뒤 이걸 부른다(세 변형이 팔 하나를 나눠 쓴다).
 ## k = f.umbr_k(0..1, UMBR_T 에 걸쳐 오간다): 팔이 늘어진 곳에서 머리 위로 오르고 캐노피(우산 meta "umb")가 펴진다; 접힐 땐 같은 길을 거꾸로. 걸을수록 진행 방향으로 조금 더 기운다 — 정지화가 아니다
@@ -488,5 +445,5 @@ static func limbs(f: Stick3D, s: float, moving: bool, sw: float, run_k: float) -
 			if s > 0.0:
 				f.neck.rotation.x -= 0.55 * k; f.chest.rotation.x -= 0.06 * k   # 고개만 든다 — 몸통은 조금
 		_:
-			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s) or PostPoses.limbs(f, s) or KidPoses.limbs(f, s) or SunroomPoses.limbs(f, s) or CoinPoses.limbs(f, s) or NapPoses.limbs(f, s) or BuskPoses.limbs(f, s) or LedgerPoses.limbs(f, s) or WearPoses.limbs(f, s) or FurnishPoses.limbs(f, s) or GlidePoses.limbs(f, s) or BouncePoses.limbs(f, s) or LurchPoses.limbs(f, s) or SwayPoses.limbs(f, s) or RidePoses.limbs(f, s) or DuckPoses.limbs(f, s) or TreadPoses.limbs(f, s) or DanglePoses.limbs(f, s) or WadePoses.limbs(f, s) or RailPoses.limbs(f, s) or HaulPoses.limbs(f, s) or PartPoses.limbs(f, s) or HeavePoses.limbs(f, s) or KitePoses.limbs(f, s) or ShuntPoses.limbs(f, s) or ClingPoses.limbs(f, s) or TurnPoses.limbs(f, s) or LollPoses.limbs(f, s) or TrailPoses.limbs(f, s) or BoundPoses.limbs(f, s) or TugPoses.limbs(f, s) or BoardPoses.limbs(f, s) or ZipPoses.limbs(f, s) or FlyPoses.limbs(f, s) or PerchPoses.limbs(f, s) or ShimmyPoses.limbs(f, s) or CrankPoses.limbs(f, s) or UnrollPoses.limbs(f, s) or BalancePoses.limbs(f, s) or SinkPoses.limbs(f, s) or CurlPoses.limbs(f, s) or StompPoses.limbs(f, s) or PuffPoses.limbs(f, s) or YankPoses.limbs(f, s) or SpinPoses.limbs(f, s) or ScalePoses.limbs(f, s) or PeerPoses.limbs(f, s) or HurdlePoses.limbs(f, s) or WheelPoses.limbs(f, s) or SquintPoses.limbs(f, s) or WipePoses.limbs(f, s)   # 이야기방(run 103)· 아이 걸음(run 102)· 우편 가족(run 99)· 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
+			return FishPoses.limbs(f, s) or HearthPoses.limbs(f, s) or DockPoses.limbs(f, s) or PairPoses.limbs(f, s) or ShelfPoses.limbs(f, s) or PostPoses.limbs(f, s) or KidPoses.limbs(f, s) or SunroomPoses.limbs(f, s) or CoinPoses.limbs(f, s) or NapPoses.limbs(f, s) or BuskPoses.limbs(f, s) or LedgerPoses.limbs(f, s) or WearPoses.limbs(f, s) or FurnishPoses.limbs(f, s) or ClimbPoses.limbs(f, s)   # 이야기방(run 103)· 아이 걸음(run 102)· 우편 가족(run 99)· 낚시 가족(run 91)·불 가족(run 92)·나루 가족(run 94)·짝 가족(run 95) — 이 파일이 450줄을 넘어 주제별 파일로
 	return true
