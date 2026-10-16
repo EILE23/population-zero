@@ -1,0 +1,41 @@
+{
+  "_": "Climb content pack 'Rolling log' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_log.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still hop of the piece's `on` kinds at least `min_w` px wide whose track box (the hop's top between the two end pegs, up to a standing body) no other platform cuts and no `taken` piece of another pack (the revolving door on the hop's centre, the bell rope in a gap — the loader passes their plans) meets; one log per floor, on the widest such hop: a loose log `length` px long and `radius` px thick lying across the hop at its middle, a worn track under it and an iron peg `end_in` px inside each end of the hop. Walking into the log steps up onto it (the feet rise 2 × radius) and the log rolls with the walk: the body's x advances at `slow` × its walking speed while the log turns under it (pose `log`: arms out level, knees high, short quick steps on a 0.25 s beat — never a still frame). At a peg the log stops and the walk carries the body over and off it. Standing still on top for `stop_s` s spills it: the log rolls on `kick` px in the direction it was last turning (over kick_s s) and the body drops to the hop in the existing `teeter` for `spill_s` s; a spilled log cannot be mounted for `grace_s` s. Holding a jump charge on top does not spill it (the crouch holds it). Left alone for `settle_s` s the log drifts back to the hop's worn middle at `settle_v` px/s. Rides of `ride_px` px or more and spills are counted a tower-day (`day_s` s) for the camp boards (`note(n)`); nothing is a prize gate. Nothing refuses or costs: the plain jump over the log is untouched, and a body that keeps walking crosses every time (the plain outcome is 100%). tools/probe_log.gd checks the plan and its refusals, the mount, the roll and its slowing, the peg and the walk-off, the spill, the grace, the settle, the count, the visuals and the pose.",
+  "id": "log",
+  "name": "Rolling log",
+  "pose": "log",
+  "themes": [
+    "Old hall"
+  ],
+  "kinds": {
+    "log": {
+      "_": "length: the log along the cliff (px) — it spans the walking lane and the hurdle's front lane stays open. radius: px; the body stands 2 × radius over the hop. min_w: the hop must be at least this wide. end_in: the iron pegs this far inside each end of the hop. slow: the body's x advances at this fraction of its walking speed on top (a real log gives 0.5; this one slips a little on the worn stone). stop_s: seconds standing still on top before the spill. spill_s: seconds of teeter after a spill. kick: px the spilled log rolls on; kick_s: seconds it takes. grace_s: seconds a spilled log cannot be mounted. settle_s: seconds unridden before the log drifts home; settle_v: px/s of the drift. ride_px: a ride this long counts. day_s: seconds of tower time in a tower-day. knock_hz: the log on the stone each quarter turn; clonk_hz: the spill.",
+      "length": 40,
+      "radius": 8,
+      "min_w": 150,
+      "end_in": 20,
+      "slow": 0.6,
+      "stop_s": 0.2,
+      "spill_s": 0.4,
+      "kick": 30,
+      "kick_s": 0.4,
+      "grace_s": 0.6,
+      "settle_s": 6,
+      "settle_v": 24,
+      "ride_px": 40,
+      "day_s": 600,
+      "knock_hz": 110,
+      "clonk_hz": 70
+    }
+  },
+  "pieces": [
+    {
+      "_": "Old hall floors are 0..4, 35..39, 70..74 …; floors 1..4 have hops 155..200 px wide (floor 0 too, over the ground), so a log fits most of them and the widest goes to the revolving door (run 134, min_w 120, centred like the log) first — passed as `taken`, so the log takes the next widest; from floor 35 the hops are 119..159 px wide and only the widest few hold one. The bell rope (run 128) hangs in a gap and never meets a hop top. Ice hops take a log too (the slow start on ice makes the first steps on top a scramble); spring, moving and crumbling hops do not.",
+      "kind": "log",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1
+    }
+  ]
+}
