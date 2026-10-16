@@ -10,6 +10,7 @@ extends Node3D
 ## 발판에 선 가지의 끝(x 를 옮긴 뒤, _wall_push 뒤 — 허들의 stride 자리)에서 `var r := lg.roll(on, x, z, vx, dt, fig, jump_held); x = r["x"]; y = float(on["y"]) + r["dy"]; if r["spill"]: vx = 0.0; fig.pose_request = "teeter"; _scene_until = now + lg.spill_s(); _scene_dx = 0.0` (teeter 는 _scene_until 이 지나면 비운다);
 ## `if r["riding"]: fig.pose_request = "log"` (팩이 meta log_v 를 적는다), `elif fig.pose_request == "log": fig.pose_request = ""` (내려서거나 엎어지면 — 팩이 메타를 지운다). 공중(on 이 빈)·매달림·붙잡음에선 부르지 않는다.
 ## roll 의 st: 비우면 플레이어(팩의 _me — 판에 센다), 다른 몸은 제 사전 {on_id, riding, still, ride, last, count} 을 준다(주민 반쪽이 쓴다).
+## 주민 반쪽(run 167): 통나무마다 통나무꾼 하나(climb_roller.gd — 통나무 노드 아래 Stick3D)가 집 쪽 말뚝 바깥에 서서 탑의 1분마다, 그리고 플레이어의 타기가 끝난 뒤 0.8 s 에(plan 이 적는 hz·hd, roll 이 플레이어에게 적는 me_t·me_off_t 로) 같은 roll 로 타고 steady(발 얹기)·wheel 로 돌아선다 — 로더가 할 일은 없다(build 가 짓고 _process 가 돌린다).
 ## 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_log.gd
 
 const PACK := "res://data/climb/log.json"
@@ -22,9 +23,9 @@ const QUARTER := TAU / 4.0
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.log
-var logs: Array = []            # 지은 통나무 {id, kind "log", n, hop_id, hop_kind, hop_w, cx, x0, x1, lx, a, y, y_top, z, d, rider_t, spill_t, kick_from, kick_dir, day, rides, spills, node, piv, knock, clonk}
+var logs: Array = []            # 지은 통나무 {id, kind "log", n, hop_id, hop_kind, hop_w, hz, hd, cx, x0, x1, lx, a, y, y_top, z, d, rider_t, spill_t, kick_from, kick_dir, day, rides, spills, me_t, me_off_t, node, piv, knock, clonk, roller}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
-var _me := { "on_id": "", "riding": false, "still": 0.0, "ride": 0.0, "last": 1.0, "count": true }   # 플레이어의 roll 상태 — still: 위에서 선 시간, ride: 이번 타기의 거리, last: 마지막 구른 쪽
+var _me := { "on_id": "", "riding": false, "still": 0.0, "ride": 0.0, "last": 1.0, "count": true, "me": true }   # 플레이어의 roll 상태(me: 통나무꾼이 보는 me_t·me_off_t 를 적는다) — still: 위에서 선 시간, ride: 이번 타기의 거리, last: 마지막 구른 쪽
 
 func _ready() -> void:
 	var f := FileAccess.open(PACK, FileAccess.READ)
@@ -95,7 +96,7 @@ func plan(n: int, plats: Array, taken: Array = []) -> Array:
 			var x0 := float(p["x"]) + end_in(); var x1 := float(p["x"]) + float(p["w"]) - end_in()
 			if not _clear(plats, p, x0 - C.HW, x1 + C.HW, float(p["y"]) + 1.0, float(p["y"]) + BODY_UP): continue
 			if not _free(taken, x0 - C.HW, x1 + C.HW, float(p["y"]) - BAND_LO, float(p["y"]) + BAND_HI): continue
-			found.append({ "w": float(p["w"]), "hop_id": String(p["id"]), "hop_kind": String(p["kind"]), "y": float(p["y"]), "cx": float(p["x"]) + float(p["w"]) / 2.0, "x0": x0, "x1": x1 })
+			found.append({ "w": float(p["w"]), "hop_id": String(p["id"]), "hop_kind": String(p["kind"]), "y": float(p["y"]), "cx": float(p["x"]) + float(p["w"]) / 2.0, "x0": x0, "x1": x1, "hz": float(p.get("z", C.WALL_Z + C.DEPTH_HALF)), "hd": float(p.get("d", C.DEPTH_HALF * 2.0)) })   # hz·hd: 발판의 깊이 — 통나무꾼의 앞길
 		found.sort_custom(func(p: Dictionary, q: Dictionary) -> bool: return float(p["w"]) > float(q["w"]) if float(p["w"]) != float(q["w"]) else float(p["y"]) < float(q["y"]))
 		for i in range(0, mini(int(piece.get("max", 1)), found.size())):
 			var g: Dictionary = found[i]
@@ -153,6 +154,7 @@ func roll(on: Dictionary, x: float, z: float, vx: float, dt: float, fig: Stick3D
 		who["riding"] = true; who["still"] = 0.0; who["ride"] = 0.0; mounted = true
 		x = lx; _play(g["knock"] as AudioStreamPlayer3D)
 	g["rider_t"] = t
+	if bool(who.get("me", false)): g["me_t"] = t   # 플레이어가 위에 있다 — 통나무꾼이 기다린다
 	var lo := float(g["x0"]) + rr; var hi := float(g["x1"]) - rr
 	var moved := clampf(lx + vx * dt * slow(), lo, hi) - lx
 	if vx != 0.0 and absf(moved) < 1e-6:   # 말뚝에 막혔다 — 몸이 제 걸음으로 넘어간다(x 는 로더가 옮긴 그대로)
@@ -178,6 +180,9 @@ func _turn(g: Dictionary, moved: float) -> void:
 
 ## 내려섰다(또는 통나무 발판이 아니다) — 타기가 ride_px 이상이면 센다, 자세의 메타를 지운다
 func _off(who: Dictionary, fig: Stick3D, x: float, counted: bool) -> Dictionary:
+	if bool(who["riding"]) and bool(who.get("me", false)):   # 플레이어의 타기가 끝났다(내려섬·앞길·엎어짐) — 통나무꾼이 0.8 s 뒤 따라 탄다
+		var g := _by_hop(String(who["on_id"]))
+		if not g.is_empty(): g["me_off_t"] = t
 	if bool(who["riding"]) and counted and bool(who.get("count", true)) and float(who["ride"]) >= ride_px(): _tally(who, "rides")
 	who["riding"] = false; who["still"] = 0.0; who["ride"] = 0.0
 	if fig and fig.has_meta("log_v"): fig.remove_meta("log_v")
@@ -237,6 +242,7 @@ func _process(delta: float) -> void:
 	logs = logs.filter(func(g: Dictionary) -> bool: return is_instance_valid(g["node"]))   # 지운 층의 것은 뺀다(climb_telescope 와 같은 식)
 	for gv in logs:
 		var g: Dictionary = gv
+		if g.has("roller"): (g["roller"] as ClimbRoller).step(delta)   # 통나무꾼의 틱 — 제 roll 로 lx 를 옮긴 뒤 아래가 자리를 잡는다
 		var rr := radius(); var lo := float(g["x0"]) + rr; var hi := float(g["x1"]) - rr
 		var since := t - float(g["spill_t"])
 		if since >= 0.0 and since <= kick_s():   # 굴러 나감 — 빠르게 떠나 느려진다
@@ -247,7 +253,7 @@ func _process(delta: float) -> void:
 			g["lx"] = float(g["lx"]) + d; g["a"] = float(g["a"]) + d / rr
 		_place(g)
 
-## 통나무를 짓는다 — root 는 그 층의 노드. 노드 원점은 (발판 가운데, 발판 윗면, 절벽); 닳은 홈 하나, 말뚝 둘, 통나무(축 하나 — 껍질 통 + 끈 둘), 소리 둘
+## 통나무를 짓는다 — root 는 그 층의 노드. 노드 원점은 (발판 가운데, 발판 윗면, 절벽); 닳은 홈 하나, 말뚝 둘, 통나무(축 하나 — 껍질 통 + 끈 둘), 소리 둘, 통나무꾼(Stick3D)
 func build(root: Node3D, planned: Array) -> void:
 	var rr := radius() * C.K; var ln := length() * C.K; var zz := (C.PLAYER_Z - C.WALL_Z) * C.K
 	for sv in planned:
@@ -268,9 +274,10 @@ func build(root: Node3D, planned: Array) -> void:
 			ring.mesh = rm; ring.material_override = cord; ring.rotation.x = PI / 2.0; ring.position.z = sz * ln; ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; piv.add_child(ring)   # 끈 — 강조색은 가는 띠 둘
 		s["node"] = node; s["piv"] = piv; s["a"] = 0.0
 		s["rider_t"] = -99.0; s["spill_t"] = -99.0; s["kick_from"] = float(s["lx"]); s["kick_dir"] = 1.0; s["kick_a"] = 0.0
-		s["day"] = -1; s["rides"] = 0; s["spills"] = 0
+		s["day"] = -1; s["rides"] = 0; s["spills"] = 0; s["me_t"] = -99.0; s["me_off_t"] = -99.0
 		s["knock"] = _snd(node, float(kind.get("knock_hz", 110)), 0.05, -16.0); s["clonk"] = _snd(node, float(kind.get("clonk_hz", 70)), 0.15, -12.0)
 		logs.append(s)
+		s["roller"] = ClimbRoller.new(self, s, node)   # 주민 반쪽 — 집 쪽 말뚝 바깥에 선 통나무꾼
 		_place(s)
 
 ## 축을 지금 자리로 — +x 로 구르면 시계 방향(z 축 음의 돌림)
