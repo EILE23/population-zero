@@ -8,7 +8,8 @@ extends Node3D
 ## 로더가 할 일(climb.gd, 운영자 세션): `var tr := ClimbTightrope.new(); add_child(tr)`; 층을 지을 때 `var ic := ci.plan(n, plats); var lp := cn.plan(n, plats, ic); var tp := ct.plan(n, plats, ic + lp); tr.build(root, tr.plan(n, plats, ic + lp + tp + ts.plan(n, plats, ic + lp + tp)), wind_of(n))` (고드름·등롱 장대·그네·망원경의 계획을 taken 으로 — 한 틈을 둘이 안 나눈다); 매 틱 `tr.sync(_t)`;
 ## 착지 판정에서 landed 가 비었고 vy <= 0 이면 `landed = tr.land(x, y, ny, z)` (돌려준 사전의 "y" 가 그 x 의 밧줄 높이; "step" 이 참이면 턱에서 밧줄로 내디딘 걸음);
 ## 서 있을 때 `on["kind"] == "tightrope"` 면 `var r := tr.stand(on, x, dt, fig); y = r["y"]; if r["fall"]: on = {}; apex = y; fig.pose_request = "lurch" else: fig.pose_request = "tiptoe"`, 밧줄을 떠나면 `if fig.pose_request == "tiptoe": fig.pose_request = ""`; lurch 는 유령 발판처럼 `LurchPoses.done(fig)` 가 참이 되면 비운다.
-## 몸마다의 상태 st: 비우면 플레이어(팩의 _me), 다른 몸(주민 반쪽이 오면)은 제 사전 {px, rid} 을 준다 — 앞 틱의 x 로 걸음의 빠르기를 잰다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_tightrope.gd
+## 몸마다의 상태 st: 비우면 플레이어(팩의 _me — 올라선 때를 stepped_t 에, 선 매 틱을 me_t 에 남긴다), 다른 몸(외줄꾼)은 제 사전 {px, rid} 을 준다 — 앞 틱의 x 로 걸음의 빠르기를 잰다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위).
+## 주민 반쪽(run 165): 밧줄마다 외줄꾼 하나(climb_ropewalker.gd — 밧줄 노드 아래 Stick3D)가 아래 고리 옆에 서서 탑의 1분마다, 그리고 플레이어가 올라선 뒤 1.5 s 에(밧줄이 비면) 같은 stand() 를 제 st 로 부르며 걸음·멈춤의 박자로 건너고(tiptoe), 건너편 고리에서 절한다(flourish); 떨어지면 같은 lurch 로 plan 이 적어 준 이 층의 발판(hops) 위에 내려 꼭대기를 타고 돌아온다. 점검은 tools/probe_tightrope.gd
 
 const PACK := "res://data/climb/tightrope.json"
 const C = preload("res://scripts/games/climb.gd")
@@ -19,7 +20,7 @@ const SHAKE_HZ := 28.0     # 떨어진 뒤 밧줄의 떨림
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.tightrope
-var ropes: Array = []           # 지은 밧줄 {id, kind "tightrope", n, x, w, y, x0, y0, x1, y1, dir, a_id, b_id, z, d, wind, node, base_y, segs [MeshInstance3D…], stars [Node3D…], hum, twang, stood, fell, ph, amp}
+var ropes: Array = []           # 지은 밧줄 {id, kind "tightrope", n, x, w, y, x0, y0, x1, y1, dir, a_id, b_id, hops, z, d, wind, node, base_y, segs [MeshInstance3D…], stars [Node3D…], hum, twang, stood, fell, ph, amp, stepped_t, me_t, walker}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 var _me := { "px": 0.0, "rid": "" }   # 플레이어의 걸음 상태 — px: 앞 틱의 몸 x, rid: 그때 선 밧줄
 
@@ -86,7 +87,7 @@ func plan(n: int, plats: Array, taken: Array = []) -> Array:
 			if not _clear(plats, a, b, x0, x1, y0, y1): continue
 			if not _free(taken, x0, x1, ylo - UNDER / 2.0, yhi + BODY_UP): continue
 			var d := minf(float(a.get("d", C.DEPTH_HALF * 2.0)), float(b.get("d", C.DEPTH_HALF * 2.0)))
-			spans.append({ "gap": gap, "dir": dir, "x0": x0, "y0": y0, "x1": x1, "y1": y1, "d": d, "a_id": String(a["id"]), "b_id": String(b["id"]), "a_y": float(a["y"]) })
+			spans.append({ "gap": gap, "dir": dir, "x0": x0, "y0": y0, "x1": x1, "y1": y1, "d": d, "a_id": String(a["id"]), "b_id": String(b["id"]), "a_y": float(a["y"]), "hops": _rects(hops, i) })
 		spans.sort_custom(func(p: Dictionary, q: Dictionary) -> bool: return float(p["gap"]) > float(q["gap"]) if float(p["gap"]) != float(q["gap"]) else float(p["a_y"]) < float(q["a_y"]))
 		for i in range(0, mini(int(piece.get("max", 1)), spans.size())):
 			var g: Dictionary = spans[i]
@@ -97,6 +98,14 @@ func plan(n: int, plats: Array, taken: Array = []) -> Array:
 			s["y"] = surf(s, (float(g["x0"]) + float(g["x1"])) / 2.0)   # 한가운데 밧줄 높이 — 로더의 일반 코드가 읽을 대표 높이(착지·서기는 surf 로)
 			s["y_top"] = maxf(float(g["y0"]), float(g["y1"])) + BODY_UP   # 걷는 몸의 키 — 다른 팩의 _free 가 읽는 키
 			out.append(s)
+	return out
+
+## 이 층의 발판 0..i(아래서 위 턱까지)의 자리 — 외줄꾼이 떨어져 내릴 곳과 되오를 길(움직이는 발판은 폭을 amp 로)
+static func _rects(hops: Array, i: int) -> Array:
+	var out: Array = []
+	for j in range(0, i + 1):
+		var p: Dictionary = hops[j]
+		out.append({ "id": String(p["id"]), "x": float(p["x"]), "w": float(p["w"]), "y": float(p["y"]), "amp": float(p.get("amp", 0.0)) })
 	return out
 
 ## 이 폭(x0..x1) 안에 두 턱 말고 다른 발판이 밧줄 선(y0 → y1 의 현)의 높이 띠 — 그 발판이 걸치는 x 에서 밧줄 아래 UNDER, 위 BODY_UP — 에 걸리지 않나; 움직이는 발판은 진폭째(지름길 판이 밧줄 위로 솟으면 걸을 수 없다). 비탈진 밧줄이라 상자 하나가 아니라 선을 본다
@@ -154,7 +163,9 @@ func stand(on: Dictionary, x: float, dt: float, fig: Stick3D = null, st: Diction
 	if t - float(s["stood"]) > 0.1:   # 빈 밧줄에 올라섰다 — 흔들림은 0 에서, 걸음의 기준 x 는 여기서
 		s["ph"] = 0.0; s["amp"] = 0.0; who["px"] = x; who["rid"] = id
 		_play(s["hum"] as AudioStreamPlayer3D)
+		if st.is_empty(): s["stepped_t"] = t   # 플레이어가 올라섰다 — 외줄꾼이 REACT 뒤에 따라 건넌다
 	s["stood"] = t
+	if st.is_empty(): s["me_t"] = t   # 플레이어가 서 있는 동안 외줄꾼은 박자를 멈춘다
 	var spd := absf(x - float(who["px"])) / maxf(dt, 0.0001) if String(who.get("rid", "")) == id else 0.0
 	who["px"] = x; who["rid"] = id
 	s["ph"] = fposmod(float(s["ph"]) + dt * TAU / period(), TAU)
@@ -185,6 +196,7 @@ func _process(delta: float) -> void:
 	ropes = ropes.filter(func(s: Dictionary) -> bool: return is_instance_valid(s["node"]))   # 지운 층의 것은 뺀다(climb_bridge 와 같은 식)
 	for sv in ropes:
 		var s: Dictionary = sv
+		if s.has("walker"): (s["walker"] as ClimbRopewalker).step(delta)   # 외줄꾼의 틱
 		var k := (t - float(s["fell"])) / shake_s()
 		var node: Node3D = s["node"]
 		if k >= 1.0:
@@ -227,8 +239,9 @@ func build(root: Node3D, planned: Array, wind: float = 0.0) -> void:
 		_box(node, Vector3(0.03, 0.03, 0.03), band).position = Vector3(5.0 * C.K, surf_m(s, 5.0) + 0.01, 0.0)   # 왼 끝의 매듭 띠 — 강조색은 이 하나
 		s["hum"] = _snd(node, float(kind.get("hum_hz", 95)), 0.25, -14.0); s["twang"] = _snd(node, float(kind.get("twang_hz", 520)), 0.12, -10.0)
 		s["node"] = node; s["base_y"] = node.position.y; s["segs"] = pieces; s["stars"] = stars; s["wind"] = wind
-		s["stood"] = -9.0; s["fell"] = -99.0; s["ph"] = 0.0; s["amp"] = 0.0
+		s["stood"] = -9.0; s["fell"] = -99.0; s["ph"] = 0.0; s["amp"] = 0.0; s["stepped_t"] = -99.0; s["me_t"] = -99.0
 		ropes.append(s)
+		s["walker"] = ClimbRopewalker.new(self, s, node)   # 주민 반쪽 — 아래 고리 옆에 선 외줄꾼
 
 ## 노드 기준 높이(m) — xm 은 노드 원점에서 px
 func surf_m(s: Dictionary, xm: float) -> float:
