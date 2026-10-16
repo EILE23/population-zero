@@ -8,7 +8,9 @@ extends Node3D
 ## 허들(제 걸음의 속도가 가른다)·다이빙 판(널이 던진다)과 다르다: 이건 제 공중 조작이 기록을 가르는 첫 조각 — 힘을 다 모은 점프는 215 px 쯤 날아 발판보다 길므로, 늦게 밀어 모래에 떨어뜨리거나 일찍 밀어 발판 끝을 건다.
 ## 로더가 할 일(climb.gd, 운영자 세션): `var lj := ClimbPit.new(); add_child(lj); signs.notes.append(lj.note)`; 층을 지을 때 `var tk := cr.plan(n, plats) + mu.plan(n, plats); var pp := cp.plan(n, plats, tk); var bp := ba.plan(n, plats, tk + pp); var lp := ln.plan(n, plats, tk + pp + bp); lj.build(root, lj.plan(n, plats, tk + pp + bp + lp))` (뗏목·버섯·널·열기구·렌즈의 계획을 taken 으로 — 한 발판을 둘이 안 나눈다); 매 틱 `lj.sync(_t)`;
 ## 모아 뛰는 가지(`elif charge > 0.0:` — `on = {}` 앞)에서 `lj.takeoff(on, x, z, charge / CHARGE)`; 착지(landed 가 있고 was_air, spring 이 아닐 때)에서 `var r := lj.land(landed, x, z); if r["sand"]: fig.pose_request = "plant"`; 그 뒤 `if fig.pose_request == "plant" and PlantPoses.done(fig): fig.pose_request = ""`. 공중·매달림·붙잡음에선 부르지 않는다.
-## 몸마다의 상태 st: 비우면 플레이어(팩의 _me — 말뚝에 센다), 다른 몸(다음 조각의 점퍼)은 제 사전 {pit, x0, count} 을 준다.
+## 몸마다의 상태 st: 비우면 플레이어(팩의 _me — 말뚝에 센다), 다른 몸(리퍼)은 제 사전 {pit, x0, count} 을 준다. 플레이어의 기록은 mark_t 에 남는다(리퍼가 따라 뛴다).
+## 주민 반쪽(run 163): 모래밭마다 리퍼 하나(climb_leaper.gd — 모래밭의 노드 아래 Stick3D)가 구름판 뒤에 서서 탑의 1분마다, 그리고 플레이어의 기록 뒤 1.5 s 에 구름판으로 가 다리를 털고(limber, stick3d_limber.gd) 로더의 웅크림으로 힘을 모아 같은 takeoff()/land() 로 뛰어 모래에 내린다(plant — 제 st, 말뚝은 옮기지 않는다),
+## 공중에서 플레이어처럼 늦게 밀어(AIR) 모래 안에 내리고 집으로 걸어 돌아와 wheel 로 돌아선다. 로더가 더 할 일은 없다 — build 가 세우고 _process 가 몬다.
 ## 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_pit.gd
 
 const PACK := "res://data/climb/pit.json"
@@ -19,7 +21,7 @@ const BODY_UP := 50.0      # 선 몸의 키(px) — 상자 위쪽 여유
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.pit
-var pits: Array = []            # 지은 모래밭 {id, kind "pit", n, hop_id, hop_kind, cx, x, w, y, y_top, z, d, dir, board_x, sand_x0, sand_x1, best, day, node, peg, tap, thump}
+var pits: Array = []            # 지은 모래밭 {id, kind "pit", n, hop_id, hop_kind, cx, x, w, y, y_top, z, d, dir, board_x, sand_x0, sand_x1, best, day, mark_t, node, peg, tap, thump, leaper}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 var _me := { "pit": "", "x0": 0.0, "count": true }   # 플레이어의 도약 — pit: 구름판에서 뛴 모래밭의 id("" 이면 도약이 아니다), x0: 구름판 x, count: 말뚝에 센다
 
@@ -151,6 +153,7 @@ func land(on: Dictionary, x: float, z: float, st: Dictionary = {}) -> Dictionary
 	if bool(who.get("count", true)):
 		if int(p["day"]) != day(): p["day"] = day(); p["best"] = -1.0   # 새 날 — 어제의 말뚝은 뽑힌다
 		if dist > float(p["best"]): p["best"] = dist
+		p["mark_t"] = t   # 플레이어의 기록 — 리퍼가 REACT 뒤에 따라 뛴다
 	_play(p["thump"] as AudioStreamPlayer3D)
 	_place(p)
 	return { "sand": true, "dist": dist, "best": best_today(p) }
@@ -179,7 +182,9 @@ func _play(p: AudioStreamPlayer3D) -> void:
 func _process(delta: float) -> void:
 	t += delta
 	pits = pits.filter(func(p: Dictionary) -> bool: return is_instance_valid(p["node"]))   # 지운 층의 것은 뺀다(climb_hurdle 과 같은 식)
-	for pv in pits: _place(pv)
+	for pv in pits:
+		_place(pv)
+		if pv.has("leaper"): (pv["leaper"] as ClimbLeaper).step(delta)   # 리퍼의 틱
 
 ## 모래밭을 짓는다 — root 는 그 층의 노드. 노드 원점은 (발판 가운데, 발판 윗면, 절벽); 모래 띠·구름판(강조색 가장자리 선 하나)·갈퀴 줄·말뚝·소리 둘
 func build(root: Node3D, planned: Array) -> void:
@@ -197,10 +202,11 @@ func build(root: Node3D, planned: Array) -> void:
 		for i in range(1, int(slen / every) + 1):
 			_box(node, Vector3(1.0 * C.K, sh * 0.3, sd * 0.8), rake).position = Vector3((sx0 + d * every * float(i) - cx) * C.K, sh + sh * 0.15, zz)   # 갈퀴 줄
 		var peg := _box(node, Vector3(3.0 * C.K, peg_h() * C.K, 3.0 * C.K), acc); peg.position = Vector3(0.0, peg_h() * C.K / 2.0, zz); peg.visible = false
-		s["node"] = node; s["peg"] = peg; s["best"] = -1.0; s["day"] = -1
+		s["node"] = node; s["peg"] = peg; s["best"] = -1.0; s["day"] = -1; s["mark_t"] = -99.0
 		s["tap"] = _snd(node, float(kind.get("tap_hz", 500)), 0.05, -16.0); s["thump"] = _snd(node, float(kind.get("thump_hz", 70)), 0.14, -12.0)
 		pits.append(s)
 		_place(s)
+		s["leaper"] = ClimbLeaper.new(self, s, node)   # 주민 반쪽 — 구름판 뒤에 선 리퍼
 
 ## 말뚝은 오늘의 최고 자리에 — 없으면 보이지 않는다
 func _place(p: Dictionary) -> void:
