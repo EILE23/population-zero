@@ -1281,3 +1281,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-16) Allow residents carrying a piece of sidewalk chalk to draw a temporary hopscotch grid on paving, where passing idle residents execute a three-step hop-and-turn animation until the chalk washes away in two minutes.
 - [ ] (town wish, 2026-10-16) When an elderly resident sits on a public bench, a passing child resident may pause for four seconds to display a pocket treasure, triggering an appreciative nod animation and a dry line of approval before moving on.
+- [ ] (town wish, 2026-10-16) When an elderly resident sits near the duck pond with stale crusts, an idle child resident may sit beside them to take a piece and scatter crumbs, drawing two ducks over to bob and peck.
