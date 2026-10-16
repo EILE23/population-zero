@@ -1,0 +1,44 @@
+{
+  "_": "Climb content pack 'Tightrope' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_tightrope.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every gap between two consecutive still hops (the piece's `on` kinds) that is min_gap..max_gap wide edge to edge with the hops at most max_dy apart in height — the tower's consecutive hops always step 92..138 px, so the rope runs up the slope from the lower hop's edge to the upper hop's edge like the bridge does — whose span box (the gap, from 40 px under the lower top to a standing body over the higher) no other platform cuts and no `taken` piece of another pack (the icicles, the star lantern's pole, the trapeze, the telescope — the loader passes their plans) meets; one rope per floor, in the widest such gap: a rope tied to an iron ring set `ring_in` px inside each hop's facing edge, strung from the lower top to the upper top with `sag` px of hang below the chord at mid-span, three tin stars on threads under it. The rope is a surface you walk: land(x, y, ny, z) is the pure landing check the loader runs after its own comes up empty (a body falling through the rope, or a body within `catch` px of it and descending — the step off a hop's edge onto the rope, up or down), stand(on, x, dt, fig, st) every standing tick returns the rope's height under the feet and drives the sway: the body's offset off the rope grows and falls back over amp_t toward base_amp standing still, plus wind_amp at a 120 px/s floor wind, plus speed_amp at full WALK (from 0.5 WALK up), and swings with `period`; past fall_px the body drops (fall true — the loader empties `on` and plays the existing `lurch`), the rope twangs and shivers for shake_s and catches nobody meanwhile. Holding a direction crosses about 95 px before the fall; short bursts with pauses cross any rope — the rhythm is the skill. Nothing shoves, refuses or costs: the plain jump over the gap is untouched and a short jump is caught by the rope instead of falling. `pose` is the Stick3D pose_request while on the rope (stick3d_tiptoe.gd). tools/probe_tightrope.gd checks the plan and its refusals, the surface, the landing, the sway standing, walking and in wind, the fall and its window, the visuals, the sounds and the pose.",
+  "id": "tightrope",
+  "name": "Tightrope",
+  "pose": "tiptoe",
+  "themes": [
+    "Starlit"
+  ],
+  "kinds": {
+    "tightrope": {
+      "_": "min_gap/max_gap: the gap a rope may cross (px, edge to edge). max_dy: the most the two hops may differ in height (the bridge's 150; consecutive hops step 92..138 px, a 100 px gap at 150 px is the steepest rope). sag: px the rope hangs below the chord at mid-span (taut; the bridge hangs 28). catch: px a descending body may be off the rope's height and still be set on it — the first tick off a hop's edge is 10..14 px along the rope, 21 px under or over it on the steepest slope. ring_in: the anchor ring this far inside each hop's edge; ring_r: its radius (px). period: seconds of one sway there and back. base_amp: px of sway standing still in no wind; wind_amp: px more at a 120 px/s wind (scales with |wind| / 120, capped); speed_amp: px more at full WALK (scales from 0.5 WALK to WALK). amp_t: seconds the sway takes to grow by speed_amp — and to shed it once the body stops. fall_px: a sway past this drops the body. shake_s: seconds the rope shivers after a fall and catches nobody. stars: tin stars hung under the rope; star_drop: px below it. hum_hz: the rope going taut when a body steps on; twang_hz: the rope at a fall.",
+      "min_gap": 100,
+      "max_gap": 200,
+      "max_dy": 150,
+      "sag": 4,
+      "catch": 24,
+      "ring_in": 6,
+      "ring_r": 3,
+      "period": 1.6,
+      "base_amp": 1.2,
+      "wind_amp": 1.2,
+      "speed_amp": 3.0,
+      "amp_t": 0.35,
+      "fall_px": 3.0,
+      "shake_s": 1.2,
+      "stars": 3,
+      "star_drop": 10,
+      "hum_hz": 95,
+      "twang_hz": 520
+    }
+  },
+  "pieces": [
+    {
+      "_": "Starlit floors are 30..34, 65..69, 100..104 …; their hops are 130..180 px wide with gaps of 95..131 px and steps of 92..138 px between consecutive hops, so most gaps fit and the rope climbs at 35..55°; the widest gaps go to the packs below first. A spring hop is still and may anchor a rope (the step off the rope onto it launches, as any step onto a spring does); moving and crumbling hops cannot hold one. The star lantern (run 133) stands in a gap with a far hop up to 150 px higher, the trapeze (run 141) hangs in a gap of 80..200 px, the icicles (run 123) hang from a lip over the gap below, the telescope (run 154) stands on a hop top — all are passed as `taken`, so a gap one of them owns goes to the next widest.",
+      "kind": "tightrope",
+      "on": [
+        "std",
+        "ice",
+        "spring"
+      ],
+      "max": 1
+    }
+  ]
+}
