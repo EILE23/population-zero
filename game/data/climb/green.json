@@ -1,0 +1,59 @@
+{
+  "_": "Climb content pack 'Cloud green' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_green.gd reads this file: plan(n, plats, wind, taken) works only on the `themes` floors and looks at every pair of consecutive still hops in the climbing order (tee hop of the piece's `on` kinds, flag hop of `flag_on`): the tee sits `tee_in` px inside the tee hop's edge that faces the flag hop, the hole `hole_in` px inside the flag hop's far edge (so a ball that lands anywhere on the green short of the hole can roll into it), and the pair takes a green only when the speed a ball needs to carry from tee to hole at `loft_deg` lies between need_lo and need_hi of `v_max` (a tap never reaches, a full swing flies over), when no other platform cuts the box between them and when no `taken` piece of another pack (the loader passes the rafts', mushrooms', plank's, balloon's, lens's and long-jump pit's plans) sits under the tee (5 px either side plus the usual 10 px hand) or the hole (hole_r either side plus the hand) within its hop's height band (20 px under the hop top to 60 px over it — run 152's band rule); the pieces that float in the gap (rafts, balloon, lens) are under the ball's path and do not veto a pair — the ball passes them, nothing is solid; one green per floor on the widest tee hop. C at the tee (within HW + `reach` px, standing, the ball on the peg) addresses the ball and holding C winds the backswing up to `charge_s` (the jump's own charge); releasing swings — the ball leaves the peg `strike_s` after the release at v_min + (v_max − v_min) × charge, at `loft_deg`, drifting with the floor's wind like a body — and the swing's follow-through ends at `swing_s`; the body is busy (no walking, no jump) from the first C to the end of the swing and the pose is `stroke` (stick3d_stroke.gd — the owner board's 'golf' family: the address with the knees soft and the eyes on the ball, the backswing winding with the charge, the downswing and strike, the follow-through with the chest to the target and the head up watching the ball, a 10 Hz tremble in the hold — never a still frame). The ball is not solid and costs nothing: it falls with G, bounces once on a hop top when it comes down faster than `bounce_v` (keeps bounce_k of the height, hit_k of the run), rolls with `friction`, drops in when it rolls over the hole slower than `cup_v` (the cup's rattle — counted once a tower-day per green, `day_s`, for the camp boards, note(n): 'Cloud green, floors 25–29: 1 of 2 greens hit today, 1 holed, the longest 6.4 m'), rolls off a hop end and falls again, and is lost into the cloud when it falls `lose_dy` under the tee or leaves the tower's width (a plop and a puff) — a lost, resting or holed ball is back on the peg `rest_s` later. A ball's first touch on the flag hop counts the green as hit for the day even if it rolls off after. Nothing changes for a body that does not press C at the peg: the plain run across the tee hop, the plain jump over the gap and C anywhere else (the camp door, the boards) are untouched (the plain outcome is 100%). The pennant on the flag flutters with the floor's wind (`flutter_hz`, four tenths of it in still air so it is never dead). tools/probe_green.gd checks the plan and its refusals, the charge and the strike, the flight (the carry, the bounce, the roll, the cup, the lost ball), the day, the note, the visuals, the sounds and the pose.",
+  "id": "green",
+  "name": "Cloud green",
+  "pose": "stroke",
+  "themes": [
+    "Cloud sea"
+  ],
+  "kinds": {
+    "green": {
+      "_": "tee_in: px the tee sits inside the tee hop's edge facing the flag hop. min_w: the tee hop's least width (px). reach: px either side of the tee (beyond the body's half-width HW) where C addresses the ball. green_d: the tee turf's and the ball's depth from the cliff side (px) — the lane in front stays open. tee_h: the peg's height (px) — the ball sits on it. ball_r: the ball's radius (px) — drawn, not solid. loft_deg: the launch angle over the horizontal. v_min/v_max: the ball's speed (px/s) at zero and full charge. need_lo/need_hi: a pair takes a green only when the speed needed to carry tee → hole is within this share of v_max. charge_s: seconds of holding C for a full charge (the jump's CHARGE). strike_s: seconds from the release to the ball leaving the peg (the downswing). swing_s: seconds from the release to the end of the follow-through — the body is busy until then. bounce_v: a ball coming down faster than this (px/s) bounces once; bounce_k: the share of the fall speed it keeps upward; hit_k: the share of its run it keeps through the bounce; roll_k: the share of its run it keeps when it settles to a roll. friction: px/s² a rolling ball loses. cup_v: a ball rolling over the hole slower than this drops in. hole_in: px the hole sits inside the flag hop's far edge. hole_r: px either side of the hole's centre that take a rolling ball. lose_dy: a ball this far under the tee is lost in the cloud. rest_s: seconds a lost, resting or holed ball waits before it is back on the peg. day_s: seconds of tower time in a tower-day — a green counts once per day. flag_h: the flag pole's height (px). flutter_hz: the pennant's flutter at a 120 px/s wind. tock_hz: the club on the ball; plop_hz: the ball into the cloud; cup_hz: the ball in the cup.",
+      "tee_in": 24,
+      "min_w": 60,
+      "reach": 14,
+      "green_d": 24,
+      "tee_h": 2,
+      "ball_r": 3,
+      "loft_deg": 60,
+      "v_min": 400,
+      "v_max": 1100,
+      "need_lo": 0.5,
+      "need_hi": 0.92,
+      "charge_s": 0.7,
+      "strike_s": 0.12,
+      "swing_s": 0.6,
+      "bounce_v": 220,
+      "bounce_k": 0.25,
+      "hit_k": 0.7,
+      "roll_k": 0.6,
+      "friction": 160,
+      "cup_v": 260,
+      "hole_in": 30,
+      "hole_r": 10,
+      "lose_dy": 160,
+      "rest_s": 2.5,
+      "day_s": 600,
+      "flag_h": 40,
+      "flutter_hz": 2.3,
+      "tock_hz": 900,
+      "plop_hz": 160,
+      "cup_hz": 1400
+    }
+  },
+  "pieces": [
+    {
+      "_": "Cloud sea floors are 25..29, 60..64, 95..99 …; on 25..29 the hops are 131..171 px wide, 100..127 px apart in height and 89..125 px apart in x, so tee → hole runs 180..260 px and the carry needs about 900..990 px/s — 0.82..0.9 of v_max, a charge of 0.72..0.84 (half a second of C); from floor 60 the hops are 90..130 px wide and the gaps 114 px, the carry still 900..960. A tap (400 px/s) rises 29 px and drops into the gap 34 px past the tee; a full swing (1100) carries 350 px and flies over the green. Walls (floor 60 up) are not read — a ball may pass through one; the pairs across a wall never qualify because the ledge is not a hop. One green per floor on the widest tee hop whose pair qualifies; the long-jump pit (run 162) takes the widest hop first and is passed as `taken`, so a green never tees off a sanded hop or holes onto one, and the diving plank (run 137) keeps its lip; in the real tower floors 25–29 and 60–64 each get a green on most floors.",
+      "kind": "green",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "flag_on": [
+        "std",
+        "ice"
+      ],
+      "max": 1
+    }
+  ]
+}
