@@ -1,0 +1,53 @@
+{
+  "_": "Climb content pack 'Pin wheel' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_escape.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (not the vent/windmill floors, the piece's `not` rule) and looks at every pair of consecutive hops — the lower one still (`on`), the upper one of the `to` kinds — whose gap is min_gap..max_gap px wide and whose upper hop stands min_dy..max_dy px higher; a brass escape wheel hangs in the middle of the gap with its bottom pin level with the lower hop: radius r = min((dy − short_min) / 2, gap / 2 − clear − pin_r), refused under r_min or when the top pin would stop more than short_max px under the upper hop; `pins` brass pins stand out of the rim toward the climber and are the platforms. The wheel does not turn — it steps: every tick_s of tower time it advances one pin over step_s (an escapement's beat, tick… tock…, the anchor above the rim rocking with it), the lower hop's side rising. Jump onto any pin (land(x, y, ny, z) after the loader's own landing comes up empty — a body crossing a pin's top within pin_w / 2 of its centre, or stepping down onto it within `catch` px) and ride(on, x, dt, fig) every standing tick keeps the body on its pin as the pin jolts round: up the lower hop's side, over the top where it stops short_min..short_max px under the upper hop (a tap-jump off), then down the far side and under again if you stay (nothing drops you; walking off the pin is `off` and the plain fall). The pose is `jolt` (stick3d_jolt.gd: a braced stand, each tick a 0.35 s shock — knees buckle, arms fly up, the torso thrown against the pin's travel, the head snapping up — then breathing until the next one; never a still frame). Rides over the top are counted a tower-day (`day_s`) for the camp boards (`note(n)`); nothing is a prize gate. Nothing refuses or costs: the plain jump across the gap is untouched (the plain outcome is 100%). tools/probe_escape.gd checks the plan and its refusals, the pin path and the beat, the landing, the ride, the walk-off, the count, the visuals and the pose.",
+  "id": "escape",
+  "name": "Pin wheel",
+  "pose": "jolt",
+  "themes": [
+    "Clockwork"
+  ],
+  "kinds": {
+    "wheel": {
+      "_": "pins: pins around the rim, evenly spaced (8 → a 45° step; the half turn from the bottom to the top is four ticks). pin_r: a pin's radius (px); the body stands pin_r over the pin's centre. pin_w: px either side of a pin's centre a body may stand (the feet are 20 wide; the pin is a rung). pin_len: how far the pins reach toward the climber (px; the depth `d` of the piece around PLAYER_Z). clear: px between the rim's outer reach (r + pin_r) and each hop's edge. r_min: the smallest wheel worth hanging (px). short_min/short_max: how far under the upper hop the top pin may stop (px) — the wheel is sized for short_min when the gap allows, and refused past short_max. tick_s: seconds of tower time per step. step_s: seconds the step itself takes (smoothstep — the jolt). catch: px a descending body may be above a pin and still be set on it (a step down from a hop). day_s: seconds of tower time in a tower-day. tick_hz/tock_hz: the escapement's two clicks, alternating. min_gap/max_gap/min_dy/max_dy: the gap and rise the two hops may have (px).",
+      "pins": 8,
+      "pin_r": 4,
+      "pin_w": 20,
+      "pin_len": 24,
+      "clear": 4,
+      "r_min": 32,
+      "short_min": 8,
+      "short_max": 30,
+      "tick_s": 0.7,
+      "step_s": 0.18,
+      "catch": 14,
+      "day_s": 600,
+      "tick_hz": 1500,
+      "tock_hz": 1150,
+      "min_gap": 90,
+      "max_gap": 220,
+      "min_dy": 60,
+      "max_dy": 150
+    }
+  },
+  "pieces": [
+    {
+      "_": "Clockwork floors are 15..19, 50..54, 85..89 …; the vent/windmill floors ((n − 3) % 4 == 0: 15, 19, 51 …) get no wheel — the windmill and the vents own those floors' gaps. The conveyor gears (run 124), the pendulum (run 125), the cuckoo perch (run 142) and the bellows (run 149) are passed as `taken`, so the wheel hangs in the widest gap none of them uses. Floors 15..19 have gaps of 83..125 px and rises of 98..135, so only the widest gaps with the lowest rises take a wheel there (r ≤ gap / 2 − 8 must still leave the top pin within 30 px of the upper hop); from floor 50 the gaps are 118..140 wide and most qualify. The lower hop must be still (std or ice — a jump from it); the upper hop may also crumble or spring (nothing is stood on it by the wheel).",
+      "kind": "wheel",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "to": [
+        "std",
+        "ice",
+        "crumble",
+        "spring"
+      ],
+      "not": {
+        "from": 3,
+        "every": 4
+      },
+      "max": 1
+    }
+  ]
+}
