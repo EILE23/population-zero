@@ -1,0 +1,43 @@
+{
+  "_": "Climb content pack 'High-jump bar' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_bar.gd reads this file: plan(n, plats, wind, taken) works only on the `themes` floors and looks at every still hop of the piece's `on` kinds that has a hop before it in the climbing order (the side a body enters from is the side of the previous hop); a hop takes a bar when it is at least run + bar_r + 2 + mat_w + edge px wide (run_min + bar_r + 2 + mat_min + edge on the narrower upper floors — the tower's hops shrink with height), when no other platform cuts the bar's box and when no `taken` piece of another pack (the hurdle row on a hop top, the vents at hop centres, the icicles over the lips, the kite line at a gap, the dandelion head at a gap edge — the loader passes their plans) sits in the box's x span within its height band (20 px under the hop's top to 60 px over it — run 152's band rule); one bar per floor on the widest such hop: two iron uprights `bar_d` px deep from the cliff side so the lane in front stays open, three pegs at the `notches` heights, a light crossbar resting on the floor's notch (notches[n mod 3] — 56, 72 or 88 px, 1.6, 2.0 or 2.4 m), `run` px of run-up from the entry edge and a thick landing mat `mat_w` px long on the far side. A body in the air that crosses the bar's plane (flight(ox, x, y, z, fig) every airborne tick) clears it when its feet are over the bar (counted once a tower-day per bar — `day_s` — for the camp boards, `note(n)`: '1 of 2 bars cleared today, the highest 2.4 m'); crossing lower knocks the bar off its pegs (clatter): it tumbles onto the mat over drop_s, lies there reset_s and is set back over lift_s (thump) — nothing is solid, nothing stops or hurts the body, and a bar that is down neither counts nor falls again. Walking under the bar never touches it (every notch is higher than a standing body), a jump that never reaches the bar's plane is untouched, and the plain run across the hop is untouched (the plain outcome is 100%); the bar only matters to a body that jumps at it, and the pose is `arch` (stick3d_arch.gd — the owner board's 'high jump' family: a knee-drive takeoff, the back arched over the bar with the arms overhead and the head thrown back, then the legs kicked up and over with the eyes on the mat — driven by the body's own x across the bar within `approach` px, never a still frame; a knocked bar turns the kick-over into a tuck and a flinch). On windy floors the bar trembles on its pegs (`quiver` px at a 120 px/s wind, a third of that in still air so it is never dead). tools/probe_bar.gd checks the plan and its refusals, the flight (the approach, the clear, the knock, the fallen bar, the day), the tumble and the reset, the note, the visuals, the sounds and the pose.",
+  "id": "bar",
+  "name": "High-jump bar",
+  "pose": "arch",
+  "themes": [
+    "Wind cliffs"
+  ],
+  "kinds": {
+    "bar": {
+      "_": "notches: the peg heights over the hop (px) — the floor's bar rests on notches[n mod 3]; every notch is kept over a standing body (44 px) so walking never touches the bar. bar_r: the crossbar's half-thickness (px); the feet clear the bar at its top + bar_r, the body (44 px tall) knocks it when its top reaches the bar's underside. bar_d: the uprights' depth from the cliff side (px) — the lane in front stays open. post: an upright's thickness (px). run/run_min: px of run-up from the entry edge to the bar (the narrower upper floors get run_min). mat_w/mat_min: the landing mat's length past the bar (px). mat_h: the mat's thickness (px) — the fallen bar lies on it. edge: px the mat keeps from the hop's far end. approach: px either side of the bar within which an airborne body is 'in flight' and poses `arch` (its x across this span is the pose's clock). drop_s: seconds the knocked bar takes to tumble onto the mat. reset_s: seconds it lies before it is set back. lift_s: seconds the set-back takes. day_s: seconds of tower time in a tower-day — a bar counts once per day. quiver: px the resting bar trembles at a 120 px/s wind. clatter_hz: the knocked bar; thump_hz: the bar set back on its pegs.",
+      "notches": [56, 72, 88],
+      "bar_r": 2,
+      "bar_d": 34,
+      "post": 4,
+      "run": 70,
+      "run_min": 50,
+      "mat_w": 50,
+      "mat_min": 40,
+      "mat_h": 14,
+      "edge": 16,
+      "approach": 60,
+      "drop_s": 0.5,
+      "reset_s": 20,
+      "lift_s": 0.6,
+      "day_s": 600,
+      "quiver": 1.5,
+      "clatter_hz": 180,
+      "thump_hz": 110
+    }
+  },
+  "pieces": [
+    {
+      "_": "Wind cliffs floors are 20..24, 55..59, 90..94 …; floors 20..24 have hops 137..177 px wide, so the full run (70 + 4 + 50 + 16 = 140 — the bar itself takes bar_r + 2) fits nearly every hop there (a 137..139 hop takes the short run) and the bar takes the widest hop the hurdle row (run 155) did not — the loader passes the row's plan as `taken`; from floor 55 the hops are 96..136 px wide and the bar uses the short run (50 + 4 + 40 + 16 = 110). The vent floors (23, 59 …) keep their bars, but a bar never stands under a vent: the vents (run 118) stand at hop centres and are passed as `taken`, so a vent hop is skipped. The icicles (run 123, over the lips), the kite line (run 131, at a gap) and the dandelion (run 150, at a gap edge) are passed as `taken` too; the weathervane (run 136) stands in a gap and never meets a hop top. A floor's first hop has no entry side here and takes no bar. One bar per floor, resting on notches[n mod 3]: 20 → 2.4 m, 21 → 1.6 m, 22 → 2.0 m, 23 → 2.4 m, 24 → 1.6 m; a tap jump (430 px/s) rises 38 px, so every notch needs a charged jump — 1.6 m about a fifth of the charge, 2.4 m over half.",
+      "kind": "bar",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "max": 1
+    }
+  ]
+}
