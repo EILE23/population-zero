@@ -10,6 +10,7 @@ extends Node3D
 ## 'move' 발판을 옮기는 자리(ny 를 재기 전)에서 `on["kind"] == "escape"` 이면 `var r := ew.ride(on, x, dt, fig); x = r["x"]; y = r["y"]; fig.pose_request = "jolt"; if r["off"]: on = {}; apex = y; fig.pose_request = ""` (핀 밖으로 걸어 나간 몸 — 떨어진다; 뛰어 내려서도 자세를 비운다);
 ## 착지 판정에서 landed 가 비었고 vy <= 0 이면 `landed = ew.land(x, y, ny, z)` (돌려준 사전의 "y" 가 핀 윗면, "pin" 이 어느 핀인지, "step" 이 참이면 턱에서 내려선 걸음이라 vx 를 0 으로 안 해도 된다).
 ## 핀 위에선 로더의 '발판 밖으로 나갔나' 검사(x..x+w)를 그대로 둬도 된다 — x/w 가 바퀴의 좌우 폭이라 타는 동안 늘 안이다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_escape.gd
+## 주민 반쪽(run 169): 바퀴마다 타는 이 하나(climb_rider.gd — 바퀴 노드 아래 Stick3D)가 아래 발판의 틈 쪽 끝에 서서 탑의 1분마다, 그리고 플레이어의 타기가 끝난 뒤(ride 가 count 참일 때 적는 me_t) 1 s 뒤에 박자를 재어 바닥 핀에 뛰어 오르고 같은 ride(count 거짓)로 jolt 하며 올라 135° 에서 poise(stick3d_poise.gd)로 모았다가 꼭대기에서 위 발판으로 톡 뛰고 집으로 뛰어 내린다. 로더는 건드릴 것 없다 — build 가 만들고 _process 가 민다
 
 const PACK := "res://data/climb/escape.json"
 const C = preload("res://scripts/games/climb.gd")
@@ -20,7 +21,7 @@ const DISC_Z := 0.16       # 바퀴 면이 절벽에서 나온 거리(m) — 핀
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.wheel
-var wheels: Array = []          # 지은 바퀴 {id, kind "escape", n, x, y, w, y_top, z, d, hx, cy, r, dir, gap, dy, short, a_id, b_id, a_y, b_y, phase, node, wheel, anchor, tick, tock, step_n, day, over, rode_t}
+var wheels: Array = []          # 지은 바퀴 {id, kind "escape", n, x, y, w, y_top, z, d, hx, cy, r, dir, gap, dy, short, a_id, b_id, a_y, b_y, phase, node, wheel, anchor, tick, tock, step_n, day, over, rode_t, me_t, rider}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -201,6 +202,7 @@ func ride(on: Dictionary, x: float, dt: float, fig: Stick3D = null, count := tru
 	if count and fposmod(ang(s, k, t - dt), TAU) < PI and fposmod(ang(s, k, t), TAU) >= PI:   # 꼭대기를 넘었다 — 오늘의 수에 하나
 		_day(s); s["over"] = int(s["over"]) + 1
 	s["rode_t"] = t
+	if count: s["me_t"] = t   # 플레이어가 핀 위에 있다 — 타는 이가 기다린다(제 타기는 count 거짓이라 안 적는다)
 	if fig:
 		var h := heading(s, k, t)
 		fig.set_meta("jolt_t", since(t)); fig.set_meta("jolt_dx", h.x); fig.set_meta("jolt_dy", h.y)
@@ -243,6 +245,7 @@ func _process(delta: float) -> void:
 	wheels = wheels.filter(func(s: Dictionary) -> bool: return is_instance_valid(s["node"]))   # 지운 층의 것은 뺀다(climb_windmill 과 같은 식)
 	for sv in wheels:
 		var s: Dictionary = sv
+		if s.has("rider"): (s["rider"] as ClimbRider).step(delta)   # 타는 이의 틱 — 제 ride 로 핀 위를 따라간다
 		var n_now := floori(t / tick_s())
 		if n_now != int(s["step_n"]):
 			s["step_n"] = n_now
@@ -254,7 +257,7 @@ func _place(s: Dictionary) -> void:
 	(s["wheel"] as Node3D).rotation.z = -float(s["dir"]) * (float(s["phase"]) + steps(t) * arc())
 	(s["anchor"] as Node3D).rotation.z = ANCHOR_AMP * cos(PI * steps(t))
 
-## 바퀴를 짓는다 — root 는 그 층의 노드. 노드 원점은 축(hx, cy, 절벽); 절벽에서 나오는 축대, 테, 놋쇠 판, 축머리, 도는 바퀴(살 넷 + 핀마다 놋쇠 핀과 포도빛 머리), 테 위의 앵커(받침 + 두 팔레트), 소리 둘
+## 바퀴를 짓는다 — root 는 그 층의 노드. 노드 원점은 축(hx, cy, 절벽); 절벽에서 나오는 축대, 테, 놋쇠 판, 축머리, 도는 바퀴(살 넷 + 핀마다 놋쇠 핀과 포도빛 머리), 테 위의 앵커(받침 + 두 팔레트), 소리 둘, 타는 이(Stick3D)
 func build(root: Node3D, planned: Array) -> void:
 	for sv in planned:
 		var s: Dictionary = (sv as Dictionary).duplicate(true)
@@ -281,9 +284,10 @@ func build(root: Node3D, planned: Array) -> void:
 			var pal := _box(anchor, Vector3(0.05, rr * 0.45, 0.05), dark)   # 팔레트 둘 — 테를 향해 내려오는 팔
 			pal.position = Vector3(sx * rr * 0.3, -rr * 0.18, 0.0); pal.rotation.z = -sx * 0.55
 		s["node"] = node; s["wheel"] = wheel; s["anchor"] = anchor; s["step_n"] = -1
-		s["day"] = -1; s["over"] = 0; s["rode_t"] = -99.0
+		s["day"] = -1; s["over"] = 0; s["rode_t"] = -99.0; s["me_t"] = -99.0
 		s["tick"] = _snd(node, float(kind.get("tick_hz", 1500)), 0.03, -14.0); s["tock"] = _snd(node, float(kind.get("tock_hz", 1150)), 0.03, -14.0)
 		wheels.append(s)
+		s["rider"] = ClimbRider.new(self, s, node)   # 주민 반쪽 — 아래 발판의 틈 쪽 끝에 선 타는 이
 		_place(s)
 
 func _mat(c: Color) -> StandardMaterial3D:
