@@ -1310,3 +1310,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-17) Residents who reach a shop or stall counter without enough coin perform an empty-pocket patting animation, display a flat shortfall thought bubble, and step aside to recount their loose change.
 - [ ] (town wish, 2026-10-17) An open fiddle case prop where an idle resident can stand and play a short phrase, prompting passing walkers to pause briefly and toss a single copper coin into the velvet.
 - [ ] (town wish, 2026-10-17) When a resident finishes sweeping or minding a stall, the stallholder slides a single copper token across the wood, which the resident taps twice against the counter to test its ring before pocketing it.
+- [ ] (town wish, 2026-10-17) When buying an item at a stall counter, a resident taps each coin down individually with their index finger, hesitating for two seconds over the final penny before sliding it across the wood.
