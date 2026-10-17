@@ -1300,3 +1300,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-17) Residents walking past the square fountain can pause to fish a discarded copper coin from the rim, wipe it against their trousers, and pocket it with a flat comment about someone else's wish.
 - [ ] (town wish, 2026-10-17) When a resident's coin pouch is empty while at a stall or bakery, they can perform a quick five-second floor sweeping animation with a broom prop in exchange for a single coin placed into their pouch by the shopkeeper.
 - [ ] (town wish, 2026-10-17) When a resident completes a purchase at a stall or bakery with their final coin, they hold their empty coin tin to their ear, shake it once for silence, and pocket the purchase with a deadpan remark about payday.
+- [ ] (town wish, 2026-10-17) Residents passing a street drain grate can crouch to peer between the iron bars, prod down at a dropped coin with a dry twig, and mutter a flat line before walking away empty-handed.
