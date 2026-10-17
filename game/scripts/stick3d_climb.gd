@@ -1,12 +1,12 @@
 class_name ClimbPoses
 extends RefCounted
 ## Climb 팩 자세의 갈림길(코드 정리, run 159): stick3d_poses.gd 가 492줄이라 자세를 하나도 더 못 넣었다 — run 70 에 stick3d.gd 에서 떼어 냈던 것과 같은 이유.
-## 탑의 쉰두 자세(run 118 updraft 의 `glide` 부터 run 170 높이뛰기 바의 `arch` 까지)는 각자 제 파일(stick3d_<pose>.gd)에 있고, 여기는 이름만 보고 그리로 넘긴다.
+## 탑의 쉰네 자세(run 118 updraft 의 `glide` 부터 run 171 높이뛰기 선수의 `sprawl`·`reset` 까지)는 각자 제 파일(stick3d_<pose>.gd)에 있고, 여기는 이름만 보고 그리로 넘긴다.
 ## StickPoses.lean 이 한 번, StickPoses.limbs 의 `_:` 가지가 한 번, owns_right_arm 이 한 번 부른다. 자세 이름·타이밍은 하나도 바꾸지 않았다 — 점검(probe_*)은 전과 같은 값을 본다.
 ## 새 Climb 자세는 여기 POSES 와 세 함수에 한 줄씩, stick3d.gd 의 CI_POSES 에 한 줄 — stick3d_poses.gd 는 손대지 않는다.
 
 ## 탑의 자세들(들어온 순서) — owns_right_arm 의 목록이기도 하다(loll·trail·bound 는 뺀다, 아래)
-const POSES := ["glide", "bounce", "lurch", "sway", "ride", "duck", "tread", "dangle", "wade", "rail", "haul", "part", "heave", "kite", "shunt", "cling", "turn", "loll", "trail", "bound", "tug", "board", "zip", "fly", "perch", "shimmy", "crank", "unroll", "balance", "sink", "curl", "stomp", "puff", "yank", "spin", "scale", "peer", "hurdle", "wheel", "squint", "wipe", "brush", "hark", "plant", "limber", "tiptoe", "flourish", "log", "steady", "jolt", "poise", "arch"]
+const POSES := ["glide", "bounce", "lurch", "sway", "ride", "duck", "tread", "dangle", "wade", "rail", "haul", "part", "heave", "kite", "shunt", "cling", "turn", "loll", "trail", "bound", "tug", "board", "zip", "fly", "perch", "shimmy", "crank", "unroll", "balance", "sink", "curl", "stomp", "puff", "yank", "spin", "scale", "peer", "hurdle", "wheel", "squint", "wipe", "brush", "hark", "plant", "limber", "tiptoe", "flourish", "log", "steady", "jolt", "poise", "arch", "sprawl", "reset"]
 ## 해먹(run 135)·풍향계 리본(run 136)·다이빙 판(run 137)은 처음부터 오른팔 목록에 없었다 — 든 것을 오른손에 그대로 둔다(바뀐 것 없음)
 const FREE_RIGHT := ["loll", "trail", "bound"]
 
@@ -65,11 +65,13 @@ static func lean(f: Stick3D, p: String, lean: float) -> float:
 		"jolt": return JoltPoses.lean(f)         # 덜컥 가는 핀 바퀴의 핀 위에 선 몸(run 168)
 		"poise": return PoisePoses.lean(f)       # 꼭대기 핀에서 뛰기 전에 모으는 몸(run 169, 타는 이)
 		"arch": return ArchPoses.lean(f)         # 높이뛰기 가로대를 등으로 넘는 몸(run 170)
+		"sprawl": return SprawlPoses.lean(f)     # 가로대를 넘어 매트에 등으로 내린 몸(run 171, 높이뛰기 선수)
+		"reset": return ResetPoses.lean(f)       # 누운 가로대를 눈금에 다시 놓는 몸(run 171, 높이뛰기 선수)
 	return lean
 
 ## 한쪽 팔다리 — 제 자세를 가진 파일이 그리면 true. 각 파일이 pose_request 를 스스로 보니 순서는 뜻이 없다(한 자세에 한 파일)
 static func limbs(f: Stick3D, s: float) -> bool:
-	return GlidePoses.limbs(f, s) or BouncePoses.limbs(f, s) or LurchPoses.limbs(f, s) or SwayPoses.limbs(f, s) or RidePoses.limbs(f, s) or DuckPoses.limbs(f, s) or TreadPoses.limbs(f, s) or DanglePoses.limbs(f, s) or WadePoses.limbs(f, s) or RailPoses.limbs(f, s) or HaulPoses.limbs(f, s) or PartPoses.limbs(f, s) or HeavePoses.limbs(f, s) or KitePoses.limbs(f, s) or ShuntPoses.limbs(f, s) or ClingPoses.limbs(f, s) or TurnPoses.limbs(f, s) or LollPoses.limbs(f, s) or TrailPoses.limbs(f, s) or BoundPoses.limbs(f, s) or TugPoses.limbs(f, s) or BoardPoses.limbs(f, s) or ZipPoses.limbs(f, s) or FlyPoses.limbs(f, s) or PerchPoses.limbs(f, s) or ShimmyPoses.limbs(f, s) or CrankPoses.limbs(f, s) or UnrollPoses.limbs(f, s) or BalancePoses.limbs(f, s) or SinkPoses.limbs(f, s) or CurlPoses.limbs(f, s) or StompPoses.limbs(f, s) or PuffPoses.limbs(f, s) or YankPoses.limbs(f, s) or SpinPoses.limbs(f, s) or ScalePoses.limbs(f, s) or PeerPoses.limbs(f, s) or HurdlePoses.limbs(f, s) or WheelPoses.limbs(f, s) or SquintPoses.limbs(f, s) or WipePoses.limbs(f, s) or BrushPoses.limbs(f, s) or HarkPoses.limbs(f, s) or PlantPoses.limbs(f, s) or LimberPoses.limbs(f, s) or TiptoePoses.limbs(f, s) or FlourishPoses.limbs(f, s) or LogPoses.limbs(f, s) or SteadyPoses.limbs(f, s) or JoltPoses.limbs(f, s) or PoisePoses.limbs(f, s) or ArchPoses.limbs(f, s)
+	return GlidePoses.limbs(f, s) or BouncePoses.limbs(f, s) or LurchPoses.limbs(f, s) or SwayPoses.limbs(f, s) or RidePoses.limbs(f, s) or DuckPoses.limbs(f, s) or TreadPoses.limbs(f, s) or DanglePoses.limbs(f, s) or WadePoses.limbs(f, s) or RailPoses.limbs(f, s) or HaulPoses.limbs(f, s) or PartPoses.limbs(f, s) or HeavePoses.limbs(f, s) or KitePoses.limbs(f, s) or ShuntPoses.limbs(f, s) or ClingPoses.limbs(f, s) or TurnPoses.limbs(f, s) or LollPoses.limbs(f, s) or TrailPoses.limbs(f, s) or BoundPoses.limbs(f, s) or TugPoses.limbs(f, s) or BoardPoses.limbs(f, s) or ZipPoses.limbs(f, s) or FlyPoses.limbs(f, s) or PerchPoses.limbs(f, s) or ShimmyPoses.limbs(f, s) or CrankPoses.limbs(f, s) or UnrollPoses.limbs(f, s) or BalancePoses.limbs(f, s) or SinkPoses.limbs(f, s) or CurlPoses.limbs(f, s) or StompPoses.limbs(f, s) or PuffPoses.limbs(f, s) or YankPoses.limbs(f, s) or SpinPoses.limbs(f, s) or ScalePoses.limbs(f, s) or PeerPoses.limbs(f, s) or HurdlePoses.limbs(f, s) or WheelPoses.limbs(f, s) or SquintPoses.limbs(f, s) or WipePoses.limbs(f, s) or BrushPoses.limbs(f, s) or HarkPoses.limbs(f, s) or PlantPoses.limbs(f, s) or LimberPoses.limbs(f, s) or TiptoePoses.limbs(f, s) or FlourishPoses.limbs(f, s) or LogPoses.limbs(f, s) or SteadyPoses.limbs(f, s) or JoltPoses.limbs(f, s) or PoisePoses.limbs(f, s) or ArchPoses.limbs(f, s) or SprawlPoses.limbs(f, s) or ResetPoses.limbs(f, s)
 
 ## 오른팔을 제가 쓰는 탑의 자세 — stick3d.gd 가 든 것(carrying)을 오른손에 붙이기 전에 묻는다
 static func owns_right_arm(p: String) -> bool:

@@ -10,7 +10,9 @@ extends Node3D
 ## (통풍구·고드름·연·허들 줄·민들레의 계획을 taken 으로 — 한 발판을 둘이 안 나눈다); 매 틱 `cb.sync(_t)`;
 ## 공중(on 이 비고 매달림·붙잡음·연·홀씨가 다 빈)에서 x·y 를 옮긴 뒤(_wall_push 뒤) `var r := cb.flight(ox, x, y, z, fig); if r["in_flight"]: fig.pose_request = "arch"` (팩이 meta arch_k·arch_hit 를 적는다) `elif fig.pose_request == "arch": fig.pose_request = ""` (가로대에서 멀어지면 — 팩이 메타를 지운다);
 ## 착지(landed 가 차고 was_air)에서 `if fig.pose_request == "arch": fig.pose_request = ""; cb.leave(fig)` (매트든 발판이든 로더의 착지 그대로 — 매트는 그림이다).
-## flight 의 count: 비우면 플레이어(판에 센다), 다른 몸(주민 반쪽 — 다음 조각)은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_bar.gd
+## flight 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 선수가 기다리고 따라 뛴다), 다른 몸(주민 반쪽)은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_bar.gd
+## 주민 반쪽(run 171): 바마다 높이뛰기 선수 하나(climb_highjumper.gd — 바 노드 아래 Stick3D)가 들어오는 턱 안쪽에 서서 탑의 1분마다, 그리고 플레이어의 비행이 끝난 뒤 1 s 뒤에 그 눈금만큼 웅크려 같은 flight(count 거짓)·같은 arch 로 넘어 매트에 눕고(sprawl) 기둥을 돌아 집에 온다;
+## 다섯 번에 한 번 일부러 떨어뜨리고 제 손으로 세운다(reset — held 인 동안 혼자 돌아가는 눈금은 기다린다; 플레이어가 떨어뜨리고 간 것도 세운다). 로더가 더 할 일은 없다 — build 가 세우고 _process 가 몬다.
 
 const PACK := "res://data/climb/bar.json"
 const C = preload("res://scripts/games/climb.gd")
@@ -23,7 +25,7 @@ const QUIVER_S := 0.37     # 가로대 떨림 한 주기(s)
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.bar
-var bars: Array = []            # 지은 바 {id, kind "bar", n, hop_id, hop_kind, hop_w, x, w, y, y_top, z, d, bx, dir, h, run, mat, wind, node, bar, fell_t, lifted, day, clatter, thump}
+var bars: Array = []            # 지은 바 {id, kind "bar", n, hop_id, hop_kind, hop_w, x, w, y, y_top, z, d, hz, hd, bx, dir, h, run, mat, wind, node, bar, fell_t, lifted, held, day, me_t, clatter, thump, jumper}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -173,6 +175,7 @@ func flight(ox: float, x: float, y: float, z: float, fig: Stick3D = null, count 
 		if not is_up and not (fig != null and fig.has_meta("arch_hit")): continue
 		var dir := signf(x - ox) if absf(x - ox) > 0.01 else float(s["dir"])
 		var r := none.duplicate(); r["id"] = String(s["id"]); r["in_flight"] = true
+		if count: s["me_t"] = t   # 플레이어가 가로대 곁의 공중에 있다 — 선수가 기다렸다 따라 뛴다(제 비행은 count 거짓이라 안 적는다)
 		r["k"] = clampf((x - bx) * dir / (2.0 * approach()) + 0.5, 0.0, 1.0)
 		if is_up and ox != x and (ox - bx) * (x - bx) <= 0.0:   # 이 틱에 가로대의 면을 지났다
 			var by := hy + float(s["h"])
@@ -224,9 +227,12 @@ func _process(delta: float) -> void:
 	bars = bars.filter(func(s: Dictionary) -> bool: return is_instance_valid(s["node"]))   # 지운 층의 것은 뺀다(climb_hurdle 과 같은 식)
 	for sv in bars:
 		var s: Dictionary = sv
+		if bool(s.get("held", false)) and not bool(s["lifted"]) and t - float(s["fell_t"]) > reset_s() - 0.001:
+			s["fell_t"] = t - reset_s() + 0.001   # 선수가 세우러 오는 중 — 혼자 돌아가지 않고 누운 채 기다린다(선수가 손을 대면 fell_t 를 돌려놓는다)
 		if not bool(s["lifted"]) and t - float(s["fell_t"]) >= reset_s():
 			s["lifted"] = true; _play(s["thump"] as AudioStreamPlayer3D)
 		_place(s)
+		if s.has("jumper"): (s["jumper"] as ClimbHighJumper).step(delta)   # 선수의 틱
 
 ## 가로대의 자리 — 눈금 위면 바람에 떤다; 떨어지면 drop_s 동안 매트 쪽으로 기울며 굴러 한 번 튀고, reset_s 까지 매트 위에 누웠다가, lift_s 에 걸쳐 눈금으로 돌아간다
 func _place(s: Dictionary) -> void:
@@ -261,8 +267,9 @@ func build(root: Node3D, planned: Array) -> void:
 		var mw := float(s["mat"]) * C.K; var mh := mat_h() * C.K; var mx := float(s["dir"]) * (bar_r() + 2.0 + float(s["mat"]) / 2.0) * C.K
 		_box(node, Vector3(mw, mh, bd * 1.2), cloth).position = Vector3(mx, mh / 2.0, bd / 2.0)   # 매트
 		_box(node, Vector3(mw * 0.9, 0.012, bd * 1.2 + 0.01), acc).position = Vector3(mx, mh, bd / 2.0)   # 매트 윗면의 띠 — 강조색은 가는 선 하나
-		s["node"] = node; s["bar"] = bar; s["fell_t"] = -99.0; s["lifted"] = true; s["day"] = -1
+		s["node"] = node; s["bar"] = bar; s["fell_t"] = -99.0; s["lifted"] = true; s["held"] = false; s["day"] = -1; s["me_t"] = -99.0
 		s["clatter"] = _snd(node, float(kind.get("clatter_hz", 180)), 0.15, -12.0); s["thump"] = _snd(node, float(kind.get("thump_hz", 110)), 0.1, -16.0)
+		s["jumper"] = ClimbHighJumper.new(self, s, node)   # 주민 반쪽 — 들어오는 턱 안쪽에 선 높이뛰기 선수
 		bars.append(s)
 		_place(s)
 

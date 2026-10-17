@@ -14,7 +14,6 @@ const REACT := 1.0        # 플레이어의 타기가 끝난 뒤 이만큼 있�
 const IN := 4.0           # 발판 끝 안쪽 이만큼에 선다(px)
 const PAUSE := 1.0        # 위 발판에 내린 뒤 숨 돌리는 시간(s)
 const MARGIN := 0.03      # 박자 창의 여유(s) — 핀이 멎은 뒤 이만큼 지나서, 다음 덜컥 이만큼 전까지 내린다
-const VX_K := 0.9         # 뜀을 맞출 때 쓰는 RUN 의 몫 — 공중에서 안 민다(AIR 가 없다)
 const VOID := 400.0       # 아래 발판보다 이만큼 아래 → 층을 떠났다
 const EPS := 0.000001     # 시계 비교의 여유 — 1/60 을 예순 번 더해도 1.0 에 닿게
 
@@ -83,18 +82,10 @@ func step(dt: float) -> void:
 			if ew.t >= next_at: _home()
 	_drive()
 
-## 뜀을 맞춘다 — 로더의 수로 (ox, oy) 에서 (tx, ty) 에 내리게: 가로를 RUN × VX_K 로 가는 시간에 그 높이를 오르내릴 vy(JUMP_MIN 아래면 톡 뜀 그대로, JUMP_V 가 끝)와 그 비행 시간으로 낸 vx(RUN 안); 웅크릴 시간은 vy 가 JUMP_MIN 을 넘는 몫 × CHARGE.
-## 반암시적 오일러(로더와 같은 순서 — 틱마다 중력을 뺀 뒤 자리를 옮긴다)는 첫 틱부터 G·dt 만큼 느리니 실제 초속은 vy − G·dt/2: 그걸로 비행 시간을 재야 핀 가운데에 내린다(60 Hz 에서 7 px, 30 Hz 에서 14 px 의 차)
+## 뜀을 맞춘다 — 로더의 수로 (ox, oy) 에서 (tx, ty) 에 내리게(ClimbJump.fit, run 171 — 식은 run 169 그대로: 가로를 RUN × 0.9 로 가는 시간에 그 높이를 오르내릴 vy, 반암시적 오일러의 G·dt/2 보정, RUN 안의 vx, vy 가 JUMP_MIN 을 넘는 몫 × CHARGE 의 웅크림)
 func _fit(ox: float, oy: float, tx: float, ty: float, dt: float) -> void:
-	var dist := absf(tx - ox); var dy := ty - oy
-	var tf := maxf(dist / (C.RUN * VX_K), 0.01)
-	var half_g := C.G * dt / 2.0
-	var need := (C.G * tf * tf + 2.0 * dy) / (2.0 * tf) + half_g
-	var vy0 := clampf(need, C.JUMP_MIN, C.JUMP_V)
-	var ve := vy0 - half_g
-	fly_t = (ve + sqrt(maxf(0.0, ve * ve - 2.0 * C.G * dy))) / C.G
-	jump = Vector2(signf(tx - ox) * minf(dist / fly_t, C.RUN), vy0)
-	charge_s = (vy0 - C.JUMP_MIN) / (C.JUMP_V - C.JUMP_MIN) * C.CHARGE
+	var j := ClimbJump.fit(ox, oy, tx, ty, dt)
+	fly_t = float(j["fly_t"]); jump = Vector2(float(j["vx"]), float(j["vy"])); charge_s = float(j["charge_s"])
 
 func _prep(tx: float, ty: float, nxt: String, dt: float) -> void:
 	_fit(x, y, tx, ty, dt); after = nxt; phase = "charge"; since = 0.0

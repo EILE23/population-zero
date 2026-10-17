@@ -1,8 +1,9 @@
 extends SceneTree
 ## 높이뛰기 바 팩 점검(헤드리스): 자료가 읽히나(눈금 56/72/88 이 층으로 돌아가나), 바람 절벽 층의 앞 발판이 있는 가장 넓은 still 발판에만 바가 서나(허들 줄이 선 발판·통풍구 발판·상자에 지름길 판이 든 발판은 비켜 가고, 좁은 발판은 짧은 run, 다 빼면 없고, 다른 테마 층은 아니다; 들어오는 쪽이 앞 발판 쪽인가),
 ## 공중의 몸이 approach 안에서 in_flight 와 자리 k 를 받고 메타에 적히나, 가로대의 면을 발이 위로 지나면 넘어 세고(같은 날 두 번은 한 번, 다음 날은 0), 머리가 밑에 닿게 지나면 떨어뜨리나(clatter, arch_hit — 누운 가로대는 세지도 떨어지지도 않고 다른 몸엔 없다), 낮게 밑을 지나면 아무 일 없나, 멀리·앞뒤 밖·발판 밑은 아니다,
-## 떨어진 가로대가 0.5 s 에 매트로 굴러 20 s 눕고 thump 와 함께 0.6 s 에 눈금으로 돌아가나, 바람 120 에 1.5 px 안에서 떨고 바람 없는 층도 그 1/3 로 떠나, 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세고 높이를 m 로 읽나,
-## 기둥 둘·눈금 여섯·가로대·매트·띠·소리 둘이 그려지나, arch 자세가 활에 등을 젖히고 팔을 머리 너머로 들고 다리를 매달았다가 넘김에 차올리고 매트를 보나(사림은 끌어안나), 진짜 탑의 1..60층에서 plan 이 바람 절벽 층에만 바를 찾나
+## 떨어진 가로대가 0.5 s 에 매트로 굴러 20 s 눕고 thump 와 함께 0.6 s 에 눈금으로 돌아가나(선수가 세우러 오는 동안은 기다리나), 바람 120 에 1.5 px 안에서 떨고 바람 없는 층도 그 1/3 로 떠나, 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세고 높이를 m 로 읽나,
+## 기둥 둘·눈금 여섯·가로대·매트·띠·소리 둘·선수가 그려지나, arch 자세가 활에 등을 젖히고 팔을 머리 너머로 들고 다리를 매달았다가 넘김에 차올리고 매트를 보나(사림은 끌어안나), 진짜 탑의 1..60층에서 plan 이 바람 절벽 층에만 바를 찾나,
+## 높이뛰기 선수(run 171)가 집에서 눈금만큼 웅크려 달려 꼭대기 64 px 로 가로대를 넘어(세지 않는다) 매트에 눕고(sprawl 1.9 s) 앞길로 기둥을 돌아 집에 와 wheel 로 돌아서나, 다섯째 뜀은 짧아(꼭대기 46) 떨어뜨리고 기둥 앞에서 세우나(reset — held, lifted, thump, up), 플레이어가 떨어뜨리고 간 가로대를 집에서 세우러 가나(fetch·turn), 플레이어의 비행 뒤 1 s 에 따라 뛰나, 공중의 플레이어를 기다리나
 const C = preload("res://scripts/games/climb.gd")
 
 func _init() -> void:
@@ -75,9 +76,9 @@ func _init() -> void:
 		cb.sync(40.0 + float(i) * 0.01); cb._place(s); q_max = maxf(q_max, absf(bar.position.y - 56.0 * C.K))
 	s["wind"] = 0.0
 	print("PLACE fall@11.25: y=%.3f (want between 0.444 and 1.556) x=%.3f (want between −0.806 and 0) rot=%.2f (want > 0) | lie@20: pos=%.4f %.4f %.4f (want −0.8056 0.4444 0.0000) up=%s (want false) | thump across 31=%s (want true) | lift@31.3: y=%.3f (want between 0.444 and 1.556) | up@31.7: y=%.4f (want 1.5556 ± 0.014) x=%.3f (want 0.000) up=%s (want true) | wind 120: max quiver=%.4f (want ≤ 0.0417, > 0.03)" % [p_fall.y, p_fall.x, r_fall, p_lie.x, p_lie.y, p_lie.z, up_lie, thumped, p_lift.y, p_up.y, p_up.x, up_up, q_max])
-	# 그림: 노드 아이 13(기둥 둘·눈금 여섯·가로대·매트·띠·소리 둘), 가로대 아이 1; 노드 자리 (406 − 480)/36 = −2.0556, 13100/36 = 363.8889, −70/36 = −1.9444
+	# 그림: 노드 아이 14(기둥 둘·눈금 여섯·가로대·매트·띠·소리 둘·선수), 가로대 아이 1; 노드 자리 (406 − 480)/36 = −2.0556, 13100/36 = 363.8889, −70/36 = −1.9444
 	var node: Node3D = s["node"]
-	print("VISUAL children=%d (want 13) bar=%d (want 1) node pos=%.4f %.4f %.4f (want −2.0556 363.8889 −1.9444)" % [node.get_child_count(), bar.get_child_count(), node.position.x, node.position.y, node.position.z])
+	print("VISUAL children=%d (want 14: 13 + the high jumper) bar=%d (want 1) node pos=%.4f %.4f %.4f (want −2.0556 363.8889 −1.9444)" % [node.get_child_count(), bar.get_child_count(), node.position.x, node.position.y, node.position.z])
 	# 자세(활, arch_k 0.5): 오른 엉덩이 0.55, 무릎 0.90, 어깨 x −2.60 (±0.05 떨림), 어깨 z −0.47, 팔꿈치 −0.25, 골반 0.42 + 0.28 = 0.70, 상체 0.45 × −0.6 = −0.27, 고개 ≈ 뒤로(−0.45 와 상체 되돌림); 넘김(0.9): 엉덩이 −1.30, 무릎 0.15, 어깨 x −0.80, 팔꿈치 −0.50, 골반 0.42, 상체 0.135, 고개 앞으로(+0.25 쪽); 사림(0.9, hit 1): 엉덩이 −1.00, 무릎 1.55, 어깨 x −0.30, 팔꿈치 −1.10, 골반 0.38, 상체 0.2925
 	fig.pose_request = "arch"; fig.set_meta("arch_k", 0.5)
 	while fig.pose_t < 0.3: await process_frame
@@ -94,6 +95,7 @@ func _init() -> void:
 	var d_time := ArchPoses.done(fig)
 	print("POSE arch: hip=%.2f knee=%.2f arm x=%.2f arm z=%.2f elbow=%.2f (want 0.55 0.90 −2.60±0.05 −0.47 −0.25) pelvis=%.2f torso=%.3f neck=%.2f (want 0.70 −0.270 < 0: head back) | kick: hip=%.2f knee=%.2f arm x=%.2f elbow=%.2f (want −1.30 0.15 −0.80±0.05 −0.50) pelvis=%.2f torso=%.3f neck=%.2f (want 0.42 0.135 > arch's: the mat) | tuck: hip=%.2f knee=%.2f arm x=%.2f elbow=%.2f pelvis=%.2f torso=%.3f (want −1.00 1.55 −0.30±0.05 −1.10 0.38 0.293) done(meta)=%s (want false)" % [a_hip, a_knee, a_sh, a_shz, a_el, a_pel, a_torso, a_neck, k_hip, k_knee, k_sh, k_el, k_pel, k_torso, k_neck, h_hip, h_knee, h_sh, h_el, h_pel, h_torso, d_time])
 	fig.pose_request = ""; cb.leave(fig)
+	_jumper(cb, s, fig)
 	# 진짜 탑: 1..60층에 plan 이 찾는 바 — 바람 절벽 층 20..24, 55..59 중 허들 줄·통풍구·고드름·연·민들레가 비켜 간 발판이 있는 층만
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
@@ -108,3 +110,87 @@ func _init() -> void:
 		if out2.size() > 0: bands.append("%d:%s" % [n, out2.map(func(v: Dictionary) -> String: return "%s w %.0f h %.0f run %.0f" % [String(v["hop_id"]), float(v["hop_w"]), float(v["h"]), float(v["run"])])])
 	print("TOWER floors=", bands, " (want a subset of 20..24, 55..59 — one bar each on a hop the hurdle row did not take, h by floor mod 3, run 70 below 55 and 50 or 70 above, never another theme)")
 	quit()
+
+const DT := 1.0 / 60.0
+
+## 높이뛰기 선수(run 171) — 바의 _process 를 60 Hz 로 손수 돌린다(프레임을 기다리지 않는다: 선수의 시계는 since·cb.t). 탑의 셋째 날(1300)에서 — 넘어도 판의 오늘은 0/1 그대로여야 한다
+func _jumper(cb: ClimbBar, s: Dictionary, fig: Stick3D) -> void:
+	var jd: ClimbHighJumper = s["jumper"]
+	cb.sync(1300.0); jd._home(); jd.trail.clear()
+	var r0 := "%s x=%.0f y=%.0f z=%.0f home=%.0f set=%.0f lane=%.0f pos=%.4f %.4f %.4f" % [jd.phase, jd.x, jd.y, jd.z, jd.home_x, jd.set_x, jd.lane_z, jd.fig.position.x, jd.fig.position.y, jd.fig.position.z]
+	var before := cb.cleared_today(21, 21)
+	# 넘는 뜀(h 56): 꼭대기 56 + 2 + 6 = 64 → ve √(4800·64) = 554.26, vy 574.26(+G·dt/2), 웅크림 0.2348 s, t_up 0.2309, t_down(매트 14 위) 0.2041, vx 37/0.2041 = 181.3, 뛰는 자리 406 + 181.3·0.2309 = 447.9(집 464 에서 16 px 달림), 매트 가운데 너머 369 에 내린다
+	_until(cb, jd, "air", 60)
+	var take := "x=%.2f charge=%.4f vx=%.1f vy=%.2f fly=%.4f" % [jd.x, jd.charge_s, jd.jump.x, jd.jump.y, jd.fly_t]
+	_until(cb, jd, "sprawl", 60)
+	var t_s := cb.t
+	var land := "x=%.1f y=%.0f apex=%.2f clears=%d knocks=%d pose=%s facing=%.0f up=%s meta=%s" % [jd.x, jd.y, jd.apex, jd.clears, jd.knocks, jd.fig.pose_request, jd.facing, cb.up(s), jd.fig.has_meta("arch_k")]
+	var after := cb.cleared_today(21, 21)
+	_until(cb, jd, "back", 150)
+	var sprawl_s := cb.t - t_s
+	var z_at_bar := 9.0; var guard := 0
+	while jd.phase == "back" and guard < 120:
+		cb._process(DT); guard += 1
+		if z_at_bar > 8.0 and jd.x >= float(s["bx"]): z_at_bar = jd.z
+	var wheeled := jd.phase == "wheel" and jd.fig.pose_request == "wheel"
+	_until(cb, jd, "idle", 60)
+	print("JUMPER start: ", r0, " (want idle 464 13100 −48 464 390 −24 1.6111 0.0000 0.6111) | takeoff: ", take, " (want 447.86 0.2348 −181.3 574.26 0.4351) | land: ", land, " (want ≈369 (±3) 13114 64.0 (±0.1) 1 0 sprawl 1 true false) today=%d/%d → %d/%d (want 0/1 → 0/1: the jumper's clear is never counted) | sprawl=%.2f s (want 1.90 ±0.02) | z when passing the uprights=%.1f (want −24: round, not through) wheel=%s (want true) home x=%.0f z=%.0f next=%.1f (want 464 −48 ≈ idle + 60)" % [int(before["done"]), int(before["total"]), int(after["done"]), int(after["total"]), sprawl_s, z_at_bar, wheeled, jd.x, jd.z, jd.next_at - cb.t])
+	print("JUMPER trail=", jd.trail, " (want [charge, run, air, sprawl, back, wheel, idle] in this order, ≈0.02 / 0.27 / 0.33 / 0.78 / 2.68 / 3.2 / 3.7 s after 1300)")
+	# 다섯째 뜀은 짧게(jumps 4 → 5): 꼭대기 56 − 10 = 46 → ve 469.9, vy 489.9, 웅크림 0.0975 — 머리 90 이 밑면 54 에 닿아 떨어뜨린다(held, clatter, up 거짓); 매트에서 일어나 390 으로 걸어가(fetch — 가로대 쪽을 보고 있으니 안 돈다) 세운다(reset: 0.2 s 에 lifted·thump, 0.8 s 에 up)
+	jd.trail.clear(); jd.jumps = 4; jd.next_at = cb.t
+	_until(cb, jd, "sprawl", 120)
+	var thump: AudioStreamPlayer3D = s["thump"]
+	var knock := "apex=%.2f knocks=%d clears=%d held=%s up=%s lifted=%s" % [jd.apex, jd.knocks, jd.clears, s["held"], cb.up(s), s["lifted"]]
+	_until(cb, jd, "reset", 150)
+	var at_reset := "x=%.0f facing=%.0f pose=%s turns=%d" % [jd.x, jd.facing, jd.fig.pose_request, jd.trail.filter(func(v: String) -> bool: return v.begins_with("turn@")).size()]
+	thump.stop()
+	for i in 14: cb._process(DT)   # 0.23 s — 손이 닿았다(REACH_T 0.2)
+	var hands := "lifted=%s held=%s thump=%s sets=%d" % [s["lifted"], s["held"], thump.playing, jd.sets]
+	_until(cb, jd, "back", 60)
+	var bar: Node3D = s["bar"]
+	var set_back := "up=%s bar y=%.3f x=%.3f" % [cb.up(s), bar.position.y, bar.position.x]
+	_until(cb, jd, "idle", 120)
+	print("JUMPER short jump: ", knock, " (want 46.0 (±0.1) 1 1 true false false) | at reset: ", at_reset, " (want 390 1 reset 0) | hands on: ", hands, " (want true false true 1) | set back: ", set_back, " (want true 1.556 (±0.02) 0.000) trail=", jd.trail, " (want [charge, run, air, sprawl, fetch, reset, back, wheel, idle])")
+	_jumper_player(cb, s, fig, jd)
+
+## 선수와 플레이어(run 171): 플레이어가 떨어뜨리고 간 가로대, 플레이어의 비행 뒤 따라 뛰기, held 인 동안 기다리는 눈금
+func _jumper_player(cb: ClimbBar, s: Dictionary, fig: Stick3D, jd: ClimbHighJumper) -> void:
+	var thump: AudioStreamPlayer3D = s["thump"]; var bar: Node3D = s["bar"]
+	# 플레이어가 떨어뜨리고 갔다(count 참 — me_t 도 적힌다): 공중에 있는 0.1 s 는 기다리고, 그 뒤 집에서 기둥 사이를 지나 390 에 가 wheel 로 돌아서(turn) 세운다; 따라 뛰는 차례는 가로대가 선 뒤 — 그 전엔 next_at 이 멀다
+	jd._home(); jd.next_at = cb.t + 60.0; jd.trail.clear()
+	var fk := cb.flight(410.0, 402.0, 13140.0, C.PLAYER_Z, fig)
+	for i in 3: cb._process(DT)
+	var waited := jd.phase
+	_until(cb, jd, "reset", 120)
+	var fetched := "x=%.0f facing=%.0f turns=%d" % [jd.x, jd.facing, jd.trail.filter(func(v: String) -> bool: return v.begins_with("turn@")).size()]
+	_until(cb, jd, "idle", 200)
+	var fixed := "up=%s sets=%d" % [cb.up(s), jd.sets]
+	cb.leave(fig)
+	print("JUMPER sets back what you knocked: knocked=%s (want true) waits while you are in the air=%s (want idle) | %s (want 390 1 1: walked under the uprights facing −x, turned to face them) | %s (want true 2) trail=%s (want [fetch, turn, reset, back, wheel, idle])" % [fk["knocked"], waited, fetched, fixed, jd.trail])
+	# 플레이어의 비행 뒤 1 s 에 따라 뛴다: approach 안의 비행(me_t) → 0.5 s 엔 아직 집, 1.1 s 엔 떠났다
+	jd._home(); jd.next_at = cb.t + 60.0
+	cb.flight(470.0, 462.0, 13120.0, C.PLAYER_Z, fig)
+	for i in 30: cb._process(DT)
+	var early := jd.phase
+	for i in 36: cb._process(DT)
+	var follow := jd.phase
+	cb.leave(fig)
+	print("JUMPER follows you: 0.5 s after your flight=%s (want idle) 1.1 s after=%s (want charge or run)" % [early, follow])
+	# 선수가 세우러 오는 동안(held) 눈금은 혼자 돌아가지 않는다: 선수를 멀리 세워 두고(gone) 25 s — 누운 채(up 거짓, lifted 거짓, 매트 위 0.4444); held 를 풀면 다음 틱에 lifted·thump, 0.7 s 뒤 up
+	jd._home(); jd.phase = "gone"; jd.next_at = cb.t + 100.0
+	s["held"] = true; s["lifted"] = false; s["fell_t"] = cb.t
+	for i in 1500: cb._process(DT)
+	var waiting := "up=%s lifted=%s bar y=%.4f" % [cb.up(s), s["lifted"], bar.position.y]
+	s["held"] = false; thump.stop()
+	cb._process(DT)
+	var released := "lifted=%s thump=%s" % [s["lifted"], thump.playing]
+	for i in 42: cb._process(DT)
+	var risen := cb.up(s)
+	jd._home()
+	print("JUMPER the self-reset waits while held: after 25 s ", waiting, " (want false false 0.4444) | released: ", released, " (want true true) | 0.7 s later up=%s (want true)" % [risen])
+
+## phase 가 p 가 될 때까지 바의 _process 를 돌린다(cap_ticks × 5 틱까지 — 안 오면 그냥 돌아온다, 출력의 want 가 어긋난다)
+func _until(cb: ClimbBar, jd: ClimbHighJumper, p: String, cap_ticks: int) -> void:
+	var n := 0
+	while jd.phase != p and n < cap_ticks * 5:
+		cb._process(DT); n += 1
