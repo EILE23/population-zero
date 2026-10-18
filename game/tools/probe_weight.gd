@@ -4,8 +4,11 @@ extends SceneTree
 ## 30 s 에 추가 26 에 바늘이 −π 북이 −3.25 째깍 30 번이고 60 s 에 바닥(down, clank, 바늘 0)이나, 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세나, 다음 날 1.2 s 에 놓으면 추가 51.06 에서 떨어져(0.125 s 에 38.3) thud 하고 0.4 s 에 몸이 풀리나(세지 않는다),
 ## 다른 몸(count 거짓)이 감은 시계는 세지 않나(0/1, 1 running), 남이 드는 동안 플레이어의 C 는 기다리나, 돌고 있는 추 곁의 C 와 C 없는 몸은 아무것도 아니나(평이 100%), 추·사슬·받침·북·다이얼·바늘·소리 셋이 그려지나(사슬 1.5 길이), 노드 자리,
 ## press 자세가 쪼그림에 골반 0.22·상체 0.55·엉덩이 −1.1·무릎 1.6·팔 −0.2·고개 숙임이고, 머리 위에 골반 0.37·상체 −0.12·팔 −2.95±0.05·리드 엉덩이 −0.45·트레일 0.35·고개 −0.4·가슴 −0.12 이고, 버티기 0.5 s 에 다리가 모이고 흔들리나, 걸고 0.3 s 에 서나, 놓치고 0.15 s 에 팔이 떨어지고 움츠리나,
+## 감는 이(run 175)가 집(추 + 40)에 서서 차례에 추로 걸어가(0.17 s) 초크를 치고(chalk 1.37 s, 가루 둘) 같은 lift(count 거짓)·press 로 2.35 s 들어 거나(날·me_t 는 그대로), 제 시계가 다 풀린 뒤 1분을 두고 다시 가나, 플레이어가 감으면 다 풀린 뒤 1 s 에 가나, 플레이어가 먼저 잡으면 돌아와 기다리나, 플레이어가 놓치면 thud 에 20 px 물러나 1.5 s 뒤 돌아와 떨어진 시계를 감나,
+## chalk 자세가 박수의 모임에 어깨 −1.0·z −0.05·팔꿈치 −1.4·무릎 0.15 이고 벌림에 z −0.4 이고 비빔에 팔꿈치가 어긋나고 털기 가운데 팔이 반 내려와 바깥으로 흔들리고 끝에 서나(done),
 ## 진짜 탑의 1..65층에서 plan 이 태엽 층(15..19, 50..54)에만 추를 찾나
 const C = preload("res://scripts/games/climb.gd")
+const DT := 1.0 / 60.0
 
 func _init() -> void:
 	var cw := ClimbWeight.new(); root.add_child(cw)
@@ -42,6 +45,7 @@ func _init() -> void:
 	var band_root := Node3D.new(); root.add_child(band_root)
 	cw.build(band_root, free)
 	var s: Dictionary = cw.weights[0]
+	var wd: ClimbWinder = s["winder"]; wd.phase = "gone"; wd.next_at = 1e9   # 감는 이는 뒤에(WINDER) — 그때까지 층을 떠나 있다(차례가 오면 위 want 가 어긋난다)
 	var fig := Stick3D.new(); root.add_child(fig)
 	var on: Dictionary = plats[4]; var z := C.PLAYER_Z
 	var thud: AudioStreamPlayer3D = s["thud"]; var clank: AudioStreamPlayer3D = s["clank"]
@@ -91,7 +95,7 @@ func _init() -> void:
 	print("OTHER body: waits=%s (want false) %s (want wound today=0/1 running=1 me_t=22.4 fig2 meta=false: a resident's clock is never counted) | 1300: %s (want down)" % [wait_me["busy"], other, String(s["st"])])
 	# 그림: 노드 아이 8(추·사슬·받침·북·다이얼·소리 셋), 추 아이 3, 북 2, 다이얼 2; 노드 자리 (235 − 480)/36 = −6.8056, 10140/36 = 281.6667, −70/36 = −1.9444
 	var node: Node3D = s["node"]; var w_node: Node3D = s["w_node"]; var dial := hand.get_parent() as Node3D
-	print("VISUAL children=%d (want 8) weight=%d drum=%d dial=%d (want 3 2 2) node pos=%.4f %.4f %.4f (want −6.8056 281.6667 −1.9444) weight pos=%.4f %.4f %.4f (want 0.0000 0.1944 0.3333) dial x=%.4f (want 0.6667)" % [node.get_child_count(), w_node.get_child_count(), drum.get_child_count(), dial.get_child_count(), node.position.x, node.position.y, node.position.z, w_node.position.x, w_node.position.y, w_node.position.z, dial.position.x])
+	print("VISUAL children=%d (want 9: 8 + the winder) weight=%d drum=%d dial=%d (want 3 2 2) node pos=%.4f %.4f %.4f (want −6.8056 281.6667 −1.9444) weight pos=%.4f %.4f %.4f (want 0.0000 0.1944 0.3333) dial x=%.4f (want 0.6667)" % [node.get_child_count(), w_node.get_child_count(), drum.get_child_count(), dial.get_child_count(), node.position.x, node.position.y, node.position.z, w_node.position.x, w_node.position.y, w_node.position.z, dial.position.x])
 	# 자세(메타로 세운다): 쪼그림(press_t 0.3) 골반 0.22, 상체 0.55, 엉덩이 −1.1, 무릎 1.6, 팔 −0.2, 팔꿈치 0, 리드 어깨 z −0.12, 고개 > 0;
 	# 머리 위(0.95): 골반 0.37, 상체 −0.12, 팔 −2.95 ± 0.05, 팔꿈치 0 ± 0.03, 리드 엉덩이 −0.45, 트레일 0.35, 리드 무릎 0.58 ± 0.03, 트레일 0.33 ± 0.03, 고개 −0.4, 가슴 −0.12, 리드 어깨 z −0.12;
 	# 버티기 0.5 s(1.45): 엉덩이 0 둘 다, 무릎 0.08 ± 0.03, 어깨 z 가 −0.12 에서 ±0.08 흔들린다; 걸고 0.3 s: 골반 0.42, 상체 0, 팔 0, 엉덩이 0, 고개 0; 놓치고 0.15 s: 골반 0.3174, 상체 0.1230, 팔 0.1709, 엉덩이 −0.3418, 무릎 0.533 ± 0.02, 고개 > 0
@@ -117,6 +121,8 @@ func _init() -> void:
 	print("POSE grip: pelvis=%.2f torso=%.2f hip=%.2f knee=%.2f arm=%.2f elbow=%.2f shoulder z=%.2f neck>0=%s (want 0.22 0.55 −1.10 1.60 −0.20 0.00 −0.12 true) | top: pelvis=%.2f torso=%.2f arm=%.2f elbow=%.2f lead hip=%.2f trail hip=%.2f lead knee=%.2f trail knee=%.2f neck=%.2f chest=%.2f shoulder z=%.2f (want 0.37 −0.12 −2.95±0.05 0.00±0.03 −0.45 0.35 0.58±0.03 0.33±0.03 −0.40 −0.12 −0.12)" % [g_pel, g_tx, g_hip, g_knee, g_shx, g_el, g_shz, g_neck > 0.0, t_pel, t_tx, t_shx, t_el, t_hip, t_hip2, t_knee, t_knee2, t_neck, t_chest, t_shz])
 	print("POSE hold 0.5 s: hips=%.2f/%.2f knee=%.2f shoulder z=%.2f (want 0.00/0.00 0.08±0.03 −0.12±0.08) | hooked 0.3 s: pelvis=%.2f torso=%.2f arm=%.2f hip=%.2f neck=%.2f (want 0.42 0.00 0.00 0.00 0.00) | dropped 0.15 s: pelvis=%.4f torso=%.4f arm=%.4f hip=%.4f knee=%.3f neck>0=%s (want 0.3175 0.1230 0.1709 −0.3418 0.533±0.03 true) done(no meta)=%s at pose_t %.2f (want true once past 2.25 s)" % [h_hip, h_hip2, h_knee, h_shz, k_pel, absf(k_tx), absf(k_shx), absf(k_hip), absf(k_neck), d_pel, d_tx, d_shx, d_hip, d_knee, d_neck > 0.0, PressPoses.done(fig), fig.pose_t])
 	fig.pose_request = ""
+	await _winder(cw, s, wd, fig, on, z)
+	await _chalk_pose()
 	# 진짜 탑: 1..65층에 plan 이 찾는 추 — 태엽 층 15..19, 50..54 중 띠·추·뻐꾸기 집·풀무·핀 바퀴가 안 쓴 넓은 발판이 있는 층만
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
@@ -131,3 +137,78 @@ func _init() -> void:
 		if out2.size() > 0: bands.append("%d:%s" % [n, out2.map(func(v: Dictionary) -> String: return "%s w %.0f %d kg" % [String(v["hop_id"]), float(v["hop_w"]), int(v["kg"])])])
 	print("TOWER floors=", bands, " (want a subset of 15..19, 50..54 — one weight each on the widest std hop no other Clockwork pack took, 8..16 kg by floor mod 5, never another theme)")
 	quit()
+
+## 감는 이(run 175): 집·차례·초크·들기·귀가, 제 시계 뒤의 1분, 플레이어를 따라가기, 플레이어가 먼저, 플레이어의 놓침
+func _winder(cw: ClimbWeight, s: Dictionary, wd: ClimbWinder, fig: Stick3D, on: Dictionary, z: float) -> void:
+	# t 1300(셋째 날, fig2 의 시계는 1292.4 에 다 풀렸다): 집 275(추 235 + 40)·z −48·카메라; 차례가 오면 추로 걸어가(돌아서는 틱 하나 + 40 px / 260 → 11 틱 0.18 s) 초크(chalk, 메타 0) → 1.37 s 뒤 들기(press, grip, count 거짓, 가루 둘) → 0.95 + 1.1 + 0.3 = 2.35 s 뒤 걸고 집으로(wound, 날·me_t 그대로) → 다음은 다 풀린 뒤 1분
+	cw.sync(1300.0); cw._process(0.0); wd._home(); var me0 := float(s["me_t"]); var day0 := int(s["day"])
+	var g0 := "%s x=%.0f home=%.0f z=%.0f visible=%s pose='%s' next=%.1f" % [wd.phase, wd.x, wd.home_x, wd.z, wd.fig.visible, wd.fig.pose_request, maxf(0.0, wd.next_at - cw.t)]
+	_until(cw, wd, "chalk", 60)
+	var ch := "%s x=%.0f pose=%s meta=%.2f at=%.2f s" % [wd.phase, wd.x, wd.fig.pose_request, float(wd.fig.get_meta("chalk_t", 9.0)), cw.t - 1300.0]
+	_until(cw, wd, "lift", 120)
+	var lf := "%s x=%.0f pose=%s ph=%s mine=%s count=%s puffs=%d meta=%s at=%.2f s" % [wd.phase, wd.x, wd.fig.pose_request, String(s["ph"]), (s["fig"] as Stick3D) == wd.fig, s["count"], wd.puffs, wd.fig.has_meta("chalk_t"), cw.t - 1300.0]
+	_until(cw, wd, "back", 300)
+	var tw := cw.wound_today(16, 16)
+	var bk := "%s st=%s pose='%s' winds=%d day same=%s me_t same=%s today=%d/%d running=%d at=%.2f s" % [wd.phase, String(s["st"]), wd.fig.pose_request, wd.winds, int(s["day"]) == day0, float(s["me_t"]) == me0, int(tw["wound"]), int(tw["total"]), int(tw["running"]), cw.t - 1300.0]
+	_until(cw, wd, "idle", 60)
+	var hm := "%s x=%.0f next=%.1f" % [wd.phase, wd.x, wd.next_at - cw.t]
+	print("WINDER start: ", g0, " (want idle 275 275 −48 true '' 0.0) | chalk: ", ch, " (want chalk 235 chalk 0.00 0.18: a tick to turn, 40 px at WALK) | lift: ", lf, " (want lift 235 press grip true false 2 false 1.55: 1.37 s of chalk, two puffs) | hooked: ", bk, " (want back wound '' 1 true true 0/1 1 3.90..3.95: 0.95 + 1.1 + 0.3 s of press, a winder's clock is never counted) | home: ", hm, " (want idle 275 ≈119.8: the run plus a minute) trail=", wd.trail)
+	# 제 시계 뒤의 1분: 61 s 뒤 시계는 다 풀렸는데(down) 0.5 s 동안 집(idle); next_at 에 걸어간다
+	cw.sync(cw.t + 61.0); cw._process(0.0); var down_st := String(s["st"])
+	for i in 30: cw._process(DT)
+	var waited := wd.phase
+	cw.sync(wd.next_at - 0.5 * DT); _until(cw, wd, "walk", 30)
+	print("WINDER a minute: st=%s (want down) 0.5 s later=%s (want idle) walks at %.3f s past next_at (want 0.000..0.034)" % [down_st, waited, cw.t - wd.next_at])
+	# 플레이어를 따라가기: 플레이어가 2.5 s 들어 걸면(me_t) 감는 이는 집(idle), 차례는 me_t + 61; 60.9 s 엔 집, 61.0 s 에 걸어가 감는다(winds 2)
+	wd._home(); wd.next_at = cw.t + 1e4
+	for i in 150: cw.lift(240.0, z, on, true, fig); cw._process(DT)
+	var me1 := float(s["me_t"]); var day1 := int(s["day"]); var fw := "%s st=%s me_t set=%s next−me_t=%.1f" % [wd.phase, String(s["st"]), me1 > me0, wd.next_at - me1]
+	cw.sync(me1 + 60.5); cw._process(0.0)
+	for i in 24: cw._process(DT)
+	var early := "%s st=%s" % [wd.phase, String(s["st"])]
+	_until(cw, wd, "walk", 30); var when := cw.t - me1
+	_until(cw, wd, "lift", 200); _until(cw, wd, "idle", 600)
+	print("WINDER follows you: while you hold and after your hook=", fw, " (want idle wound true 61.0) | 60.9 s after=", early, " (want idle down) | walks at %.2f s after your hook (want 61.00..61.02: the run out, a clank, a second) | then winds=%d st=%s day same=%s (want 2 wound true: your hook set the day, the winder's leaves it)" % [when, wd.winds, String(s["st"]), int(s["day"]) == day1])
+	# 플레이어가 먼저: 감는 이가 걸어가는 중(3 틱 — 첫 틱에 돌아서고 둘 걷는다, x 266)에 플레이어가 잡으면 돌아와 집에서 기다린다; 플레이어가 1.2 s 들다 놓으면 thud(0.25 s)에 물러나(step → 295) 1.5 s 서 있다(linger) 집으로 → 차례가 지났으니 떨어진 시계를 감는다(winds 3)
+	cw.sync(cw.t + 61.0); cw._process(0.0); wd._home()
+	for i in 3: cw._process(DT)
+	var mid_x := wd.x
+	cw.lift(240.0, z, on, true, fig); cw._process(DT)
+	var yield_ph := wd.phase
+	_until(cw, wd, "idle", 60); var yielded := "%s x=%.0f" % [wd.phase, wd.x]
+	for i in 72: cw.lift(240.0, z, on, true, fig); cw._process(DT)
+	cw.lift(240.0, z, on, false, fig); var rel := cw.t
+	_until(cw, wd, "step", 60); var stepped := "%s at=%.2f s thudded=%s" % [wd.phase, cw.t - rel, s["thudded"]]
+	_until(cw, wd, "linger", 60); var lingered := "%s x=%.0f" % [wd.phase, wd.x]
+	_until(cw, wd, "back", 120); var back_at := cw.t - rel
+	_until(cw, wd, "idle", 60); var home2 := "%s x=%.0f" % [wd.phase, wd.x]
+	_until(cw, wd, "lift", 200); _until(cw, wd, "idle", 600)
+	print("WINDER the player first: walking x=%.0f (want 266: the first tick turns, two walk) | you grip: %s (want back) → %s (want idle 275) | you drop: %s (want step 0.25..0.27 true: the thud is the cue) → %s (want linger 295) → back at %.2f s (want 1.83..1.87) → %s (want idle 275) | then winds=%d st=%s day same=%s me_t same=%s (want 3 wound true true: the keeper winds what you dropped)" % [mid_x, yield_ph, yielded, stepped, lingered, back_at, home2, wd.winds, String(s["st"]), int(s["day"]) == day1, float(s["me_t"]) == me1])
+
+## chalk 자세(메타로 세운다): 모임(1/6) 어깨 −1.00 z −0.05 팔꿈치 −1.40 무릎 0.15 엉덩이 −0.05 몸통 0.054 고개 > 0; 벌림(1/3) z −0.40 무릎 0.10; 비빔(0.8667) z −0.05 팔꿈치 −1.42/−1.38(어긋난다); 털기 가운데(1.2167) 어깨 −0.55 z −0.40 팔꿈치 −0.875 몸통 0.027; 끝(1.4) 어깨 −0.10 z 0.00 팔꿈치 −0.35 몸통 0 done
+func _chalk_pose() -> void:
+	var f3 := Stick3D.new(); root.add_child(f3)
+	f3.pose_request = "chalk"; f3.set_meta("chalk_t", 1.0 / 6.0)
+	for i in 60: await process_frame
+	var m_shx: float = (f3.shoulders[1.0] as Node3D).rotation.x; var m_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var m_el: float = (f3.elbows[1.0] as Node3D).rotation.x
+	var m_knee: float = (f3.knees[1.0] as Node3D).rotation.x; var m_hip: float = (f3.hips[1.0] as Node3D).rotation.x; var m_tx := f3.torso.rotation.x; var m_neck := f3.neck.rotation.x
+	f3.set_meta("chalk_t", 1.0 / 3.0)
+	for i in 45: await process_frame
+	var a_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var a_knee: float = (f3.knees[1.0] as Node3D).rotation.x
+	f3.set_meta("chalk_t", 2.0 / 3.0 + 0.2)
+	for i in 45: await process_frame
+	var r_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var r_el: float = (f3.elbows[1.0] as Node3D).rotation.x; var r_el2: float = (f3.elbows[-1.0] as Node3D).rotation.x
+	f3.set_meta("chalk_t", 2.0 / 3.0 + 0.4 + 0.15)
+	for i in 45: await process_frame
+	var s_shx: float = (f3.shoulders[1.0] as Node3D).rotation.x; var s_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var s_el: float = (f3.elbows[1.0] as Node3D).rotation.x; var s_tx := f3.torso.rotation.x
+	f3.set_meta("chalk_t", 1.4)
+	for i in 45: await process_frame
+	var e_shx: float = (f3.shoulders[1.0] as Node3D).rotation.x; var e_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var e_el: float = (f3.elbows[1.0] as Node3D).rotation.x; var e_tx := f3.torso.rotation.x; var e_done := ChalkPoses.done(f3)
+	f3.remove_meta("chalk_t"); f3.pose_request = ""
+	print("CHALK pose meet: arm=%.2f z=%.2f elbow=%.2f knee=%.2f hip=%.2f torso=%.3f neck>0=%s (want −1.00 −0.05 −1.40 0.15 −0.05 0.054 true) | apart: z=%.2f knee=%.2f (want −0.40 0.10) | rub: z=%.2f elbows=%.2f/%.2f (want −0.05 −1.42/−1.38: out of step) | shake mid: arm=%.2f z=%.2f elbow=%.3f torso=%.3f (want −0.55 −0.40 −0.875 0.027) | end: arm=%.2f z=%.2f elbow=%.2f torso=%.3f done=%s (want −0.10 0.00 −0.35 0.000 true) | claps between (0.16,0.17] (0.17,0.49] (0.49,0.51] (0.51,1.4]=%s %s %s %s (want true false true false) total=%.3f (want 1.367)" % [m_shx, m_shz, m_el, m_knee, m_hip, m_tx, m_neck > 0.0, a_shz, a_knee, r_shz, r_el, r_el2, s_shx, s_shz, s_el, s_tx, e_shx, e_shz, e_el, e_tx, e_done, ChalkPoses.clap_between(0.16, 0.17), ChalkPoses.clap_between(0.17, 0.49), ChalkPoses.clap_between(0.49, 0.51), ChalkPoses.clap_between(0.51, 1.4), ChalkPoses.TOTAL])
+
+## 감는 이의 phase 가 p 가 될 때까지 팩의 _process 를 돌린다(cap_ticks × 5 틱까지 — 안 오면 그냥 돌아온다, 출력의 want 가 어긋난다)
+func _until(cw: ClimbWeight, wd: ClimbWinder, p: String, cap_ticks: int) -> void:
+	var n := 0
+	while wd.phase != p and n < cap_ticks * 5:
+		cw._process(DT); n += 1

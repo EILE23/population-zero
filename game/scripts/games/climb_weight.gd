@@ -12,7 +12,8 @@ extends Node3D
 ## (톱니 띠·추·뻐꾸기 집·풀무·핀 바퀴의 계획을 taken 으로 — 그 발판은 비켜 간다); 매 틱 `cw.sync(_t)`;
 ## 발판에 선 가지에서(매달림·붙잡음이 비고 `on` 이 찼을 때, jump_held 를 읽기 전에) `var lw := cw.lift(x, z, on, Input.is_action_pressed("act"), fig); if lw["busy"]: dir = 0.0; jump_held = false; charge = 0.0; fig.pose_request = "press" elif fig.pose_request == "press": fig.pose_request = ""`
 ## (팩이 meta press_t·press_end·press_u 를 적고 끝나면 지운다); `_figure()` 의 face 가지 앞에 `if cw.lifting(fig): fig.face(0.0)` (드는 이는 카메라를 본다); 공중에선 부르지 않는다. 쉼터 판 C 는 signs.tick 이 먼저 — 추는 std 발판에만 선다.
-## lift 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 주민 반쪽이 다음 run 에 기다렸다 따라 든다), 다른 몸은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_weight.gd
+## lift 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 감는 이가 다 풀리길 기다려 따라 든다), 다른 몸은 거짓을 준다.
+## 주민 반쪽(run 175): 추마다 시계 감는 이 하나(climb_winder.gd — 추 노드 아래 Stick3D)가 추에서 40 px 떨어져 카메라를 보고 서서, 다 풀린 시계를 탑의 1분 두면 추로 가 초크를 치고(chalk) 같은 lift(count 거짓)·같은 press 로 hold_s 를 꼭 채워 건다; 플레이어가 감으면 다 풀린 뒤 1 s 에 들고, 플레이어가 드는 동안은 집에서 기다리고, 놓치면(thud) 20 px 물러난다. 로더가 할 일은 없다 — 팩이 짓고 틱을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_weight.gd
 
 const PACK := "res://data/climb/weight.json"
 const C = preload("res://scripts/games/climb.gd")
@@ -23,7 +24,7 @@ const LIFTING := ["grip", "clean", "press", "hold"]   # C 를 쥐고 있어야 �
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.weight
-var weights: Array = []         # 지은 추 {id, kind "weight", n, hop_id, hop_w, wx, x, w, y, y_top, z, d, kg, hold_s, st, ph, t0, end_t0, h, h0, fig, count, wound_t0, tick_i, day, lifts, drops, me_t, node, w_node, chain, drum, hand, thud, clank, tick}
+var weights: Array = []         # 지은 추 {id, kind "weight", n, hop_id, hop_w, wx, x, w, y, y_top, z, d, kg, hold_s, st, ph, t0, end_t0, h, h0, fig, count, wound_t0, tick_i, day, lifts, drops, me_t, node, w_node, chain, drum, hand, thud, clank, tick, winder}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -303,6 +304,7 @@ func _process(delta: float) -> void:
 		if String(s["ph"]) in LIFTING: _lift(s)
 		if String(s["ph"]) in ["hook", "drop"]: _end(s)
 		_run(s); _place(s)
+		if s.has("winder"): (s["winder"] as ClimbWinder).step(delta)   # 감는 이의 틱 — 시계가 돈 뒤라 thud·clank 를 같은 틱에 본다
 
 ## 추와 사슬을 지금 높이로 — 사슬은 추 꼭대기에서 북 밑까지
 func _place(s: Dictionary) -> void:
@@ -336,6 +338,7 @@ func build(root: Node3D, planned: Array) -> void:
 		s["st"] = "down"; s["ph"] = ""; s["t0"] = -99.0; s["end_t0"] = -99.0; s["h"] = 0.0; s["h0"] = 0.0; s["fig"] = null; s["count"] = true
 		s["wound_t0"] = -99.0; s["tick_i"] = -1; s["day"] = -1; s["lifts"] = 0; s["drops"] = 0; s["me_t"] = -99.0; s["thudded"] = false
 		s["thud"] = _snd(node, float(kind.get("thud_hz", 90)), 0.18, -12.0, false); s["clank"] = _snd(node, float(kind.get("clank_hz", 1800)), 0.1, -14.0, true); s["tick"] = _snd(node, float(kind.get("tick_hz", 2600)), 0.03, -20.0, false)
+		s["winder"] = ClimbWinder.new(self, s, node)   # 주민 반쪽 — 추 곁에 카메라를 보고 선 시계 감는 이
 		weights.append(s)
 		_place(s)
 
