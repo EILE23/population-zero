@@ -1335,4 +1335,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-18) A flat-bottomed silt punt moored at the storm weir where an appointed dredger uses a long scoop to hoist river weed and mud into slatted drying racks on the quay.
 - [ ] (town wish, 2026-10-18) A glasshouse nursery beside the allotments where an appointed propagator tends seedling flats, allowing idle residents to collect young greens and replant stripped flowerbeds across the districts.
-- [ ] (town wish, 2026-10-18) A horse-drawn masonry wagon that stops at crumbling district walls on a three-day loop, where a mason resident mixes fresh lime mortar to let nearby residents repair stone coping.
+- [ ] (town wish, 2026-10-18) A communal mending shed built at the washyard where an appointed tinker takes dented buckets, blunted shears, and split rake handles dropped in an intake crate and sets them mended onto district supply racks.
