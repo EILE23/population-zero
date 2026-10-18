@@ -1,0 +1,48 @@
+{
+  "_": "Climb content pack 'Stardust drift' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_drift.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still hop of the piece's `on` kinds that is at least `min_w` wide; a drift of fallen stardust lies at the hop's centre, `drift_d` px deep from the cliff (the lane in front stays open), `drift_w` wide and `drift_h` tall at its peak, with a shovel planted in it (handle `handle_h` px) and a bare patch `heap_dx` px to its right where the dug stardust heaps up; a hop takes a drift only when no other platform cuts the column over it (±col_w px up to the handle's top) and no `taken` piece of another pack (the loader passes the icicles', lanterns', trapezes', candle stairs', telescopes' and tightropes' plans) sits on the footprint within the hop's height band (20 px under the hop top to 60 px over it — run 152's band rule); one drift per floor on the widest such hop. A drift on floor n is scoops_base + (floor mod 5) × scoops_step scoops deep (4..8). C beside the planted shovel (within HW + `reach` px, standing) takes it and digs: a thrust with the foot on the blade (`thrust_s`), the lever back (`lever_s`), the heave over to the heap (`heave_s`) — one scoop per cycle, a puff of stardust at the heap, the drift lower and the heap taller by a scoop; C held keeps digging cycle after cycle, C let go finishes the cycle and plants the shovel (`stop_s` until the body is free); walking off mid-cycle abandons that scoop but keeps the ones dug — the drift remembers how deep you got until it refills. When the last scoop is out a buried star is uncovered: it rises `star_h` px over the hop in `rise_s` (a chime), the digger leans on the shovel and looks up at it for `gaze_s`, and the star hangs turning for `hang_s` of tower time, then sinks back in `sink_s` and the drift blows back in over `refill_s` (falling stardust, a hush) — ready to dig again. The body is busy (no walking, no jump) from the first C to the end of the gaze or the stop and the pose is `shovel` (stick3d_shovel.gd — the owner board's 'shovelling' family: the thrust with the lead foot stamping the blade, the lever with the elbows pulled in and the knees bent, the heave with both arms swinging the scoop up and over to one side, the gaze with one hand on the handle and one on the hip, the stop with a wipe of the brow — never a still frame). The drift is not solid and costs nothing. An uncovered star counts once a tower-day (`day_s`) per drift for the camp boards, note(n): 'Stardust drifts, floors 30–34: 2 of 3 dug out today, the deepest 8 scoops, 1 star up.' Nothing changes for a body that does not press C beside the planted shovel: the plain run across the hop, the plain jump and C anywhere else (the camp door, the boards) are untouched, and C beside an uncovered star or a refilling drift is nothing too (the plain outcome is 100%). tools/probe_drift.gd checks the plan and its refusals, the dig's phases and timing, the abandon, the stop, the star, the hang, the refill, the day, the note, the visuals, the sounds and the pose.",
+  "id": "drift",
+  "name": "Stardust drift",
+  "pose": "shovel",
+  "themes": [
+    "Starlit"
+  ],
+  "kinds": {
+    "drift": {
+      "_": "min_w: the hop's least width (px). reach: px either side of the shovel's centre (beyond the body's half-width HW) where C starts the dig. drift_d: the drift's depth from the cliff side (px). drift_w/drift_h: the mound's width and peak height (px) — drawn, not solid. heap_dx: px right of the mound's centre where the dug stardust heaps. handle_h: the planted shovel's handle top over the hop (px). col_w: half-width (px) of the column over the drift that no other platform may cut. scoops_base/scoops_step: a drift is scoops_base + (floor mod 5) × scoops_step scoops deep. thrust_s/lever_s/heave_s: seconds of the thrust, the lever and the heave — one scoop per cycle. stop_s: seconds from the last cycle's end until a body that let go of C is free. star_h: the uncovered star's height over the hop (px); rise_s: seconds it takes to rise; gaze_s: seconds the digger looks up at it before being free. hang_s: seconds of tower time the star hangs; sink_s: seconds it sinks back; refill_s: seconds the drift takes to blow back in after the sink. day_s: seconds of tower time in a tower-day — a drift counts once per day. crunch_hz: the blade into the stardust at each thrust; chime_hz: the star uncovered; hush_hz: the drift blowing back in.",
+      "min_w": 100,
+      "reach": 14,
+      "drift_d": 24,
+      "drift_w": 44,
+      "drift_h": 18,
+      "heap_dx": 30,
+      "handle_h": 46,
+      "col_w": 30,
+      "scoops_base": 4,
+      "scoops_step": 1,
+      "thrust_s": 0.25,
+      "lever_s": 0.3,
+      "heave_s": 0.35,
+      "stop_s": 0.3,
+      "star_h": 40,
+      "rise_s": 0.8,
+      "gaze_s": 0.6,
+      "hang_s": 90,
+      "sink_s": 1.0,
+      "refill_s": 2.0,
+      "day_s": 600,
+      "crunch_hz": 180,
+      "chime_hz": 2200,
+      "hush_hz": 120
+    }
+  },
+  "pieces": [
+    {
+      "_": "Starlit floors are 30..34, 65..69, 100..104 …; on 30..34 the hops are 120..165 px wide, so most floors have several hops over min_w and the widest one not hung with an icicle (run 123), poled by a lantern (run 133), swung by a trapeze (run 141), stepped by a candle stair (run 147), aimed by a telescope (run 154) or strung by a tightrope (run 164) takes the drift; from floor 65 the hops are 90..130 px wide and a few floors go without. One drift per floor; a drift on floor n is 4 + (n mod 5) scoops deep — 4, 5, 6, 7, 8 up the five floors.",
+      "kind": "drift",
+      "on": [
+        "std"
+      ],
+      "max": 1
+    }
+  ]
+}
