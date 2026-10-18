@@ -10,6 +10,7 @@ extends Node3D
 ## (뗏목·버섯·널·열기구·렌즈·모래밭의 계획을 taken 으로 — 티 잔디·홀 자리를 둘이 안 나눈다; 틈에 뜬 것 위로는 공이 난다; plan 은 plats 를 공의 착지용으로 품는다); 매 틱 `cg.sync(_t)`;
 ## 발판에 선 가지에서(매달림·붙잡음이 비고 `on` 이 찼을 때, jump_held 를 읽기 전에) `var g := cg.tee(x, z, on, Input.is_action_pressed("act"), fig); if g["busy"]: dir = 0.0; jump_held = false; charge = 0.0; fig.pose_request = "stroke" elif fig.pose_request == "stroke": fig.pose_request = ""`
 ## (팩이 meta stroke_c·stroke_t·stroke_lead 를 적고 스윙이 끝나면 지운다); `_figure()` 의 face 가지 앞에 `if cg.swinging(fig): fig.face(0.0)` (골퍼는 카메라를 본다); 공중에선 부르지 않는다. 쉼터 판 C 는 signs.tick 이 먼저 — 그린은 std/ice 발판에만 선다.
+## 주민 반쪽(run 173): 그린마다 골퍼 하나(climb_golfer.gd — 그린 노드 아래 Stick3D)가 못 뒤 40 px 에 카메라를 보고 서서 탑의 1분마다, 그리고 플레이어가 친 뒤 1.5 s 뒤에 못으로 가 공이 돌아오길 기다려 같은 tee(count 거짓)·같은 stroke 로 치고(충전은 홀 50 px 앞의 need 를 가운데로 ±0.1 — 셋에 하나 들어간다) 공을 눈으로 쫓는다(track).
 ## tee 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 주민 반쪽이 기다렸다 따라 친다), 다른 몸(주민 반쪽)은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_green.gd
 
 const PACK := "res://data/climb/green.json"
@@ -21,7 +22,7 @@ const SIDE := 10.0         # 상자 x 여유(px) — 손 하나
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.green
-var greens: Array = []          # 지은 그린 {id, kind "green", n, tee_id, flag_id, hop_w, y, fy, tee_x, hole_x, dir, dx, need, x, w, y_top, z, d, wind, plats, node, ball_node, pen, ball, bx, by, vx, vy, on_id, sw, sw_t0, sw_fig, c, struck, count, shots, rest_t0, day, hit_day, me_t, tock, plop, cup}
+var greens: Array = []          # 지은 그린 {id, kind "green", n, tee_id, flag_id, hop_w, y, fy, tee_x, hole_x, dir, dx, need, x, w, y_top, z, d, wind, plats, node, ball_node, pen, ball, bx, by, vx, vy, on_id, sw, sw_t0, sw_fig, c, struck, count, shots, rest_t0, day, hit_day, me_t, tock, plop, cup, golfer}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -276,6 +277,7 @@ func _process(delta: float) -> void:
 	for sv in greens:
 		var s: Dictionary = sv
 		_swing(s); _ball(s, minf(delta, 1.0 / 30.0)); _place(s)
+		if s.has("golfer"): (s["golfer"] as ClimbGolfer).step(delta)   # 골퍼의 틱
 
 ## 스윙의 시계 — 놓은 뒤 strike_s 에 공이 못을 떠나고(tock) swing_s 에 몸이 풀린다
 func _swing(s: Dictionary) -> void:
@@ -371,6 +373,7 @@ func build(root: Node3D, planned: Array) -> void:
 		s["ball"] = "tee"; s["bx"] = float(s["tee_x"]); s["by"] = float(s["y"]) + tee_h(); s["vx"] = 0.0; s["vy"] = 0.0; s["on_id"] = ""
 		s["sw"] = ""; s["sw_t0"] = -99.0; s["sw_fig"] = null; s["c"] = 0.0; s["struck"] = false; s["count"] = true; s["shots"] = 0; s["rest_t0"] = -99.0; s["day"] = -1; s["hit_day"] = -1; s["me_t"] = -99.0
 		s["tock"] = _snd(node, float(kind.get("tock_hz", 900)), 0.05, -14.0, false); s["plop"] = _snd(node, float(kind.get("plop_hz", 160)), 0.2, -14.0, false); s["cup"] = _snd(node, float(kind.get("cup_hz", 1400)), 0.14, -12.0, true)
+		s["golfer"] = ClimbGolfer.new(self, s, node)   # 주민 반쪽 — 못 뒤에 카메라를 보고 선 골퍼
 		greens.append(s)
 		_place(s)
 

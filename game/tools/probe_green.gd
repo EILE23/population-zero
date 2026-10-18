@@ -2,7 +2,8 @@ extends SceneTree
 ## 구름 그린 팩 점검(헤드리스): 자료가 읽히나, 구름바다 층의 잇단 still 발판 쌍 중 티 발판이 가장 넓고 티 → 홀이 v_max 의 0.5..0.92 인 쌍에만 그린이 서나(모래밭이 선 발판은 비켜 가고, 상자에 지름길 판이 든 쌍도 비켜 가고, 홀이 너무 먼 쌍은 아니고, 다른 테마 층은 아니다; 티는 깃발 쪽 가장자리 24 안, 홀은 먼 끝 30 안),
 ## 못 곁의 C 가 어드레스에 들고(busy, stroke_c, stroke_lead, 손의 채) 못에서 떠나면 풀리나, 0.53 s 모으면 0.757 이고 놓으면 스윙(stroke_t)이 되어 0.12 s 에 공이 930 px/s·60° 로 못을 떠나나(tock, me_t, shots), 공이 513 에 튀고 529 에서 굴러 551 에서 홀에 드나(cup, 오늘 1/1, 7.3 m), 스윙이 0.6 s 에 풀리나(메타·채가 사라진다), 2.5 s 뒤 공이 못으로 돌아오나,
 ## 다음 날 0.85 로 친 공이 561 에 튀어 그린을 넘어 구름에 잃히나(올렸다 1, 들어갔다 0 — plop), 톡 친 공(0)이 아래 발판 26.3 에 떨어져 439 에서 서나, 0.5 로 친 공이 틈에 빠지나, 바람 120 에 569 까지 밀려 넘어가나, 다른 몸(count 거짓)의 홀인은 세지 않나, 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세나,
-## 잔디·못·공·홀·깃대·깃·소리 셋이 그려지나, stroke 자세가 백스윙 꼭대기에서 두 팔을 트레일 쪽으로 감고 몸통을 틀고 공을 보나, 피니시에 리드 어깨 위로 팔을 올리고 가슴을 목표로 돌리고 고개를 드나, 풀리면 서나, 진짜 탑의 1..65층에서 plan 이 구름바다 층에만 그린을 찾나
+## 잔디·못·공·홀·깃대·깃·소리 셋이 그려지나, stroke 자세가 백스윙 꼭대기에서 두 팔을 트레일 쪽으로 감고 몸통을 틀고 공을 보나, 피니시에 리드 어깨 위로 팔을 올리고 가슴을 목표로 돌리고 고개를 드나, 풀리면 서나, 진짜 탑의 1..65층에서 plan 이 구름바다 층에만 그린을 찾나;
+## 골퍼(run 173)가 못 뒤 40 에 카메라를 보고 서나, 차례에 못으로 걸어가 count 거짓으로 어드레스하고 차례의 충전(0.84 / 0.74 / 0.64)까지 모아 치나(me_t·오늘은 안 바뀐다), 스윙이 풀리면 track 으로 공을 쫓고(track_x·track_y) 끝에 젓거나 끄덕이고 손을 내려 집에 오나, 아홉 샷에 셋이 들어가나, 플레이어의 샷 1.5 s 뒤에 따라가 공이 돌아오면 치나, 플레이어가 먼저 어드레스하면 기다리나, track 자세가 이마의 손·공 쪽 고개·끄덕임·회수를 그리나
 const C = preload("res://scripts/games/climb.gd")
 const DT := 1.0 / 60.0
 
@@ -40,6 +41,7 @@ func _init() -> void:
 	var band_root := Node3D.new(); root.add_child(band_root)
 	cg.build(band_root, free)
 	var s: Dictionary = cg.greens[0]
+	var gf: ClimbGolfer = s["golfer"]; gf.phase = "gone"; gf.next_at = 1e9   # 골퍼는 뒤에(GOLFER) — 그때까지 층을 떠나 있다(플레이어의 샷을 따라가면 위 want 가 어긋난다)
 	var fig := Stick3D.new(); root.add_child(fig)
 	var on: Dictionary = plats[4]; var z := C.PLAYER_Z
 	# 어드레스(t 10, 몸 300 — 못 296 곁): busy, stroke_c 0, stroke_lead 1, 채; 못에서 떠나면(200) 풀린다; 다시 들어 0.53 s 모으면 0.757; 놓으면 swing·stroke_t 0
@@ -82,10 +84,10 @@ func _init() -> void:
 	var other := _flight(cg, s, 400); var d3 := cg.holed_today(26, 26)
 	print("OTHER body: waits=%s (want false) flight=%s (want [fly@303.7, bounce@513.0, free@0.6, roll@529.3, holed@560.0]) hit/holed today=%d/%d (want 0/0: a resident's ball is never counted)" % [wait_me["busy"], other, int(d3["hit"]), int(d3["holed"])])
 	while String(s["sw"]) != "": cg._process(DT)
-	# 그림: 노드 아이 9(잔디·못·공·홀·깃대·깃·소리 셋), 공 아이 1, 깃 아이 1; 노드 자리 (296 − 480)/36 = −5.1111, 16140/36 = 448.3333, −70/36 = −1.9444; 깃은 바람 없이도 흔들린다
+	# 그림: 노드 아이 10(잔디·못·공·홀·깃대·깃·소리 셋·골퍼), 공 아이 1, 깃 아이 1; 노드 자리 (296 − 480)/36 = −5.1111, 16140/36 = 448.3333, −70/36 = −1.9444; 깃은 바람 없이도 흔들린다
 	var node: Node3D = s["node"]; var pen: Node3D = s["pen"]
 	cg.sync(2000.0); cg._place(s); var r1 := pen.rotation.y; cg.sync(2000.1); cg._place(s); var r2 := pen.rotation.y
-	print("VISUAL children=%d (want 9) ball=%d pen=%d (want 1 1) node pos=%.4f %.4f %.4f (want −5.1111 448.3333 −1.9444) pennant moves=%s (want true) |rot| ≤ 0.14=%s (want true: still air is 4/10 of 0.35)" % [node.get_child_count(), (s["ball_node"] as Node3D).get_child_count(), pen.get_child_count(), node.position.x, node.position.y, node.position.z, absf(r1 - r2) > 0.001, maxf(absf(r1), absf(r2)) <= 0.1401])
+	print("VISUAL children=%d (want 10: 9 + the golfer) ball=%d pen=%d (want 1 1) node pos=%.4f %.4f %.4f (want −5.1111 448.3333 −1.9444) pennant moves=%s (want true) |rot| ≤ 0.14=%s (want true: still air is 4/10 of 0.35)" % [node.get_child_count(), (s["ball_node"] as Node3D).get_child_count(), pen.get_child_count(), node.position.x, node.position.y, node.position.z, absf(r1 - r2) > 0.001, maxf(absf(r1), absf(r2)) <= 0.1401])
 	# 자세(백스윙 꼭대기, stroke_c 1, lead 1): 리드(오른, s 1) 어깨 z −2.28, 트레일(왼) 어깨 z −2.12, 어깨 x −0.275, 트레일 팔꿈치 −1.05, 리드 팔꿈치 −0.40, 엉덩이 −0.30, 무릎 0.35, 몸통 y −0.90, 골반 0.37, 상체 0.45 × 0.32 = 0.144, 고개 > 0(공을 본다);
 	# 피니시(stroke_t 0.37): 리드 어깨 z 2.32, 트레일 2.48, 어깨 x −0.22 ± 0.04, 트레일 팔꿈치 −0.50, 트레일 엉덩이 z −0.18, 트레일 무릎 0.725, 리드 무릎 0.175, 몸통 y 0.80, 골반 0.405, 상체 −0.0675, 고개 < 0(든다), 고개 y 0.5; 풀림(0.6): 어깨 z 0, 몸통 y 0, 골반 0.42
 	fig.pose_request = "stroke"; fig.set_meta("stroke_c", 1.0); fig.set_meta("stroke_lead", 1.0)
@@ -103,6 +105,7 @@ func _init() -> void:
 	fig.remove_meta("stroke_t"); fig.remove_meta("stroke_lead")
 	print("POSE top: lead z=%.2f trail z=%.2f arm x=%.3f trail elbow=%.2f lead elbow=%.2f hip=%.2f knee=%.2f torso y=%.2f pelvis=%.2f torso x=%.3f neck=%.2f (want −2.28 −2.12 −0.275 −1.05 −0.40 −0.30 0.35 −0.90 0.37 0.144 > 0) | finish: lead z=%.2f trail z=%.2f arm x=%.2f trail elbow=%.2f trail hip z=%.2f trail knee=%.3f lead knee=%.3f torso y=%.2f pelvis=%.3f torso x=%.4f neck=%.2f neck y=%.2f (want 2.32 2.48 −0.22±0.04 −0.50 −0.18 0.725 0.175 0.80 0.405 −0.0675 < 0 0.50) | relaxed: z=%.2f torso y=%.2f pelvis=%.2f done(meta)=%s (want 0.00 (±0.01 — 2π wrapped) 0.00 0.42 false)" % [b_shz, b_shz2, b_shx, b_el2, b_el, b_hip, b_knee, b_ty, b_pel, b_tx, b_neck, f_shz, f_shz2, f_shx, f_el2, f_hipz2, f_knee2, f_knee, f_ty, f_pel, f_tx, f_neck, f_ny, r_shz, r_ty, r_pel, d_meta])
 	fig.pose_request = ""
+	await _golfer(cg, s, gf, fig, on, z)
 	# 진짜 탑: 1..65층에 plan 이 찾는 그린 — 구름바다 층 25..29, 60..64 중 모래밭·널이 티·홀 자리를 안 쓴 쌍이 있는 층만
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
@@ -140,3 +143,71 @@ func _shoot(cg: ClimbGreen, s: Dictionary, fig: Stick3D, on: Dictionary, at: flo
 	var out := _flight(cg, s, 400)
 	while String(s["sw"]) != "": cg._process(DT)
 	return out
+
+## 골퍼(run 173): 집·차례·어드레스·충전·track·끝·귀가, 아홉 샷의 셋, 플레이어를 따라가기, 플레이어가 먼저
+func _golfer(cg: ClimbGreen, s: Dictionary, gf: ClimbGolfer, fig: Stick3D, on: Dictionary, z: float) -> void:
+	# 집 256(못 296 − 40)·z −48·카메라; 차례가 오면 못으로 걸어가(40 px / 260 = 0.154 s) 어드레스(stroke, 채, count 거짓) — 첫 샷 차례 (26 + 0) % 3 = 2 → 가운데 0.740(need_v(214, 110) = 918.3 → (918.3 − 400) / 700) + 0.10 = 0.840(놓은 c 는 틱 때문에 ≤ +0.024)
+	cg.sync(3000.0); cg._process(0.0); gf._home(); var me0 := float(s["me_t"])
+	var g0 := "%s x=%.0f home=%.0f z=%.0f visible=%s pose='%s' next=%.1f" % [gf.phase, gf.x, gf.home_x, gf.z, gf.fig.visible, gf.fig.pose_request, gf.next_at - cg.t]
+	_until(cg, gf, "address", 60)
+	var addr := "%s x=%.0f sw=%s mine=%s pose=%s club=%s count=%s target=%.3f at=%.2f s" % [gf.phase, gf.x, String(s["sw"]), (s["sw_fig"] as Stick3D) == gf.fig, gf.fig.pose_request, gf.fig.hand_r.get_node_or_null("club") != null, s["count"], gf.c_target, cg.t - 3000.0]
+	_until(cg, gf, "track", 120)
+	var struck := "%s c=%.3f ball=%s me_t same=%s shots=%d pose=%s lead=%.0f at=%.2f s" % [gf.phase, float(gf.charges[0]), String(s["ball"]), float(s["me_t"]) == me0, int(s["shots"]), gf.fig.pose_request, float(gf.fig.get_meta("track_lead", 9.0)), cg.t - 3000.0]
+	for i in 20: cg._process(DT)
+	var mid := "x=%.1f y=%.1f end='%s'" % [float(gf.fig.get_meta("track_x", 0.0)), float(gf.fig.get_meta("track_y", 0.0)), String(gf.fig.get_meta("track_end", "?"))]
+	_until(cg, gf, "back", 300)
+	var ended := "%s ends=%s pose='%s' metas=%s at=%.2f s" % [gf.phase, gf.ends, gf.fig.pose_request, gf.fig.has_meta("track_x") or gf.fig.has_meta("track_end"), cg.t - 3000.0]
+	_until(cg, gf, "idle", 60)
+	var today := cg.holed_today(26, 26)
+	var homed := "%s x=%.0f next=%.1f hit/holed=%d/%d" % [gf.phase, gf.x, gf.next_at - cg.t, int(today["hit"]), int(today["holed"])]
+	print("GOLFER start: ", g0, " (want idle 256 256 −48 true '' 0.0) | address: ", addr, " (want address 296 charge true stroke true false 0.840 0.20: 40 px at WALK) | struck: ", struck, " (want track 0.857 fly true 7 track 1 1.40: the tick after 0.840, me_t untouched) | 0.33 s on: ", mid, " (want ≈368 ≈50 '': the over shot is past the hole and coming down) | ended: ", ended, " (want back [lost] '' false 3.48: the ball ran off the green into the cloud at ≈1.98, a slow shake 1.2 s and the hand down 0.3 s) | home: ", homed, " (want idle 256 60.0 0/0: the golfer's shots never count) trail=", gf.trail)
+	# 아홉 샷: 차례 2·0·1 이 돈다 — 넘김(lost)·홀인(cup)·틈(lost); 충전 0.84 / 0.74 / 0.64(≤ +0.024); 매 샷 뒤 집에서 바로 다음 차례(공은 2.5 s 뒤 못에 — 못에서 기다린다)
+	for i in 8:
+		gf.next_at = cg.t
+		_until(cg, gf, "track", 400); _until(cg, gf, "idle", 400)
+	var d9 := cg.holed_today(26, 26)
+	print("GOLFER nine shots: ends=", gf.ends, " (want [lost, cup, lost, lost, cup, lost, lost, cup, lost]: over, holed, short) charges=", gf.charges.map(func(v: float) -> String: return "%.3f" % v), " (want 0.857 / 0.762 / 0.643 — the tick after 0.840 / 0.740 / 0.640) hit/holed today=%d/%d (want 0/0)" % [int(d9["hit"]), int(d9["holed"])])
+	# 플레이어가 치면(me_t) 1.5 s 뒤 못으로: 1.4 s 엔 집, 1.6 s 엔 걷거나 못에서 기다린다; 공이 못에 돌아오면(2.5 s) 어드레스
+	gf._home(); gf.next_at = cg.t + 60.0
+	s["me_t"] = cg.t; s["ball"] = "lost"; s["rest_t0"] = cg.t
+	for i in 84: cg._process(DT)
+	var early := gf.phase
+	for i in 12: cg._process(DT)
+	var late := "%s x=%.0f" % [gf.phase, gf.x]
+	_until(cg, gf, "address", 200)
+	var when := cg.t - float(s["me_t"])
+	_until(cg, gf, "idle", 600)
+	print("GOLFER follows you: 1.4 s after your strike=%s (want idle) 1.6 s=%s (want walk or wait, x 282..296) addresses at %.2f s (want 2.50..2.53: the ball is back on the peg at 2.5)" % [early, late, when])
+	# 플레이어가 먼저(공이 못에 돌아온 뒤 — 3 s 건너뛴다): 플레이어가 모으는 동안 차례가 와도 집(idle); 플레이어가 놓고(0.5 s = 0.714 — 들어간다) 공이 못에 돌아오면 그제야 어드레스(놓은 뒤 ≈3.15 s)
+	cg.sync(cg.t + 3.0); cg._process(0.0); gf.next_at = cg.t
+	cg.tee(300.0, z, on, true, fig)
+	for i in 30: cg._process(DT)
+	var waits := "%s sw=%s" % [gf.phase, String(s["sw"])]
+	cg.tee(300.0, z, on, false, fig); var rel_t := cg.t
+	_until(cg, gf, "address", 400)
+	var after := "%s at=%.2f s ball_was=%s" % [gf.phase, cg.t - rel_t, s["ball"]]
+	_until(cg, gf, "idle", 600)
+	print("GOLFER the player first: while you charge=%s (want idle charge) | after your release: %s (want address 3.37 tee: your 0.714 ball landed at 493, rolled in at ≈0.87, re-teed 2.5 s later, the golfer waited at the peg)" % [waits, after])
+	# track 자세(메타: 공이 오른쪽 200·위 100, 리드 1, 손이 다 올랐을 때): 오른(이마) 어깨 x −2.00 ± 0.03 z −0.35 팔꿈치 −1.75 ± 0.03, 왼 어깨 x −0.15 팔꿈치 −0.45, 고개 y atan(200/160) = 0.896, 고개 x −0.559(들었다) + 목의 쉼 기울기 = −0.424, 몸통 y 0.269; 컵 끝 0.2 s: 고개 x −0.424 + 0.22 = −0.204(끄덕임의 꼭대기); 끝 1.1 s(NOD_T + DOWN_T): 손 내려 어깨 x −0.05, 고개 y 0, 몸통 y 0
+	var f3 := Stick3D.new(); root.add_child(f3)
+	f3.set_meta("track_x", 200.0); f3.set_meta("track_y", 100.0); f3.set_meta("track_lead", 1.0); f3.pose_request = "track"
+	for i in 60: await process_frame
+	var t_sh: float = (f3.shoulders[1.0] as Node3D).rotation.x; var t_shz: float = (f3.shoulders[1.0] as Node3D).rotation.z; var t_el: float = (f3.elbows[1.0] as Node3D).rotation.x
+	var t_sh2: float = (f3.shoulders[-1.0] as Node3D).rotation.x; var t_el2: float = (f3.elbows[-1.0] as Node3D).rotation.x
+	var t_ny := f3.neck.rotation.y; var t_nx := f3.neck.rotation.x; var t_ty := f3.torso.rotation.y
+	f3.set_meta("track_end", "cup"); f3.set_meta("track_end_t", 0.2)
+	for i in 45: await process_frame
+	var n_nx := f3.neck.rotation.x
+	f3.set_meta("track_end_t", 1.1)
+	for i in 45: await process_frame
+	var d_sh: float = (f3.shoulders[1.0] as Node3D).rotation.x; var d_ny := f3.neck.rotation.y; var d_ty := f3.torso.rotation.y
+	var d_meta := TrackPoses.done(f3)
+	for key: String in ["track_x", "track_y", "track_lead", "track_end", "track_end_t"]: f3.remove_meta(key)
+	f3.pose_request = ""
+	print("TRACK pose: brow arm x=%.2f z=%.2f elbow=%.2f other arm x=%.2f elbow=%.2f neck y=%.3f neck x=%.3f torso y=%.3f (want −2.00±0.03 −0.35 −1.75±0.03 −0.15 −0.45 0.895 −0.424 0.269: −0.559 of pitch over the neck's rest tilt) | nod top: neck x=%.3f (want −0.204: +0.22 at the top of the first nod) | down: arm x=%.2f neck y=%.3f torso y=%.3f done(meta)=%s (want −0.05 0.000 0.000 false)" % [t_sh, t_shz, t_el, t_sh2, t_el2, t_ny, t_nx, t_ty, n_nx, d_sh, d_ny, d_ty, d_meta])
+
+## 골퍼의 phase 가 p 가 될 때까지 그린의 _process 를 돌린다(cap_ticks × 5 틱까지 — 안 오면 그냥 돌아온다, 출력의 want 가 어긋난다)
+func _until(cg: ClimbGreen, gf: ClimbGolfer, p: String, cap_ticks: int) -> void:
+	var n := 0
+	while gf.phase != p and n < cap_ticks * 5:
+		cg._process(DT); n += 1
