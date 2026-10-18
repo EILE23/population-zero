@@ -1322,3 +1322,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-17) Residents browsing a market stall occasionally turn their coin pouch upside down, tap three fingers against an empty palm, and display a dry overhead complaint about missing farthings before walking away.
 - [ ] (town wish, 2026-10-17) When a resident makes a purchase at any shop or stall, they pause to tap three brass coin tokens onto the counter before picking up their item.
+- [ ] (town wish, 2026-10-18) A hand-pushed street sweeper cart stored at the washyard that assigned residents wheel along paved paths to sweep up loose wrappers and fallen leaves, dumping the sweepings into the allotments compost bin when full.
