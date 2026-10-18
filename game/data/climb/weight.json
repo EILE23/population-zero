@@ -1,0 +1,52 @@
+{
+  "_": "Climb content pack 'Clock weight' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_weight.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still hop of the piece's `on` kinds that is at least `min_w` wide; the weight stands at the hop's centre, `weight_d` px deep from the cliff (the lane in front stays open), a chain runs up from it to a brass drum `drum_h` px over the hop top with a one-hand dial beside it; a hop takes a weight only when no other platform cuts the column over it (±col_w px up to the dial's top) and no `taken` piece of another pack (the loader passes the gears', pendulums', perch's, bellows' and pin wheel's plans) sits on the weight's footprint within the hop's height band (20 px under the hop top to 60 px over it — run 152's band rule); one weight per floor on the widest such hop. The weight weighs kg_base + (floor mod 5) × kg_step kg (8..16) and the hold it asks for is hold_base + hold_per_kg × kg seconds (1.0..1.4). C beside a grounded weight (within HW + `reach` px, standing) starts the lift: a squat to grip (`grip_s`), the clean to the chest (`clean_s`), the press overhead (`press_s`), then the hold — C must stay down through the hold; letting go before it is up drops the weight (it falls `drop_s`, a thud, the body cowers and is free at `recover_s`, nothing counted); holding through it hooks the weight: the chain takes it up to `hook_h` in `hook_s`, the body lowers its arms, and the clock runs — the weight sinks from hook_h to the floor over `run_s` while the drum turns and the dial's hand makes one full turn, a tick every `tick_s`; at the floor a clank and the clock is run down again, ready for the next lift. The body is busy (no walking, no jump) from the first C to the end of the hook or the recovery and the pose is `press` (stick3d_press.gd — the owner board's 'weightlifting' family: the squat with the hands down to the bar, the clean with a catching dip, the press with the legs split, the hold with a 10 Hz tremble and a 1.5 Hz sway, the hook's relief shake or the drop's cower — never a still frame). The weight is not solid and costs nothing. A wound clock counts once a tower-day (`day_s`) per weight for the camp boards, note(n): 'Clock weights, floors 15–19: 2 of 3 clocks wound today, the heaviest 14 kg.' Nothing changes for a body that does not press C beside a grounded weight: the plain run across the hop, the plain jump and C anywhere else (the camp door, the boards) are untouched, and C beside a running clock is nothing too — the weight is in the air (the plain outcome is 100%). tools/probe_weight.gd checks the plan and its refusals, the lift's phases and timing, the drop, the hook, the run, the day, the note, the visuals, the sounds and the pose.",
+  "id": "weight",
+  "name": "Clock weight",
+  "pose": "press",
+  "themes": [
+    "Clockwork"
+  ],
+  "kinds": {
+    "weight": {
+      "_": "min_w: the hop's least width (px). reach: px either side of the weight's centre (beyond the body's half-width HW) where C starts the lift. weight_d: the weight's and the drum's depth from the cliff side (px). weight_r/weight_h: the brass weight's radius and height (px) — drawn, not solid. col_w: half-width (px) of the column over the weight that no other platform may cut. kg_base/kg_step: the weight's mass is kg_base + (floor mod 5) × kg_step. grip_s/clean_s/press_s: seconds of the squat-and-grip, the clean to the chest and the press overhead. chest_h/head_h: the weight's bottom height (px over the hop top) at the chest and overhead. hold_base/hold_per_kg: seconds of C held overhead before the hook — hold_base + hold_per_kg × kg. hook_s: seconds the chain takes to lift the hooked weight to hook_h — the body is busy until then. drop_s: seconds a dropped weight falls; recover_s: seconds until the body that dropped it is free. hook_h: the weight's bottom height (px over the hop top) when hooked. drum_h: the drum's centre over the hop top (px); drum_r: its radius (px). dial_r: the dial's radius (px) — right of the drum. run_s: seconds of tower time a wound clock runs (the weight sinks to the floor, the hand turns once). tick_s: seconds between ticks while it runs. day_s: seconds of tower time in a tower-day — a weight counts once per day. thud_hz: a dropped weight on the hop; clank_hz: the run-down weight reaching the floor; tick_hz: the clock's tick.",
+      "min_w": 110,
+      "reach": 14,
+      "weight_d": 24,
+      "weight_r": 9,
+      "weight_h": 14,
+      "col_w": 40,
+      "kg_base": 8,
+      "kg_step": 2,
+      "grip_s": 0.3,
+      "clean_s": 0.3,
+      "press_s": 0.35,
+      "chest_h": 30,
+      "head_h": 50,
+      "hold_base": 0.6,
+      "hold_per_kg": 0.05,
+      "hook_s": 0.3,
+      "drop_s": 0.25,
+      "recover_s": 0.4,
+      "hook_h": 52,
+      "drum_h": 76,
+      "drum_r": 8,
+      "dial_r": 12,
+      "run_s": 60,
+      "tick_s": 1.0,
+      "day_s": 600,
+      "thud_hz": 90,
+      "clank_hz": 1800,
+      "tick_hz": 2600
+    }
+  },
+  "pieces": [
+    {
+      "_": "Clockwork floors are 15..19, 50..54, 85..89 …; on 15..19 the hops are 140..180 px wide, so most floors have several hops over min_w and the widest one not belted by the gears (run 124), perched by the cuckoo house (run 142), pedalled by the bellows (run 149) or wheeled by the pin wheel (run 168) takes the weight; from floor 50 the hops are 100..140 px wide and a few floors go without. One weight per floor; a weight on floor n weighs 8 + (n mod 5) × 2 kg — 8, 10, 12, 14, 16 up the five floors — and asks for 1.0, 1.1, 1.2, 1.3, 1.4 s of hold.",
+      "kind": "weight",
+      "on": [
+        "std"
+      ],
+      "max": 1
+    }
+  ]
+}
