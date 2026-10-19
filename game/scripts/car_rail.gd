@@ -27,6 +27,8 @@ var cruise := 7.5
 var _held: Variant = null
 var _wait_since := -1.0
 var _people_since := -1.0
+var _stall_since := -1.0
+var _ghost_until := -9.0   # 꽉 막힘 풀기 — 차끼리 서로 기다려 20초 넘게 섰으면 4초 동안 차를 지나친다(차 충돌·차 기다림 끔)
 var _slow_since := -1.0
 var _merge_since := -1.0
 var _car_wait := -1.0
@@ -247,7 +249,9 @@ func step(car: Car3D, delta: float) -> void:
 	if li <= 1: lim = minf(lim, 2.4)   # 빠져나오는 동안은 천천히
 	if merging and _merge_since < 0.0: _merge_since = now
 	if why != "cross" and car.v > 0.5: _car_wait = -1.0
-	for c in car.town.cars:
+	var ghost := now < _ghost_until
+	car.collision_mask = 1 if ghost else 3
+	for c in ([] if ghost else car.town.cars):
 		if c == car: continue
 		if merging and now - _merge_since < 8.0 and (c as Car3D).v > 0.5 and (c as Node3D).global_position.distance_squared_to(car.global_position) < 144.0:
 			lim = 0.0; why = "merge"; continue
@@ -311,6 +315,10 @@ func step(car: Car3D, delta: float) -> void:
 			else:
 				if _wait_since < 0.0: _wait_since = now
 				if now - _wait_since < 6.0: lim = minf(lim, maxf(0.0, (dn - 5.0) * 1.2)); why = "lock"
+	if car.v < 0.3 and (why == "cross" or why == "lock" or why.begins_with("car")):   # 차끼리 맞물려 오래 섰다(교차로 꽉 막힘 — 퇴근길 차 열둘이 서로를 기다렸다, 2026-10-19)
+		if _stall_since < 0.0: _stall_since = now
+		elif now - _stall_since > 20.0: _ghost_until = now + 4.0; _stall_since = -1.0
+	else: _stall_since = -1.0
 	# 몰기
 	var yaw_want := atan2(-to.x, -to.z)
 	var diff := wrapf(yaw_want - car.rotation.y, -PI, PI)

@@ -306,6 +306,7 @@ func _add_display(it: Node3D) -> void:
 func _workshop_lot(l: Dictionary, c: Vector3) -> void:
 	var sp := TownPlan.house_spec(l)
 	_house(c, Vector3(5.4, 2.6, 4.2), Color("cfc7c2"), "iron", true, sp["seed"])
+	doors[doors.size() - 1]["garage"] = true   # 일터(town_traffic _find_workplaces)
 	_box(Vector3(3.0, 0.45, 0.06), c + Vector3(0, 2.3, 2.14), _mat(Color("1b0c15")), false)
 	var lb := Label3D.new(); lb.text = ["GARAGE", "TYRES", "PANEL BEATER", "SPARES"][int(l["order"]) % 4]; lb.font_size = 56; lb.pixel_size = 0.005; lb.modulate = Color("f2c84b"); lb.outline_size = 0
 	lb.position = c + Vector3(0, 2.53, 2.2); _add(lb)

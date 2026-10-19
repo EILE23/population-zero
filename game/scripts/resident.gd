@@ -214,6 +214,8 @@ func _pick_spot() -> void:
 		busy_until = Time.get_ticks_msec() / 1000.0 + 3.0; return
 	if _exit_house(): return
 	if _back_to_car(): return   # 끌려 내렸던 운전사는 제 차로(resident_life)
+	if has_meta("work") and Time.get_ticks_msec() / 1000.0 < float(get_meta("work_until", 0.0)):   # 일하는 중(town_traffic 출퇴근) — 퇴근까지 일터로
+		spot = get_meta("work"); route = town.via_bridge(global_position, [{ "pos": spot["pos"], "act": "" }]); target = route[0]["pos"]; state = "walk"; return
 	if has_umb and (weather != "rain" or town.is_night()) and _to_rack(Time.get_ticks_msec() / 1000.0): return   # 비가 그쳤거나 잘 시간이면 우산부터 돌려놓는다(쫓다가·넘어져서 on_weather 를 놓친 경우)
 	# 수리공(uid 6명 중 1명): 벽에 금이 있으면 가서 고친다(운영자 2026-09-29: 주민이 알아서 복구)
 	if uid % 6 == 0 and not town.is_night():
@@ -307,6 +309,10 @@ func _arrive(now: float) -> void:
 				busy_until = now + randf_range(10.0, 20.0)
 			else:
 				busy_until = now + 1.0
+		"work":   # 일터 — 안으로 들어가 안 보이거나(가게·관공서), 마당에서 고친다(공방). 40초마다 다시 고르지만 퇴근까지 여기로 돌아온다
+			fig.face(spot.get("yaw", PI)); fig.pose_request = String(spot.get("pose", ""))
+			if spot.get("inside", false): visible = false; collision_layer = 0; collision_mask = 0
+			busy_until = float(get_meta("work_until", now + 5.0)) if spot.get("inside", false) else minf(now + 40.0, float(get_meta("work_until", now + 5.0)))
 		"car":
 			if own_car and own_car.driver == null and town.driving != own_car and global_position.distance_to(own_car.exit_pos()) < 1.5: drive(own_car)
 			else: busy_until = now + 1.0
@@ -460,6 +466,7 @@ func _approach(dr: Dictionary) -> Array:
 func _leave() -> void:
 	if riding_seesaw: riding_seesaw.leave(self); riding_seesaw = null
 	_release()
+	if spot.get("kind", "") == "work": visible = true   # 일터 안에서 나온다
 	if spot.get("kind", "") == "repair": town.repair_crack(spot["crack"])   # 3초 두드리면 금이 사라진다
 	if _role() == "keeper" and spot.get("kind", "") in ["counter", "door"] and Time.get_ticks_msec() / 1000.0 >= busy_until: dull += 1   # 창구·노점 교대 하나 = 가위가 한 번 무뎌진다(run 81, 칼갈이)
 	collision_layer = 4; collision_mask = 7

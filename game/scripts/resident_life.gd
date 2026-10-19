@@ -135,7 +135,7 @@ func leave_car() -> void:
 
 ## 내 차로 돌아가기 — 차가 비어 있으면(아무도 안 몰고 내가 타고 있지도 않으면) 걸어가 운전석에 탄다. 내가 몰고 가 버렸으면 가끔 투덜댄다
 func _back_to_car() -> bool:
-	if own_car == null or car_seat != null: return false
+	if own_car == null or car_seat != null or job != "driver": return false   # 끌려 내린 운전사만 — 출퇴근하는 주민이 내리자마자 제 차로 돌아가 앉은 채 굳었다(2026-10-19)
 	if own_car.driver != null or town.driving == own_car:
 		if randf() < 0.3: say(["That is my car.", "Bring it back.", "I need that."][randi() % 3], 1.8)
 		return false
