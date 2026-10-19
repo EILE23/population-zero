@@ -1,0 +1,58 @@
+{
+  "_": "Climb content pack 'Rack car' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_railcar.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (minus the piece's `not` floors) and looks at every pair of consecutive hops (a lower `on` kind, b upper `to` kind) whose gap is min_gap..max_gap wide, whose rise is min_dy..max_dy, and whose grade (rise over the rail's run) is at most grade_max; a toothed rail runs from a bottom dock `dock_in` px in from a's gap edge up to a top dock `dock_in` px in from b's gap edge, and a brass cog car with a saddle and pedals waits at the bottom; a pair takes a rail only when no other platform cuts the rail's box (the two docks' x span, a's top to a standing body over b) and no `taken` piece of another pack (the loader passes the gears', pendulums', perches', bellows', escape wheels' and weights' plans) sits in it; one rail per floor on the widest such gap. C (a tap) beside the bottom dock (within HW + `reach` px, standing on a, the car home and empty) mounts: `mount_s` of swinging a leg over (busy), then the body sits on the saddle `ride_dy` px over the rail and is carried: C held pedals — the car's speed along the rail rises to v_up px/s over `spin_s` — and C let go lets it roll back down to −v_back over `roll_s` (a freewheel, the legs stop, the body braces); a tooth every `tooth` px ticks under the cog; at the top the pawl latches (clack), the ride counts once a tower-day per car for the camp boards, and the body steps off onto b `step_out` px past the dock over `off_s` (busy); rolled back to the bottom the car bumps and, with C let go for `idle_s`, the body steps off onto a; the empty car at the top waits `hold_s` and rolls home at v_back, and C beside the empty bottom dock while it is away is nothing. The ride is busy the whole way (no walking, no jump; ← → do nothing); only C beside the home car changes anything — the plain run across a and the plain jump over the gap are untouched (the plain outcome is 100%). note(n): 'Rack cars, floors 15–19: 1 of 2 cars ridden to the top today, 3 rides today.' The pose is `pedal` (stick3d_pedal.gd — the owner board's 'cycling' family: a leg swung over the saddle, the seat, the feet on the cranks turning with the cadence (a two-joint leg on a circle), the hands on the bar, the torso rocking with each stroke and leaning back on the freewheel, the eyes up the rail — never a still frame). Nothing is solid but the saddle under the rider, and nothing costs anything. tools/probe_railcar.gd checks the plan and its refusals, the mount, the pedal, the ticks, the latch, the step-off, the freewheel, the bump, the idle step-off, the return, the day, the note, the visuals, the sounds and the pose.",
+  "id": "railcar",
+  "name": "Rack car",
+  "pose": "pedal",
+  "themes": [
+    "Clockwork"
+  ],
+  "kinds": {
+    "rail": {
+      "_": "min_gap/max_gap: the gap between the two hops (px). min_dy/max_dy: b's rise over a (px). grade_max: the rail's most rise per run. dock_in: each dock's centre px in from its hop's gap edge. reach: px either side of the bottom dock (beyond the body's half-width HW) where C mounts. ride_dy: the rider's feet over the rail (px) — the cranks' bottom. v_up: px/s along the rail at full cadence; spin_s: seconds of C to reach it. v_back: px/s the freewheel rolls back; roll_s: seconds from let-go to it. tooth: px of rail per rack tooth — a tick each. mount_s/off_s: seconds of swinging on and stepping off (busy). idle_s: seconds of C let go at the bottom before the rider steps off. hold_s: seconds the empty car waits latched at the top before rolling home. step_out: px past the top (or bottom) dock where the body stands after stepping off. deck_d: the saddle's depth (px) for the loader's z test. day_s: seconds of tower time in a tower-day — a car counts once per day. cad_hz: crank turns per second at full cadence. tick_hz: a tooth under the cog; clack_hz: the pawl at the top; bump_hz: the stop at the bottom.",
+      "min_gap": 60,
+      "max_gap": 260,
+      "min_dy": 60,
+      "max_dy": 160,
+      "grade_max": 1.6,
+      "dock_in": 22,
+      "reach": 14,
+      "ride_dy": 8,
+      "v_up": 70,
+      "spin_s": 0.6,
+      "v_back": 110,
+      "roll_s": 0.5,
+      "tooth": 12,
+      "mount_s": 0.45,
+      "off_s": 0.45,
+      "idle_s": 1.0,
+      "hold_s": 3,
+      "step_out": 14,
+      "deck_d": 28,
+      "day_s": 600,
+      "cad_hz": 1.4,
+      "tick_hz": 1800,
+      "clack_hz": 700,
+      "bump_hz": 160
+    }
+  },
+  "pieces": [
+    {
+      "_": "Clockwork floors are 15..19, 50..54, 85..89 …; the vent/windmill floors ((n − 3) % 4 == 0: 15, 19, 51 …) get no rail — the wheel and the vents own those floors' gaps (the bellows' rule, run 149). The conveyor gears (run 124), the pendulums (run 125), the cuckoo perch (run 142), the bellows (run 149), the escape wheel (run 168) and the clock weight (run 174) are passed as `taken`, so the rail stands at the widest gap none of them uses. The tower's Clockwork hops stand 83..125 px apart and rise 98..135 px, so with dock_in 22 the rail runs 127..169 px and climbs at a grade of 0.6..1.1 — the car takes 2.2..3.1 s at full cadence and rolls home in 1.4..2.0 s. The upper hop may crumble (the loader's rule once the body stands on it) but never springs (a step onto a spring would launch the body).",
+      "kind": "rail",
+      "on": [
+        "std",
+        "ice"
+      ],
+      "to": [
+        "std",
+        "ice",
+        "crumble"
+      ],
+      "max": 1,
+      "not": {
+        "from": 3,
+        "every": 4
+      }
+    }
+  ]
+}
