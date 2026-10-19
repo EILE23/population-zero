@@ -6,6 +6,8 @@ extends SceneTree
 ## 더미·무더기·삽(손잡이·T 자루·날·띠)·별(세 조각)·내리는 별가루·소리 셋이 그려지나, 노드 자리, 꽂힌 삽의 자리(−6.6 px, −0.25),
 ## shovel 자세가 찌르기 끝(0.25)에 골반 0.34·상체 0.225·팔 −0.9·팔꿈치 −0.2·리드 엉덩이 −0.25·무릎 0.3·트레일 무릎 0.15·고개 > 0 이고, 찌르기 가운데(0.125)에 리드 엉덩이 −1.025·무릎 1.5 이고, 지렛대(0.55)에 골반 0.30·팔 −0.5·팔꿈치 −1.3·엉덩이 −0.1·무릎 0.4 이고,
 ## 헤이브 끝(0.9)에 골반 0.42·상체 −0.045·팔 −1.5·어깨 z −0.45 둘 다·팔꿈치 −0.3·무릎 0.1·고개 < 0 이고, 바라봄 0.3 s 에 리드 팔 −0.6/−0.5·트레일 팔 0.2/z 0.5/−1.3·리드 무릎 0.05·트레일 엉덩이 0.1·고개 −0.62±0.06 이고, 멈춤 0.15 s 에 트레일 팔 −2.75/−2.35 이고 0.3 s 에 서나(done),
+## 파는 이(run 177)가 집(무더기 + 40 = 300)에 카메라를 보고 서서 차례에 삽으로 걸어가(0.3 s) 소매를 걷고(sleeve 1.0 s) count 거짓으로 다섯 삽을 다 파 별을 드러내고(세지 않는다, 1 up) 집으로 오나, 되메워진 뒤 1분에 가나, 플레이어의 별 뒤엔 되메워진 뒤 1 s 에 따라 파나, 플레이어가 먼저 잡으면 돌아오나, 플레이어가 바퀴 중에 떠나면 바로 와서 남은 삽을 마치나(takeover), 놓은(stop) 더미엔 안 오나,
+## sleeve 자세가 오른소매 가운데(0.2)에 미는 팔 −0.9/z 0.25/팔꿈치 −1.15·걷히는 팔 −0.9/z 0.1/−0.1·몸통 0.045·고개 > 0 이고, 왼소매(0.6)엔 거울이고, 깃의 첫 당김(0.85)엔 −1.7/z −0.15/−2.1·몸통 0 이고, 1.0 에 팔이 내려와 done 이나,
 ## 진짜 탑의 1..70층에서 plan 이 별밤 층(30..34, 65..69)에만 더미를 찾나
 const C = preload("res://scripts/games/climb.gd")
 const DT := 1.0 / 60.0
@@ -46,6 +48,7 @@ func _init() -> void:
 	var band_root := Node3D.new(); root.add_child(band_root)
 	cd.build(band_root, free)
 	var s: Dictionary = cd.drifts[0]
+	var dg: ClimbDigger = s["digger"]; dg.phase = "gone"; dg.next_at = 1e9   # 파는 이는 뒤에(DIGGER) — 그때까지 층을 떠나 있다(차례가 오면 위 want 가 어긋난다)
 	var fig := Stick3D.new(); root.add_child(fig)
 	var fig2 := Stick3D.new(); root.add_child(fig2)
 	var on: Dictionary = plats[4]; var z := C.PLAYER_Z
@@ -99,8 +102,10 @@ func _init() -> void:
 	# 그림: 노드 자리, 더미·무더기·삽(4)·별(3)·별가루·소리 셋, 꽂힌 삽의 자리
 	var node: Node3D = s["node"]; var shovel: Node3D = s["shovel"]
 	cd.sync(700.0); cd._process(0.0)
-	print("VISUAL node=%s (want %s) children=%d (want 8: mound heap shovel star fall + 3 sounds) shovel parts=%d (want 4) star parts=%d (want 3) planted: x=%.4f y=%.2f z=%.4f tilt=%.2f (want −0.1833 0.00 0.3333 −0.25) heap x=%.4f (want 0.8333)" % [node.position, C.to3(230.0, 19140.0, C.WALL_Z * C.K), node.get_child_count(), shovel.get_child_count(), star.get_child_count(), shovel.position.x, shovel.position.y, shovel.position.z, shovel.rotation.z, heap.position.x])
+	print("VISUAL node=%s (want %s) children=%d (want 9: mound heap shovel star fall + 3 sounds + the digger) shovel parts=%d (want 4) star parts=%d (want 3) planted: x=%.4f y=%.2f z=%.4f tilt=%.2f (want −0.1833 0.00 0.3333 −0.25) heap x=%.4f (want 0.8333)" % [node.position, C.to3(230.0, 19140.0, C.WALL_Z * C.K), node.get_child_count(), shovel.get_child_count(), star.get_child_count(), shovel.position.x, shovel.position.y, shovel.position.z, shovel.rotation.z, heap.position.x])
 	await _pose(fig)
+	await _sleeve_pose()
+	_digger(cd, s, dg, fig, on, z)
 	# 진짜 탑: 1..70층에 plan 이 찾는 더미 — 별밤 층 30..34, 65..69 중 고드름·등롱·그네·초 계단·망원경·외줄이 안 쓴 넓은 발판이 있는 층만
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
@@ -153,3 +158,87 @@ func _demo_done(fig: Stick3D) -> bool:
 	fig.pose_t = e - 0.01; var before := ShovelPoses.done(fig)
 	fig.pose_t = e + 0.001; var after := ShovelPoses.done(fig)   # 3.0 − 2.7 은 실수로 0.3 에 한 끗 못 미친다 — 한 틱 뒤를 본다
 	return (not before) and after
+
+## 파는 이(run 177): 집·차례·소매·파기·귀가, 되메워진 뒤의 1분, 플레이어를 따라가기, 플레이어가 먼저, 플레이어가 두고 간 더미, 놓은 더미
+func _digger(cd: ClimbDrift, s: Dictionary, dg: ClimbDigger, fig: Stick3D, on: Dictionary, z: float) -> void:
+	# fig2 의 별(624.55)이 되메워진 뒤(_settle — 팩의 되메움 시계는 _process 가 hang 의 끝을 본 틱에 선다, 시간을 건너뛰면 3 s 가 밀린다): 집 300(무더기 260 + 40, 발판 끝 안쪽 300 까지)·z −48·카메라; 차례가 오면 삽으로 걸어가(돌아서는 틱 하나 + 70 px / 260 → 17 틱 0.30 s) 소매(sleeve, 메타 0) → 1.0 s 뒤 파기(shovel, thrust, count 거짓) → 5 × 0.9 + 0.6 = 5.1 s 뒤 별을 보고 집으로(dug, 날·me_t 그대로, 0/1 1 up) → 다음은 되메워진 뒤 1분
+	_settle(cd, s, 0.1); var t0 := cd.t; dg._home(); var me0 := float(s["me_t"]); var day0 := int(s["day"])
+	var g0 := "%s st=%s x=%.0f home=%.0f z=%.0f visible=%s pose='%s' next=%.1f" % [dg.phase, String(s["st"]), dg.x, dg.home_x, dg.z, dg.fig.visible, dg.fig.pose_request, maxf(0.0, dg.next_at - cd.t)]
+	_until(cd, dg, "sleeve", 60)
+	var sl := "%s x=%.0f pose=%s meta=%.2f at=%.2f s" % [dg.phase, dg.x, dg.fig.pose_request, float(dg.fig.get_meta("sleeve_t", 9.0)), cd.t - t0]
+	_until(cd, dg, "dig", 120)
+	var dgs := "%s x=%.0f pose=%s ph=%s mine=%s count=%s meta=%s takeovers=%d at=%.2f s" % [dg.phase, dg.x, dg.fig.pose_request, String(s["ph"]), (s["fig"] as Stick3D) == dg.fig, s["count"], dg.fig.has_meta("sleeve_t"), dg.takeovers, cd.t - t0]
+	_until(cd, dg, "back", 600)
+	var td := cd.dug_today(31, 31)
+	var bk := "%s st=%s pose='%s' stars=%d day same=%s me_t same=%s today=%d/%d up=%d at=%.2f s" % [dg.phase, String(s["st"]), dg.fig.pose_request, dg.stars, int(s["day"]) == day0, float(s["me_t"]) == me0, int(td["dug"]), int(td["total"]), int(td["up"]), cd.t - t0]
+	_until(cd, dg, "idle", 60)
+	var hm := "%s x=%.0f next=%.1f" % [dg.phase, dg.x, dg.next_at - cd.t]
+	print("DIGGER start: ", g0, " (want idle heaped 300 300 −48 true '' 0.0) | sleeve: ", sl, " (want sleeve 230 sleeve 0.00 0.28..0.32: a tick to turn, 70 px at WALK) | dig: ", dgs, " (want dig 230 shovel thrust true false false 0 1.28..1.34: 1.0 s of sleeve) | star: ", bk, " (want back dug '' 1 true true 0/1 1 6.45..6.55: five scoops and the gaze, a digger's star is never counted) | home: ", hm, " (want idle 300 ≈152: the hang, the sink, the refill and a minute) trail=", dg.trail)
+	# 되메워진 뒤의 1분: 93.5 s 뒤 더미는 쌓였는데(heaped) 0.5 s 동안 집(idle); next_at 에 걸어간다
+	_settle(cd, s, 0.5); var heaped_st := String(s["st"])
+	for i in 30: cd._process(DT)
+	var waited := dg.phase
+	cd.sync(dg.next_at - 0.5 * DT); _until(cd, dg, "walk", 30)
+	print("DIGGER a minute: st=%s (want heaped) 0.5 s later=%s (want idle) walks at %.3f s past next_at (want 0.000..0.034)" % [heaped_st, waited, cd.t - dg.next_at])
+	# 플레이어를 따라가기: 플레이어가 다섯 삽을 파 별을 내면(me_t) 파는 이는 집(idle), 차례는 me_t + 94; 93.9 s 엔 집, 94.0 s 에 걸어가 판다(stars 2)
+	dg._home(); dg.next_at = cd.t + 1e4
+	for i in 320: cd.dig(236.0, z, on, true, fig); cd._process(DT)
+	var me1 := float(s["me_t"]); var day1 := int(s["day"]); var fw := "%s st=%s me_t set=%s next−me_t=%.1f" % [dg.phase, String(s["st"]), me1 > me0, dg.next_at - me1]
+	_settle(cd, s, 0.5)
+	for i in 24: cd._process(DT)
+	var early := "%s st=%s" % [dg.phase, String(s["st"])]
+	_until(cd, dg, "walk", 30); var when := cd.t - me1
+	_until(cd, dg, "dig", 200); _until(cd, dg, "idle", 600)
+	print("DIGGER follows you: while you dig and after your star=", fw, " (want idle dug true 94.0) | 93.9 s after=", early, " (want idle heaped) | walks at %.2f s after your star (want 94.00..94.02: the hang, the sink, the refill, a second) | then stars=%d st=%s day same=%s (want 2 dug true: your star set the day, the digger's leaves it)" % [when, dg.stars, String(s["st"]), int(s["day"]) == day1])
+	# 플레이어가 먼저: 파는 이가 걸어가는 중(3 틱 — 첫 틱에 돌아서고 둘 걷는다, x 291)에 플레이어가 잡으면 돌아와 집에서 기다린다; 플레이어가 두 삽 파고 셋째 바퀴 중에 떠나면(left_t) 바로 와서(walk) 소매를 걷고 남은 세 삽을 마친다(takeover, 3 × 0.9 + 0.6 = 3.3 s) — 별은 세지 않는다
+	_settle(cd, s, 1.0); dg._home()
+	for i in 3: cd._process(DT)
+	var mid_x := dg.x
+	cd.dig(236.0, z, on, true, fig); cd._process(DT)
+	var yield_ph := dg.phase
+	_until(cd, dg, "idle", 60); var yielded := "%s x=%.0f" % [dg.phase, dg.x]
+	for i in 120: cd.dig(236.0, z, on, true, fig); cd._process(DT)
+	var mid := "dug=%d ph=%s" % [int(s["dug"]), String(s["ph"])]
+	cd.dig(150.0, z, on, true, fig); var left := cd.t; cd._process(DT)
+	var came := "%s at=%.2f s left_t set=%s dug=%d ph='%s'" % [dg.phase, cd.t - left, float(s["left_t"]) == left, int(s["dug"]), String(s["ph"])]
+	_until(cd, dg, "dig", 200); var took := "%s takeovers=%d dug=%d at=%.2f s" % [dg.phase, dg.takeovers, int(s["dug"]), cd.t - left]
+	_until(cd, dg, "back", 600); var fin := "%s st=%s dug=%d stars=%d day same=%s me_t same=%s at=%.2f s" % [dg.phase, String(s["st"]), int(s["dug"]), dg.stars, int(s["day"]) == day1, float(s["me_t"]) == me1, cd.t - left]
+	_until(cd, dg, "idle", 60)
+	print("DIGGER the player first: walking x=%.0f (want 291: the first tick turns, two walk) | you grip: %s (want back) → %s (want idle 300) | you dig two and leave mid-cycle: %s (want dug=2 ph=thrust) → %s (want walk 0.02 true 2 '': the leaving is the cue) → %s (want dig 1 2 1.30..1.40) → %s (want back dug dug=5 3 true true 4.60..4.75: the digger finishes what you left)" % [mid_x, yield_ph, yielded, mid, came, took, fin])
+	# 놓은(stop) 더미는 떠난 게 아니다: 되메워진 뒤 플레이어가 한 삽 파고 놓으면(dug 2, stop → '') 파는 이는 집(idle), 차례는 1분 뒤
+	_settle(cd, s, 1.0)
+	for i in 55: cd.dig(236.0, z, on, true, fig); cd._process(DT)
+	for i in 130: cd.dig(236.0, z, on, false, fig); cd._process(DT)
+	print("DIGGER a stop is not a leaving: st=%s ph='%s' dug=%d digger=%s x=%.0f next in %.1f s (want heaped '' 2 idle 300 ≈56: the minute, not the leaving)" % [String(s["st"]), String(s["ph"]), int(s["dug"]), dg.phase, dg.x, dg.next_at - cd.t])
+
+## sleeve 자세(메타로 세운다): 오른소매 가운데(0.2) 미는 팔(+) 어깨 −0.90 z 0.25 팔꿈치 −1.15·걷히는 팔(−) −0.90 z 0.10 −0.10·무릎 0.10·엉덩이 −0.05·몸통 0.045·고개 > 0; 왼소매(0.6) 거울; 깃의 첫 당김(0.85) 어깨 −1.70 z −0.15/0.15 팔꿈치 −2.10 몸통 0 고개 < 0; 끝(1.0) 어깨 0 팔꿈치 0 done
+func _sleeve_pose() -> void:
+	var f3 := Stick3D.new(); root.add_child(f3)
+	f3.pose_request = "sleeve"; f3.set_meta("sleeve_t", 0.2)
+	for i in 60: await process_frame
+	var a_shx: float = (f3.shoulders[1.0] as Node3D).rotation.x; var a_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var a_el: float = (f3.elbows[1.0] as Node3D).rotation.x
+	var a_shx2: float = (f3.shoulders[-1.0] as Node3D).rotation.x; var a_shz2 := wrapf((f3.shoulders[-1.0] as Node3D).rotation.z, -PI, PI); var a_el2: float = (f3.elbows[-1.0] as Node3D).rotation.x
+	var a_knee: float = (f3.knees[1.0] as Node3D).rotation.x; var a_hip: float = (f3.hips[1.0] as Node3D).rotation.x; var a_tx := f3.torso.rotation.x; var a_neck := f3.neck.rotation.x
+	f3.set_meta("sleeve_t", 0.6)
+	for i in 45: await process_frame
+	var b_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var b_el: float = (f3.elbows[1.0] as Node3D).rotation.x; var b_shz2 := wrapf((f3.shoulders[-1.0] as Node3D).rotation.z, -PI, PI); var b_el2: float = (f3.elbows[-1.0] as Node3D).rotation.x
+	f3.set_meta("sleeve_t", 0.85)
+	for i in 45: await process_frame
+	var c_shx: float = (f3.shoulders[1.0] as Node3D).rotation.x; var c_shz := wrapf((f3.shoulders[1.0] as Node3D).rotation.z, -PI, PI); var c_shz2 := wrapf((f3.shoulders[-1.0] as Node3D).rotation.z, -PI, PI); var c_el: float = (f3.elbows[1.0] as Node3D).rotation.x; var c_tx := f3.torso.rotation.x; var c_neck := f3.neck.rotation.x
+	f3.set_meta("sleeve_t", 1.0)
+	for i in 45: await process_frame
+	var e_shx: float = (f3.shoulders[1.0] as Node3D).rotation.x; var e_el: float = (f3.elbows[1.0] as Node3D).rotation.x; var e_done := SleevePoses.done(f3)
+	f3.remove_meta("sleeve_t"); f3.pose_request = ""
+	print("SLEEVE pose right sleeve mid: pushing arm=%.2f z=%.2f elbow=%.2f | rolled arm=%.2f z=%.2f elbow=%.2f | knee=%.2f hip=%.2f torso=%.3f neck>0=%s (want −0.90 0.25 −1.15 | −0.90 0.10 −0.10 | 0.10±0.03 −0.05 0.045 true) | left sleeve mid: z=%.2f/%.2f elbows=%.2f/%.2f (want −0.10/−0.25 −0.10/−1.15: the mirror) | collar, first tug: arm=%.2f z=%.2f/%.2f elbow=%.2f torso=%.3f neck<0=%s (want −1.70 −0.15/0.15 −2.10 0.000 true) | end: arm=%.2f elbow=%.2f done=%s (want 0.00 0.00 true) total=%.2f (want 1.00)" % [a_shx, a_shz, a_el, a_shx2, a_shz2, a_el2, a_knee, a_hip, a_tx, a_neck > 0.0, b_shz, b_shz2, b_el, b_el2, c_shx, c_shz, c_shz2, c_el, c_tx, c_neck < 0.0, e_shx, e_el, e_done, SleevePoses.TOTAL])
+
+## 지금 뜬 별의 더미가 되메워진 뒤 extra s 로 — 두 틱에 걸쳐(hang 의 끝에 refill, sink + refill 뒤 heaped): 팩의 되메움 시계는 _process 가 hang 의 끝을 본 틱에 서니 한 번에 건너뛰면 3 s 가 밀린다
+func _settle(cd: ClimbDrift, s: Dictionary, extra: float) -> void:
+	var star_t0 := float(s["star_t0"])
+	cd.sync(maxf(cd.t, star_t0 + cd.hang_s() + 0.001)); cd._process(0.0)
+	cd.sync(maxf(cd.t, star_t0 + cd.hang_s() + cd.sink_s() + cd.refill_s() + extra)); cd._process(0.0)
+
+## 파는 이의 phase 가 p 가 될 때까지 팩의 _process 를 돌린다(cap_ticks × 5 틱까지 — 안 오면 그냥 돌아온다, 출력의 want 가 어긋난다)
+func _until(cd: ClimbDrift, dg: ClimbDigger, p: String, cap_ticks: int) -> void:
+	var n := 0
+	while dg.phase != p and n < cap_ticks * 5:
+		cd._process(DT); n += 1

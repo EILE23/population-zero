@@ -13,6 +13,7 @@ extends Node3D
 ## 발판에 선 가지에서(매달림·붙잡음이 비고 `on` 이 찼을 때, jump_held 를 읽기 전에) `var dg := cd.dig(x, z, on, Input.is_action_pressed("act"), fig); if dg["busy"]: dir = 0.0; jump_held = false; charge = 0.0; fig.pose_request = "shovel" elif fig.pose_request == "shovel": fig.pose_request = ""`
 ## (팩이 meta shovel_t·shovel_end·shovel_u 를 적고 끝나면 지운다); `_figure()` 의 face 가지 앞에 `if cd.digging(fig): fig.face(PI / 2.0)` (파는 이는 무더기 쪽을 본다); 공중에선 부르지 않는다. 쉼터 판 C 는 signs.tick 이 먼저 — 더미는 std 발판에만 놓인다.
 ## dig 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 다음 조각의 주민 반쪽이 되메워지길 기다려 따라 판다), 다른 몸은 거짓을 준다.
+## 주민 반쪽(run 177): 더미마다 파는 이 하나(climb_digger.gd — 더미 노드 아래 Stick3D)가 무더기에서 40 px 오른쪽에 카메라를 보고 서서, 쌓인 더미를 삽 곁에 아무도 없이 탑의 1분 두면 삽으로 가 소매를 걷고(sleeve) 같은 dig(count 거짓)·같은 shovel 로 마지막 삽까지 판다; 플레이어가 파면 되메워진 뒤 1 s 에 따라 파고, 플레이어가 파는 동안은 집에서 기다리고, 플레이어가 바퀴 중에 떠나면(_away 가 left_t 를 적는다) 바로 와서 남은 삽을 판다. 로더가 할 일은 없다 — 팩이 짓고 틱을 준다.
 ## 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_drift.gd
 
 const PACK := "res://data/climb/drift.json"
@@ -25,7 +26,7 @@ const PLANT_S := 0.3       # 바퀴 끝의 삽이 꽂힌 자리로 돌아가는 
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.drift
-var drifts: Array = []          # 지은 더미 {id, kind "drift", n, hop_id, hop_w, wx, x, w, y, y_top, z, d, scoops, dug, st, ph, t0, end_t0, held, fig, count, star_t0, refill_t0, day, deep, digs, stars, me_t, node, mound, heap, shovel, star, fall, crunch, chime, hush}
+var drifts: Array = []          # 지은 더미 {id, kind "drift", n, hop_id, hop_w, wx, x, w, y, y_top, z, d, scoops, dug, st, ph, t0, end_t0, held, fig, count, star_t0, refill_t0, day, deep, digs, stars, me_t, left_t, node, mound, heap, shovel, star, fall, crunch, chime, hush, digger}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -185,12 +186,15 @@ func dig(x: float, z: float, on: Dictionary, pressed: bool, fig: Stick3D = null,
 func dug_k(s: Dictionary) -> float:
 	return clampf(float(s["dug"]) / float(s["scoops"]), 0.0, 1.0)
 
-## 어느 삽 곁에도 없는 몸 — 바퀴 중이었으면 그 삽은 버리고 몸은 바로 풀린다(판 것은 남는다; 바라봄·멈춤은 제 때에 끝난다)
+## 어느 삽 곁에도 없는 몸 — 바퀴 중이었으면 그 삽은 버리고 몸은 바로 풀린다(판 것은 남는다; 바라봄·멈춤은 제 때에 끝난다). 플레이어(count)가 떠난 때는 left_t 에 — 파는 이가 와서 마친다
 func _away(fig: Stick3D) -> void:
 	if fig == null: return
 	for sv in drifts:
 		var s: Dictionary = sv
-		if (s["fig"] as Stick3D) == fig and String(s["ph"]) in DIGGING: s["ph"] = ""; s["held"] = false; _release(s)
+		if (s["fig"] as Stick3D) == fig and String(s["ph"]) in DIGGING:
+			s["ph"] = ""; s["held"] = false
+			if bool(s["count"]): s["left_t"] = t
+			_release(s)
 
 ## 이 몸이 어느 더미든 파고 있나(바라봄·멈춤까지) — 로더가 무더기 쪽을 보게 한다
 func digging(fig: Stick3D) -> bool:
@@ -299,6 +303,7 @@ func _process(delta: float) -> void:
 		if String(s["ph"]) in DIGGING: _dig(s)
 		if String(s["ph"]) in ["gaze", "stop"]: _end(s)
 		_hang(s); _place(s)
+		if s.has("digger"): (s["digger"] as ClimbDigger).step(delta)   # 파는 이의 틱 — 더미가 돈 뒤라 되메움·떠남을 같은 틱에 본다
 
 ## 더미·무더기·삽·별을 지금으로 — 더미는 판 만큼 납작, 무더기는 판 만큼 높게; 삽은 바퀴 따라 찌르고 젖히고 퍼 넘기다 끝에 꽂힌 자리로 돌아온다; 별은 제 높이에서 0.3 Hz 로 돈다
 func _place(s: Dictionary) -> void:
@@ -352,8 +357,9 @@ func build(root: Node3D, planned: Array) -> void:
 		var fall := _fall(node, zc)
 		s["node"] = node; s["mound"] = mound; s["heap"] = heap; s["shovel"] = shovel; s["star"] = star; s["fall"] = fall
 		s["st"] = "heaped"; s["ph"] = ""; s["t0"] = -99.0; s["end_t0"] = -99.0; s["held"] = false; s["fig"] = null; s["count"] = true
-		s["dug"] = 0; s["star_t0"] = -99.0; s["refill_t0"] = -99.0; s["day"] = -1; s["deep"] = 0; s["digs"] = 0; s["stars"] = 0; s["me_t"] = -99.0
+		s["dug"] = 0; s["star_t0"] = -99.0; s["refill_t0"] = -99.0; s["day"] = -1; s["deep"] = 0; s["digs"] = 0; s["stars"] = 0; s["me_t"] = -99.0; s["left_t"] = -99.0
 		s["crunch"] = _snd(node, float(kind.get("crunch_hz", 180)), 0.12, -14.0, false); s["chime"] = _snd(node, float(kind.get("chime_hz", 2200)), 0.3, -12.0, true); s["hush"] = _snd(node, float(kind.get("hush_hz", 120)), 0.5, -16.0, false)
+		s["digger"] = ClimbDigger.new(self, s, node)   # 주민 반쪽 — 무더기 곁에 카메라를 보고 선 파는 이
 		drifts.append(s)
 		_place(s)
 
