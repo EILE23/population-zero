@@ -6,6 +6,8 @@ extends SceneTree
 ## 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세나, 다음 날 다른 몸(count 거짓)의 꼭대기는 세지 않나(0 of 1, 1 ride), 궤도(봉·톱니 18·받침 둘·역판 둘·멈춤쇠)·차(틀·바퀴·안장·손잡이·크랭크)·소리 셋이 그려지나, 노드 자리, 꼭대기의 차 자리,
 ## pedal 자세가 앉아(m 1·k 1·a 0) 오른 엉덩이 −1.686·무릎 1.679·왼 엉덩이 −0.929·무릎 0.712·골반 0.31..0.33·상체 0.2025·어깨 −0.95±0.02/z ∓0.12·팔꿈치 −0.35·고개 < −0.5 이고, 버티며(b 1·k 0) 상체 0.045·팔꿈치 −0.85·어깨 −1.05±0.02 이고, 반쯤 올라(m 0.5) 넘기는 다리 −1.743/2.040·다른 다리 −0.465/0.356·골반 0.37 이고, 메타 없이 3.9 에 done 인가,
 ## 진짜 탑의 1..70층에서 plan 이 태엽 층(16·17·18, 50·52·53·54)에만 궤도를 찾나
+## 선로지기(LINESMAN, run 181): 집(아랫역 뒤 40 px)에서 차례가 오면 역 곁으로 걸어가 바짓단을 집고(clip 1.0 s) 같은 mount(count 거짓)·pedal 로 쉬지 않고 꼭대기까지 올라 윗역에 내려서고, 차가 3 s 뒤 굴러가기 시작하면 틈 끝으로 걸어가 맞춘 뜀으로 역 곁에 내려 집으로 걷나(day·me_t 는 그대로 — 판은 0 of 1, 2 rides), 플레이어가 역 60 px 안이면 제 분을 넘기고 걸어가던 중이면 돌아오나, 플레이어가 꼭대기에 닿은 1.5 s 뒤 따라가 차를 기다려 타나,
+## clip 자세가 숙여(0.25) 상체 0.4275·오른팔 −0.55/z −0.1/팔꿈치 −0.25±0.05·왼팔 0.35/−0.2·엉덩이 −0.35·무릎 0.45·골반 0.36·고개 +0.55 이고, 털며(0.55) 상체 0.2025·오른 엉덩이 −0.5·무릎 0.6±0.25 가 흔들리고·골반 0.40 이고, 끝(1.0)에 다 0 이고 done 인가
 const C = preload("res://scripts/games/climb.gd")
 const DT := 1.0 / 60.0
 
@@ -45,6 +47,7 @@ func _init() -> void:
 	var band_root := Node3D.new(); root.add_child(band_root)
 	cr.build(band_root, free)
 	var s: Dictionary = cr.cars[0]
+	var lm: ClimbLinesman = s["linesman"]; lm.phase = "gone"; lm.next_at = 1e9   # 선로지기는 뒤에(LINESMAN) — 그때까지 층을 떠나 있다(차례가 오면 위 want 가 어긋난다)
 	var fig := Stick3D.new(); root.add_child(fig)
 	var fig2 := Stick3D.new(); root.add_child(fig2)
 	var on: Dictionary = plats[2]; var z := C.PLAYER_Z
@@ -89,8 +92,53 @@ func _init() -> void:
 	# 그림: 노드 자리, 궤도(봉 + 톱니 18)·받침 둘·역판 둘·멈춤쇠·차·소리 셋, 차(틀·바퀴·기둥·안장·기둥·손잡이·크랭크)·바퀴(원판 + 살 6)·크랭크(팔 둘·페달 둘), 꼭대기의 차 자리
 	var node: Node3D = s["node"]; var car: Node3D = s["car"]; var cog: Node3D = s["cog"]; var cranks: Node3D = s["cranks"]; var rail: Node3D = node.get_child(0)
 	cr._process(0.0)
-	print("VISUAL node=%s (want %s) children=%d (want 10) rail parts=%d (want 19) car parts=%d (want 7) cog parts=%d (want 7) crank parts=%d (want 4) car at top=%s (want (5.389, 3.056, 0)) cog turn=%.2f (want −51.6)" % [node.position, C.to3(208.0, 9920.0, C.PLAYER_Z * C.K), node.get_child_count(), rail.get_child_count(), car.get_child_count(), cog.get_child_count(), cranks.get_child_count(), car.position, cog.rotation.z])
+	print("VISUAL node=%s (want %s) children=%d (want 11 — the linesman) rail parts=%d (want 19) car parts=%d (want 7) cog parts=%d (want 7) crank parts=%d (want 4) car at top=%s (want (5.389, 3.056, 0)) cog turn=%.2f (want −51.6)" % [node.position, C.to3(208.0, 9920.0, C.PLAYER_Z * C.K), node.get_child_count(), rail.get_child_count(), car.get_child_count(), cog.get_child_count(), cranks.get_child_count(), car.position, cog.rotation.z])
 	await _pose(fig)
+	# 선로지기(t 700, 차는 집에): 집(168)에서 차례가 오면 역 곁(192)으로 걸어가(0.09 s) 바로 바짓단을 집고(clip 1.0 s) 같은 mount(count 거짓, pedal_m 0)·pedal 로 쉬지 않고 꼭대기까지(0.45 + 0.6 + 202/70 ≈ 3.9 s) 올라 윗역(416)에 내려서고(pause), 차가 3 s 뒤 굴러가기 시작하면 틈 끝(376)으로 걸어가(0.15 s) 맞춘 뜀(vy 676 → 웅크림 0.40 s, vx −270, 0.68 s)으로 역 곁(≈192)에 내려 집(168)으로 걷는다; day 0·me_t 는 그대로(판은 0 of 1, 2 rides)
+	while float(s["u"]) > 0.0: cr._process(DT)   # fig2 가 두고 간 차를 먼저 집으로
+	cr.sync(700.0); var day0 := int(s["day"]); var me0 := float(s["me_t"]); var rides0 := int(s["rides"])
+	lm._home(); var l0 := "%s x=%.0f y=%.0f home=%.0f dock=%.0f jump=%.0f" % [lm.phase, lm.x, lm.y, lm.home_x, lm.dock_x, lm.jump_x]
+	var t0 := cr.t; var at := { "wait": -1.0, "clip": -1.0, "ride": -1.0, "pause": -1.0, "step": -1.0, "down": -1.0, "back": -1.0, "idle": -1.0 }
+	var clip_m := -1.0; var mnt := ""; var top_x := 0.0; var jv := Vector2.ZERO; var ch := -1.0; var pedal_on := false
+	while cr.t - t0 < 30.0:
+		cr._process(DT)
+		if at.has(lm.phase) and float(at[lm.phase]) < 0.0:
+			at[lm.phase] = cr.t - t0
+			if lm.phase == "ride": mnt = "m=%.1f count=%s rider=%s riding=%.0f" % [float(lm.fig.get_meta("pedal_m", 9.0)), s["count"], s["rider"] == lm.fig, cr.riding(lm.fig)]
+			if lm.phase == "pause": top_x = lm.x
+			if lm.phase == "down": jv = lm.jump; ch = lm.charge_s
+		if lm.phase == "clip": clip_m = float(lm.fig.get_meta("clip_t", -1.0))
+		if lm.phase == "ride" and cr.t - t0 > 2.0 and not pedal_on: pedal_on = lm.fig.pose_request == "pedal"
+		if lm.phase == "idle" and cr.t - t0 > 1.0: break
+	print("LINESMAN start: ", l0, " (want idle 168 9920 168 192 376) | wait at %.2f clip at %.2f (want 0.10..0.13 and the tick after: wait sees the car home) clip_t last=%.3f (want 0.98..1.00) | ride at %.2f (want 1.10..1.13) %s (want m=0.0 count=false rider=true riding=1) pedal=%s (want true) | top at %.2f x=%.0f (want 5.4..5.6 416) step at %.2f (want top + 3.0..3.1) down at %.2f (want step + 0.55..0.58: 0.15 walk + 0.40 crouch) jump=(%.0f, %.0f) charge=%.2f (want (−270, 676) 0.40) | landed at %.2f x=%.1f y=%.0f (want down + 0.68..0.70 ≈192 ±5 9920) home at %.2f x=%.0f (want landed + 0.09..0.11 168) | rides/tops/drops/falls=%d/%d/%d/%d (want 1 1 1 0) car rides=%d (want %d + 1) day=%d me_t same=%s (want %d true) note=\"%s\" (want '… 0 of 1 car ridden to the top today, 2 rides today.') next=%.1f s (want 60.0)" % [float(at["wait"]), float(at["clip"]), clip_m, float(at["ride"]), mnt, pedal_on, float(at["pause"]), top_x, float(at["step"]), float(at["down"]), jv.x, jv.y, ch, float(at["back"]), lm.at_land.x, lm.at_land.y, float(at["idle"]), lm.x, lm.rides, lm.tops, lm.drops, lm.falls, int(s["rides"]), rides0, int(s["day"]), absf(float(s["me_t"]) - me0) < 0.001, day0, cr.note(16), lm.next_at - cr.t])
+	# 배려: 플레이어가 역 60 px 안에 선 틱(C 없는 mount 가 near_t 에 적는다)이면 집에서 제 분을 넘기고(skips), 걸어가던 중이면 돌아온다; 82 px 밖은 가깝지 않다
+	lm.next_at = cr.t; cr.mount(on, 240.0, z, false, fig2); cr._process(DT)
+	var w1 := "%s skips=%d next=%.1f" % [lm.phase, lm.skips, lm.next_at - cr.t]
+	for i in 15: cr._process(DT)   # near_t 가 0.2 s 식는다
+	var nt0 := float(s["near_t"]); cr.mount(on, 290.0, z, false, fig2); var far_near := float(s["near_t"]) == nt0
+	lm.next_at = cr.t; cr._process(DT); var w2 := lm.phase
+	cr.mount(on, 240.0, z, false, fig2); cr._process(DT); var w3 := lm.phase
+	var t1 := cr.t
+	while lm.phase != "idle" and cr.t - t1 < 5.0: cr._process(DT)
+	print("LINESMAN courtesy: you near → %s (want idle skips=1 next=60.0) | 82 px off is not near=%s (want true) | your minute passes, you gone → %s (want walk) | you step up → %s (want back) → %s x=%.0f at %.2f s (want idle 168 0.02..0.05: one tick out, one tick back)" % [w1, far_near, w2, w3, lm.phase, lm.x, cr.t - t1])
+	# 플레이어를 따라(t 800): 플레이어가 꼭대기에 닿은(me_t, day 1) 1.5 s 뒤 역으로 가 차가 돌아오길 기다려(내려섬 0.45 + 기다림 3 + 굴러옴 ≈2.3) 타고, 다 돈 뒤 day·me_t 는 플레이어의 것 그대로
+	while float(s["u"]) > 0.0: cr._process(DT)   # 선로지기가 두고 간 차를 먼저 집으로(굴러오는 데 2.3 s — 집에 걸어 돌아온 뒤에도 구른다)
+	cr.sync(800.0); lm.next_at = 1e9
+	var seat4 := cr.mount(on, 228.0, z, true, fig)
+	var held4 := lm.phase
+	while String(s["sw"]) != "off" and cr.t < 806.0:
+		cr.sync(cr.t + DT); cr.stand(seat4, true, DT, fig); lm.step(DT)
+	var me4 := float(s["me_t"]); var day4 := int(s["day"]); var idle4 := lm.phase
+	var last4: Dictionary = {}
+	while not bool(last4.get("off", false)) and cr.t < 808.0:
+		cr.sync(cr.t + DT); last4 = cr.stand(seat4, false, DT, fig); lm.step(DT)
+	while lm.phase == "idle" and cr.t - me4 < 3.0: cr._process(DT)
+	var walk4 := cr.t - me4
+	while lm.phase != "clip" and cr.t - me4 < 14.0: cr._process(DT)
+	var clip4 := cr.t - me4; var tops4 := lm.tops
+	while lm.phase != "idle" and cr.t - me4 < 30.0: cr._process(DT)
+	print("LINESMAN follows you: idle while you ride=%s/%s (want idle idle) me_t=%.2f day=%d (want >800 1) | walks at %.2f s after your latch (want 1.50..1.52) | clips at %.2f s (want 5.6..6.0: your step-off 0.45 + hold 3 + the roll home) | after: tops=%d→%d rides=%d skips=%d (want %d→%d 2 1) day=%d me_t same=%s (want 1 true) %s (want idle)" % [held4, idle4, me4, day4, walk4, clip4, tops4, lm.tops, lm.rides, lm.skips, tops4, tops4 + 1, int(s["day"]), absf(float(s["me_t"]) - me4) < 0.001, lm.phase])
+	await _clip_pose(fig)
 	# 진짜 탑: 1..70층에 plan 이 찾는 궤도 — 태엽 층 15..19, 50..54 중 바람구멍 층(15·19·51)이 아니고 톱니 띠·추·뻐꾸기 집·풀무·핀 바퀴·시계추가 안 쓴 틈이 있는 층만
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
@@ -138,4 +186,25 @@ func _pose(fig: Stick3D) -> void:
 	fig.pose_t = PedalPoses.LAP + 0.001; var after := PedalPoses.done(fig)
 	var lg0 := PedalPoses.leg(0.0); var lg1 := PedalPoses.leg(PI)
 	print("PEDAL pose seated: R hip=%.3f knee=%.3f L hip=%.3f knee=%.3f (want −1.686 1.679 −0.929 0.712 = leg(0) %.3f/%.3f leg(π) %.3f/%.3f) pelvis=%.3f (want 0.31..0.33) torso=%.4f (want 0.2025) shoulder=%.2f z=%.2f/%.2f elbow=%.2f neck=%.2f (want −0.95±0.02 −0.12/0.12 −0.35 < −0.5) | brace: torso=%.3f elbow=%.2f shoulder=%.2f (want 0.045 −0.85 −1.05±0.02) | half mount: swing leg=%.3f/%.3f other=%.3f/%.3f pelvis=%.2f (want −1.743/2.040±0.015 −0.465/0.356±0.015 0.37 — the knees breathe) | done(3.89 → 3.901)=%s LAP=%.1f (want true 3.9)" % [r_hip, r_knee, l_hip, l_knee, float(lg0[0]), float(lg0[1]), float(lg1[0]), float(lg1[1]), pel, tx, shx, shz, shz2, el, neck, b_tx, b_el, b_shx, h_rhip, h_rknee, h_lhip, h_lknee, h_pel, (not before) and after, PedalPoses.LAP])
+	fig.pose_request = ""
+
+## clip 자세(메타로 세운다) — 숙여 집기(0.25), 털기(0.55, 두 틱 떨어져 정강이가 움직이나), 끝(1.0); 메타 없이 1.0 에 done
+func _clip_pose(fig: Stick3D) -> void:
+	fig.pose_request = "clip"; fig.set_meta("clip_t", 0.25)
+	for i in 45: await process_frame
+	var r_sh: Node3D = fig.shoulders[1.0]; var l_sh: Node3D = fig.shoulders[-1.0]; var r_el: Node3D = fig.elbows[1.0]; var l_el: Node3D = fig.elbows[-1.0]
+	var r_hip: Node3D = fig.hips[1.0]; var r_knee: Node3D = fig.knees[1.0]; var l_hip: Node3D = fig.hips[-1.0]; var l_knee: Node3D = fig.knees[-1.0]
+	var a := "torso=%.4f R arm=%.2f z=%.2f elbow=%.2f L arm=%.2f elbow=%.2f hips=%.2f/%.2f knees=%.2f/%.2f pelvis=%.2f neck+=%.2f" % [fig.torso.rotation.x, r_sh.rotation.x, r_sh.rotation.z, r_el.rotation.x, l_sh.rotation.x, l_el.rotation.x, r_hip.rotation.x, l_hip.rotation.x, r_knee.rotation.x, l_knee.rotation.x, fig.pelvis.position.y, fig.neck.rotation.x + (fig.torso.rotation.x + fig.chest.rotation.x) * 0.7]
+	fig.set_meta("clip_t", 0.55)
+	for i in 45: await process_frame
+	var k1 := r_knee.rotation.x
+	for i in 2: await process_frame
+	var b := "torso=%.4f R arm=%.2f hip=%.2f knee=%.2f→%.2f moves=%s L hip=%.2f pelvis=%.2f" % [fig.torso.rotation.x, r_sh.rotation.x, r_hip.rotation.x, k1, r_knee.rotation.x, absf(r_knee.rotation.x - k1) > 0.01, l_hip.rotation.x, fig.pelvis.position.y]
+	fig.set_meta("clip_t", 1.0)
+	for i in 45: await process_frame
+	var c := "torso=%.2f R arm=%.2f elbow=%.2f hip=%.2f knee=%.2f pelvis=%.2f done=%s" % [fig.torso.rotation.x, r_sh.rotation.x, r_el.rotation.x, r_hip.rotation.x, r_knee.rotation.x, fig.pelvis.position.y, ClipPoses.done(fig)]
+	fig.remove_meta("clip_t")
+	fig.pose_t = ClipPoses.TOTAL - 0.01; var before := ClipPoses.done(fig)
+	fig.pose_t = ClipPoses.TOTAL + 0.001; var after := ClipPoses.done(fig)
+	print("CLIP pose stoop 0.25: ", a, " (want 0.4275 −0.55 −0.10 −0.25±0.05 0.35 −0.20 −0.35/−0.35 0.45/0.45±0.03 0.36 0.55 over the forward-looking base) | shake 0.55: ", b, " (want 0.2025 −0.15 −0.50 0.60±0.25 true 0.00 0.40) | end 1.0: ", c, " (want 0.00 0.00 0.00 0.00 0.00 0.42 true) demo done(0.99 → 1.001)=%s TOTAL=%.1f (want true 1.0)" % [(not before) and after, ClipPoses.TOTAL])
 	fig.pose_request = ""

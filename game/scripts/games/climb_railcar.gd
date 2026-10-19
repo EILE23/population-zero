@@ -13,7 +13,8 @@ extends Node3D
 ## 발판에 선 가지의 맨 앞(jump_held 를 읽기 전에): `if String(on.get("kind", "")) == "railcar": dir = 0.0; jump_held = false; charge = 0.0 else: var mt := cr.mount(on, x, z, Input.is_action_just_pressed("act"), fig); if not mt.is_empty(): on = mt; vx = 0.0` (오른 틱 — 사전은 안장, 로더의 다른 발판과 같은 꼴; 빈 사전이면 닿지 않거나 차가 집에 없는 것);
 ## 'move' 발판 자리에서 `elif on["kind"] == "railcar": var r := cr.stand(on, Input.is_action_pressed("act"), dt, fig); x = r["x"]; y = r["y"]; vx = 0.0; fig.pose_request = "pedal"; if r["off"]: on = {}; apex = y; fig.pose_request = ""` (내려선 틱의 x·y 가 발판 위라 다음 틱 로더의 착지 판정이 밟는다 — 집라인과 같은 식);
 ## `_figure()` 의 face 가지 앞에 `var rd := cr.riding(fig); if rd != 0.0: fig.face(PI / 2.0 if rd > 0.0 else -PI / 2.0)`. 쉼터 판 C 는 signs.tick 이 먼저 — 아랫역은 발판에만 선다.
-## mount 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 다음 조각의 주민 반쪽이 따라 탄다), 다른 몸은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_railcar.gd
+## mount 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 주민 반쪽이 따라 탄다; C 가 없어도 역 NEAR 안에 선 틱을 near_t 에 적는다 — 선로지기가 비켜 선다), 다른 몸은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_railcar.gd
+## 주민 반쪽(run 181): 궤도마다 선로지기 하나(climb_linesman.gd — 궤도 노드 아래 Stick3D)가 아랫역 뒤 40 px 에 카메라를 보고 서서 탑의 1분마다, 그리고 플레이어가 꼭대기에 닿은(me_t) 1.5 s 뒤에 역으로 가 차가 돌아오길 기다려 바짓단을 집고(clip) 같은 mount(count 거짓)·같은 pedal 로 쉬지 않고 꼭대기까지 밟아, 윗역에 내려 차가 떠나면 틈 끝에서 탑의 뜀(ClimbJump.fit)으로 아랫역에 뛰어 내려 집으로 걷는다; 플레이어가 역 NEAR 안이면 집에서 기다린다. 로더가 할 일은 없다 — 팩이 짓고 틱을 준다.
 
 const PACK := "res://data/climb/railcar.json"
 const C = preload("res://scripts/games/climb.gd")
@@ -27,10 +28,11 @@ const COG_R := 0.12        # 톱니바퀴 반지름(m)
 const SEAT_H := 0.30       # 탄 몸의 발에서 안장까지(m) = 자세의 골반 내림(HIP_Y 0.42 → 0.32)
 const AXLE_F := 0.26       # 크랭크 축: 골반에서 앞으로(m) — stick3d_pedal.gd 와 같은 수
 const CRANK_R := 0.09      # 크랭크 반지름(m)
+const NEAR := 60.0         # 플레이어가 아랫역에서 이 안에 선 틱을 near_t 에 적는다(px) — 선로지기가 집에서 기다린다
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.rail
-var cars: Array = []            # 지은 궤도 {id, kind "rail", n, a_id, b_id, a_y, b_y, dir, gap, dy, x0, y0, x1, y1, run, rail_len, grade, x, w, y, y_top, z, d, node, car, cog, cranks, seat, u, v, ang, sw, sw_t0, rider, pressed, idle_t0, stand_t, count, latch_t0, moved, day, rides, ride_day, day_rides, me_t, top, tooth_acc, clicks, tick, clack, bump}
+var cars: Array = []            # 지은 궤도 {id, kind "rail", n, a_id, b_id, a_y, b_y, a_x, a_w, b_x, b_w, dir, gap, dy, x0, y0, x1, y1, run, rail_len, grade, x, w, y, y_top, z, d, node, car, cog, cranks, seat, u, v, ang, sw, sw_t0, rider, pressed, idle_t0, stand_t, count, latch_t0, moved, day, rides, ride_day, day_rides, me_t, near_t, top, tooth_acc, clicks, tick, clack, bump, linesman}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -137,7 +139,7 @@ func plan(n: int, plats: Array, taken: Array = []) -> Array:
 			var ylo := float(a["y"]) - 10.0; var yhi := float(b["y"]) + BODY_UP
 			if not _clear(plats, a, b, lo, hi, ylo, yhi): continue
 			if not _free(taken, lo, hi, ylo, yhi): continue
-			found.append({ "gap": gap, "dy": dy, "dir": dir, "a_id": String(a["id"]), "b_id": String(b["id"]), "a_y": float(a["y"]), "b_y": float(b["y"]),
+			found.append({ "gap": gap, "dy": dy, "dir": dir, "a_id": String(a["id"]), "b_id": String(b["id"]), "a_y": float(a["y"]), "b_y": float(b["y"]), "a_x": ax0, "a_w": float(a["w"]), "b_x": bx0, "b_w": float(b["w"]),
 				"x0": x0, "y0": float(a["y"]), "x1": x1, "y1": float(b["y"]), "run": run, "rail_len": sqrt(run * run + dy * dy), "grade": grade, "x": lo, "w": hi - lo })
 		found.sort_custom(func(p: Dictionary, q: Dictionary) -> bool: return float(p["gap"]) > float(q["gap"]) if float(p["gap"]) != float(q["gap"]) else float(p["a_y"]) < float(q["a_y"]))
 		for i in range(0, mini(int(piece.get("max", 1)), found.size())):
@@ -184,8 +186,9 @@ func pos(s: Dictionary, u: float) -> Vector2:
 
 ## 발판에 선 틱, C 가 막 눌렸을 때 — 아랫역 곁(HW + reach, a 위, 걷는 선)에 선 몸이 집에 선 빈 차에 오른다: 안장 사전(로더의 on)을 돌려주고 mount_s 동안 다리를 넘긴다(meta pedal_m). 안 닿거나 차가 집에 없거나 남이 탔으면 빈 사전
 func mount(on: Dictionary, x: float, z: float, pressed: bool, fig: Stick3D = null, count := true) -> Dictionary:
-	if not pressed: return {}
 	var oid := String(on.get("id", ""))
+	if count: _near(oid, x, z)   # 플레이어가 역 곁에 선 틱 — C 가 없어도 선로지기가 읽는다
+	if not pressed: return {}
 	for sv in cars:
 		var s: Dictionary = sv
 		if oid != String(s["a_id"]) or absf(z - C.PLAYER_Z) >= C.HZ + 4.0 or absf(x - float(s["x0"])) > C.HW + reach(): continue
@@ -195,6 +198,12 @@ func mount(on: Dictionary, x: float, z: float, pressed: bool, fig: Stick3D = nul
 		_seat(s)
 		return s["seat"]
 	return {}
+
+## 플레이어가 a 위 아랫역 NEAR 안에 선 틱을 적는다 — 선로지기의 배려(NEAR_T 안이면 가까운 것)
+func _near(oid: String, x: float, z: float) -> void:
+	for sv in cars:
+		var s: Dictionary = sv
+		if oid == String(s["a_id"]) and absf(z - C.PLAYER_Z) < C.HZ + 4.0 and absf(x - float(s["x0"])) <= NEAR: s["near_t"] = t
 
 ## 안장 위의 매 틱 — {x, y, off, busy, k, u}: 오르는 동안(mount) 다리를 넘기고, 타는 동안(ride) C 를 쥐면 밟아 오르고 놓으면 굴러 내리며, 꼭대기에 닿으면 걸고 세고 내려서기(off)로, 바닥에서 C 를 idle_s 놓으면 내려서기로; off 가 끝난 틱은 off 참이고 x·y 는 발판 위(로더의 착지 판정이 다음 틱에 밟는다). 모르는 안장이면 off
 func stand(on: Dictionary, pressed: bool, dt: float, _fig: Stick3D = null) -> Dictionary:
@@ -336,6 +345,7 @@ func _process(delta: float) -> void:
 		if s["rider"] != null and t - float(s["stand_t"]) > STOOD_T: _leave(s)
 		if s["rider"] == null and float(s["u"]) > 0.0: _roll_home(s, dt)
 		_place(s)
+		if s.has("linesman"): (s["linesman"] as ClimbLinesman).step(delta)   # 선로지기의 틱 — 차가 간 뒤라 같은 틱의 자리를 본다
 
 func _roll_home(s: Dictionary, dt: float) -> void:
 	if float(s["latch_t0"]) >= 0.0 and t - float(s["latch_t0"]) < hold_s(): return
@@ -387,9 +397,10 @@ func build(root: Node3D, planned: Array) -> void:
 		s["node"] = node; s["car"] = car; s["cog"] = cog; s["cranks"] = cranks
 		s["seat"] = { "kind": "railcar", "id": "%s.c" % String(s["id"]), "x": 0.0, "w": 0.0, "y": 0.0, "z": C.PLAYER_Z, "d": deck_d() }
 		s["u"] = 0.0; s["v"] = 0.0; s["ang"] = 0.0; s["sw"] = ""; s["sw_t0"] = -99.0; s["rider"] = null; s["pressed"] = false; s["idle_t0"] = -1.0; s["stand_t"] = -99.0
-		s["count"] = true; s["latch_t0"] = -1.0; s["moved"] = false; s["day"] = -1; s["rides"] = 0; s["ride_day"] = -1; s["day_rides"] = 0; s["me_t"] = -99.0; s["top"] = false; s["tooth_acc"] = 0.0; s["clicks"] = 0
+		s["count"] = true; s["latch_t0"] = -1.0; s["moved"] = false; s["day"] = -1; s["rides"] = 0; s["ride_day"] = -1; s["day_rides"] = 0; s["me_t"] = -99.0; s["near_t"] = -99.0; s["top"] = false; s["tooth_acc"] = 0.0; s["clicks"] = 0
 		s["tick"] = _snd(node, float(kind.get("tick_hz", 1800)), 0.04, 14.0, -20.0); s["clack"] = _snd(node, float(kind.get("clack_hz", 700)), 0.12, 9.0, -12.0); s["bump"] = _snd(node, float(kind.get("bump_hz", 160)), 0.3, 6.0, -14.0)
 		_seat(s)
+		s["linesman"] = ClimbLinesman.new(self, s, node)   # 주민 반쪽 — 아랫역 뒤에 카메라를 보고 선 선로지기
 		cars.append(s)
 		_place(s)
 
