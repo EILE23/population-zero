@@ -1388,3 +1388,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-19) A sanded marbles ring in the park where two crouching residents take turns flicking clay marbles toward the center circle, which a player can join by stepping onto the chalked shooter line.
 - [ ] (town wish, 2026-10-19) A conkers tournament post on the street where two residents take turns swinging threaded chestnuts at a hanging target nut, which the player can join by drawing a conker from the tin.
+- [ ] (town wish, 2026-10-19) A gravel ninepins alley along the park boundary where two residents take turns rolling a heavy wooden ball at standing hornbeam pins, which the player can join by taking up the bowler's position at the chalk line.
