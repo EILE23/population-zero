@@ -5,6 +5,9 @@ extends SceneTree
 ## 톡 던진 창(0)이 발판 300 에 눕고(down, clatter) 3 s 뒤 받침대로 돌아오나, 가득 던진 창(1)이 고리 위를 넘어 잃히나(lost, 먼지) 3 s 뒤 돌아오나, 꽂힌 창 곁 고리에 둘째는 안 꽂히나, 12 s 뒤 고리가 놓아 창이 곧장 떨어져 발판 266 에 눕나(holds 거짓, land 빈 사전),
 ## 쉼터 판의 줄(note)이 위 다섯 층 → 아래 다섯 층 순으로 세나, 다음 날 다른 몸(count 거짓)의 명중은 세지 않나(0/1), 받침대·고리(3)·창 셋(3)·소리 셋이 그려지나, 노드 자리, 기댄 창의 자리,
 ## hurl 자세가 당김 끝(0.45)에 던지는 팔 +1.9/z −0.25/팔꿈치 −0.35·가리키는 팔 −1.5/−0.1·앞 엉덩이 −0.5·무릎 0.35·뒷 엉덩이 0.35·무릎 0.5·골반 0.37·상체 −0.09·고개 < 0 이고, 가득 모아(1.0) 팔 2.185±0.04·골반 0.30·상체 −0.2025 이고, 던짐(0.2)에 팔 −1.7/−0.4·막는 팔 0.2/−1.3·앞 엉덩이 −0.35·골반 0.42·상체 0.2025 이고, 따라감(0.4)에 팔 −0.6·뒷 엉덩이 −0.7·무릎 0.9·골반 0.36·상체 0.135 이고, 0.75 에 서나(done),
+## 던지는 이(run 179): 받침대에서 고리 쪽 40 px 의 집(216)에 카메라를 보고 서나, 차례가 오면 받침대로 걸어가(0.15 s) 바람을 읽고(lick 1.3 s) 같은 throw(count 거짓)로 당겨(hurl) 가운데 모음(0.389)에 놓아 꽂히나(hits 는 늘고 day·me_t 는 그대로), 집으로 와 1분 뒤 다시 가나, 열 번에 다섯이 꽂히나(차례의 +0.14/−0.06, 빗나간 뒤 0.03 의 고침), 명중 창은 모음 0.36..0.50 인가(WINDOW),
+## 바람 −60 의 55층(발판 id 를 55 로 바꾼 같은 자리들)에서 바람째 푼 모음(0.390 — 고리가 꼭대기 가까이라 맞바람에 거의 안 변한다; +60 엔 0.415, −120 엔 0.410)으로 꽂히고 고개가 −x 로 도나, 플레이어가 받침대를 잡으면 돌아와 집에서 기다리나, 플레이어가 던진 뒤 1.5 s 에 가서 고리가 비길 기다리다(wait) 12 s 에 고리가 놓자 읽고 던지나,
+## lick 자세가 입술(0.2)에 오른팔 −1.20/z −0.30/팔꿈치 −1.75·고개 > 0 이고, 든 팔(0.7)에 −2.85/|z| < 0.05/−0.10·왼손 허리 −0.30/0.55/−1.70·고개 lee 로·상체 −0.036 이고, 1.3 에 내려 done 인가,
 ## 진짜 탑의 1..70층에서 plan 이 바람 절벽 층(20..24, 55..59)에만 투창장을 찾나
 const C = preload("res://scripts/games/climb.gd")
 const DT := 1.0 / 60.0
@@ -50,6 +53,7 @@ func _init() -> void:
 	var band_root := Node3D.new(); root.add_child(band_root)
 	cj.build(band_root, free)
 	var s: Dictionary = cj.ranges[0]
+	var th: ClimbThrower = s["thrower"]; th.phase = "gone"; th.next_at = 1e9   # 던지는 이는 뒤에(THROWER) — 그때까지 층을 떠나 있다(차례가 오면 위 want 가 어긋난다)
 	var fig := Stick3D.new(); root.add_child(fig)
 	var fig2 := Stick3D.new(); root.add_child(fig2)
 	var on: Dictionary = plats[4]; var z := C.PLAYER_Z
@@ -126,8 +130,10 @@ func _init() -> void:
 	cj.sync(float(jx["t0"]) + 12.01); cj._process(0.0); _flight(cj, jx); cj.sync(cj.t + 3.01); cj._process(0.0)
 	var node: Node3D = s["node"]; var rack: Node3D = s["rack"]; var ring: Node3D = s["ring_node"]; var jn0: Node3D = j0["node"]
 	cj.sync(700.0); cj._process(0.0)
-	print("VISUAL node=%s (want %s) children=%d (want 8: rack ring + 3 javelins + 3 sounds) rack parts=%d (want 3) ring parts=%d (want 3) ring at x=%.4f y=%.4f (want 3.3333 4.1667) javelin parts=%d (want 3) racked=%d j0: x=%.3f y=%.3f tilt=%.2f visible=%s (want 3 0.193 0.801 1.25 true)" % [node.position, C.to3(176.0, 13140.0, C.WALL_Z * C.K), node.get_child_count(), rack.get_child_count(), ring.get_child_count(), ring.position.x, ring.position.y, jn0.get_child_count(), _racked(s), jn0.position.x, jn0.position.y, jn0.rotation.z, jn0.visible])
+	print("VISUAL node=%s (want %s) children=%d (want 9: rack ring + 3 javelins + 3 sounds + the thrower) rack parts=%d (want 3) ring parts=%d (want 3) ring at x=%.4f y=%.4f (want 3.3333 4.1667) javelin parts=%d (want 3) racked=%d j0: x=%.3f y=%.3f tilt=%.2f visible=%s (want 3 0.193 0.801 1.25 true)" % [node.position, C.to3(176.0, 13140.0, C.WALL_Z * C.K), node.get_child_count(), rack.get_child_count(), ring.get_child_count(), ring.position.x, ring.position.y, jn0.get_child_count(), _racked(s), jn0.position.x, jn0.position.y, jn0.rotation.z, jn0.visible])
 	await _pose(fig)
+	_thrower(cj, s, th, fig, on, z, plats)
+	await _lick_pose(fig)
 	# 진짜 탑: 1..70층에 plan 이 찾는 투창장 — 바람 절벽 층 20..24, 55..59 중 통풍구·고드름·연·허들·바·민들레가 안 쓴 넓은 발판이 있는 층만
 	var town := (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 20: await physics_frame
@@ -190,3 +196,119 @@ func _demo_done(fig: Stick3D) -> bool:
 	fig.pose_t = e - 0.01; var before := HurlPoses.done(fig)
 	fig.pose_t = e + 0.001; var after := HurlPoses.done(fig)
 	return (not before) and after
+
+## 던지는 이(run 179): 집·차례·바람 읽기·던지기·귀가, 1분, 열 번에 다섯, 바람 층, 플레이어가 먼저와 플레이어를 따라가기
+func _thrower(cj: ClimbJavelin, s: Dictionary, th: ClimbThrower, fig: Stick3D, on: Dictionary, z: float, plats: Array) -> void:
+	# 명중 창(WINDOW): 손에서 모음 0.30..0.50 으로 띄워 고리에 꽂히는 모음의 아래·위 — 던지는 이의 +0.14/−0.06 이 양쪽 다 밖인지
+	cj.sync(760.0); cj._process(0.0); _reset(cj)
+	var win := _window(cj, s)
+	print("WINDOW sticks at charge %.2f..%.2f (want 0.36..0.50: centre 0.389 near the floor of it, the thrower's −0.06 → 0.329 is short, +0.14 → 0.529 is long, the corrected 0.419 still sticks) racked=%d (want 3)" % [float(win[0]), float(win[1]), _racked(s)])
+	# 집(216 = 받침대 176 + 40, 발판 164..296 안)·z −48·카메라·'thrower'; 차례가 오면 받침대로(돌아서는 틱 하나 + 40 px / 260 → 10 틱 0.17 s) 바람을 읽고(lick, 메타 0, lee +1 — 바람 없는 층은 고리 쪽) 1.3 s 뒤 당겨(swing, draw, hurl, c_target 0.389 = aim_k(0), count 거짓, 손의 창) 0.45 + 0.8 × 0.389 + 0.75 = 1.51 s 뒤 풀려 집으로(back; 창은 놓은 뒤 0.27 s 에 꽂혔다 — stuck, hits +1, day·me_t 그대로) → 집(idle, 다음은 1분 뒤)
+	th._home(); var t0 := cj.t; var me0 := float(s["me_t"]); var day0 := int(s["day"]); var hits0 := int(s["hits"])
+	var g0 := "%s x=%.0f home=%.0f z=%.0f visible=%s pose='%s' label=%s next=%.1f aim=%.3f need=%.3f" % [th.phase, th.x, th.home_x, th.z, th.fig.visible, th.fig.pose_request, _label(th.fig), maxf(0.0, th.next_at - cj.t), th.aim_k(0.0), cj.need_k()]
+	_until(cj, th, "wait", 60)
+	var wt := "%s x=%.0f at=%.2f s" % [th.phase, th.x, cj.t - t0]
+	_until(cj, th, "lick", 10)
+	var lk := "%s pose=%s lee=%.0f meta=%.2f at=%.2f s" % [th.phase, th.fig.pose_request, float(th.fig.get_meta("lick_lee", 9.0)), float(th.fig.get_meta("lick_t", 9.0)), cj.t - t0]
+	_until(cj, th, "swing", 100)
+	var sw0 := "%s sw=%s pose=%s c_target=%.3f count=%s hand=%s d=%.2f lick meta=%s at=%.2f s" % [th.phase, String(s["sw"]), th.fig.pose_request, th.c_target, s["count"], th.fig.hand_r.get_node_or_null("jav") != null, float(th.fig.get_meta("hurl_d", 9.0)), th.fig.has_meta("lick_t"), cj.t - t0]
+	_until(cj, th, "back", 200)
+	var bk := "%s sticks=%d ends=%s c=%.3f hits+%d day same=%s me_t same=%s pose='%s' hand=%s sw='%s' at=%.2f s" % [th.phase, th.sticks, th.ends, float(th.charges[0]) if th.charges.size() > 0 else 9.0, int(s["hits"]) - hits0, int(s["day"]) == day0, float(s["me_t"]) == me0, th.fig.pose_request, th.fig.hand_r.get_node_or_null("jav") != null, String(s["sw"]), cj.t - t0]
+	_until(cj, th, "idle", 60)
+	var hm := "%s x=%.0f next=%.1f" % [th.phase, th.x, th.next_at - cj.t]
+	print("THROWER start: ", g0, " (want idle 216 216 −48 true '' thrower 0.0 0.389 0.389) | rack: ", wt, " (want wait 176 0.15..0.19) | reads the wind: ", lk, " (want lick lick 1 0.00 the same tick) | draws: ", sw0, " (want swing draw hurl 0.389 false true 0.00 false 1.45..1.52: 1.3 s of lick) | free: ", bk, " (want back 1 [stuck] 0.389..0.41 1 true true '' false '' 2.95..3.05: the thrower's hit is never the day's) | home: ", hm, " (want idle 216 ≈60) trail=", th.trail)
+	# 1분: 15 s 뒤(꽂힌 창이 떨어져 받침대로) 집(idle); next_at 에 걸어간다
+	_reset(cj); var waited := "%s racked=%d" % [th.phase, _racked(s)]
+	cj.sync(th.next_at - 0.5 * DT); _until(cj, th, "walk", 30)
+	print("THROWER a minute: 15 s on=%s (want idle 3) walks at %.3f s past next_at (want 0.000..0.034)" % [waited, cj.t - th.next_at])
+	_until(cj, th, "idle", 600); _reset(cj)
+	# 열 번: 차례 (21 + throws) % 4 → 1분의 던지기(throws 1, 차례 2)가 −0.06 으로 짧았으니(bias +0.03) 던진 2..11 은 0·+0.14·0·−0.06·… — 꽂힌다(0.419)·넘는다(0.559)·꽂힌다(0.389)·짧다(0.329)·…(빗나간 뒤 다음 모음을 0.03 고친다); 다섯이 꽂히고 날·me_t 는 그대로
+	var e0 := th.ends.size(); var c0 := th.charges.size()
+	for i in 10:
+		th.next_at = cj.t
+		_until(cj, th, "swing", 400); _until(cj, th, "idle", 400); _reset(cj)
+	print("THROWER ten throws: ends=", th.ends.slice(e0), " (want [stuck, long, stuck, short, stuck, long, stuck, short, stuck, long]) charges=", th.charges.slice(c0).map(func(v: float) -> String: return "%.3f" % v), " (want ≈0.437 0.562 0.396 0.333 0.437 0.562 0.396 0.333 0.437 0.562 — the tick after 0.419 0.559 0.389 0.329) sticks=%d of %d (want 5 10) bias=%.2f (want 0.00) day same=%s me_t same=%s (want true true) racked=%d (want 3)" % [th.sticks - 1, th.ends.size() - e0, th.bias, int(s["day"]) == day0, float(s["me_t"]) == me0, _racked(s)])
+	# 바람 −60 의 55층(같은 자리의 발판에 id 만 55 — throw 는 hop_id 로 투창장을 찾으니 21 의 것과 겹치면 안 된다; 가운데 왼쪽 발판 → dir 1, 맞바람): 차례 (55 + 0) % 4 = 3 → 가운데; aim_k(−60) 로 꽂히고, 고개는 −x 로(바람이 미는 쪽)
+	var p55 := plats.duplicate(true)
+	for pv in p55:
+		var q: Dictionary = pv; q["id"] = "55" + String(q["id"]).substr(2)
+	var band2 := Node3D.new(); root.add_child(band2)
+	cj.build(band2, cj.plan(55, p55, -60.0))
+	var s55: Dictionary = cj.ranges[1]; var th55: ClimbThrower = s55["thrower"]
+	th55._home()
+	_until(cj, th55, "lick", 100); var lee55 := float(th55.fig.get_meta("lick_lee", 9.0))
+	_until(cj, th55, "swing", 100); var c55 := th55.c_target
+	_until(cj, th55, "idle", 600)
+	print("THROWER wind: floor 55 wind −60 aim=%.3f c_target=%.3f lee=%.0f ends=%s hits=%d day=%d (want 0.390 the same −1 [stuck] 1 −1: the ring sits near the apex, so the headwind barely moves the charge; the head turned to −x; the hit never the day's) | aim(+60)=%.3f aim(−120)=%.3f aim(0)=%.3f (want 0.415 0.410 0.390: the flight solved, not a sign rule)" % [th55.aim_k(-60.0), c55, lee55, th55.ends, int(s55["hits"]), int(s55["day"]), th55.aim_k(60.0), th55.aim_k(-120.0), th55.aim_k(0.0)])
+	# 플레이어가 먼저: 걸어가는 중(3 틱 — 첫 틱에 돌아서고 둘 걷는다, x 207)에 플레이어가 잡으면 돌아와 집에서 기다린다; 플레이어가 need_k 로 던져 꽂히면(me_t) 1.4 s 엔 집, 1.5 s 에 걸어가 받침대에서 고리가 비길 기다린다(wait — 플레이어의 창이 고리를 쥐고 있다); 꽂힌 지 12 s 에 고리가 놓자 읽고 던진다(ends +1), 날·me_t 는 플레이어의 것 그대로
+	_reset(cj); th._home()
+	for i in 3: cj._process(DT)
+	var mid_x := th.x
+	cj.throw(180.0, z, on, true, fig); cj._process(DT)
+	var yield_ph := th.phase
+	_until(cj, th, "idle", 60); var yielded := "%s x=%.0f" % [th.phase, th.x]
+	var nk := cj.need_k(); var guard := 0
+	while (String(s["sw"]) != "charge" or float(s["c"]) < nk - 0.0001) and guard < 200: cj.throw(180.0, z, on, true, fig); cj._process(DT); guard += 1
+	var me_prev := float(s["me_t"])
+	while float(s["me_t"]) <= me_prev and guard < 400: cj.throw(180.0, z, on, false, fig); cj._process(DT); guard += 1
+	var me1 := float(s["me_t"]); var pj: Dictionary = (s["javs"] as Array)[int(s["jav"])]
+	_flight(cj, pj); var pst := String(pj["st"]); var day1 := int(s["day"]); var e1 := th.ends.size(); var day_set := day1 == cj.day()
+	cj.sync(me1 + 1.4); cj._process(0.0); var early := th.phase
+	_until(cj, th, "walk", 30); var when := cj.t - me1
+	_until(cj, th, "wait", 60); var waiting := "%s ring empty=%s" % [th.phase, cj._ring_empty(s)]
+	cj.sync(float(pj["t0"]) + 12.01); cj._process(0.0); var still := th.phase
+	_until(cj, th, "lick", 30); var lick_at := cj.t - float(pj["t0"])
+	_until(cj, th, "idle", 600)
+	print("THROWER the player first: walking x=%.0f (want 207: the first tick turns, two walk) | you grip: %s (want back) → %s (want idle 216) | your throw: %s me_t set=%s day set=%s (want stuck true true) | 1.4 s after: %s (want idle) walks at %.2f s (want 1.50..1.52) → %s (want wait false: your javelin holds the ring) | the ring lets go at 12.01 s: %s, lick %.2f s after it opens (want wait 0.02: a dt-0 tick does not step the thrower, the next tick reads the wind) → %s ends+%d day same=%s me_t same=%s (want idle 1 true true)" % [mid_x, yield_ph, yielded, pst, me1 > me0, day_set, early, when, waiting, still, lick_at, th.phase, th.ends.size() - e1, int(s["day"]) == day1, float(s["me_t"]) == me1])
+
+## 손에서 모음 0.30..0.50 으로 창을 띄워(팩의 _fly, count 거짓) 고리에 꽂히는 모음의 아래·위 — hits·day 는 되돌린다
+func _window(cj: ClimbJavelin, s: Dictionary) -> Array:
+	var j: Dictionary = (s["javs"] as Array)[0]; var hits := int(s["hits"]); var day := int(s["day"]); var dir := float(s["dir"])
+	var lo := 9.0; var hi := -9.0
+	for i in range(30, 51):
+		var c := float(i) / 100.0
+		var v := cj.v_min() + (cj.v_max() - cj.v_min()) * c
+		j["st"] = "fly"; j["x"] = float(s["wx"]) + dir * cj.hand_dx(); j["y"] = float(s["y"]) + cj.hand_dy(); j["vx"] = dir * v * cos(cj.loft()); j["vy"] = v * sin(cj.loft()); j["loose"] = false; j["count"] = false; j["t0"] = cj.t
+		var n := 0
+		while String(j["st"]) == "fly" and n < 120: cj._fly(s, j, DT); n += 1
+		if String(j["st"]) == "stuck": lo = minf(lo, c); hi = maxf(hi, c)
+		j["st"] = "rack"; j["loose"] = false; j["t0"] = -99.0
+	s["hits"] = hits; s["day"] = day
+	return [lo, hi]
+
+## 꽂힌 창이 떨어져(12 s) 눕고(0.35 s) 받침대로 돌아올(3 s) 만큼 시간을 보낸다 — 고리가 비고 셋이 받침대에
+func _reset(cj: ClimbJavelin) -> void:
+	cj.sync(cj.t + 12.1); cj._process(0.0)
+	for i in 60: cj._process(DT)
+	cj.sync(cj.t + 3.1); cj._process(0.0)
+
+## 던지는 이의 phase 가 p 가 될 때까지 팩의 _process 를 돌린다(cap_ticks × 5 틱까지 — 안 오면 그냥 돌아온다, 출력의 want 가 어긋난다)
+func _until(cj: ClimbJavelin, th: ClimbThrower, p: String, cap_ticks: int) -> void:
+	var n := 0
+	while th.phase != p and n < cap_ticks * 5:
+		cj._process(DT); n += 1
+
+func _label(f: Stick3D) -> String:
+	for ch in f.get_children():
+		if ch is Label3D: return (ch as Label3D).text
+	return ""
+
+## lick 자세(메타로 세운다): 입술(0.2) 오른팔 어깨 −1.20 z −0.30 팔꿈치 −1.75·왼팔 0·고개 > 0; 든 팔(0.7) −2.85 |z| < 0.05 −0.10·왼손 허리 −0.30 0.55 −1.70·고개 lee(−1) 로 < 0·상체 −0.036; 끝(1.3) 어깨 0 팔꿈치 0 done; 메타 없이 1.3 에 done
+func _lick_pose(fig: Stick3D) -> void:
+	fig.pose_request = "lick"; fig.set_meta("lick_t", 0.2); fig.set_meta("lick_lee", -1.0)
+	for i in 45: await process_frame
+	var a_shx: float = wrapf((fig.shoulders[1.0] as Node3D).rotation.x, -PI, PI); var a_shz: float = (fig.shoulders[1.0] as Node3D).rotation.z; var a_el: float = (fig.elbows[1.0] as Node3D).rotation.x
+	var a_shx2: float = wrapf((fig.shoulders[-1.0] as Node3D).rotation.x, -PI, PI); var a_neck := fig.neck.rotation.x
+	fig.set_meta("lick_t", 0.7)
+	for i in 45: await process_frame
+	var b_shx: float = wrapf((fig.shoulders[1.0] as Node3D).rotation.x, -PI, PI); var b_shz: float = (fig.shoulders[1.0] as Node3D).rotation.z; var b_el: float = (fig.elbows[1.0] as Node3D).rotation.x
+	var b_shx2: float = wrapf((fig.shoulders[-1.0] as Node3D).rotation.x, -PI, PI); var b_shz2: float = (fig.shoulders[-1.0] as Node3D).rotation.z; var b_el2: float = (fig.elbows[-1.0] as Node3D).rotation.x
+	var b_ny := fig.neck.rotation.y; var b_tx := fig.torso.rotation.x
+	fig.set_meta("lick_t", 1.3)
+	for i in 45: await process_frame
+	var e_shx: float = wrapf((fig.shoulders[1.0] as Node3D).rotation.x, -PI, PI); var e_el: float = (fig.elbows[1.0] as Node3D).rotation.x; var e_done := LickPoses.done(fig)
+	fig.remove_meta("lick_t"); fig.remove_meta("lick_lee")
+	fig.pose_t = LickPoses.TOTAL - 0.01; var before := LickPoses.done(fig)
+	fig.pose_t = LickPoses.TOTAL + 0.001; var after := LickPoses.done(fig)
+	print("LICK pose lips 0.2: arm=%.2f z=%.2f elbow=%.2f | other arm=%.2f neck>0=%s (want −1.20 −0.30 −1.75 | 0.00 true) | up 0.7: arm=%.2f |z|<0.05=%s elbow=%.2f | hip hand=%.2f z=%.2f elbow=%.2f | neck.y<0=%s torso=%.3f (want −2.85 true −0.10 | −0.30 0.55 −1.70 | true −0.036) | end 1.3: arm=%.2f elbow=%.2f done=%s (want 0.00 0.00 true) total=%.2f (want 1.30) demo done(1.29 → 1.301)=%s" % [a_shx, a_shz, a_el, a_shx2, a_neck > 0.0, b_shx, absf(b_shz) < 0.05, b_el, b_shx2, b_shz2, b_el2, b_ny < 0.0, b_tx, e_shx, e_el, e_done, LickPoses.TOTAL, (not before) and after])
+	fig.pose_request = ""

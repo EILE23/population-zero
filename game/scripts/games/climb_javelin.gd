@@ -14,6 +14,7 @@ extends Node3D
 ## (팩이 meta hurl_d·hurl_c·hurl_t 를 적고 swing_s 에 지운다); `_figure()` 의 face 가지 앞에 `var jd := cj.throwing(fig); if jd != 0.0: fig.face(PI / 2.0 if jd > 0.0 else -PI / 2.0)`; 공중에선 부르지 않는다. 쉼터 판 C 는 signs.tick 이 먼저 — 받침대는 std 발판에만 선다.
 ## 착지: 로더의 착지 판정이 비면 `var jl := cj.land(x, y, ny, z); if not jl.is_empty(): landed = jl`; 선 매 틱 `if String(on.get("kind", "")) == "javelin" and not cj.holds(on): on = {}; apex = y` (고리가 놓았다 — 몸은 그냥 떨어진다, 빌린 자세 없음).
 ## throw 의 count: 비우면 플레이어(판에 세고 me_t 를 적는다 — 다음 조각의 주민 반쪽이 따라 던진다), 다른 몸은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_javelin.gd
+## 주민 반쪽(run 179): 투창장마다 던지는 이 하나(climb_thrower.gd — 투창장 노드 아래 Stick3D)가 받침대에서 고리 쪽 40 px 에 카메라를 보고 서서 탑의 1분마다, 그리고 플레이어가 던진 뒤 1.5 s 뒤에 받침대로 가 고리가 비길 기다려 바람을 읽고(lick) 같은 throw(count 거짓)·같은 hurl 로 던진다(모음은 바람째 푼 가운데 ± 차례 — 둘에 하나 꽂힌다; 꽂힌 창은 플레이어의 발판). 로더가 할 일은 없다 — 팩이 짓고 틱을 준다.
 
 const PACK := "res://data/climb/javelin.json"
 const C = preload("res://scripts/games/climb.gd")
@@ -28,7 +29,7 @@ const RACK_LEAN := 1.25     # 받침대에 기댄 창의 각(rad, 수평에서)
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.range
-var ranges: Array = []          # 지은 투창장 {id, kind "range", n, hop_id, hop_w, hop_x, y, dir, wx, rx, ry, x, w, y_top, z, d, wind, need, plats, node, rack, ring_node, javs, jav, sw, sw_t0, sw_fig, c, thrown, count, throws, day, hits, me_t, throw_day, day_throws, whish, thunk, clatter}
+var ranges: Array = []          # 지은 투창장 {id, kind "range", n, hop_id, hop_w, hop_x, y, dir, wx, rx, ry, x, w, y_top, z, d, wind, need, plats, node, rack, ring_node, javs, jav, sw, sw_t0, sw_fig, c, thrown, count, throws, day, hits, me_t, throw_day, day_throws, whish, thunk, clatter, thrower}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -293,6 +294,7 @@ func _process(delta: float) -> void:
 		_swing(s)
 		for jv in (s["javs"] as Array): _jav(s, jv, dt)
 		_place(s)
+		if s.has("thrower"): (s["thrower"] as ClimbThrower).step(delta)   # 던지는 이의 틱 — 창이 돈 뒤라 꽂힘·떨어짐을 같은 틱에 본다
 
 ## 던지기의 시계 — 놓은 뒤 release_s 에 창이 손을 떠나고(whish) swing_s 에 몸이 풀린다
 func _swing(s: Dictionary) -> void:
@@ -424,6 +426,7 @@ func build(root: Node3D, planned: Array) -> void:
 		s["sw"] = ""; s["sw_t0"] = -99.0; s["sw_fig"] = null; s["c"] = 0.0; s["thrown"] = false; s["count"] = true
 		s["throws"] = 0; s["day"] = -1; s["hits"] = 0; s["me_t"] = -99.0; s["throw_day"] = -1; s["day_throws"] = 0
 		s["whish"] = _snd(node, float(kind.get("whish_hz", 600)), 0.08, -16.0, false); s["thunk"] = _snd(node, float(kind.get("thunk_hz", 240)), 0.12, -12.0, false); s["clatter"] = _snd(node, float(kind.get("clatter_hz", 1100)), 0.2, -14.0, true)
+		s["thrower"] = ClimbThrower.new(self, s, node)   # 주민 반쪽 — 받침대 곁에 카메라를 보고 선 던지는 이
 		ranges.append(s)
 		_place(s)
 
