@@ -1,0 +1,50 @@
+{
+  "_": "Climb content pack 'Cliff javelin' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_javelin.gd reads this file: plan(n, plats, wind, taken) works only on the `themes` floors and looks at every still hop of the piece's `on` kinds that is at least `min_w` wide; the throw goes toward the tower's middle (`dir` is +1 on a hop left of centre, −1 right of it), a rack of `count` javelins (each `len` px long) stands `rack_in` px in from the hop's rear edge against the cliff (`range_d` px deep — the lane in front stays open), and a straw ring (`ring_r` px) hangs on the cliff `range_dx` px down-range and `range_dy` px over the hop; a hop takes a range only when no other platform cuts the flight corridor (from 30 px past the rack to the ring's far edge, 60 px over the hop up to a body standing on the ring) and no `taken` piece of another pack (the loader passes the updraft's, icicles', kites', hurdles', bars' and dandelions' plans) sits on the rack or in the ring's band (20 px under to 60 px over — run 152's band rule); one range per floor on the widest such hop. C beside the rack (within HW + `reach` px, standing) takes a javelin: the draw (`draw_s`, the arm back, the other arm at the ring), then C held charges (`charge_s` to full, the jump's CHARGE clock), C let go throws — the javelin leaves the hand (`hand_dx` px ahead, `hand_dy` px up) `release_s` after the release at `loft_deg` and v_min + (v_max − v_min) × charge px/s, pushed by the floor's wind like a body, and the body is free at `swing_s`; the body is busy (no walking, no jump) from the first C to `swing_s`. A javelin whose path passes within `ring_r` of an empty ring sticks: tip in the ring, shaft level back toward the thrower, and that shaft is a step `len` px wide at the ring's height (the loader's `land`/`holds`) — from it the hop after next is a plain jump; after `stay_s` the ring lets go and the javelin drops. A javelin that comes down on a hop lies there (a clatter), one that falls `lose_dy` under the hop or out of the tower is lost (dust); either is back in the rack after `back_s`. A ring hit counts once a tower-day (`day_s`) per range for the camp boards, note(n): 'Javelin ranges, floors 20–24: 1 of 2 rings hit today, 7 throws today.' The pose is `hurl` (stick3d_hurl.gd — the owner board's 'javelin' family: the draw with the throwing arm straight back over the shoulder and the free arm pointing at the ring, the charge sinking onto the bent rear leg with the chest opening and the arm quivering, the whip over the top with the free arm blocking at the hip, the follow-through with the rear leg swinging through and the eyes on the javelin, the stand — never a still frame). The rack, the ring and the javelins are not solid except the stuck shaft, and nothing costs anything. Nothing changes for a body that does not press C beside the rack: the plain run across the hop, the plain jump and C anywhere else (the camp door, the boards) are untouched, and C beside an empty rack is nothing too (the plain outcome is 100%). tools/probe_javelin.gd checks the plan and its refusals, the draw, the charge, the release, the flight, the stick, the step, the stay, the drop, the miss, the loss, the return, the day, the note, the visuals, the sounds and the pose.",
+  "id": "javelin",
+  "name": "Cliff javelin",
+  "pose": "hurl",
+  "themes": [
+    "Wind cliffs"
+  ],
+  "kinds": {
+    "range": {
+      "_": "min_w: the hop's least width (px). reach: px either side of the rack's centre (beyond the body's half-width HW) where C takes a javelin. rack_in: the rack's centre px in from the hop's rear edge (the edge away from the throw). range_d: the rack's and the ring's depth from the cliff side (px). count: javelins in the rack. len: a javelin's length (px) — and the stuck step's width. rack_h: the rack's crossbar over the hop (px). range_dx/range_dy: the ring's centre down-range of the rack and over the hop (px). ring_r: the ring's radius (px) — a path within it sticks. loft_deg: the throw's angle over the horizontal. v_min/v_max: px/s at no charge and full charge. hand_dx/hand_dy: where the javelin leaves the hand, ahead of and over the rack's centre (px). draw_s: seconds of the draw before the charge counts. charge_s: seconds of C to full charge. release_s: seconds from the release to the javelin leaving the hand. swing_s: seconds from the release until the body is free. stay_s: seconds of tower time a stuck javelin holds before the ring lets go. back_s: seconds a lying or lost javelin takes to be back in the rack. lose_dy: px under the hop where a falling javelin is lost. day_s: seconds of tower time in a tower-day — a range counts once per day. whish_hz: the javelin leaving the hand; thunk_hz: the tip in the ring; clatter_hz: the shaft on a hop.",
+      "min_w": 110,
+      "reach": 14,
+      "rack_in": 26,
+      "range_d": 24,
+      "count": 3,
+      "len": 60,
+      "rack_h": 40,
+      "range_dx": 120,
+      "range_dy": 150,
+      "ring_r": 12,
+      "loft_deg": 60,
+      "v_min": 500,
+      "v_max": 1300,
+      "hand_dx": 12,
+      "hand_dy": 48,
+      "draw_s": 0.45,
+      "charge_s": 0.8,
+      "release_s": 0.2,
+      "swing_s": 0.75,
+      "stay_s": 12,
+      "back_s": 3,
+      "lose_dy": 300,
+      "day_s": 600,
+      "whish_hz": 600,
+      "thunk_hz": 240,
+      "clatter_hz": 1100
+    }
+  },
+  "pieces": [
+    {
+      "_": "Wind cliffs floors are 20..24, 55..59, 90..94 …; on 20..24 the hops are 135..175 px wide, so most floors have several hops over min_w, and the widest one whose corridor no other hop cuts and that no updraft vent (run 118), icicle ledge (run 123), kite (run 131), hurdle rail (run 155), high-jump bar (run 170) or dandelion (run 150) took gets the range; from floor 55 the hops are 100..140 px wide and the floor's wind (from 40) pushes the flight, so the charge that hits moves. One range per floor. In still air the ring's centre takes v = sqrt(G dx² / (2 cos²a (dx tan a − dy))) with dx 108 and dy 102 from the hand — about 811 px/s, charge 0.39; the ring's radius makes the window roughly 0.33..0.47.",
+      "kind": "range",
+      "on": [
+        "std"
+      ],
+      "max": 1
+    }
+  ]
+}
