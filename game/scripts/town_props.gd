@@ -5,7 +5,7 @@ extends TownBase
 
 ## 창 — 벽면(at)에 붙는다. 나무 틀 네 변 + 살(십자) + 파란 유리 + 돌 창턱. 전엔 흰 상자 위에 흰 유리라 스티커처럼 보였다
 func _window(at: Vector3, yaw: float, shutters := false, shutter_c := Color("7b526c")) -> Node3D:
-	var n := Node3D.new(); n.position = at; n.rotation.y = yaw; add_child(n)
+	var n := Node3D.new(); n.position = at; n.rotation.y = yaw; _add(n)   # 구역에(합치기·스트리밍) — 마을 뿌리에 달려 창 하나가 그리기 아홉 번씩 늘 남았다(2026-10-19)
 	var frame := _mat(Color("8a6a4a")); var glass := _mat(Color("7f9fb0"))
 	_box(Vector3(0.6, 0.7, 0.05), Vector3(0, 0.07, -0.01), glass, false, n)
 	_box(Vector3(0.72, 0.06, 0.08), Vector3(0, 0.45, 0.0), frame, false, n)

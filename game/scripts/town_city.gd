@@ -376,6 +376,18 @@ func _merge_done(mark: Array) -> void:
 	for k in range(int(mark[2]), doors.size()): ex.append(doors[k]["hinge"])
 	MeshMerge.merge(par, nodes, ex)
 	for k in range(int(mark[3]), houses.size()): houses[k]["merged"] = true
+	_dm_dirty[par] = Time.get_ticks_msec()
+
+## 구역 합치기(MeshMerge.merge_district) — 집이 지어진 구역을, 1초 동안 더 안 지어지면 한 프레임에 한 구역씩
+var _dm_dirty := {}
+func _district_merge_tick() -> void:
+	if _dm_dirty.is_empty(): return
+	var now := Time.get_ticks_msec()
+	for par in _dm_dirty:
+		if now - int(_dm_dirty[par]) < 1000: continue
+		_dm_dirty.erase(par)
+		if is_instance_valid(par): MeshMerge.merge_district(par)
+		return
 
 ## 부술 수 있는 소품의 8m 칸 색인 — 차(car3d _smash_props)가 둘레 아홉 칸만 본다
 var _wk_grid := {}

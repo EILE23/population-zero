@@ -62,6 +62,8 @@ static func put(t, path: String, at: Vector3, yaw := 0.0, sc := 1.0, solid := tr
 	m.position = Vector3(-(ab.position.x + ab.size.x / 2.0) * sc, -ab.position.y * sc, -(ab.position.z + ab.size.z / 2.0) * sc)
 	pivot.add_child(m)
 	var size := ab.size * sc
+	if size.y < 1.6 and maxf(size.x, size.z) < 3.0:   # 잔것 — 멀면 감춘다(MeshMerge.detail_lod)
+		for g in m.find_children("*", "GeometryInstance3D", true, false): MeshMerge.detail_lod(g)
 	t._add(pivot)
 	if solid and size.y > 0.3:   # 부모(구역·임시 마당)마다 정적 몸 하나에 모양만 늘린다 — 소품마다 몸 하나면 1만 개가 넘어 물리 한 걸음이 16ms 였다(2026-10-14)
 		var par: Node = pivot.get_parent()

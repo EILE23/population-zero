@@ -32,8 +32,13 @@ func _tick(delta: float, now: float) -> void:
 	if has_method("_pawn_tick"): call("_pawn_tick", now)   # 위층(town_pawn) — 셔터, 8시의 재고·16시의 거두기, 건네는 손과 내는 손(run 116)
 
 ## 스트리밍(첫 단계): 플레이어에서 34m 넘게 먼 구역은 끈다 — 그리기·물리·주민 처리 비용이 빠진다. 씬 단위 로딩은 맵이 더 커질 때
+var near_res: Array = []   # 플레이어 둘레 40m 주민(비키기 — resident.gd)
+var _near_n := 0
 func _stream() -> void:
 	var p := focus_pos()
+	_near_n += 1
+	if has_method("_district_merge_tick"): call("_district_merge_tick")   # 구역 합치기(town_city)
+	if _near_n % 20 == 0: near_res = residents.filter(func(r: Node3D) -> bool: return is_instance_valid(r) and r.global_position.distance_squared_to(p) < 1600.0)
 	if not (has_method("is_inside") and call("is_inside")): gen.stream(p)   # 방 안(town_interior)에선 땅을 안 짓는다   # 열린 세계 칸 — 둘레를 짓고 먼 칸을 지운다
 	var reach := 48.0 * maxf(1.0, float(get("zoom")) * 0.75) if get("zoom") != null else 48.0   # 줌을 빼면 더 멀리까지 켠다 — 위에서 본 마을이 비어 보이지 않게
 	for d in districts:

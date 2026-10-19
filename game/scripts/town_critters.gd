@@ -105,22 +105,26 @@ func _fresh_drop(from: Vector3, r: float) -> Node3D:
 func _smoke(now: float) -> void:
 	if now - _smoke_at < 0.5: return
 	_smoke_at = now
+	var home := {}   # 누가 있는 집의 문 자리 — 자리를 한 번만 훑는다(집마다 자리 수천 개를 훑어 0.5초마다 큰 끊김이 났다, 2026-10-19)
+	for sp in spots:
+		if not sp.has("taken") or not (sp.get("door") is Dictionary): continue
+		for t in sp["taken"]:
+			if t != null: home[(sp["door"] as Dictionary).get("pos", Vector3.INF)] = true; break
+	var fp := focus_pos()
 	for h in houses:
 		if h.get("chim") == null: continue   # 평지붕(옥상 집)엔 굴뚝이 없다
+		var on: bool = (h["min"] as Vector3).distance_squared_to(fp) < 8100.0   # 90m 안만 — 먼 굴뚝 연기는 안 보인다
+		if not on and not h.has("smoke"): continue
 		if not h.has("smoke"): h["smoke"] = _make_smoke(h["chim"])
 		var pt: CPUParticles3D = h["smoke"]
-		pt.emitting = _someone_home(h) or h.get("fed", false)   # fed: 장작을 넣은 난로가 타는 밤(오두막, run 92 town_sites _stove)
+		pt.emitting = on and (_someone_home(h, home) or h.get("fed", false))   # fed: 장작을 넣은 난로가 타는 밤(오두막, run 92 town_sites _stove)
 		pt.direction = Vector3(0.3 + gust * 6.0, 1.0, 0.0)   # 잎 뭉치와 같은 바람에 +x 로 흘러간다 — 비바람이면 더 눕는다
 
 ## 이 집에 누가 있나 — 주민이 잡은 칸(_house 가 spots[k]["door"] 로 집을 이어 둔다) 또는 그 벽 안에서 앉거나 누운 나
-func _someone_home(h: Dictionary) -> bool:
+func _someone_home(h: Dictionary, home: Dictionary) -> bool:
 	var p := body.global_position; var mn: Vector3 = h["min"]; var mx: Vector3 = h["max"]
 	if (resting or not seat.is_empty()) and p.x > mn.x and p.x < mx.x and p.z > mn.z and p.z < mx.z and p.y < mx.y: return true
-	for sp in spots:
-		if not sp.has("taken") or not (sp.get("door") is Dictionary) or sp["door"] != h["door"]: continue   # 게임 문은 Node(town_sites) — 견주면 오류
-		for t in sp["taken"]:
-			if t != null: return true
-	return false
+	return h.get("door") is Dictionary and home.has((h["door"] as Dictionary).get("pos", Vector3.INF))   # 게임 문은 Node(town_sites) — 견주면 오류
 
 ## 굴뚝 갓 위의 연기 입자 — 옅은 회색 구가 2초 동안 떠오르며 커지고 사라진다(color_ramp 로 끝에서 투명). 갓의 자식이라 컷어웨이로 지붕이 사라지면 같이 사라진다
 func _make_smoke(cap: Node3D) -> CPUParticles3D:

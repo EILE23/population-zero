@@ -205,7 +205,14 @@ func _sulk_tick(now: float) -> void:
 	if o.state == "walk" and o.route.any(func(st: Dictionary) -> bool: return st.get("act", "") != ""): return   # 문·나루를 지나는 길은 끊지 않는다
 	if _slot_beside() >= 0: o._go_mend(self, now)
 
+var _pacc := 0.0
+var _pn := 0
 func _process(delta: float) -> void:
+	if state != "drive" and global_position.distance_squared_to(town.body.global_position) > 1225.0:   # 35m 밖은 네 프레임에 한 번(쌓인 시간만큼) — 욕구·알아보기·짝 일은 느려도 된다(2026-10-19 성능)
+		_pacc += delta; _pn = (_pn + 1) % 4
+		if _pn != 0: return
+		delta = _pacc
+	_pacc = 0.0
 	super(delta)
 	if state == "drive": return
 	var now := Time.get_ticks_msec() / 1000.0

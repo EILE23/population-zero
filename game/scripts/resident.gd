@@ -5,15 +5,19 @@ extends ResidentPlay
 
 const FAR_SQ := 1225.0   # 35m(2026-10-13: 마을이 빽빽해져 60m 안 주민이 늘 50명 넘었다) — 이보다 먼 주민은 물리를 FAR_EVERY 틱에 한 번(2026-10-01 성능 패스). 걸음 그림은 _process 가 계속 그리니 60m 밖에선 티가 안 난다
 const FAR_EVERY := 4
+const VFAR_SQ := 4900.0   # 70m 밖은 여덟 틱에 한 번(2026-10-19 성능: 주민 물리가 한 프레임 9ms — 걷는 주민 69명)
+var _every := 1
 var _far_tick := 0
 
 func _physics_process(delta: float) -> void:
-	var far := state != "drive" and global_position.distance_squared_to(town.body.global_position) > FAR_SQ
+	var d2 := global_position.distance_squared_to(town.body.global_position)
+	var far := state != "drive" and d2 > FAR_SQ
 	if far:
 		if not town.gen.has_ground(global_position): return   # 밑의 칸이 지워졌다 — 떨어지지 않게 그 자리에서 기다린다
-		_far_tick = (_far_tick + 1) % FAR_EVERY
+		_every = FAR_EVERY * 2 if d2 > VFAR_SQ else FAR_EVERY
+		_far_tick = (_far_tick + 1) % _every
 		if _far_tick != 0: return
-		delta *= FAR_EVERY   # 한 번에 네 틱만큼(중력·감속·턱 오르기) — 아래 move_and_slide 도 속도를 네 배로 해 같은 거리를 간다
+		delta *= _every   # 한 번에 여러 틱만큼(중력·감속·턱 오르기) — 아래 move_and_slide 도 속도를 그만큼 곱해 같은 거리를 간다
 	var now := Time.get_ticks_msec() / 1000.0
 	if say_label.visible and now > say_until:
 		say_label.visible = false
@@ -129,9 +133,9 @@ func _physics_process(delta: float) -> void:
 		town.water.wake(self, true, delta)
 	elif fig.pose_request == "swim":
 		fig.pose_request = ""; fig.position.y = 0.0; town.water.drip(self)
-	town.teeter(fig, global_position, state == "walk" or state == "chase")   # 디딤돌 위 균형(run 84) — 사람과 같은 자리·같은 자세
-	if state == "walk" or state == "chase":
-		for o in town.residents:
+	if not far: town.teeter(fig, global_position, state == "walk" or state == "chase")   # 디딤돌 위 균형(run 84) — 사람과 같은 자리·같은 자세
+	if (state == "walk" or state == "chase") and not far:   # 비키기는 가까운 주민만(멀면 아무도 안 본다 — 주민마다 90명을 훑었다)
+		for o in town.near_res:   # 플레이어 둘레 40m 주민만(town_systems — 0.3초마다 다시 고른다)
 			if o == self: continue
 			var dv: Vector3 = global_position - o.global_position; dv.y = 0.0
 			var dl := dv.length()
@@ -140,11 +144,11 @@ func _physics_process(delta: float) -> void:
 	velocity = v
 	if fig.seated or not riding_swing.is_empty() or in_boat:
 		return   # 앉거나 그네·배를 탈 땐 물리로 밀리지 않는다
-	if is_on_floor() and Vector2(v.x, v.z).length() > 0.1:
+	if is_on_floor() and is_on_wall() and Vector2(v.x, v.z).length() > 0.1:   # 턱에 막혔을 때만 — 매 틱 시험 이동이 주민마다 24µs 였다
 		town.step_up(self, Vector3(v.x, 0, v.z) * delta)   # 턱·문지방·계단 오르기(사람과 같은 규칙)
-	if far: velocity *= FAR_EVERY
+	if far: velocity *= _every
 	move_and_slide()
-	if far: velocity /= FAR_EVERY
+	if far: velocity /= _every
 
 ## 날씨 바뀜 — 비면 지금 하던 걸 접고 실내로 서두른다(밖 자리에 있었으면 바로 다시 고른다)
 func on_weather(w: String) -> void:
