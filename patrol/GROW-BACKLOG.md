@@ -1360,3 +1360,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-18) A low-slung refuse dray hauled by a shaggy donkey, led by an appointed town scavenger who stops at each map's dustbins to tip ashes and sweepings into zinc hampers before trundling to the allotments compost trench.
 - [ ] (town wish, 2026-10-19) An iron quoits pitch at the bandstand where two residents take turns pitching four hemp rings at a ground stake, displaying a score above their heads, which the player can join by stepping onto the pitcher's mat.
+- [ ] (town wish, 2026-10-19) A stone draughts table set in the park where two seated residents alternate sliding wooden draughts between black and buff squares, pausing to let a player sitting on the vacant stool push the next piece.
