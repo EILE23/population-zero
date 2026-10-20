@@ -1,0 +1,37 @@
+{
+  "_": "Climb content pack 'Cloud pool' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_pool.gd reads this file: plan(n, plats, taken) works only on the `themes` floors minus the vent floors (the `only` rules), looks at every pair of consecutive hops in the climbing order whose lower hop stands still (the piece's `on` kinds — the body climbs out onto it) and whose upper hop does not move, at most max_dy apart in height and min_gap..max_gap apart sideways, whose basin box (the gap, from `depth` under the surface up to a body on it) no other platform cuts and no `taken` piece of another pack (the raft, the mushroom, the plank, the balloon, the lens, the pit, the green, the bridge, the ghost slab — the loader passes their plans; each piece's own span plus 30 px of cap, not the hammock's 100 — Cloud sea is crowded) meets — and fills the widest such gap with a basin of cloud whose surface lies `lip` px under the lower hop's top: a pale slab between the two facing edges, `puffs` tufts drifting along its top toward the lower hop at `flow` px/s and wrapping, a mauve ring buoy on a post at the lower hop's edge. A body falling through the gap that crosses the surface line inside the span is caught (catch): it plunges `dunk` px under over dunk_s (the splash) and bobs up to ride `ride` px under the surface, then floats on its back (`afloat`, stick3d_afloat.gd — the owner board's water family: on the back, arms out, the forearms sculling, a foot wagging, the head back) bobbing `bob_a` px every bob_s, carried by the flow toward the lower hop; Left/Right paddle at `paddle` × WALK against or with it, and SPACE does nothing (there is nothing to push against). Reaching the lower hop's edge the body climbs out over out_s onto that hop (the loader is handed the hop as `stand`) — the flow brings a missed jump back to the hop it left, in time instead of in height. Down sinks the body under over sink_s and lets it fall out of the basin's bottom (`depth` px under the surface). A pool just left catches nothing for grace_s; a floating body whose ticks stop for HELD_T has left the tower and the pool is empty again. A catch counts once a tower-day (`day_s`) per pool for the camp boards, note(n): 'Cloud pools, floors 25–29: 2 of 3 floated in today, 7 dips today.' Nothing shoves, refuses or costs: the plain landing on either hop and the plain jump across are untouched (the body crossing above the surface meets nothing — 100%); the pool only matters to a body that would otherwise have fallen past the floor, and to one that steps off the lower hop's gap edge, which now floats instead of falling. tools/probe_pool.gd checks the plan and its refusals, the catch and its refusals, the plunge, the float and the flow, the paddle, the climb-out, the sink, the grace, the lost body, the day and the note, the visuals, the sounds and the pose.",
+  "id": "pool",
+  "name": "Cloud pool",
+  "pose": "afloat",
+  "themes": ["Cloud sea"],
+  "kinds": {
+    "pool": {
+      "_": "min_gap/max_gap: the gap between the two hops' facing edges (px). max_dy: the two hops may differ in height by this much (px). lip: the surface lies this far under the lower hop's top (px) — a body stepping off that edge drops onto it. depth: the basin's thickness under the surface (px); a sinking body falls out of its bottom. d: the basin's width across (px). dunk: the plunge's depth under the surface (px); dunk_s: seconds the plunge and bob-up take. ride: the floating body's depth under the surface (px). bob_a/bob_s: the float's bob (px, seconds). flow: the cloud's drift toward the lower hop (px/s). paddle: Left/Right paddles at this share of WALK. out_s: seconds the climb-out takes. sink_s: seconds Down takes to go under. grace_s: no catch for this long after a body left. day_s: seconds of tower time in a tower-day. puffs: tufts drifting on the surface. splash_hz: the plunge; slosh_hz: the climb-out.",
+      "min_gap": 60,
+      "max_gap": 200,
+      "max_dy": 140,
+      "lip": 8,
+      "depth": 48,
+      "d": 40,
+      "dunk": 18,
+      "dunk_s": 0.4,
+      "ride": 4,
+      "bob_a": 3,
+      "bob_s": 2.4,
+      "flow": 30,
+      "paddle": 0.35,
+      "out_s": 0.6,
+      "sink_s": 0.3,
+      "grace_s": 0.4,
+      "day_s": 600,
+      "puffs": 6,
+      "splash_hz": 260,
+      "slosh_hz": 160
+    }
+  },
+  "pieces": [
+    { "_": "Cloud sea floors are 25..29, 60..64, 95..99 …; the vent floors ((n − 3) % 4 == 0: 27, 63, 99 …) stay without a pool — the vents own the gaps there. The older packs live in residue classes of four across every theme (the mushroom 1 mod 4, the ghost slab 2 mod 4, the rope bridge 0 mod 4) and the Cloud sea packs (the raft, the plank, the balloon, the lens, the pit, the green) take gaps and hops of their own — the loader passes all their plans as `taken` and a gap one of them uses is skipped, so the pool takes the widest free gap. One pool per floor, in the widest gap of 60..200 px between two consecutive hops at most 140 px apart in height whose lower hop stands still; with six packs already on the theme only some floors have a free gap.", "kind": "pool", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 4, "every": 4 } },
+    { "kind": "pool", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 5, "every": 4 } },
+    { "kind": "pool", "on": ["std", "ice", "spring", "crumble"], "max": 1, "only": { "from": 6, "every": 4 } }
+  ]
+}
