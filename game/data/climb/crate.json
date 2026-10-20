@@ -1,0 +1,40 @@
+{
+  "_": "Climb content pack 'Removal crates' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_crate.gd reads this file: plan(n, plats, taken) works only on the `themes` floors (minus the piece's `not` floors) and looks at every still `on` hop a of at least min_w px whose next hop b rises over it; the hop with the biggest rise gets the pile — `count` crates (w × h × deck_d px each) stacked on a chalk mark `pile_in` px in from a's end away from the gap — when no other platform cuts the pile's box and no `taken` piece of another pack (the loader passes the bell's, door's, laundry's, drawbridge's, tapestry's and log's plans) touches the hop; one pile per floor. C (a tap) on a or on one of its stacks, beside a stack (within HW + w/2 + `reach` px of its centre, never the stack you stand on) lifts the top crate: `lift_s` of squatting, gripping and standing up with the crate against the belly (busy), then the body lugs it — walking at `slow` × WALK, no jump; C (a tap) sets it down `set_s` (busy) in front of the body (HW + 2 + w/2 px ahead) when the crate's footprint fits on a: on the floor as a new stack, or on top of a stack it touches (snapped to it, up to `max_stack` high); a stack's top is a step for a falling body (land) — the tower's first step you build yourself. Lugging the crate off a (into the air, onto another hop) makes it slip from the hands: it tumbles back to the chalk mark over `tumble_s` (thud). Setting down on a full stack or outside a is nothing (still lugging). A stack reaching max_stack counts once a tower-day per pile for the camp boards (note(n): 'Removal crates, floors 1–4: 1 of 1 pile stacked 3 high today, 3 of 3 crates off the pile.'). Only C beside a stack changes anything: the run across a, the plain jump over the gap and walking through a stack (nothing blocks — a stack catches only a body from above) are untouched (the plain outcome is 100%). The pose is `lug` (stick3d_lug.gd — the owner board's 'carrying boxes and furniture' family, its first pose: the squat and grip, the stand with the crate hugged to the belly, the short steps and the leaned-back trunk under the weight, the trembling arms, the hands that lose it — never a still frame). Nothing costs anything. tools/probe_crate.gd checks the plan and its refusals, the lift, the lug, the set, the stacking and the snap, the step, the slip and the tumble home, the full stack and the day, the note, the visuals, the sounds and the pose.",
+  "id": "crate",
+  "name": "Removal crates",
+  "pose": "lug",
+  "themes": [
+    "Old hall"
+  ],
+  "kinds": {
+    "pile": {
+      "_": "w/h: a crate's width and height (px); deck_d: its depth (px) for the loader's z test. count: crates on the pile. min_w: the least hop width (px) that takes a pile. pile_in: the pile's centre px in from the hop's end away from the gap. reach: px beyond HW + w/2 either side of a stack's centre where C lifts. lift_s/set_s: seconds of lifting and setting down (busy). slow: the walk's share of WALK while lugging. max_stack: crates high a stack may go. tumble_s: seconds a slipped crate takes to roll home. day_s: seconds of tower time in a tower-day — a pile counts once per day. creak_hz: the lift; thud_hz: a crate set down or landed home; roll_hz: a crate slipping from the hands.",
+      "w": 26,
+      "h": 20,
+      "deck_d": 16,
+      "count": 3,
+      "min_w": 150,
+      "pile_in": 30,
+      "reach": 14,
+      "lift_s": 0.5,
+      "set_s": 0.4,
+      "slow": 0.6,
+      "max_stack": 3,
+      "tumble_s": 0.6,
+      "day_s": 600,
+      "creak_hz": 320,
+      "thud_hz": 140,
+      "roll_hz": 220
+    }
+  },
+  "pieces": [
+    {
+      "_": "Old hall floors are 1..4, 35..39, 70..74 …; the bell (run 128), the revolving door (run 134), the laundry line (run 143), the drawbridge (run 144), the tapestry (run 153) and the rolling log (run 166) are passed as `taken`, so the pile stands on a hop none of them uses — the log takes the widest free hop, the crates the free hop under the biggest rise. The tower's Old hall hops are 130..200 px wide and rise 92..138 px, so a 3-high stack (60 px) turns the floor's hardest jump into an easy one. Only `std` hops: ice would slide the stack, a moving hop would leave it behind, a crumbling one would drop it, a spring would launch the body off the pile.",
+      "kind": "pile",
+      "on": [
+        "std"
+      ],
+      "max": 1
+    }
+  ]
+}
