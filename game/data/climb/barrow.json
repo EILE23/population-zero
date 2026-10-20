@@ -1,0 +1,50 @@
+{
+  "_": "Climb content pack 'Returns barrow' (owner 2026-10-06 night: Climb content ships as data under game/data/climb/, one pack per run; the owner session wires the loader, CI never edits climb.gd). Units are the tower's px like climb.gd (36 px = 1 m, +y up, x 0..960). scripts/games/climb_barrow.gd reads this file: plan(n, plats, taken) works only on the `themes` floors and looks at every still `on` hop a of at least min_w px whose next hop b rises over it; the hop with the biggest rise gets the barrow — a wooden wheelbarrow `len` px long (handles to wheel) parked on a stencilled RETURNS mark `park_in` px in from a's rear end (the end away from the gap), its wheel toward the gap, `books` returned books in the tray — when no other platform cuts the barrow's box (up to a body on the upended handles) and no `taken` piece of another pack (the loader passes the ladder's, dumbwaiter's, bookcase's, paternoster's, scroll rack's and catalogue's plans) touches the hop; one barrow per floor. C (a tap) standing behind the handles (within HW + `reach` px of the handle end, on the handle side) grips: `grip_s` of bending, taking the handles and lifting the legs off (busy), then the body pushes — walking at `slow` × WALK (`slow_empty` once the tray is empty), no jump, the barrow `HW + 3` px ahead of the hands; it stops with its wheel at the hop's edge, and a body that walks on past that, turns its back on it or leaves the hop lets go (`drop_s` — the handles clatter down, the barrow stays where it is). C let go (a tap) while pushing sets it down (`set_s`, busy); C held `tip_s` while standing still tips it: `swing_s` of the frame swinging up on its wheel until it stands upended on nose and wheel, the books sliding out ahead of the wheel into a heap `heap_dx` px past the wheel — or, with the wheel at the edge, over it (lost until they come back). The tray's top (`tray_h` px, `tray_w` wide) is a step while the barrow stands on its wheel; upended, the handle ends are a step `step_w` wide at wheel_r + len px — the tallest thing in the tower a body stands up by hand — and the heap is a lower step (`heap_h`, `heap_w`). C beside an upended barrow rights it (`right_s`, busy); `back_s` after that, with nobody near the heap, the books are back in the tray. A step stood on counts once a tower-day (`day_s`) per barrow for the camp boards, note(n): 'Returns barrows, floors 10–14: 1 of 1 stood on today, 2 tipped out today, 5 pushes today.' The pose is `barrow` (stick3d_barrow.gd — the owner board's 'wheelbarrow' family: the bend to the handles and the lift, the push with the trunk leaning in and the legs driving, the tip with the arms rising shoulder-high and a leg braced back, the let-go with the arms springing off — never a still frame). Nothing is solid except the steps and nothing costs anything. Nothing changes for a body that does not press C behind the handles: the plain run across the hop, the plain jump and C anywhere else are untouched, and C beside the wheel or in front of it is nothing (the plain outcome is 100%). tools/probe_barrow.gd checks the plan and its refusals, the grip, the push, the edge stop, the let-go, the set-down, the tip, the heap, the loss, the righting, the return, the steps, the day, the note, the visuals, the sounds and the pose.",
+  "id": "barrow",
+  "name": "Returns barrow",
+  "pose": "barrow",
+  "themes": [
+    "Library"
+  ],
+  "kinds": {
+    "barrow": {
+      "_": "min_w: the hop's least width (px). park_in: the barrow's centre px in from the hop's rear end. reach: px beyond the body's half-width HW within which C grips the handle end or rights the wheel. len: handles to wheel (px). tray_w/tray_h/tray_d: the tray's length along the hop, its rim over the hop, its depth (px). wheel_r: the wheel's radius (px). books: returned books in the tray. step_w: the handle step's width when upended (px). heap_dx: the heap's centre past the wheel (px); heap_w/heap_h: the heap's width and height (px). grip_s: seconds from C to the push. set_s: seconds to set it down. tip_s: seconds of C held standing still before the tip. swing_s: seconds the frame takes to swing upended. drop_s: seconds the hands take to come off. right_s: seconds to right an upended barrow. back_s: seconds after the righting until the books are back in the tray. slow/slow_empty: the walk's share of WALK pushing a full/empty barrow. day_s: seconds of tower time in a tower-day. squeak_hz: the wheel's quarter turn; clunk_hz: the legs on the hop; slither_hz: the books sliding out.",
+      "min_w": 140,
+      "park_in": 30,
+      "reach": 14,
+      "len": 44,
+      "tray_w": 24,
+      "tray_h": 30,
+      "tray_d": 20,
+      "wheel_r": 7,
+      "books": 4,
+      "step_w": 20,
+      "heap_dx": 22,
+      "heap_w": 30,
+      "heap_h": 14,
+      "grip_s": 0.4,
+      "set_s": 0.3,
+      "tip_s": 0.5,
+      "swing_s": 0.6,
+      "drop_s": 0.3,
+      "right_s": 0.5,
+      "back_s": 8,
+      "slow": 0.6,
+      "slow_empty": 0.85,
+      "day_s": 600,
+      "squeak_hz": 900,
+      "clunk_hz": 120,
+      "slither_hz": 700
+    }
+  },
+  "pieces": [
+    {
+      "_": "Library floors are 10..14, 45..49, 80..84 …; on 10..14 the hops are 145..188 px wide, so most floors have a hop over min_w, and the one under the floor's biggest rise that no ladder (run 127), dumbwaiter (run 130), bookcase (run 132), paternoster (run 139), scroll rack (run 145) or catalogue cabinet (run 151) took gets the barrow; from floor 45 the hops are 112..152 px wide and fewer floors hold one. One barrow per floor. Pushed to the edge and upended, the handle step stands 51 px over the hop (wheel_r + len) — with the step's own jump that reaches a rise the plain jump does not.",
+      "kind": "barrow",
+      "on": [
+        "std"
+      ],
+      "max": 1
+    }
+  ]
+}
