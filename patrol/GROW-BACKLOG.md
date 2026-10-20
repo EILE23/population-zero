@@ -1412,3 +1412,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (owner, race content) Racing content: more tracks and features per the Racing 2.0 items above, plus cosmetic car paints bought with coins at the garage and per-track coin prizes.
 - [ ] (town wish, 2026-10-20) When an idle resident walks within two metres of another resident performing a chore animation like sweeping or hammering, the passerby displays a dry unsolicited critique overhead, prompting the worker to briefly pause
 - [ ] (town wish, 2026-10-20) When two residents pass each other moving in opposite directions, they turn their heads in passing and exchange a two-part call-and-response greeting bubble overhead without breaking stride.
+- [ ] (town wish, 2026-10-20) When a resident hears another resident speak a remark overhead while paused, they carry a key phrase from that remark in their memory and repeat it to the next resident they pause near within three minutes.
