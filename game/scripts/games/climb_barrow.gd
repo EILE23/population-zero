@@ -7,7 +7,8 @@ extends Node3D
 ## 디딤(land): 바퀴로 선 수레의 통 윗면(tray_h — 미는 중엔 아니다), 세운 수레의 손잡이 끝(wheel_r + length — 탑에서 손으로 세운 가장 높은 것, step_w 폭), 책 더미(heap_h). 세운 수레 곁(바퀴 HW + wheel_r + reach)에서 C: 바로 세운다(right_s, busy); 그 back_s 뒤 더미 곁에 아무도 없으면 책이 통으로 돌아온다(잃은 것도).
 ## 통·손잡이에 올라선 것을 탑의 하루(day_s)에 한 번 센다(land 는 플레이어만 온다); 쉼터 판이 note(n) 으로 읽는다: 'Returns barrows, floors 10–14: 1 of 1 stood on today, 2 tipped out today, 5 pushes today.'
 ## 손잡이 뒤에서 C 를 누르지 않는 몸에겐 아무것도 바뀌지 않는다: a 를 달려 지나는 길, 틈을 건너는 맨 점프, 바퀴 곁·앞의 C 는 그대로(평이한 결과 100%). 값도 없다. 자세는 barrow(stick3d_barrow.gd — 운영자 보드의 '외바퀴 손수레' 가족: 숙여 잡고 드는 몸, 상체를 밀어 넣고 다리로 미는 몸, 팔을 올리며 뒷다리를 버티는 엎기, 손을 놓으며 팔이 튀는 몸 — 정지화가 아니다).
-## lug(안아 옮긴다)·shunt(서가를 민다)·log(발밑이 구른다)와 다르다: 이건 바퀴 달린 것을 밀어 놓고 뒤집어 세우는 첫 것 — 세운 자리가 디딤이 된다. 주민 반쪽(반납 담당)은 다음 run 의 것.
+## lug(안아 옮긴다)·shunt(서가를 민다)·log(발밑이 구른다)와 다르다: 이건 바퀴 달린 것을 밀어 놓고 뒤집어 세우는 첫 것 — 세운 자리가 디딤이 된다.
+## 주민 반쪽(run 185): 수레마다 책 담당 하나(climb_page.gd — 수레 노드 아래 Stick3D)가 자국 쪽 끝에 서서 탑의 1분마다, 그리고 플레이어가 자국 밖·엎어진 수레에서 손을 뗀(me_t) 2 s 뒤에 세우고(같은 step) 더미를 모아 통에 넣고(hand — 책 담당이 _reparent·_restock 으로) 돌리고(turn — 손잡이를 들고 수레 가운데를 반 바퀴 옆걸음, PivotPoses.TOTAL, dir 가 뒤집히고 몸체 yaw 가 π) 자국까지 밀어 세운다(puts·day_puts — 판의 'the page brought it back N times').
 ## 로더가 할 일(climb.gd, 운영자 세션): `var cw := ClimbBarrow.new(); add_child(cw); signs.notes.append(cw.note)`; 층을 지을 때 `var lp := cl.plan(n, plats); var dp := cd.plan(n, plats); var bp := cs.plan(n, plats, lp + dp); var np := pn.plan(n, plats, lp + dp + bp); var sp := sc.plan(n, plats, lp + dp + bp + np); cw.build(root, cw.plan(n, plats, lp + dp + bp + np + sp + cc.plan(n, plats, lp + dp + bp + np + sp)))`
 ## (사다리·덤웨이터·서가·파터노스터·두루마리 선반·카드 목록함의 계획을 taken 으로 — 그 발판은 비켜 간다); 매 틱 `cw.sync(_t)`; `_physics_process` 에서 jump_held 를 읽은 뒤, 발판 위든 공중이든:
 ## `var bw := cw.step(on, x, z, face, not locked and Input.is_action_just_pressed("act"), not locked and Input.is_action_pressed("act"), dt, fig); if bw["busy"]: dir = 0.0; jump_held = false; charge = 0.0 elif bw["push"]: dir *= cw.slow_of(fig); jump_held = false; charge = 0.0`
@@ -30,7 +31,7 @@ const SOUND_N := 3
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.barrow
-var barrows: Array = []         # 지은 수레 {id, kind "barrow", n, a_id, a_x, a_w, a_y, b_id, dy, dir, px, x, w, y, y_top, z, d, node, body, piv, wheel, bx, swing, up, sw, sw_t0, holder, step_t, last_x, hold_t, was_held, books [Node3D], heap [Node3D], heap_x, lost [{node, t0}], lost_n, righted_t, near_t, me_t, day, stands, tips, pushes, tip_day, day_tips, push_day, day_pushes, roll, squeak, clunk, slither}
+var barrows: Array = []         # 지은 수레 {id, kind "barrow", n, a_id, a_x, a_w, a_y, b_id, dy, dir, px, x, w, y, y_top, z, d, node, body, piv, wheel, bx, swing, up, sw, sw_t0, holder, step_t, last_x, hold_t, was_held, books [Node3D], heap [Node3D], heap_x, lost [{node, t0}], lost_n, righted_t, near_t, me_t, day, stands, tips, pushes, tip_day, day_tips, push_day, day_pushes, roll, dir0(지을 때의 dir), yaw(몸체의 반 바퀴 수 0|1 — 돌리는 중엔 그 사이), yaw0, hand [Node3D — 책 담당의 팔뚝 위], page, puts, put_day, day_puts, squeak, clunk, slither}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -41,60 +42,35 @@ func _ready() -> void:
 func sync(now: float) -> void:
 	t = now
 
-func min_w() -> float:
-	return maxf(length() + 4.0 * C.HW, float(kind.get("min_w", 140.0)))
-func park_in() -> float:
-	return maxf(length() / 2.0, float(kind.get("park_in", 30.0)))
-func reach() -> float:
-	return maxf(0.0, float(kind.get("reach", 14.0)))
-func length() -> float:
-	return maxf(16.0, float(kind.get("len", 44.0)))
-func tray_w() -> float:
-	return clampf(float(kind.get("tray_w", 24.0)), 2.0 * C.HW, length() - wheel_r())
-func tray_h() -> float:
-	return maxf(4.0, float(kind.get("tray_h", 30.0)))
-func tray_d() -> float:
-	return maxf(2.0, float(kind.get("tray_d", 20.0)))
-func wheel_r() -> float:
-	return maxf(2.0, float(kind.get("wheel_r", 7.0)))
-func books() -> int:
-	return maxi(1, int(kind.get("books", 4)))
-func step_w() -> float:
-	return maxf(2.0 * C.HW, float(kind.get("step_w", 20.0)))
-func heap_dx() -> float:
-	return maxf(0.0, float(kind.get("heap_dx", 22.0)))
-func heap_w() -> float:
-	return maxf(2.0 * C.HW, float(kind.get("heap_w", 30.0)))
-func heap_h() -> float:
-	return maxf(2.0, float(kind.get("heap_h", 14.0)))
-func grip_s() -> float:
-	return maxf(0.05, float(kind.get("grip_s", 0.4)))
-func set_s() -> float:
-	return maxf(0.05, float(kind.get("set_s", 0.3)))
-func tip_s() -> float:
-	return maxf(0.05, float(kind.get("tip_s", 0.5)))
-func swing_s() -> float:
-	return maxf(0.05, float(kind.get("swing_s", 0.6)))
-func drop_s() -> float:
-	return maxf(0.05, float(kind.get("drop_s", 0.3)))
-func right_s() -> float:
-	return maxf(0.05, float(kind.get("right_s", 0.5)))
-func back_s() -> float:
-	return maxf(0.5, float(kind.get("back_s", 8.0)))
-func slow() -> float:
-	return clampf(float(kind.get("slow", 0.6)), 0.1, 1.0)
-func slow_empty() -> float:
-	return clampf(float(kind.get("slow_empty", 0.85)), slow(), 1.0)
-func day_s() -> float:
-	return maxf(1.0, float(kind.get("day_s", 600.0)))
+func min_w() -> float: return maxf(length() + 4.0 * C.HW, float(kind.get("min_w", 140.0)))
+func park_in() -> float: return maxf(length() / 2.0, float(kind.get("park_in", 30.0)))
+func reach() -> float: return maxf(0.0, float(kind.get("reach", 14.0)))
+func length() -> float: return maxf(16.0, float(kind.get("len", 44.0)))
+func tray_w() -> float: return clampf(float(kind.get("tray_w", 24.0)), 2.0 * C.HW, length() - wheel_r())
+func tray_h() -> float: return maxf(4.0, float(kind.get("tray_h", 30.0)))
+func tray_d() -> float: return maxf(2.0, float(kind.get("tray_d", 20.0)))
+func wheel_r() -> float: return maxf(2.0, float(kind.get("wheel_r", 7.0)))
+func books() -> int: return maxi(1, int(kind.get("books", 4)))
+func step_w() -> float: return maxf(2.0 * C.HW, float(kind.get("step_w", 20.0)))
+func heap_dx() -> float: return maxf(0.0, float(kind.get("heap_dx", 22.0)))
+func heap_w() -> float: return maxf(2.0 * C.HW, float(kind.get("heap_w", 30.0)))
+func heap_h() -> float: return maxf(2.0, float(kind.get("heap_h", 14.0)))
+func grip_s() -> float: return maxf(0.05, float(kind.get("grip_s", 0.4)))
+func set_s() -> float: return maxf(0.05, float(kind.get("set_s", 0.3)))
+func tip_s() -> float: return maxf(0.05, float(kind.get("tip_s", 0.5)))
+func swing_s() -> float: return maxf(0.05, float(kind.get("swing_s", 0.6)))
+func drop_s() -> float: return maxf(0.05, float(kind.get("drop_s", 0.3)))
+func right_s() -> float: return maxf(0.05, float(kind.get("right_s", 0.5)))
+func back_s() -> float: return maxf(0.5, float(kind.get("back_s", 8.0)))
+func slow() -> float: return clampf(float(kind.get("slow", 0.6)), 0.1, 1.0)
+func slow_empty() -> float: return clampf(float(kind.get("slow_empty", 0.85)), slow(), 1.0)
+func day_s() -> float: return maxf(1.0, float(kind.get("day_s", 600.0)))
 
 ## 탑의 오늘 — 로더의 시계를 day_s 로 나눈 몫
-func day() -> int:
-	return floori(t / day_s())
+func day() -> int: return floori(t / day_s())
 
 ## 세운 수레의 손잡이 끝 높이(px, 발판 위) — 바퀴 축 + 틀 길이
-func up_h() -> float:
-	return wheel_r() + length()
+func up_h() -> float: return wheel_r() + length()
 
 ## 이 몸이 미는 수레의 걸음 몫 — 통이 비면 가볍다; 안 밀면 1
 func slow_of(fig: Stick3D) -> float:
@@ -254,6 +230,10 @@ func _push(s: Dictionary, on: Dictionary, x: float, face: float, pressed: bool, 
 			_metas(s, 1.0, 0.0, 1.0 if bool(s["up"]) else 0.0, clampf(u / drop_s(), 0.0, 1.0))
 			if u >= drop_s(): _release(s); return { "busy": false, "push": false }
 			return { "busy": false, "push": true }
+		"turn":
+			s["yaw"] = float(s["yaw0"]) + PivotPoses.swing(s["holder"] as Stick3D); _place(s); (s["holder"] as Stick3D).set_meta("piv_t", u)
+			if u >= PivotPoses.TOTAL: _turned(s); _play(s["clunk"] as AudioStreamPlayer3D); _release(s); return { "busy": false, "push": false }
+			return { "busy": true, "push": false }
 		"right":
 			var k2 := 1.0 - clampf(u / right_s(), 0.0, 1.0)
 			s["swing"] = k2; _place(s); _metas(s, 1.0, 0.0, k2, 0.0)
@@ -276,9 +256,20 @@ func _held_by(fig: Stick3D) -> Dictionary:
 		if String(s["sw"]) != "" and is_instance_valid(s["holder"]) and (s["holder"] as Stick3D) == fig: return s   # 사라진 몸은 as 전에 거른다
 	return {}
 
-## 이 몸이 수레를 잡고 있나(잡기·밀기·내려놓기·엎기·놓기·세우기)
+## 이 몸이 수레를 잡고 있나(잡기·밀기·내려놓기·엎기·놓기·세우기·돌리기)
 func pushing(fig: Stick3D) -> bool:
 	return not _held_by(fig).is_empty()
+
+## 손잡이 뒤의 몸이 수레를 제자리에서 돌린다(PivotPoses.TOTAL — 손잡이를 들고 가운데를 반 바퀴, 바퀴와 손잡이가 자리를 바꾼다): 바퀴로 선, 아무도 안 잡은 수레만; 자세 pivot 의 시계 piv_t 를 적는다. 지금은 책 담당이 부른다 — 플레이어의 C 길게는 다음 run
+func turn(s: Dictionary, x: float, fig: Stick3D) -> bool:
+	if fig == null or String(s["sw"]) != "" or bool(s["up"]) or absf(x - _handle_x(s)) > C.HW + reach() or (x - float(s["bx"])) * float(s["dir"]) > 0.0: return false
+	_begin(s, "turn", x, fig, false); s["yaw0"] = float(s["yaw"]); fig.set_meta("piv_t", 0.0)
+	return true
+
+## 반 바퀴 돌았다 — dir 가 뒤집히고 yaw 는 0 이나 1 로(몸체는 가운데 그대로, 바퀴는 반대쪽)
+func _turned(s: Dictionary) -> void:
+	s["dir"] = -float(s["dir"]); s["yaw"] = fposmod(roundf(float(s["yaw0"]) + 1.0), 2.0); _place(s)
+
 
 func _handle_x(s: Dictionary) -> float:
 	return float(s["bx"]) - float(s["dir"]) * length() / 2.0
@@ -304,7 +295,7 @@ func _near(s: Dictionary, x: float) -> bool:
 func _roll(s: Dictionary, moved: float) -> void:
 	var before := floori(float(s["roll"]) / (TAU / 4.0))
 	s["roll"] = float(s["roll"]) + moved / wheel_r()
-	(s["wheel"] as Node3D).rotation.z = -float(s["roll"])
+	(s["wheel"] as Node3D).rotation.z = -float(s["roll"]) * float(s["dir"]) * float(s["dir0"])   # 돌린 수레는 몸체가 π 돌아 있다 — 바퀴는 가는 쪽으로 구른다
 	if floori(float(s["roll"]) / (TAU / 4.0)) != before: _play(s["squeak"] as AudioStreamPlayer3D)
 
 ## 손을 놓는다(발판을 떠났다·등을 돌렸다·끝을 두고 갔다·몸이 사라졌다) — drop_s 동안 팔이 튀어 오른다, 수레는 그 자리
@@ -357,17 +348,18 @@ func _metas(s: Dictionary, bt: float, v: float, k: float, x: float) -> void:
 ## 수레에서 떠난 몸 — 자세의 메타를 거둔다
 func leave(fig: Stick3D) -> void:
 	if fig == null or not is_instance_valid(fig): return
-	for key: String in ["bar_t", "bar_v", "bar_k", "bar_x"]:
+	for key: String in ["bar_t", "bar_v", "bar_k", "bar_x", "piv_t"]:
 		if fig.has_meta(key): fig.remove_meta(key)
 
 func _release(s: Dictionary) -> void:
 	if is_instance_valid(s["holder"]): leave(s["holder"] as Stick3D)
+	if bool(s["count"]) and (bool(s["up"]) or absf(float(s["bx"]) - float(s["px"])) > 0.5): s["me_t"] = t   # 플레이어가 자국 밖·엎어진 채 손을 뗐다 — 책 담당이 2 s 뒤 간다
 	s["holder"] = null; s["sw"] = ""; s["hold_t"] = 0.0
 
-## 수레를 제자리에 — 몸은 가운데 bx 에, 틀은 바퀴 축을 중심으로 swing 만큼 세워진다
+## 수레를 제자리에 — 몸체는 가운데 bx 에 yaw 반 바퀴만큼 돌아(돌린 수레는 π — 바퀴와 손잡이가 자리를 바꾼다), 틀은 바퀴 축을 중심으로 swing 만큼 세워진다(틀의 축은 지을 때의 dir0 쪽)
 func _place(s: Dictionary) -> void:
-	(s["body"] as Node3D).position.x = (float(s["bx"]) - float(s["px"])) * C.K
-	(s["piv"] as Node3D).rotation.z = -float(s["dir"]) * (PI / 2.0) * float(s["swing"])
+	(s["body"] as Node3D).position.x = (float(s["bx"]) - float(s["px"])) * C.K; (s["body"] as Node3D).rotation.y = PI * float(s["yaw"])
+	(s["piv"] as Node3D).rotation.z = -float(s["dir0"]) * (PI / 2.0) * float(s["swing"])
 
 static func _reparent(nd: Node3D, to: Node3D, at: Vector3) -> void:
 	var p := nd.get_parent()
@@ -376,7 +368,7 @@ static func _reparent(nd: Node3D, to: Node3D, at: Vector3) -> void:
 
 ## n0..n1 층의 수레에서 오늘 올라선 수·전체·오늘 엎은 수·오늘 민 수 — {stood, total, tips, pushes}
 func top_today(n0: int, n1: int) -> Dictionary:
-	var stood := 0; var total := 0; var tips := 0; var pushes := 0
+	var stood := 0; var total := 0; var tips := 0; var pushes := 0; var puts := 0
 	for sv in barrows:
 		var s: Dictionary = sv
 		if int(s["n"]) < n0 or int(s["n"]) > n1: continue
@@ -384,14 +376,15 @@ func top_today(n0: int, n1: int) -> Dictionary:
 		if int(s["day"]) == day(): stood += 1
 		if int(s["tip_day"]) == day(): tips += int(s["day_tips"])
 		if int(s["push_day"]) == day(): pushes += int(s["day_pushes"])
-	return { "stood": stood, "total": total, "tips": tips, "pushes": pushes }
+		if int(s["put_day"]) == day(): puts += int(s["day_puts"])
+	return { "stood": stood, "total": total, "tips": tips, "pushes": pushes, "puts": puts }
 
 ## 쉼터 판(n 층)에 붙는 줄 — 위 다섯 층(n..n+4)의 수레, 없으면 아래 다섯 층(n−5..n−1), 그것도 없으면 빈 줄. climb_signs.notes 에 넣는다
 func note(n: int) -> String:
 	for span: Array in [[n, n + 4], [n - 5, n - 1]]:
 		var v := top_today(int(span[0]), int(span[1]))
 		if int(v["total"]) > 0:
-			return "Returns barrows, floors %d–%d: %d of %d stood on today, %d tipped out today, %d %s today." % [int(span[0]), int(span[1]), int(v["stood"]), int(v["total"]), int(v["tips"]), int(v["pushes"]), "push" if int(v["pushes"]) == 1 else "pushes"]
+			return "Returns barrows, floors %d–%d: %d of %d stood on today, %d tipped out today, %d %s today, the page brought it back %s." % [int(span[0]), int(span[1]), int(v["stood"]), int(v["total"]), int(v["tips"]), int(v["pushes"]), "push" if int(v["pushes"]) == 1 else "pushes", "once" if int(v["puts"]) == 1 else "%d times" % int(v["puts"])]
 	return ""
 
 func _play(p: AudioStreamPlayer3D) -> void:
@@ -404,9 +397,11 @@ func _process(delta: float) -> void:
 	barrows = barrows.filter(func(s: Dictionary) -> bool: return is_instance_valid(s["node"]))   # 지운 층의 것은 뺀다(climb_bellows 와 같은 식)
 	for sv in barrows:
 		var s: Dictionary = sv
+		if s.has("page"): (s["page"] as ClimbPage).step(delta)   # 책 담당의 틱 — HELD_T 판정보다 먼저라 잡은 수레의 step_t 가 새롭다
 		if String(s["sw"]) != "" and (not is_instance_valid(s["holder"]) or t - float(s["step_t"]) > HELD_T):
 			if String(s["sw"]) == "tip": s["swing"] = 1.0; s["up"] = true; _place(s); _spill(s)
 			elif String(s["sw"]) == "right": s["swing"] = 0.0; s["up"] = false; s["righted_t"] = t; _place(s)
+			elif String(s["sw"]) == "turn": _turned(s)
 			_release(s)
 		for lv in (s["lost"] as Array):
 			var l: Dictionary = lv
@@ -445,12 +440,13 @@ func build(root: Node3D, planned: Array) -> void:
 		var bks: Array = []
 		for i in books(): bks.append(_book(tray, i)); (bks[i] as Node3D).position = _book_at(i); (bks[i] as Node3D).rotation = Vector3(0.0, 0.0, 0.06 * (float(i) - 1.5))
 		s["node"] = node; s["body"] = body; s["piv"] = piv; s["tray"] = tray; s["wheel"] = hub
-		s["bx"] = float(s["px"]); s["swing"] = 0.0; s["up"] = false; s["roll"] = 0.0
+		s["bx"] = float(s["px"]); s["swing"] = 0.0; s["up"] = false; s["roll"] = 0.0; s["dir0"] = dir; s["yaw"] = 0.0; s["yaw0"] = 0.0; s["hand"] = []
 		s["sw"] = ""; s["sw_t0"] = -99.0; s["holder"] = null; s["step_t"] = -99.0; s["last_x"] = 0.0; s["hold_t"] = 0.0; s["was_held"] = false; s["count"] = true
 		s["books"] = bks; s["heap"] = []; s["heap_x"] = 0.0; s["lost"] = []; s["lost_n"] = 0; s["righted_t"] = -1.0; s["near_t"] = -99.0; s["me_t"] = -99.0
-		s["day"] = -1; s["stands"] = 0; s["tips"] = 0; s["pushes"] = 0; s["tip_day"] = -1; s["day_tips"] = 0; s["push_day"] = -1; s["day_pushes"] = 0
+		s["day"] = -1; s["stands"] = 0; s["tips"] = 0; s["pushes"] = 0; s["tip_day"] = -1; s["day_tips"] = 0; s["push_day"] = -1; s["day_pushes"] = 0; s["puts"] = 0; s["put_day"] = -1; s["day_puts"] = 0
 		s["squeak"] = _snd(node, float(kind.get("squeak_hz", 900)), 0.12, 14.0, -18.0); s["clunk"] = _snd(node, float(kind.get("clunk_hz", 120)), 0.2, 10.0, -12.0); s["slither"] = _snd(node, float(kind.get("slither_hz", 700)), 0.35, 5.0, -16.0)
 		_place(s)
+		s["page"] = ClimbPage.new(self, s, node)   # 주민 반쪽 — 자국 쪽 끝 손잡이 앞에 카메라를 보고 선 책 담당
 		barrows.append(s)
 
 ## 통 안 i 번째 책의 자리 — 통 바닥 위에 나란히 세워, 통 위로 조금 보인다
