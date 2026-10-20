@@ -13,7 +13,8 @@ extends Node3D
 ## `_physics_process` 에서 jump_held 를 읽은 뒤, 발판 위든 공중이든: `var ck := cc.step(on, x, z, face, not locked and Input.is_action_just_pressed("act"), dt, fig); if ck["busy"]: dir = 0.0; jump_held = false; charge = 0.0 elif ck["lug"]: dir *= cc.slow(); jump_held = false; charge = 0.0`
 ## `if ck["busy"] or ck["lug"]: fig.pose_request = "lug" elif fig.pose_request == "lug": fig.pose_request = ""` (step 이 매 틱 와야 한다 — HELD_T 동안 안 오면 안은 몸이 사라진 것이라 상자가 굴러 집으로);
 ## 로더 자신의 착지 판정이 비면 `landed = cc.land(x, y, ny, z)` (kind "crate" — 더미 꼭대기; 로더의 떠남 판정은 x·w·z·d 로 그대로 된다 — 더미는 안 움직인다). 쉼터 판 C 는 signs.tick 이 먼저 — 더미는 발판에만 선다.
-## step 의 tally: 비우면 플레이어(판에 세고 me_t 를 적는다 — 주민 반쪽이 따라 나른다), 다른 몸은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_crate.gd
+## step 의 tally: 비우면 플레이어(판에 세고 me_t 를 적는다 — 주민 반쪽이 따라 나른다; C 가 없어도 더미 곁 NEAR 안에 선 틱을 near_t 에 적는다 — 짐꾼이 비켜 선다), 다른 몸은 거짓을 준다. 단위는 climb.gd 와 같은 px(36px = 1m, +y 위). 점검은 tools/probe_crate.gd
+## 주민 반쪽(run 183): 더미마다 짐꾼 하나(climb_porter.gd — 더미 노드 아래 Stick3D)가 틈 쪽 끝에 카메라를 보고 서서 탑의 1분마다, 그리고 플레이어의 더미가 다 쌓인(me_t) 2 s 뒤에 분필 자리에서 가장 먼 더미로 걸어가 맨 위 상자를 재 보고(heft) 같은 step(tally 거짓)·같은 lug 로 들어 분필 자리에 되돌려 놓는다 — 더미가 다 돌아올 때까지 하나씩; 플레이어가 더미 곁이거나 안고 있으면 집에서 기다린다. 판의 줄에 'the porter put N back' 이 붙는다. 로더가 할 일은 없다 — 팩이 짓고 틱을 준다.
 
 const PACK := "res://data/climb/crate.json"
 const C = preload("res://scripts/games/climb.gd")
@@ -26,10 +27,11 @@ const SLIP_T := 0.3        # 손에서 미끄러지는 시간(s) — 자세의 l
 const HOLD_Y := 0.20       # 안은 상자의 가운데: 골반에서 위로(m) — stick3d_lug.gd 의 손 높이와 같은 수
 const HOLD_Z := 0.34       # 안은 상자의 가운데: 몸 앞으로(m)
 const TUMBLE_UP := 0.3     # 굴러 돌아가는 상자의 포물선 높이(m)
+const NEAR := 60.0         # 플레이어가 분필 자리나 더미에서 이 안에 선 틱을 near_t 에 적는다(px) — 짐꾼이 집에서 기다린다
 
 var pack: Dictionary = {}
 var kind: Dictionary = {}       # kinds.pile
-var piles: Array = []           # 지은 더미 {id, kind "pile", n, a_id, a_x, a_w, a_y, b_id, dy, dir, px, x, w, y, y_top, z, d, node, stacks [{id, x, n, crates}], next, holder, held, sw, sw_t0, step_t, last_x, count, set_x, set_i, day, me_t, lifts, slips, fulls, full_day, day_fulls, tumbles, creak, thud, roll}
+var piles: Array = []           # 지은 더미 {id, kind "pile", n, a_id, a_x, a_w, a_y, b_id, dy, dir, px, x, w, y, y_top, z, d, node, stacks [{id, x, n, crates}], next, holder, held, sw, sw_t0, step_t, last_x, count, set_x, set_i, day, me_t, lifts, slips, fulls, full_day, day_fulls, tumbles, creak, thud, roll, near_t, ported, port_day, porter}
 var t := 0.0                    # 로더의 _t 와 같이 간다(sync)
 
 func _ready() -> void:
@@ -166,9 +168,11 @@ func step(on: Dictionary, x: float, z: float, face: float, pressed: bool, dt: fl
 	if fig == null: return { "busy": false, "lug": false }
 	var mine := _held_by(fig)
 	if not mine.is_empty(): return _carry(mine, on, x, face, pressed, dt)
-	if not pressed or on.is_empty() or absf(z - C.PLAYER_Z) >= C.HZ + 4.0: return { "busy": false, "lug": false }
+	if on.is_empty() or absf(z - C.PLAYER_Z) >= C.HZ + 4.0: return { "busy": false, "lug": false }
 	var here := _here(on)
 	if here.is_empty(): return { "busy": false, "lug": false }
+	if tally and _near(here, x): here["near_t"] = t   # 플레이어가 더미 곁에 선 틱(C 없이도) — 짐꾼은 집에서 기다린다
+	if not pressed: return { "busy": false, "lug": false }
 	var k := _nearest(here, x, String(on.get("id", "")))
 	if k.is_empty() or fig.torso == null: return { "busy": false, "lug": false }
 	_lift(here, k, x, fig, tally)
@@ -232,6 +236,14 @@ func _nearest(s: Dictionary, x: float, on_id: String) -> Dictionary:
 		if d <= C.HW + w() / 2.0 + reach() and d < best_d: best = k; best_d = d
 	return best
 
+## x 가 분필 자리나 상자 있는 더미의 NEAR 안인가 — 짐꾼의 배려
+func _near(s: Dictionary, x: float) -> bool:
+	if absf(x - float(s["px"])) <= NEAR: return true
+	for kv in (s["stacks"] as Array):
+		var k: Dictionary = kv
+		if int(k["n"]) > 0 and absf(x - float(k["x"])) <= NEAR: return true
+	return false
+
 ## 더미 k 의 맨 위 상자를 든다 — 상자는 몸(torso)의 자식으로, 빈 더미(분필 자리 말고)는 지운다
 func _lift(s: Dictionary, k: Dictionary, x: float, fig: Stick3D, tally: bool) -> void:
 	var nd := (k["crates"] as Array).pop_back() as Node3D
@@ -277,6 +289,11 @@ func _put(s: Dictionary) -> void:
 		if bool(s["count"]): s["day"] = day(); s["me_t"] = t   # 플레이어가 다 쌓았다 — 주민 반쪽이 따라 나른다
 	_release(s)
 
+## 짐꾼이 분필 더미에 되돌려 놓았다(climb_porter 의 set 끝) — 오늘의 셈, 판의 'the porter put N back'
+func put_back(s: Dictionary) -> void:
+	if int(s["port_day"]) != day(): s["port_day"] = day(); s["ported"] = 0
+	s["ported"] = int(s["ported"]) + 1
+
 ## 상자가 손에서 미끄러진다 — 지금 자리에서 분필 자리로 굴러간다(tumble), 몸은 SLIP_T 동안 놓치는 자세
 func _slip(s: Dictionary) -> void:
 	var hv: Variant = s["held"]; var node := s["node"] as Node3D
@@ -318,23 +335,24 @@ static func _reparent(nd: Node3D, to: Node3D, at: Vector3) -> void:
 	if p != null: p.remove_child(nd)
 	to.add_child(nd); nd.position = at; nd.rotation = Vector3.ZERO
 
-## n0..n1 층의 더미에서 오늘 다 쌓은 수·전체·분필 자리를 떠난 상자·상자 전체 — {full, total, off, crates}
+## n0..n1 층의 더미에서 오늘 다 쌓은 수·전체·분필 자리를 떠난 상자·상자 전체·짐꾼이 오늘 되돌린 상자 — {full, total, off, crates, back}
 func top_today(n0: int, n1: int) -> Dictionary:
-	var full := 0; var total := 0; var off := 0; var crates := 0
+	var full := 0; var total := 0; var off := 0; var crates := 0; var back := 0
 	for sv in piles:
 		var s: Dictionary = sv
 		if int(s["n"]) < n0 or int(s["n"]) > n1: continue
 		total += 1; crates += count()
 		if int(s["day"]) == day(): full += 1
 		off += count() - int((((s["stacks"] as Array)[0]) as Dictionary)["n"])
-	return { "full": full, "total": total, "off": off, "crates": crates }
+		if int(s["port_day"]) == day(): back += int(s["ported"])
+	return { "full": full, "total": total, "off": off, "crates": crates, "back": back }
 
 ## 쉼터 판(n 층)에 붙는 줄 — 위 다섯 층(n..n+4)의 더미, 없으면 아래 다섯 층(n−5..n−1), 그것도 없으면 빈 줄. climb_signs.notes 에 넣는다
 func note(n: int) -> String:
 	for span: Array in [[n, n + 4], [n - 5, n - 1]]:
 		var v := top_today(int(span[0]), int(span[1]))
 		if int(v["total"]) > 0:
-			return "Removal crates, floors %d–%d: %d of %d %s stacked %d high today, %d of %d crates off the pile." % [int(span[0]), int(span[1]), int(v["full"]), int(v["total"]), "pile" if int(v["total"]) == 1 else "piles", max_stack(), int(v["off"]), int(v["crates"])]
+			return "Removal crates, floors %d–%d: %d of %d %s stacked %d high today, %d of %d crates off the pile, the porter put %d back." % [int(span[0]), int(span[1]), int(v["full"]), int(v["total"]), "pile" if int(v["total"]) == 1 else "piles", max_stack(), int(v["off"]), int(v["crates"]), int(v["back"])]
 	return ""
 
 func _play(p: AudioStreamPlayer3D) -> void:
@@ -347,6 +365,7 @@ func _process(delta: float) -> void:
 	piles = piles.filter(func(s: Dictionary) -> bool: return is_instance_valid(s["node"]))   # 지운 층의 것은 뺀다(climb_bellows 와 같은 식)
 	for sv in piles:
 		var s: Dictionary = sv
+		if s.has("porter"): (s["porter"] as ClimbPorter).step(delta)   # 짐꾼의 틱 — HELD_T 판정보다 먼저라 안은 상자의 step_t 가 새롭다
 		if String(s["sw"]) != "" and String(s["sw"]) != "slip" and (not is_instance_valid(s["holder"]) or t - float(s["step_t"]) > HELD_T): _slip(s); _release(s)
 		var keep: Array = []
 		var pile: Dictionary = (s["stacks"] as Array)[0]
@@ -376,8 +395,10 @@ func build(root: Node3D, planned: Array) -> void:
 		s["node"] = node; s["stacks"] = [pile]; s["next"] = 1; s["tumbles"] = []
 		s["holder"] = null; s["held"] = null; s["sw"] = ""; s["sw_t0"] = -99.0; s["step_t"] = -99.0; s["last_x"] = 0.0; s["count"] = true; s["set_x"] = 0.0; s["set_i"] = -1
 		s["day"] = -1; s["me_t"] = -99.0; s["lifts"] = 0; s["slips"] = 0; s["fulls"] = 0; s["full_day"] = -1; s["day_fulls"] = 0
+		s["near_t"] = -99.0; s["ported"] = 0; s["port_day"] = -1
 		s["creak"] = _snd(node, float(kind.get("creak_hz", 320)), 0.25, 8.0, -16.0); s["thud"] = _snd(node, float(kind.get("thud_hz", 140)), 0.2, 10.0, -12.0); s["roll"] = _snd(node, float(kind.get("roll_hz", 220)), 0.35, 6.0, -14.0)
 		_place(s, pile)
+		s["porter"] = ClimbPorter.new(self, s, node)   # 주민 반쪽 — 틈 쪽 끝에 카메라를 보고 선 짐꾼
 		piles.append(s)
 
 ## 상자 하나 — 나무 몸통(w × h × deck_d), 앞면 널 둘, 밧줄 손잡이 둘, 스텐실(강조색은 이 한 조각). 원점은 가운데
