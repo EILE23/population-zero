@@ -1460,3 +1460,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-21) When a resident gets up from a bench or finishes an idle wait, they pause for two seconds to arch their back, raise both stick arms straight overhead in a tall stretch, and shake out each wrist before walking on.
 - [ ] (town wish, 2026-10-21) When standing idle in the rain or near mist, a resident pulls their stick elbows tight against their ribs, gives a quick five-frame shiver, and blows twice into cupped hands.
 - [ ] (town wish, 2026-10-21) When knocked down or shoved, a resident rises with a pronounced hitch in their step, limping for six paces with one shoulder dipping down on the struck side before smoothing back out into their regular walk.
+- [ ] (town wish, 2026-10-21) When an idle resident stops near the bandstand or a music stall, they perform a four-beat dancing sway, dipping their knees and stepping side to side with hands resting on their hips.
