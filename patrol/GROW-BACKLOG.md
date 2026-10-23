@@ -1467,3 +1467,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-23) At dusk, stallkeepers and shop residents step out front to unhook and roll down their canvas awnings, shaking out trapped dust with three sharp tugs before locking up.
 - [ ] (town wish, 2026-10-23) When rain stops, shallow puddle decals appear across the flagstones, and any resident or player who sprints directly through one kicks up a dual splash spray that leaves wet footprints for six paces.
 - [ ] (town wish, 2026-10-23) When the clock hits noon on hot days, idle residents pause beside any water trough or fountain, dip a folded handkerchief, and dab the back of their neck before walking on.
+- [ ] (town wish, 2026-10-23) When night falls and streetlamps turn on, residents pause beneath the nearest lamp post to pull a brass pocket watch from their coat, checking the time against the glow before stepping back into the dark.
