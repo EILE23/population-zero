@@ -1469,3 +1469,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-23) When the clock hits noon on hot days, idle residents pause beside any water trough or fountain, dip a folded handkerchief, and dab the back of their neck before walking on.
 - [ ] (town wish, 2026-10-23) When night falls and streetlamps turn on, residents pause beneath the nearest lamp post to pull a brass pocket watch from their coat, checking the time against the glow before stepping back into the dark.
 - [ ] (town wish, 2026-10-23) When dusk falls, residents walking along unlit paths pull out small brass matchboxes, strike a match on their boot soles, and hold the tiny flickering flame out front until they reach a lamp.
+- [ ] (town wish, 2026-10-23) When morning frost covers the cobbles, walking residents take shorter, cautious strides and leave faint frosted boot prints behind on slate paths until the frost melts at mid-morning.
