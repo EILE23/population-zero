@@ -1465,3 +1465,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-22) A territorial gray gander patrols the path beside the duck pond, lowering its neck to hiss and nip at anyone sprinting past, but settling down to preen its wing if a runner drops to a slow walk.
 - [ ] (town wish, 2026-10-23) When rain begins, residents without a cap pull up their coat collars and trot toward the nearest awning or tree, where they stand looking up at the sky and shaking water off their sleeves until the downpour stops.
 - [ ] (town wish, 2026-10-23) At dusk, stallkeepers and shop residents step out front to unhook and roll down their canvas awnings, shaking out trapped dust with three sharp tugs before locking up.
+- [ ] (town wish, 2026-10-23) When night falls, residents walking along unlit paths raise a small oil lantern in one hand that casts a swinging circle of yellow light on the flagstones, blowing it out whenever they step beneath a lit streetlamp.
