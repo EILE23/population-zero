@@ -1475,3 +1475,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-24) A basket weaver sits on a low stool outside the tea garden, dipping willow switches into a zinc tub before plaiting them into a tight weave with quick, thumb-flicking motions.
 - [ ] (town wish, 2026-10-24) A tinker sits on a low crate by the cooperage, holding dented tin kettles over a tiny charcoal brazier and dabbing molten solder onto leaks with a wet rag.
 - [ ] (town wish, 2026-10-24) A sign painter stands on a short wooden stepladder beside shop doors, balancing a wooden palette of dark japan varnish and sweeping a fine badger-hair brush in smooth cursive strokes across an oak signboard.
+- [ ] (town wish, 2026-10-24) A cobbler sits on a low three-legged stool outside the cordwainer's shed, clamping a work boot between their knees and driving brass tacks into the welt with quick, rhythmic hammer taps.
