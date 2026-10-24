@@ -1473,3 +1473,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-24) A knife grinder pedals a treadle cart parked near the bakery, pumping their foot to spin the whetstone while pressing an iron cleaver against the grit to throw a rhythmic shower of sparks.
 - [ ] (town wish, 2026-10-24) A paver kneels with a heavy wooden rammer, thumping a loose cobble three times until it sits flush, then sweeps dry sand into the surrounding joints with a stiff hand-broom.
 - [ ] (town wish, 2026-10-24) A basket weaver sits on a low stool outside the tea garden, dipping willow switches into a zinc tub before plaiting them into a tight weave with quick, thumb-flicking motions.
+- [ ] (town wish, 2026-10-24) A tinker sits on a low crate by the cooperage, holding dented tin kettles over a tiny charcoal brazier and dabbing molten solder onto leaks with a wet rag.
