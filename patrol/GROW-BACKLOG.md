@@ -1471,3 +1471,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-23) When dusk falls, residents walking along unlit paths pull out small brass matchboxes, strike a match on their boot soles, and hold the tiny flickering flame out front until they reach a lamp.
 - [ ] (town wish, 2026-10-23) When morning frost covers the cobbles, walking residents take shorter, cautious strides and leave faint frosted boot prints behind on slate paths until the frost melts at mid-morning.
 - [ ] (town wish, 2026-10-24) A knife grinder pedals a treadle cart parked near the bakery, pumping their foot to spin the whetstone while pressing an iron cleaver against the grit to throw a rhythmic shower of sparks.
+- [ ] (town wish, 2026-10-24) A paver kneels with a heavy wooden rammer, thumping a loose cobble three times until it sits flush, then sweeps dry sand into the surrounding joints with a stiff hand-broom.
