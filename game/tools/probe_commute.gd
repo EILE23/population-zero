@@ -4,6 +4,7 @@ func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 60: await physics_frame
 	town.clock = (5.9 - 6.0 + 24.0) / 24.0 - 1.0 if false else 0.9958
+	var walks: Array = []
 	var vs: Array = []; var caps: Array = []
 	var why := {}; var start := {}; var took: Array = []; var dist: Array = []
 	for f in 60 * 150:
@@ -25,6 +26,8 @@ func _init() -> void:
 				if k.contains("car:"): k = k.split(":")[0] + ":car_ahead"
 				why[k] = int(why.get(k, 0)) + 1
 			elif start.has(c) and e["phase"] == "there":
+				var ws: Dictionary = e["dest"].get("spot", {})
+				if not ws.is_empty(): walks.append(c.global_position.distance_to(ws["pos"]))
 				took.append(now - float(start[c][0])); dist.append(c.global_position.distance_to(start[c][1])); start.erase(c)
 	var tot := 0
 	for k in why: tot += why[k]
@@ -37,5 +40,7 @@ func _init() -> void:
 	var s := 0.0; var d := 0.0
 	for t in took: s += t
 	for x in dist: d += x
+	walks.sort()
+	if not walks.is_empty(): print("PC walk car->work median=%.0fm max=%.0fm %s" % [walks[walks.size() / 2], walks[walks.size() - 1], str(walks.map(func(x): return int(x)))])
 	print("PC arrived=%d avg_trip=%.0fs avg_straight=%.0fm still_driving=%d h=%.1f" % [took.size(), s / maxf(1, took.size()), d / maxf(1, dist.size()), start.size(), fmod(town.clock * 24.0 + 6.0, 24.0)])
 	quit()
