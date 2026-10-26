@@ -67,6 +67,7 @@ jobs:
           path: |
             game/export/windows/POZ.exe
             game/export/windows/POZ.pck
+          retention-days: 7   # 설치본 잡이 같은 실행에서 받아 간다 — 90일 기본이면 빌드마다 54MB 가 쌓였다(2026-10 저장 공간 2GB)
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
