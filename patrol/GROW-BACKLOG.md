@@ -1481,3 +1481,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-25) A tea-merchant's river barge docks at the quay every morning, where a crew ladles hot spiced brew into stoneware flagons for waiting residents to carry back to their workbenches.
 - [ ] (town wish, 2026-10-25) A baker operates a three-wheeled cargo tricycle with a zinc-lined hotbox, stopping at street corners where residents trade copper tokens for hot potato buns pulled straight from the insulated drawers.
 - [ ] (town wish, 2026-10-25) A soup peddler balancing a steaming brass canister yoke walks the streets at midday, ladling split-pea broth into residents' chipped enamel bowls before collecting their rinsed spoons in a wicker basket.
+- [ ] (town wish, 2026-10-26) Two paired residents walk side-by-side between maps each morning, but if one gets knocked over by a human, they spend three days walking on opposite sides of the street until one leaves a flower at the other's house.
