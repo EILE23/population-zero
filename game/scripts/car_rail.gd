@@ -242,11 +242,11 @@ func step(car: Car3D, delta: float) -> void:
 	for q in range(li, mini(li + 14, lane.size())):
 		if q > li: dsum += lane[q - 1].distance_to(lane[q])
 		if dsum > 16.0: break
-		lim = minf(lim, cap[q] + dsum * 0.55)
-	if li >= lane.size() - 2: lim = minf(lim, 0.6 + p.distance_to(lane[lane.size() - 1]) * 0.6)   # 다 와 간다 — 세울 자리에 맞춰
+		if cap[q] + dsum * 0.55 < lim: lim = cap[q] + dsum * 0.55; why = "corner"
+	if li >= lane.size() - 2 and 0.6 + p.distance_to(lane[lane.size() - 1]) * 0.6 < lim: lim = 0.6 + p.distance_to(lane[lane.size() - 1]) * 0.6; why = "end"   # 다 와 간다 — 세울 자리에 맞춰
 	# 앞차. 길섶에서 막 나오는 중(첫 토막)이면 둘레 12m 에 달리는 차가 있는 동안 기다린다(8초까지) — 비스듬히 끼어들다 마주 오는 차와 박았다
 	var merging := li <= 1 and car.v < 3.0
-	if li <= 1: lim = minf(lim, 2.4)   # 빠져나오는 동안은 천천히
+	if li <= 1 and lim > 2.4: lim = 2.4; why = "pullout"   # 빠져나오는 동안은 천천히
 	if merging and _merge_since < 0.0: _merge_since = now
 	if why != "cross" and car.v > 0.5: _car_wait = -1.0
 	var ghost := now < _ghost_until
@@ -261,7 +261,8 @@ func step(car: Car3D, delta: float) -> void:
 		var cf := -(c as Node3D).global_transform.basis.z; cf.y = 0.0
 		var moving_rail: bool = (c as Car3D).rail != null and not (c as Car3D).rail.done
 		if moving_rail and cf.normalized().dot(fwd) < 0.5:   # 가로지르는·마주 오는 차 — 바로 코앞(4m, 차 폭 안)일 때만 선다(멀면 교차로 칸이 맡는다)
-			if ah > 0.0 and ah < 4.2 and absf(tc.dot(right)) < 1.5:
+			var head_on := cf.normalized().dot(fwd) < -0.7   # 마주 오는 차는 내 차선 한가운데일 때만(굽은 골목에서 비켜 지나갈 차 앞에 서서 출근길의 열여섯이 갔다)
+			if ah > 0.0 and ah < 4.2 and absf(tc.dot(right)) < (0.9 if head_on else 1.5):
 				lim = 0.0; why = "cross"
 				if _car_wait < 0.0: _car_wait = now
 				elif now - _car_wait > 5.0 and (car.get_instance_id() < c.get_instance_id() or now - _car_wait > 11.0):   # 맞물렸다 — 한쪽(번호 작은 쪽)이 물러난다. 그쪽이 안 물러나면(저쪽은 기다리는 게 아니라 끼었다) 11초에 이쪽도
@@ -274,12 +275,14 @@ func step(car: Car3D, delta: float) -> void:
 	else: _end_wait = -1.0
 	# 사람(주민·나) — 앞 4.5m, 차선 폭 안
 	var person := false
+	var who: Resident = null; var who_side := 1.0
 	for r in car.town.residents:
-		if r == car.driver or r.state == "drive": continue
+		if r == car.driver or r.state == "drive" or not r.visible: continue   # 일터 안(안 보이는) 주민은 길에 없다
 		var tr: Vector3 = r.global_position - car.global_position; tr.y = 0.0
 		if tr.length_squared() > 30.0: continue
 		var ah := tr.dot(fwd)
-		if ah > 0.0 and ah < 4.5 and absf(tr.dot(right)) < 1.35: person = true   # 차 폭(1.4)만큼 — 옆구리로 사람을 긁고 섰다
+		if ah > 0.0 and ah < 4.5 and absf(tr.dot(right)) < 1.35:   # 차 폭(1.4)만큼 — 옆구리로 사람을 긁고 섰다
+			person = true; who = r; who_side = 1.0 if tr.dot(right) >= 0.0 else -1.0
 	if car.town.driving != car and car.town.body.visible:
 		var tb: Vector3 = car.town.body.global_position - car.global_position; tb.y = 0.0
 		var ahb := tb.dot(fwd)
@@ -287,7 +290,11 @@ func step(car: Car3D, delta: float) -> void:
 	if person:
 		why = "person"
 		if _people_since < 0.0: _people_since = now
-		lim = minf(lim, 0.0 if now - _people_since < 4.0 else 0.8)   # 섰다가, 오래 안 비키면 살살(밀며) 간다
+		lim = minf(lim, 0.0 if now - _people_since < 2.5 else 0.8)   # 섰다가, 오래 안 비키면 살살(밀며) 간다
+		if who and now - _people_since > 0.8 and who.state == "walk" and now > float(who.get_meta("yield_until", 0.0)):   # 걷던 사람은 길섶으로 한 발 비킨다(출근길 시간의 열에 하나가 사람 앞에서 섰다, 2026-10-26)
+			who.set_meta("yield_until", now + 4.0)
+			var side_pt: Vector3 = who.global_position + right * who_side * 2.4; side_pt.y = 0.0
+			who.route.push_front({ "pos": side_pt, "act": "" }); who.target = side_pt
 		if now - _people_since > 2.0 and fmod(now, 3.0) < delta and car.driver is Resident: (car.driver as Resident).say(["Excuse me.", "Coming through.", "Mind the car."][int(now) % 3], 1.4)
 	else: _people_since = -1.0
 	var hold_back := false   # 빨간불·멈춤 전 — 교차로 칸을 잡지 않는다(잡고 서 있으면 초록불 쪽이 칸을 못 얻었다)
@@ -322,7 +329,7 @@ func step(car: Car3D, delta: float) -> void:
 	# 몰기
 	var yaw_want := atan2(-to.x, -to.z)
 	var diff := wrapf(yaw_want - car.rotation.y, -PI, PI)
-	if absf(diff) > 1.2: lim = minf(lim, 2.0)   # 겨냥이 옆·뒤 — 천천히 크게 돈다(출발 때 돌아서기, 길 끝 유턴)
+	if absf(diff) > 1.2 and lim > 2.6: lim = 2.6; why = "aim"   # 겨냥이 옆·뒤 — 천천히 크게 돈다(출발 때 돌아서기, 길 끝 유턴)
 	var want := lim
 	car.v = move_toward(car.v, want, (5.0 if want > car.v else 9.0) * delta)
 	var turn := 2.6 * clampf(absf(car.v) / 2.0, 0.15 if li > 1 else 0.6, 1.0) * delta   # 길섶에서 빠져나올 땐 느려도 핸들을 크게(앞차 꽁무니로 곧장 들이받고 뒤로 빼기를 되풀이했다)

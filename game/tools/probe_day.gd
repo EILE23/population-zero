@@ -8,7 +8,9 @@ func _phase(town) -> String:
 		ph[k] = int(ph.get(k, 0)) + 1
 		if r.spot.get("kind", "") == "work" and r.state == "busy": at_work += 1
 		if r.state == "drive": in_car += 1
-	return "%s at_work=%d in_car=%d" % [str(ph), at_work, in_car]
+	var out := 0
+	for e in town.cruisers: if String(e.get("st", "")) == "out": out += 1
+	return "%s at_work=%d in_car=%d cruisers_out=%d" % [str(ph), at_work, in_car, out]
 func _init() -> void:
 	var town: Node3D = (load("res://scenes/town3d.tscn") as PackedScene).instantiate(); root.add_child(town)
 	for i in 60: await physics_frame
@@ -27,13 +29,20 @@ func _init() -> void:
 				elif e["phase"] == "driving" and c.rail == null: print("    no rail at %s" % str(c.global_position.snapped(Vector3.ONE)))
 		print("  afternoon +%ds h=%.1f %s" % [(t + 1) * 15, fmod(town.clock * 24.0 + 6.0, 24.0), _phase(town)])
 	town.clock = (22.0 - 6.0) / 24.0
-	for i in 60 * 60: await physics_frame
+	for i in 60 * 30: await physics_frame
 	var beds := 0; var kinds := {}
 	for e in town.commuters:
 		var r: Resident = e["r"]
 		if r.spot.get("kind", "") == "bed": beds += 1
 		var k := "%s/%s" % [r.state, String(r.spot.get("kind", ""))]
 		kinds[k] = int(kinds.get(k, 0)) + 1
+		if r.spot.get("kind", "") in ["tree", "lookout", "bench", "lamp"]:
+			var hd: Dictionary = r.home_door
+			var mine: Array = town.spots.filter(func(sp): return sp.has("door") and sp["door"] is Dictionary and sp["door"] == hd)
+			var bd2 := mine.filter(func(sp): return sp["kind"] == "bed")
+			var who := ""
+			for b in bd2: who += str(b.get("taken", [])) + " "
+			print("    nobed home=%s mine=%d beds=%d taken=%s night=%s carry=%s" % [str(not hd.is_empty()), mine.size(), bd2.size(), who, str(town.is_night()), r.carrying_kind])
 		if e["phase"] == "to_car": print("    to_car r=%s d_car=%.1f route=%d hd=%s" % [k, r.global_position.distance_to((e["car"] as Car3D).exit_pos()), r.route.size(), str(not r.home_door.is_empty())])
 	print("  night kinds ", kinds)
 	print("  night h=%.1f in_bed=%d/%d %s" % [fmod(town.clock * 24.0 + 6.0, 24.0), beds, town.commuters.size(), _phase(town)])

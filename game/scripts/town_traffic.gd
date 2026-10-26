@@ -37,7 +37,7 @@ func _traffic_init() -> void:
 		var c := _car(KINDS[i % KINDS.size()], park, _road_yaw(park))
 		r.own_car = c
 		commuters.append({ "r": r, "car": c, "home": park, "phase": "home", "dest": {}, "until": Time.get_ticks_msec() / 1000.0 + randf_range(20.0, 120.0),
-			"work": _work_for(dp, i), "go_h": 5.8 + fmod(float(r.uid) * 0.37, 1.2), "back_h": 13.4 + fmod(float(r.uid) * 0.53, 1.0), "went": false })
+			"work": _work_for(dp, i, c), "go_h": 5.8 + fmod(float(r.uid) * 0.37, 1.2), "back_h": 13.4 + fmod(float(r.uid) * 0.53, 1.0), "went": false })
 	var drivers: Array = residents.filter(func(x: Resident) -> bool: return not (x is ResidentKid) and x.job == "" and x.own_car == null and not picks.has(x))
 	for i in mini(CRUISERS, drivers.size()):   # 큰길 위에 늘어놓고 바로 출발
 		var r: Resident = drivers[i]
@@ -53,11 +53,30 @@ func _traffic_tick(now: float) -> void:
 	_traffic_at = now + 1.0
 	if has_method("_signal_tick"): call("_signal_tick")
 	if has_method("_streets_tick"): call("_streets_tick")
-	for e in cruisers:   # 늘 도는 차 — 다 왔으면 다음 목적지, 오래 막혔으면 다음 경유지로
+	for e in cruisers:   # 늘 도는 차 — 다 왔으면 둘에 하나는 세우고 내려 그 문에 들렀다(배달·손님 내려 주기) 다시 타고, 아니면 다음 목적지
 		var c: Car3D = e["car"]; var r: Resident = e["r"]
-		if not is_instance_valid(c) or driving == c or passenger == c or not (is_instance_valid(r) and r.car_seat == c): continue
+		if not is_instance_valid(c) or not is_instance_valid(r) or driving == c or passenger == c: continue
+		if String(e.get("st", "")) == "out":   # 내려서 문에 들르는 중 — 제 차로 돌아와 타면(resident _back_to_car) 다시 간다. 너무 오래면 차로 부른다
+			if r.state == "drive" and r.car_seat == c:
+				e["st"] = ""; c.ai = true; c.cruise = 8.0; c.reach = 5.0
+			elif now > float(e.get("until", 0.0)) and r.state in ["busy", "routine"]:
+				r._release(); r.spot = { "kind": "car" }; r.route = via_bridge(r.global_position, [{ "pos": c.exit_pos(), "act": "" }]); r.target = r.route[0]["pos"]; r.state = "walk"; e["until"] = now + 40.0
+			elif now > float(e.get("until", 0.0)) + 40.0 and r.global_position.distance_to(c.global_position) < 12.0: r.drive(c)
+			continue
+		if r.car_seat != c: continue
 		if c.rail != null and not c.rail.done: continue
+		var dr: Dictionary = e.get("dest", {}).get("door", {})
+		if c.rail != null and not c.rail.lost and not dr.is_empty() and not is_night() and randf() < 0.5:   # 세우고 내린다
+			_pull_over(c, Vector3.INF)
+			c.ai = false; c.rail = null; c.route = []; c.input = { "throttle": 0.0, "steer": 0.0, "brake": true }
+			r.leave_car()
+			var dsp := { "kind": "door", "pos": (dr["pos"] as Vector3) + Vector3(0, 0, 0.9), "yaw": PI }
+			r.spot = dsp; r.route = via_bridge(r.global_position, [{ "pos": dsp["pos"], "act": "" }]); r.target = r.route[0]["pos"]; r.state = "walk"
+			r.say(["Delivery.", "One parcel.", "Back in a minute.", "Sign here, please."][randi() % 4], 1.6)
+			e["st"] = "out"; e["until"] = now + 45.0
+			continue
 		var d := _pick_dest(r)   # 다 왔거나(밀려나 길을 잃었거나) — 다음 목적지
+		e["dest"] = d
 		_go(c, d.get("park", _free_park(park_at(Vector3(randf_range(-300.0, 300.0), 0, -40.0)), c)), d)
 	for e in commuters:
 		var r: Resident = e["r"]; var c: Car3D = e["car"]
@@ -210,12 +229,28 @@ func _find_workplaces() -> void:
 		if kind == "the garage": sp = { "kind": "work", "pos": p + Vector3(2.4, 0, 1.4), "yaw": PI / 2.0, "inside": false, "pose": "fix" }
 		workplaces.append({ "park": park_at(p), "door": dr, "name": kind, "spot": sp })
 
-## 이 집에서 가까운 일터 하나(400m 안에서 이름으로 흔들어 — 한 가게에 몰리지 않게)
-func _work_for(home: Vector3, i: int) -> Dictionary:
+## 이 집의 일터 — 곧은 거리로 가까운 여섯 중 차 길이 가장 짧은 데(곧은 거리로만 고르니 강·막다른 골목을 돌아 길이 여섯 배였다, 2026-10-26).
+## 한 일터에 넷 넘게 몰리면 다음으로
+var _work_load := {}
+func _work_for(home: Vector3, _i: int, c: Car3D = null) -> Dictionary:
 	if workplaces.is_empty(): return {}
-	var near := workplaces.duplicate()   # 가까운 셋 중 하나(출근길이 실시간 2분을 넘었다)
+	var near := workplaces.duplicate()
 	near.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return (a["door"]["pos"] as Vector3).distance_to(home) < (b["door"]["pos"] as Vector3).distance_to(home))
-	var w: Dictionary = near[(i * 7 + 3) % mini(3, near.size())].duplicate()
+	var best: Dictionary = {}; var bl := 1e9
+	for w0 in near.slice(0, 6):
+		var w: Dictionary = w0
+		var load := int(_work_load.get(w["door"]["pos"], 0))
+		var L: float = (w["door"]["pos"] as Vector3).distance_to(home) * 3.0
+		if c != null:
+			var nr: Array = Valley.near(Vector2((w["park"] as Vector3).x, (w["park"] as Vector3).z), 2)
+			var rl := CarRail.plan(self, c, Vector3((nr[1] as Vector2).x, 0, (nr[1] as Vector2).y))
+			if rl == null: continue
+			L = rl.lane.size() * 1.5
+		L += maxf(0.0, load - 3) * 150.0
+		if L < bl: bl = L; best = w
+	if best.is_empty(): best = near[0]
+	_work_load[best["door"]["pos"]] = int(_work_load.get(best["door"]["pos"], 0)) + 1
+	var w: Dictionary = best.duplicate()
 	w["place"] = w["name"]; w["name"] = "work"
 	return w
 
