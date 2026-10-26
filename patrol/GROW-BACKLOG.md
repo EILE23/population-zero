@@ -1484,3 +1484,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-26) Two paired residents walk side-by-side between maps each morning, but if one gets knocked over by a human, they spend three days walking on opposite sides of the street until one leaves a flower at the other's house.
 - [ ] (town wish, 2026-10-26) When two residents have a falling out, they sit back-to-back on the same bench without speaking for two days until one hands over a peeled orange segment to make amends.
 - [ ] (town wish, 2026-10-26) Two residents who quarrel stop walking together and sit on opposite ends of the duck pond each noon, tossing crusts until their paths overlap and they resume strolling side-by-side.
+- [ ] (town wish, 2026-10-26) When two residents fall out, they stop exchanging morning waves and instead tie small ribbon markers on the post box, removing them only after sharing a pot of tea together at the cafe.
