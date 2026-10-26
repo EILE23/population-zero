@@ -25,6 +25,7 @@ func _init() -> void:
 		if t == 5:
 			for e in town.commuters:
 				var c: Car3D = e["car"]
+				if e["phase"] == "driving" and c.rail and absf(c.v) >= 0.3: print("    moving v=%.1f why=%s li=%d/%d left=%.0fm at %s" % [c.v, c.rail.why, c.rail.li, c.rail.lane.size(), (c.rail.lane.size() - c.rail.li) * 0.4, str(c.global_position.snapped(Vector3.ONE))])
 				if e["phase"] == "driving" and c.rail and absf(c.v) < 0.3: print("    stuck %s at %s why=%s li=%d/%d done=%s" % [c.kind, str(c.global_position.snapped(Vector3.ONE)), c.rail.why, c.rail.li, c.rail.lane.size(), str(c.rail.done)])
 				elif e["phase"] == "driving" and c.rail == null: print("    no rail at %s" % str(c.global_position.snapped(Vector3.ONE)))
 		print("  afternoon +%ds h=%.1f %s" % [(t + 1) * 15, fmod(town.clock * 24.0 + 6.0, 24.0), _phase(town)])

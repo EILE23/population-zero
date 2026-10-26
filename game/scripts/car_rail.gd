@@ -13,6 +13,7 @@ extends RefCounted
 const W := 1.2                 # 차선 — 찻길 9m(아스팔트 6.7m)의 가운데에서 1.2m. 0.8 이면 마주 오는 두 차(폭 1.4) 사이가 0.2m 라 스쳐 박혔다
 const W_MAIN := 1.0           # 옛 마을 안 큰길(3.6m 판)
 static var locks := {}  # Vector2i(노드) -> [{car, axis, straight}]
+static var queue := {}   # 마디 -> [{car, t 처음 기다린 때, seen 마지막으로 물은 때}] — 빈 교차로는 먼저 온 차가
 
 var centers: Array[Vector3] = []   # 가운데 줄 점(시작·노드…·목적지)
 var nodes: Array = []              # centers 와 같은 길이 — 노드면 Vector2i, 아니면 null
@@ -218,7 +219,14 @@ func step(car: Car3D, delta: float) -> void:
 	if li >= lane.size() - 1 and p.distance_to(lane[lane.size() - 1]) < 2.0: done = true; _release(car); _brake(car, delta); return
 	# 교차로 칸 놓기 — 지나간 노드는 놓아 준다
 	while ni < centers.size() and li > node_end[ni]:
-		if _held == nodes[ni]: _release(car)
+		if _held == nodes[ni]:
+			var nxt: Variant = null   # 같은 교차로 칸의 다음 갈림목이 곧 나오면 칸을 쥔 채로 넘긴다
+			for k in range(ni + 1, mini(ni + 12, centers.size())):
+				if nodes[k] != null:
+					if group(nodes[k]) == group(_held): nxt = nodes[k]
+					break
+			if nxt != null: _held = nxt
+			else: _release(car)
 		ni += 1
 	# 앞 점(lookahead)
 	var look := 2.6 + car.v * 0.3
@@ -380,20 +388,47 @@ func _brake(car: Car3D, delta: float) -> void:
 	car.velocity = -car.global_transform.basis.z * car.v + Vector3(0, car._vy, 0)
 	car.move_and_slide()
 
-func _take(car: Car3D, nd: Variant) -> bool:
+## 붙은 갈림목(10m 안 — 북쪽 골목과 남쪽 다리가 몇 m 어긋나 큰길에 붙은 데)은 한 교차로 칸 — 둘 사이에 선 차끼리 서로 막았다(2026-10-26)
+static var _grp := {}
+static var _grp_ver := -1
+static func group(nd: Variant) -> Variant:
+	if not (nd is int): return nd
+	if _grp_ver != RoadNet.version:
+		_grp_ver = RoadNet.version; _grp.clear()
+		var ns: Array = RoadNet.nodes()
+		for i in ns.size():
+			if _grp.has(i): continue
+			_grp[i] = i
+			for j in range(i + 1, ns.size()):
+				if not _grp.has(j) and (ns[i] as Vector2).distance_to(ns[j]) < 10.0 and RoadNet.adj()[j].size() >= 3 and RoadNet.adj()[i].size() >= 3: _grp[j] = i
+	return _grp.get(nd, nd)
+
+func _take(car: Car3D, nd0: Variant) -> bool:
+	var nd: Variant = group(nd0)
 	var axis_in := 0 if absf(centers[ni].x - centers[ni - 1].x) > absf(centers[ni].z - centers[ni - 1].z) else 1
 	var straight := ni + 1 < centers.size() and ((centers[ni + 1] - centers[ni]).normalized()).dot((centers[ni] - centers[ni - 1]).normalized()) > 0.95
 	var hs: Array = (locks.get(nd, []) as Array).filter(func(h: Dictionary) -> bool:
 		var hc: Variant = h["car"]
-		return is_instance_valid(hc) and hc != car and true and (hc as Car3D).rail != null and (hc as Car3D).rail._held == nd)
+		return is_instance_valid(hc) and hc != car and true and (hc as Car3D).rail != null and group((hc as Car3D).rail._held) == nd)
+	var now := Time.get_ticks_msec() / 1000.0
+	var q: Array = (queue.get(nd, []) as Array).filter(func(w: Dictionary) -> bool: return is_instance_valid(w["car"]) and now - float(w["seen"]) < 1.5)
+	var mine: Dictionary = {}
+	for w in q: if w["car"] == car: mine = w
+	if mine.is_empty(): mine = { "car": car, "t": now, "seen": now }; q.append(mine)
+	mine["seen"] = now
+	queue[nd] = q
 	for h in hs:
 		if not (straight and bool(h["straight"]) and int(h["axis"]) == axis_in): locks[nd] = hs; return false
+	if hs.is_empty():   # 비었으면 먼저 온 차부터(퇴근길 교차로에서 아무나 먼저 들어 서로 막았다, 2026-10-26)
+		for w in q:
+			if w["car"] != car and float(w["t"]) < float(mine["t"]): locks[nd] = hs; return false
+	queue[nd] = q.filter(func(w: Dictionary) -> bool: return w["car"] != car)
 	hs.append({ "car": car, "axis": axis_in, "straight": straight })
-	locks[nd] = hs; _held = nd
+	locks[nd] = hs; _held = nd0
 	return true
 
 func _release(car: Car3D) -> void:
 	if _held == null: return
-	var nd: Variant = _held
+	var nd: Variant = group(_held)
 	locks[nd] = (locks.get(nd, []) as Array).filter(func(h: Dictionary) -> bool: return h["car"] != car)
 	_held = null

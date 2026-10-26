@@ -37,7 +37,7 @@ func _traffic_init() -> void:
 		var c := _car(KINDS[i % KINDS.size()], park, _road_yaw(park))
 		r.own_car = c
 		commuters.append({ "r": r, "car": c, "home": park, "phase": "home", "dest": {}, "until": Time.get_ticks_msec() / 1000.0 + randf_range(20.0, 120.0),
-			"work": _work_for(dp, i, c), "go_h": 5.8 + fmod(float(r.uid) * 0.37, 1.2), "back_h": 13.4 + fmod(float(r.uid) * 0.53, 1.0), "went": false })
+			"work": _work_for(dp, i, c), "go_h": 5.8 + fmod(float(r.uid) * 0.37, 1.8), "back_h": 12.8 + fmod(float(r.uid) * 0.53, 2.2), "went": false })
 	var drivers: Array = residents.filter(func(x: Resident) -> bool: return not (x is ResidentKid) and x.job == "" and x.own_car == null and not picks.has(x))
 	for i in mini(CRUISERS, drivers.size()):   # 큰길 위에 늘어놓고 바로 출발
 		var r: Resident = drivers[i]
