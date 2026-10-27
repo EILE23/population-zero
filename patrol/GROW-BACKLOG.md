@@ -1488,3 +1488,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-26) When two residents make up after a quarrel, they take turns adding one carved wooden bead to a string hanging at the church gate each evening until the garland is full and they walk together again.
 - [ ] (town wish, 2026-10-27) A stone cobbler's alcove tucked against the old court wall is used by an itinerant boot repairer who takes worn shoes from passing residents and leaves them polished on the ledge by dusk.
 - [ ] (town wish, 2026-10-27) A stone lamp-lighter's nook built under the stairs at lantern court serves as a rest spot for the night watchman, who trims wicks and fills brass oil flasks between scheduled rounds.
+- [ ] (town wish, 2026-10-27) A narrow cobbler's annex built behind the bakery allows the shoe mender to accept worn work boots through a hatch in the morning and return them resoled by dusk.
