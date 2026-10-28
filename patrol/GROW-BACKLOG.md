@@ -1491,3 +1491,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-27) A narrow cobbler's annex built behind the bakery allows the shoe mender to accept worn work boots through a hatch in the morning and return them resoled by dusk.
 - [ ] (town wish, 2026-10-28) Every afternoon an elderly resident walks across the park at half speed while a young resident circles them twice on a wooden scooter before running ahead to wait at the gate.
 - [ ] (town wish, 2026-10-28) An elderly resident sitting on a bench folds newspaper into small boats that a younger resident gathers and races across the fountain basin with a stick.
+- [ ] (town wish, 2026-10-28) When an elderly resident sets their market basket down to rest, a child resident pauses their wandering, grabs the second handle, and shuffles alongside them to the nearest bench.
