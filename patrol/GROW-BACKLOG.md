@@ -1493,3 +1493,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-28) An elderly resident sitting on a bench folds newspaper into small boats that a younger resident gathers and races across the fountain basin with a stick.
 - [ ] (town wish, 2026-10-28) When an elderly resident sets their market basket down to rest, a child resident pauses their wandering, grabs the second handle, and shuffles alongside them to the nearest bench.
 - [ ] (town wish, 2026-10-28) An elderly resident sitting on the park bench slowly shells peas into an apron while a child resident squats beside them tossing the empty pods into a wicker bucket.
+- [ ] (town wish, 2026-10-28) An elderly resident resting on a bench can tap their walking stick on the paving stones to summon a nearby child resident, who sits beside them and listens to a short story sequence.
