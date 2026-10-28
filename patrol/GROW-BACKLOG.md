@@ -1489,4 +1489,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-27) A stone cobbler's alcove tucked against the old court wall is used by an itinerant boot repairer who takes worn shoes from passing residents and leaves them polished on the ledge by dusk.
 - [ ] (town wish, 2026-10-27) A stone lamp-lighter's nook built under the stairs at lantern court serves as a rest spot for the night watchman, who trims wicks and fills brass oil flasks between scheduled rounds.
 - [ ] (town wish, 2026-10-27) A narrow cobbler's annex built behind the bakery allows the shoe mender to accept worn work boots through a hatch in the morning and return them resoled by dusk.
-- [ ] (town wish, 2026-10-28) Elderly residents sitting on benches periodically pat the seat beside them, prompting a nearby child resident to sit and listen until handed a small carved wooden toy.
+- [ ] (town wish, 2026-10-28) Every afternoon an elderly resident walks across the park at half speed while a young resident circles them twice on a wooden scooter before running ahead to wait at the gate.
