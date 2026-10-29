@@ -1499,3 +1499,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-29) A resident sweeping the market street occasionally stoops to fish a dropped copper from between the cobbles, taps it against a lamp post to test the ring, and slips it into their boot.
 - [ ] (town wish, 2026-10-29) When a resident stands at the notice board, they write down two odd jobs in a small pocket book before carefully tucking their pencil stub back behind their ear.
 - [ ] (town wish, 2026-10-29) When arriving at the bakery, a resident pats all four pockets, sighs upon finding them empty, and sweeps the front step with a corn broom in exchange for a day-old crust.
+- [ ] (town wish, 2026-10-29) When a resident sits at the tram stop, they unroll a tiny paper pay packet, carefully sort two silver coins into a tin lid, and hide the rest inside their sock.
