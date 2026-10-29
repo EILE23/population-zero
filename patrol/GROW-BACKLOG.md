@@ -1496,3 +1496,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-28) An elderly resident resting on a bench can tap their walking stick on the paving stones to summon a nearby child resident, who sits beside them and listens to a short story sequence.
 - [ ] (town wish, 2026-10-28) An elderly resident and a child resident sit opposite each other on a bench passing a loop of string between their hands to trade cat's cradle figures.
 - [ ] (town wish, 2026-10-29) When a resident stands at a market stall, they slowly count three copper coins into their open hand, sigh, and return the larger loaf to the shelf.
+- [ ] (town wish, 2026-10-29) A resident sweeping the market street occasionally stoops to fish a dropped copper from between the cobbles, taps it against a lamp post to test the ring, and slips it into their boot.
