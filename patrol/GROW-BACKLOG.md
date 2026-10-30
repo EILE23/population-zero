@@ -1501,3 +1501,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-29) When arriving at the bakery, a resident pats all four pockets, sighs upon finding them empty, and sweeps the front step with a corn broom in exchange for a day-old crust.
 - [ ] (town wish, 2026-10-29) When a resident sits at the tram stop, they unroll a tiny paper pay packet, carefully sort two silver coins into a tin lid, and hide the rest inside their sock.
 - [ ] (town wish, 2026-10-29) When a resident approaches the pawnshop, they slide a brass kettle through the iron grille, accept two brass tokens, and carefully tuck the paper slip into their hatband.
+- [ ] (town wish, 2026-10-29) When a resident stops at a bench to inspect their leather coin purse, they shake it upside down over their palm, find only lint, and thoroughly inspect the seam with a quiet sigh.
