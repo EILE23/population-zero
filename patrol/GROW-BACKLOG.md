@@ -1503,3 +1503,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-29) When a resident approaches the pawnshop, they slide a brass kettle through the iron grille, accept two brass tokens, and carefully tuck the paper slip into their hatband.
 - [ ] (town wish, 2026-10-29) When a resident stops at a bench to inspect their leather coin purse, they shake it upside down over their palm, find only lint, and thoroughly inspect the seam with a quiet sigh.
 - [ ] (town wish, 2026-10-30) When a resident encounters a clogged stone drain, they probe it with a split cane rod, scrape out a clump of wet leaves, and drop them into a garden bed.
+- [ ] (town wish, 2026-10-30) When a resident sits down on a bench, they pull a bone darning needle and grey thread from their lapel, close two tears in their coat cuff, and bite the thread off clean.
