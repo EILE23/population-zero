@@ -1505,3 +1505,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-30) When a resident encounters a clogged stone drain, they probe it with a split cane rod, scrape out a clump of wet leaves, and drop them into a garden bed.
 - [ ] (town wish, 2026-10-30) When a resident sits down on a bench, they pull a bone darning needle and grey thread from their lapel, close two tears in their coat cuff, and bite the thread off clean.
 - [ ] (town wish, 2026-10-30) When a resident stops before a loose signpost, they wedge a pine splinter into the base gap, tap it snug with the heel of their boot, and test that the board sits straight.
+- [ ] (town wish, 2026-10-30) When a resident spots litter near a public bench, they spear it with a sharpened hazel stick, flick it into a canvas shoulder pouch, and tamp the grass flat with the heel of their boot.
