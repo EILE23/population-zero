@@ -1510,3 +1510,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-30) When a resident stops at a stone stair, they pull a stiff wire broom from their shoulder strap, sweep five handfuls of loose gravel out of the riser corner, and kick the pile into the road drain.
 - [ ] (town wish, 2026-10-30) When a resident reaches a rusted lamp post, they pull a rag soaked in lard from a tin, rub the iron housing until it shines, and tuck the rag into a side pouch.
 - [ ] (town wish, 2026-10-30) When a resident approaches a mossy stone trough, they pull a flat wooden scraper from their belt, peel three long strips of green moss from the rim, and drop them into a wicker basket for mulch.
+- [ ] (town wish, 2026-10-30) When a resident finds a split wooden fence picket, they fit an iron band around the timber, drive two clout nails with a cobbler's hammer, and test the rail for shake.
