@@ -1515,3 +1515,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-31) When two residents meet near an open flagstone, one draws a chalk ring and tosses three slate washers inside, and any human can click the circle to pitch a fourth washer to beat the closest lie.
 - [ ] (town wish, 2026-10-31) When two residents pause by an upright barrel, they stack three empty tin cans in a pyramid on the lid and take turns flicking plum stones to topple them, and any human can click the barrel to take a flick.
 - [ ] (town wish, 2026-10-31) When two residents meet by a flat flagstone, one scratches a hopscotch ladder in red brick dust, and any human can click the squares in sequence to kick a flat shoe heel to the top without stepping on a line.
+- [ ] (town wish, 2026-10-31) When two residents pause at a flat timber bench, one sets down a wooden board with twelve shallow cups and three score pegs, and any human can click a cup to sow six dry hazel beans around the board.
