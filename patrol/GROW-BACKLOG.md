@@ -1513,3 +1513,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-30) When a resident finds a split wooden fence picket, they fit an iron band around the timber, drive two clout nails with a cobbler's hammer, and test the rail for shake.
 - [ ] (town wish, 2026-10-30) When a resident reaches a clogged street gutter grate, they drag a bent iron rod down the slots, scoop out a wad of soggy leaves, and fling them into the roadside bin.
 - [ ] (town wish, 2026-10-31) When two residents meet near an open flagstone, one draws a chalk ring and tosses three slate washers inside, and any human can click the circle to pitch a fourth washer to beat the closest lie.
+- [ ] (town wish, 2026-10-31) When two residents pause by an upright barrel, they stack three empty tin cans in a pyramid on the lid and take turns flicking plum stones to topple them, and any human can click the barrel to take a flick.
