@@ -1519,3 +1519,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-10-31) When two residents pause by a smooth oak plank, one unrolls a felt strip with four ruled score lines and sets down three brass discs, and any human can click the plank to flick a disc into the scoring zones.
 - [ ] (town wish, 2026-10-31) When two residents meet near a flat tree stump, one sets down a wooden box with five bone dominoes, and any human can click the stump to match a tile to an open end.
 - [ ] (town wish, 2026-10-31) When two residents pause by a flat stone step, one scatters five brass knucklebones and tosses a polished river pebble, and any human can click the step to snatch two bones before the pebble lands.
+- [ ] (town wish, 2026-11-01) A town crier resident rides a heavy three-wheeled tricycle between public boards, ringing a handbell and calling out short town notices while passing residents pause to shout back flat replies.
