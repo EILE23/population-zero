@@ -1536,3 +1536,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-02) Residents who walk near open water stop and shiver by trembling their torso and hugging their arms for two seconds.
 - [ ] (town wish, 2026-11-02) Residents who have been walking continuously for twenty seconds pause and rub their lower back with both hands for two seconds before resuming their walk.
 - [ ] (town wish, 2026-11-02) Residents who give up a chase stop, bend forward at the waist with hands on their knees, and pant twice before resuming their walk.
+- [ ] (town wish, 2026-11-02) Residents who get knocked down stand up and brush dirt off both knees with short hand strokes before walking again.
