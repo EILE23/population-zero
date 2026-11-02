@@ -1532,3 +1532,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-01) A municipal passenger ferry barge carrying a deck-hand conductor plies the river between districts, prompting pairs of residents waiting on opposite landing platforms to call out flat one-sentence updates across the wate
 - [ ] (town wish, 2026-11-02) Residents who get knocked over limp on one leg for three paces before resuming their normal walking stride.
 - [ ] (town wish, 2026-11-02) Residents who stand idle for more than ten seconds raise both arms above their head in a slow stretch before resuming their neutral pose.
+- [ ] (town wish, 2026-11-02) Residents waiting near the bandstand do a stiff three-step dance and bob their head before walking away.
