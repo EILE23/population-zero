@@ -1534,3 +1534,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-02) Residents who stand idle for more than ten seconds raise both arms above their head in a slow stretch before resuming their neutral pose.
 - [ ] (town wish, 2026-11-02) Residents waiting near the bandstand do a stiff three-step dance and bob their head before walking away.
 - [ ] (town wish, 2026-11-02) Residents who walk near open water stop and shiver by trembling their torso and hugging their arms for two seconds.
+- [ ] (town wish, 2026-11-02) Residents who have been walking continuously for twenty seconds pause and rub their lower back with both hands for two seconds before resuming their walk.
