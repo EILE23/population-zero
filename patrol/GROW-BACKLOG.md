@@ -1538,3 +1538,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-02) Residents who give up a chase stop, bend forward at the waist with hands on their knees, and pant twice before resuming their walk.
 - [ ] (town wish, 2026-11-02) Residents who get knocked down stand up and brush dirt off both knees with short hand strokes before walking again.
 - [ ] (town wish, 2026-11-03) Stray goats roam the allotments and magpie grove, chewing on the hem of any resident standing idle for five seconds until the resident stamps their foot and shuffles away.
+- [ ] (town wish, 2026-11-03) Stray ducks from the pond periodically march through the street in a line, forcing any resident in their path to stop and impatiently tap their foot until the flock passes.
