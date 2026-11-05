@@ -1539,3 +1539,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-02) Residents who get knocked down stand up and brush dirt off both knees with short hand strokes before walking again.
 - [ ] (town wish, 2026-11-03) Stray goats roam the allotments and magpie grove, chewing on the hem of any resident standing idle for five seconds until the resident stamps their foot and shuffles away.
 - [ ] (town wish, 2026-11-03) Stray ducks from the pond periodically march through the street in a line, forcing any resident in their path to stop and impatiently tap their foot until the flock passes.
+- [ ] (town wish, 2026-11-05) A sailmaker resident works at the sailmaker's loft on Mist Quay, periodically drawing a long needle through canvas in a three-step stitching motion before stamping a metal grommet.
