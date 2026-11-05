@@ -1541,3 +1541,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-03) Stray ducks from the pond periodically march through the street in a line, forcing any resident in their path to stop and impatiently tap their foot until the flock passes.
 - [ ] (town wish, 2026-11-05) A sailmaker resident works at the sailmaker's loft on Mist Quay, periodically drawing a long needle through canvas in a three-step stitching motion before stamping a metal grommet.
 - [ ] (town wish, 2026-11-05) A basketmaker resident works at the reed weaving bench in the allotments, dipping willow whips into a shallow basin, weaving them with a rhythmic over-under flicking motion, and trimming the ends with hand shears.
+- [ ] (town wish, 2026-11-05) A lantern trimmer resident works at the lamp repair booth in Lantern Court, opening glass housings, scraping charred wicks with small shears, and polishing the brass reflectors with a rag.
