@@ -1546,3 +1546,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-05) A cooper resident works at the stave hoop bench in the cooperage, hammering iron hoops down around wooden staves with a heavy mallet in three rhythmic strikes before checking barrel tightness with a wooden wedge.
 - [ ] (town wish, 2026-11-06) Residents carrying parchment-wrapped pasties stop at benches to take three slow bites, blow on the hot filling, and fold the greaseproof wrapper into a neat triangle before putting it in their pocket.
 - [ ] (town wish, 2026-11-06) Residents carrying two tin cups of chicory coffee offer one to nearby seated residents, who nod twice in thanks and sip together until both cups are emptied and tucked away.
+- [ ] (town wish, 2026-11-06) Residents purchasing a pretzel at the bakery stall pull off a salt-covered piece, toss it into their mouth, and wrap the rest in a handkerchief before walking on.
