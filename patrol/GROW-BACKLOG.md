@@ -1550,3 +1550,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-06) Residents buying a cup of yellow pea soup at the market counter blow across the steam three times, sprinkle dried marjoram from a shaker, and carry it with both hands.
 - [ ] (town wish, 2026-11-06) Residents buying a paper cone of roasted broad beans at the market stall toss three beans into their mouth one by one, shake the cone to settle the rest, and tuck it under their arm.
 - [ ] (town wish, 2026-11-06) Residents carrying a bowl of onion broth sit at a bench, blow away the floating croutons, sip three times, and wipe the spoon on a linen napkin before standing up.
+- [ ] (town wish, 2026-11-07) Two paired residents take a daily joint walk across town, but if one gets shoved by a player, the pair spends the next day walking separately on opposite sides of the street before meeting at the bench to reconcile with 
