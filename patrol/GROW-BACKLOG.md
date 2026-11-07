@@ -1555,3 +1555,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-07) Paired residents who fall out after a shove spend two days sitting at separate benches turning away when they pass, until one leaves a potted primrose at the other's door to make up.
 - [ ] (town wish, 2026-11-07) Two paired residents who fall out after a shove sit at opposite ends of the same long bench for three days, sliding slightly closer each afternoon until they finally share a bag of plums.
 - [ ] (town wish, 2026-11-07) Two companion residents who get knocked down while strolling spend the next two mornings walking on opposite sides of the street tossing pebbles across the roadway without making eye contact, until meeting at the fountai
+- [ ] (town wish, 2026-11-07) Two paired residents who fall out after a shove spend three days taking turns leaving a slice of caraway cake on each other's doorstep until one eats it on the third afternoon and waits at the gate.
