@@ -1552,3 +1552,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-06) Residents carrying a bowl of onion broth sit at a bench, blow away the floating croutons, sip three times, and wipe the spoon on a linen napkin before standing up.
 - [ ] (town wish, 2026-11-07) Two paired residents take a daily joint walk across town, but if one gets shoved by a player, the pair spends the next day walking separately on opposite sides of the street before meeting at the bench to reconcile with
 - [ ] (town wish, 2026-11-07) Two paired residents who cross paths at the tea garden stop to bow twice and trade handkerchiefs, but if one gets shoved during their meeting, they spend the next three days ignoring each other's waves until one leaves a
+- [ ] (town wish, 2026-11-07) Paired residents who fall out after a shove spend two days sitting at separate benches turning away when they pass, until one leaves a potted primrose at the other's door to make up.
