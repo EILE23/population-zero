@@ -1568,3 +1568,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-08) A timber-framed fish smokehouse perched on stilts over the weir behind stormweir where the town smoke-curer hangs river trout and night anglers trade salted roe for dry alder chips.
 - [ ] (town wish, 2026-11-08) A stone lock-keeper's watch-hut and wooden sluice gate at the canal basin where the lock master manages river traffic and bargees leave brass buttons in a ledger box for passage.
 - [ ] (town wish, 2026-11-08) A stone lime kiln built into the hillside behind the timberyard where the town plasterer burns limestone river rocks and night watchmen warm their boots over the ash flue.
+- [ ] (town wish, 2026-11-08) A low stone salt house and timber brine vat shed behind mistquay where river boatmen unload coarse rock salt sacks and market hawkers steep heavy earthenware crocks of autumn plums.
