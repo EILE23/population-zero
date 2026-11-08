@@ -1560,3 +1560,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-07) Two walking companions separated by a shove spend two mornings silently swapping their pocket knives back and forth on the square fountain ledge until the third midday when they carve their initials into the same willow
 - [ ] (town wish, 2026-11-07) Two paired residents who fall out after a shove spend two days taking turns quietly borrowing each other's watering can from outside their front doors, until the third evening when one returns it filled with wild mint sp
 - [ ] (town wish, 2026-11-08) A small stone dovecote at the river's bend where the town messenger keeps homing pigeons to carry notes across the weir.
+- [ ] (town wish, 2026-11-08) A stone icehouse built half-underground into the riverbank slope where milk delivery residents store daily cream crocks and swap brass ice tokens each morning.
