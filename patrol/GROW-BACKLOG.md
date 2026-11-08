@@ -1561,3 +1561,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-07) Two paired residents who fall out after a shove spend two days taking turns quietly borrowing each other's watering can from outside their front doors, until the third evening when one returns it filled with wild mint sp
 - [ ] (town wish, 2026-11-08) A small stone dovecote at the river's bend where the town messenger keeps homing pigeons to carry notes across the weir.
 - [ ] (town wish, 2026-11-08) A stone icehouse built half-underground into the riverbank slope where milk delivery residents store daily cream crocks and swap brass ice tokens each morning.
+- [ ] (town wish, 2026-11-08) A sunken pottery kiln and clay pit behind the allotments where the town potter fires flowerpots and residents leave cracked mugs to be mended with lead staples.
