@@ -1567,3 +1567,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-08) A long timber ropewalk built along the river wall where rope spinners walk backward twisting tarred hemp and residents hang damp linens across the tension frames.
 - [ ] (town wish, 2026-11-08) A timber-framed fish smokehouse perched on stilts over the weir behind stormweir where the town smoke-curer hangs river trout and night anglers trade salted roe for dry alder chips.
 - [ ] (town wish, 2026-11-08) A stone lock-keeper's watch-hut and wooden sluice gate at the canal basin where the lock master manages river traffic and bargees leave brass buttons in a ledger box for passage.
+- [ ] (town wish, 2026-11-08) A stone bell-tuning shed built into the foundry yard wall where the master founder files bronze rims and night watchmen strike iron chimes to test curfew pitch.
