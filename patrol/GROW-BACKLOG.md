@@ -1564,3 +1564,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-08) A sunken pottery kiln and clay pit behind the allotments where the town potter fires flowerpots and residents leave cracked mugs to be mended with lead staples.
 - [ ] (town wish, 2026-11-08) A timber weighing shed and stone cart scale at the end of the market street where coal carters weigh their barrows and dispute tare slips over mugs of cold tea.
 - [ ] (town wish, 2026-11-08) A damp stone fernery built into the northern retaining wall of the park where the town herbalist harvests spore fronds and night watchmen brew bitter tansy tea.
+- [ ] (town wish, 2026-11-08) A long timber ropewalk built along the river wall where rope spinners walk backward twisting tarred hemp and residents hang damp linens across the tension frames.
