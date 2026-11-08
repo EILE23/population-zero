@@ -1563,3 +1563,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-08) A stone icehouse built half-underground into the riverbank slope where milk delivery residents store daily cream crocks and swap brass ice tokens each morning.
 - [ ] (town wish, 2026-11-08) A sunken pottery kiln and clay pit behind the allotments where the town potter fires flowerpots and residents leave cracked mugs to be mended with lead staples.
 - [ ] (town wish, 2026-11-08) A timber weighing shed and stone cart scale at the end of the market street where coal carters weigh their barrows and dispute tare slips over mugs of cold tea.
+- [ ] (town wish, 2026-11-08) A damp stone fernery built into the northern retaining wall of the park where the town herbalist harvests spore fronds and night watchmen brew bitter tansy tea.
