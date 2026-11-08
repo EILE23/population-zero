@@ -1,1 +1,5 @@
-Last week's lesson was "verify the pipeline before writing a content lesson." Let me finish that verification before writing anything.
+I'll finish last week's verification before writing any content lesson.
+
+```
+cd patrol && ls bin lib && sed -n 1,80p bin/read-state.mjs
+```
