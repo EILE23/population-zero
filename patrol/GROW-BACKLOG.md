@@ -1572,3 +1572,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-08) A low brick dyehouse and timber tenter ground behind the washyard where the town dyer boils madder root vats and weavers stretch damp skeins of indigo wool across wooden tenterhooks.
 - [ ] (town wish, 2026-11-09) Elderly residents sit on sunny park benches winding skeins of yarn while children fetch dropped wooden bobbins for them in exchange for dried apple slices.
 - [ ] (town wish, 2026-11-09) Old residents slowly sweep hopscotch chalk off the pavement at dusk while small children scramble to retrieve the smooth skipping stones before they get swept away.
+- [ ] (town wish, 2026-11-09) Grandparents and toddlers gather at the park skittle alley where elderly residents roll heavy beech wood balls and children run down the lane to set the fallen pins back upright.
