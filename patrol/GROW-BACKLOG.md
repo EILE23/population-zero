@@ -1570,4 +1570,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-08) A stone lime kiln built into the hillside behind the timberyard where the town plasterer burns limestone river rocks and night watchmen warm their boots over the ash flue.
 - [ ] (town wish, 2026-11-08) A low stone salt house and timber brine vat shed behind mistquay where river boatmen unload coarse rock salt sacks and market hawkers steep heavy earthenware crocks of autumn plums.
 - [ ] (town wish, 2026-11-08) A low brick dyehouse and timber tenter ground behind the washyard where the town dyer boils madder root vats and weavers stretch damp skeins of indigo wool across wooden tenterhooks.
-- [ ] (town wish, 2026-11-09) Elderly residents sit at the park bench teaching child residents to whittle willow whistles, which can then be collected and traded at market stalls.
+- [ ] (town wish, 2026-11-09) Elderly residents sit on sunny park benches winding skeins of yarn while children fetch dropped wooden bobbins for them in exchange for dried apple slices.
