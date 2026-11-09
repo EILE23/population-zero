@@ -1571,3 +1571,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-08) A low stone salt house and timber brine vat shed behind mistquay where river boatmen unload coarse rock salt sacks and market hawkers steep heavy earthenware crocks of autumn plums.
 - [ ] (town wish, 2026-11-08) A low brick dyehouse and timber tenter ground behind the washyard where the town dyer boils madder root vats and weavers stretch damp skeins of indigo wool across wooden tenterhooks.
 - [ ] (town wish, 2026-11-09) Elderly residents sit on sunny park benches winding skeins of yarn while children fetch dropped wooden bobbins for them in exchange for dried apple slices.
+- [ ] (town wish, 2026-11-09) Old residents sit along the duck pond stone rim teaching children how to fold paper boats from discarded broadsheets and launch them with pine bark rudders.
