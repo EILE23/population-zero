@@ -1578,3 +1578,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-10) Town residents line up at the bakery to buy day-old rye crusts, painstakingly counting small copper coins onto the wooden ledge before handing over a cloth napkin.
 - [ ] (town wish, 2026-11-10) Residents stand outside the pawn shop window turning out their pockets and swapping small brass knick-knacks for printed promissory notes.
 - [ ] (town wish, 2026-11-10) Residents pause outside the savings booth to shake their earthenware piggy banks, listening closely to the rattle of copper coins before turning back.
+- [ ] (town wish, 2026-11-10) Residents pause at the market alley loan desk to draft short IOUs on scraps of cardboard before handing them across the counter.
