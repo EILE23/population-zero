@@ -1587,3 +1587,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-11) Residents stoop along the square railings with horn pots of pitch, dabbing black tar over rust flakes with frayed willow twigs and testing the spots with a thumb.
 - [ ] (town wish, 2026-11-11) Residents crouch beside alley storm drains with long iron hooks, dragging out sodden leaf mats and piling them into wicker handcarts.
 - [ ] (town wish, 2026-11-11) Residents carry torn canvas awnings to the wash yard bench, patching the rips with sailmaker's needles and waxing the seams with tallow cakes.
+- [ ] (town wish, 2026-11-11) Residents carry wooden ash boxes from house hearths to the allotment beds, sifting cold cinders through wire riddles before working the dust into the wet soil.
