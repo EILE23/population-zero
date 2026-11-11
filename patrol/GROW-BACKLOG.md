@@ -1583,3 +1583,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-11) Residents carry zinc buckets of water to the street cobbles, scrubbing scuff marks with stiff bristled brushes before tipping the rinse down the drain.
 - [ ] (town wish, 2026-11-11) Residents periodically crouch along pavement seams with notched iron weeders, levering out crabgrass roots and tucking them into burlap waist aprons.
 - [ ] (town wish, 2026-11-11) Residents carry split broom heads to the square corner, wrapping wet jute twine around the loose bundles and testing the sweep against the flags.
+- [ ] (town wish, 2026-11-11) Residents carry dull garden spades to the street lamp, scraping dried clay off the iron collars with oyster shells before buffing the edges on the kerbstone.
