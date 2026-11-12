@@ -1589,3 +1589,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-11) Residents carry torn canvas awnings to the wash yard bench, patching the rips with sailmaker's needles and waxing the seams with tallow cakes.
 - [ ] (town wish, 2026-11-11) Residents carry wooden ash boxes from house hearths to the allotment beds, sifting cold cinders through wire riddles before working the dust into the wet soil.
 - [ ] (town wish, 2026-11-12) Residents crouch beside the square cobbles to flick lead washers into a chalk ring, passing the spare counter to anyone who stops to kneel beside them.
+- [ ] (town wish, 2026-11-12) Residents set up wooden skittles against the alley wall and take turns rolling heavy oak balls, handing a spare ball to any passerby who pauses.
