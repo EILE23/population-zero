@@ -1591,3 +1591,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-12) Residents crouch beside the square cobbles to flick lead washers into a chalk ring, passing the spare counter to anyone who stops to kneel beside them.
 - [ ] (town wish, 2026-11-12) Residents lean a notched timber board against the street wall, taking turns pitching brass tokens into carved cutouts and handing a spare token to anyone who stops.
 - [ ] (town wish, 2026-11-12) Residents stand by the bowling green edge taking turns rolling smoothed granite cobbles toward an iron target ring, offering a stone to anyone who stands near the mark.
+- [ ] (town wish, 2026-11-12) Residents sit on the edge of the promenade stairs with a notched pine plank, taking turns sliding polished cherry pits toward painted rings and sliding a spare pit to anyone who sits beside them.
