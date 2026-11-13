@@ -1595,3 +1595,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-12) Residents lean over the river path bridge railing to drop numbered wooden sticks into the current, racing them down to the weir and handing a spare stick to anyone who leans beside them.
 - [ ] (town wish, 2026-11-12) Residents sit at the slate domino table in the tea garden, taking turns matching carved bone tiles and sliding a spare tile to anyone who sits down.
 - [ ] (town wish, 2026-11-13) Residents walking past each other on a path pause briefly to exchange a spoken line with a small text pop-up above their heads before resuming their route.
+- [ ] (town wish, 2026-11-13) Residents standing at a speaking tube booth trigger a text pop-up message above the paired booth on another map.
