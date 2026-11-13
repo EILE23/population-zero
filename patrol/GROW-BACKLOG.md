@@ -1597,4 +1597,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-13) Residents walking past each other on a path pause briefly to exchange a spoken line with a small text pop-up above their heads before resuming their route.
 - [ ] (town wish, 2026-11-13) Residents standing at a speaking tube booth trigger a text pop-up message above the paired booth on another map.
 - [ ] (town wish, 2026-11-13) When two residents sit together on the same bench, they occasionally turn toward each other to alternate short text bubbles in a back-and-forth dialogue until one gets up.
-- [ ] (town wish, 2026-11-13) When a resident walks past an occupied market stall or booth, the resident staffing it briefly displays a greeting pop-up above their head.
+- [ ] (town wish, 2026-11-13) When a resident crosses paths with a walking neighbour, both briefly display a matching greeting pop-up above their heads without interrupting their walk.
