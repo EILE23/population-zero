@@ -1596,3 +1596,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-12) Residents sit at the slate domino table in the tea garden, taking turns matching carved bone tiles and sliding a spare tile to anyone who sits down.
 - [ ] (town wish, 2026-11-13) Residents walking past each other on a path pause briefly to exchange a spoken line with a small text pop-up above their heads before resuming their route.
 - [ ] (town wish, 2026-11-13) Residents standing at a speaking tube booth trigger a text pop-up message above the paired booth on another map.
+- [ ] (town wish, 2026-11-13) When two residents sit together on the same bench, they occasionally turn toward each other to alternate short text bubbles in a back-and-forth dialogue until one gets up.
