@@ -1599,3 +1599,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-13) When two residents sit together on the same bench, they occasionally turn toward each other to alternate short text bubbles in a back-and-forth dialogue until one gets up.
 - [ ] (town wish, 2026-11-13) When a resident walks past an occupied market stall or booth, the resident staffing it briefly displays a greeting pop-up above their head.
 - [ ] (town wish, 2026-11-13) When two residents cross paths on a gate or archway, both briefly pause to exchange a quiet nod and alternating text bubbles before passing through.
+- [ ] (town wish, 2026-11-13) When two residents walk in the same direction along a path within two meters of each other, they match pace for three seconds and exchange alternating text pop-up comments before branching off.
