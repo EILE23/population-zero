@@ -1601,3 +1601,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-13) When two residents cross paths on a gate or archway, both briefly pause to exchange a quiet nod and alternating text bubbles before passing through.
 - [ ] (town wish, 2026-11-13) When two residents walk in the same direction along a path within two meters of each other, they match pace for three seconds and exchange alternating text pop-up comments before branching off.
 - [ ] (town wish, 2026-11-13) When a resident walks past an open window of any house, an off-duty resident inside occasionally leans out to display a single passing greeting bubble above the sill.
+- [ ] (town wish, 2026-11-13) When two residents walking in opposite directions pass each other on a path, they trade short contextual text bubbles based on the time of day before continuing on.
