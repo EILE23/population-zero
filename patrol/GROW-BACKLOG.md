@@ -1609,3 +1609,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-14) When a resident idles outdoors near any pond, fountain, or weir, they occasionally shiver with a rapid two-frame shoulder tremor and tuck their hands into their pockets.
 - [ ] (town wish, 2026-11-14) When a resident stops within four meters of the bandstand or any stage, they perform an awkward three-frame side-to-side sway dance before resuming their route.
 - [ ] (town wish, 2026-11-14) When a resident steps down from a curb or wooden threshold onto cobbles, they stumble forward for two frames before catching their balance and continuing.
+- [ ] (town wish, 2026-11-14) When a resident changes direction along a path, they perform a two-frame pivot motion where their torso flips first before their legs catch up.
