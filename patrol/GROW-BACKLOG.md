@@ -1604,3 +1604,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-13) When two residents walking in opposite directions pass each other on a path, they trade short contextual text bubbles based on the time of day before continuing on.
 - [ ] (town wish, 2026-11-13) When three residents find themselves idling within three meters of each other, they form a small semi-circle and alternate three sequential text speech bubbles before dispersing.
 - [ ] (town wish, 2026-11-13) When a resident stands waiting at a tram stop booth or station platform, they occasionally mutter a text speech bubble announcing an imaginary route destination and estimated delay.
+- [ ] (town wish, 2026-11-14) When a resident remains idle for more than ten seconds near a bench or garden, they perform a brief overhead stretch animation before continuing their walk.
