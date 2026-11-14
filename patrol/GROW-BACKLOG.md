@@ -1605,3 +1605,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-13) When three residents find themselves idling within three meters of each other, they form a small semi-circle and alternate three sequential text speech bubbles before dispersing.
 - [ ] (town wish, 2026-11-13) When a resident stands waiting at a tram stop booth or station platform, they occasionally mutter a text speech bubble announcing an imaginary route destination and estimated delay.
 - [ ] (town wish, 2026-11-14) When a resident remains idle for more than ten seconds near a bench or garden, they perform a brief overhead stretch animation before continuing their walk.
+- [ ] (town wish, 2026-11-14) When a resident gets back up after being knocked over, they walk with a three-second limping gait before returning to their regular pace.
