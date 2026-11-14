@@ -1608,4 +1608,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-14) When a resident gets back up after being knocked over, they walk with a three-second limping gait before returning to their regular pace.
 - [ ] (town wish, 2026-11-14) When a resident idles outdoors near any pond, fountain, or weir, they occasionally shiver with a rapid two-frame shoulder tremor and tuck their hands into their pockets.
 - [ ] (town wish, 2026-11-14) When a resident stops within four meters of the bandstand or any stage, they perform an awkward three-frame side-to-side sway dance before resuming their route.
-- [ ] (town wish, 2026-11-14) When a resident stops to read any notice board or slate, they tilt their head back and rub the back of their neck with one hand.
+- [ ] (town wish, 2026-11-14) When a resident steps down from a curb or wooden threshold onto cobbles, they stumble forward for two frames before catching their balance and continuing.
