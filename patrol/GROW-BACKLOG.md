@@ -1613,3 +1613,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-14) When a resident passes through any gate, archway, or doorway spot, they perform a brief two-frame duck motion where their head lowers and knees bend slightly.
 - [ ] (town wish, 2026-11-14) When two residents pass each other within one meter on any path, they perform a brief one-frame nod animation where their head tilts forward before continuing on.
 - [ ] (town wish, 2026-11-14) When a resident completes a chase without catching anyone, they perform a brief two-frame hands-on-knees breathing motion before returning to their regular walk.
+- [ ] (town wish, 2026-11-15) A pair of pack donkeys roams slowly between the street and square, halting across narrow footpaths to bray loudly at sprinting humans and kicking back with their hind hooves if shoved.
