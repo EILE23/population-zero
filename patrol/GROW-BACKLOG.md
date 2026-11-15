@@ -1615,3 +1615,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-14) When a resident completes a chase without catching anyone, they perform a brief two-frame hands-on-knees breathing motion before returning to their regular walk.
 - [ ] (town wish, 2026-11-15) A pair of pack donkeys roams slowly between the street and square, halting across narrow footpaths to bray loudly at sprinting humans and kicking back with their hind hooves if shoved.
 - [ ] (town wish, 2026-11-15) A flock of domestic geese waddles between the washyard and riverpath, hissing and flapping their wings to block humans who sprint near them, pecking at their ankles until pushed aside.
+- [ ] (town wish, 2026-11-15) A trio of tethered weed-clearing goats grazes along the edges of the allotments and park, bleating sharply and headbutting any human who sprints into their tether radius.
