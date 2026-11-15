@@ -1623,4 +1623,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-15) A pair of aggressive mute swans nests along the riverpath and duck pond, hissing loudly and lunging forward to knock over any human sprinting near their eggs.
 - [ ] (town wish, 2026-11-15) A pair of rotund town pigs roots along the edges of the street and square, flopping down squarely across narrow thresholds to trip sprinting humans and squealing sharply until nudged aside with food.
 - [ ] (town wish, 2026-11-15) A flock of roving town sheep grazes along the park edges and orchard gaps, bunching tightly into a dense fleece wall whenever a human runs toward them and scattering only when slowly approached on foot.
-- [ ] (town wish, 2026-11-15) A murder of opportunistic town crows perches along the roofs of the square and street, swooping down to mob and peck at any human sprint-carrying food items until they drop the meal and flee.
+- [ ] (town wish, 2026-11-15) A clowder of stray town cats prowls the stone perches of the square and market alley, crouching on window ledges to swat hats off sprinting humans and batting dropped items under nearby stalls.
