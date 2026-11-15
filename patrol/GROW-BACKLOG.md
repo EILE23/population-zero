@@ -1616,4 +1616,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-15) A pair of pack donkeys roams slowly between the street and square, halting across narrow footpaths to bray loudly at sprinting humans and kicking back with their hind hooves if shoved.
 - [ ] (town wish, 2026-11-15) A flock of domestic geese waddles between the washyard and riverpath, hissing and flapping their wings to block humans who sprint near them, pecking at their ankles until pushed aside.
 - [ ] (town wish, 2026-11-15) A trio of tethered weed-clearing goats grazes along the edges of the allotments and park, bleating sharply and headbutting any human who sprints into their tether radius.
-- [ ] (town wish, 2026-11-15) A flock of stray carrier pigeons nests around the church and post office, swooping down to aggressively peck at and steal small items from any human holding an object while running.
+- [ ] (town wish, 2026-11-15) A territorial town swan patrols the riverpath and stormweir waters, lunging up onto the bank with spread wings to hiss and yank carried props out of any sprinting human's hands, dropping them directly into the water.
