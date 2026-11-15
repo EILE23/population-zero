@@ -1621,3 +1621,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-15) A pair of stray terrier dogs trots between the market alley and fleamarket, barking sharply and nipping at the trousers of any human running with stolen goods until the item is dropped.
 - [ ] (town wish, 2026-11-15) A pair of heavy dray horses pulls a timber sledge slowly between the timber yard and cooperage, stopping dead across the lane when humans sprint in front of them and nudging them backward with a broad chest.
 - [ ] (town wish, 2026-11-15) A pair of aggressive mute swans nests along the riverpath and duck pond, hissing loudly and lunging forward to knock over any human sprinting near their eggs.
+- [ ] (town wish, 2026-11-15) A pair of rotund town pigs roots along the edges of the street and square, flopping down squarely across narrow thresholds to trip sprinting humans and squealing sharply until nudged aside with food.
