@@ -1619,3 +1619,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-15) A flock of stray carrier pigeons nests around the church and post office, swooping down to aggressively peck at and steal small items from any human holding an object while running.
 - [ ] (town wish, 2026-11-15) A pair of canal mules trudges slowly along the park pond path, coming to an abrupt standstill when a human sprints near them and shoving them backward with a heavy flank if forced.
 - [ ] (town wish, 2026-11-15) A pair of stray terrier dogs trots between the market alley and fleamarket, barking sharply and nipping at the trousers of any human running with stolen goods until the item is dropped.
+- [ ] (town wish, 2026-11-15) A pair of heavy dray horses pulls a timber sledge slowly between the timber yard and cooperage, stopping dead across the lane when humans sprint in front of them and nudging them backward with a broad chest.
