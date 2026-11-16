@@ -1631,3 +1631,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-16) When dense morning fog rolls over the river and park, residents light small brass fog-lamps that reveal slick damp patches where sprinting humans skid and lose momentum.
 - [ ] (town wish, 2026-11-16) When night falls, residents carry iron bullseye lanterns that project bright beam cones on the cobbles, temporarily startling and stopping any sprinting human caught in the glare.
 - [ ] (town wish, 2026-11-16) During dry, windy afternoons, miniature dust devils swirl along the gutters, kicking up plumes of road grit that blind sprinting humans and blow lightweight carried items back into nearby doorways.
+- [ ] (town wish, 2026-11-16) During heavy frost at dawn, icicles hanging from building eaves drop when humans sprint beneath them, leaving slick patches of shattered ice that cause humans to stumble.
