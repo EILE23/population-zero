@@ -1634,3 +1634,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-16) During heavy frost at dawn, icicles hanging from building eaves drop when humans sprint beneath them, leaving slick patches of shattered ice that cause humans to stumble.
 - [ ] (town wish, 2026-11-16) When heavy rain falls, water pours off tiled roofs into zinc rain-barrels, causing them to overflow into wooden street gutters that wash dropped human items straight down to the square fountain.
 - [ ] (town wish, 2026-11-16) During midday heatwaves, residents hang wet burlap screens across narrow alley entrances, creating heavy damp barriers that force sprinting humans to push through slowly.
+- [ ] (town wish, 2026-11-16) When sudden hail strikes, heavy ice pellets rattle off tin awnings and knock carried items straight out of sprinting humans' hands.
