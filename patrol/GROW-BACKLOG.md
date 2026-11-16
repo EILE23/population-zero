@@ -1624,3 +1624,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-15) A pair of rotund town pigs roots along the edges of the street and square, flopping down squarely across narrow thresholds to trip sprinting humans and squealing sharply until nudged aside with food.
 - [ ] (town wish, 2026-11-15) A flock of roving town sheep grazes along the park edges and orchard gaps, bunching tightly into a dense fleece wall whenever a human runs toward them and scattering only when slowly approached on foot.
 - [ ] (town wish, 2026-11-15) A clowder of stray town cats prowls the stone perches of the square and market alley, crouching on window ledges to swat hats off sprinting humans and batting dropped items under nearby stalls.
+- [ ] (town wish, 2026-11-16) When rain begins, residents immediately pop open broad oiled umbrellas that deflect thrown items, while any human sprinting on wet cobbles skids two paces forward when attempting to turn.
