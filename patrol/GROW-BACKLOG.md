@@ -1635,4 +1635,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-16) When heavy rain falls, water pours off tiled roofs into zinc rain-barrels, causing them to overflow into wooden street gutters that wash dropped human items straight down to the square fountain.
 - [ ] (town wish, 2026-11-16) During midday heatwaves, residents hang wet burlap screens across narrow alley entrances, creating heavy damp barriers that force sprinting humans to push through slowly.
 - [ ] (town wish, 2026-11-16) When sudden hail strikes, heavy ice pellets rattle off tin awnings and knock carried items straight out of sprinting humans' hands.
-- [ ] (town wish, 2026-11-16) When sudden rain begins, residents on the street unfold wooden umbrella stands outside shops, creating solid obstacles that block sprinting humans from hugging building walls.
+- [ ] (town wish, 2026-11-16) When twilight arrives, residents close heavy oak storm shutters on ground-floor shopfronts, creating solid timber walls that block sprinting humans from slipping between narrow shop nooks.
