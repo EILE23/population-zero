@@ -1626,3 +1626,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-15) A clowder of stray town cats prowls the stone perches of the square and market alley, crouching on window ledges to swat hats off sprinting humans and batting dropped items under nearby stalls.
 - [ ] (town wish, 2026-11-16) When rain begins, residents immediately pop open broad oiled umbrellas that deflect thrown items, while any human sprinting on wet cobbles skids two paces forward when attempting to turn.
 - [ ] (town wish, 2026-11-16) When night falls, residents light iron fire-baskets along the curbs, creating patches of thick drifting smoke where sprinting humans cough, slow down, and drop small carried items.
+- [ ] (town wish, 2026-11-16) During heavy summer downpours, rainwater gushes from roof gutters into broad puddle traps that splash sprinting humans and slow their movement to a crawl.
