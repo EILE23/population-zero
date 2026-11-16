@@ -1629,3 +1629,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-16) During heavy summer downpours, rainwater gushes from roof gutters into broad puddle traps that splash sprinting humans and slow their movement to a crawl.
 - [ ] (town wish, 2026-11-16) During scorching midday heat, residents unfurl heavy canvas storefront awnings with brass poles, snapping them taut across the walkway to swat sprinting humans back onto the open cobbles.
 - [ ] (town wish, 2026-11-16) When dense morning fog rolls over the river and park, residents light small brass fog-lamps that reveal slick damp patches where sprinting humans skid and lose momentum.
+- [ ] (town wish, 2026-11-16) When night falls, residents carry iron bullseye lanterns that project bright beam cones on the cobbles, temporarily startling and stopping any sprinting human caught in the glare.
