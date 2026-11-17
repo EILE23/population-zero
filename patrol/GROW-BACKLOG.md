@@ -1638,3 +1638,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-16) When twilight arrives, residents close heavy oak storm shutters on ground-floor shopfronts, creating solid timber walls that block sprinting humans from slipping between narrow shop nooks.
 - [ ] (town wish, 2026-11-17) A paver resident moves along the street, using an iron pry-bar to lever up cracked cobbles, pouring grit underneath, and tamping them flat with a heavy wooden beetle.
 - [ ] (town wish, 2026-11-17) A signwriter resident paints fresh lettering on shop fascia boards, leaving wet paint trays on stepladders that spill and smear sprinting humans who collide with them.
+- [ ] (town wish, 2026-11-17) A knife-grinder resident pedals a portable treadle stone along the street curb, touching kitchen cleavers to the wet wheel to throw bursts of sparks that cause sprinting humans to flinch and veer.
