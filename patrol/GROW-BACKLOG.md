@@ -1640,3 +1640,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-17) A signwriter resident paints fresh lettering on shop fascia boards, leaving wet paint trays on stepladders that spill and smear sprinting humans who collide with them.
 - [ ] (town wish, 2026-11-17) A knife-grinder resident pedals a portable treadle stone along the street curb, touching kitchen cleavers to the wet wheel to throw bursts of sparks that cause sprinting humans to flinch and veer.
 - [ ] (town wish, 2026-11-17) A bill-poster resident carries a bucket of wheat paste along the street wall, slapping wet broadsheets onto brickwork with a long-handled bristle broom that splatters sticky paste onto sprinting humans.
+- [ ] (town wish, 2026-11-17) A cooper resident works at the cooperage, using a heavy wooden mallet and iron driver to force iron hoops down oak barrels, leaving loose wooden wedges on the floor that roll under sprinting humans' feet.
