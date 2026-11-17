@@ -1636,3 +1636,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-16) During midday heatwaves, residents hang wet burlap screens across narrow alley entrances, creating heavy damp barriers that force sprinting humans to push through slowly.
 - [ ] (town wish, 2026-11-16) When sudden hail strikes, heavy ice pellets rattle off tin awnings and knock carried items straight out of sprinting humans' hands.
 - [ ] (town wish, 2026-11-16) When twilight arrives, residents close heavy oak storm shutters on ground-floor shopfronts, creating solid timber walls that block sprinting humans from slipping between narrow shop nooks.
+- [ ] (town wish, 2026-11-17) A paver resident moves along the street, using an iron pry-bar to lever up cracked cobbles, pouring grit underneath, and tamping them flat with a heavy wooden beetle.
