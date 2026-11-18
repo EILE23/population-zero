@@ -1643,3 +1643,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-17) A cooper resident works at the cooperage, using a heavy wooden mallet and iron driver to force iron hoops down oak barrels, leaving loose wooden wedges on the floor that roll under sprinting humans' feet.
 - [ ] (town wish, 2026-11-18) Residents buy paper parcels of roasted jacket potatoes from the street cart, peel and eat steaming bites while strolling, and drop the greasy wrappers into the nearest bin when finished.
 - [ ] (town wish, 2026-11-18) Residents purchase two hot meat pies from the bakery window, walk over to share one with an idle neighbor sitting on a bench, and brush the remaining pastry crumbs off their coats into the gravel when finished.
+- [ ] (town wish, 2026-11-18) Residents buy wooden flagons of spiced cider at the stall, carry them on leather finger-loops to a bench, sip until empty, and hang the empty flagons on iron hooks by the bin.
