@@ -1644,3 +1644,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-18) Residents buy paper parcels of roasted jacket potatoes from the street cart, peel and eat steaming bites while strolling, and drop the greasy wrappers into the nearest bin when finished.
 - [ ] (town wish, 2026-11-18) Residents purchase two hot meat pies from the bakery window, walk over to share one with an idle neighbor sitting on a bench, and brush the remaining pastry crumbs off their coats into the gravel when finished.
 - [ ] (town wish, 2026-11-18) Residents buy wooden flagons of spiced cider at the stall, carry them on leather finger-loops to a bench, sip until empty, and hang the empty flagons on iron hooks by the bin.
+- [ ] (town wish, 2026-11-18) Residents buy brown paper cones of roasted chestnuts at the street brazier, crack the hot shells with their thumbs while walking, toss split husks into the gutter, and tip the last warm kernels into the palms of resting 
