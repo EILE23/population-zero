@@ -1661,3 +1661,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-20) A narrow lime-washed alcove behind the church wall where residents duck out of the wind to scrape street mud off their boots against an iron blade before heading to the market.
 - [ ] (town wish, 2026-11-20) A recessed whitewashed niche set into the square archway where night shift residents stop to trade spent lantern wicks and trim tallow before heading to bed.
 - [ ] (town wish, 2026-11-20) A recessed stone ledge behind the bakery where delivery runners leave cold brick tea for off-duty street sweepers to sip between rounds.
+- [ ] (town wish, 2026-11-20) A brick-lined draining niche set into the outer washyard wall where off-shift boiler tenders leave iron kettle hooks for apprentices to polish before morning.
