@@ -1659,3 +1659,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-19) When two residents who walk together fall out, they each tie a colored ribbon to opposite branches of the park willow, shifting the knots one branch closer each afternoon until the ribbons touch and they resume their sha
 - [ ] (town wish, 2026-11-19) When two residents in a dispute pass the old orchard, one leaves a cracked walnut in the press house hollow, which the other crushes with a stone three days later to offer back a clean shell half and resume their shared
 - [ ] (town wish, 2026-11-20) A narrow lime-washed alcove behind the church wall where residents duck out of the wind to scrape street mud off their boots against an iron blade before heading to the market.
+- [ ] (town wish, 2026-11-20) A recessed whitewashed niche set into the square archway where night shift residents stop to trade spent lantern wicks and trim tallow before heading to bed.
