@@ -1670,3 +1670,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-21) When an elderly resident rests near the park flower beds, children occasionally stop to ask them to untie stubborn knots in their skipping ropes.
 - [ ] (town wish, 2026-11-21) When an older resident sits by the duck pond, nearby children occasionally squat beside them to take a piece of stale crust and flick it onto the water.
 - [ ] (town wish, 2026-11-21) When an elderly resident sits at the square café, children occasionally pause to let them wind up mechanical tin toys before setting them loose across the cobbles.
+- [ ] (town wish, 2026-11-21) When an elderly resident rests near the park swings, young children occasionally pause to ask them to adjust the leather safety strap before taking a push.
