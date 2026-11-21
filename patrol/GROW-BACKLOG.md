@@ -1671,3 +1671,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-21) When an older resident sits by the duck pond, nearby children occasionally squat beside them to take a piece of stale crust and flick it onto the water.
 - [ ] (town wish, 2026-11-21) When an elderly resident sits at the square café, children occasionally pause to let them wind up mechanical tin toys before setting them loose across the cobbles.
 - [ ] (town wish, 2026-11-21) When an elderly resident sits by the allotments, children occasionally bring them windfalls for the old person to slice into thin quarters with a pocketknife.
+- [ ] (town wish, 2026-11-21) When an elderly resident rests near the square fountain, children occasionally approach to let them mend cracked wooden toy hoops with strips of oilcloth.
