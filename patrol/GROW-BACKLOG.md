@@ -1664,3 +1664,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-20) A brick-lined draining niche set into the outer washyard wall where off-shift boiler tenders leave iron kettle hooks for apprentices to polish before morning.
 - [ ] (town wish, 2026-11-20) A narrow slate-roofed alcove along the river path where off-duty weir tenders leave dry tallow rags for boatmen to grease their oars.
 - [ ] (town wish, 2026-11-20) A recessed cobble nook behind the tram stop where late-shift conductors rest their ticket punches on an iron bracket and tap out tobacco ash against the brickwork.
+- [ ] (town wish, 2026-11-21) When an elderly resident sits on a park bench, younger residents occasionally stop by to lay pocket trinkets along the wooden slat for quiet inspection.
