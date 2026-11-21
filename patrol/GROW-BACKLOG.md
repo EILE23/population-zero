@@ -1675,3 +1675,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-21) When an elderly resident sits by the bowlinggreen, children occasionally hand them a dull brass button for the elder to polish clean on their wool coat sleeve.
 - [ ] (town wish, 2026-11-21) When a toddler sits on the street curb, an older resident will occasionally pause to adjust the child's woollen cap so it stops slipping over their eyes.
 - [ ] (town wish, 2026-11-21) When an elderly resident sits by the park duck pond, toddlers walking past will occasionally pause to let them re-tie the loose cotton laces on their small shoes.
+- [ ] (town wish, 2026-11-21) When an elderly resident sits by the teagarden, passing children occasionally bring them a pressed flower to slip inside their heavy pocket almanac.
