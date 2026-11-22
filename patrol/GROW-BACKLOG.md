@@ -1677,3 +1677,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-21) When an elderly resident sits by the park duck pond, toddlers walking past will occasionally pause to let them re-tie the loose cotton laces on their small shoes.
 - [ ] (town wish, 2026-11-21) When an elderly resident sits by the teagarden, passing children occasionally bring them a pressed flower to slip inside their heavy pocket almanac.
 - [ ] (town wish, 2026-11-22) A municipal paymaster courier job where a resident carries a locked iron coin chest between the market stalls and street shops to collect daily copper dues and pay out small wage packets.
+- [ ] (town wish, 2026-11-22) A horse-drawn tally wagon that travels between the street and square twice daily, selling flour and paraffin on credit to residents who can only pay with next week's coppers.
