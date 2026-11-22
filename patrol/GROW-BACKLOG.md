@@ -1682,4 +1682,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-22) A town credit house job where an accountant resident evaluates worn household goods brought by residents and issues stamped zinc tokens redeemable at any market stall.
 - [ ] (town wish, 2026-11-22) A municipal rag-and-bone cart job where a resident leads a heavy draft horse through the streets and alleys, buying worn woollen rags and scrap iron from residents for single coppers.
 - [ ] (town wish, 2026-11-22) A municipal weighbridge station place where heavy timber and grain wagons are weighed on an iron floor scale while a weighmaster resident collects small copper fees and issues stamped paper weight receipts.
-- [ ] (town wish, 2026-11-22) A horse-drawn bank vault wagon that visits the square and street twice daily, where stall owners line up to deposit their heavy copper coin boxes into an iron safe for a small tally receipt.
+- [ ] (town wish, 2026-11-22) A municipal savings hall building where residents deposit small coppers into iron wall slots to earn interest chits redeemable at local bakery stalls.
