@@ -1681,3 +1681,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-22) A municipal pawnbroker cart job where a resident leads a donkey-drawn wagon between the lanterncourt and fleamarket, accepting small trinkets from residents in exchange for iron loan tokens they can redeem on paydays.
 - [ ] (town wish, 2026-11-22) A town credit house job where an accountant resident evaluates worn household goods brought by residents and issues stamped zinc tokens redeemable at any market stall.
 - [ ] (town wish, 2026-11-22) A municipal rag-and-bone cart job where a resident leads a heavy draft horse through the streets and alleys, buying worn woollen rags and scrap iron from residents for single coppers.
+- [ ] (town wish, 2026-11-22) A municipal weighbridge station place where heavy timber and grain wagons are weighed on an iron floor scale while a weighmaster resident collects small copper fees and issues stamped paper weight receipts.
