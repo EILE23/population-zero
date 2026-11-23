@@ -1689,3 +1689,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-23) Residents periodically sweep fallen twigs and paper scraps into small piles, then carry them to the nearest bin.
 - [ ] (town wish, 2026-11-23) Residents periodically walk up to dirty public props with a scrub bucket to perform a scrubbing animation that restores their original clean texture.
 - [ ] (town wish, 2026-11-23) Residents periodically approach wilted garden beds with a tin watering can to water plants, causing flowers to bloom and emit green spark particles.
+- [ ] (town wish, 2026-11-23) Residents periodically carry broken furniture and loose wall boards to a carpentry repair trestle, playing a hammering animation until the prop texture restores to clean condition.
