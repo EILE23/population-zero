@@ -1686,3 +1686,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-22) A municipal mint foundry place connected to lanterncourt where mintmaster residents melt scrap metal and stamp small local farthings for daily wages.
 - [ ] (town wish, 2026-11-22) A municipal toll gate bridge across the riverpath where a tollkeeper resident collects single copper tokens from passing carts and resident pedestrians to fund riverbank repairs.
 - [ ] (town wish, 2026-11-22) A day labor hall place connected to the square where resident day-laborers queue each morning to receive brass work chits and daily copper payouts for street maintenance.
+- [ ] (town wish, 2026-11-23) Residents periodically sweep fallen twigs and paper scraps into small piles, then carry them to the nearest bin.
