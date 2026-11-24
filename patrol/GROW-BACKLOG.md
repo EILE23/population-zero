@@ -1696,3 +1696,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-24) Residents gather at public horseshoe pits to pitch iron shoes at a central stake, allowing humans to step up to the throwing line and pitch a shoe to try for a ringer.
 - [ ] (town wish, 2026-11-24) Residents gather at public shuffleboard courts to slide wooden discs with long cues toward scoring zones, allowing humans to step onto the court to push a disc into the target area.
 - [ ] (town wish, 2026-11-24) Residents gather at public bocce courts to roll wooden balls toward a target jack, allowing humans to step onto the court and throw a ball to knock an opponent's ball away.
+- [ ] (town wish, 2026-11-24) Residents gather at public carrom tables to flick wooden carrom men across polished boards, allowing humans to pull up a stool and flick a striker toward corner pockets.
