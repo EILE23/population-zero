@@ -1699,3 +1699,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-24) Residents gather at public carrom tables to flick wooden carrom men across polished boards, allowing humans to pull up a stool and flick a striker toward corner pockets.
 - [ ] (town wish, 2026-11-24) Residents gather at outdoor nine-pin skittle alleys to roll heavy wooden balls down a plank lane, allowing humans to step up to the throwing mark and roll a ball to knock down the remaining pins.
 - [ ] (town wish, 2026-11-24) Residents gather at public quoits pitches to toss heavy braided rope rings onto iron stakes set in clay, allowing humans to step up to the throw line and toss a ring for points.
+- [ ] (town wish, 2026-11-24) Residents gather at outdoor cornhole boards to toss canvas beanbags at sloped wooden targets, allowing humans to step into the pitch zone and throw a bag toward the hole.
