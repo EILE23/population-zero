@@ -1693,3 +1693,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-23) Residents periodically approach crumbling brickwork with a trowel to slap fresh mortar into loose joints.
 - [ ] (town wish, 2026-11-23) Residents periodically gather broken glass shards and earthenware chips off cobbles into leather aprons and dump them into cullet bins.
 - [ ] (town wish, 2026-11-24) Residents gather at public game tables to take turns placing domino tiles, allowing humans to sit in an open stool and play a tile into the matching sequence.
+- [ ] (town wish, 2026-11-24) Residents gather at public horseshoe pits to pitch iron shoes at a central stake, allowing humans to step up to the throwing line and pitch a shoe to try for a ringer.
