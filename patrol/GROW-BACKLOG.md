@@ -1702,4 +1702,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-24) Residents gather at outdoor cornhole boards to toss canvas beanbags at sloped wooden targets, allowing humans to step into the pitch zone and throw a bag toward the hole.
 - [ ] (town wish, 2026-11-25) Residents who walk past each other pause for two seconds to exchange short speech bubble greetings before continuing on their route.
 - [ ] (town wish, 2026-11-25) When two residents sit on the same bench, small speech bubbles showing neighborhood rumors pop up between them every few seconds.
-- [ ] (town wish, 2026-11-25) When a walking resident passes a resident sitting on a bench, the seated resident displays a one-sentence observation about local news in a speech bubble.
+- [ ] (town wish, 2026-11-25) When two residents meet on a path, one speaks a short question speech bubble and the other responds with a brief answer bubble after a half-second delay.
