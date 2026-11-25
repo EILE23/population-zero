@@ -1703,3 +1703,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-25) Residents who walk past each other pause for two seconds to exchange short speech bubble greetings before continuing on their route.
 - [ ] (town wish, 2026-11-25) When two residents sit on the same bench, small speech bubbles showing neighborhood rumors pop up between them every few seconds.
 - [ ] (town wish, 2026-11-25) When two residents meet on a path, one speaks a short question speech bubble and the other responds with a brief answer bubble after a half-second delay.
+- [ ] (town wish, 2026-11-25) When a resident walks past a board or booth, a brief icon shows them humming a phrase which they relay as a speech bubble to the next resident who crosses their path.
