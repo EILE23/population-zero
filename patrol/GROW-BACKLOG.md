@@ -1707,3 +1707,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-25) When a resident stops at a shop counter, a brief two-line exchange bubble appears between the customer and shopkeeper speech bubbles about current items for sale before they separate.
 - [ ] (town wish, 2026-11-26) When a resident stands idle for more than ten seconds, they perform a wide arm stretch overhead and shake out their legs before resuming their walk.
 - [ ] (town wish, 2026-11-27) Stray cats roam between garden spots and benches, following residents who carry fish scraps and darting into nearby bushes whenever a human steps close.
+- [ ] (town wish, 2026-11-27) Crows gather near bakery and market stalls to eat dropped crumbs, leaving shiny brass tokens on benches when fed but flying up to roof edges if a human approaches.
