@@ -1706,3 +1706,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-25) When a resident walks past a board or booth, a brief icon shows them humming a phrase which they relay as a speech bubble to the next resident who crosses their path.
 - [ ] (town wish, 2026-11-25) When a resident stops at a shop counter, a brief two-line exchange bubble appears between the customer and shopkeeper speech bubbles about current items for sale before they separate.
 - [ ] (town wish, 2026-11-26) When a resident stands idle for more than ten seconds, they perform a wide arm stretch overhead and shake out their legs before resuming their walk.
+- [ ] (town wish, 2026-11-27) Stray cats roam between garden spots and benches, following residents who carry fish scraps and darting into nearby bushes whenever a human steps close.
