@@ -1709,3 +1709,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-27) Stray cats roam between garden spots and benches, following residents who carry fish scraps and darting into nearby bushes whenever a human steps close.
 - [ ] (town wish, 2026-11-27) Crows gather near bakery and market stalls to eat dropped crumbs, leaving shiny brass tokens on benches when fed but flying up to roof edges if a human approaches.
 - [ ] (town wish, 2026-11-27) Goats wander between the allotments and timberyard, trotting up to residents carrying oat buckets for treats but stubbornly blocking humans who try to push past them.
+- [ ] (town wish, 2026-11-27) Swans glide along the stormweir and riverpath, trailing behind residents who toss grain and hissing softly before swimming to the far bank whenever a human steps close.
