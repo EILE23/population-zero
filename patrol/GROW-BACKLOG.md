@@ -1712,3 +1712,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-27) Swans glide along the stormweir and riverpath, trailing behind residents who toss grain and hissing softly before swimming to the far bank whenever a human steps close.
 - [ ] (town wish, 2026-11-27) Red foxes wander through the oldorchard and magpiegrove at dusk, trailing residents holding meat scraps and trotting into hollow trees if a human comes close.
 - [ ] (town wish, 2026-11-27) Otters swim along the pond and river edges, following residents who carry fish pails and splashing water at humans who try to reach for them.
+- [ ] (town wish, 2026-11-28) When rain begins to fall, residents unfurl dark cloth umbrellas and hustle toward the nearest awning or porch, leaving wet footprints on dry indoor thresholds.
