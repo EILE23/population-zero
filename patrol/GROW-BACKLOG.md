@@ -1714,3 +1714,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-27) Otters swim along the pond and river edges, following residents who carry fish pails and splashing water at humans who try to reach for them.
 - [ ] (town wish, 2026-11-28) When rain begins to fall, residents unfurl dark cloth umbrellas and hustle toward the nearest awning or porch, leaving wet footprints on dry indoor thresholds.
 - [ ] (town wish, 2026-11-28) When a heatwave hits, residents gather under shade trees and fan themselves with folded paper flyers, occasionally walking to public water spigots to splash cold water on their faces.
+- [ ] (town wish, 2026-11-28) When dusk falls, residents carry long brass pole lighters from streetlamp to streetlamp to ignite the wicks, pausing to warm their hands over the glass frames before continuing their route.
