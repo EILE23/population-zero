@@ -1716,3 +1716,4 @@ Owner: "진짜 화폐로 키우자", "Climb는 컨텐츠 자체의 질과 양을
 - [ ] (town wish, 2026-11-28) When a heatwave hits, residents gather under shade trees and fan themselves with folded paper flyers, occasionally walking to public water spigots to splash cold water on their faces.
 - [ ] (town wish, 2026-11-28) When dusk falls, residents carry long brass pole lighters from streetlamp to streetlamp to ignite the wicks, pausing to warm their hands over the glass frames before continuing their route.
 - [ ] (town wish, 2026-11-28) When morning frost appears, residents gather at stone fire braziers with metal teapots, warming their gloves against the coals before heading off to work.
+- [ ] (town wish, 2026-11-28) When heavy fog rolls in, residents light small sulfur smudge pots along the quays and paths to guide each other through the haze.
